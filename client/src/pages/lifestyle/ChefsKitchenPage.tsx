@@ -58,6 +58,7 @@ import {
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 
 type KitchenMode = "studio" | "prepare";
 
@@ -910,6 +911,12 @@ export default function ChefsKitchenPage() {
                       <span>{mealToShow.servingSize || `${servings} ${servings === 1 ? "serving" : "servings"}`}</span>
                     </div>
                   </div>
+
+                  <ServingInstructionsBlock
+                    servings={servings}
+                    mealName={mealToShow.name}
+                    description={mealToShow.description}
+                  />
 
                   {/* Macros */}
                   {(() => {

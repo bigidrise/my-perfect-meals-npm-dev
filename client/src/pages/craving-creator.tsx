@@ -121,6 +121,7 @@ import TrashButton from "@/components/ui/TrashButton";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 
 // ---- Persist the generated meal so it never "disappears" ----
 const CACHE_KEY = "cravingCreator.cache.v1";
@@ -1245,6 +1246,12 @@ export default function CravingCreator() {
                           {meal.servingSize || "1 serving"}
                         </div>
                       </div>
+
+                      <ServingInstructionsBlock
+                        servings={servings}
+                        mealName={meal.name}
+                        description={meal.description}
+                      />
 
                       {/* Per-Serving Info for Multiple Servings */}
                       {servings > 1 && (

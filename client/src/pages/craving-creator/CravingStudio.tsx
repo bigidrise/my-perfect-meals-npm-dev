@@ -38,6 +38,7 @@ import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { FlavorToggle } from "@/components/FlavorToggle";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 
 type StudioStep = 1 | 2 | 3 | 4 | 5;
 
@@ -891,6 +892,12 @@ export default function CravingStudio() {
                       </span>
                     </div>
                   </div>
+
+                  <ServingInstructionsBlock
+                    servings={servings}
+                    mealName={mealToShow.name}
+                    description={mealToShow.description}
+                  />
 
                   {/* Macros - Per Serving */}
                   {(() => {
