@@ -19,6 +19,7 @@ import {
   FileText,
   Zap,
   Users,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
@@ -510,26 +511,89 @@ const libraryTopics: LibraryTopic[] = [
   },
   {
     id: "meal-builder",
-    title: "How the Meal Builder Works",
-    icon: Utensils,
+    title: "How Meal Builders & Support Systems Work",
+    icon: Layers,
     content: {
       sections: [
         {
-          heading: "Build Your Day",
-          text: "The Meal Builder lets you construct a full day of eating that hits your exact macro targets.",
+          heading: "This Isn't Just a Meal Generator",
+          text: "Most nutrition apps give you generic meals and hope you figure it out. My Perfect Meals works differently. Every meal comes from a structured system built around your goals, your body, your preferences, and when needed, your medical context. You're not just getting meals — you're getting guided decisions before you eat.",
         },
         {
-          heading: "How It Works",
-          list: [
-            "Add breakfast, lunch, dinner, and snacks",
-            "Watch your macro totals update in real-time",
-            "Swap meals until the numbers align",
-            "Save complete meal days for future use",
-          ],
+          heading: "The Two-Layer System",
+          text: "Everything in the app runs on two layers. Layer 1 is your Meal Builder — your foundation that determines the type of meals you get. Layer 2 is your Support System — additional rules applied on top when needed based on health needs or physician guidance.",
         },
         {
-          heading: "The Benefit",
-          text: "No more guessing. No more hoping the math works out. You see exactly where you stand before eating a single bite.",
+          heading: "General Nutrition",
+          text: "Your everyday system. Best for fat loss, maintenance, and building consistency. Balanced meals, real-life eating, sustainability.",
+        },
+        {
+          heading: "Performance & Competition",
+          text: "Built for serious training and physique goals. Higher precision, performance fueling, muscle support.",
+        },
+        {
+          heading: "Anti-Inflammatory",
+          text: "Your clinical-friendly foundation. Best for inflammation concerns, autoimmune support, and physician-guided nutrition. Cleaner ingredients, reduced inflammatory patterns, structured meals.",
+        },
+        {
+          heading: "Diabetic",
+          text: "Built for blood sugar awareness. Carb control, glucose stability, real-time adjustments through GlucoseGuard.",
+        },
+        {
+          heading: "GLP-1 Support",
+          text: "Built for reduced appetite environments. Nutrient density, protein priority, easier-to-finish meals for GLP-1 users.",
+        },
+        {
+          heading: "Chef's Kitchen",
+          text: "Creates one complete dish at a time. Not a meal plan — a real cooking tool. Step-by-step execution, real kitchen meals, practical prep.",
+        },
+        {
+          heading: "Craving Creator",
+          text: "You tell the app what you want. It makes it fit your plan. Satisfying cravings, macro-aligned versions, no guilt approach.",
+        },
+        {
+          heading: "Dessert Creator",
+          text: "Desserts that actually fit your numbers. Portion-aware treats, realistic enjoyment, controlled indulgence.",
+        },
+        {
+          heading: "Fridge Rescue",
+          text: "Uses what you already have. Best for leftovers, low-effort days, and real-life situations where you just need a solution.",
+        },
+        {
+          heading: "Support Systems (When Needed)",
+          text: "Support systems are not separate builders. They are layers added on top of your meals when needed. They adjust ingredients, preparation style, food texture, and meal structure — without breaking your macros.",
+        },
+        {
+          heading: "Cardiac Support",
+          text: "Heart-aware meal structure. Emphasizes better fat quality, smarter sodium awareness, and supportive ingredient choices.",
+        },
+        {
+          heading: "Liver Support",
+          text: "Reduces strain on the liver. Cleaner foods, reduced processed load, supportive nutrition patterns.",
+        },
+        {
+          heading: "Kidney / Renal Support",
+          text: "Adds kidney-conscious structure. Physician-guided restrictions and careful ingredient selection.",
+        },
+        {
+          heading: "Lipid Support",
+          text: "Supports cholesterol and lipid goals. Focus on fat quality, fiber, and heart-supportive meals.",
+        },
+        {
+          heading: "Cancer Support Nutrition (Physician Assigned)",
+          text: "A physician-assigned support system — not treatment or medical care. Built on an anti-inflammatory foundation with protein support, easier-to-tolerate meals, appetite-aware structure, and symptom-sensitive adjustments. Examples include low-appetite support, nausea-friendly meals, soft food options, and low-prep meals during fatigue.",
+        },
+        {
+          heading: "With a Coach or Physician (ProCare)",
+          text: "When you connect with a professional through ProCare, they can assign your meal builder, apply support systems, and adjust your plan in real time. You still own your plan. They guide it.",
+        },
+        {
+          heading: "Why This Matters",
+          text: "Most apps track what you already ate. This app helps you decide what to eat before you eat it. That's where results actually happen — not in the log, but in the decision.",
+        },
+        {
+          heading: "Important",
+          text: "My Perfect Meals provides nutrition guidance only. It does not diagnose, treat, or replace medical care. Always follow your physician's recommendations for any medical condition.",
         },
       ],
     },
