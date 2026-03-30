@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { CalendarPlus, Lock, ChevronLeft } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { getActiveBuilderNs } from "@/lib/activeBuilderNs";
 import {
   Drawer,
   DrawerContent,
@@ -84,7 +85,9 @@ export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanBu
     setBoardLoading(true);
     try {
       const weekStart = getWeekStartISO();
-      const res = await fetch(apiUrl(`/api/weekly-board?week=${encodeURIComponent(weekStart)}`), {
+      const ns = getActiveBuilderNs();
+      const btParam = ns ? `&bt=${encodeURIComponent(ns)}` : '';
+      const res = await fetch(apiUrl(`/api/weekly-board?week=${encodeURIComponent(weekStart)}${btParam}`), {
         credentials: "include",
         headers: { ...getAuthHeaders() },
       });
@@ -148,6 +151,7 @@ export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanBu
         body: JSON.stringify({
           dateISO: selectedDate,
           slot,
+          bt: getActiveBuilderNs(),
           meal: {
             id: meal.id,
             name: meal.name || meal.title,
