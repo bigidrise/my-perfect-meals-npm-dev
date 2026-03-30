@@ -965,13 +965,13 @@ export default function ChefsKitchenPage() {
                   })()}
 
                   {/* Ingredients */}
-                  {generatedMeal.ingredients?.length > 0 && (
+                  {mealToShow.ingredients?.length > 0 && (
                     <div>
                       <h4 className="font-semibold mb-2 text-white">
                         Ingredients{(servings ?? 1) > 1 ? ` (for ${servings} servings)` : ""}:
                       </h4>
                       <ul className="text-sm text-white/80 space-y-1">
-                        {generatedMeal.ingredients.map((ing, i) => (
+                        {mealToShow.ingredients.map((ing, i) => (
                           <li key={i}>{ing.amount ?? ing.quantity} {ing.unit} {ing.name}</li>
                         ))}
                       </ul>
@@ -1030,6 +1030,7 @@ export default function ChefsKitchenPage() {
                           name: generatedMeal.name,
                           description: generatedMeal.description,
                           instructions: generatedMeal.instructions,
+                          ingredients: generatedMeal.ingredients,
                         }}
                         onTranslate={(updated) => {
                           setDisplayMeal({
@@ -1037,6 +1038,7 @@ export default function ChefsKitchenPage() {
                             name: updated.name || generatedMeal.name,
                             description: updated.description || generatedMeal.description,
                             instructions: updated.instructions || generatedMeal.instructions,
+                            ingredients: (updated.ingredients as any) || generatedMeal.ingredients,
                           });
                         }}
                       />
