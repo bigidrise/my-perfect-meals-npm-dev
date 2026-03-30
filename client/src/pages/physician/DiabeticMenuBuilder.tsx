@@ -202,6 +202,7 @@ export default function DiabeticMenuBuilder() {
     save: saveToHook,
     source,
     refresh: refreshBoard,
+    primeCache,
   } = useWeeklyBoard("1", weekStartISO, proClientId, BUILDER_NS.DIABETIC);
 
   // Local mutable board state for optimistic updates
@@ -678,6 +679,7 @@ export default function DiabeticMenuBuilder() {
           currentBoard: board,
           currentWeekStartISO: weekStartISO,
           namespace: BUILDER_NS.DIABETIC,
+          cacheUserId: proClientId || "1",
         });
 
         if (result.currentWeekBoard) {
@@ -765,8 +767,8 @@ export default function DiabeticMenuBuilder() {
 
       try {
         // Save to the target week (this will use a separate hook instance when we navigate)
-        await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId, BUILDER_NS.DIABETIC);
-        // Navigate to the new week
+        const duplicated = await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId, BUILDER_NS.DIABETIC);
+        primeCache(targetWeekStartISO, duplicated);
         setWeekStartISO(targetWeekStartISO);
         toast({
           title: "Week duplicated",

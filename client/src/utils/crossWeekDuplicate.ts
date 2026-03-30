@@ -2,6 +2,15 @@ import { getWeekStartFromDate } from "@/utils/midnight";
 import { setDayLists, cloneDayLists, type WeekBoard, type WeekLists } from "@/lib/boardApi";
 import { apiJSON } from "@/lib/api";
 
+const BOARD_CACHE_NS = "mpm.weeklyBoard";
+
+function evictBoardCache(cacheUserId: string, weekStartISO: string, namespace?: string): void {
+  const key = namespace
+    ? `${BOARD_CACHE_NS}:${namespace}:${cacheUserId}:${weekStartISO}`
+    : `${BOARD_CACHE_NS}:${cacheUserId}:${weekStartISO}`;
+  try { localStorage.removeItem(key); } catch {}
+}
+
 const TZ = "America/Chicago";
 
 export interface CrossWeekDuplicateResult {
@@ -18,12 +27,14 @@ export async function duplicateAcrossWeeks({
   currentBoard,
   currentWeekStartISO,
   namespace,
+  cacheUserId,
 }: {
   sourceLists: WeekLists;
   targetDates: string[];
   currentBoard: WeekBoard;
   currentWeekStartISO: string;
   namespace?: string;
+  cacheUserId?: string;
 }): Promise<CrossWeekDuplicateResult> {
   const datesByWeek = new Map<string, string[]>();
   for (const dateISO of targetDates) {
@@ -71,6 +82,10 @@ export async function duplicateAcrossWeeks({
         `/api/weekly-board?week=${encodeURIComponent(weekStart)}${btParam}`,
         { method: "PUT", json: { week: remoteBoard } }
       );
+
+      if (cacheUserId) {
+        evictBoardCache(cacheUserId, weekStart, namespace);
+      }
 
       otherWeeksSaved += dates.length;
     } catch (err: any) {

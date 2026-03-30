@@ -138,7 +138,7 @@ export default function WeeklyMealBoard() {
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
   const [weekStartISO, setWeekStartISO] = React.useState<string>(getWeekStartISOInTZ("America/Chicago"));
-  const { board: hookBoard, loading: hookLoading, error, save: saveToHook, source, refresh: refreshBoard } = useWeeklyBoard(clientId, weekStartISO, proClientId, BUILDER_NS.GENERAL_NUTRITION);
+  const { board: hookBoard, loading: hookLoading, error, save: saveToHook, source, refresh: refreshBoard, primeCache } = useWeeklyBoard(clientId, weekStartISO, proClientId, BUILDER_NS.GENERAL_NUTRITION);
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
@@ -477,6 +477,7 @@ export default function WeeklyMealBoard() {
         currentBoard: board,
         currentWeekStartISO: weekStartISO,
         namespace: BUILDER_NS.GENERAL_NUTRITION,
+        cacheUserId: proClientId || clientId,
       });
 
       if (result.currentWeekBoard) {
@@ -522,8 +523,8 @@ export default function WeeklyMealBoard() {
 
     try {
       // Save to the target week (this will use a separate hook instance when we navigate)
-      await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId, BUILDER_NS.GENERAL_NUTRITION);
-      // Navigate to the new week
+      const duplicated = await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId, BUILDER_NS.GENERAL_NUTRITION);
+      primeCache(targetWeekStartISO, duplicated);
       setWeekStartISO(targetWeekStartISO);
       toast({ title: "Week duplicated", description: `Copied to week of ${targetWeekStartISO}` });
     } catch (error) {

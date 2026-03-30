@@ -253,6 +253,7 @@ export default function AntiInflammatoryMenuBuilder() {
     save: saveToHook,
     source,
     refresh: refreshBoard,
+    primeCache,
   } = useWeeklyBoard("2", weekStartISO, proClientId, namespace);
 
   // Local mutable board state for optimistic updates
@@ -734,6 +735,7 @@ export default function AntiInflammatoryMenuBuilder() {
           currentBoard: board,
           currentWeekStartISO: weekStartISO,
           namespace,
+          cacheUserId: proClientId || "2",
         });
 
         if (result.currentWeekBoard) {
@@ -793,8 +795,8 @@ export default function AntiInflammatoryMenuBuilder() {
 
       try {
         // Save to the target week (this will use a separate hook instance when we navigate)
-        await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId, namespace);
-        // Navigate to the new week
+        const duplicated = await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId, namespace);
+        primeCache(targetWeekStartISO, duplicated);
         setWeekStartISO(targetWeekStartISO);
         toast({
           title: "Week duplicated",

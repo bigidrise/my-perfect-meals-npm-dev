@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatWeekRange, getWeekStartISO } from "@/utils/week";
 import { isoToUtcNoonDate } from "@/utils/midnight";
-import { RefreshCw, Loader2, X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 interface DuplicateWeekModalProps {
@@ -146,14 +146,6 @@ export function DuplicateWeekModal({
                 )}
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <Button
-                  onClick={() => window.location.reload()}
-                  size="sm"
-                  className="bg-emerald-700 hover:bg-emerald-800 text-white font-medium flex items-center gap-1.5 min-h-[36px] px-4"
-                >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                  Refresh
-                </Button>
                 <button
                   onClick={() => setShowRefreshBanner(false)}
                   className="text-white/60 hover:text-white p-1.5"

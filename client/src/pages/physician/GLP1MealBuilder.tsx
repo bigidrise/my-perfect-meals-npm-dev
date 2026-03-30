@@ -159,6 +159,7 @@ export default function GLP1MealBuilder() {
     save: saveToHook,
     source,
     refresh: refreshBoard,
+    primeCache,
   } = useWeeklyBoard("1", weekStartISO, proClientId, BUILDER_NS.GLP1);
 
   // Local mutable board state for optimistic updates
@@ -586,6 +587,7 @@ export default function GLP1MealBuilder() {
           currentBoard: board,
           currentWeekStartISO: weekStartISO,
           namespace: BUILDER_NS.GLP1,
+          cacheUserId: proClientId || "1",
         });
 
         if (result.currentWeekBoard) {
@@ -645,8 +647,8 @@ export default function GLP1MealBuilder() {
 
       try {
         // Save to the target week (this will use a separate hook instance when we navigate)
-        await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId, BUILDER_NS.GLP1);
-        // Navigate to the new week
+        const duplicated = await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId, BUILDER_NS.GLP1);
+        primeCache(targetWeekStartISO, duplicated);
         setWeekStartISO(targetWeekStartISO);
         toast({
           title: "Week duplicated",

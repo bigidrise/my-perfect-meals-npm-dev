@@ -221,6 +221,7 @@ export default function BeachBodyMealBoard() {
     error,
     save: saveToHook,
     refresh: refreshBoard,
+    primeCache,
   } = useWeeklyBoard(clientId, weekStartISO, proClientId, BUILDER_NS.BEACH_BODY);
 
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
@@ -704,6 +705,7 @@ export default function BeachBodyMealBoard() {
           currentBoard: board,
           currentWeekStartISO: weekStartISO,
           namespace: BUILDER_NS.BEACH_BODY,
+          cacheUserId: proClientId || clientId,
         });
 
         if (result.currentWeekBoard) {
@@ -761,7 +763,8 @@ export default function BeachBodyMealBoard() {
       };
 
       try {
-        await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId, BUILDER_NS.BEACH_BODY);
+        const duplicated = await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId, BUILDER_NS.BEACH_BODY);
+        primeCache(targetWeekStartISO, duplicated);
         setWeekStartISO(targetWeekStartISO);
         toast({
           title: "Week duplicated",
