@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import {
@@ -417,7 +418,7 @@ export default function ChefsKitchenPage() {
 
       const response = await fetch(apiUrl("/api/meals/craving-creator"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
         body: JSON.stringify({
           cravingInput: cravingPrompt,
