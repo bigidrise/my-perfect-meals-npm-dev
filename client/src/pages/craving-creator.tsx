@@ -203,13 +203,20 @@ export default function CravingCreator() {
   const [isPlatingMeal, setIsPlatingMeal] = useState(false);
 
   const getRecentMeals = (): string[] => {
-    try { return JSON.parse(sessionStorage.getItem('cc_recent_meals') || '[]'); } catch { return []; }
+    try {
+      return JSON.parse(sessionStorage.getItem("cc_recent_meals") || "[]");
+    } catch {
+      return [];
+    }
   };
   const addRecentMeal = (mealName: string): void => {
     try {
       const recent = getRecentMeals();
-      const updated = [mealName, ...recent.filter((m: string) => m !== mealName)].slice(0, 3);
-      sessionStorage.setItem('cc_recent_meals', JSON.stringify(updated));
+      const updated = [
+        mealName,
+        ...recent.filter((m: string) => m !== mealName),
+      ].slice(0, 3);
+      sessionStorage.setItem("cc_recent_meals", JSON.stringify(updated));
     } catch {}
   };
   const [selectedDiet, setSelectedDiet] = useState<string>("");
@@ -231,7 +238,9 @@ export default function CravingCreator() {
     triggerAlert: triggerDietAlert,
     activeDiet,
   } = useDietGuardPrecheck();
-  const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(null);
+  const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(
+    null,
+  );
   // Get actual user ID from auth context for medical safety
   const { user } = useAuth();
   const sweetenerPreferences = user?.sweetenerPreferences || [];
@@ -333,7 +342,10 @@ export default function CravingCreator() {
         }
       }
     } catch (imgErr) {
-      console.warn("[CRAVING CREATOR] Image generation failed, using fallback:", imgErr);
+      console.warn(
+        "[CRAVING CREATOR] Image generation failed, using fallback:",
+        imgErr,
+      );
     }
 
     setGeneratedMeals([finalMeal]);
@@ -604,7 +616,9 @@ export default function CravingCreator() {
         setIsGenerating(false);
         const userDiet = normalizeDiet(user?.dietaryRestrictions);
         if (data.dietAdapted) {
-          setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
+          setDietAdaptedNotice(
+            data.dietNotice || `Adapted for your ${userDiet} diet.`,
+          );
           clearDietAlert();
         }
         setMealOptions(data.meals);
@@ -616,13 +630,22 @@ export default function CravingCreator() {
       // 🥗 Scenario A: server already flagged diet adaptation — accept the meal, show soft notice
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
       if (data.dietAdapted) {
-        setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
+        setDietAdaptedNotice(
+          data.dietNotice || `Adapted for your ${userDiet} diet.`,
+        );
         clearDietAlert();
-      } else if (!skipPreflight && activeDiet && !mealMatchesDiet(userDiet, meal)) {
+      } else if (
+        !skipPreflight &&
+        activeDiet &&
+        !mealMatchesDiet(userDiet, meal)
+      ) {
         // 🥗 Scenario B fallback — only fires on initial generate, not on "let chef adapt" retry
         stopProgressTicker();
         setIsGenerating(false);
-        triggerDietAlert([], `This meal may not fully match your ${userDiet} diet.`);
+        triggerDietAlert(
+          [],
+          `This meal may not fully match your ${userDiet} diet.`,
+        );
         return;
       }
 
@@ -749,33 +772,33 @@ export default function CravingCreator() {
       >
         {/* Universal Safe-Area Header */}
         <MobileHeaderGuard>
-        <div
-          className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-        >
-          <div className="px-4 py-3 flex items-center gap-2 flex-nowrap overflow-hidden">
-            {/* Back Button */}
-            <button
-              onClick={() => setLocation("/craving-creator-landing")}
-              className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
-              data-testid="button-back-to-hub"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span className="text-sm font-medium">Back</span>
-            </button>
+          <div
+            className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+            style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+          >
+            <div className="px-4 py-3 flex items-center gap-2 flex-nowrap overflow-hidden">
+              {/* Back Button */}
+              <button
+                onClick={() => setLocation("/craving-creator-landing")}
+                className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
+                data-testid="button-back-to-hub"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                <span className="text-sm font-medium">Back</span>
+              </button>
 
-            {/* Title */}
-            <h1 className="text-lg font-bold text-white truncate min-w-0">
-              Craving Creator
-            </h1>
+              {/* Title */}
+              <h1 className="text-lg font-bold text-white truncate min-w-0">
+                Craving Creator
+              </h1>
 
-            <div className="flex-grow" />
-            <QuickTourButton
-              onClick={quickTour.openTour}
-              className="flex-shrink-0"
-            />
+              <div className="flex-grow" />
+              <QuickTourButton
+                onClick={quickTour.openTour}
+                className="flex-shrink-0"
+              />
+            </div>
           </div>
-        </div>
         </MobileHeaderGuard>
 
         {/* Main Content */}
@@ -865,7 +888,7 @@ export default function CravingCreator() {
               <Card className="shadow-2xl bg-black/30 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-xl text-white">
-                    Quick Create
+                    Craving Creator
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -1120,7 +1143,9 @@ export default function CravingCreator() {
           {isPlatingMeal && (
             <div className="mt-8 flex flex-col items-center gap-4 py-10">
               <div className="w-10 h-10 border-4 border-lime-500 border-t-transparent rounded-full animate-spin" />
-              <p className="text-white/80 text-base font-medium">Chef is plating your meal…</p>
+              <p className="text-white/80 text-base font-medium">
+                Chef is plating your meal…
+              </p>
             </div>
           )}
 
@@ -1128,21 +1153,44 @@ export default function CravingCreator() {
             <div className="mt-8 space-y-4">
               <div className="flex items-center gap-3 mb-2">
                 <Sparkles className="h-5 w-5 text-yellow-500" />
-                <h3 className="text-lg font-bold text-white">Pick your favorite</h3>
-                <span className="text-sm text-white/60">{mealOptions.length} options created for you</span>
+                <h3 className="text-lg font-bold text-white">
+                  Pick your favorite
+                </h3>
+                <span className="text-sm text-white/60">
+                  {mealOptions.length} options created for you
+                </span>
               </div>
               {mealOptions.map((option, idx) => (
-                <Card key={idx} className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl">
+                <Card
+                  key={idx}
+                  className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl"
+                >
                   <CardContent className="p-5">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-white font-bold text-base mb-1 truncate">{option.name}</h4>
-                        <p className="text-white/70 text-sm mb-3 line-clamp-2">{option.description}</p>
+                        <h4 className="text-white font-bold text-base mb-1 truncate">
+                          {option.name}
+                        </h4>
+                        <p className="text-white/70 text-sm mb-3 line-clamp-2">
+                          {option.description}
+                        </p>
                         <div className="flex gap-4 text-xs text-white/60 flex-wrap">
-                          <span>{option.nutrition?.calories ?? option.calories ?? "—"} cal</span>
-                          <span>{option.nutrition?.protein ?? option.protein ?? "—"}g protein</span>
-                          <span>{option.nutrition?.fat ?? option.fat ?? "—"}g fat</span>
-                          {option.cookingTime && <span>{option.cookingTime}</span>}
+                          <span>
+                            {option.nutrition?.calories ??
+                              option.calories ??
+                              "—"}{" "}
+                            cal
+                          </span>
+                          <span>
+                            {option.nutrition?.protein ?? option.protein ?? "—"}
+                            g protein
+                          </span>
+                          <span>
+                            {option.nutrition?.fat ?? option.fat ?? "—"}g fat
+                          </span>
+                          {option.cookingTime && (
+                            <span>{option.cookingTime}</span>
+                          )}
                         </div>
                       </div>
                       <button
@@ -1156,7 +1204,10 @@ export default function CravingCreator() {
                 </Card>
               ))}
               <button
-                onClick={() => { setMealOptions([]); setCravingInput(""); }}
+                onClick={() => {
+                  setMealOptions([]);
+                  setCravingInput("");
+                }}
                 className="w-full text-sm text-white/50 hover:text-white/80 py-2 transition-colors"
               >
                 Start over with a different craving
