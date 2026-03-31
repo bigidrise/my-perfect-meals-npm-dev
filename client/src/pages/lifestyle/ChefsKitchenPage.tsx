@@ -258,16 +258,20 @@ export default function ChefsKitchenPage() {
 
   // Same pattern as CreateWithChefModal: set flag + token only, useEffect fires generation
   const handleSafetyOverride = (enabled: boolean, token?: string) => {
+    console.log("[CK] handleSafetyOverride called", { enabled, hasToken: !!token, token });
     setSafetyEnabled(enabled);
     if (token) {
       setOverrideToken(token);
       setPendingGeneration(true);
+      console.log("[CK] pendingGeneration set true, overrideToken set");
     }
   };
 
   // Retry gate — fires once override token lands and generation is idle
   useEffect(() => {
+    console.log("[CK] useEffect gate check", { pendingGeneration, overrideToken: !!overrideToken, isGeneratingMeal });
     if (pendingGeneration && overrideToken && !isGeneratingMeal) {
+      console.log("[CK] gate PASSED — calling executeGeneration");
       setPendingGeneration(false);
       executeGeneration();
     }
@@ -389,6 +393,7 @@ export default function ChefsKitchenPage() {
   // Unified execution function — reads live state, same contract as CreateWithChefModal.
   // Called from startOpenKitchen on first attempt, and from the retry useEffect after override.
   const executeGeneration = async () => {
+    console.log("[CK] executeGeneration called", { dishIdea, overrideToken: !!overrideToken });
     const chefPromptParts = [`Create with Chef: ${dishIdea}`];
     if (cookMethod) chefPromptParts.push(`Cooking method: ${cookMethod}`);
     if (ingredientNotes) chefPromptParts.push(`Preferences: ${ingredientNotes}`);
@@ -406,6 +411,7 @@ export default function ChefsKitchenPage() {
     }, 700);
 
     try {
+      console.log("[CK] about to fetch craving-creator", { cravingInput });
       const response = await fetch(apiUrl("/api/meals/craving-creator"), {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
