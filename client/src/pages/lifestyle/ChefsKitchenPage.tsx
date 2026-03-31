@@ -255,6 +255,16 @@ export default function ChefsKitchenPage() {
     excludeMeals: string[];
   };
   const pendingPayloadRef = useRef<GenerationPayload | null>(null);
+  const mealOptionsRef = useRef<HTMLDivElement | null>(null);
+
+  // Scroll meal options into view whenever they appear
+  useEffect(() => {
+    if (mealOptions.length > 0 && mealOptionsRef.current) {
+      setTimeout(() => {
+        mealOptionsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
+    }
+  }, [mealOptions.length]);
 
   const handleSafetyOverride = (enabled: boolean, token?: string) => {
     setSafetyEnabled(enabled);
@@ -620,8 +630,8 @@ export default function ChefsKitchenPage() {
         {mode === "studio" && (
           <div className="space-y-4">
 
-            {/* PHASE 1 INPUT CARD — shown when no meal has been generated yet */}
-            {!generatedMeal && !isGeneratingMeal && (
+            {/* PHASE 1 INPUT CARD — shown when no meal has been generated yet and no options pending */}
+            {!generatedMeal && !isGeneratingMeal && mealOptions.length === 0 && (
               <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
                 <CardContent className="p-4 space-y-5">
                   {/* Header */}
@@ -794,7 +804,7 @@ export default function ChefsKitchenPage() {
 
             {/* MEAL OPTIONS PANEL */}
             {!isGeneratingMeal && mealOptions.length > 0 && (
-              <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
+              <Card ref={mealOptionsRef as any} className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-white font-bold text-base">Pick your favorite</span>
