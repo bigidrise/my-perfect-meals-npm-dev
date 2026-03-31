@@ -834,18 +834,25 @@ export default function BeverageCreator() {
                 </CardContent>
               </Card>
 
-              <ShoppingAggregateBar
-                ingredients={generatedBeverage.ingredients.map((ing: any) => ({
-                  name: ing.name,
-                  qty: ing.amount,
-                  unit: ing.unit,
-                }))}
-                source="Beverage Creator"
-                hideShareButton={true}
-              />
+              {/* Spacer so bar doesn't cover last card */}
+              <div className="h-28" />
             </div>
           )}
         </div>
+
+        {/* Shopping Aggregate Bar — anchored above bottom nav, matching Chef's Kitchen pattern */}
+        {generatedBeverage && generatedBeverage.ingredients?.length > 0 && (
+          <ShoppingAggregateBar
+            ingredients={generatedBeverage.ingredients.map((ing: any) => ({
+              name: ing.name,
+              qty: ing.amount,
+              unit: ing.unit,
+            }))}
+            source="Beverage Creator"
+            hideShareButton={true}
+            aboveBottomNav={true}
+          />
+        )}
 
         <QuickTourModal
           isOpen={quickTour.shouldShow}
