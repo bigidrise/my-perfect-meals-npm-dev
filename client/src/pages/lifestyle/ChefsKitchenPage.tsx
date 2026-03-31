@@ -243,23 +243,32 @@ export default function ChefsKitchenPage() {
     overrideToken,
     hasActiveOverride,
   } = useSafetyGuardPrecheck();
-  const [pendingGeneration, setPendingGeneration] = useState(false);
+
+  // Stable ref — stores the exact generation payload when a safety block occurs.
+  // Override retry reads from this ref so it never depends on live component state.
+  type GenerationPayload = {
+    cravingInput: string;
+    targetMealType: string;
+    servings: number;
+    dietaryRestrictions: string;
+    skipPalate: boolean;
+    excludeMeals: string[];
+  };
+  const pendingPayloadRef = useRef<GenerationPayload | null>(null);
 
   const handleSafetyOverride = (enabled: boolean, token?: string) => {
     setSafetyEnabled(enabled);
     if (token) {
       setOverrideToken(token);
       clearSafetyAlert();
-      setPendingGeneration(true);
+      if (pendingPayloadRef.current) {
+        // Retry directly from the stored payload — not from live component state
+        runGeneration(pendingPayloadRef.current, token);
+      } else {
+        startOpenKitchen(true);
+      }
     }
   };
-
-  useEffect(() => {
-    if (pendingGeneration && overrideToken && !isGeneratingMeal) {
-      setPendingGeneration(false);
-      startOpenKitchen(true);
-    }
-  }, [pendingGeneration, overrideToken, isGeneratingMeal]);
 
   // Recent meals
   const getRecentMealsChef = (): string[] => {
@@ -374,31 +383,10 @@ export default function ChefsKitchenPage() {
     setMode("studio");
   };
 
-  // Core generation
-  const startOpenKitchen = async (skipPreflight = false) => {
-    if (!dishIdea.trim()) {
-      toast({
-        title: "Tell us what you want to make",
-        description: "Enter a dish idea to get started.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setDietAdaptedNotice(null);
-
-    if (!skipPreflight && !hasActiveOverride) {
-      const requestDescription = `${dishIdea} ${cookMethod} ${ingredientNotes}`.trim();
-      const isSafe = await checkSafety(requestDescription, "chefs-kitchen");
-      if (!isSafe) return;
-    }
-
-    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
-      const requestText = `${dishIdea} ${cookMethod} ${ingredientNotes}`.trim();
-      const dietOk = checkDiet(requestText);
-      if (!dietOk) return;
-    }
-
+  // Executes the API call using an explicit payload object.
+  // Does NOT read any component state — only what is passed in.
+  // This makes override retries reliable regardless of render lifecycle.
+  const runGeneration = async (payload: GenerationPayload, withOverrideToken?: string) => {
     setIsGeneratingMeal(true);
     setGenerationProgress(10);
     setGenerationError(null);
@@ -411,36 +399,45 @@ export default function ChefsKitchenPage() {
     }, 700);
 
     try {
-      const chefPromptParts = [`Create with Chef: ${dishIdea}`];
-      if (cookMethod) chefPromptParts.push(`Cooking method: ${cookMethod}`);
-      if (ingredientNotes) chefPromptParts.push(`Preferences: ${ingredientNotes}`);
-      const cravingPrompt = chefPromptParts.join(". ");
-
       const response = await fetch(apiUrl("/api/meals/craving-creator"), {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
         body: JSON.stringify({
-          cravingInput: cravingPrompt,
-          targetMealType: "dinner",
-          servings,
-          dietaryRestrictions: normalizeDiet(user?.dietaryRestrictions),
-          safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
-          overrideToken: overrideToken || undefined,
-          skipPalate: !flavorPersonal,
-          excludeMeals: getRecentMealsChef(),
+          ...payload,
+          safetyMode: withOverrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
+          overrideToken: withOverrideToken || undefined,
         }),
       });
 
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
 
+      // Treat safety blocks as controlled flow, not exceptions.
+      // Parse JSON even on 4xx to check for safetyBlocked before throwing.
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to generate meal: ${response.status} ${errorText}`);
+        let errorData: any = null;
+        try { errorData = await response.json(); } catch { /* non-fatal */ }
+        if (errorData?.safetyBlocked || errorData?.safetyAmbiguous) {
+          setGenerationProgress(0);
+          setIsGeneratingMeal(false);
+          setSafetyAlert({
+            show: true,
+            result: errorData.safetyBlocked ? "BLOCKED" : "AMBIGUOUS",
+            blockedTerms: errorData.blockedTerms || [],
+            blockedCategories: [],
+            ambiguousTerms: errorData.ambiguousTerms || [],
+            message: errorData.error || "Safety alert detected",
+            suggestion: errorData.suggestion,
+          });
+          return;
+        }
+        const errText = errorData ? JSON.stringify(errorData) : `${response.status}`;
+        throw new Error(`Failed to generate meal: ${errText}`);
       }
 
       const data = await response.json();
 
+      // Safety block from 200 response (server-side fallback)
       if (data.safetyBlocked || data.safetyAmbiguous) {
         setGenerationProgress(0);
         setIsGeneratingMeal(false);
@@ -476,7 +473,7 @@ export default function ChefsKitchenPage() {
       if (data.dietAdapted) {
         setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet2} diet.`);
         clearDietAlert();
-      } else if (!skipPreflight && activeDiet && !mealMatchesDiet(userDiet2, meal)) {
+      } else if (!withOverrideToken && activeDiet && !mealMatchesDiet(userDiet2, meal)) {
         setGenerationProgress(0);
         setIsGeneratingMeal(false);
         triggerDietAlert([], `This meal may not fully match your ${userDiet2} diet.`);
@@ -515,8 +512,8 @@ export default function ChefsKitchenPage() {
         nutrition: { calories: nutritionCalories, protein: nutritionProtein, carbs: nutritionCarbs, fat: nutritionFat },
         medicalBadges: Array.isArray(meal.medicalBadges) ? meal.medicalBadges : [],
         flags: Array.isArray(meal.flags) ? meal.flags : [],
-        servingSize: meal.servingSize || `${servings} ${servings === 1 ? "serving" : "servings"}`,
-        servings: meal.servings || servings,
+        servingSize: meal.servingSize || `${payload.servings} ${payload.servings === 1 ? "serving" : "servings"}`,
+        servings: meal.servings || payload.servings,
         reasoning: meal.reasoning,
       };
 
@@ -534,6 +531,51 @@ export default function ChefsKitchenPage() {
         setGenerationError(`${errorMessage}. Please try again.`);
       }
     }
+  };
+
+  // Entry point from UI — builds payload, runs preflights, then delegates to runGeneration.
+  const startOpenKitchen = async (skipPreflight = false) => {
+    if (!dishIdea.trim()) {
+      toast({
+        title: "Tell us what you want to make",
+        description: "Enter a dish idea to get started.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setDietAdaptedNotice(null);
+
+    // Build the generation payload from current UI state
+    const chefPromptParts = [`Create with Chef: ${dishIdea}`];
+    if (cookMethod) chefPromptParts.push(`Cooking method: ${cookMethod}`);
+    if (ingredientNotes) chefPromptParts.push(`Preferences: ${ingredientNotes}`);
+    const payload: GenerationPayload = {
+      cravingInput: chefPromptParts.join(". "),
+      targetMealType: "dinner",
+      servings,
+      dietaryRestrictions: normalizeDiet(user?.dietaryRestrictions),
+      skipPalate: !flavorPersonal,
+      excludeMeals: getRecentMealsChef(),
+    };
+
+    // Save payload to ref BEFORE any async checks.
+    // If safety blocks, handleSafetyOverride retries from this ref — not from live state.
+    pendingPayloadRef.current = payload;
+
+    if (!skipPreflight && !hasActiveOverride) {
+      const requestDescription = `${dishIdea} ${cookMethod} ${ingredientNotes}`.trim();
+      const isSafe = await checkSafety(requestDescription, "chefs-kitchen");
+      if (!isSafe) return;
+    }
+
+    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
+      const requestText = `${dishIdea} ${cookMethod} ${ingredientNotes}`.trim();
+      const dietOk = checkDiet(requestText);
+      if (!dietOk) return;
+    }
+
+    await runGeneration(payload, overrideToken || undefined);
   };
 
   return (
