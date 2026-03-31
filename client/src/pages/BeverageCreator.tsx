@@ -430,7 +430,7 @@ export default function BeverageCreator() {
         </MobileHeaderGuard>
 
         <div
-          className="max-w-2xl mx-auto px-4 pb-32"
+          className="max-w-2xl mx-auto px-4 pb-24"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
           <Card className="shadow-2xl bg-black/30 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto mb-6">
@@ -835,7 +835,7 @@ export default function BeverageCreator() {
               </Card>
 
               {/* Spacer so bar doesn't cover last card */}
-              <div className="h-28" />
+              <div className="h-20" />
             </div>
           )}
         </div>
