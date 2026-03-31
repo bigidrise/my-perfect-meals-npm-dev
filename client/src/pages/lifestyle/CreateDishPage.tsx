@@ -122,7 +122,6 @@ export default function CreateDishPage() {
   const [notes, setNotes] = useState("");
   const [generatedMeals, setGeneratedMeals] = useState<MealData[]>([]);
   const [mealOptions, setMealOptions] = useState<any[]>([]);
-  const [isPlatingMeal, setIsPlatingMeal] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [safetyEnabled, setSafetyEnabled] = useState(true);
@@ -264,43 +263,36 @@ export default function CreateDishPage() {
     return parts.join(". ");
   };
 
-  const handleSelectMeal = async (meal: any) => {
+  const handleSelectMeal = (meal: any) => {
     setMealOptions([]);
     addRecentMeal(meal.name);
-    setIsPlatingMeal(true);
-
-    let finalMeal = { ...meal };
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 20000);
-      const imgRes = await fetch(apiUrl("/api/meal-images/generate"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({
-          mealName: meal.name,
-          ingredients: (meal.ingredients || []).map((i: any) => i.name || i),
-          style: "overhead",
-          mealType: "dinner",
-        }),
-      });
-      clearTimeout(timeout);
-      if (imgRes.ok) {
-        const imgData = await imgRes.json();
-        if (imgData.success && imgData.image?.url) {
-          finalMeal = { ...finalMeal, imageUrl: imgData.image.url };
-        }
-      }
-    } catch (imgErr) {
-      console.warn("[CREATE DISH] Image generation failed:", imgErr);
-    }
-
-    setGeneratedMeals([finalMeal]);
-    setIsPlatingMeal(false);
+    setGeneratedMeals([{ ...meal }]);
     toast({
       title: "Dish Created!",
-      description: `${finalMeal.name} is ready for you.`,
+      description: `${meal.name} is ready for you.`,
     });
+
+    fetch(apiUrl("/api/meal-images/generate"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mealName: meal.name,
+        ingredients: (meal.ingredients || []).map((i: any) => i.name || i),
+        style: "overhead",
+        mealType: "dinner",
+      }),
+    })
+      .then((res) => res.ok ? res.json() : null)
+      .then((imgData) => {
+        if (imgData?.success && imgData.image?.url) {
+          setGeneratedMeals((prev) =>
+            prev.map((m) =>
+              m.name === meal.name ? { ...m, imageUrl: imgData.image.url } : m
+            )
+          );
+        }
+      })
+      .catch(() => {});
   };
 
   const handleGenerateDish = async (skipPreflight = false) => {
@@ -691,16 +683,7 @@ export default function CreateDishPage() {
             </Card>
           </div>
 
-          {isPlatingMeal && (
-            <div className="mt-8 flex flex-col items-center gap-4 py-10">
-              <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-              <p className="text-white/80 text-base font-medium">
-                Chef is plating your dish…
-              </p>
-            </div>
-          )}
-
-          {!isPlatingMeal && mealOptions.length > 0 && (
+          {mealOptions.length > 0 && (
             <div className="mt-8 space-y-4" ref={mealOptionsRef}>
               <div className="flex items-center gap-3 mb-2">
                 <Sparkles className="h-5 w-5 text-orange-400" />
