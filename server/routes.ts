@@ -2517,12 +2517,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "input text is required" });
       }
       
-      // Check if we have an authenticated user
-      const authUser = req.authUser;
+      // Resolve authenticated user — prefer req.authUser (set by requireAuth middleware),
+      // then fall back to x-auth-token header lookup (same pattern as craving-creator Fix A).
+      let resolvedUserId: string | undefined = req.authUser?.id;
+      if (!resolvedUserId) {
+        const token = req.headers["x-auth-token"] as string | undefined;
+        if (token) {
+          try {
+            const [tokenUser] = await db.select({ id: users.id }).from(users).where(eq(users.authToken, token)).limit(1);
+            if (tokenUser) resolvedUserId = tokenUser.id;
+          } catch { /* non-fatal */ }
+        }
+      }
       
-      if (authUser?.id) {
+      if (resolvedUserId) {
         // Authenticated user - use their profile from DB
-        const safetyCheck = await enforceSafetyProfile(authUser.id, input, builderId, {
+        const safetyCheck = await enforceSafetyProfile(resolvedUserId, input, builderId, {
           safetyMode: "STRICT"
         });
         
