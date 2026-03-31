@@ -212,6 +212,7 @@ export default function ChefsKitchenPage() {
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [mealOptions, setMealOptions] = useState<any[]>([]);
   const [isPlatingMeal, setIsPlatingMeal] = useState(false);
+  const [pendingGeneration, setPendingGeneration] = useState(false);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Display meal (for translations)
@@ -244,17 +245,6 @@ export default function ChefsKitchenPage() {
     hasActiveOverride,
   } = useSafetyGuardPrecheck();
 
-  // Stable ref — stores the exact generation payload when a safety block occurs.
-  // Override retry reads from this ref so it never depends on live component state.
-  type GenerationPayload = {
-    cravingInput: string;
-    targetMealType: string;
-    servings: number;
-    dietaryRestrictions: string;
-    skipPalate: boolean;
-    excludeMeals: string[];
-  };
-  const pendingPayloadRef = useRef<GenerationPayload | null>(null);
   const mealOptionsRef = useRef<HTMLDivElement | null>(null);
 
   // Scroll meal options into view whenever they appear
@@ -266,19 +256,22 @@ export default function ChefsKitchenPage() {
     }
   }, [mealOptions.length]);
 
+  // Same pattern as CreateWithChefModal: set flag + token only, useEffect fires generation
   const handleSafetyOverride = (enabled: boolean, token?: string) => {
     setSafetyEnabled(enabled);
     if (token) {
       setOverrideToken(token);
-      clearSafetyAlert();
-      if (pendingPayloadRef.current) {
-        // Retry directly from the stored payload — not from live component state
-        runGeneration(pendingPayloadRef.current, token);
-      } else {
-        startOpenKitchen(true);
-      }
+      setPendingGeneration(true);
     }
   };
+
+  // Retry gate — fires once override token lands and generation is idle
+  useEffect(() => {
+    if (pendingGeneration && overrideToken && !isGeneratingMeal && !safetyChecking) {
+      setPendingGeneration(false);
+      executeGeneration();
+    }
+  }, [pendingGeneration, overrideToken, isGeneratingMeal, safetyChecking]);
 
   // Recent meals
   const getRecentMealsChef = (): string[] => {
@@ -393,10 +386,14 @@ export default function ChefsKitchenPage() {
     setMode("studio");
   };
 
-  // Executes the API call using an explicit payload object.
-  // Does NOT read any component state — only what is passed in.
-  // This makes override retries reliable regardless of render lifecycle.
-  const runGeneration = async (payload: GenerationPayload, withOverrideToken?: string) => {
+  // Unified execution function — reads live state, same contract as CreateWithChefModal.
+  // Called from startOpenKitchen on first attempt, and from the retry useEffect after override.
+  const executeGeneration = async () => {
+    const chefPromptParts = [`Create with Chef: ${dishIdea}`];
+    if (cookMethod) chefPromptParts.push(`Cooking method: ${cookMethod}`);
+    if (ingredientNotes) chefPromptParts.push(`Preferences: ${ingredientNotes}`);
+    const cravingInput = chefPromptParts.join(". ");
+
     setIsGeneratingMeal(true);
     setGenerationProgress(10);
     setGenerationError(null);
@@ -414,16 +411,19 @@ export default function ChefsKitchenPage() {
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
         body: JSON.stringify({
-          ...payload,
-          safetyMode: withOverrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
-          overrideToken: withOverrideToken || undefined,
+          cravingInput,
+          targetMealType: "dinner",
+          servings,
+          dietaryRestrictions: normalizeDiet(user?.dietaryRestrictions),
+          skipPalate: !flavorPersonal,
+          excludeMeals: getRecentMealsChef(),
+          safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
+          overrideToken: overrideToken || undefined,
         }),
       });
 
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
 
-      // Treat safety blocks as controlled flow, not exceptions.
-      // Parse JSON even on 4xx to check for safetyBlocked before throwing.
       if (!response.ok) {
         let errorData: any = null;
         try { errorData = await response.json(); } catch { /* non-fatal */ }
@@ -447,7 +447,6 @@ export default function ChefsKitchenPage() {
 
       const data = await response.json();
 
-      // Safety block from 200 response (server-side fallback)
       if (data.safetyBlocked || data.safetyAmbiguous) {
         setGenerationProgress(0);
         setIsGeneratingMeal(false);
@@ -463,7 +462,6 @@ export default function ChefsKitchenPage() {
         return;
       }
 
-      // Multi-option response
       if (data.meals && Array.isArray(data.meals) && data.meals.length > 0) {
         setGenerationProgress(0);
         setIsGeneratingMeal(false);
@@ -483,7 +481,7 @@ export default function ChefsKitchenPage() {
       if (data.dietAdapted) {
         setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet2} diet.`);
         clearDietAlert();
-      } else if (!withOverrideToken && activeDiet && !mealMatchesDiet(userDiet2, meal)) {
+      } else if (!overrideToken && activeDiet && !mealMatchesDiet(userDiet2, meal)) {
         setGenerationProgress(0);
         setIsGeneratingMeal(false);
         triggerDietAlert([], `This meal may not fully match your ${userDiet2} diet.`);
@@ -522,8 +520,8 @@ export default function ChefsKitchenPage() {
         nutrition: { calories: nutritionCalories, protein: nutritionProtein, carbs: nutritionCarbs, fat: nutritionFat },
         medicalBadges: Array.isArray(meal.medicalBadges) ? meal.medicalBadges : [],
         flags: Array.isArray(meal.flags) ? meal.flags : [],
-        servingSize: meal.servingSize || `${payload.servings} ${payload.servings === 1 ? "serving" : "servings"}`,
-        servings: meal.servings || payload.servings,
+        servingSize: meal.servingSize || `${servings} ${servings === 1 ? "serving" : "servings"}`,
+        servings: meal.servings || servings,
         reasoning: meal.reasoning,
       };
 
@@ -543,8 +541,8 @@ export default function ChefsKitchenPage() {
     }
   };
 
-  // Entry point from UI — builds payload, runs preflights, then delegates to runGeneration.
-  const startOpenKitchen = async (skipPreflight = false) => {
+  // Entry point from UI — runs preflights then executes generation.
+  const startOpenKitchen = async () => {
     if (!dishIdea.trim()) {
       toast({
         title: "Tell us what you want to make",
@@ -556,36 +554,19 @@ export default function ChefsKitchenPage() {
 
     setDietAdaptedNotice(null);
 
-    // Build the generation payload from current UI state
-    const chefPromptParts = [`Create with Chef: ${dishIdea}`];
-    if (cookMethod) chefPromptParts.push(`Cooking method: ${cookMethod}`);
-    if (ingredientNotes) chefPromptParts.push(`Preferences: ${ingredientNotes}`);
-    const payload: GenerationPayload = {
-      cravingInput: chefPromptParts.join(". "),
-      targetMealType: "dinner",
-      servings,
-      dietaryRestrictions: normalizeDiet(user?.dietaryRestrictions),
-      skipPalate: !flavorPersonal,
-      excludeMeals: getRecentMealsChef(),
-    };
-
-    // Save payload to ref BEFORE any async checks.
-    // If safety blocks, handleSafetyOverride retries from this ref — not from live state.
-    pendingPayloadRef.current = payload;
-
-    if (!skipPreflight && !hasActiveOverride) {
+    if (!hasActiveOverride) {
       const requestDescription = `${dishIdea} ${cookMethod} ${ingredientNotes}`.trim();
       const isSafe = await checkSafety(requestDescription, "chefs-kitchen");
       if (!isSafe) return;
     }
 
-    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
+    if (activeDiet && dietDecision !== "let_chef_adapt") {
       const requestText = `${dishIdea} ${cookMethod} ${ingredientNotes}`.trim();
       const dietOk = checkDiet(requestText);
       if (!dietOk) return;
     }
 
-    await runGeneration(payload, overrideToken || undefined);
+    await executeGeneration();
   };
 
   return (
