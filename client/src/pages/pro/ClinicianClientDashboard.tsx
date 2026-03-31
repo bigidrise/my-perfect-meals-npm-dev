@@ -249,6 +249,41 @@ export default function ClinicianClientDashboard() {
 
   const resolvedClientUserId = client?.clientUserId || client?.userId || clientId;
 
+  const toggleCancerSupport = async () => {
+    const isOn = !!(t.flags as Record<string, boolean> | undefined)?.cancerSupport;
+    const next = !isOn;
+    setT({ ...t, flags: { ...t.flags, cancerSupport: next } });
+    const uid = client?.clientUserId || client?.userId;
+    if (!uid) return;
+    const context = next
+      ? {
+          enabled: true,
+          symptoms: [] as string[],
+          emphasis: { highProteinNutrientDensity: true },
+          source: "physician" as const,
+          updatedBy: null,
+          updatedAt: new Date().toISOString(),
+        }
+      : {
+          enabled: false,
+          symptoms: [] as string[],
+          emphasis: { highProteinNutrientDensity: false },
+          source: "physician" as const,
+          updatedBy: null,
+          updatedAt: new Date().toISOString(),
+        };
+    try {
+      await fetch(apiUrl(`/api/pro/oncology-support/${uid}`), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify(context),
+      });
+    } catch (e) {
+      console.warn("[CancerSupport] Failed to persist oncology context:", e);
+    }
+  };
+
   const [boardControl, setBoardControl] = useState<'client' | 'professional'>('client');
   const [boardControlLoading, setBoardControlLoading] = useState(false);
 
@@ -484,6 +519,23 @@ export default function ClinicianClientDashboard() {
                     </button>
                   );
                 })}
+                {(() => {
+                  const isCancerOn = !!(t.flags as Record<string, boolean> | undefined)?.cancerSupport;
+                  return (
+                    <button
+                      type="button"
+                      onClick={toggleCancerSupport}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 active:scale-[0.97] border ${
+                        isCancerOn
+                          ? "bg-pink-700 border-pink-400 text-white"
+                          : "bg-black/30 border-white/20 text-white/70 hover:bg-black/50 hover:text-white"
+                      }`}
+                    >
+                      {isCancerOn && <Check className="inline h-3 w-3 mr-1 -mt-0.5" />}
+                      Cancer Support
+                    </button>
+                  );
+                })()}
               </div>
             </div>
 
