@@ -87,6 +87,7 @@ function getPageTitle(location: string): string {
   if (location.startsWith("/pro/clients/") && location.includes("/board/")) return "Board View";
   if (location.startsWith("/pro/clients/")) return "Client Dashboard";
   if (location.startsWith("/pro/")) return "Professional Workspace";
+  if (location === "/lifestyle/create-a-dish") return "Create a Dish";
   if (location.startsWith("/lifestyle/")) return "Lifestyle Hub";
   if (location.startsWith("/builder") || location.includes("-builder")) return "Meal Builder";
   return "My Perfect Meals";
