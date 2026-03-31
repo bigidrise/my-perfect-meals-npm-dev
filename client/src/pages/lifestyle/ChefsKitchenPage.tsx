@@ -267,11 +267,11 @@ export default function ChefsKitchenPage() {
 
   // Retry gate — fires once override token lands and generation is idle
   useEffect(() => {
-    if (pendingGeneration && overrideToken && !isGeneratingMeal && !safetyChecking) {
+    if (pendingGeneration && overrideToken && !isGeneratingMeal) {
       setPendingGeneration(false);
       executeGeneration();
     }
-  }, [pendingGeneration, overrideToken, isGeneratingMeal, safetyChecking]);
+  }, [pendingGeneration, overrideToken, isGeneratingMeal]);
 
   // Recent meals
   const getRecentMealsChef = (): string[] => {
