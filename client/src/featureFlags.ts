@@ -15,6 +15,7 @@ export const LAUNCH_PHASES = {
     "macro-calculator",
     "biometrics",
     "craving-creator",
+    "create-dish",
     "dessert-creator",
     "beverage-creator",
     "chef-pairings",
