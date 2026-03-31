@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
 import { SafetyAlertState, EMPTY_SAFETY_ALERT } from "@/components/SafetyGuardBanner";
 import { isGuestMode } from "@/lib/guestMode";
 
@@ -44,7 +45,7 @@ export function useSafetyGuardPrecheck(): UseSafetyGuardPrecheckResult {
       
       const response = await fetch(apiUrl("/api/safety-check"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
         body: JSON.stringify({ 
           input, 
