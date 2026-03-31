@@ -1,19 +1,15 @@
 import { useLocation } from "wouter";
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect } from "react";
+import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
   Sparkles,
   RefrigeratorIcon,
   Utensils,
-  UtensilsCrossed,
   ChefHat,
-  ArrowLeft,
   Wine,
   Lock,
 } from "lucide-react";
-import { isPublicProduction, getGatedMessage } from "@/lib/productionGates";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useFreeLock } from "@/hooks/useFreeLock";
 import { UpgradeLockModal } from "@/components/upgrade/UpgradeLockModal";
@@ -30,7 +26,6 @@ interface AIFeature {
 
 export default function LifestyleLandingPage() {
   const [, setLocation] = useLocation();
-  const [showComingSoonModal, setShowComingSoonModal] = useState(false);
   const isDesktop = useIsDesktop();
   const { isFree, showLockModal, lockMessage, guardAction, closeLockModal } = useFreeLock();
 
@@ -39,21 +34,15 @@ export default function LifestyleLandingPage() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
-  // Chef's Kitchen front-door: "Coming Soon" only on production/iOS
-  // Open in all dev/workspace environments for testing
-  // Users can always access Stage 2 via meal card "Prepare with Chef" buttons
-  const CHEFS_KITCHEN_COMING_SOON = isPublicProduction();
-  const chefsKitchenMessage = getGatedMessage('chefsKitchen');
-
   const lifestyleFeatures: AIFeature[] = [
     {
-      title: "Chef’s Kitchen Studio",
+      title: "Create a Dish",
       description:
-        "Cook alongside AI. Learn, create, and have fun in the kitchen.",
-      icon: UtensilsCrossed,
-      route: "/lifestyle/chefs-kitchen",
+        "Tell Chef what you want to cook. Get a complete recipe with macros, ingredients, and instructions.",
+      icon: ChefHat,
+      route: "/lifestyle/create-a-dish",
       gradient: "from-orange-500/20 to-red-500/20",
-      testId: "card-chefs-kitchen",
+      testId: "card-create-a-dish",
     },
     {
       title: "Craving Creator Hub",
@@ -149,18 +138,15 @@ export default function LifestyleLandingPage() {
           <div className="flex flex-col gap-3">
             {lifestyleFeatures.map((feature) => {
               const Icon = feature.icon;
-              const isChefsKitchen =
-                feature.route === "/lifestyle/chefs-kitchen";
+              const isCreateDish =
+                feature.route === "/lifestyle/create-a-dish";
               const isCravingCreator =
                 feature.route === "/craving-creator-landing";
-
-              const disableChefsKitchenEntry =
-                isChefsKitchen && CHEFS_KITCHEN_COMING_SOON;
 
               return (
                 <div key={feature.testId} className="relative">
                   {/* Glow effects */}
-                  {isChefsKitchen && (
+                  {isCreateDish && (
                     <div
                       className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-80"
                       style={{
@@ -181,7 +167,7 @@ export default function LifestyleLandingPage() {
 
                   <Card
                     className={`relative rounded-xl shadow-md overflow-hidden transition cursor-pointer active:scale-95 hover:scale-[1.02] ${
-                      isChefsKitchen
+                      isCreateDish
                         ? "bg-gradient-to-r from-black via-orange-950/40 to-black backdrop-blur-lg border border-orange-400/30 hover:shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:border-orange-500/50"
                         : isCravingCreator
                           ? "bg-black/30 backdrop-blur-lg border border-pink-400/30"
@@ -192,30 +178,18 @@ export default function LifestyleLandingPage() {
                         guardAction(`${feature.title} unlocks with Premium.`, () => {});
                         return;
                       }
-                      if (disableChefsKitchenEntry) {
-                        setShowComingSoonModal(true);
-                        return;
-                      }
                       handleCardClick(feature.route);
                     }}
                     data-testid={feature.testId}
                   >
                     {/* Badges */}
-                    {isChefsKitchen && (
-                      <>
-                        <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-orange-600 to-black rounded-full border border-orange-400/30 shadow-lg z-10">
-                          <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse" />
-                          <span className="text-white font-semibold text-[8px] tracking-wide">
-                            Powered by Emotion AI™
-                          </span>
-                        </div>
-
-                        {CHEFS_KITCHEN_COMING_SOON && (
-                          <div className="absolute bottom-2 right-2 px-3 py-1 rounded-full bg-gradient-to-r from-black via-amber-600 to-black border border-amber-400/30 text-white text-xs font-semibold z-10">
-                            Coming Soon
-                          </div>
-                        )}
-                      </>
+                    {isCreateDish && (
+                      <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-orange-600 to-black rounded-full border border-orange-400/30 shadow-lg z-10">
+                        <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse" />
+                        <span className="text-white font-semibold text-[8px] tracking-wide">
+                          Powered by Emotion AI™
+                        </span>
+                      </div>
                     )}
 
                     {isCravingCreator && (
@@ -250,47 +224,6 @@ export default function LifestyleLandingPage() {
           </div>
         </div>
       </div>
-
-      {/* Coming Soon Modal for Chef's Kitchen */}
-      <AnimatePresence>
-        {showComingSoonModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-6"
-            onClick={() => setShowComingSoonModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-gradient-to-b from-zinc-900 to-black rounded-2xl p-8 max-w-sm w-full text-center border border-white/10 shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-600/20 flex items-center justify-center mb-6 mx-auto">
-                <ChefHat className="w-10 h-10 text-amber-400" />
-              </div>
-              
-              <h2 className="text-2xl font-bold text-white mb-3">
-                Coming Soon
-              </h2>
-              
-              <p className="text-zinc-400 mb-8">
-                {chefsKitchenMessage}
-              </p>
-              
-              <Button 
-                onClick={() => setShowComingSoonModal(false)}
-                className="bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-black/80 hover:border-white/30 shadow-lg"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Go Back
-              </Button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <UpgradeLockModal open={showLockModal} onClose={closeLockModal} message={lockMessage} />
     </motion.div>

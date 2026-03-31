@@ -129,6 +129,7 @@ import AntiInflammatoryMenuBuilder from "@/pages/physician/AntiInflammatoryMenuB
 
 // Craving pages
 import ChefsKitchenPage from "@/pages/lifestyle/ChefsKitchenPage";
+import CreateDishPage from "@/pages/lifestyle/CreateDishPage";
 import CravingCreatorLanding from "@/pages/CravingCreatorLanding";
 import CravingDessertCreator from "@/pages/CravingDessertCreator";
 import BeverageCreator from "@/pages/BeverageCreator";
@@ -384,6 +385,7 @@ export default function Router() {
         {/* DELETED: /healthy-kids-meals, /kids-meals, /toddler-meals routes (Phase 1 cleanup) */}
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
         <Route path="/lifestyle/chefs-kitchen" component={withGate(ChefsKitchenPage, 'chefsKitchen')} />
+        <Route path="/lifestyle/create-a-dish" component={withGate(CreateDishPage, 'chefsKitchen')} />
         <Route path="/lifestyle/beverage-creator" component={BeverageCreator} />
         <Route path="/lifestyle/chef-pairings" component={ChefPairings} />
         <Route path="/lifestyle/pairings-hub" component={PairingsHub} />
