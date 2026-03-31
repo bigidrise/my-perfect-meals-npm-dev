@@ -39,7 +39,6 @@ import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
-import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
@@ -658,7 +657,6 @@ export default function CreateDishPage() {
                     alert={safetyAlert}
                     mealRequest={dishInput}
                     onDismiss={clearSafetyAlert}
-                    onOverrideSuccess={(token) => handleSafetyOverride(false, token)}
                   />
 
                   <StarchGuardIntercept
@@ -701,11 +699,6 @@ export default function CreateDishPage() {
                     <span className="text-xs text-white/60 block mb-2">
                       Meal Safety
                     </span>
-                    <SafetyGuardToggle
-                      safetyEnabled={safetyEnabled}
-                      onSafetyChange={handleSafetyOverride}
-                      disabled={isGenerating || safetyChecking}
-                    />
                     <GlucoseGuardToggle
                       disabled={isGenerating || safetyChecking}
                     />
