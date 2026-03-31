@@ -228,7 +228,16 @@ export const DIRECT_PAGES: Record<string, FeatureDefinition> = {
     primaryRoute: "/anti-inflammatory-menu-builder",
     walkthroughId: "anti-inflammatory-meal-builder",
     isHub: false,
-    keywords: ["anti-inflammatory", "inflammation", "anti inflammatory", "anti", "reduce inflammation", "inflammatory diet", "healing diet", "anti inflam"]
+    keywords: ["anti-inflammatory", "inflammation", "anti inflammatory", "anti", "reduce inflammation", "inflammatory diet", "healing diet", "anti inflam", "cancer support", "cancer nutrition", "oncology support", "oncology", "cancer", "oncology nutrition", "cancer diet", "chemo support", "treatment nutrition"]
+  },
+
+  CANCER_SUPPORT: {
+    id: "CANCER_SUPPORT",
+    legacyId: "cancer-support",
+    primaryRoute: "/anti-inflammatory-menu-builder",
+    walkthroughId: "anti-inflammatory-meal-builder",
+    isHub: false,
+    keywords: ["cancer support", "cancer nutrition", "oncology support", "oncology", "oncology nutrition", "cancer diet", "chemo support", "treatment nutrition", "cancer support nutrition", "oncology care", "cancer care nutrition"]
   },
 
   BEACH_BODY: {

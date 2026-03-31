@@ -37,6 +37,7 @@ interface CreateWithChefModalProps {
   dietType?: DietType;
   dietPhase?: BeachBodyPhase;
   starchContext?: StarchContext;
+  oncologySupportContext?: Record<string, unknown> | null;
 }
 
 export function CreateWithChefModal({
@@ -47,6 +48,7 @@ export function CreateWithChefModal({
   dietType,
   dietPhase,
   starchContext,
+  oncologySupportContext,
 }: CreateWithChefModalProps) {
   const [description, setDescription] = useState("");
   const [safetyEnabled, setSafetyEnabled] = useState(true);
@@ -127,7 +129,8 @@ export function CreateWithChefModal({
       {
         safetyMode: !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
         overrideToken: !safetyEnabled ? overrideToken || undefined : undefined,
-      }
+      },
+      oncologySupportContext ?? undefined
     );
 
     if (meal) {
