@@ -18,7 +18,6 @@ import {
 import { KitchenStepCard } from "@/components/chefs-kitchen/KitchenStepCard";
 import { useChefVoice } from "@/components/chefs-kitchen/useChefVoice";
 import { apiUrl } from "@/lib/resolveApiBase";
-import { getAuthHeaders } from "@/lib/auth";
 
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
