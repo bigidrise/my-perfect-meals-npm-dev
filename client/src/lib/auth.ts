@@ -68,6 +68,7 @@ export interface User {
   role?: UserRole;
   isProCare?: boolean;
   activeBoard?: MealBuilderType | null;
+  builderSwitchUnlimited?: boolean;
   // Onboarding completion - CRITICAL for enforcing onboarding gate
   onboardingCompletedAt?: string | null;
   // Profile data from onboarding (used by Edit Profile)

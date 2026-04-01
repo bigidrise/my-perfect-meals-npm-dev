@@ -102,7 +102,7 @@ export default function Planner() {
   
   // Bypass: Apple Review mode OR builder_switch_unlimited accounts (internal QA/admin)
   const isAppleReviewMode = localStorage.getItem("appleReviewFullAccess") === "true";
-  const isUnlimited = (user as any)?.builderSwitchUnlimited === true;
+  const isUnlimited = user?.builderSwitchUnlimited === true;
   const needsOnboarding = !isAppleReviewMode && !isUnlimited && !userActiveBoard;
 
   const isBuilderUnlocked = (builderId: string): boolean => {
