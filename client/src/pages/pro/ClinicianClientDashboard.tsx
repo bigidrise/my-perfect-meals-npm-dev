@@ -164,6 +164,18 @@ export default function ClinicianClientDashboard() {
         if (data?.labs) setLabs(data.labs);
       })
       .catch(() => {});
+    // Load physician-assigned oncology support state from DB
+    fetch(apiUrl(`/api/pro/oncology-support/${uid}`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.oncologySupportContext?.enabled) {
+          setT((prev) => ({ ...prev, flags: { ...prev.flags, oncologySupport: true } }));
+        }
+      })
+      .catch(() => {});
     fetch(apiUrl(`/api/users/${uid}/goal`), { headers: { ...getAuthHeaders() }, credentials: "include" })
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data) setClientGoal(data); })
@@ -209,6 +221,26 @@ export default function ClinicianClientDashboard() {
         );
       } catch (e) {
         console.error("Failed to mirror macro targets to localStorage:", e);
+      }
+    }
+
+    // Persist oncology support flag to DB whenever save is triggered
+    if (dbUserId) {
+      try {
+        await fetch(apiUrl(`/api/pro/oncology-support/${dbUserId}`), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          credentials: "include",
+          body: JSON.stringify({
+            enabled: !!(t.flags as Record<string, boolean> | undefined)?.oncologySupport,
+            symptoms: [],
+            emphasis: {
+              highProteinNutrientDensity: !!(t.flags as Record<string, boolean> | undefined)?.oncologySupport,
+            },
+          }),
+        });
+      } catch (e) {
+        console.error("Failed to sync oncology support to database:", e);
       }
     }
 
@@ -484,6 +516,32 @@ export default function ClinicianClientDashboard() {
                     </button>
                   );
                 })}
+              </div>
+
+              <div className="mt-3 pt-3 border-t border-white/10">
+                <p className="text-xs text-white/50 mb-2">Physician-Initiated Protocol</p>
+                <div className="flex items-center gap-3">
+                  {(() => {
+                    const isOn = !!(t.flags as Record<string, boolean> | undefined)?.oncologySupport;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => setT({ ...t, flags: { ...t.flags, oncologySupport: !isOn } })}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 active:scale-[0.97] border ${
+                          isOn
+                            ? "bg-rose-600 border-rose-400 text-white"
+                            : "bg-black/30 border-rose-900/40 text-white/70 hover:bg-rose-950/40 hover:text-white"
+                        }`}
+                      >
+                        {isOn && <Check className="inline h-3 w-3 mr-1 -mt-0.5" />}
+                        🎗️ Oncology Support
+                      </button>
+                    );
+                  })()}
+                  {!!(t.flags as Record<string, boolean> | undefined)?.oncologySupport && (
+                    <span className="text-xs text-rose-300/80">Cancer support nutrition overlay active — save to persist</span>
+                  )}
+                </div>
               </div>
             </div>
 
