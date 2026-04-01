@@ -1996,6 +1996,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: user.role || "client",
         isProCare: user.isProCare || false,
         activeBoard: user.activeBoard || null,
+        builderSwitchUnlimited: user.builderSwitchUnlimited || false,
         onboardingCompletedAt: user.onboardingCompletedAt?.toISOString() || null,
         age: user.age || null,
         height: user.height || null,
