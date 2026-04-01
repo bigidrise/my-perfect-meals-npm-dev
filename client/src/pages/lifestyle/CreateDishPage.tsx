@@ -41,8 +41,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
-import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
-import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { useStarchGuardPrecheck } from "@/hooks/useStarchGuardPrecheck";
 import {
   StarchGuardIntercept,
@@ -295,19 +293,7 @@ export default function CreateDishPage() {
   };
 
   const [isGenerating, setIsGenerating] = useState(false);
-  const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [flavorPersonal, setFlavorPersonal] = useState(true);
-
-  const {
-    checking: safetyChecking,
-    alert: safetyAlert,
-    checkSafety,
-    clearAlert: clearSafetyAlert,
-    setAlert: setSafetyAlert,
-    setOverrideToken,
-    overrideToken,
-    hasActiveOverride,
-  } = useSafetyGuardPrecheck();
 
   const {
     alert: starchAlert,
@@ -319,23 +305,6 @@ export default function CreateDishPage() {
   } = useStarchGuardPrecheck();
 
   const [substitutedStarchTerms, setSubstitutedStarchTerms] = useState<string[]>([]);
-  const [pendingGeneration, setPendingGeneration] = useState(false);
-
-  const handleSafetyOverride = (enabled: boolean, token?: string) => {
-    setSafetyEnabled(enabled);
-    if (token) {
-      setOverrideToken(token);
-      clearSafetyAlert();
-      setPendingGeneration(true);
-    }
-  };
-
-  useEffect(() => {
-    if (pendingGeneration && overrideToken && !isGenerating) {
-      setPendingGeneration(false);
-      handleGenerateDish(true);
-    }
-  }, [pendingGeneration, overrideToken, isGenerating]);
 
   useEffect(() => {
     if (dishInput.trim().length >= 3 && starchDecision === "pending") {
@@ -364,13 +333,6 @@ export default function CreateDishPage() {
     }
 
     const prompt = buildPrompt();
-
-    if (!skipPreflight && !hasActiveOverride) {
-      const isSafe = await checkSafety(prompt, "create-dish");
-      if (!isSafe) {
-        return;
-      }
-    }
 
     if (!skipPreflight && starchDecision !== "let_chef_pick") {
       const starchOk = checkStarch(prompt);
@@ -409,8 +371,6 @@ export default function CreateDishPage() {
           userId,
           servings,
           sweetenerPreferences,
-          safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
-          overrideToken: hasActiveOverride ? overrideToken : undefined,
           skipPalate: !flavorPersonal,
           excludeMeals: getRecentMeals(),
         }),
@@ -418,28 +378,7 @@ export default function CreateDishPage() {
 
       const data = await response.json();
 
-      if (data.safetyBlocked || data.safetyAmbiguous) {
-        stopProgressTicker();
-        setIsGenerating(false);
-        setSafetyAlert({
-          show: true,
-          result: data.safetyBlocked ? "BLOCKED" : "AMBIGUOUS",
-          blockedTerms: data.blockedTerms || [],
-          blockedCategories: [],
-          ambiguousTerms: data.ambiguousTerms || [],
-          message: data.error || "Safety alert detected",
-          suggestion: data.suggestion,
-        });
-        return;
-      }
-
-      setSafetyEnabled(true);
-      clearSafetyAlert();
-
       if (!response.ok) {
-        if (data.error === "ALLERGY_SAFETY_BLOCK") {
-          throw new Error(`Safety Alert: ${data.message}`);
-        }
         throw new Error(data.message || "Failed to generate meal");
       }
 
@@ -643,11 +582,6 @@ export default function CreateDishPage() {
                     </p>
                   </div>
 
-                  <SafetyGuardBanner
-                    alert={safetyAlert}
-                    mealRequest={dishInput}
-                    onDismiss={clearSafetyAlert}
-                  />
 
                   <StarchGuardIntercept
                     alert={starchAlert}
@@ -690,17 +624,8 @@ export default function CreateDishPage() {
                       Meal Safety
                     </span>
 
-                    {/* Hidden for now: keep allergy override machinery mounted, but do not show the button */}
-                    <div className="hidden">
-                      <SafetyGuardToggle
-                        safetyEnabled={safetyEnabled}
-                        onSafetyChange={handleSafetyOverride}
-                        disabled={isGenerating || safetyChecking}
-                      />
-                    </div>
-
                     <GlucoseGuardToggle
-                      disabled={isGenerating || safetyChecking}
+                      disabled={isGenerating}
                     />
                   </div>
 
@@ -711,7 +636,7 @@ export default function CreateDishPage() {
                     <FlavorToggle
                       flavorPersonal={flavorPersonal}
                       onFlavorChange={setFlavorPersonal}
-                      disabled={isGenerating || safetyChecking}
+                      disabled={isGenerating}
                     />
                   </div>
 
@@ -727,11 +652,11 @@ export default function CreateDishPage() {
                   {!isGenerating ? (
                     <GlassButton
                       onClick={() => handleGenerateDish()}
-                      disabled={isGenerating || safetyChecking || starchBlocked}
+                      disabled={isGenerating || starchBlocked}
                       className="w-full bg-orange-600 hover:bg-orange-500 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
                     >
                       <ChefHat className="h-4 w-4" />
-                      {safetyChecking ? "Checking Safety..." : "Create with Chef"}
+                      {"Create with Chef"}
                     </GlassButton>
                   ) : null}
                 </CardContent>
