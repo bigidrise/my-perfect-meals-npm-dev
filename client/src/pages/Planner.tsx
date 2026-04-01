@@ -206,9 +206,9 @@ export default function Planner() {
                       className={`transition-all duration-300 rounded-xl shadow-md ${
                         unlocked
                           ? "cursor-pointer hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50"
-                          : "cursor-not-allowed bg-black/20 backdrop-blur-lg border border-white/5 opacity-60"
+                          : "pointer-events-none bg-black/20 backdrop-blur-lg border border-white/5 opacity-50"
                       }`}
-                      onClick={() => handleCardClick(feature)}
+                      onClick={unlocked ? () => handleCardClick(feature) : undefined}
                       data-testid={feature.testId}
                     >
                       <CardContent className="p-3">
