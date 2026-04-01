@@ -230,32 +230,6 @@ export default function AntiInflammatoryMenuBuilder() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveUserId]);
 
-  // -----------------------------------------------------------------------
-  // Cancer Support Nutrition — fetch oncologyContext for physician sessions
-  // -----------------------------------------------------------------------
-  const [oncologySupportEnabled, setOncologySupportEnabled] = React.useState(false);
-  const [oncologySupportContext, setOncologySupportContext] = React.useState<Record<string, unknown> | null>(null);
-
-  useEffect(() => {
-    if (!proClientId) return;
-    let cancelled = false;
-    fetch(apiUrl(`/api/pro/oncology-support/${proClientId}`), {
-      headers: { ...getAuthHeaders() },
-      credentials: "include",
-    })
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
-        if (cancelled) return;
-        const ctx = data?.oncologySupportContext;
-        if (ctx?.enabled) {
-          setOncologySupportEnabled(true);
-          setOncologySupportContext(ctx);
-        }
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [proClientId]);
-
   // Badge comes directly from the active clinical mode — always accurate.
   const CLINICAL_MODE_BADGE: Partial<Record<ClinicalMode, ProtocolBadge>> = {
     "liver-disease":  { label: "Liver Disease",  cls: "bg-amber-600 text-white" },
@@ -1372,7 +1346,6 @@ export default function AntiInflammatoryMenuBuilder() {
       protocols={[
         activePrimaryBadge,
         ...resolvedProtocol.modifierBadges,
-        ...(oncologySupportEnabled ? [{ label: "Cancer Support", cls: "bg-pink-700 text-pink-100" }] : []),
       ].filter((b): b is { label: string; cls: string } => !!b)}
     />
     <motion.div
@@ -1491,20 +1464,6 @@ export default function AntiInflammatoryMenuBuilder() {
                     </span>
                   );
                 })}
-                <span
-                  className={`flex items-center gap-1 ${
-                    oncologySupportEnabled ? "text-pink-400 font-semibold" : "text-white/25"
-                  }`}
-                >
-                  <span
-                    className={`inline-block w-1.5 h-1.5 rounded-full ${
-                      oncologySupportEnabled
-                        ? "bg-pink-400 shadow-[0_0_4px_rgba(244,114,182,0.8)]"
-                        : "bg-white/15"
-                    }`}
-                  />
-                  Cancer Support
-                </span>
               </div>
             </div>
 
@@ -2022,7 +1981,6 @@ export default function AntiInflammatoryMenuBuilder() {
           onMealGenerated={handleChefMealGenerated}
           dietType={clinicalMode}
           starchContext={starchContext}
-          oncologySupportContext={oncologySupportContext}
         />
 
         {/* Snack Creator Modal (Phase 2 - craving to healthy snack) - with clinical mode guardrails */}

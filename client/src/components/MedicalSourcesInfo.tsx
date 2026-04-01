@@ -197,55 +197,6 @@ export function MedicalSourcesInfo({ trigger, asIconButton = false, asPillButton
               />
             </ul>
           </section>
-          
-          <section>
-            <h3 className="text-lg font-semibold text-white mb-3">
-              Oncology / Cancer Support Nutrition Sources
-            </h3>
-            <p className="text-white/60 text-xs mb-3">
-              Cancer Support Nutrition guidance in My Perfect Meals is informed by established
-              clinical nutrition frameworks used in oncology care settings. This includes
-              symptom-aware nutrition strategies commonly used to support appetite,
-              tolerance, and overall nutritional status during treatment.
-            </p>
-            <ul className="space-y-3">
-              <SourceItem
-                title="American Cancer Society (ACS)"
-                description="Nutrition recommendations for people with cancer, including appetite support and treatment-related symptom management"
-                url="https://www.cancer.org/healthy/eat-healthy-get-active/eat-healthy.html"
-              />
-              <SourceItem
-                title="National Cancer Institute (NCI)"
-                description="Evidence-based guidance on nutrition during cancer treatment, including nausea, fatigue, and dietary tolerance"
-                url="https://www.cancer.gov/about-cancer/treatment/side-effects/appetite-loss/nutrition-pdq"
-              />
-              <SourceItem
-                title="Academy of Nutrition and Dietetics (AND)"
-                description="Clinical nutrition standards and oncology nutrition practices used by registered dietitians"
-                url="https://www.eatright.org/health/diseases-and-conditions/cancer"
-              />
-              <SourceItem
-                title="Oncology Nutrition Dietetic Practice Group"
-                description="Professional guidelines for nutrition support during cancer care, including symptom-sensitive dietary strategies"
-                url="https://www.oncologynutrition.org/"
-              />
-              <SourceItem
-                title="World Cancer Research Fund (WCRF)"
-                description="Global research on diet, inflammation, and cancer-related nutrition patterns"
-                url="https://www.wcrf.org/diet-activity-and-cancer/"
-              />
-            </ul>
-
-            <div className="bg-pink-900/20 border border-pink-500/30 rounded-lg p-3 mt-4">
-              <p className="text-pink-300/90 text-xs font-medium">
-                Cancer Support Nutrition in My Perfect Meals is designed as a physician-assigned
-                dietary support layer. It is not a treatment or medical intervention. All guidance
-                is intended to support tolerability, nutritional intake, and meal structure during
-                periods of reduced appetite, fatigue, or digestive sensitivity.
-              </p>
-            </div>
-          </section>
-
 
           <section className="bg-amber-900/20 border border-amber-500/30 rounded-xl p-4">
             <h3 className="text-amber-400 font-semibold mb-2 flex items-center gap-2">

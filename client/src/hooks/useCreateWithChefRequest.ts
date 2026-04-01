@@ -64,7 +64,7 @@ interface UseCreateWithChefRequestResult {
   generating: boolean;
   progress: number;
   error: string | null;
-  generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner", dietType?: DietType, dietPhase?: BeachBodyPhase, starchContext?: StarchContext, safetyOptions?: SafetyOptions, oncologySupportContext?: Record<string, unknown>) => Promise<Meal | null>;
+  generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner", dietType?: DietType, dietPhase?: BeachBodyPhase, starchContext?: StarchContext, safetyOptions?: SafetyOptions) => Promise<Meal | null>;
   cancel: () => void;
 }
 
@@ -109,8 +109,7 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
     dietType?: DietType,
     dietPhase?: BeachBodyPhase,
     starchContext?: StarchContext,
-    safetyOptions?: SafetyOptions,
-    oncologySupportContext?: Record<string, unknown>
+    safetyOptions?: SafetyOptions
   ): Promise<Meal | null> => {
     setGenerating(true);
     setError(null);
@@ -133,7 +132,6 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
           starchContext: starchContext || null, // Pass starch context for intelligent carb distribution
           safetyMode: safetyOptions?.safetyMode || "STRICT",
           overrideToken: safetyOptions?.overrideToken,
-          oncologySupportContext: oncologySupportContext || null,
         }),
         signal: abortControllerRef.current.signal,
       });

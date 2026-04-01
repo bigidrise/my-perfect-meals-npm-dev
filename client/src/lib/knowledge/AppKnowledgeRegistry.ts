@@ -457,31 +457,6 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
   },
 
   // ============================
-  // 🎗️ CANCER SUPPORT NUTRITION
-  // ============================
-  "cancer-support": {
-    id: "cancer-support",
-    title: "Cancer Support Nutrition",
-    description:
-      "A physician-assigned nutrition overlay that extends the Anti-Inflammatory Meal Builder with symptom-aware, treatment-supportive meal guidance.",
-    howTo: [
-      "Cancer Support Nutrition is assigned by your physician — it cannot be self-activated.",
-      "When enabled, your Anti-Inflammatory Meal Builder automatically applies the overlay.",
-      "The pink 'Cancer Support' badge appears in the builder header when active.",
-      "Meals are generated with symptom-aware guidance — nausea, low appetite, mouth sensitivity, fatigue, and GI sensitivity.",
-      "High-protein, nutrient-dense meal formats are emphasized when your physician selects that option.",
-      "All meals remain fully anti-inflammatory compliant with the Cancer Support layer on top.",
-    ],
-    tips: [
-      "This overlay is nutrition support only — it does not replace any clinical treatment.",
-      "Meal recommendations are built around tolerance and nourishment, not clinical claims.",
-      "If your symptoms change, ask your physician to update the active symptom settings.",
-      "Soft textures, minimal-prep meals, and gentle flavors are prioritized based on your active symptom flags.",
-    ],
-    relatedCommands: [],
-  },
-
-  // ============================
   // 🔥 RESTAURANT GUIDE
   // ============================
   "restaurant-guide": {

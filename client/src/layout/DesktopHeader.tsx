@@ -30,9 +30,9 @@ const ROUTE_TITLES: Record<string, string> = {
   "/get-inspiration": "Daily Journal & Inspiration",
   "/pricing": "Plans & Pricing",
   "/lifestyle": "Lifestyle Hub",
+  "/lifestyle/create-a-dish": "Create a Dish",
   "/lifestyle/beverage-creator": "Beverage Creator",
   "/lifestyle/chefs-kitchen": "Chef's Kitchen",
-  "/lifestyle/create-a-dish": "Create a Dish",
   "/lifestyle/chef-pairings": "Chef Pairings",
   "/lifestyle/pairings-hub": "Pairings Hub",
   "/lifestyle/pairings-ai": "Drink Pairings",
@@ -72,12 +72,7 @@ function getPlanLabel(planLookupKey?: string | null): string | null {
   if (key.includes("ultimate")) return "Ultimate";
   if (key.includes("premium")) return "Premium";
   if (key.includes("basic")) return "Basic";
-  if (
-    key.includes("trainer") ||
-    key.includes("physician") ||
-    key.includes("procare")
-  )
-    return "Professional";
+  if (key.includes("trainer") || key.includes("physician") || key.includes("procare")) return "Professional";
   if (key.includes("family")) return "Family";
   if (key.includes("guidance")) return "Guidance";
   return null;
@@ -88,17 +83,13 @@ function getPageTitle(location: string): string {
   for (const [route, title] of Object.entries(ROUTE_TITLES)) {
     if (location.startsWith(route + "/")) return title;
   }
-  if (location.startsWith("/pro/clients/") && location.includes("/clinician"))
-    return "Patient Dashboard";
-  if (location.startsWith("/pro/clients/") && location.includes("/trainer"))
-    return "Client Dashboard";
-  if (location.startsWith("/pro/clients/") && location.includes("/board/"))
-    return "Board View";
+  if (location.startsWith("/pro/clients/") && location.includes("/clinician")) return "Patient Dashboard";
+  if (location.startsWith("/pro/clients/") && location.includes("/trainer")) return "Client Dashboard";
+  if (location.startsWith("/pro/clients/") && location.includes("/board/")) return "Board View";
   if (location.startsWith("/pro/clients/")) return "Client Dashboard";
   if (location.startsWith("/pro/")) return "Professional Workspace";
   if (location.startsWith("/lifestyle/")) return "Lifestyle Hub";
-  if (location.startsWith("/builder") || location.includes("-builder"))
-    return "Meal Builder";
+  if (location.startsWith("/builder") || location.includes("-builder")) return "Meal Builder";
   return "My Perfect Meals";
 }
 

@@ -635,8 +635,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         starchContext,              // Starch Game Plan context for intelligent carb distribution
         nutritionStrategy: bodyNutritionStrategy, // Explicitly provided nutrition strategy
         safetyMode,                 // Safety override mode
-        overrideToken,              // One-time override token from PIN verification
-        oncologySupportContext,     // Cancer Support Nutrition overlay (physician-assigned)
+        overrideToken               // One-time override token from PIN verification
       } = req.body;
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
@@ -755,8 +754,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dietType,
         starchContext,
         nutritionStrategy: nutritionStrategy ?? undefined,
-        safetyAlreadyChecked: true, // Route already verified with enforceSafetyProfile (may include override token)
-        oncologySupportContext: oncologySupportContext ?? undefined,
+        safetyAlreadyChecked: true // Route already verified with enforceSafetyProfile (may include override token)
       });
 
       const durationMs = Date.now() - startTime;

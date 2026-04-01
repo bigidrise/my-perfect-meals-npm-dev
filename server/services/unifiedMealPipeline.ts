@@ -19,8 +19,6 @@ import { createIngredientSignature, hashSignature } from './ingredientSignature'
 import { getCachedMeals, cacheMeals } from './mealCachePersistent';
 import { generateFridgeRescueMeals } from './fridgeRescueGenerator';
 import { applyGuardrails, validateMealForDiet, getSystemPromptForDiet, DietType } from './guardrails';
-import { buildOncologySupportPrompt, isOncologySupportEnabled, OncologySupportContext } from './guardrails/prompt/oncologySupportPromptBuilder';
-import { filterOncologySafeMeals, validateOncologyMealSafety } from './guardrails/validators/oncologySupportValidator';
 import { normalizeIngredients as normalizeIngredientsToUS } from './ingredientNormalizer';
 import { 
   resolveHubCoupling, 
@@ -166,7 +164,6 @@ export interface MealGenerationRequest {
   starchContext?: StarchContext; // Starch Game Plan context for intelligent carb distribution
   nutritionStrategy?: NutritionStrategyContext; // Vegetable system + cut intensity guardrails
   safetyAlreadyChecked?: boolean; // Skip internal safety check if route already verified with override token
-  oncologySupportContext?: Record<string, unknown>; // Cancer Support Nutrition overlay (physician-assigned)
 }
 
 export interface MealGenerationResponse {
@@ -1126,8 +1123,7 @@ export async function generateFromDescriptionUnified(
   userId?: string,
   dietType?: DietType,
   starchContext?: StarchContext,
-  nutritionStrategy?: NutritionStrategyContext,
-  oncologySupportContext?: Record<string, unknown>
+  nutritionStrategy?: NutritionStrategyContext
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
   
@@ -1243,22 +1239,10 @@ Create the recipe for: "${description}"`;
 
     // Apply diet-specific guardrails to the prompt
     const guardrailResult = applyGuardrails(basePrompt, dietType || null, validMealType);
-    let prompt = guardrailResult.modifiedPrompt;
+    const prompt = guardrailResult.modifiedPrompt;
     
     if (guardrailResult.appliedRules.length > 0) {
       console.log(`🛡️ Applied guardrails: ${guardrailResult.appliedRules.join(', ')}`);
-    }
-
-    // Inject Cancer Support Nutrition overlay if enabled (anti-inflammatory extension)
-    if (oncologySupportContext && isOncologySupportEnabled()) {
-      const oncologyCtx = oncologySupportContext as unknown as OncologySupportContext;
-      if (oncologyCtx.enabled) {
-        const oncologyOverlay = buildOncologySupportPrompt(oncologyCtx);
-        if (oncologyOverlay) {
-          prompt = `${prompt}\n\n${oncologyOverlay}`;
-          console.log(`🎗️ [OncologySupport] Overlay injected for Create With Chef (symptoms: ${oncologyCtx.symptoms?.join(', ') || 'none'})`);
-        }
-      }
     }
 
     const messages: Array<{ role: 'system' | 'user'; content: string }> = [];
@@ -1354,21 +1338,6 @@ Create the recipe for: "${description}"`;
           if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
             lastFixHint = `DIETARY VIOLATION DETECTED. The user follows a strict ${chefDietRestrictions[0]} diet. Issues found: ${reasons.join(", ")}. Regenerate with a fully ${chefDietRestrictions[0]}-compliant recipe that contains ZERO animal products.`;
             continue;
-          }
-        }
-      }
-
-      // POST-GENERATION oncology safety check — validate no clinical language slipped through
-      if (oncologySupportContext && isOncologySupportEnabled()) {
-        const oncologyCtx = oncologySupportContext as unknown as OncologySupportContext;
-        if (oncologyCtx.enabled) {
-          const oncologyValidation = validateOncologyMealSafety(tempMeal);
-          if (!oncologyValidation.isValid) {
-            console.warn(`🎗️ [OncologyValidator] Meal "${tempMeal.name}" failed safety check — unsafe clinical language detected`);
-            if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
-              lastFixHint = `The generated meal contains clinical or treatment-focused language that is not permitted. Regenerate with a nourishing, supportive nutrition focus only. Do NOT include any language about cancer treatment, cures, tumor effects, or clinical claims.`;
-              continue;
-            }
           }
         }
       }
@@ -1811,7 +1780,7 @@ export async function generateMealUnified(
       const chefDescription = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType, request.starchContext, request.nutritionStrategy, request.oncologySupportContext);
+      result = await generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType, request.starchContext, request.nutritionStrategy);
       break;
 
     case 'snack-creator':

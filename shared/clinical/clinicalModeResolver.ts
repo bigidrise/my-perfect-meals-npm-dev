@@ -7,7 +7,6 @@ export interface ClinicalFlags {
   cardiac?: boolean;
   liverDisease?: boolean;
   liverSupport?: boolean;
-  cancerSupport?: boolean;
   lowSodium?: boolean;
   diabetesFriendly?: boolean;
   glp1?: boolean;
@@ -72,7 +71,6 @@ export function resolveClinicalModeFromFlags(flags?: ClinicalFlags | null): Reso
   }
 
   const modifierBadges: ProtocolBadge[] = [];
-  if (f.cancerSupport)    modifierBadges.push({ label: 'Cancer Support',    cls: 'bg-pink-700 text-pink-100'    });
   if (f.lowSodium)        modifierBadges.push({ label: 'Low-Sodium',        cls: 'bg-yellow-700 text-yellow-100' });
   if (f.diabetesFriendly) modifierBadges.push({ label: 'Diabetes-Friendly', cls: 'bg-purple-700 text-purple-100' });
   if (f.glp1)             modifierBadges.push({ label: 'GLP-1 Support',     cls: 'bg-blue-700 text-blue-100'    });

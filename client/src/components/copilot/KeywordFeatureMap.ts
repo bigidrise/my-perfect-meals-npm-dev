@@ -59,11 +59,11 @@ export const KEYWORD_FEATURE_MAP: FeatureMapping[] = [
     keywords: ["glp", "glp one", "glp-1", "ozempic", "wegovy", "semaglutide", "injection", "g l p one", "glp hub", "glp-1 hub", "weight loss meds"],
   },
   
-  // Anti-Inflammatory Meal Builder (also covers Cancer Support Nutrition overlay)
+  // Anti-Inflammatory Meal Builder
   {
     path: "/anti-inflammatory-menu-builder",
     walkthroughId: "anti-inflammatory",
-    keywords: ["anti-inflammatory", "inflammation", "anti inflammatory", "anti", "reduce inflammation", "inflammatory diet", "healing diet", "anti inflam", "cancer support", "cancer nutrition", "oncology support", "oncology", "cancer", "oncology nutrition", "cancer diet", "chemo support", "treatment nutrition"],
+    keywords: ["anti-inflammatory", "inflammation", "anti inflammatory", "anti", "reduce inflammation", "inflammatory diet", "healing diet", "anti inflam"],
   },
   
   // DELETED: Kids Hub (Phase 1 cleanup)
