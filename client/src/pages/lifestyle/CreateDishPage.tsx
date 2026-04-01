@@ -209,12 +209,13 @@ export default function CreateDishPage() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
-  // Restore cached meal on mount (so generated meal comes back after leaving the page)
+  // Restore cached meal on mount (so generated meal comes back after leaving the page).
+  // NOTE: dishInput is intentionally NOT restored here — restoring it would trigger the
+  // starch/diet guard useEffect on mount, causing the overlay issue.
   useEffect(() => {
     const cached = loadDishCache();
     if (cached?.generatedMeal?.id) {
       setGeneratedMeals([cached.generatedMeal]);
-      setDishInput(cached.dishInput || "");
       setServings(cached.servings || 2);
       setCookMethod(cached.cookMethod || "");
       setNotes(cached.notes || "");
