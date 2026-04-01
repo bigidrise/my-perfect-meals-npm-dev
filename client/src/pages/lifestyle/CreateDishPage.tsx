@@ -210,13 +210,23 @@ export default function CreateDishPage() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
+  // Restore cached meal on mount (so generated meal comes back after leaving the page).
+  // NOTE: dishInput is intentionally NOT restored here — restoring it would trigger the
+  // starch/diet guard useEffect on mount, causing the overlay issue.
   useEffect(() => {
-    // Intentionally do not auto-restore cached meals on mount.
-    // Auto-restore causes ShoppingAggregateBar (fixed black bottom bar) to mount
-    // immediately on cold page load, reading as a black overlay before the user has
-    // any context. Persistence will be rebuilt later using a suppression flag so the
-    // meal card can restore without triggering the bar until after first user interaction.
-  }, []);
+    const cached = loadDishCache();
+    if (cached?.generatedMeal?.id) {
+      setGeneratedMeals([cached.generatedMeal]);
+      setServings(cached.servings || 2);
+      setCookMethod(cached.cookMethod || "");
+      setNotes(cached.notes || "");
+      toast({
+        title: "🔄 Dish Restored",
+        description:
+          "Your generated dish will remain saved on this page until you create a new one.",
+      });
+    }
+  }, []); // Only run once on mount
 
   useEffect(() => {
     if (generatedMeals.length > 0 && generatedMeals[0]?.id) {
@@ -485,7 +495,7 @@ export default function CreateDishPage() {
                 <span className="text-sm font-medium">Back</span>
               </button>
 
-              <ChefHat className="h-5 w-5 text-orange-400 flex-shrink-0" />
+              
 
               <h1 className="text-lg font-bold text-white truncate min-w-0">
                 Create a Dish
