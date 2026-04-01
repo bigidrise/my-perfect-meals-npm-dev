@@ -45,8 +45,8 @@ export function MedicalSourcesInfo({ trigger, asIconButton = false, asPillButton
       <SheetTrigger asChild>
         {trigger || defaultTrigger}
       </SheetTrigger>
-      <SheetContent 
-        side="bottom" 
+      <SheetContent
+        side="bottom"
         className="bg-black/95 border-t border-white/20 text-white max-h-[85vh] overflow-y-auto rounded-t-3xl"
       >
         <SheetHeader className="text-left pb-4 border-b border-white/10">
@@ -64,11 +64,11 @@ export function MedicalSourcesInfo({ trigger, asIconButton = false, asPillButton
               MPM SafetyGuard - How It Works
             </h3>
             <p className="text-white/80 text-sm leading-relaxed mb-4">
-              MPM SafetyGuard is a two-layer guidance system designed to help reduce the risk 
-              of generating meals that conflict with food allergies or medical considerations 
-              provided by the user.
+              MPM SafetyGuard is a two-layer guidance system designed to help reduce the risk
+              of generating meals that conflict with food allergies, dietary restrictions, or
+              medical considerations provided by the user.
             </p>
-            
+
             <div className="space-y-4 mb-4">
               <div className="bg-black/30 rounded-lg p-3">
                 <div className="flex items-start gap-2 mb-2">
@@ -76,24 +76,24 @@ export function MedicalSourcesInfo({ trigger, asIconButton = false, asPillButton
                   <h4 className="text-white font-medium text-sm">Layer 1: Pre-Generation Safety Check</h4>
                 </div>
                 <p className="text-white/70 text-xs leading-relaxed pl-6">
-                  Before any meal is created, the system checks the user's safety profile — including 
-                  allergies and relevant medical considerations — against a structured food and 
-                  ingredient taxonomy. If a requested meal includes ingredients that may conflict 
-                  with the user's profile, the request is designed to be blocked before generation 
-                  and the user is guided on how to adjust the request safely.
+                  Before any meal is created, the system checks the user's safety profile, including
+                  allergies, dietary restrictions, and relevant medical considerations, against a
+                  structured food and ingredient taxonomy. If a requested meal includes ingredients
+                  that may conflict with the user's profile, the request is designed to be blocked
+                  before generation and the user is guided on how to adjust the request more safely.
                 </p>
               </div>
-              
+
               <div className="bg-black/30 rounded-lg p-3">
                 <div className="flex items-start gap-2 mb-2">
                   <Shield className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
                   <h4 className="text-white font-medium text-sm">Layer 2: Post-Generation Validation</h4>
                 </div>
                 <p className="text-white/70 text-xs leading-relaxed pl-6">
-                  After a meal is created, the system performs an additional validation pass 
-                  intended to confirm the final ingredients remain within the user's safety 
-                  constraints. If a potential conflict is detected, the meal may be flagged 
-                  or adjusted.
+                  After a meal is created, the system performs an additional validation pass
+                  intended to confirm the final ingredients remain within the user's stated safety
+                  constraints. If a potential conflict is detected, the meal may be flagged,
+                  adjusted, or rejected.
                 </p>
               </div>
             </div>
@@ -106,22 +106,22 @@ export function MedicalSourcesInfo({ trigger, asIconButton = false, asPillButton
               <ul className="text-white/60 text-xs space-y-1 pl-4 mb-3">
                 <li>• Structured food and ingredient taxonomies</li>
                 <li>• Common allergen classifications recognized by public health organizations</li>
-                <li>• Clinical nutrition principles for diabetes, GLP-1 support, and anti-inflammatory eating</li>
+                <li>• Clinical nutrition principles for diabetes support, GLP-1 support, anti-inflammatory eating, and oncology-supportive meal planning</li>
                 <li>• AI-assisted language understanding to interpret user input and ingredient intent</li>
               </ul>
               <p className="text-white/60 text-xs leading-relaxed">
-                The system uses AI-assisted language understanding to identify ingredient families, 
-                compound foods, and common substitutions — similar to how modern AI systems interpret 
-                food, recipes, and nutrition concepts. These interpretations are combined with 
+                The system uses AI-assisted language understanding to identify ingredient families,
+                compound foods, and common substitutions, similar to how modern AI systems interpret
+                food, recipes, and nutrition concepts. These interpretations are combined with
                 deterministic rule-based checks to help enforce safety constraints.
               </p>
             </div>
 
             <div className="bg-amber-900/30 border border-amber-500/30 rounded-lg p-3 mt-4">
               <p className="text-amber-400/90 text-xs font-medium">
-                SafetyGuard is a software-based guidance tool, not a medical device. It does not 
-                diagnose, treat, or replace professional medical advice. All safety checks are 
-                based on user-provided information and are intended to support safer food choices, 
+                SafetyGuard is a software-based guidance tool, not a medical device. It does not
+                diagnose, treat, or replace professional medical advice. All safety checks are
+                based on user-provided information and are intended to support safer food choices,
                 not medical decision-making.
               </p>
             </div>
@@ -132,9 +132,10 @@ export function MedicalSourcesInfo({ trigger, asIconButton = false, asPillButton
               How nutritional values are calculated
             </h3>
             <p className="text-white/80 text-sm leading-relaxed">
-              My Perfect Meals uses established public reference data to estimate calories, 
-              macronutrients, and nutrition targets. Values shown in the app are estimates 
-              and may vary based on ingredients, preparation, and individual needs.
+              My Perfect Meals uses established public reference data to estimate calories,
+              macronutrients, micronutrients, and nutrition targets. Values shown in the app are
+              estimates and may vary based on ingredients, preparation methods, serving sizes,
+              product brands, and individual needs.
             </p>
           </section>
 
@@ -168,10 +169,49 @@ export function MedicalSourcesInfo({ trigger, asIconButton = false, asPillButton
 
           <section>
             <h3 className="text-lg font-semibold text-white mb-3">
+              Oncology and cancer-support nutrition references
+            </h3>
+            <p className="text-white/60 text-xs mb-3">
+              My Perfect Meals uses publicly available oncology nutrition guidance and supportive care
+              references to help inform cancer-support meal design patterns. These references are used
+              to support general nutrition education and food-structure guidance only, not diagnosis,
+              treatment, or individualized medical oncology care.
+            </p>
+            <ul className="space-y-3">
+              <SourceItem
+                title="National Cancer Institute (NCI)"
+                description="Cancer nutrition, treatment side effects, supportive eating strategies, and patient education"
+                url="https://www.cancer.gov/about-cancer/treatment/side-effects/appetite-loss/nutrition-pdq"
+              />
+              <SourceItem
+                title="American Cancer Society (ACS)"
+                description="Nutrition and physical activity guidance for people during and after cancer treatment"
+                url="https://www.cancer.org/cancer/survivorship/coping/nutrition.html"
+              />
+              <SourceItem
+                title="Oncology Nutrition Dietetic Practice Group (Academy of Nutrition and Dietetics)"
+                description="Evidence-informed oncology nutrition education and supportive nutrition care resources"
+                url="https://www.oncologynutrition.org/"
+              />
+              <SourceItem
+                title="American Society of Clinical Oncology (ASCO)"
+                description="Cancer care standards, supportive care principles, and oncology practice guidance"
+                url="https://www.asco.org/"
+              />
+              <SourceItem
+                title="National Comprehensive Cancer Network (NCCN)"
+                description="Supportive care and oncology-related clinical guidance frameworks"
+                url="https://www.nccn.org/"
+              />
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-semibold text-white mb-3">
               Allergen taxonomy knowledge sources
             </h3>
             <p className="text-white/60 text-xs mb-3">
-              SafetyGuard's allergen definitions and ingredient classifications are informed by 
+              SafetyGuard's allergen definitions and ingredient classifications are informed by
               the following public resources:
             </p>
             <ul className="space-y-3">
@@ -204,11 +244,14 @@ export function MedicalSourcesInfo({ trigger, asIconButton = false, asPillButton
               Important note
             </h3>
             <p className="text-white/80 text-sm leading-relaxed">
-              My Perfect Meals is designed for general wellness and lifestyle support only. 
-              It does not diagnose, treat, or prevent medical conditions. SafetyGuard is a 
-              software-based assistance tool and cannot guarantee complete allergen avoidance. 
-              Always verify ingredients and consult a qualified healthcare professional for 
-              medical advice, especially for severe allergies.
+              My Perfect Meals is designed for general wellness and lifestyle support only.
+              It does not diagnose, treat, or prevent medical conditions. SafetyGuard is a
+              software-based assistance tool and cannot guarantee complete allergen avoidance.
+              Cancer-support and oncology-related meal suggestions are intended for general
+              supportive wellness use only and are not a substitute for oncology, physician,
+              or registered dietitian guidance. Always verify ingredients and consult a
+              qualified healthcare professional for medical advice, especially for severe
+              allergies or medically complex conditions.
             </p>
           </section>
         </div>
