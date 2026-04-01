@@ -22,10 +22,11 @@ import { useToast } from "@/hooks/use-toast";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 interface BuilderSwitchStatus {
-  switchesUsed: number;
-  switchesRemaining: number;
+  changesUsed: number;
+  changesRemaining: number;
+  changeLimit: number;
   canSwitch: boolean;
-  nextSwitchAvailable: string | null;
+  isUnlimited: boolean;
 }
 
 interface BuilderOption {
@@ -106,18 +107,17 @@ export default function MealBuilderSelection() {
   const [loadingStatus, setLoadingStatus] = useState(true);
 
   const isProCareClient = user?.isProCare && !["admin", "coach", "physician", "trainer"].includes(user?.professionalRole || user?.role || "");
-  const isAdmin = user?.role === "admin" || user?.isTester || user?.entitlements?.includes("FULL_ACCESS");
+  const isUnlimited = switchStatus?.isUnlimited ?? false;
   
   // Pro builders require trainer unlock
   const PRO_BUILDERS = ["general_nutrition", "performance_competition"];
   
   const isProBuilderUnlocked = (builderId: string): boolean => {
-    if (!PRO_BUILDERS.includes(builderId)) return true; // Not a pro builder
-    if (isAdmin) return true; // Admins have full access
-    // User has access if trainer assigned this as their activeBoard
+    if (!PRO_BUILDERS.includes(builderId)) return true;
+    if (isUnlimited) return true;
     return user?.activeBoard === builderId;
   };
-  
+
   const availableBuilders =
     isProCareClient && user?.activeBoard
       ? BUILDER_OPTIONS.filter((opt) => opt.id === user.activeBoard)
@@ -181,15 +181,14 @@ export default function MealBuilderSelection() {
       return;
     }
 
-    // Switch limit check - currently disabled (ENFORCE_SWITCH_LIMITS = false on backend)
-    // if (switchStatus && !switchStatus.canSwitch) {
-    //   toast({
-    //     title: "Switch limit reached",
-    //     description: `You've used all 3 builder switches this year. Next switch available ${switchStatus.nextSwitchAvailable ? new Date(switchStatus.nextSwitchAvailable).toLocaleDateString() : "later this year"}.`,
-    //     variant: "destructive",
-    //   });
-    //   return;
-    // }
+    if (switchStatus && !switchStatus.canSwitch && !switchStatus.isUnlimited) {
+      toast({
+        title: "Builder changes used up",
+        description: `You've used all ${switchStatus.changeLimit} builder changes during beta testing. Contact support if you need additional access.`,
+        variant: "destructive",
+      });
+      return;
+    }
 
     const authToken = getAuthToken();
     if (!authToken) {
@@ -308,60 +307,48 @@ export default function MealBuilderSelection() {
           </div>
         )}
 
-        {/* Builder switch allowance note */}
-        <div className="bg-zinc-900/60 border border-zinc-700 rounded-xl p-4 mb-6">
-          <div className="flex items-start gap-3">
-            <RefreshCw className="w-5 h-5 text-zinc-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-white text-sm font-medium mb-1">
-                Program Transitions
-              </p>
-              <p className="text-zinc-400 text-xs leading-relaxed">
-                You have 3 program transitions per subscription year to customize your journey. They reset on your subscription anniversary — no rollover, but you'll always get a fresh set as your needs evolve.
-                {user?.isProCare && (
-                  <span className="text-indigo-300"> Switches made by your coach or physician through ProCare do not count toward your transitions.</span>
-                )}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Builder Switch Status - Currently disabled, uncomment when ENFORCE_SWITCH_LIMITS is true */}
-        {/* {!loadingStatus && switchStatus && (
-          <div className={`rounded-xl p-4 mb-6 ${switchStatus.canSwitch ? "bg-zinc-900/60 border border-zinc-700" : "bg-amber-900/30 border border-amber-500/50"}`}>
+        {/* Builder switch status */}
+        {!loadingStatus && switchStatus && (
+          <div className={`rounded-xl p-4 mb-6 ${
+            switchStatus.isUnlimited
+              ? "bg-zinc-900/60 border border-zinc-700"
+              : switchStatus.canSwitch
+              ? "bg-zinc-900/60 border border-zinc-700"
+              : "bg-amber-900/30 border border-amber-500/50"
+          }`}>
             <div className="flex items-center gap-3">
-              {switchStatus.canSwitch ? (
-                <RefreshCw className="w-5 h-5 text-zinc-400" />
+              {!switchStatus.canSwitch && !switchStatus.isUnlimited ? (
+                <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0" />
               ) : (
-                <AlertTriangle className="w-5 h-5 text-amber-400" />
+                <RefreshCw className="w-5 h-5 text-zinc-400 flex-shrink-0" />
               )}
               <div className="flex-1">
-                {switchStatus.canSwitch ? (
+                {switchStatus.isUnlimited ? (
+                  <>
+                    <p className="text-white text-sm font-medium">Unlimited builder access</p>
+                    <p className="text-zinc-400 text-xs mt-0.5">Internal account — no switching restrictions.</p>
+                  </>
+                ) : switchStatus.canSwitch ? (
                   <>
                     <p className="text-white text-sm font-medium">
-                      {switchStatus.switchesRemaining} transition{switchStatus.switchesRemaining !== 1 ? "s" : ""} remaining this year
+                      {switchStatus.changesRemaining} builder {switchStatus.changesRemaining === 1 ? "change" : "changes"} remaining
                     </p>
                     <p className="text-zinc-400 text-xs mt-0.5">
-                      You can change your program {switchStatus.switchesRemaining} more time{switchStatus.switchesRemaining !== 1 ? "s" : ""} this subscription year.
+                      You've used {switchStatus.changesUsed} of {switchStatus.changeLimit} builder changes during beta.
                     </p>
                   </>
                 ) : (
                   <>
-                    <p className="text-amber-200 text-sm font-medium">
-                      Transitions used
-                    </p>
+                    <p className="text-amber-200 text-sm font-medium">Builder changes used up</p>
                     <p className="text-amber-300/70 text-xs mt-0.5">
-                      You've used all 3 program transitions for this subscription year.
-                      {switchStatus.nextSwitchAvailable && (
-                        <> Your transitions reset on {new Date(switchStatus.nextSwitchAvailable).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.</>
-                      )}
+                      You've used all {switchStatus.changeLimit} builder changes during beta testing.
                     </p>
                   </>
                 )}
               </div>
             </div>
           </div>
-        )} */}
+        )}
 
         <div className="space-y-4 mb-8">
           {/* Locked state: Pro Care client with no assigned board */}
