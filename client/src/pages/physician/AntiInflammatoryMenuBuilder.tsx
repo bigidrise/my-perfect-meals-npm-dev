@@ -1444,28 +1444,23 @@ export default function AntiInflammatoryMenuBuilder() {
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
                 <span className="font-medium text-white/70">Active Protocol:</span>
                 {[
-                  { key: "antiInflammatory", label: "Anti-Inflammatory" },
-                  { key: "heart-failure",    label: "Cardiac Health" },
-                  { key: "kidney-disease",   label: "Kidney Disease" },
-                  { key: "liver-support",    label: "Liver Support" },
-                  { key: "liver-disease",    label: "Liver Disease" },
-                ].map(({ key, label }) => {
-                  const isActive =
-                    clinicalModeState === key ||
-                    (key === "antiInflammatory" &&
-                      (clinicalModeState === "base" || !clinicalModeState));
+                  { key: "heart-failure",    label: "Cardiac Health",   activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
+                  { key: "kidney-disease",   label: "Kidney Disease",   activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
+                  { key: "liver-support",    label: "Liver Support",    activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
+                  { key: "liver-disease",    label: "Liver Disease",    activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
+                  { key: "oncology-support", label: "Cancer Protocol",  activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
+                ].map(({ key, label, activeColor, dotColor, dotGlow }) => {
+                  const isActive = clinicalModeState === key;
                   return (
                     <span
                       key={key}
                       className={`flex items-center gap-1 ${
-                        isActive ? "text-green-400 font-semibold" : "text-white/25"
+                        isActive ? `${activeColor} font-semibold` : "text-white/25"
                       }`}
                     >
                       <span
                         className={`inline-block w-1.5 h-1.5 rounded-full ${
-                          isActive
-                            ? "bg-green-400 shadow-[0_0_4px_rgba(74,222,128,0.8)]"
-                            : "bg-white/15"
+                          isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"
                         }`}
                       />
                       {label}
