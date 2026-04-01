@@ -105,6 +105,7 @@ export default function MealBuilderSelection() {
   const [saving, setSaving] = useState(false);
   const [switchStatus, setSwitchStatus] = useState<BuilderSwitchStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
+  const [switchModeEnabled, setSwitchModeEnabled] = useState(false);
 
   const isProCareClient = user?.isProCare && !["admin", "coach", "physician", "trainer"].includes(user?.professionalRole || user?.role || "");
   const isUnlimited = switchStatus?.isUnlimited ?? false;
@@ -118,6 +119,13 @@ export default function MealBuilderSelection() {
     return user?.activeBoard === builderId;
   };
 
+  const isCardLocked = (builderId: string): boolean => {
+    if (isUnlimited) return false;
+    if (!user?.activeBoard) return false;
+    if (switchModeEnabled) return false;
+    return builderId !== user.activeBoard;
+  };
+
   const availableBuilders =
     isProCareClient && user?.activeBoard
       ? BUILDER_OPTIONS.filter((opt) => opt.id === user.activeBoard)
@@ -129,11 +137,13 @@ export default function MealBuilderSelection() {
   }, [refreshUser]);
 
   useEffect(() => {
-    if (user?.selectedMealBuilder) {
+    if (user?.activeBoard) {
+      setSelected(user.activeBoard as MealBuilderType);
+    } else if (user?.selectedMealBuilder) {
       setSelected(user.selectedMealBuilder as MealBuilderType);
-      setConfirmedBuilder(null);
     }
-  }, [user?.selectedMealBuilder]);
+    setConfirmedBuilder(null);
+  }, [user?.activeBoard, user?.selectedMealBuilder]);
 
   useEffect(() => {
     const fetchSwitchStatus = async () => {
@@ -229,6 +239,7 @@ export default function MealBuilderSelection() {
       }
 
       setConfirmedBuilder(selected);
+      setSwitchModeEnabled(false);
       await refreshUser();
 
       toast({
@@ -367,17 +378,39 @@ export default function MealBuilderSelection() {
             </div>
           )}
 
+          {/* Switch mode banner */}
+          {switchModeEnabled && (
+            <div className="flex items-center justify-between bg-amber-900/30 border border-amber-500/40 rounded-xl px-4 py-3">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                <p className="text-amber-200 text-sm">
+                  Switching will use 1 of your {switchStatus?.changesRemaining ?? 0} remaining changes
+                </p>
+              </div>
+              <button
+                onClick={() => { setSwitchModeEnabled(false); setSelected(user?.activeBoard as MealBuilderType || null); }}
+                className="text-zinc-400 hover:text-white text-xs ml-3 flex-shrink-0"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
           {/* Available builders - only show if NOT in locked state */}
           {!(isProCareClient && !user?.activeBoard) &&
             availableBuilders.map((option) => {
               const isUnlocked = isProBuilderUnlocked(option.id);
               const isProBuilder = PRO_BUILDERS.includes(option.id);
-              
+              const locked = isCardLocked(option.id);
+              const isActiveBoard = option.id === user?.activeBoard;
+
               return (
               <div
                 key={option.id}
                 className={`w-full p-4 rounded-2xl border-2 transition-all ${
-                  !isUnlocked
+                  locked
+                    ? "border-zinc-800 bg-black/10 opacity-50 cursor-not-allowed"
+                    : !isUnlocked
                     ? "border-zinc-700 bg-black/20 opacity-60"
                     : selected === option.id
                     ? "border-emerald-500/50 bg-white/10"
@@ -386,15 +419,18 @@ export default function MealBuilderSelection() {
               >
                 <div className="flex items-start gap-4">
                   <div
-                    className={`p-3 rounded-xl bg-gradient-to-br ${option.color} ${isUnlocked ? "text-white" : "text-zinc-500"} flex-shrink-0`}
+                    className={`p-3 rounded-xl bg-gradient-to-br ${option.color} ${locked || !isUnlocked ? "text-zinc-500" : "text-white"} flex-shrink-0`}
                   >
                     {option.icon}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className={`text-base font-semibold truncate ${!isUnlocked ? "text-zinc-400" : ""}`}>{option.title}</h3>
-                        {!isUnlocked && isProBuilder && (
+                        <h3 className={`text-base font-semibold truncate ${locked || !isUnlocked ? "text-zinc-400" : ""}`}>{option.title}</h3>
+                        {locked && (
+                          <Lock className="w-4 h-4 text-zinc-600" />
+                        )}
+                        {!locked && !isUnlocked && isProBuilder && (
                           <Lock className="w-4 h-4 text-zinc-500" />
                         )}
                         {option.id === "beach_body" && (
@@ -402,32 +438,45 @@ export default function MealBuilderSelection() {
                             Ultimate
                           </span>
                         )}
-                        {(confirmedBuilder || user?.selectedMealBuilder) === option.id && (
+                        {isActiveBoard && (
                           <span className="text-xs px-2 py-0.5 bg-emerald-600/30 text-emerald-300 rounded-full border border-emerald-500/30">
                             Current
                           </span>
                         )}
                       </div>
-                      {isUnlocked ? (
+                      {locked ? (
+                        <span className="text-xs text-zinc-600 italic flex-shrink-0">Locked</span>
+                      ) : isUnlocked ? (
                         <PillButton
                           active={selected === option.id}
-                          onClick={() => setSelected(option.id)}
+                          onClick={() => setSelected(option.id as MealBuilderType)}
                           className="flex-shrink-0"
                         >
                           {selected === option.id ? "On" : "Off"}
                         </PillButton>
                       ) : (
-                        <span className="text-xs text-zinc-500 italic">Trainer unlock required</span>
+                        <span className="text-xs text-zinc-500 italic flex-shrink-0">Trainer unlock required</span>
                       )}
                     </div>
-                    <p className={`text-sm mt-1 ${!isUnlocked ? "text-zinc-500" : "text-white/70"}`}>
-                      {!isUnlocked ? "Requires trainer/coach to unlock access" : option.description}
+                    <p className={`text-sm mt-1 ${locked || !isUnlocked ? "text-zinc-500" : "text-white/70"}`}>
+                      {locked ? "Not your assigned builder" : !isUnlocked ? "Requires trainer/coach to unlock access" : option.description}
                     </p>
                   </div>
                 </div>
               </div>
             );
             })}
+
+          {/* Switch Builder CTA — only show when user has an active board, has changes left, and isn't in switch mode */}
+          {!isUnlimited && user?.activeBoard && !switchModeEnabled && switchStatus?.canSwitch && (switchStatus.changesRemaining ?? 0) > 0 && !(isProCareClient && !user?.activeBoard) && (
+            <button
+              onClick={() => setSwitchModeEnabled(true)}
+              className="w-full py-3 rounded-xl border border-zinc-600 text-zinc-300 text-sm font-medium hover:border-zinc-400 hover:text-white transition-all flex items-center justify-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Switch Builder ({switchStatus.changesRemaining} change{switchStatus.changesRemaining === 1 ? "" : "s"} remaining)
+            </button>
+          )}
         </div>
 
         {/* Copilot guidance hint */}
@@ -447,7 +496,7 @@ export default function MealBuilderSelection() {
             disabled={!selected || saving}
             className="w-full h-14 text-lg bg-lime-600 text-white font-semibold rounded-xl shadow-lg disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Continue with This Builder"}
+            {saving ? "Saving..." : switchModeEnabled && selected !== user?.activeBoard ? "Switch to This Builder" : "Continue with This Builder"}
           </Button>
         )}
       </div>
