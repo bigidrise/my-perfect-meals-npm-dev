@@ -2,12 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassButton } from "@/components/glass";
 import {
   Select,
@@ -17,13 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import {
-  Brain,
-  Sparkles,
-  ArrowLeft,
-  ChefHat,
-  Users,
-} from "lucide-react";
+import { Brain, Sparkles, ArrowLeft, ChefHat, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   isAllergyRelatedError,
@@ -166,13 +155,20 @@ export default function CreateDishPage() {
   const [isPlatingMeal, setIsPlatingMeal] = useState(false);
 
   const getRecentMeals = (): string[] => {
-    try { return JSON.parse(sessionStorage.getItem('cd_recent_meals') || '[]'); } catch { return []; }
+    try {
+      return JSON.parse(sessionStorage.getItem("cd_recent_meals") || "[]");
+    } catch {
+      return [];
+    }
   };
   const addRecentMeal = (mealName: string): void => {
     try {
       const recent = getRecentMeals();
-      const updated = [mealName, ...recent.filter((m: string) => m !== mealName)].slice(0, 3);
-      sessionStorage.setItem('cd_recent_meals', JSON.stringify(updated));
+      const updated = [
+        mealName,
+        ...recent.filter((m: string) => m !== mealName),
+      ].slice(0, 3);
+      sessionStorage.setItem("cd_recent_meals", JSON.stringify(updated));
     } catch {}
   };
 
@@ -188,7 +184,9 @@ export default function CreateDishPage() {
     triggerAlert: triggerDietAlert,
     activeDiet,
   } = useDietGuardPrecheck();
-  const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(null);
+  const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(
+    null,
+  );
 
   const { user } = useAuth();
   const sweetenerPreferences = user?.sweetenerPreferences || [];
@@ -199,7 +197,10 @@ export default function CreateDishPage() {
   useEffect(() => {
     if (mealOptions.length > 0 && mealOptionsRef.current) {
       setTimeout(() => {
-        mealOptionsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        mealOptionsRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
       }, 80);
     }
   }, [mealOptions.length]);
@@ -221,7 +222,8 @@ export default function CreateDishPage() {
       setNotes(cached.notes || "");
       toast({
         title: "🔄 Dish Restored",
-        description: "Your generated dish will remain saved on this page until you create a new one.",
+        description:
+          "Your generated dish will remain saved on this page until you create a new one.",
       });
     }
   }, []); // Only run once on mount
@@ -316,7 +318,9 @@ export default function CreateDishPage() {
     isBlocked: starchBlocked,
   } = useStarchGuardPrecheck();
 
-  const [substitutedStarchTerms, setSubstitutedStarchTerms] = useState<string[]>([]);
+  const [substitutedStarchTerms, setSubstitutedStarchTerms] = useState<
+    string[]
+  >([]);
 
   useEffect(() => {
     if (dishInput.trim().length >= 3 && starchDecision === "pending") {
@@ -327,7 +331,8 @@ export default function CreateDishPage() {
   const buildPrompt = () => {
     const parts: string[] = [];
     if (dishInput.trim()) parts.push(dishInput.trim());
-    if (cookMethod && cookMethod !== "Any") parts.push(`Cooking method: ${cookMethod}`);
+    if (cookMethod && cookMethod !== "Any")
+      parts.push(`Cooking method: ${cookMethod}`);
     if (notes.trim()) parts.push(`Notes: ${notes.trim()}`);
     return parts.join(". ");
   };
@@ -399,7 +404,9 @@ export default function CreateDishPage() {
         setIsGenerating(false);
         const userDiet = normalizeDiet(user?.dietaryRestrictions);
         if (data.dietAdapted) {
-          setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
+          setDietAdaptedNotice(
+            data.dietNotice || `Adapted for your ${userDiet} diet.`,
+          );
           clearDietAlert();
         }
         setMealOptions(data.meals);
@@ -410,12 +417,21 @@ export default function CreateDishPage() {
 
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
       if (data.dietAdapted) {
-        setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
+        setDietAdaptedNotice(
+          data.dietNotice || `Adapted for your ${userDiet} diet.`,
+        );
         clearDietAlert();
-      } else if (!skipPreflight && activeDiet && !mealMatchesDiet(userDiet, meal)) {
+      } else if (
+        !skipPreflight &&
+        activeDiet &&
+        !mealMatchesDiet(userDiet, meal)
+      ) {
         stopProgressTicker();
         setIsGenerating(false);
-        triggerDietAlert([], `This meal may not fully match your ${userDiet} diet.`);
+        triggerDietAlert(
+          [],
+          `This meal may not fully match your ${userDiet} diet.`,
+        );
         return;
       }
 
@@ -463,7 +479,7 @@ export default function CreateDishPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
+        className="min-h-screen bg-gradient-to-br from-black via-orange-600/40 to-black pb-safe-nav"
       >
         <MobileHeaderGuard>
           <div
@@ -491,8 +507,7 @@ export default function CreateDishPage() {
         </MobileHeaderGuard>
 
         <div
-          className={`max-w-2xl mx-auto px-4 ${generatedMeals.length > 0 ? "pb-32" : "pb-8"}`}
-          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
+          className={`max-w-2xl mx-auto px-4 pt-24 ${generatedMeals.length > 0 ? "pb-32" : "pb-8"}`}
         >
           <div className="w-full max-w-4xl mx-auto">
             <div>
@@ -503,7 +518,8 @@ export default function CreateDishPage() {
                     Create a Dish
                   </CardTitle>
                   <p className="text-sm text-white/60 mt-1">
-                    Tell Chef what you want to cook and let AI build the perfect recipe for you.
+                    Tell Chef what you want to cook and let AI build the perfect
+                    recipe for you.
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -548,11 +564,15 @@ export default function CreateDishPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
-                          <SelectItem key={n} value={n.toString()}>
-                            {n === 1 ? "1 serving (just me)" : `${n} servings`}
-                          </SelectItem>
-                        ))}
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map(
+                          (n) => (
+                            <SelectItem key={n} value={n.toString()}>
+                              {n === 1
+                                ? "1 serving (just me)"
+                                : `${n} servings`}
+                            </SelectItem>
+                          ),
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -565,7 +585,9 @@ export default function CreateDishPage() {
                       {COOK_METHODS.map((method) => (
                         <button
                           key={method}
-                          onClick={() => setCookMethod(cookMethod === method ? "" : method)}
+                          onClick={() =>
+                            setCookMethod(cookMethod === method ? "" : method)
+                          }
                           className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
                             cookMethod === method
                               ? "bg-orange-500 border-orange-400 text-white"
@@ -593,7 +615,6 @@ export default function CreateDishPage() {
                       {notes.length}/250
                     </p>
                   </div>
-
 
                   <StarchGuardIntercept
                     alert={starchAlert}
@@ -636,9 +657,7 @@ export default function CreateDishPage() {
                       Meal Safety
                     </span>
 
-                    <GlucoseGuardToggle
-                      disabled={isGenerating}
-                    />
+                    <GlucoseGuardToggle disabled={isGenerating} />
                   </div>
 
                   <div className="mt-2 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
@@ -679,7 +698,9 @@ export default function CreateDishPage() {
           {isPlatingMeal && (
             <div className="mt-8 flex flex-col items-center gap-4 py-10">
               <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-              <p className="text-white/80 text-base font-medium">Chef is plating your dish…</p>
+              <p className="text-white/80 text-base font-medium">
+                Chef is plating your dish…
+              </p>
             </div>
           )}
 
@@ -687,21 +708,44 @@ export default function CreateDishPage() {
             <div className="mt-8 space-y-4" ref={mealOptionsRef}>
               <div className="flex items-center gap-3 mb-2">
                 <Sparkles className="h-5 w-5 text-orange-400" />
-                <h3 className="text-lg font-bold text-white">Pick your favorite</h3>
-                <span className="text-sm text-white/60">{mealOptions.length} options created for you</span>
+                <h3 className="text-lg font-bold text-white">
+                  Pick your favorite
+                </h3>
+                <span className="text-sm text-white/60">
+                  {mealOptions.length} options created for you
+                </span>
               </div>
               {mealOptions.map((option, idx) => (
-                <Card key={idx} className="bg-black/40 backdrop-blur-lg border border-orange-400/20 shadow-xl rounded-2xl">
+                <Card
+                  key={idx}
+                  className="bg-black/40 backdrop-blur-lg border border-orange-400/20 shadow-xl rounded-2xl"
+                >
                   <CardContent className="p-5">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-white font-bold text-base mb-1 truncate">{option.name}</h4>
-                        <p className="text-white/70 text-sm mb-3 line-clamp-2">{option.description}</p>
+                        <h4 className="text-white font-bold text-base mb-1 truncate">
+                          {option.name}
+                        </h4>
+                        <p className="text-white/70 text-sm mb-3 line-clamp-2">
+                          {option.description}
+                        </p>
                         <div className="flex gap-4 text-xs text-white/60 flex-wrap">
-                          <span>{option.nutrition?.calories ?? option.calories ?? "—"} cal</span>
-                          <span>{option.nutrition?.protein ?? option.protein ?? "—"}g protein</span>
-                          <span>{option.nutrition?.fat ?? option.fat ?? "—"}g fat</span>
-                          {option.cookingTime && <span>{option.cookingTime}</span>}
+                          <span>
+                            {option.nutrition?.calories ??
+                              option.calories ??
+                              "—"}{" "}
+                            cal
+                          </span>
+                          <span>
+                            {option.nutrition?.protein ?? option.protein ?? "—"}
+                            g protein
+                          </span>
+                          <span>
+                            {option.nutrition?.fat ?? option.fat ?? "—"}g fat
+                          </span>
+                          {option.cookingTime && (
+                            <span>{option.cookingTime}</span>
+                          )}
                         </div>
                       </div>
                       <button
@@ -715,7 +759,10 @@ export default function CreateDishPage() {
                 </Card>
               ))}
               <button
-                onClick={() => { setMealOptions([]); setDishInput(""); }}
+                onClick={() => {
+                  setMealOptions([]);
+                  setDishInput("");
+                }}
                 className="w-full text-sm text-white/50 hover:text-white/80 py-2 transition-colors"
               >
                 Start over with a different dish
@@ -789,7 +836,9 @@ export default function CreateDishPage() {
                       <div className="mb-4 p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-lg">
                         <div className="flex items-center gap-2 text-sm text-white">
                           <Users className="h-4 w-4" />
-                          <span className="font-medium">Serving Size:</span>{" "}
+                          <span className="font-medium">
+                            Serving Size:
+                          </span>{" "}
                           {meal.servingSize || "1 serving"}
                         </div>
                       </div>
@@ -803,13 +852,30 @@ export default function CreateDishPage() {
                       {servings > 1 && (
                         <div className="mb-3 p-2 bg-black/40 backdrop-blur-md rounded-lg border border-white/20">
                           <div className="text-xs text-white text-center">
-                            <strong>Total nutrition below is for {servings} servings.</strong>
+                            <strong>
+                              Total nutrition below is for {servings} servings.
+                            </strong>
                             <br />
                             Per serving:{" "}
-                            {Math.round((meal.nutrition?.calories || meal.calories || 0) / servings)} cal |{" "}
-                            {Math.round((meal.nutrition?.protein || meal.protein || 0) / servings)}g protein |{" "}
-                            {Math.round((meal.nutrition?.carbs || meal.carbs || 0) / servings)}g carbs |{" "}
-                            {Math.round((meal.nutrition?.fat || meal.fat || 0) / servings)}g fat
+                            {Math.round(
+                              (meal.nutrition?.calories || meal.calories || 0) /
+                                servings,
+                            )}{" "}
+                            cal |{" "}
+                            {Math.round(
+                              (meal.nutrition?.protein || meal.protein || 0) /
+                                servings,
+                            )}
+                            g protein |{" "}
+                            {Math.round(
+                              (meal.nutrition?.carbs || meal.carbs || 0) /
+                                servings,
+                            )}
+                            g carbs |{" "}
+                            {Math.round(
+                              (meal.nutrition?.fat || meal.fat || 0) / servings,
+                            )}
+                            g fat
                           </div>
                         </div>
                       )}
@@ -845,26 +911,39 @@ export default function CreateDishPage() {
                         const profile = getUserMedicalProfile(1);
                         const mealForBadges = {
                           name: meal.name,
-                          calories: meal.nutrition?.calories ?? meal.calories ?? 0,
+                          calories:
+                            meal.nutrition?.calories ?? meal.calories ?? 0,
                           protein: meal.nutrition?.protein ?? meal.protein ?? 0,
                           carbs: meal.nutrition?.carbs ?? meal.carbs ?? 0,
                           fat: meal.nutrition?.fat ?? meal.fat ?? 0,
-                          ingredients: (meal.ingredients ?? []).map((ing: any) => ({
-                            name: ing.name ?? ing.item,
-                            amount:
-                              typeof ing.quantity === "number"
-                                ? ing.quantity
-                                : typeof ing.amount === "number"
-                                  ? ing.amount
-                                  : parseFloat(String(ing.quantity ?? ing.amount ?? "1")) || 1,
-                            unit: (ing.unit ?? "serving").toString().toLowerCase(),
-                          })),
+                          ingredients: (meal.ingredients ?? []).map(
+                            (ing: any) => ({
+                              name: ing.name ?? ing.item,
+                              amount:
+                                typeof ing.quantity === "number"
+                                  ? ing.quantity
+                                  : typeof ing.amount === "number"
+                                    ? ing.amount
+                                    : parseFloat(
+                                        String(
+                                          ing.quantity ?? ing.amount ?? "1",
+                                        ),
+                                      ) || 1,
+                              unit: (ing.unit ?? "serving")
+                                .toString()
+                                .toLowerCase(),
+                            }),
+                          ),
                         };
 
                         const medicalBadges =
-                          (meal as any).medicalBadges && (meal as any).medicalBadges.length
+                          (meal as any).medicalBadges &&
+                          (meal as any).medicalBadges.length
                             ? (meal as any).medicalBadges
-                            : generateMedicalBadges(mealForBadges as any, profile);
+                            : generateMedicalBadges(
+                                mealForBadges as any,
+                                profile,
+                              );
 
                         return medicalBadges && medicalBadges.length > 0 ? (
                           <div className="mb-4">
@@ -876,7 +955,9 @@ export default function CreateDishPage() {
                                     : b.badge || b.id || b.condition || b.label,
                                 )}
                               />
-                              <h3 className="font-semibold text-white">Medical Safety</h3>
+                              <h3 className="font-semibold text-white">
+                                Medical Safety
+                              </h3>
                             </div>
                           </div>
                         ) : null;
@@ -884,34 +965,43 @@ export default function CreateDishPage() {
 
                       {meal.ingredients && meal.ingredients.length > 0 && (
                         <div className="mb-4">
-                          <h4 className="font-semibold mb-2 text-white">Ingredients:</h4>
+                          <h4 className="font-semibold mb-2 text-white">
+                            Ingredients:
+                          </h4>
                           <ul className="text-sm text-white/80 space-y-1">
-                            {meal.ingredients.map((ingredient: any, i: number) => {
-                              const name = ingredient.item || ingredient.name;
-                              const amount = ingredient.amount || ingredient.quantity;
-                              const unit = ingredient.unit;
+                            {meal.ingredients.map(
+                              (ingredient: any, i: number) => {
+                                const name = ingredient.item || ingredient.name;
+                                const amount =
+                                  ingredient.amount || ingredient.quantity;
+                                const unit = ingredient.unit;
 
-                              if (ingredient.displayText) {
-                                return <li key={i}>{ingredient.displayText}</li>;
-                              }
+                                if (ingredient.displayText) {
+                                  return (
+                                    <li key={i}>{ingredient.displayText}</li>
+                                  );
+                                }
 
-                              if (amount && unit) {
-                                return (
-                                  <li key={i}>
-                                    {amount} {unit} {name}
-                                  </li>
-                                );
-                              }
+                                if (amount && unit) {
+                                  return (
+                                    <li key={i}>
+                                      {amount} {unit} {name}
+                                    </li>
+                                  );
+                                }
 
-                              return <li key={i}>{name}</li>;
-                            })}
+                                return <li key={i}>{name}</li>;
+                              },
+                            )}
                           </ul>
                         </div>
                       )}
 
                       {meal.instructions && (
                         <div className="mb-4">
-                          <h4 className="font-semibold mb-2 text-white">Instructions:</h4>
+                          <h4 className="font-semibold mb-2 text-white">
+                            Instructions:
+                          </h4>
                           <div className="text-sm text-white/80 whitespace-pre-line max-h-40 overflow-y-auto">
                             {meal.instructions}
                           </div>
@@ -924,7 +1014,9 @@ export default function CreateDishPage() {
                             <Brain className="h-4 w-4" />
                             Why This Works For You:
                           </h4>
-                          <p className="text-sm text-white/80">{meal.reasoning}</p>
+                          <p className="text-sm text-white/80">
+                            {meal.reasoning}
+                          </p>
                         </div>
                       )}
 
@@ -942,7 +1034,9 @@ export default function CreateDishPage() {
                               dateISO: new Date().toISOString().slice(0, 10),
                               mealSlot: "dinner",
                             });
-                            setLocation("/biometrics?from=create-dish&view=macros");
+                            setLocation(
+                              "/biometrics?from=create-dish&view=macros",
+                            );
                           }}
                           className="w-full bg-gradient-to-r from-zinc-900 via-zinc-800 to-black hover:from-zinc-800 hover:via-zinc-700 hover:to-zinc-900 text-white flex items-center justify-center border border-white/30"
                         >
@@ -965,9 +1059,12 @@ export default function CreateDishPage() {
                                     ? {
                                         ...m,
                                         name: translated.name,
-                                        description: translated.description || m.description,
+                                        description:
+                                          translated.description ||
+                                          m.description,
                                         instructions:
-                                          typeof translated.instructions === "string"
+                                          typeof translated.instructions ===
+                                          "string"
                                             ? translated.instructions
                                             : m.instructions,
                                         ingredients:
@@ -992,8 +1089,14 @@ export default function CreateDishPage() {
                                 instructions: meal.instructions,
                                 imageUrl: meal.imageUrl,
                               };
-                              localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
-                              localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
+                              localStorage.setItem(
+                                "mpm_chefs_kitchen_meal",
+                                JSON.stringify(mealData),
+                              );
+                              localStorage.setItem(
+                                "mpm_chefs_kitchen_external_prepare",
+                                "true",
+                              );
                               setLocation("/lifestyle/chefs-kitchen");
                             }}
                             className="flex-1 bg-orange-600 hover:bg-orange-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
@@ -1005,11 +1108,13 @@ export default function CreateDishPage() {
                               name: meal.name,
                               description: meal.description,
                               nutrition: meal.nutrition,
-                              ingredients: (meal.ingredients ?? []).map((ing: any) => ({
-                                name: ing.item || ing.name,
-                                amount: ing.amount || ing.quantity,
-                                unit: ing.unit,
-                              })),
+                              ingredients: (meal.ingredients ?? []).map(
+                                (ing: any) => ({
+                                  name: ing.item || ing.name,
+                                  amount: ing.amount || ing.quantity,
+                                  unit: ing.unit,
+                                }),
+                              ),
                             }}
                             className="flex-1"
                           />
