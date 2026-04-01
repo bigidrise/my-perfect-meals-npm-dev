@@ -209,10 +209,21 @@ export default function CreateDishPage() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
+  // Restore cached meal on mount (so generated meal comes back after leaving the page)
   useEffect(() => {
-    // Intentionally do not auto-restore cached meals on mount.
-    // This prevents the restored-meal banner / overlay issue on Create a Dish.
-  }, []);
+    const cached = loadDishCache();
+    if (cached?.generatedMeal?.id) {
+      setGeneratedMeals([cached.generatedMeal]);
+      setDishInput(cached.dishInput || "");
+      setServings(cached.servings || 2);
+      setCookMethod(cached.cookMethod || "");
+      setNotes(cached.notes || "");
+      toast({
+        title: "🔄 Dish Restored",
+        description: "Your generated dish will remain saved on this page until you create a new one.",
+      });
+    }
+  }, []); // Only run once on mount
 
   useEffect(() => {
     if (generatedMeals.length > 0 && generatedMeals[0]?.id) {
