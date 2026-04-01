@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -11,28 +11,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
 import {
-  Home,
   Users,
-  ShieldCheck,
   Mail,
-  KeyRound,
   UserPlus2,
-  ClipboardEdit,
-  CheckCircle2,
-  XCircle,
-  ArrowLeft,
-  Crown,
+  ExternalLink,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuickTour } from "@/hooks/useQuickTour";
@@ -44,35 +29,27 @@ import { useAuth } from "@/contexts/AuthContext";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { PillButton } from "@/components/ui/pill-button";
 import { Wifi, WifiOff } from "lucide-react";
-import NutritionStrategyCard from "@/components/pro/NutritionStrategyCard";
-import SharedPlanLockedBanner from "@/components/pro/SharedPlanLockedBanner";
 
 const CARE_TEAM_TOUR_STEPS: TourStep[] = [
   {
     icon: "1",
-    title: "Invite Your Team",
+    title: "Invite Your Clients",
     description:
-      "Add trainers, doctors, or nutritionists by entering their email.",
+      "Add clients by entering their email — they'll receive an invite to join your Studio.",
   },
   {
     icon: "2",
-    title: "Set Permissions",
-    description: "Control what each team member can see and modify.",
+    title: "Set Availability",
+    description: "Let your clients know when you're available or away.",
   },
   {
     icon: "3",
-    title: "Access Codes",
+    title: "Pro Portal",
     description:
-      "Share your unique access code so professionals can connect with you.",
-  },
-  {
-    icon: "4",
-    title: "Manage Members",
-    description: "Review and revoke access to your nutrition data at any time.",
+      "View and manage all active clients from your Pro Portal.",
   },
 ];
 
-// Types
 type Permissions = {
   canViewMacros: boolean;
   canAddMeals: boolean;
@@ -88,7 +65,6 @@ type CareMember = {
   permissions: Permissions;
 };
 
-// Default permissions by role
 const DEFAULT_PERMS: Record<ProRole, Permissions> = {
   trainer: { canViewMacros: true, canAddMeals: true, canEditPlan: true },
   doctor: { canViewMacros: true, canAddMeals: false, canEditPlan: false },
@@ -113,16 +89,15 @@ export default function CareTeamPage() {
     }
   }, [user, setLocation]);
 
-  // UI state
   const [members, setMembers] = useState<CareMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [invEmail, setInvEmail] = useState("");
   const [role, setRole] = useState<ProRole>("trainer");
   const [perms, setPerms] = useState<Permissions>(DEFAULT_PERMS["trainer"]);
-  const [accessCode, setAccessCode] = useState("");
+  const [accessCode] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Load existing connections AND check for invite code in URL
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -131,29 +106,24 @@ export default function CareTeamPage() {
         const data = await apiRequest("/api/care-team");
         if (mounted) setMembers(data.members);
 
-        // Check for invite code in URL (e.g., /care-team?code=MP-XXXX-XXX)
         const urlParams = new URLSearchParams(window.location.search);
         const codeFromUrl = urlParams.get("code");
 
         if (codeFromUrl && mounted) {
-          // Auto-accept invitation from URL
           try {
             const response = await apiRequest("/api/care-team/connect", {
               method: "POST",
               body: JSON.stringify({ code: codeFromUrl }),
             });
             setMembers((prev) => [response.member, ...prev]);
-            alert(
-              `✅ Successfully accepted invitation! Welcome to the Care Team.`,
-            );
-            // Clear the code from URL
+            alert(`✅ Successfully accepted invitation! Welcome to the Studio.`);
             window.history.replaceState({}, "", "/care-team");
           } catch (e: any) {
             setError(e?.message ?? "Invalid or expired invitation code.");
           }
         }
       } catch (e: any) {
-        if (mounted) setError(e?.message ?? "Failed to load care team.");
+        if (mounted) setError(e?.message ?? "Failed to load studio.");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -163,22 +133,13 @@ export default function CareTeamPage() {
     };
   }, []);
 
-  // Keep perms synced to role unless user toggles manually
   useEffect(() => {
     setPerms(DEFAULT_PERMS[role]);
   }, [role]);
 
-  const pending = useMemo(
-    () => members.filter((m) => m.status === "pending"),
-    [members],
-  );
-  const active = useMemo(
-    () => members.filter((m) => m.status === "active"),
-    [members],
-  );
-
   async function inviteByEmail() {
     setError(null);
+    setSuccessMsg(null);
     if (!invEmail.trim()) {
       setError("Enter an email to invite.");
       return;
@@ -190,59 +151,17 @@ export default function CareTeamPage() {
         body: JSON.stringify({ email: invEmail, role, permissions: perms }),
       });
       setMembers((prev) => [response.member, ...prev]);
+      const sentTo = invEmail;
       setInvEmail("");
       setError(null);
-      alert(
-        `✅ Invitation sent to ${invEmail}! They'll receive an email from support@myperfectmeals.com`,
-      );
+      setSuccessMsg(`✅ Invitation sent to ${sentTo}! They'll receive an email from support@myperfectmeals.com`);
+      setTimeout(() => setSuccessMsg(null), 6000);
     } catch (e: any) {
       setError(e?.message ?? "Failed to send invite.");
     } finally {
       setLoading(false);
     }
   }
-
-  async function connectWithCode() {
-    setError(null);
-    if (!accessCode.trim()) {
-      setError("Enter your provider code.");
-      return;
-    }
-    try {
-      setLoading(true);
-      const response = await apiRequest("/api/care-team/connect", {
-        method: "POST",
-        body: JSON.stringify({ code: accessCode }),
-      });
-      setMembers((prev) => [response.member, ...prev]);
-      setAccessCode("");
-      alert(`✅ Successfully connected to your provider!`);
-    } catch (e: any) {
-      setError(e?.message ?? "Invalid or expired provider code.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const togglePerm = (key: keyof Permissions) => {
-    setPerms((p) => ({ ...p, [key]: !p[key] }));
-  };
-
-  async function approveMember(id: string) {
-    try {
-      await apiRequest(`/api/care-team/${id}/approve`, { method: "POST" });
-      setMembers((prev) =>
-        prev.map((m) =>
-          m.id === id ? { ...m, status: "active" as const } : m,
-        ),
-      );
-      alert("✅ Member approved successfully!");
-    } catch {
-      setError("Failed to approve member.");
-    }
-  }
-
-  const [revokeConfirmId, setRevokeConfirmId] = useState<string | null>(null);
 
   // ── Availability ──────────────────────────────────────────────────────────
   type AvailStatus = "available" | "busy" | "away" | "offline";
@@ -281,21 +200,6 @@ export default function CareTeamPage() {
     }
   }
 
-  async function revokeMember(id: string) {
-    try {
-      await apiRequest(`/api/care-team/${id}/revoke`, { method: "POST" });
-      setMembers((prev) =>
-        prev.map((m) =>
-          m.id === id ? { ...m, status: "revoked" as const } : m,
-        ),
-      );
-      setRevokeConfirmId(null);
-      alert("✅ Access revoked successfully!");
-    } catch {
-      setError("Failed to revoke access.");
-    }
-  }
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -305,7 +209,6 @@ export default function CareTeamPage() {
     >
       <ProfessionalIntroOverlay type="trainer" onEnter={() => {}} />
 
-      {/* Universal Safe-Area Header */}
       <MobileHeaderGuard>
       <div
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
@@ -364,25 +267,37 @@ export default function CareTeamPage() {
           </GlassCardContent>
         </GlassCard>
 
-        {/* Shared Plan Access status + Nutrition Strategy — client read-only */}
-        <SharedPlanLockedBanner />
-        <NutritionStrategyCard />
+        {/* Pro Portal CTA */}
+        <GlassCard className="border border-orange-400/30 bg-orange-900/10">
+          <GlassCardContent className="p-4 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-white font-semibold text-sm">Active clients</p>
+              <p className="text-white/60 text-xs mt-0.5">View and manage all connected clients from your Pro Portal</p>
+            </div>
+            <Button
+              onClick={() => setLocation("/pro/clients")}
+              className="shrink-0 bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Pro Portal
+            </Button>
+          </GlassCardContent>
+        </GlassCard>
 
-        {/* Invite Row */}
+        {/* Invite Client */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Invite by Email */}
           <GlassCard className="border-2 border-orange-500/40">
             <GlassCardContent className="p-6 space-y-4">
               <div className="flex items-center gap-2">
                 <Mail className="h-5 w-5 text-orange-600" />
                 <h2 className="text-xl font-bold text-white">
-                  Invite by Email
+                  Invite Client to Your Studio
                 </h2>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-white/80">Professional Role</Label>
+                  <Label className="text-white/80">Role</Label>
                   <Select
                     value={role}
                     onValueChange={(v) => setRole(v as ProRole)}
@@ -407,15 +322,13 @@ export default function CareTeamPage() {
                     type="email"
                     value={invEmail}
                     onChange={(e) => setInvEmail(e.target.value)}
-                    placeholder="pro@domain.com"
+                    placeholder="client@email.com"
                     autoComplete="off"
                     className="bg-black/40 text-white border-white/20 placeholder:text-white/40"
                     data-testid="input-invite-email"
                   />
                 </div>
               </div>
-
-              
 
               <Button
                 disabled={loading}
@@ -428,79 +341,23 @@ export default function CareTeamPage() {
               </Button>
             </GlassCardContent>
           </GlassCard>
-
-          {/* Connect with Access Code — hidden: clients use ProCare landing page instead */}
-          {false && (
-            <GlassCard className="border-2 border-orange-500/40">
-              <GlassCardContent className="p-6 space-y-4">
-                <div className="flex items-center gap-2">
-                  <KeyRound className="h-5 w-5 text-orange-500" />
-                  <h2 className="text-xl font-bold text-white">
-                    Connect With Your Provider
-                  </h2>
-                </div>
-                <p className="text-sm text-white/70">
-                  Use your provider's access code to link your account with your
-                  coach, trainer, or physician through the ProCare system.
-                </p>
-                <div>
-                  <Label className="text-white/80">Provider Access Code</Label>
-                  <Input
-                    value={accessCode}
-                    onChange={(e) => setAccessCode(e.target.value)}
-                    placeholder="Provider code (given by your coach or physician)"
-                    className="bg-black/40 text-white border-white/20 placeholder:text-white/40"
-                    data-testid="input-careteam-code"
-                  />
-                </div>
-                <Button
-                  disabled={loading}
-                  onClick={connectWithCode}
-                  className="w-full bg-lime-600 hover:bg-lime-600 text-white"
-                  data-testid="button-submit-code"
-                >
-                  <ClipboardEdit className="h-4 w-4 mr-2" />
-                  Connect to Provider
-                </Button>
-              </GlassCardContent>
-            </GlassCard>
-          )}
-
-          
         </div>
 
-        {/* Error state */}
+        {successMsg && (
+          <div className="rounded-xl border border-green-500/50 bg-green-900/30 text-green-100 p-3">
+            {successMsg}
+          </div>
+        )}
+
         {error && (
           <div className="rounded-xl border border-red-500/50 bg-red-900/30 text-red-100 p-3">
             {error}
           </div>
         )}
 
-        {/* Active Connections */}
-        <SectionHeader
-          title="Active Care Team"
-          subtitle="Connected professionals"
-        />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {active.length === 0 && (
-            <EmptyCard label="No active connections yet." />
-          )}
-          {active.map((m) => (
-            <MemberCard
-              key={m.id}
-              member={m}
-              onApprove={undefined}
-              onRevoke={() => setRevokeConfirmId(m.id)}
-              setLocation={setLocation}
-            />
-          ))}
-        </div>
-
-        {/* Bottom spacer */}
         <div className="h-8" />
       </div>
 
-      {/* Quick Tour Modal */}
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
@@ -508,80 +365,7 @@ export default function CareTeamPage() {
         steps={CARE_TEAM_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
-
-      {revokeConfirmId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="bg-zinc-900 border border-white/10 rounded-xl p-6 max-w-sm w-full space-y-4">
-            <h3 className="text-lg font-bold text-white">Revoke Access?</h3>
-            <p className="text-sm text-white/70">
-              This will remove this professional's access to your nutrition data. You can re-add them later with a new invite code.
-            </p>
-            <div className="flex gap-3">
-              <Button
-                onClick={() => setRevokeConfirmId(null)}
-                className="flex-1 bg-white/10 hover:bg-white/20 text-white border border-white/20"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => revokeMember(revokeConfirmId)}
-                variant="destructive"
-                className="flex-1 bg-red-600 hover:bg-red-700"
-              >
-                Revoke Access
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </motion.div>
-  );
-}
-
-// ---------- Small Components ----------
-function SectionHeader({
-  title,
-  subtitle,
-}: {
-  title: string;
-  subtitle?: string;
-}) {
-  return (
-    <div className="flex items-center justify-between">
-      <h3 className="text-white font-bold text-lg">{title}</h3>
-      {subtitle && <div className="text-white/60 text-sm">{subtitle}</div>}
-    </div>
-  );
-}
-
-function EmptyCard({ label }: { label: string }) {
-  return (
-    <Card className="bg-black/30 border border-white/10">
-      <CardContent className="p-6">
-        <div className="text-white/70 text-sm">{label}</div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function PermToggle({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: () => void;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="text-white/70 text-xs font-medium">{label}</span>
-      <Switch
-        checked={checked}
-        onCheckedChange={onChange}
-        className="data-[state=checked]:bg-indigo-500 scale-75"
-      />
-    </div>
   );
 }
 
@@ -618,92 +402,4 @@ function roleBadge(role: ProRole) {
   };
   const r = map[role];
   return <Badge className={`${r.className} border`}>{r.text}</Badge>;
-}
-
-function statusBadge(status: CareMember["status"]) {
-  if (status === "active")
-    return (
-      <Badge className="bg-green-600/20 text-green-300 border border-green-400/40">
-        Active
-      </Badge>
-    );
-  if (status === "pending")
-    return (
-      <Badge className="bg-yellow-600/20 text-yellow-300 border border-yellow-400/40">
-        Pending
-      </Badge>
-    );
-  return (
-    <Badge className="bg-red-600/20 text-red-300 border border-red-400/40">
-      Revoked
-    </Badge>
-  );
-}
-
-function MemberCard({
-  member,
-  onApprove,
-  onRevoke,
-  setLocation,
-}: {
-  member: CareMember;
-  onApprove?: () => void;
-  onRevoke?: () => void;
-  setLocation: (path: string) => void;
-}) {
-  return (
-    <GlassCard className="overflow-hidden max-w-xl">
-      <CardHeader className="p-4 pb-0">
-        <div className="flex items-start justify-between gap-3">
-          <CardTitle className="text-white min-w-0 break-words flex-1">
-            {member.name ?? "Unnamed Pro"}
-          </CardTitle>
-          <div className="flex items-center gap-2 shrink-0">
-            {statusBadge(member.status)}
-          </div>
-        </div>
-        {member.email && (
-          <CardDescription className="text-white/70 mt-1 break-words">
-            {member.email}
-          </CardDescription>
-        )}
-      </CardHeader>
-
-      <GlassCardContent className="p-4">
-        <div className="flex flex-col gap-2">
-          {member.status === "active" && (
-            <Button
-              onClick={() => setLocation("/pro/clients")}
-              className="w-full bg-lime-600 hover:bg-lime-600 text-white"
-              data-testid="button-open-pro-portal"
-            >
-              <ClipboardEdit className="h-4 w-4 mr-2" />
-              Open Pro Portal
-            </Button>
-          )}
-          {member.status === "pending" && onApprove && (
-            <Button
-              onClick={onApprove}
-              className="w-full bg-orange-600/20 hover:bg-orange-600/20 text-white"
-              data-testid="button-approve-member"
-            >
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Approve
-            </Button>
-          )}
-          {onRevoke && (
-            <Button
-              onClick={onRevoke}
-              variant="destructive"
-              className="w-full bg-red-600 hover:bg-red-700"
-              data-testid="button-revoke-member"
-            >
-              <XCircle className="h-4 w-4 mr-2" />
-              Revoke
-            </Button>
-          )}
-        </div>
-      </GlassCardContent>
-    </GlassCard>
-  );
 }
