@@ -200,49 +200,59 @@ export default function Planner() {
                   const Icon = feature.icon;
                   const unlocked = isBuilderUnlocked(feature.builderId);
                   
-                  return (
-                    <Card
-                      key={feature.testId}
-                      className={`transition-all duration-300 rounded-xl shadow-md ${
-                        unlocked
-                          ? "cursor-pointer hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50"
-                          : "pointer-events-none bg-black/20 backdrop-blur-lg border border-white/5 opacity-50"
-                      }`}
-                      onClick={unlocked ? () => handleCardClick(feature) : undefined}
-                      data-testid={feature.testId}
-                    >
-                      <CardContent className="p-3">
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Icon className={`h-4 w-4 flex-shrink-0 ${unlocked ? "text-orange-500" : "text-zinc-500"}`} />
-                            <h3 className={`text-sm font-semibold ${unlocked ? "text-white" : "text-zinc-400"}`}>
-                              {feature.title}
-                            </h3>
-                            {feature.builderId === "beach_body" && (
-                              <span className="text-[10px] px-1.5 py-0.5 bg-amber-600/30 text-amber-300 rounded-full border border-amber-500/30 flex-shrink-0">
-                                Ultimate
-                              </span>
-                            )}
-                            {(feature.builderId === "general_nutrition" || feature.builderId === "performance_competition") && (
-                              <span className="text-[10px] px-1.5 py-0.5 bg-orange-600/30 text-orange-300 rounded-full border border-orange-500/30 flex-shrink-0">
-                                ProCare
-                              </span>
-                            )}
-                            {unlocked && feature.builderId === userActiveBoard && (
-                              <span className="text-[10px] px-1.5 py-0.5 bg-emerald-600/30 text-emerald-300 rounded-full border border-emerald-500/30 flex-shrink-0">
-                                Current
-                              </span>
-                            )}
-                            {!unlocked && (
-                              <Lock className="h-3 w-3 text-zinc-500 ml-auto" />
-                            )}
+                  return unlocked ? (
+                      <Card
+                        key={feature.testId}
+                        className="transition-all duration-300 rounded-xl shadow-md cursor-pointer hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50"
+                        onClick={() => handleCardClick(feature)}
+                        data-testid={feature.testId}
+                      >
+                        <CardContent className="p-3">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Icon className="h-4 w-4 flex-shrink-0 text-orange-500" />
+                              <h3 className="text-sm font-semibold text-white">
+                                {feature.title}
+                              </h3>
+                              {feature.builderId === "beach_body" && (
+                                <span className="text-[10px] px-1.5 py-0.5 bg-amber-600/30 text-amber-300 rounded-full border border-amber-500/30 flex-shrink-0">
+                                  Ultimate
+                                </span>
+                              )}
+                              {(feature.builderId === "general_nutrition" || feature.builderId === "performance_competition") && (
+                                <span className="text-[10px] px-1.5 py-0.5 bg-orange-600/30 text-orange-300 rounded-full border border-orange-500/30 flex-shrink-0">
+                                  ProCare
+                                </span>
+                              )}
+                              {feature.builderId === userActiveBoard && (
+                                <span className="text-[10px] px-1.5 py-0.5 bg-emerald-600/30 text-emerald-300 rounded-full border border-emerald-500/30 flex-shrink-0">
+                                  Current
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs ml-6 text-white/80">{feature.description}</p>
                           </div>
-                          <p className={`text-xs ml-6 ${unlocked ? "text-white/80" : "text-zinc-500"}`}>
-                            {unlocked ? feature.description : "Change your builder in Settings to access"}
-                          </p>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <div
+                        key={feature.testId}
+                        className="rounded-xl border border-zinc-800 bg-zinc-900/40 select-none"
+                        data-testid={feature.testId}
+                      >
+                        <div className="p-3">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <Lock className="h-4 w-4 flex-shrink-0 text-zinc-600" />
+                              <h3 className="text-sm font-semibold text-zinc-600 line-through">
+                                {feature.title}
+                              </h3>
+                            </div>
+                            <p className="text-xs ml-6 text-zinc-700">Not your assigned builder</p>
+                          </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    )}
                   );
                 })}
               </div>
