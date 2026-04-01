@@ -122,6 +122,8 @@ export interface User {
   // Professional availability fields
   availabilityStatus?: "available" | "busy" | "away" | "offline" | null;
   backAt?: string | null;
+  // Oncology support onboarding intent (NOT a clinical protocol toggle)
+  oncologySupportIntent?: "own_provider" | "request_support" | "self_directed" | null;
 }
 
 export function getAuthToken(): string | null {

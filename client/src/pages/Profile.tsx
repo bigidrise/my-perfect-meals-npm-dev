@@ -365,7 +365,8 @@ export default function Profile() {
         </div>
 
         {/* Oncology Support Follow-up Hook — visible only when user indicated 'request_support' during onboarding */}
-        {typeof window !== "undefined" && localStorage.getItem("mpm:oncologySupportIntent") === "request_support" && (
+        {(user?.oncologySupportIntent === "request_support" ||
+          (typeof window !== "undefined" && localStorage.getItem("mpm:oncologySupportIntent") === "request_support")) && (
           <Card className="mt-6 bg-rose-950/40 backdrop-blur-lg border border-rose-700/40">
             <CardContent className="p-4 flex items-start gap-3">
               <span className="text-2xl flex-shrink-0 mt-0.5">🎗️</span>

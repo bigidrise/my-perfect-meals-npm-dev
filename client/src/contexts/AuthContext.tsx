@@ -92,7 +92,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
           dailyProteinTarget: userData.dailyProteinTarget ?? null,
           dailyCarbsTarget: userData.dailyCarbsTarget ?? null,
           dailyFatTarget: userData.dailyFatTarget ?? null,
+          oncologySupportIntent: userData.oncologySupportIntent ?? null,
         };
+        if (userData.oncologySupportIntent) {
+          localStorage.setItem("mpm:oncologySupportIntent", userData.oncologySupportIntent);
+        } else {
+          localStorage.removeItem("mpm:oncologySupportIntent");
+        }
         setUser(updatedUser);
         localStorage.setItem("mpm_current_user", JSON.stringify(updatedUser));
         console.log("✅ [AuthContext] User refreshed:", updatedUser.email);
