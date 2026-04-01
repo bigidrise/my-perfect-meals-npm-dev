@@ -514,7 +514,7 @@ export default function CreateDishPage() {
               <Card className="shadow-2xl bg-black/40 backdrop-blur-lg border border-orange-400/20 w-full max-w-xl mx-auto">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-xl text-white">
-                    <ChefHat className="h-5 w-5 text-orange-400" />
+                    
                     Create a Dish
                   </CardTitle>
                   <p className="text-sm text-white/60 mt-1">
@@ -684,7 +684,7 @@ export default function CreateDishPage() {
                     <GlassButton
                       onClick={() => handleGenerateDish()}
                       disabled={isGenerating || starchBlocked}
-                      className="w-full bg-orange-600 hover:bg-orange-500 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
+                      className="w-full bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
                     >
                       <ChefHat className="h-4 w-4" />
                       {"Create with Chef"}
@@ -750,7 +750,7 @@ export default function CreateDishPage() {
                       </div>
                       <button
                         onClick={() => handleSelectMeal(option)}
-                        className="shrink-0 bg-orange-600 hover:bg-orange-500 active:scale-95 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all"
+                        className="shrink-0 bg-lime-600 active:scale-95 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all"
                       >
                         Pick This
                       </button>
