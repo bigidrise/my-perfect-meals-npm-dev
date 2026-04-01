@@ -118,10 +118,12 @@ export default function MealBuilderSelection() {
     return user?.activeBoard === builderId;
   };
 
+  const assignedBuilder = user?.activeBoard || user?.selectedMealBuilder || null;
+
   const isCardLocked = (builderId: string): boolean => {
     if (isUnlimited) return false;
-    if (!user?.activeBoard) return false;
-    return builderId !== user.activeBoard;
+    if (!assignedBuilder) return false;
+    return builderId !== assignedBuilder;
   };
 
   const availableBuilders =
