@@ -60,6 +60,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           role: userData.role || "client",
           isProCare: userData.isProCare || false,
           activeBoard: userData.activeBoard || null,
+          builderSwitchUnlimited: userData.builderSwitchUnlimited || false,
           onboardingCompletedAt: userData.onboardingCompletedAt || null,
           firstName: userData.firstName || null,
           lastName: userData.lastName || null,
