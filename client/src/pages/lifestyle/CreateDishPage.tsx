@@ -39,6 +39,7 @@ import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
+import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
@@ -212,18 +213,8 @@ export default function CreateDishPage() {
   }, []);
 
   useEffect(() => {
-    const cached = loadDishCache();
-    if (cached?.generatedMeal?.id) {
-      setGeneratedMeals([cached.generatedMeal]);
-      setDishInput(cached.dishInput || "");
-      setServings(cached.servings || 2);
-      setCookMethod(cached.cookMethod || "");
-      setNotes(cached.notes || "");
-      toast({
-        title: "Meal Restored",
-        description: "Your generated meal is saved until you create a new one.",
-      });
-    }
+    // Intentionally do not auto-restore cached meals on mount.
+    // This prevents the restored-meal banner / overlay issue on Create a Dish.
   }, []);
 
   useEffect(() => {
@@ -699,6 +690,16 @@ export default function CreateDishPage() {
                     <span className="text-xs text-white/60 block mb-2">
                       Meal Safety
                     </span>
+
+                    {/* Hidden for now: keep allergy override machinery mounted, but do not show the button */}
+                    <div className="hidden">
+                      <SafetyGuardToggle
+                        safetyEnabled={safetyEnabled}
+                        onSafetyChange={handleSafetyOverride}
+                        disabled={isGenerating || safetyChecking}
+                      />
+                    </div>
+
                     <GlucoseGuardToggle
                       disabled={isGenerating || safetyChecking}
                     />
