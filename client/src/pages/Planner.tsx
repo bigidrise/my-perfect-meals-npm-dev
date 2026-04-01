@@ -236,7 +236,7 @@ export default function Planner() {
                     ) : (
                       <div
                         key={feature.testId}
-                        className="rounded-xl border border-zinc-800 bg-zinc-900/40 select-none"
+                        className="rounded-xl border border-zinc-800 bg-zinc-900/40 select-none pointer-events-none"
                         data-testid={feature.testId}
                       >
                         <div className="p-3">
