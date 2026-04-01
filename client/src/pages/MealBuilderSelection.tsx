@@ -105,7 +105,6 @@ export default function MealBuilderSelection() {
   const [saving, setSaving] = useState(false);
   const [switchStatus, setSwitchStatus] = useState<BuilderSwitchStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
-  const [switchModeEnabled, setSwitchModeEnabled] = useState(false);
 
   const isProCareClient = user?.isProCare && !["admin", "coach", "physician", "trainer"].includes(user?.professionalRole || user?.role || "");
   const isUnlimited = switchStatus?.isUnlimited ?? false;
@@ -122,7 +121,6 @@ export default function MealBuilderSelection() {
   const isCardLocked = (builderId: string): boolean => {
     if (isUnlimited) return false;
     if (!user?.activeBoard) return false;
-    if (switchModeEnabled) return false;
     return builderId !== user.activeBoard;
   };
 
@@ -239,7 +237,6 @@ export default function MealBuilderSelection() {
       }
 
       setConfirmedBuilder(selected);
-      setSwitchModeEnabled(false);
       await refreshUser();
 
       toast({
@@ -378,24 +375,6 @@ export default function MealBuilderSelection() {
             </div>
           )}
 
-          {/* Switch mode banner */}
-          {switchModeEnabled && (
-            <div className="flex items-center justify-between bg-amber-900/30 border border-amber-500/40 rounded-xl px-4 py-3">
-              <div className="flex items-center gap-2">
-                <RefreshCw className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                <p className="text-amber-200 text-sm">
-                  Switching will use 1 of your {switchStatus?.changesRemaining ?? 0} remaining changes
-                </p>
-              </div>
-              <button
-                onClick={() => { setSwitchModeEnabled(false); setSelected(user?.activeBoard as MealBuilderType || null); }}
-                className="text-zinc-400 hover:text-white text-xs ml-3 flex-shrink-0"
-              >
-                Cancel
-              </button>
-            </div>
-          )}
-
           {/* Available builders - only show if NOT in locked state */}
           {!(isProCareClient && !user?.activeBoard) &&
             availableBuilders.map((option) => {
@@ -467,16 +446,6 @@ export default function MealBuilderSelection() {
             );
             })}
 
-          {/* Switch Builder CTA — only show when user has an active board, has changes left, and isn't in switch mode */}
-          {!isUnlimited && user?.activeBoard && !switchModeEnabled && switchStatus?.canSwitch && (switchStatus.changesRemaining ?? 0) > 0 && !(isProCareClient && !user?.activeBoard) && (
-            <button
-              onClick={() => setSwitchModeEnabled(true)}
-              className="w-full py-3 rounded-xl border border-zinc-600 text-zinc-300 text-sm font-medium hover:border-zinc-400 hover:text-white transition-all flex items-center justify-center gap-2"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Switch Builder ({switchStatus.changesRemaining} change{switchStatus.changesRemaining === 1 ? "" : "s"} remaining)
-            </button>
-          )}
         </div>
 
         {/* Copilot guidance hint */}
@@ -496,7 +465,7 @@ export default function MealBuilderSelection() {
             disabled={!selected || saving}
             className="w-full h-14 text-lg bg-lime-600 text-white font-semibold rounded-xl shadow-lg disabled:opacity-50"
           >
-            {saving ? "Saving..." : switchModeEnabled && selected !== user?.activeBoard ? "Switch to This Builder" : "Continue with This Builder"}
+            {saving ? "Saving..." : "Continue with This Builder"}
           </Button>
         )}
       </div>
