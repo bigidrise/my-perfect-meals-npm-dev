@@ -86,14 +86,20 @@ interface MealData {
   imageUrl?: string;
 }
 
-const CACHE_KEY = "createDish.cache.v1";
+// ============================================================
+// CACHE KEY: v2 — intentionally bumped from v1 to invalidate
+// all stale localStorage data that caused the black overlay bug.
+// Do NOT downgrade this key — stale v1 data resurrects the bug.
+// ============================================================
+const CACHE_KEY = "createDish.cache.v2";
+const CACHE_KEY_LEGACY = "createDish.cache.v1";
 
+// Only the final meal card is persisted — NOT dishInput, cookMethod,
+// or notes. Restoring dishInput triggers the starch-guard useEffect
+// on mount, which causes overlay intercepts before user interaction.
 type CachedDishState = {
   generatedMeal: MealData | null;
-  dishInput: string;
   servings: number;
-  cookMethod: string;
-  notes: string;
   generatedAtISO: string;
 };
 
@@ -118,6 +124,7 @@ function loadDishCache(): CachedDishState | null {
 function clearDishCache() {
   try {
     localStorage.removeItem(CACHE_KEY);
+    localStorage.removeItem(CACHE_KEY_LEGACY);
   } catch {}
 }
 
@@ -151,6 +158,17 @@ export default function CreateDishPage() {
   const [cookMethod, setCookMethod] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [generatedMeals, setGeneratedMeals] = useState<MealData[]>([]);
+  // ============================================================
+  // GUARD: generatedInSession controls ShoppingAggregateBar visibility.
+  // It MUST start false and remain false during auto-restore on mount.
+  // Only explicit user actions (generate / select a meal) may set it true.
+  // This prevents the bar from cold-mounting as a black overlay on page load.
+  //
+  // RULE FOR FUTURE AGENTS: Do NOT set generatedInSession=true inside the
+  // cache-restore useEffect. Doing so re-introduces the black overlay bug
+  // (MPM-2026-CreateDish-Overlay). The fix was deliberately architected this way.
+  // ============================================================
+  const [generatedInSession, setGeneratedInSession] = useState(false);
   const [mealOptions, setMealOptions] = useState<any[]>([]);
   const [isPlatingMeal, setIsPlatingMeal] = useState(false);
 
@@ -210,36 +228,35 @@ export default function CreateDishPage() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
-  // Restore cached meal on mount (so generated meal comes back after leaving the page).
-  // NOTE: dishInput is intentionally NOT restored here — restoring it would trigger the
-  // starch/diet guard useEffect on mount, causing the overlay issue.
+  // ============================================================
+  // SAFE RESTORE: Only restores the final meal card display data.
+  // generatedInSession intentionally stays FALSE here — this is not
+  // a user-initiated generation, so ShoppingAggregateBar must NOT mount.
+  // Do NOT add setGeneratedInSession(true) here. See GUARD comment above.
+  // Do NOT restore dishInput — it triggers starch-guard on mount.
+  // Do NOT show a restore toast — it fires on page exit and confuses users.
+  // ============================================================
   useEffect(() => {
+    // Clear stale v1 cache that caused the overlay bug before this fix.
+    try { localStorage.removeItem("createDish.cache.v1"); } catch {}
+
     const cached = loadDishCache();
     if (cached?.generatedMeal?.id) {
       setGeneratedMeals([cached.generatedMeal]);
       setServings(cached.servings || 2);
-      setCookMethod(cached.cookMethod || "");
-      setNotes(cached.notes || "");
-      toast({
-        title: "🔄 Dish Restored",
-        description:
-          "Your generated dish will remain saved on this page until you create a new one.",
-      });
+      // generatedInSession remains false — bar will not cold-mount
     }
-  }, []); // Only run once on mount
+  }, []);
 
   useEffect(() => {
     if (generatedMeals.length > 0 && generatedMeals[0]?.id) {
       saveDishCache({
         generatedMeal: generatedMeals[0],
-        dishInput,
         servings,
-        cookMethod,
-        notes,
         generatedAtISO: new Date().toISOString(),
       });
     }
-  }, [generatedMeals, dishInput, servings, cookMethod, notes]);
+  }, [generatedMeals, servings]);
 
   const handleSelectMeal = async (meal: any) => {
     setMealOptions([]);
@@ -273,13 +290,11 @@ export default function CreateDishPage() {
     }
 
     setGeneratedMeals([finalMeal]);
+    setGeneratedInSession(true);
     setIsPlatingMeal(false);
     saveDishCache({
       generatedMeal: finalMeal,
-      dishInput,
       servings,
-      cookMethod,
-      notes,
       generatedAtISO: new Date().toISOString(),
     });
   };
@@ -437,13 +452,11 @@ export default function CreateDishPage() {
 
       stopProgressTicker();
       setGeneratedMeals([meal]);
+      setGeneratedInSession(true);
 
       saveDishCache({
         generatedMeal: meal,
-        dishInput,
         servings,
-        cookMethod,
-        notes,
         generatedAtISO: new Date().toISOString(),
       });
 
@@ -791,6 +804,7 @@ export default function CreateDishPage() {
                         <button
                           onClick={() => {
                             setGeneratedMeals([]);
+                            setGeneratedInSession(false);
                             clearDishCache();
                             setDishInput("");
                             setSubstitutedStarchTerms([]);
@@ -1128,7 +1142,7 @@ export default function CreateDishPage() {
           )}
         </div>
 
-        {generatedMeals.length > 0 && (
+        {generatedMeals.length > 0 && generatedInSession && (
           <ShoppingAggregateBar
             ingredients={generatedMeals.flatMap((meal) =>
               meal.ingredients.map((ing: StructuredIngredient) => ({
