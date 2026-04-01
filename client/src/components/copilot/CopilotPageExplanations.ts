@@ -69,6 +69,16 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
   },
 
 
+  "/lifestyle/create-a-dish": {
+    pageId: "create-a-dish",
+    title: "Create a Dish",
+    description:
+      "Design a custom meal from scratch — describe exactly what you want, choose your cook method, servings, and notes, and I'll build it with full ingredients, nutrition, and instructions.",
+    spokenText:
+      "Create a Dish is your blank canvas. This is where you build something from scratch — no templates, no limits. Just describe the meal you want in the dish field — be as specific or as open as you like. Mention the cuisine, the protein, how you want it cooked, or even how it should feel. You can choose your cook method, set your servings, and add any notes like 'make it low sodium' or 'easy cleanup.' When you tap Create, I'll build your meal with full ingredients, nutrition info, and step-by-step instructions. Your SafetyGuard and allergy protections are always active, so nothing unsafe will be included. If you're managing your weight, Starch Guard monitors starchy carbs and can substitute them with fibrous alternatives when needed. GlucoseGuard adjusts the meal automatically if you're diabetic and have a recent glucose reading. Use the Flavor toggle to switch between your personal palate preferences or a neutral profile when cooking for others. Once your dish is ready, you can add it to your meal plan, send ingredients to your shopping list, save it to your favorites, or share the recipe. Tap Create to get started.",
+    autoClose: true,
+  },
+
   "/lifestyle/beverage-creator": {
     pageId: "beverage-creator",
     title: "Beverage Creator",

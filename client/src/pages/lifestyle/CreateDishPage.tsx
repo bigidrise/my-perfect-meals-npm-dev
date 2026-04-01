@@ -47,6 +47,7 @@ import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import PhaseGate from "@/components/PhaseGate";
+import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 
 interface StructuredIngredient {
   name: string;
@@ -151,6 +152,7 @@ const COOK_METHODS = [
 ];
 
 export default function CreateDishPage() {
+  useCopilotPageExplanation();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [dishInput, setDishInput] = useState("");
@@ -700,7 +702,7 @@ export default function CreateDishPage() {
                       className="w-full bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
                     >
                       <ChefHat className="h-4 w-4" />
-                      {"Create with Chef"}
+                      {"Create My Dish"}
                     </GlassButton>
                   ) : null}
                 </CardContent>
