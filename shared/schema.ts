@@ -332,6 +332,10 @@ export const users = pgTable("users", {
   trialStartedAt: timestamp("trial_started_at", { withTimezone: true }),
   trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
   selectedMealBuilder: text("selected_meal_builder"), // weekly, diabetic, glp1, anti_inflammatory
+  // Builder Switch Controls (Beta)
+  builderSwitchUnlimited: boolean("builder_switch_unlimited").default(false), // true = no limit (admin/internal accounts only)
+  builderChangesUsed: integer("builder_changes_used").default(0),           // how many switches used so far
+  builderChangeLimit: integer("builder_change_limit").default(4),            // cap (default 4 during beta)
   isTester: boolean("is_tester").default(false), // Testers bypass trial expiration (coaches, doctors, beta users)
   // Token-based authentication (secure alternative to session)
   authToken: text("auth_token").unique(), // 256-bit random token for API authentication

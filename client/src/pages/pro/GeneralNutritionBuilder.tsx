@@ -48,7 +48,7 @@ import {
   todayISOInTZ 
 } from "@/utils/midnight";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Check, Sparkles, BarChart3, ShoppingCart, X, Calendar } from "lucide-react";
+import { Plus, Check, Sparkles, BarChart3, ShoppingCart, X, Calendar, Lock } from "lucide-react";
 import { FEATURES } from "@/utils/features";
 import { DayChips } from "@/components/DayChips";
 import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
@@ -60,6 +60,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
+import { useBoardLockStatus } from "@/hooks/useBoardLockStatus";
 import { BUILDER_NS } from "@shared/builderNamespaces";
 import { setActiveBuilderNs } from "@/lib/activeBuilderNs";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
@@ -121,6 +122,8 @@ export default function WeeklyMealBoard() {
   const proClientId = params?.id;
   const clientId = params?.id || "1";
   const isProCareMode = !!params?.id;
+  const { locked: boardLocked } = useBoardLockStatus();
+  const readOnly = !proClientId && boardLocked;
 
   const effectiveUserId = proClientId || user?.id;
 
@@ -944,6 +947,15 @@ export default function WeeklyMealBoard() {
     >
       <BuilderHeader title="General Nutrition Builder" onOpenTour={quickTour.openTour} clientId={isProCareMode ? clientId : null} />
       <TrialBanner />
+
+      {readOnly && (
+        <div className="mx-4 mt-2 px-4 py-3 rounded-xl bg-red-900/30 border border-red-500/40 flex items-center gap-3">
+          <Lock className="h-4 w-4 text-red-400 flex-shrink-0" />
+          <p className="text-sm text-red-200">
+            Your meal board is managed by your professional. You can view your plan but cannot make changes.
+          </p>
+        </div>
+      )}
 
       {/* Main Content */}
       <div
