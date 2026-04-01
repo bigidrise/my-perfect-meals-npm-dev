@@ -10,7 +10,7 @@ import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { useToast } from "@/hooks/use-toast";
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 const GOAL_OPTIONS = [
   { label: "Lose Weight", value: "lose", emoji: "🔥" },
@@ -130,6 +130,8 @@ export default function OnboardingV3() {
   const [confirmPin, setConfirmPin] = useState("");
   const [showPin, setShowPin] = useState(false);
   const [pinError, setPinError] = useState("");
+  const [oncologyIntroAnswer, setOncologyIntroAnswer] = useState<"yes" | "skip" | null>(null);
+  const [oncologySupportIntentChoice, setOncologySupportIntentChoice] = useState<"own_provider" | "request_support" | "self_directed" | null>(null);
 
   const progress = (step / TOTAL_STEPS) * 100;
 
@@ -224,7 +226,21 @@ export default function OnboardingV3() {
           }
           await saveProfile({ medicalConditions });
           break;
-        case 4:
+        case 4: {
+          const intent = oncologyIntroAnswer === "yes" ? oncologySupportIntentChoice : null;
+          if (intent) {
+            localStorage.setItem("mpm:oncologySupportIntent", intent);
+          } else {
+            localStorage.removeItem("mpm:oncologySupportIntent");
+          }
+          fetch(apiUrl("/api/user/oncology-support-intent"), {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify({ intent }),
+          }).catch(() => {});
+          break;
+        }
+        case 5:
           if (!goalType) {
             toast({ title: "Please select your main goal", variant: "destructive" });
             setSaving(false);
@@ -237,7 +253,7 @@ export default function OnboardingV3() {
             goalStartDate: new Date().toISOString(),
           });
           break;
-        case 5:
+        case 6:
           if (!flavorPreference) {
             toast({ title: "Please pick a flavor style", variant: "destructive" });
             setSaving(false);
@@ -493,6 +509,116 @@ export default function OnboardingV3() {
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
+              <div className="text-4xl mb-1">🎗️</div>
+              <h1 className="text-2xl font-bold text-white">
+                Need extra support with treatment-related nutrition?
+              </h1>
+              <p className="text-white/60 text-sm max-w-sm mx-auto">
+                Appetite changes, nausea, or food intolerances during treatment can make
+                nutrition more complex. This step is completely optional — skip it and you
+                can revisit any time in your settings.
+              </p>
+            </div>
+
+            <div className="max-w-sm mx-auto flex flex-col gap-3">
+              <button
+                onClick={() => setOncologyIntroAnswer("yes")}
+                className={`px-5 py-4 rounded-xl border text-left text-sm font-medium transition-all ${
+                  oncologyIntroAnswer === "yes"
+                    ? "bg-rose-600/30 border-rose-500 text-white"
+                    : "bg-white/5 border-white/20 text-white/80"
+                }`}
+              >
+                <div className="font-semibold">Yes, I may need this</div>
+                <div className="text-xs mt-1 opacity-70">Show me the support options</div>
+              </button>
+              <button
+                onClick={() => {
+                  setOncologyIntroAnswer("skip");
+                  setOncologySupportIntentChoice(null);
+                }}
+                className={`px-5 py-4 rounded-xl border text-left text-sm font-medium transition-all ${
+                  oncologyIntroAnswer === "skip"
+                    ? "bg-white/15 border-white/40 text-white"
+                    : "bg-white/5 border-white/20 text-white/70"
+                }`}
+              >
+                <div className="font-semibold">Skip for now</div>
+                <div className="text-xs mt-1 opacity-60">I can revisit this any time in settings</div>
+              </button>
+            </div>
+
+            {oncologyIntroAnswer === "yes" && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="border-t border-white/10 pt-4">
+                  <div className="text-center space-y-2">
+                    <h2 className="text-lg font-bold text-white">How would you like to proceed?</h2>
+                    <p className="text-white/60 text-sm max-w-sm mx-auto">
+                      We recommend working with a qualified provider for oncology-related nutrition.
+                      Choose the path that fits your situation.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-3 mt-4 max-w-sm mx-auto">
+                    {[
+                      {
+                        value: "own_provider" as const,
+                        emoji: "🩺",
+                        title: "Use My Provider",
+                        description: "I already work with a physician, oncologist, or dietitian who supports my care.",
+                      },
+                      {
+                        value: "request_support" as const,
+                        emoji: "🤝",
+                        title: "Request Professional Support",
+                        description: "I'd like to be notified when professional support through My Perfect Meals is available.",
+                      },
+                      {
+                        value: "self_directed" as const,
+                        emoji: "🥗",
+                        title: "Continue with Nutrition Support",
+                        description: "I'll use the supportive nutrition tools independently for now.",
+                      },
+                    ].map((path) => (
+                      <button
+                        key={path.value}
+                        onClick={() => setOncologySupportIntentChoice(path.value)}
+                        className={`px-4 py-4 rounded-xl border text-left transition-all ${
+                          oncologySupportIntentChoice === path.value
+                            ? "bg-rose-600/25 border-rose-500 text-white"
+                            : "bg-white/5 border-white/15 text-white/80"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className="text-xl mt-0.5">{path.emoji}</span>
+                          <div className="flex-1">
+                            <div className={`font-semibold text-sm ${oncologySupportIntentChoice === path.value ? "text-rose-200" : ""}`}>
+                              {path.title}
+                            </div>
+                            <div className="text-xs text-white/60 mt-0.5">{path.description}</div>
+                          </div>
+                          {oncologySupportIntentChoice === path.value && (
+                            <Check className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  <p className="text-center text-xs text-white/40 mt-4 max-w-sm mx-auto px-2">
+                    My Perfect Meals provides supportive nutrition tools. It does not diagnose,
+                    prescribe, or replace medical care. Provider involvement may still be appropriate.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
+      case 5:
+        return (
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="text-center space-y-2">
               <h1 className="text-2xl font-bold text-white">What's your main goal?</h1>
               <p className="text-white/60 text-sm">We'll personalize your plan around this</p>
             </div>
@@ -549,7 +675,7 @@ export default function OnboardingV3() {
           </div>
         );
 
-      case 5:
+      case 6:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
@@ -616,7 +742,7 @@ export default function OnboardingV3() {
           </div>
         );
 
-      case 6:
+      case 7:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
@@ -727,10 +853,16 @@ export default function OnboardingV3() {
           {step < TOTAL_STEPS ? (
             <Button
               onClick={handleNext}
-              disabled={saving}
+              disabled={saving || (step === 4 && oncologyIntroAnswer === "yes" && !oncologySupportIntentChoice)}
               className="flex-1 bg-orange-500 active:bg-orange-700 text-white"
             >
-              {saving ? "Saving..." : "Next"}
+              {saving
+                ? "Saving..."
+                : step === 4 && !oncologyIntroAnswer
+                  ? "Skip"
+                  : step === 4 && oncologyIntroAnswer === "yes" && !oncologySupportIntentChoice
+                    ? "Select a path above"
+                    : "Next"}
               {!saving && <ArrowRight className="w-4 h-4 ml-2" />}
             </Button>
           ) : (

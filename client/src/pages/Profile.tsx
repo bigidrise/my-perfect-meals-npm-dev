@@ -364,6 +364,25 @@ export default function Profile() {
           </div>
         </div>
 
+        {/* Oncology Support Follow-up Hook — visible only when user indicated 'request_support' during onboarding */}
+        {typeof window !== "undefined" && localStorage.getItem("mpm:oncologySupportIntent") === "request_support" && (
+          <Card className="mt-6 bg-rose-950/40 backdrop-blur-lg border border-rose-700/40">
+            <CardContent className="p-4 flex items-start gap-3">
+              <span className="text-2xl flex-shrink-0 mt-0.5">🎗️</span>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-rose-200">Professional Nutrition Support Request</p>
+                <p className="text-xs text-white/60 mt-1">
+                  You requested professional oncology nutrition support during setup.
+                  We'll notify you when a qualified provider match is available through My Perfect Meals.
+                </p>
+                <p className="text-xs text-white/40 mt-2">
+                  My Perfect Meals provides supportive nutrition tools. It does not diagnose, prescribe, or replace medical care.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Medical Information & Sources */}
         <Card className="mt-6 bg-black/30 backdrop-blur-lg border border-white/10">
           <CardContent className="p-4">
