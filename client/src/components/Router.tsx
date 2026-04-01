@@ -1,5 +1,6 @@
 import React, { lazy, useEffect, useRef } from "react";
 import { Switch, Route, useLocation } from "wouter";
+import { BUILDER_MAP, type BuilderKey } from "@/lib/builderMap";
 import GeneralNutritionBuilder from "@/pages/pro/GeneralNutritionBuilder";
 import ScrollRestorer from "@/components/ScrollRestorer";
 import BottomNav from "@/components/BottomNav";
@@ -22,6 +23,24 @@ function CoachingAdminGate({ component: Component }: { component: React.Componen
   if (!user) return null;
   if (user.id !== COACHING_ADMIN_USER_ID) {
     setLocation("/");
+    return null;
+  }
+  return <Component />;
+}
+
+function BuilderAccessGuard({ builderKey, component: Component }: { builderKey: BuilderKey; component: React.ComponentType }) {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  if (!user) return null;
+  if (user.id === COACHING_ADMIN_USER_ID || (user as any).builderSwitchUnlimited) return <Component />;
+  const active = user.activeBoard as BuilderKey | null | undefined;
+  if (!active) {
+    setLocation("/select-builder");
+    return null;
+  }
+  if (active !== builderKey) {
+    const correctRoute = BUILDER_MAP[active]?.clientRoute;
+    setLocation(correctRoute || "/select-builder");
     return null;
   }
   return <Component />;
@@ -208,6 +227,14 @@ const SafeDiabeticMenuBuilder = withPageErrorBoundary(DiabeticMenuBuilder, "Diab
 const SafeGLP1Hub = withPageErrorBoundary(GLP1Hub, "GLP-1 Hub");
 const SafeGLP1MealBuilder = withPageErrorBoundary(GLP1MealBuilder, "GLP-1 Meal Builder");
 const SafeAntiInflammatoryMenuBuilder = withPageErrorBoundary(AntiInflammatoryMenuBuilder, "Anti-Inflammatory Menu Builder");
+
+const GuardedWeeklyMealBoard = () => <BuilderAccessGuard builderKey="weekly" component={SafeWeeklyMealBoard} />;
+const GuardedBeachBodyBuilder = () => <BuilderAccessGuard builderKey="beach_body" component={BeachBodyMealBoard} />;
+const GuardedAntiInflammatoryBuilder = () => <BuilderAccessGuard builderKey="anti_inflammatory" component={SafeAntiInflammatoryMenuBuilder} />;
+const GuardedGeneralNutritionBuilder = () => <BuilderAccessGuard builderKey="general_nutrition" component={GeneralNutritionBuilder} />;
+const GuardedPerformanceBuilder = () => <BuilderAccessGuard builderKey="performance_competition" component={PerformanceCompetitionBuilderStandalone} />;
+const GuardedDiabeticBuilder = () => <BuilderAccessGuard builderKey="diabetic" component={SafeDiabeticMenuBuilder} />;
+const GuardedGLP1Builder = () => <BuilderAccessGuard builderKey="glp1" component={SafeGLP1MealBuilder} />;
 
 export default function Router() {
   const [location, setLocation] = useLocation();
@@ -441,11 +468,11 @@ export default function Router() {
           />
         </Route>
         {/* DELETED: TemplateHub route */}
-        <Route path="/weekly" component={SafeWeeklyMealBoard} />
+        <Route path="/weekly" component={GuardedWeeklyMealBoard} />
         {/* DELETED: PlanBuilderTurbo, ProteinPlannerPage, PlanBuilderHub, CompetitionBeachbodyBoard routes */}
         <Route path="/planner" component={SafePlanner} />
-        <Route path="/weekly-meal-board" component={SafeWeeklyMealBoard} />
-        <Route path="/beach-body-meal-board" component={BeachBodyMealBoard} />
+        <Route path="/weekly-meal-board" component={GuardedWeeklyMealBoard} />
+        <Route path="/beach-body-meal-board" component={GuardedBeachBodyBuilder} />
         {/* Legacy redirects - redirect Classic Builder to Weekly Meal Board */}
         <Route path="/plan-builder/classic" component={SafeWeeklyMealBoard} />
         <Route path="/builder/classic" component={SafeWeeklyMealBoard} />
@@ -476,15 +503,15 @@ export default function Router() {
         <Route path="/pro-client-dashboard" component={SafeProClientDashboard} />
         <Route
           path="/performance-competition-builder"
-          component={PerformanceCompetitionBuilderStandalone}
+          component={GuardedPerformanceBuilder}
         />
         <Route
           path="/pro/general-nutrition-builder"
-          component={GeneralNutritionBuilder}
+          component={GuardedGeneralNutritionBuilder}
         />
         <Route
           path="/pro/performance-competition-builder"
-          component={PerformanceCompetitionBuilderStandalone}
+          component={GuardedPerformanceBuilder}
         />
         <Route path="/pro/clients/:id/general-nutrition-builder" component={GeneralNutritionBuilder} />
         <Route path="/pro/clients/:id/performance-competition-builder" component={PerformanceCompetitionBuilderProCare} />
@@ -499,10 +526,10 @@ export default function Router() {
         {/* Physician Hub Routes (Diabetic, GLP-1, Medical Diets, Clinical Lifestyle) */}
         <Route path="/diabetic-hub" component={SafeDiabeticHub} />
         <Route path="/diabetes-support" component={SafeDiabetesSupport} />
-        <Route path="/diabetic-menu-builder" component={SafeDiabeticMenuBuilder} />
+        <Route path="/diabetic-menu-builder" component={GuardedDiabeticBuilder} />
         <Route path="/glp1-hub" component={SafeGLP1Hub} />
-        <Route path="/glp1-meal-builder" component={SafeGLP1MealBuilder} />
-        <Route path="/anti-inflammatory-menu-builder" component={SafeAntiInflammatoryMenuBuilder} />
+        <Route path="/glp1-meal-builder" component={GuardedGLP1Builder} />
+        <Route path="/anti-inflammatory-menu-builder" component={GuardedAntiInflammatoryBuilder} />
         {/* Craving Creator Routes */}
         <Route
           path="/craving-creator-landing"
