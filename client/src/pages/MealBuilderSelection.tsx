@@ -118,14 +118,6 @@ export default function MealBuilderSelection() {
     return user?.activeBoard === builderId;
   };
 
-  const assignedBuilder = user?.activeBoard || user?.selectedMealBuilder || null;
-
-  const isCardLocked = (builderId: string): boolean => {
-    if (isUnlimited) return false;
-    if (!assignedBuilder) return false;
-    return builderId !== assignedBuilder;
-  };
-
   const availableBuilders =
     isProCareClient && user?.activeBoard
       ? BUILDER_OPTIONS.filter((opt) => opt.id === user.activeBoard)
@@ -137,13 +129,11 @@ export default function MealBuilderSelection() {
   }, [refreshUser]);
 
   useEffect(() => {
-    if (user?.activeBoard) {
-      setSelected(user.activeBoard as MealBuilderType);
-    } else if (user?.selectedMealBuilder) {
+    if (user?.selectedMealBuilder) {
       setSelected(user.selectedMealBuilder as MealBuilderType);
+      setConfirmedBuilder(null);
     }
-    setConfirmedBuilder(null);
-  }, [user?.activeBoard, user?.selectedMealBuilder]);
+  }, [user?.selectedMealBuilder]);
 
   useEffect(() => {
     const fetchSwitchStatus = async () => {
@@ -382,16 +372,12 @@ export default function MealBuilderSelection() {
             availableBuilders.map((option) => {
               const isUnlocked = isProBuilderUnlocked(option.id);
               const isProBuilder = PRO_BUILDERS.includes(option.id);
-              const locked = isCardLocked(option.id);
-              const isActiveBoard = option.id === user?.activeBoard;
-
+              
               return (
               <div
                 key={option.id}
                 className={`w-full p-4 rounded-2xl border-2 transition-all ${
-                  locked
-                    ? "border-zinc-800 bg-black/10 opacity-50 cursor-not-allowed"
-                    : !isUnlocked
+                  !isUnlocked
                     ? "border-zinc-700 bg-black/20 opacity-60"
                     : selected === option.id
                     ? "border-emerald-500/50 bg-white/10"
@@ -400,18 +386,15 @@ export default function MealBuilderSelection() {
               >
                 <div className="flex items-start gap-4">
                   <div
-                    className={`p-3 rounded-xl bg-gradient-to-br ${option.color} ${locked || !isUnlocked ? "text-zinc-500" : "text-white"} flex-shrink-0`}
+                    className={`p-3 rounded-xl bg-gradient-to-br ${option.color} ${isUnlocked ? "text-white" : "text-zinc-500"} flex-shrink-0`}
                   >
                     {option.icon}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className={`text-base font-semibold truncate ${locked || !isUnlocked ? "text-zinc-400" : ""}`}>{option.title}</h3>
-                        {locked && (
-                          <Lock className="w-4 h-4 text-zinc-600" />
-                        )}
-                        {!locked && !isUnlocked && isProBuilder && (
+                        <h3 className={`text-base font-semibold truncate ${!isUnlocked ? "text-zinc-400" : ""}`}>{option.title}</h3>
+                        {!isUnlocked && isProBuilder && (
                           <Lock className="w-4 h-4 text-zinc-500" />
                         )}
                         {option.id === "beach_body" && (
@@ -419,28 +402,26 @@ export default function MealBuilderSelection() {
                             Ultimate
                           </span>
                         )}
-                        {isActiveBoard && (
+                        {(confirmedBuilder || user?.selectedMealBuilder) === option.id && (
                           <span className="text-xs px-2 py-0.5 bg-emerald-600/30 text-emerald-300 rounded-full border border-emerald-500/30">
                             Current
                           </span>
                         )}
                       </div>
-                      {locked ? (
-                        <span className="text-xs text-zinc-600 italic flex-shrink-0">Locked</span>
-                      ) : isUnlocked ? (
+                      {isUnlocked ? (
                         <PillButton
                           active={selected === option.id}
-                          onClick={() => setSelected(option.id as MealBuilderType)}
+                          onClick={() => setSelected(option.id)}
                           className="flex-shrink-0"
                         >
                           {selected === option.id ? "On" : "Off"}
                         </PillButton>
                       ) : (
-                        <span className="text-xs text-zinc-500 italic flex-shrink-0">Trainer unlock required</span>
+                        <span className="text-xs text-zinc-500 italic">Trainer unlock required</span>
                       )}
                     </div>
-                    <p className={`text-sm mt-1 ${locked || !isUnlocked ? "text-zinc-500" : "text-white/70"}`}>
-                      {locked ? "Not your assigned builder" : !isUnlocked ? "Requires trainer/coach to unlock access" : option.description}
+                    <p className={`text-sm mt-1 ${!isUnlocked ? "text-zinc-500" : "text-white/70"}`}>
+                      {!isUnlocked ? "Requires trainer/coach to unlock access" : option.description}
                     </p>
                   </div>
                 </div>
