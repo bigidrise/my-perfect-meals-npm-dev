@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCopilot } from "./CopilotContext";
-import { ChefCapIcon } from "./ChefCapIcon";
 import { startCopilotIntro } from "./CopilotCommandRegistry";
 import { ttsService, TTSCallbacks } from "@/lib/tts";
 import { useCopilotGuidedMode } from "./CopilotGuidedModeContext";
 import { useGuestProgress } from "@/hooks/useGuestProgress";
+
 export const CopilotSheet: React.FC = () => {
   const { isOpen, close, mode, setMode, lastResponse, suggestions, runAction, setLastResponse } = useCopilot();
   const { isGuidedModeEnabled, toggleGuidedMode } = useCopilotGuidedMode();
@@ -363,7 +363,12 @@ export const CopilotSheet: React.FC = () => {
                 <div className="px-4 pt-3 pb-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <ChefCapIcon size={56} />
+                      <img
+                        src="/icons/chef-with-phone.png"
+                        alt="Chef Copilot"
+                        className="object-contain"
+                        style={{ width: 56, height: 56 }}
+                      />
                       <div className="flex flex-col">
                         <span className="text-xs uppercase tracking-[0.16em] text-orange-300/90">
                           My Perfect Meals Copilot
