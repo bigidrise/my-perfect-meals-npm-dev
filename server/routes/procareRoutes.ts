@@ -266,7 +266,8 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
 // GET /api/pro/clients/:clientId/board-control — read current board control setting
 router.get("/clients/:clientId/board-control", async (req, res) => {
   try {
-    const proUserId = getUserId(req);
+    const proUserId = (req as AuthenticatedRequest).authUser?.id;
+    if (!proUserId) return res.status(401).json({ error: "Authentication required" });
     const { clientId } = req.params;
     const [link] = await db
       .select({ mealBoardControl: clientLinks.mealBoardControl })
@@ -284,7 +285,8 @@ router.get("/clients/:clientId/board-control", async (req, res) => {
 // PATCH /api/pro/clients/:clientId/board-control — set board control ("client" or "professional")
 router.patch("/clients/:clientId/board-control", async (req, res) => {
   try {
-    const proUserId = getUserId(req);
+    const proUserId = (req as AuthenticatedRequest).authUser?.id;
+    if (!proUserId) return res.status(401).json({ error: "Authentication required" });
     const { clientId } = req.params;
     const { control } = req.body as { control: 'client' | 'professional' };
     if (control !== 'client' && control !== 'professional') {
@@ -362,7 +364,8 @@ router.get("/oncology-support/:clientUserId", async (req, res) => {
       return res.status(404).json({ error: "Feature not available" });
     }
 
-    const requesterId = getUserId(req);
+    const requesterId = (req as AuthenticatedRequest).authUser?.id;
+    if (!requesterId) return res.status(401).json({ error: "Authentication required" });
     const { clientUserId } = req.params;
 
     const hasAccess = await verifyClinicalAccess(requesterId, clientUserId);
