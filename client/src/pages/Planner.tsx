@@ -100,13 +100,12 @@ export default function Planner() {
     ? (user?.activeBoard || user?.selectedMealBuilder)
     : (user?.selectedMealBuilder || user?.activeBoard);
   
-  // Check for Apple Review Full Access mode - grants admin-level access
+  // Apple Review mode only — no role-based bypasses on the planner
   const isAppleReviewMode = localStorage.getItem("appleReviewFullAccess") === "true";
-  const isAdmin = isAppleReviewMode || user?.role === "admin" || user?.isTester || user?.entitlements?.includes("FULL_ACCESS");
-  const needsOnboarding = !isAdmin && !userActiveBoard;
+  const needsOnboarding = !isAppleReviewMode && !userActiveBoard;
 
   const isBuilderUnlocked = (builderId: string): boolean => {
-    if (isAdmin) return true;
+    if (isAppleReviewMode) return true;
     if (!userActiveBoard) return false;
     return builderId === userActiveBoard;
   };
