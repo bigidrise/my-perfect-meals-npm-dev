@@ -100,12 +100,14 @@ export default function Planner() {
     ? (user?.activeBoard || user?.selectedMealBuilder)
     : (user?.selectedMealBuilder || user?.activeBoard);
   
-  // Apple Review mode only — no role-based bypasses on the planner
+  // Bypass: Apple Review mode OR builder_switch_unlimited accounts (internal QA/admin)
   const isAppleReviewMode = localStorage.getItem("appleReviewFullAccess") === "true";
-  const needsOnboarding = !isAppleReviewMode && !userActiveBoard;
+  const isUnlimited = (user as any)?.builderSwitchUnlimited === true;
+  const needsOnboarding = !isAppleReviewMode && !isUnlimited && !userActiveBoard;
 
   const isBuilderUnlocked = (builderId: string): boolean => {
     if (isAppleReviewMode) return true;
+    if (isUnlimited) return true;
     if (!userActiveBoard) return false;
     return builderId === userActiveBoard;
   };
