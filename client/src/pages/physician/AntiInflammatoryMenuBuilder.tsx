@@ -220,7 +220,14 @@ export default function AntiInflammatoryMenuBuilder() {
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         console.log("[AntiInflamBuilder] labs fetch →", JSON.stringify(data?.protocolSignal ?? null));
-        if (cancelled || !data?.protocolSignal?.protocol) return;
+        if (cancelled) return;
+        // Physician-assigned oncology takes precedence over lab-derived protocol signal
+        if (data?.oncologySupportEnabled) {
+          console.log("[AntiInflamBuilder] oncology support active → setting mode to oncology-support");
+          setClinicalModeState('oncology-support');
+          return;
+        }
+        if (!data?.protocolSignal?.protocol) return;
         const labMode = data.protocolSignal.protocol as ClinicalMode;
         console.log("[AntiInflamBuilder] setting clinicalMode from labs →", labMode);
         setClinicalModeState(labMode);
@@ -232,10 +239,11 @@ export default function AntiInflammatoryMenuBuilder() {
 
   // Badge comes directly from the active clinical mode — always accurate.
   const CLINICAL_MODE_BADGE: Partial<Record<ClinicalMode, ProtocolBadge>> = {
-    "liver-disease":  { label: "Liver Disease",  cls: "bg-amber-600 text-white" },
-    "kidney-disease": { label: "Kidney Disease", cls: "bg-sky-600 text-white" },
-    "heart-failure":  { label: "Cardiac Health", cls: "bg-red-600 text-white" },
-    "liver-support":  { label: "Liver Support",  cls: "bg-emerald-600 text-white" },
+    "liver-disease":    { label: "Liver Disease",    cls: "bg-amber-600 text-white" },
+    "kidney-disease":   { label: "Kidney Disease",   cls: "bg-sky-600 text-white" },
+    "heart-failure":    { label: "Cardiac Health",   cls: "bg-red-600 text-white" },
+    "liver-support":    { label: "Liver Support",    cls: "bg-emerald-600 text-white" },
+    "oncology-support": { label: "Oncology Support", cls: "bg-rose-600 text-white" },
   };
   const activePrimaryBadge: ProtocolBadge | null = CLINICAL_MODE_BADGE[clinicalModeState] ?? null;
 

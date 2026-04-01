@@ -163,7 +163,7 @@ export function getMondayISOFromString(dateISO: string): string {
   return getMondayISO(d);
 }
 
-export type ClinicalMode = "anti-inflammatory" | "liver-support" | "kidney-disease" | "heart-failure" | "liver-disease";
+export type ClinicalMode = "anti-inflammatory" | "liver-support" | "kidney-disease" | "heart-failure" | "liver-disease" | "oncology-support";
 
 export function resolveClinicalMode(board: WeekBoard | null | undefined): ClinicalMode {
   return board?.meta?.clinicalMode || "anti-inflammatory";

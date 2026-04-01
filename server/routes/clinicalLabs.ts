@@ -229,7 +229,14 @@ router.get("/:userId", requireAuth, async (req, res) => {
       .limit(1);
 
     if (rows.length === 0) {
-      return res.json({ labs: null });
+      // Still check oncologySupportEnabled even with no labs on file
+      const userRows0 = await db
+        .select({ oncologySupportContext: users.oncologySupportContext })
+        .from(users)
+        .where(eq(users.id, userId as any))
+        .limit(1);
+      const oncologyCtx0 = userRows0[0]?.oncologySupportContext as { enabled?: boolean } | null ?? null;
+      return res.json({ labs: null, oncologySupportEnabled: !!(oncologyCtx0?.enabled) });
     }
 
     const r = rows[0];
@@ -247,6 +254,14 @@ router.get("/:userId", requireAuth, async (req, res) => {
       bloodPressureSystolic: r.bloodPressureSystolic,
       ejectionFraction:      r.ejectionFraction,
     });
+
+    // Fetch the user's oncologySupportContext to include in the response
+    const userRows = await db
+      .select({ oncologySupportContext: users.oncologySupportContext })
+      .from(users)
+      .where(eq(users.id, userId as any))
+      .limit(1);
+    const oncologyCtx = userRows[0]?.oncologySupportContext as { enabled?: boolean } | null ?? null;
 
     res.json({
       labs: {
@@ -274,6 +289,8 @@ router.get("/:userId", requireAuth, async (req, res) => {
       // value → the resolver's recommended protocol with reason and confidence.
       protocolSignal,
       protocolSubtitle: labSignalToSubtitle(protocolSignal),
+      // Physician-assigned oncology support overlay (independent of lab values)
+      oncologySupportEnabled: !!(oncologyCtx?.enabled),
     });
   } catch (error: any) {
     console.error("[clinicalLabs GET]", error);

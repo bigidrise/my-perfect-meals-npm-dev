@@ -3,7 +3,8 @@ export type ClinicalMode =
   | "liver-support"
   | "kidney-disease"
   | "heart-failure"
-  | "liver-disease";
+  | "liver-disease"
+  | "oncology-support";
 
 interface GuardrailRules {
   hardBlock: string[];
@@ -30,6 +31,34 @@ const LIVER_SUPPORT_RULES: GuardrailRules = {
     "salmon", "sardines", "sardine", "tuna", "chia", "flax", "flaxseed", "walnuts", "walnut",
     "beans", "lentils", "lentil", "oats", "oatmeal", "quinoa", "brown rice",
     "olive oil", "avocado",
+  ],
+};
+
+const ONCOLOGY_SUPPORT_RULES: GuardrailRules = {
+  hardBlock: [
+    "alcohol", "beer", "wine", "liquor", "cocktail",
+    "raw shellfish", "raw oysters", "raw fish", "raw sushi",
+    "deli meat", "processed meat", "hot dog", "hot dogs", "sausage",
+    "deep fried", "french fries",
+    "soda", "energy drink", "sweet tea",
+    "candy", "donut", "donuts", "pastry", "pastries",
+    "ultra processed", "fast food",
+  ],
+  softDiscourage: [
+    "bacon", "salted", "high sodium", "jerky",
+    "butter heavy", "heavy cream", "fried",
+    "red meat", "organ meat",
+  ],
+  prioritize: [
+    "salmon", "sardines", "tuna", "chicken breast", "eggs",
+    "spinach", "kale", "arugula", "broccoli", "cauliflower", "brussels sprouts",
+    "blueberries", "strawberries", "berries",
+    "sweet potato", "beets",
+    "beans", "lentils", "chickpeas",
+    "oats", "quinoa", "brown rice",
+    "olive oil", "avocado", "walnuts", "almonds",
+    "turmeric", "ginger", "garlic",
+    "green tea", "flaxseed", "chia",
   ],
 };
 
@@ -108,6 +137,7 @@ export function getGuardrails(dietType: string): GuardrailRules {
   if (dietType === "kidney-disease") return KIDNEY_DISEASE_RULES;
   if (dietType === "heart-failure") return HEART_FAILURE_RULES;
   if (dietType === "liver-disease") return LIVER_DISEASE_RULES;
+  if (dietType === "oncology-support") return ONCOLOGY_SUPPORT_RULES;
   return { hardBlock: [], softDiscourage: [], prioritize: [] };
 }
 
@@ -259,6 +289,40 @@ PRIORITIZE:
 - Liver-supportive: coffee, green tea
 
 These guardrails apply to meal composition only. Do NOT override macro targets.
+`;
+    return basePrompt + "\n" + guardrailBlock;
+  }
+
+  if (dietType === "oncology-support") {
+    const rules = ONCOLOGY_SUPPORT_RULES;
+    const guardrailBlock = `
+ONCOLOGY SUPPORT NUTRITION GUARDRAILS (PHYSICIAN-ASSIGNED — MANDATORY):
+This patient is under cancer support nutrition protocol. These constraints are medically required. Do not override.
+
+HARD BLOCKED — Never include:
+- Alcohol of any kind (beer, wine, liquor, cocktails)
+- Raw or undercooked shellfish, oysters, raw fish, or raw sushi (infection risk during treatment)
+- Processed and deli meats (hot dogs, sausage, deli meat, processed meat)
+- Deep fried foods
+- High added sugar (candy, donuts, pastries, soda, sweet tea, energy drinks)
+- Ultra-processed fast food
+
+STRONGLY DISCOURAGED — Avoid unless specifically requested:
+- Cured or smoked meats (bacon, jerky)
+- High-sodium foods
+- Heavy butter or cream-based dishes
+- Red meat and organ meat in excess
+
+PRIORITIZE — Cancer-supportive, nutrient-dense foods:
+- Lean proteins: ${rules.prioritize.filter(k => ["salmon","sardines","tuna","chicken breast","eggs"].includes(k)).join(", ")}
+- Anti-inflammatory vegetables: ${rules.prioritize.filter(k => ["spinach","kale","arugula","broccoli","cauliflower","brussels sprouts"].includes(k)).join(", ")}
+- Antioxidant fruits: ${rules.prioritize.filter(k => ["blueberries","strawberries","berries"].includes(k)).join(", ")}
+- Whole grains and legumes: ${rules.prioritize.filter(k => ["oats","quinoa","brown rice","beans","lentils","chickpeas"].includes(k)).join(", ")}
+- Healthy fats: ${rules.prioritize.filter(k => ["olive oil","avocado","walnuts","almonds","flaxseed","chia"].includes(k)).join(", ")}
+- Anti-inflammatory spices: turmeric, ginger, garlic
+- Hydrating beverages: green tea
+
+These guardrails apply to meal composition only. Do NOT override macro targets or calorie goals.
 `;
     return basePrompt + "\n" + guardrailBlock;
   }

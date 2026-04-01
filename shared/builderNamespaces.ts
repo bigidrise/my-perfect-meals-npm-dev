@@ -11,6 +11,7 @@ export const BUILDER_NS = {
   WEEKLY: undefined as undefined,
   ANTI_INFLAMMATORY: 'antiInflammatory',
   ANTI_INFLAMMATORY_LIVER: 'antiInflammatory:liverSupport',
+  ANTI_INFLAMMATORY_ONCOLOGY: 'antiInflammatory:oncologySupport',
   DIABETIC: 'diabetic',
   GLP1: 'glp1',
   GENERAL_NUTRITION: 'generalNutrition',
