@@ -2025,6 +2025,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         goalStartDate: user.goalStartDate?.toISOString() ?? null,
         availabilityStatus: (user as any).availabilityStatus ?? null,
         backAt: (user as any).backAt?.toISOString?.() ?? (user as any).backAt ?? null,
+        oncologySupportIntent: user.oncologySupportIntent ?? null,
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);

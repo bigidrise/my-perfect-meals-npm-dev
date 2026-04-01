@@ -234,6 +234,33 @@ No treatment claims, cure claims, diagnosis recommendations, or medication/suppl
 ### Phase 0 security hardening (COMPLETED)
 `clinicalLabs.ts` POST `/api/biometrics/labs` and GET `/api/biometrics/labs/:userId` now both call `verifyClinicalAccess()` and return 403 on unauthorized attempts.
 
+## Oncology Support Onboarding Intent (User-facing — separate from physician protocol)
+
+**CRITICAL SEPARATION**: This is NOT the physician oncology protocol. It captures user intent only during onboarding.
+
+### DB fields (added via direct SQL — see note below)
+- `oncology_support_intent text` — nullable. `own_provider | request_support | self_directed`. Set only by the user.
+- `oncology_support_intent_set_at timestamptz` — when intent was saved.
+- `needs_professional_followup boolean DEFAULT false` — true only for `request_support` intent.
+
+**Schema parity note**: These columns were added with direct SQL (not `db:push`) due to a pre-existing drizzle-kit null-expression bug in the `macro_logs` index. The Drizzle schema file (`shared/schema.ts` lines 391–396) is in sync with the live DB — confirmed via `information_schema.columns` query.
+
+### Onboarding flow
+`OnboardingV3.tsx` has 7 steps. Step 4 is the Treatment Support step (optional):
+- "Yes, I may need this" → reveals 3-path card choice
+- "Skip for now" → advances with null intent
+- Next button shows "Skip" / "Select a path above" (disabled) / "Next" depending on state
+- Intent saved to DB via `PATCH /api/user/oncology-support-intent` and mirrored to `localStorage:mpm:oncologySupportIntent`
+
+### API endpoint
+`PATCH /api/user/oncology-support-intent` — authenticated via `x-auth-token`. Saves intent, timestamp, and followup flag.
+
+### Profile persistence
+`/api/user/profile` returns `oncologySupportIntent`. `AuthContext` maps it to the `User` type and syncs localStorage on every refresh. Profile page hook card reads from `user?.oncologySupportIntent` first (server-authoritative), falls back to localStorage.
+
+### Profile follow-up card
+`client/src/pages/Profile.tsx` — rose-tinted card shown only when intent is `request_support`. Displays a waitlist notice and safety disclaimer.
+
 ## Heat Preference Feature
 
 `heatPreference` is a first-class user profile field, separate from `flavorPreference`.
