@@ -816,7 +816,7 @@ export default function TrainerClientDashboard() {
                       {isActive && <Check className="h-4 w-4 flex-shrink-0" />}
                       <span className="font-bold text-sm">{entry.label}</span>
                     </div>
-                    <span className="text-xs text-white/60 font-normal leading-snug">{entry.description}</span>
+                    <span className="text-xs text-white/60 font-normal leading-snug line-clamp-2 w-full">{entry.description}</span>
                   </Button>
                 );
               })}
@@ -916,7 +916,7 @@ export default function TrainerClientDashboard() {
         {/* Schedule Check-In */}
         <Card className="bg-white/5 border border-lime-500/30">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
               <CalendarCheck className="h-5 w-5 text-lime-400" /> Schedule Check-In
             </CardTitle>
           </CardHeader>
