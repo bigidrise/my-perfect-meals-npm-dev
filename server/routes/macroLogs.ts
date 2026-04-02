@@ -2,14 +2,17 @@ import express from "express";
 import { db } from "../db";
 import { macroLogs } from "../../shared/schema";
 import { and, eq, gte, lte, sql } from "drizzle-orm";
+import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
+import { getAuthUserId } from "../utils/getAuthUserId";
+import { clientLinks } from "../db/schema/procare";
 
 const router = express.Router();
 
 // POST /api/macros - Log macros with starchy/fibrous carb support
-router.post("/macros", async (req, res) => {
+router.post("/macros", requireAuth, async (req, res) => {
   try {
+    const userId = getAuthUserId(req);
     const {
-      userId,
       at,
       source = "quick",
       kcal = 0,
@@ -21,10 +24,6 @@ router.post("/macros", async (req, res) => {
       starchyCarbs = 0,
       fibrousCarbs = 0,
     } = req.body ?? {};
-
-    if (!userId) {
-      return res.status(400).json({ error: "userId required" });
-    }
 
     const when = at ? new Date(at) : new Date();
 
@@ -53,11 +52,30 @@ router.post("/macros", async (req, res) => {
 });
 
 // GET /api/macros - Get macro totals for date range
-router.get("/macros", async (req, res) => {
+router.get("/macros", requireAuth, async (req, res) => {
   try {
-    const userId = String(req.query.userId || "");
-    if (!userId) return res.status(400).json({ error: "userId required" });
+    const authUserId = getAuthUserId(req);
+    const requestedUserId = String(req.query.userId || "");
 
+    // Caller must be the user themselves, or a linked pro
+    if (requestedUserId && requestedUserId !== authUserId) {
+      const [link] = await db
+        .select({ id: clientLinks.id })
+        .from(clientLinks)
+        .where(
+          and(
+            eq(clientLinks.clientUserId, requestedUserId),
+            eq(clientLinks.proUserId, authUserId),
+            eq(clientLinks.active, true)
+          )
+        )
+        .limit(1);
+      if (!link) {
+        return res.status(403).json({ error: "Access denied." });
+      }
+    }
+
+    const userId = requestedUserId || authUserId;
     const from = req.query.from ? new Date(String(req.query.from)) : new Date("1970-01-01");
     const to = req.query.to ? new Date(String(req.query.to)) : new Date("2999-12-31");
 

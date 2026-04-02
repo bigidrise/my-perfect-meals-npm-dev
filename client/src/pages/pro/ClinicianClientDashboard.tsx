@@ -143,7 +143,30 @@ export default function ClinicianClientDashboard() {
     }
   }, [clientId]);
 
-  // Macro target fields always start blank — coaches enter values as overrides only.
+  // Step 3: Prefill macro targets from the canonical API on first visit.
+  // If proStore already has physician-set targets for this client, those are shown instead.
+  useEffect(() => {
+    const c = proStore.getClient(clientId);
+    const uid = c?.clientUserId || c?.userId;
+    if (!uid || uid === clientId) return;
+    if (proStore.hasTargets(clientId)) return;
+    fetch(apiUrl(`/api/users/${uid}/macro-targets`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (!data || !data.hasTargets) return;
+        setT((prev) => ({
+          ...prev,
+          protein: data.protein_g || prev.protein,
+          fat: data.fat_g || prev.fat,
+          starchyCarbs: data.starchyCarbs_g || prev.starchyCarbs,
+          fibrousCarbs: data.fibrousCarbs_g || prev.fibrousCarbs,
+        }));
+      })
+      .catch(() => {});
+  }, [clientId]);
 
   useEffect(() => {
     const c = proStore.getClient(clientId);
@@ -204,6 +227,8 @@ export default function ClinicianClientDashboard() {
             protein_g: t.protein,
             carbs_g: totalCarbs,
             fat_g: t.fat,
+            starchyCarbs_g: t.starchyCarbs,
+            fibrousCarbs_g: t.fibrousCarbs,
           }),
         });
         if (!res.ok) {
@@ -218,7 +243,14 @@ export default function ClinicianClientDashboard() {
       try {
         const { setMacroTargets } = await import("@/lib/dailyLimits");
         await setMacroTargets(
-          { calories: totalCal, protein_g: t.protein, carbs_g: totalCarbs, fat_g: t.fat },
+          {
+            calories: totalCal,
+            protein_g: t.protein,
+            carbs_g: totalCarbs,
+            fat_g: t.fat,
+            starchyCarbs_g: t.starchyCarbs,
+            fibrousCarbs_g: t.fibrousCarbs,
+          },
           dbUserId,
         );
       } catch (e) {
