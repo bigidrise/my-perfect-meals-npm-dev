@@ -21,6 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsage } from "@/lib/guestMode";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
+import { StarchOverrideToggle } from "@/components/StarchOverrideToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { detectStarchyIngredients } from "@/utils/ingredientClassifier";
@@ -51,7 +52,8 @@ export function CreateWithChefModal({
   const [description, setDescription] = useState("");
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [pendingGeneration, setPendingGeneration] = useState(false);
-  
+  const [starchOverride, setStarchOverride] = useState(false);
+
   // Starch Guard state
   const [starchBlocked, setStarchBlocked] = useState(false);
   const [starchMatchedTerms, setStarchMatchedTerms] = useState<string[]>([]);
@@ -109,6 +111,7 @@ export function CreateWithChefModal({
     if (!open) {
       setDescription("");
       setSafetyEnabled(true);
+      setStarchOverride(false);
       clearSafetyAlert();
       setStarchBlocked(false);
       setStarchMatchedTerms([]);
@@ -118,12 +121,16 @@ export function CreateWithChefModal({
   }, [open, cancel, clearSafetyAlert]);
 
   const executeGeneration = async (mealDescription: string) => {
+    const effectiveStarchContext = starchOverride && starchContext
+      ? { ...starchContext, forceStarch: true }
+      : starchContext;
+
     const meal = await generateMeal(
       mealDescription,
       mealType,
       dietType,
       dietPhase,
-      starchContext,
+      effectiveStarchContext,
       {
         safetyMode: !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
         overrideToken: !safetyEnabled ? overrideToken || undefined : undefined,
@@ -134,7 +141,7 @@ export function CreateWithChefModal({
       if (isGuest) {
         trackGuestGenerationUsage();
       }
-      
+      setStarchOverride(false);
       toast({
         title: "Meal Created!",
         description: `${meal.name} is ready for you`,
@@ -187,7 +194,8 @@ export function CreateWithChefModal({
     }
 
     // STARCH GUARD CHECK - if starch slots exhausted AND requesting starchy food
-    if (starchStatus.isExhausted) {
+    // Skip if user has explicitly enabled starch override for this meal
+    if (starchStatus.isExhausted && !starchOverride) {
       const detection = detectStarchyIngredients(description.trim());
       if (detection.hasStarchy) {
         console.log('🥔 [StarchGuard] BLOCKED - Starch slots exhausted, starchy request detected');
@@ -427,6 +435,13 @@ export function CreateWithChefModal({
                   disabled={isProcessing}
                 />
                 <GlucoseGuardToggle disabled={isProcessing} />
+                {starchContext && starchStatus.isExhausted && (
+                  <StarchOverrideToggle
+                    active={starchOverride}
+                    onToggle={setStarchOverride}
+                    disabled={isProcessing}
+                  />
+                )}
               </div>
 
               {/* Starch Budget Info - show when starch context available */}
