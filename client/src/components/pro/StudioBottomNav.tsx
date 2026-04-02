@@ -39,7 +39,7 @@ export default function StudioBottomNav() {
       )}
       <nav
         className="fixed bottom-0 left-0 right-0 z-40 bg-black/80 backdrop-blur-xl border-t border-white/10"
-        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+        style={{ paddingBottom: "var(--safe-bottom, 0px)" }}
       >
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex items-center justify-between h-16">
