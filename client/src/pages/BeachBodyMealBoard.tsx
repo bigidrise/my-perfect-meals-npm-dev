@@ -2069,6 +2069,7 @@ export default function BeachBodyMealBoard() {
           onSnackGenerated={handleSnackSelect}
           dietType="beachbody"
           dietPhase="lean"
+          starchContext={starchContext}
         />
 
         {/* Quick Tour Modal */}

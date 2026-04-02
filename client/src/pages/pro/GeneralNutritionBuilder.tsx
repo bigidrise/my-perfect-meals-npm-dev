@@ -1551,6 +1551,7 @@ export default function WeeklyMealBoard() {
         onOpenChange={setSnackCreatorOpen}
         onSnackGenerated={handleSnackSelect}
         dietType="general-nutrition"
+        starchContext={starchContext}
       />
 
       <WeeklyOverviewModal

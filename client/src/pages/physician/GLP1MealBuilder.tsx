@@ -1802,6 +1802,7 @@ export default function GLP1MealBuilder() {
         onOpenChange={setSnackCreatorOpen}
         onSnackGenerated={handleSnackSelect}
         dietType="glp1"
+        starchContext={starchContext}
       />
 
       {/* Shopping List Buttons - Dual buttons in Day Mode, single in Week Mode */}
