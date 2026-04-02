@@ -159,7 +159,7 @@ export default function ProBoardViewer() {
       <MobileHeaderGuard>
       <div
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ paddingTop: "var(--safe-top, 0px)" }}
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-2">
           <button
@@ -208,7 +208,7 @@ export default function ProBoardViewer() {
 
       <div
         className="max-w-3xl mx-auto px-4 space-y-4 pb-16"
-        style={{ paddingTop: "calc(var(--safe-top, 0px) + 12rem)" }}
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 12rem)" }}
       >
         {board?.lastUpdatedByRole && board.lastUpdatedByRole !== "client" && (
           <div className="flex items-center gap-2 text-xs text-white/50">
