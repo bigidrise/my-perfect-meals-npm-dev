@@ -152,7 +152,7 @@ export default function AntiInflammatoryMenuBuilder() {
   const proParams = proParamsAntiInflam || proParamsKidney || proParamsHeart || proParamsLiverDisease;
   const proClientId = proParams?.id;
 
-  const { locked: boardLocked } = useBoardLockStatus();
+  const { locked: boardLocked } = useBoardLockStatus(proClientId);
   const readOnly = !proClientId && boardLocked;
 
   const { toast } = useToast();
@@ -220,7 +220,14 @@ export default function AntiInflammatoryMenuBuilder() {
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         console.log("[AntiInflamBuilder] labs fetch →", JSON.stringify(data?.protocolSignal ?? null));
-        if (cancelled || !data?.protocolSignal?.protocol) return;
+        if (cancelled) return;
+        // Physician-assigned oncology takes precedence over lab-derived protocol signal
+        if (data?.oncologySupportEnabled) {
+          console.log("[AntiInflamBuilder] oncology support active → setting mode to oncology-support");
+          setClinicalModeState('oncology-support');
+          return;
+        }
+        if (!data?.protocolSignal?.protocol) return;
         const labMode = data.protocolSignal.protocol as ClinicalMode;
         console.log("[AntiInflamBuilder] setting clinicalMode from labs →", labMode);
         setClinicalModeState(labMode);
@@ -232,10 +239,11 @@ export default function AntiInflammatoryMenuBuilder() {
 
   // Badge comes directly from the active clinical mode — always accurate.
   const CLINICAL_MODE_BADGE: Partial<Record<ClinicalMode, ProtocolBadge>> = {
-    "liver-disease":  { label: "Liver Disease",  cls: "bg-amber-600 text-white" },
-    "kidney-disease": { label: "Kidney Disease", cls: "bg-sky-600 text-white" },
-    "heart-failure":  { label: "Cardiac Health", cls: "bg-red-600 text-white" },
-    "liver-support":  { label: "Liver Support",  cls: "bg-emerald-600 text-white" },
+    "liver-disease":    { label: "Liver Disease",    cls: "bg-amber-600 text-white" },
+    "kidney-disease":   { label: "Kidney Disease",   cls: "bg-sky-600 text-white" },
+    "heart-failure":    { label: "Cardiac Health",   cls: "bg-red-600 text-white" },
+    "liver-support":    { label: "Liver Support",    cls: "bg-emerald-600 text-white" },
+    "oncology-support": { label: "Oncology Support", cls: "bg-rose-600 text-white" },
   };
   const activePrimaryBadge: ProtocolBadge | null = CLINICAL_MODE_BADGE[clinicalModeState] ?? null;
 
@@ -1436,28 +1444,23 @@ export default function AntiInflammatoryMenuBuilder() {
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
                 <span className="font-medium text-white/70">Active Protocol:</span>
                 {[
-                  { key: "antiInflammatory", label: "Anti-Inflammatory" },
-                  { key: "heart-failure",    label: "Cardiac Health" },
-                  { key: "kidney-disease",   label: "Kidney Disease" },
-                  { key: "liver-support",    label: "Liver Support" },
-                  { key: "liver-disease",    label: "Liver Disease" },
-                ].map(({ key, label }) => {
-                  const isActive =
-                    clinicalModeState === key ||
-                    (key === "antiInflammatory" &&
-                      (clinicalModeState === "base" || !clinicalModeState));
+                  { key: "heart-failure",    label: "Cardiac Health",   activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
+                  { key: "kidney-disease",   label: "Kidney Disease",   activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
+                  { key: "liver-support",    label: "Liver Support",    activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
+                  { key: "liver-disease",    label: "Liver Disease",    activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
+                  { key: "oncology-support", label: "Cancer Protocol",  activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
+                ].map(({ key, label, activeColor, dotColor, dotGlow }) => {
+                  const isActive = clinicalModeState === key;
                   return (
                     <span
                       key={key}
                       className={`flex items-center gap-1 ${
-                        isActive ? "text-green-400 font-semibold" : "text-white/25"
+                        isActive ? `${activeColor} font-semibold` : "text-white/25"
                       }`}
                     >
                       <span
                         className={`inline-block w-1.5 h-1.5 rounded-full ${
-                          isActive
-                            ? "bg-green-400 shadow-[0_0_4px_rgba(74,222,128,0.8)]"
-                            : "bg-white/15"
+                          isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"
                         }`}
                       />
                       {label}

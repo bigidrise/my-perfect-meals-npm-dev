@@ -385,6 +385,12 @@ export const users = pgTable("users", {
     updatedBy: string | null;
     updatedAt: string | null;
   }>(),
+  // Oncology Support Onboarding Intent — user-captured during onboarding (NOT a clinical protocol toggle)
+  // null = user skipped this step. Set only by the user themselves during onboarding or in settings.
+  oncologySupportIntent: text("oncology_support_intent").$type<"own_provider" | "request_support" | "self_directed">(),
+  oncologySupportIntentSetAt: timestamp("oncology_support_intent_set_at", { withTimezone: true }),
+  // Flags 'request_support' intent for future professional follow-up surfacing
+  needsProfessionalFollowup: boolean("needs_professional_followup").default(false),
   // Client Goals — set during onboarding, displayed on dashboard + coach folder
   goalType: text("goal_type").$type<"lose"|"maintain"|"gain">(),
   goalTarget: text("goal_target"), // e.g. "20 lbs" or "10 kg"

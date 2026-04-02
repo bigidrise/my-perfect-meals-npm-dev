@@ -11,6 +11,7 @@ export interface ClinicalFlags {
   diabetesFriendly?: boolean;
   glp1?: boolean;
   postBariatric?: boolean;
+  oncologySupport?: boolean;
   [key: string]: boolean | undefined;
 }
 
@@ -32,6 +33,7 @@ const MODE_NAMESPACE_MAP: Record<ClinicalMode, BuilderNamespace> = {
   'kidney-disease':    BUILDER_NS.KIDNEY_DISEASE,
   'heart-failure':     BUILDER_NS.HEART_FAILURE,
   'liver-disease':     BUILDER_NS.LIVER_DISEASE,
+  'oncology-support':  BUILDER_NS.ANTI_INFLAMMATORY_ONCOLOGY,
 };
 
 /**
@@ -68,6 +70,9 @@ export function resolveClinicalModeFromFlags(flags?: ClinicalFlags | null): Reso
   } else if (f.liverSupport) {
     mode = 'liver-support';
     primaryBadge = { label: 'Liver Support', cls: 'bg-emerald-600 text-white' };
+  } else if (f.oncologySupport) {
+    mode = 'oncology-support';
+    primaryBadge = { label: 'Oncology Support', cls: 'bg-rose-600 text-white' };
   }
 
   const modifierBadges: ProtocolBadge[] = [];

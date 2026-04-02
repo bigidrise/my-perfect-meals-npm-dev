@@ -143,49 +143,7 @@ export default function ClinicianClientDashboard() {
     }
   }, [clientId]);
 
-  // Seed target inputs from the client's real saved DB targets (macro calculator = source of truth).
-  // Only overwrite proStore defaults when the client actually has saved targets.
-  // If no saved targets exist, show zeros — never fake hardcoded defaults.
-  useEffect(() => {
-    const c = proStore.getClient(clientId);
-    const uid = c?.clientUserId || c?.userId || clientId;
-    if (!uid) return;
-    fetch(apiUrl(`/api/users/${uid}/macro-targets`), {
-      headers: { ...getAuthHeaders() },
-      credentials: "include",
-    })
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
-        if (!data) return;
-        if (data.hasTargets) {
-          const seeded = {
-            protein: Math.round(Number(data.protein_g || 0)),
-            starchyCarbs: Math.round(Number(data.starchyCarbs_g || 0)),
-            fibrousCarbs: Math.round(Number(data.fibrousCarbs_g || 0)),
-            fat: Math.round(Number(data.fat_g || 0)),
-            starchStrategy: (data.carbDirective?.strategy ?? proStore.getTargets(clientId).starchStrategy) as 'one' | 'flex',
-            flags: proStore.getTargets(clientId).flags,
-            carbDirective: proStore.getTargets(clientId).carbDirective,
-          };
-          setT(seeded);
-          proStore.setTargets(clientId, seeded);
-        } else {
-          // Client has no saved targets — show blank state, not fake defaults
-          const blank = {
-            protein: 0,
-            starchyCarbs: 0,
-            fibrousCarbs: 0,
-            fat: 0,
-            starchStrategy: 'one' as 'one' | 'flex',
-            flags: {},
-            carbDirective: {},
-          };
-          setT(blank);
-          proStore.setTargets(clientId, blank);
-        }
-      })
-      .catch(() => {});
-  }, [clientId]);
+  // Macro target fields always start blank — coaches enter values as overrides only.
 
   useEffect(() => {
     const c = proStore.getClient(clientId);
@@ -206,6 +164,18 @@ export default function ClinicianClientDashboard() {
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (data?.labs) setLabs(data.labs);
+      })
+      .catch(() => {});
+    // Load physician-assigned oncology support state from DB
+    fetch(apiUrl(`/api/pro/oncology-support/${uid}`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.oncologySupportContext?.enabled) {
+          setT((prev) => ({ ...prev, flags: { ...prev.flags, oncologySupport: true } }));
+        }
       })
       .catch(() => {});
     fetch(apiUrl(`/api/users/${uid}/goal`), { headers: { ...getAuthHeaders() }, credentials: "include" })
@@ -253,6 +223,26 @@ export default function ClinicianClientDashboard() {
         );
       } catch (e) {
         console.error("Failed to mirror macro targets to localStorage:", e);
+      }
+    }
+
+    // Persist oncology support flag to DB whenever save is triggered
+    if (dbUserId) {
+      try {
+        await fetch(apiUrl(`/api/pro/oncology-support/${dbUserId}`), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          credentials: "include",
+          body: JSON.stringify({
+            enabled: !!(t.flags as Record<string, boolean> | undefined)?.oncologySupport,
+            symptoms: [],
+            emphasis: {
+              highProteinNutrientDensity: !!(t.flags as Record<string, boolean> | undefined)?.oncologySupport,
+            },
+          }),
+        });
+      } catch (e) {
+        console.error("Failed to sync oncology support to database:", e);
       }
     }
 
@@ -528,6 +518,32 @@ export default function ClinicianClientDashboard() {
                     </button>
                   );
                 })}
+              </div>
+
+              <div className="mt-3 pt-3 border-t border-white/10">
+                <p className="text-xs text-white/50 mb-2">Physician-Initiated Protocol</p>
+                <div className="flex items-center gap-3">
+                  {(() => {
+                    const isOn = !!(t.flags as Record<string, boolean> | undefined)?.oncologySupport;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => setT({ ...t, flags: { ...t.flags, oncologySupport: !isOn } })}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 active:scale-[0.97] border ${
+                          isOn
+                            ? "bg-rose-600 border-rose-400 text-white"
+                            : "bg-black/30 border-rose-900/40 text-white/70 hover:bg-rose-950/40 hover:text-white"
+                        }`}
+                      >
+                        {isOn && <Check className="inline h-3 w-3 mr-1 -mt-0.5" />}
+                        🎗️ Oncology Support
+                      </button>
+                    );
+                  })()}
+                  {!!(t.flags as Record<string, boolean> | undefined)?.oncologySupport && (
+                    <span className="text-xs text-rose-300/80">Cancer support nutrition overlay active — save to persist</span>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -805,6 +821,17 @@ export default function ClinicianClientDashboard() {
                 const entry = assignedBuilder ? PROFESSIONAL_BUILDER_MAP[assignedBuilder] : null;
                 if (!entry) {
                   toast({ title: "No Builder Assigned", description: "Please assign a builder above first.", variant: "destructive" });
+                  return;
+                }
+                // Workspace identity guard — real UUID required.
+                // Never navigate with a proStore record ID; that would load the pro's own data.
+                const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                if (!UUID_RE.test(resolvedClientUserId)) {
+                  toast({
+                    title: "Client not connected",
+                    description: "This client hasn't linked their account yet. Ask them to enter your access code in the app.",
+                    variant: "destructive",
+                  });
                   return;
                 }
                 localStorage.setItem("pro-client-id", resolvedClientUserId);

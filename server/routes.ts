@@ -2025,6 +2025,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         goalStartDate: user.goalStartDate?.toISOString() ?? null,
         availabilityStatus: (user as any).availabilityStatus ?? null,
         backAt: (user as any).backAt?.toISOString?.() ?? (user as any).backAt ?? null,
+        oncologySupportIntent: user.oncologySupportIntent ?? null,
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);
@@ -2252,6 +2253,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error getting builder switch status:", error);
       res.status(500).json({ error: "Failed to get builder switch status" });
+    }
+  });
+
+  // Oncology Support Intent — captured during onboarding or settings
+  // User-facing only: does NOT activate any clinical protocol.
+  // Stores intent + timestamp for future professional follow-up surfacing.
+  app.patch("/api/user/oncology-support-intent", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const { intent } = req.body as { intent: "own_provider" | "request_support" | "self_directed" | null };
+      const validIntents = ["own_provider", "request_support", "self_directed", null];
+      if (!validIntents.includes(intent)) {
+        return res.status(400).json({ error: "Invalid intent value" });
+      }
+      await db.update(users).set({
+        oncologySupportIntent: intent ?? null,
+        oncologySupportIntentSetAt: intent ? new Date() : null,
+        needsProfessionalFollowup: intent === "request_support",
+      } as any).where(eq(users.id, userId));
+      console.log(`[oncology-support-intent] User ${userId} set intent → ${intent ?? "null"}`);
+      res.json({ ok: true, intent });
+    } catch (error: any) {
+      console.error("[oncology-support-intent PATCH]", error);
+      res.status(500).json({ error: "Failed to save intent" });
     }
   });
 
