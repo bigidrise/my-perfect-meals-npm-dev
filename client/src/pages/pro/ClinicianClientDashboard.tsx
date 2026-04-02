@@ -143,49 +143,7 @@ export default function ClinicianClientDashboard() {
     }
   }, [clientId]);
 
-  // Seed target inputs from the client's real saved DB targets (macro calculator = source of truth).
-  // Only overwrite proStore defaults when the client actually has saved targets.
-  // If no saved targets exist, show zeros — never fake hardcoded defaults.
-  useEffect(() => {
-    const c = proStore.getClient(clientId);
-    const uid = c?.clientUserId || c?.userId || clientId;
-    if (!uid) return;
-    fetch(apiUrl(`/api/users/${uid}/macro-targets`), {
-      headers: { ...getAuthHeaders() },
-      credentials: "include",
-    })
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
-        if (!data) return;
-        if (data.hasTargets) {
-          const seeded = {
-            protein: Math.round(Number(data.protein_g || 0)),
-            starchyCarbs: Math.round(Number(data.starchyCarbs_g || 0)),
-            fibrousCarbs: Math.round(Number(data.fibrousCarbs_g || 0)),
-            fat: Math.round(Number(data.fat_g || 0)),
-            starchStrategy: (data.carbDirective?.strategy ?? proStore.getTargets(clientId).starchStrategy) as 'one' | 'flex',
-            flags: proStore.getTargets(clientId).flags,
-            carbDirective: proStore.getTargets(clientId).carbDirective,
-          };
-          setT(seeded);
-          proStore.setTargets(clientId, seeded);
-        } else {
-          // Client has no saved targets — show blank state, not fake defaults
-          const blank = {
-            protein: 0,
-            starchyCarbs: 0,
-            fibrousCarbs: 0,
-            fat: 0,
-            starchStrategy: 'one' as 'one' | 'flex',
-            flags: {},
-            carbDirective: {},
-          };
-          setT(blank);
-          proStore.setTargets(clientId, blank);
-        }
-      })
-      .catch(() => {});
-  }, [clientId]);
+  // Macro target fields always start blank — coaches enter values as overrides only.
 
   useEffect(() => {
     const c = proStore.getClient(clientId);

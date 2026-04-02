@@ -1880,6 +1880,7 @@ export default function WeeklyMealBoard() {
           <ProTipCard />
 
           {/* Quick Add - Daily Targets Reference Card */}
+          <div hidden>
           <div className="col-span-full">
             {(() => {
               const resolved = getResolvedTargets(effectiveUserId);
@@ -1980,6 +1981,7 @@ export default function WeeklyMealBoard() {
                 </div>
               );
             })()}
+          </div>
           </div>
 
           {/* Remaining Macros Footer - Inline for Day Mode, Sticky for Week Mode */}
