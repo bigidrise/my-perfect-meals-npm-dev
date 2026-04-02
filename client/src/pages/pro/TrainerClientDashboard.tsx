@@ -412,7 +412,7 @@ export default function TrainerClientDashboard() {
         {(activeProtocolLabel || recommendedProtocol || labs) && (
           <Card className="bg-white/5 border border-teal-500/20">
             <CardHeader className="pb-2">
-              <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
+              <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
                 <Stethoscope className="h-4 w-4 text-teal-400" /> Health Context
                 <span className="ml-auto text-xs font-normal text-white/40 italic">read-only</span>
               </CardTitle>
@@ -546,7 +546,7 @@ export default function TrainerClientDashboard() {
         {bodyComp && (
           <Card className="bg-white/5 border border-white/20">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
+              <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
                 Body Composition
               </CardTitle>
             </CardHeader>
@@ -581,7 +581,7 @@ export default function TrainerClientDashboard() {
 
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
+            <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
               <Settings className="h-5 w-5" /> Macro Targets
             </CardTitle>
           </CardHeader>
@@ -660,7 +660,7 @@ export default function TrainerClientDashboard() {
             {/* Performance Dietary Directives - hidden until properly wired */}
 
             <div className="col-span-full mt-3">
-              <label className="text-sm font-medium text-white/90 mb-2 block">
+              <label className="text-md font-semibold text-white/90 mb-2 block">
                 Starch Game Plan
               </label>
               <p className="text-xs text-white/60 mb-3">
@@ -677,8 +677,8 @@ export default function TrainerClientDashboard() {
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">🥔</span>
-                    <span className="font-semibold text-white">One Starch Meal</span>
+                    <span className="text-sm">🥔</span>
+                    <span className="font-semibold text-medium text-white">One Starch Meal</span>
                     {(t.starchStrategy || 'one') === 'one' && (
                       <Check className="h-4 w-4 text-orange-400 ml-auto" />
                     )}
@@ -697,8 +697,8 @@ export default function TrainerClientDashboard() {
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">🥗</span>
-                    <span className="font-semibold text-white">Flex Split</span>
+                    <span className="text-md">🥗</span>
+                    <span className="font-semibold text-md text-white">Flex Split</span>
                     {t.starchStrategy === 'flex' && (
                       <Check className="h-4 w-4 text-yellow-400 ml-auto" />
                     )}
@@ -762,7 +762,7 @@ export default function TrainerClientDashboard() {
                     });
                   }
                 }}
-                className="bg-black hover:bg-black text-white font-bold px-8 text-lg py-3 shadow-2xl transition-all duration-200 flash-border"
+                className="bg-black hover:bg-black text-white font-semibold px-8 text-sm py-3 shadow-2xl transition-all duration-200 flash-border"
               >
                 Send Macros to Biometrics
               </Button>
@@ -774,7 +774,7 @@ export default function TrainerClientDashboard() {
           <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
             <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
             <div>
-              <p className="text-amber-300 text-sm font-semibold">Clinically Assigned Builder</p>
+              <p className="text-amber-300 text-md font-semibold">Clinically Assigned Builder</p>
               <p className="text-amber-200/70 text-xs mt-0.5">
                 This client's meal plan builder was assigned based on clinical lab data.
                 Changing it is not recommended without medical authorization.
@@ -785,7 +785,7 @@ export default function TrainerClientDashboard() {
 
         <Card className="bg-white/5 border border-lime-500/30">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
+            <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
               <Trophy className="h-5 w-5 text-lime-400" /> Assigned Builder
               {client?.builderSource === "clinical" && (
                 <span title="Clinically assigned — see advisory above">
@@ -826,7 +826,7 @@ export default function TrainerClientDashboard() {
 
         <Card className="bg-white/5 border border-lime-500/30">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
+            <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
               <Dumbbell className="h-5 w-5 text-lime-400" /> Client Meal Builder
               {client?.builderSource === "clinical" && (
                 <span title="Clinically assigned — see advisory above">
@@ -880,7 +880,7 @@ export default function TrainerClientDashboard() {
 
         <Card className={`bg-white/5 border ${boardControl === 'professional' ? 'border-red-500/50' : 'border-white/20'}`}>
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
+            <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
               {boardControl === 'professional'
                 ? <Lock className="h-5 w-5 text-red-400" />
                 : <Unlock className="h-5 w-5 text-white/60" />}
@@ -916,7 +916,7 @@ export default function TrainerClientDashboard() {
         {/* Schedule Check-In */}
         <Card className="bg-white/5 border border-lime-500/30">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
+            <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
               <CalendarCheck className="h-5 w-5 text-lime-400" /> Schedule Check-In
             </CardTitle>
           </CardHeader>
