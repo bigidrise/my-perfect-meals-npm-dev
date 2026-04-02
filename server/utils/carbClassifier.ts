@@ -62,29 +62,23 @@ export function deriveCarbs(
     }
   }
 
-  if (starchyScore === 0 && fibrousScore === 0) {
-    return { starchyCarbs: 0, fibrousCarbs: totalCarbs, totalCarbs, derived: true };
+  const totalScore = starchyScore + fibrousScore;
+
+  if (totalScore === 0) {
+    return {
+      starchyCarbs: 0,
+      fibrousCarbs: totalCarbs,
+      totalCarbs,
+      derived: true,
+    };
   }
 
-  if (starchyScore === 0) {
-    return { starchyCarbs: 0, fibrousCarbs: totalCarbs, totalCarbs, derived: true };
-  }
-
-  if (fibrousScore === 0) {
-    return { starchyCarbs: totalCarbs, fibrousCarbs: 0, totalCarbs, derived: true };
-  }
-
-  // Starchy ingredients are the dominant carb driver — one portion of rice/potato
-  // carries ~35-40g of carbs while a full cup of vegetables carries only ~5-8g.
-  // A simple ingredient count ratio severely under-allocates starchy carbs.
-  // Apply a minimum 80% floor: starchy always gets at least 80% when both exist.
-  const proportional = starchyScore / (starchyScore + fibrousScore);
-  const starchyRatio = Math.max(0.80, proportional);
-  const starchyCarbs = Math.round(totalCarbs * starchyRatio);
+  const starchyRatio = starchyScore / totalScore;
+  const fibrousRatio = fibrousScore / totalScore;
 
   return {
-    starchyCarbs,
-    fibrousCarbs: totalCarbs - starchyCarbs,
+    starchyCarbs: Math.round(totalCarbs * starchyRatio),
+    fibrousCarbs: Math.round(totalCarbs * fibrousRatio),
     totalCarbs,
     derived: true,
   };
