@@ -33,6 +33,7 @@ export function DailyTargetsCard({
   const { starchyCarbs_g: starchyCarbs, fibrousCarbs_g: fibrousCarbs } = resolveDisplayCarbTargets(resolved);
 
   return (
+    <div hidden>
     <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-lg p-4 mb-4">
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
@@ -72,6 +73,7 @@ export function DailyTargetsCard({
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }
