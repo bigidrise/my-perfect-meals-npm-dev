@@ -41,7 +41,7 @@ export default function ProPortal() {
       <MobileHeaderGuard>
       <div
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ paddingTop: "var(--safe-top, 0px)" }}
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-8 py-3 flex items-center gap-3">
           {/* Back Button */}
@@ -65,7 +65,7 @@ export default function ProPortal() {
 
       <div
         className="max-w-6xl mx-auto px-6 space-y-6"
-        style={{ paddingTop: "calc(var(--safe-top, 0px) + 6rem)" }}
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <Card className="bg-black/20 backdrop-blur-lg border-white/20">
           <CardHeader>
