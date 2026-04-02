@@ -331,7 +331,7 @@ export default function ProClientDashboard() {
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
-              <Settings className="h-5 w-5" /> Macro Targets
+              <Settings className="h-5 w-5" /> Macro Target
             </CardTitle>
           </CardHeader>
           <CardContent

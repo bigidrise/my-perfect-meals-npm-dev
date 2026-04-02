@@ -546,7 +546,7 @@ export default function TrainerClientDashboard() {
         {bodyComp && (
           <Card className="bg-white/5 border border-white/20">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
                 Body Composition
               </CardTitle>
             </CardHeader>
@@ -581,7 +581,7 @@ export default function TrainerClientDashboard() {
 
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
               <Settings className="h-5 w-5" /> Macro Targets
             </CardTitle>
           </CardHeader>
@@ -785,7 +785,7 @@ export default function TrainerClientDashboard() {
 
         <Card className="bg-white/5 border border-lime-500/30">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
               <Trophy className="h-5 w-5 text-lime-400" /> Assigned Builder
               {client?.builderSource === "clinical" && (
                 <span title="Clinically assigned — see advisory above">
@@ -826,7 +826,7 @@ export default function TrainerClientDashboard() {
 
         <Card className="bg-white/5 border border-lime-500/30">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
               <Dumbbell className="h-5 w-5 text-lime-400" /> Client Meal Builder
               {client?.builderSource === "clinical" && (
                 <span title="Clinically assigned — see advisory above">
@@ -880,7 +880,7 @@ export default function TrainerClientDashboard() {
 
         <Card className={`bg-white/5 border ${boardControl === 'professional' ? 'border-red-500/50' : 'border-white/20'}`}>
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
               {boardControl === 'professional'
                 ? <Lock className="h-5 w-5 text-red-400" />
                 : <Unlock className="h-5 w-5 text-white/60" />}
