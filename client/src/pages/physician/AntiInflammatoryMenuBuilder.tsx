@@ -248,7 +248,7 @@ export default function AntiInflammatoryMenuBuilder() {
   const activePrimaryBadge: ProtocolBadge | null = CLINICAL_MODE_BADGE[clinicalModeState] ?? null;
 
   const hasClinicalBadges = !!(activePrimaryBadge || resolvedProtocol.modifierBadges.length > 0);
-  const contentPaddingTop = `calc(env(safe-area-inset-top, 0px) + ${
+  const contentPaddingTop = `calc(var(--safe-top, 0px) + ${
     proClientId
       ? (hasClinicalBadges ? '12rem' : '9rem')
       : (hasClinicalBadges ? '9rem'  : '6rem')

@@ -1203,7 +1203,7 @@ export default function GLP1MealBuilder() {
       {/* Main Content */}
       <div
         className="max-w-[1600px] mx-auto px-4 space-y-6"
-        style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${proClientId ? '9rem' : '6rem'})` }}
+        style={{ paddingTop: `calc(var(--safe-top, 0px) + ${proClientId ? '9rem' : '6rem'})` }}
       >
         <NutritionBudgetBanner className="mb-2" userId={effectiveUserId} />
       <div className="mb-6 mt-2 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl mx-4">
