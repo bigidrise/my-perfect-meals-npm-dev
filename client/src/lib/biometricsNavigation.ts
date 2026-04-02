@@ -17,7 +17,7 @@ export const BIOMETRICS_SOURCES: Record<BiometricsFrom, { label: string; path: s
   "quick-log":            { label: "Quick Log",               path: "/" },
   "craving-studio":       { label: "Craving Creator",         path: "/craving-creator" },
   "chefs-kitchen":        { label: "Chef's Kitchen",          path: "/lifestyle/chefs-kitchen" },
-  "macro-calculator":     { label: "Macro Calculator",        path: "/macro-calculator" },
+  "macro-calculator":     { label: "Macro Calculator",        path: "/macro-counter" },
   "dashboard":            { label: "Dashboard",               path: "/" },
 };
 
