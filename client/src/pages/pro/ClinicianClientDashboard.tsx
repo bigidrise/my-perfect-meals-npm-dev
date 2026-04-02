@@ -442,7 +442,7 @@ export default function ClinicianClientDashboard() {
 
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
+            <CardTitle className="text-white/90 flex items-center gap-2 text-lg font-semibold">
               <Settings className="h-5 w-5" /> Macro Targets
             </CardTitle>
           </CardHeader>
@@ -548,7 +548,7 @@ export default function ClinicianClientDashboard() {
             </div>
 
             <div className="col-span-full mt-3">
-              <label className="text-sm font-medium text-white/90 mb-2 block">
+              <label className="text-lg font-semibold text-white/90 mb-2 block">
                 Starch Game Plan
               </label>
               <p className="text-xs text-white/60 mb-3">
@@ -566,7 +566,7 @@ export default function ClinicianClientDashboard() {
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-lg">🥔</span>
-                    <span className="font-semibold text-white">One Starch Meal</span>
+                    <span className="font-medium text-md text-white">One Starch Meal</span>
                     {(t.starchStrategy || 'one') === 'one' && <Check className="h-4 w-4 text-orange-400 ml-auto" />}
                   </div>
                   <p className="text-xs text-white/70">All starch in one meal. Best for appetite control and fat loss.</p>
@@ -582,7 +582,7 @@ export default function ClinicianClientDashboard() {
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-lg">🥗</span>
-                    <span className="font-semibold text-white">Flex Split</span>
+                    <span className="font-medium text-md text-white">Flex Split</span>
                     {t.starchStrategy === 'flex' && <Check className="h-4 w-4 text-yellow-400 ml-auto" />}
                   </div>
                   <p className="text-xs text-white/70">Divide starch across two meals for flexibility.</p>
@@ -615,8 +615,8 @@ export default function ClinicianClientDashboard() {
             </div>
 
             <div className="col-span-full flex gap-2">
-              <Button onClick={saveTargets} className="bg-lime-600 border border-white/20 text-white font-bold px-8 text-lg py-3 shadow-2xl transition-all duration-200 active:scale-[0.98] flex-1">
-                Save Targets; Dietary Directives
+              <Button onClick={saveTargets} className="bg-lime-600 border border-white/20 text-white font-medium px-8 py-3 shadow-2xl transition-all duration-200 active:scale-[0.98] flex-1">
+                Save Targets &amp; Directives
               </Button>
               <Button
                 onClick={async () => {
@@ -637,9 +637,9 @@ export default function ClinicianClientDashboard() {
                     toast({ title: "Failed to Set Macros", description: "Please try again", variant: "destructive" });
                   }
                 }}
-                className="bg-black text-white font-bold px-8 text-lg py-3 shadow-2xl transition-all duration-200 flash-border active:scale-[0.98]"
+                className="bg-black text-white font-medium px-8 py-3 shadow-2xl transition-all duration-200 flash-border active:scale-[0.98]"
               >
-                <Target className="h-5 w-5 mr-2" />
+                
                 Send Macros to Biometrics
               </Button>
             </div>
@@ -648,7 +648,7 @@ export default function ClinicianClientDashboard() {
 
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
+            <CardTitle className="text-white/90 flex items-center gap-2 text-lg font-semibold">
               <Stethoscope className="h-5 w-5" /> Clinical Context
             </CardTitle>
           </CardHeader>
@@ -728,7 +728,7 @@ export default function ClinicianClientDashboard() {
 
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
+            <CardTitle className="text-white/90 flex items-center gap-2 text-lg font-semibold">
               <Ruler className="h-5 w-5" /> Body Composition
             </CardTitle>
           </CardHeader>
@@ -761,7 +761,7 @@ export default function ClinicianClientDashboard() {
                 </div>
               </div>
             ) : (
-              <p className="text-white/50 text-sm">No body composition data recorded for this patient yet.</p>
+              <p className="text-white/50 text-md">No body composition data recorded for this patient yet.</p>
             )}
           </CardContent>
         </Card>
@@ -770,7 +770,7 @@ export default function ClinicianClientDashboard() {
 
         <Card className="bg-white/5 border border-teal-500/30">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
+            <CardTitle className="text-white flex items-center gap-2 text-md font-semibold">
               <Trophy className="h-5 w-5 text-teal-400" /> Assign Clinical Builder
             </CardTitle>
           </CardHeader>
@@ -796,7 +796,7 @@ export default function ClinicianClientDashboard() {
                       {isActive && <Check className="h-4 w-4 flex-shrink-0" />}
                       <span className="font-bold text-sm">{entry.label}</span>
                     </div>
-                    <span className="text-xs text-white/60 font-normal leading-snug line-clamp-2 w-full">{entry.description}</span>
+                    <span className="text-xs text-white/60 font-normal leading-snug">{entry.description}</span>
                   </Button>
                 );
               })}
@@ -806,7 +806,7 @@ export default function ClinicianClientDashboard() {
 
         <Card className="bg-white/5 border border-amber-500/30">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
+            <CardTitle className="text-white flex items-center gap-2 text-md font-semibold">
               <Dumbbell className="h-5 w-5 text-amber-400" /> Open Patient Builder
             </CardTitle>
           </CardHeader>
@@ -849,7 +849,7 @@ export default function ClinicianClientDashboard() {
 
         <Card className={`bg-white/5 border ${boardControl === 'professional' ? 'border-red-500/50' : 'border-white/20'}`}>
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
+            <CardTitle className="text-white flex items-center gap-2 text-md font-semibold">
               {boardControl === 'professional'
                 ? <Lock className="h-5 w-5 text-red-400" />
                 : <Unlock className="h-5 w-5 text-white/60" />}
