@@ -193,7 +193,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   );
   const routeClientId = athleteParams?.clientId || proParams?.id;
   const proClientId = proParams?.id;
-  const { locked: boardLocked } = useBoardLockStatus();
+  const { locked: boardLocked } = useBoardLockStatus(proClientId);
   const readOnly = !proClientId && boardLocked;
 
   // In standalone mode, use current user's ID; in procare mode, use route clientId

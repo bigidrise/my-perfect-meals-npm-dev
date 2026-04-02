@@ -152,7 +152,7 @@ export default function AntiInflammatoryMenuBuilder() {
   const proParams = proParamsAntiInflam || proParamsKidney || proParamsHeart || proParamsLiverDisease;
   const proClientId = proParams?.id;
 
-  const { locked: boardLocked } = useBoardLockStatus();
+  const { locked: boardLocked } = useBoardLockStatus(proClientId);
   const readOnly = !proClientId && boardLocked;
 
   const { toast } = useToast();

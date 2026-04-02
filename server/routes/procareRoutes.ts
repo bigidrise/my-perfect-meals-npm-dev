@@ -14,6 +14,9 @@ import {
 } from "../services/stripeProcare";
 import { endLink, getActiveLink } from "../services/clientLinkService";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
+import { requireWorkspaceAccess, WorkspaceRequest } from "../middleware/requireWorkspaceAccess";
+import { getWeekBoard, upsertWeekBoard } from "../data/weekBoardsRepo";
+import { getWeekStartISO } from "../utils/week";
 import { verifyClinicalAccess } from "../utils/verifyClinicalAccess";
 import { isOncologySupportEnabled, type OncologySupportContext } from "../services/guardrails/prompt/oncologySupportPromptBuilder";
 import { z } from "zod";
@@ -435,6 +438,74 @@ router.put("/oncology-support/:clientUserId", async (req, res) => {
   } catch (error: any) {
     console.error("[oncology-support PUT]", error);
     res.status(400).json({ error: "Failed to update oncology support context", detail: error?.message });
+  }
+});
+
+// ─── Workspace-Aware Board Endpoints (T002) ───────────────────────────────────
+// Architecture: actorUserId = req.authUser.id (pro), workspaceUserId = :clientId (client)
+// requireWorkspaceAccess validates the active clientLinks relationship before any data is served.
+
+// GET /api/pro/week-boards/:clientId/current-week — client's current week board
+router.get("/week-boards/:clientId/current-week", requireWorkspaceAccess, async (req, res) => {
+  try {
+    const { workspaceUserId } = (req as WorkspaceRequest).workspace;
+    const builderType = (req.query.bt as string | undefined) ?? "";
+    const weekStartISO = getWeekStartISO();
+    const board = await getWeekBoard(workspaceUserId, weekStartISO, builderType);
+    return res.json({ week: board ?? null, weekStartISO });
+  } catch (error) {
+    console.error("[workspace] GET current-week error:", error);
+    res.status(500).json({ error: "Failed to load client board" });
+  }
+});
+
+// GET /api/pro/week-board/:clientId/:weekStartISO — client's board for a specific week
+router.get("/week-board/:clientId/:weekStartISO", requireWorkspaceAccess, async (req, res) => {
+  try {
+    const { workspaceUserId } = (req as WorkspaceRequest).workspace;
+    const { weekStartISO } = req.params;
+    const builderType = (req.query.bt as string | undefined) ?? "";
+    const board = await getWeekBoard(workspaceUserId, weekStartISO, builderType);
+    return res.json({ week: board ?? null, weekStartISO });
+  } catch (error) {
+    console.error("[workspace] GET week-board error:", error);
+    res.status(500).json({ error: "Failed to load client board" });
+  }
+});
+
+// PUT /api/pro/week-board/:clientId/:weekStartISO — save to client's board
+router.put("/week-board/:clientId/:weekStartISO", requireWorkspaceAccess, async (req, res) => {
+  try {
+    const { workspaceUserId, boardLocked } = (req as WorkspaceRequest).workspace;
+    const { weekStartISO } = req.params;
+    const builderType = (req.query.bt as string | undefined) ?? "";
+    const { week } = req.body as { week: any };
+
+    if (!week) {
+      return res.status(400).json({ error: "Missing week data" });
+    }
+
+    // If board is in client-controlled mode, only the pro can still write because
+    // the pro is the actor here. Board lock only restricts the CLIENT from writing.
+    const saved = await upsertWeekBoard(workspaceUserId, weekStartISO, week, builderType);
+    console.log(`[workspace] Pro ${(req as WorkspaceRequest).workspace.actorUserId} saved board for client ${workspaceUserId} (week ${weekStartISO}, bt=${builderType || "none"})`);
+    return res.json({ week: saved, weekStartISO, boardLocked });
+  } catch (error) {
+    console.error("[workspace] PUT week-board error:", error);
+    res.status(500).json({ error: "Failed to save client board" });
+  }
+});
+
+// ─── Workspace-Aware Board Lock Status (T003) ─────────────────────────────────
+// GET /api/pro/clients/:clientId/board-lock — client's board lock state (pro perspective)
+// Replaces /api/me/board-lock when a pro is operating inside a client workspace.
+router.get("/clients/:clientId/board-lock", requireWorkspaceAccess, async (req, res) => {
+  try {
+    const { boardLocked } = (req as WorkspaceRequest).workspace;
+    return res.json({ locked: boardLocked });
+  } catch (error) {
+    console.error("[workspace] GET board-lock error:", error);
+    res.status(500).json({ error: "Failed to read board lock status" });
   }
 });
 
