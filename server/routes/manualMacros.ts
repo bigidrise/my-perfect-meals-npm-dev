@@ -48,9 +48,9 @@ router.post("/macros/log", requireAuth, async (req, res) => {
     const fatVal = nutrition?.fat_g ?? fat ?? 0;
     const kcalVal = nutrition?.calories ?? kcal;
     
-    // Starchy/fibrous carbs - use explicit values if provided
-    const starchyCarbsVal = Number(starchyCarbs) || 0;
-    const fibrousCarbsVal = Number(fibrousCarbs) || 0;
+    // Starchy/fibrous carbs — check top-level first, then nutrition object (mirrors protein/fat handling)
+    const starchyCarbsVal = Number(starchyCarbs ?? nutrition?.starchyCarbs_g ?? nutrition?.starchyCarbs) || 0;
+    const fibrousCarbsVal = Number(fibrousCarbs ?? nutrition?.fibrousCarbs_g ?? nutrition?.fibrousCarbs) || 0;
 
     // DEBUG: Log exactly what we're writing
     console.log("[MACROS/LOG] device=%s userId=%s protein=%s carbs=%s fat=%s starchy=%s fibrous=%s loggedAt=%s",
