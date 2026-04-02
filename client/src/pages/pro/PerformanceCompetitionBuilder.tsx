@@ -109,6 +109,7 @@ import { BuilderHeader } from "@/components/pro/BuilderHeader";
 import { TrialBanner } from "@/components/TrialBanner";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
+import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 
 const PERFORMANCE_TOUR_STEPS: TourStep[] = [
   {
@@ -1788,15 +1789,29 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             planningMode === "day" &&
             activeDayISO && (() => {
               const dayLists = getDayLists(board, activeDayISO);
-              const computeSlotMacros = (meals: Meal[]) => ({
-                count: meals.length,
-                calories: meals.reduce((sum, m) => sum + (m.nutrition?.calories || 0), 0),
-                protein: meals.reduce((sum, m) => sum + (m.nutrition?.protein || 0), 0),
-                carbs: meals.reduce((sum, m) => sum + (m.nutrition?.carbs || 0), 0),
-                fat: meals.reduce((sum, m) => sum + (m.nutrition?.fat || 0), 0),
-                starchyCarbs: meals.reduce((sum, m) => sum + ((m as any).starchyCarbs ?? m.nutrition?.starchyCarbs ?? 0), 0),
-                fibrousCarbs: meals.reduce((sum, m) => sum + ((m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs ?? 0), 0),
-              });
+              const computeSlotMacros = (meals: Meal[]) => {
+                let sc = 0, fc = 0;
+                for (const m of meals) {
+                  const storedStarchy = (m as any).starchyCarbs ?? m.nutrition?.starchyCarbs;
+                  if (typeof storedStarchy === "number" && storedStarchy > 0) {
+                    sc += storedStarchy;
+                    fc += (m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs ?? 0;
+                  } else {
+                    const derived = deriveSplitCarbs(m.ingredients ?? [], m.nutrition?.carbs || 0);
+                    sc += derived.starchyCarbs;
+                    fc += derived.fibrousCarbs;
+                  }
+                }
+                return {
+                  count: meals.length,
+                  calories: meals.reduce((sum, m) => sum + (m.nutrition?.calories || 0), 0),
+                  protein: meals.reduce((sum, m) => sum + (m.nutrition?.protein || 0), 0),
+                  carbs: meals.reduce((sum, m) => sum + (m.nutrition?.carbs || 0), 0),
+                  fat: meals.reduce((sum, m) => sum + (m.nutrition?.fat || 0), 0),
+                  starchyCarbs: sc,
+                  fibrousCarbs: fc,
+                };
+              };
               const slots = {
                 breakfast: computeSlotMacros(dayLists.breakfast),
                 lunch: computeSlotMacros(dayLists.lunch),
@@ -1881,6 +1896,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                           carbs: consumed.carbs,
                           fat: consumed.fat,
                           calories: consumed.calories,
+                          starchyCarbs: consumed.starchyCarbs,
+                          fibrousCarbs: consumed.fibrousCarbs,
                           dateISO: activeDayISO,
                         });
                         toast({
