@@ -200,3 +200,25 @@ export function saveSelfTargets(macros: MacroTargets, userId?: string) {
 export function hasProOverride(userId?: string): boolean {
   return getResolvedTargets(userId).source === 'pro';
 }
+
+/**
+ * Canonical carb sub-target resolver.
+ * Always call this — never read starchyCarbs_g / fibrousCarbs_g directly from
+ * a resolved target object. Directive-based builders (Anti-Inflammatory, etc.)
+ * store caps/floors in carbDirective instead of the gram fields; this helper
+ * collapses both representations into plain numbers so every UI component
+ * reads the same values without needing to know about the internal storage model.
+ */
+export function resolveDisplayCarbTargets(targets: {
+  starchyCarbs_g?: number | null;
+  fibrousCarbs_g?: number | null;
+  carbDirective?: {
+    starchyCapG?: number | null;
+    fibrousFloorG?: number | null;
+  };
+}): { starchyCarbs_g: number; fibrousCarbs_g: number } {
+  return {
+    starchyCarbs_g: targets.starchyCarbs_g ?? targets.carbDirective?.starchyCapG ?? 0,
+    fibrousCarbs_g: targets.fibrousCarbs_g ?? targets.carbDirective?.fibrousFloorG ?? 0,
+  };
+}

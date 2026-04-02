@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { PillButton } from "@/components/ui/pill-button";
-import { getResolvedTargets } from "@/lib/macroResolver";
+import { getResolvedTargets, resolveDisplayCarbTargets } from "@/lib/macroResolver";
 
 interface DailyTargetsCardProps {
   userId?: string;
@@ -30,8 +30,7 @@ export function DailyTargetsCard({
   }, []);
 
   const resolved = targetsOverride || getResolvedTargets(userId);
-  const starchyCarbs = resolved.starchyCarbs_g ?? 0;
-  const fibrousCarbs = resolved.fibrousCarbs_g ?? 0;
+  const { starchyCarbs_g: starchyCarbs, fibrousCarbs_g: fibrousCarbs } = resolveDisplayCarbTargets(resolved);
 
   return (
     <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-lg p-4 mb-4">

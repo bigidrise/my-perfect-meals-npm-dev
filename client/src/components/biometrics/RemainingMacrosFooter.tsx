@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getResolvedTargets } from "@/lib/macroResolver";
+import { getResolvedTargets, resolveDisplayCarbTargets } from "@/lib/macroResolver";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
 import {
   MPM_GLASS,
@@ -49,13 +49,17 @@ export function RemainingMacrosFooter({
 
   const targets = useMemo(() => {
     if (targetsOverride) {
-      return targetsOverride;
+      const { starchyCarbs_g, fibrousCarbs_g } = resolveDisplayCarbTargets(targetsOverride);
+      return { ...targetsOverride, starchyCarbs_g, fibrousCarbs_g };
     }
     const resolved = getResolvedTargets(user?.id);
+    const { starchyCarbs_g, fibrousCarbs_g } = resolveDisplayCarbTargets(resolved);
     return {
       protein_g: resolved.protein_g,
       carbs_g: resolved.carbs_g,
       fat_g: resolved.fat_g,
+      starchyCarbs_g,
+      fibrousCarbs_g,
     };
   }, [user?.id, targetsOverride]);
 
@@ -63,12 +67,18 @@ export function RemainingMacrosFooter({
 
   const consumed = useMemo(() => {
     if (consumedOverride) {
-      return consumedOverride;
+      return {
+        ...consumedOverride,
+        starchyCarbs: consumedOverride.starchyCarbs ?? 0,
+        fibrousCarbs: consumedOverride.fibrousCarbs ?? 0,
+      };
     }
     return {
       protein: todayMacros.protein,
       carbs: todayMacros.starchyCarbs + todayMacros.fibrousCarbs,
       fat: todayMacros.fat,
+      starchyCarbs: todayMacros.starchyCarbs ?? 0,
+      fibrousCarbs: todayMacros.fibrousCarbs ?? 0,
     };
   }, [consumedOverride, todayMacros]);
 
@@ -76,12 +86,16 @@ export function RemainingMacrosFooter({
     protein: Math.max(0, targets.protein_g - consumed.protein),
     carbs: Math.max(0, targets.carbs_g - consumed.carbs),
     fat: Math.max(0, targets.fat_g - consumed.fat),
+    starchyCarbs: Math.max(0, (targets.starchyCarbs_g ?? 0) - consumed.starchyCarbs),
+    fibrousCarbs: Math.max(0, (targets.fibrousCarbs_g ?? 0) - consumed.fibrousCarbs),
   }), [targets, consumed]);
 
   const colorState = useMemo(() => ({
     protein: getMacroProgressColor(consumed.protein, targets.protein_g),
     carbs: getMacroProgressColor(consumed.carbs, targets.carbs_g),
     fat: getMacroProgressColor(consumed.fat, targets.fat_g),
+    starchyCarbs: getMacroProgressColor(consumed.starchyCarbs, targets.starchyCarbs_g ?? 0),
+    fibrousCarbs: getMacroProgressColor(consumed.fibrousCarbs, targets.fibrousCarbs_g ?? 0),
   }), [consumed, targets]);
 
   const isInline = layoutMode === "inline";
@@ -132,8 +146,8 @@ export function RemainingMacrosFooter({
             <MedicalSourcesInfo asIconButton />
           </div>
 
-          {/* 3-column layout: Protein, Carbs, Fat - matches MealCard format, NO CALORIES per product doctrine */}
-          <div className="grid gap-2 grid-cols-3">
+          {/* 4-column layout: Protein, Starchy, Fibrous, Fat - NO CALORIES per product doctrine */}
+          <div className="grid gap-2 grid-cols-4">
             <MacroCell
               label="Protein"
               remaining={remaining.protein}
@@ -143,11 +157,19 @@ export function RemainingMacrosFooter({
               suffix="g"
             />
             <MacroCell
-              label="Carbs"
-              remaining={remaining.carbs}
-              target={targets.carbs_g}
-              consumed={consumed.carbs}
-              colorState={colorState.carbs}
+              label="Starchy"
+              remaining={remaining.starchyCarbs}
+              target={targets.starchyCarbs_g ?? 0}
+              consumed={consumed.starchyCarbs}
+              colorState={colorState.starchyCarbs}
+              suffix="g"
+            />
+            <MacroCell
+              label="Fibrous"
+              remaining={remaining.fibrousCarbs}
+              target={targets.fibrousCarbs_g ?? 0}
+              consumed={consumed.fibrousCarbs}
+              colorState={colorState.fibrousCarbs}
               suffix="g"
             />
             <MacroCell
