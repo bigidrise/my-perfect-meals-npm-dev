@@ -1079,7 +1079,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       {/* Main Content Wrapper - padding pushes content below header while gradient shows through */}
       <div
         className="px-4"
-        style={{ paddingTop: `calc(var(--safe-top, 0px) + ${mode === "procare" ? '9rem' : '6rem'})` }}
+        style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${mode === "procare" ? '9rem' : '6rem'})` }}
       >
         <NutritionBudgetBanner className="mb-2" userId={clientId || user?.id} />
         {/* Header - Week Navigation */}

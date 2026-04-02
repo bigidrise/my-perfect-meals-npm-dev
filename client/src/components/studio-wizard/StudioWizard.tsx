@@ -526,7 +526,7 @@ export default function StudioWizard({ config }: StudioWizardProps) {
     >
       <div
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ paddingTop: "var(--safe-top, 0px)" }}
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 pb-3 flex items-center gap-2 flex-nowrap overflow-hidden">
           <button
@@ -549,7 +549,7 @@ export default function StudioWizard({ config }: StudioWizardProps) {
 
       <div
         className="px-4 space-y-4"
-        style={{ paddingTop: "calc(var(--safe-top, 0px) + 80px)" }}
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 80px)" }}
       >
         <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
           <CardContent className="p-4 space-y-2">

@@ -213,7 +213,7 @@ export default function DiabeticHub() {
         <MobileHeaderGuard>
         <div
           className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-          style={{ paddingTop: "var(--safe-top, 0px)" }}
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 pb-3 flex items-center gap-3">
             <Activity className="h-6 w-6 text-orange-500" />
@@ -235,7 +235,7 @@ export default function DiabeticHub() {
         {/* Main Content */}
         <div
           className="max-w-6xl mx-auto px-4 space-y-8 pb-24"
-          style={{ paddingTop: "calc(var(--safe-top, 0px) + 6rem)" }}
+          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
           {/* Doctor / Coach Guardrail Card */}
           <section className="bg-black/30 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8 mb-2 relative overflow-hidden">
