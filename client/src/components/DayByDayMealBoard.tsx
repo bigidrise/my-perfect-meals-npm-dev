@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { addMealsToShopping } from "@/lib/shoppingListApi";
 import { apiRequest } from "@/lib/queryClient";
 import type { Meal } from "@/components/MealCard";
+import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { weekDates } from "@/lib/boardApi";
 import { formatDateDisplay } from "@/utils/midnight";
 import { useAuth } from "@/contexts/AuthContext";
@@ -80,13 +81,28 @@ export function DayByDayMealBoard({
 
       // Log each meal to the canonical macro logging endpoint
       for (const meal of allDayMeals) {
+        const totalCarbs = meal.nutrition?.carbs || 0;
+
+        // Read existing split carbs if present (AI-generated meals carry them);
+        // otherwise derive from ingredients using the shared carb classifier.
+        const existingStarchy = meal.starchyCarbs ?? meal.nutrition?.starchyCarbs;
+        const existingFibrous = meal.fibrousCarbs ?? meal.nutrition?.fibrousCarbs;
+        const hasSplit = typeof existingStarchy === "number" && typeof existingFibrous === "number"
+          && (existingStarchy > 0 || existingFibrous > 0);
+
+        const { starchyCarbs, fibrousCarbs } = hasSplit
+          ? { starchyCarbs: existingStarchy!, fibrousCarbs: existingFibrous! }
+          : deriveSplitCarbs(meal.ingredients ?? [], totalCarbs);
+
         await post("/api/macros/log", {
           loggedAt: new Date().toISOString(),
           mealType: "lunch",
           kcal: meal.nutrition?.calories || 0,
           protein: meal.nutrition?.protein || 0,
-          carbs: meal.nutrition?.carbs || 0,
+          carbs: totalCarbs,
           fat: meal.nutrition?.fat || 0,
+          starchyCarbs,
+          fibrousCarbs,
           source: "day-by-day-board",
         });
       }
