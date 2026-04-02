@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getResolvedTargets, resolveDisplayCarbTargets } from "@/lib/macroResolver";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
@@ -47,6 +47,14 @@ export function RemainingMacrosFooter({
   const { user } = useAuth();
   const todayMacros = useTodayMacros(user?.id || "");
 
+  // Re-compute targets whenever proStore/localStorage gets updated by the sync hook
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const handleUpdate = () => setTick(t => t + 1);
+    window.addEventListener("mpm:targetsUpdated", handleUpdate);
+    return () => window.removeEventListener("mpm:targetsUpdated", handleUpdate);
+  }, []);
+
   const targets = useMemo(() => {
     if (targetsOverride) {
       const { starchyCarbs_g, fibrousCarbs_g } = resolveDisplayCarbTargets(targetsOverride);
@@ -61,7 +69,7 @@ export function RemainingMacrosFooter({
       starchyCarbs_g,
       fibrousCarbs_g,
     };
-  }, [user?.id, targetsOverride]);
+  }, [user?.id, targetsOverride, tick]);
 
   const hasTargets = targets.protein_g > 0 || targets.carbs_g > 0 || targets.fat_g > 0;
 
