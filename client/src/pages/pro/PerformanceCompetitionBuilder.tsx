@@ -109,7 +109,6 @@ import { BuilderHeader } from "@/components/pro/BuilderHeader";
 import { TrialBanner } from "@/components/TrialBanner";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
-import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 
 const PERFORMANCE_TOUR_STEPS: TourStep[] = [
   {
@@ -1793,13 +1792,19 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 let sc = 0, fc = 0;
                 for (const m of meals) {
                   const storedStarchy = (m as any).starchyCarbs ?? m.nutrition?.starchyCarbs;
+                  const storedFibrous = (m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs;
+                  const totalCarbs = m.nutrition?.carbs || 0;
                   if (typeof storedStarchy === "number" && storedStarchy > 0) {
                     sc += storedStarchy;
-                    fc += (m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs ?? 0;
+                    fc += typeof storedFibrous === "number" ? storedFibrous : 0;
+                  } else if (typeof storedFibrous === "number" && storedFibrous > 0) {
+                    fc += storedFibrous;
                   } else {
-                    const derived = deriveSplitCarbs(m.ingredients ?? [], m.nutrition?.carbs || 0);
-                    sc += derived.starchyCarbs;
-                    fc += derived.fibrousCarbs;
+                    if (classifyMeal(m).isStarchMeal) {
+                      sc += totalCarbs;
+                    } else {
+                      fc += totalCarbs;
+                    }
                   }
                 }
                 return {

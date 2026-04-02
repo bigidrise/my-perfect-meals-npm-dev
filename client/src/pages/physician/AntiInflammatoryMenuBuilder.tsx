@@ -112,7 +112,6 @@ import { resolveClinicalModeFromFlags } from "@shared/clinical/clinicalModeResol
 import type { ProtocolBadge } from "@shared/clinical/clinicalModeResolver";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
-import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 
 const ANTI_INFLAMMATORY_TOUR_STEPS: TourStep[] = [
   { icon: "1", title: "Healing Foods", description: "All meals feature anti-inflammatory ingredients like leafy greens and omega-3s." },
@@ -1780,13 +1779,19 @@ export default function AntiInflammatoryMenuBuilder() {
                 let sc = 0, fc = 0;
                 for (const m of meals) {
                   const storedStarchy = (m as any).starchyCarbs ?? m.nutrition?.starchyCarbs;
+                  const storedFibrous = (m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs;
+                  const totalCarbs = m.nutrition?.carbs || 0;
                   if (typeof storedStarchy === "number" && storedStarchy > 0) {
                     sc += storedStarchy;
-                    fc += (m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs ?? 0;
+                    fc += typeof storedFibrous === "number" ? storedFibrous : 0;
+                  } else if (typeof storedFibrous === "number" && storedFibrous > 0) {
+                    fc += storedFibrous;
                   } else {
-                    const derived = deriveSplitCarbs(m.ingredients ?? [], m.nutrition?.carbs || 0);
-                    sc += derived.starchyCarbs;
-                    fc += derived.fibrousCarbs;
+                    if (classifyMeal(m).isStarchMeal) {
+                      sc += totalCarbs;
+                    } else {
+                      fc += totalCarbs;
+                    }
                   }
                 }
                 return {
