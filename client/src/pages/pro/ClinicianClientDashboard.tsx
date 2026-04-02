@@ -796,7 +796,6 @@ export default function ClinicianClientDashboard() {
                       {isActive && <Check className="h-4 w-4 flex-shrink-0" />}
                       <span className="font-bold text-sm">{entry.label}</span>
                     </div>
-                    <span className="text-xs text-white/60 font-normal leading-snug">{entry.description}</span>
                   </Button>
                 );
               })}
