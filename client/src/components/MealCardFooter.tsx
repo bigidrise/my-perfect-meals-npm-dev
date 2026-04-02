@@ -5,6 +5,7 @@ import { TrendingUp, RotateCcw, Plus, Loader2, Undo2 } from "lucide-react";
 import type { MealTemplateBase } from "@/data/models";
 import ReplacePicker from "./ReplacePicker";
 import { buildMacroLogEntryFromMeal } from "@/utils/macros";
+import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 
 interface MealCardFooterProps {
   meal: MealTemplateBase;
@@ -38,13 +39,28 @@ export default function MealCardFooter({
         await onLog();
       } else {
         // Default logging behavior - POST to database API
+        const scaledCarbs = Math.round(meal.nutritionPerServing.carbs * servings);
+
+        // Prefer stored split carbs on the nutrition object; derive from
+        // ingredients using the same classifier the server uses if absent.
+        const storedStarchy = meal.nutritionPerServing.starchyCarbs;
+        const storedFibrous = meal.nutritionPerServing.fibrousCarbs;
+        const hasSplit = typeof storedStarchy === "number" && typeof storedFibrous === "number"
+          && (storedStarchy > 0 || storedFibrous > 0);
+
+        const { starchyCarbs, fibrousCarbs } = hasSplit
+          ? { starchyCarbs: Math.round(storedStarchy! * servings), fibrousCarbs: Math.round(storedFibrous! * servings) }
+          : deriveSplitCarbs(meal.ingredients ?? [], scaledCarbs);
+
         const logEntry = {
           loggedAt: new Date().toISOString(),
           mealType: meal.mealType || "snack",
           kcal: Math.round(meal.nutritionPerServing.calories * servings),
           protein: Math.round(meal.nutritionPerServing.protein * servings),
-          carbs: Math.round(meal.nutritionPerServing.carbs * servings),
+          carbs: scaledCarbs,
           fat: Math.round(meal.nutritionPerServing.fat * servings),
+          starchyCarbs,
+          fibrousCarbs,
           source: source === "template" ? "plan" : source,
           mealId: meal.id,
         };
