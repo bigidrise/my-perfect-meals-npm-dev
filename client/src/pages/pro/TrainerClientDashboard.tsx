@@ -851,7 +851,17 @@ export default function TrainerClientDashboard() {
                   });
                   return;
                 }
-                // Item 3: Guarantee mapping exists before builder loads
+                // Workspace identity guard — real UUID required.
+                // Never navigate with a proStore record ID; that would load the pro's own data.
+                const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                if (!UUID_RE.test(resolvedClientUserId)) {
+                  toast({
+                    title: "Client not connected",
+                    description: "This client hasn't linked their account yet. Ask them to enter your access code in the app.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
                 ensureClientMapping(resolvedClientUserId, clientId);
                 localStorage.setItem("pro-client-id", resolvedClientUserId);
                 setLocation(`/pro/clients/${resolvedClientUserId}/${entry.proRoute}`);

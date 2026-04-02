@@ -10,6 +10,33 @@ export interface WorkspaceAccessRequest extends Request {
   workspaceClientId: string;
 }
 
+export interface WorkspaceRequest extends Request {
+  authUser: AuthenticatedRequest["authUser"];
+  workspace: {
+    actorUserId: string;
+    workspaceUserId: string;
+    boardLocked: boolean;
+  };
+}
+
+/**
+ * Workspace Context Middleware
+ *
+ * Validates that the logged-in professional has an active relationship with
+ * the target client (via clientLinks or studio membership), then attaches
+ * workspace context to the request:
+ *
+ *   req.workspace.actorUserId    — the logged-in pro's user ID
+ *   req.workspace.workspaceUserId — the client's real user UUID (:clientId param)
+ *   req.workspace.boardLocked    — true if mealBoardControl === 'professional'
+ *
+ * Architecture rule: actorUserId ≠ workspaceUserId.
+ * Every endpoint using this middleware operates inside a client's workspace,
+ * not on behalf of the pro themselves.
+ *
+ * Returns 401 if not authenticated, 400 if clientId param missing,
+ * 403 if no active relationship exists.
+ */
 export async function requireWorkspaceAccess(
   req: Request,
   res: Response,
@@ -27,41 +54,56 @@ export async function requireWorkspaceAccess(
     return;
   }
 
-  const [activeLink] = await db
-    .select()
-    .from(clientLinks)
-    .where(
-      and(
-        eq(clientLinks.clientUserId, clientId),
-        eq(clientLinks.proUserId, authUser.id),
-        eq(clientLinks.active, true)
+  try {
+    const [activeLink] = await db
+      .select({ mealBoardControl: clientLinks.mealBoardControl })
+      .from(clientLinks)
+      .where(
+        and(
+          eq(clientLinks.clientUserId, clientId),
+          eq(clientLinks.proUserId, authUser.id),
+          eq(clientLinks.active, true)
+        )
       )
-    )
-    .limit(1);
+      .limit(1);
 
-  if (activeLink) {
-    (req as WorkspaceAccessRequest).workspaceClientId = clientId;
-    next();
-    return;
-  }
+    if (activeLink) {
+      (req as WorkspaceAccessRequest).workspaceClientId = clientId;
+      (req as WorkspaceRequest).workspace = {
+        actorUserId: authUser.id,
+        workspaceUserId: clientId,
+        boardLocked: activeLink.mealBoardControl === "professional",
+      };
+      next();
+      return;
+    }
 
-  const [studioMember] = await db
-    .select({ id: studioMemberships.id })
-    .from(studioMemberships)
-    .innerJoin(studios, eq(studios.id, studioMemberships.studioId))
-    .where(
-      and(
-        eq(studios.ownerUserId, authUser.id),
-        eq(studioMemberships.clientUserId, clientId)
+    const [studioMember] = await db
+      .select({ id: studioMemberships.id })
+      .from(studioMemberships)
+      .innerJoin(studios, eq(studios.id, studioMemberships.studioId))
+      .where(
+        and(
+          eq(studios.ownerUserId, authUser.id),
+          eq(studioMemberships.clientUserId, clientId)
+        )
       )
-    )
-    .limit(1);
+      .limit(1);
 
-  if (studioMember) {
-    (req as WorkspaceAccessRequest).workspaceClientId = clientId;
-    next();
-    return;
+    if (studioMember) {
+      (req as WorkspaceAccessRequest).workspaceClientId = clientId;
+      (req as WorkspaceRequest).workspace = {
+        actorUserId: authUser.id,
+        workspaceUserId: clientId,
+        boardLocked: false,
+      };
+      next();
+      return;
+    }
+
+    res.status(403).json({ error: "No active workspace access for this client" });
+  } catch (error) {
+    console.error("[requireWorkspaceAccess]", error);
+    res.status(500).json({ error: "Failed to verify workspace access" });
   }
-
-  res.status(403).json({ error: "No active workspace access for this client" });
 }

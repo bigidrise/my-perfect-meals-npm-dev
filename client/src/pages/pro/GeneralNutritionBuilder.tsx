@@ -122,7 +122,7 @@ export default function WeeklyMealBoard() {
   const proClientId = params?.id;
   const clientId = params?.id || "1";
   const isProCareMode = !!params?.id;
-  const { locked: boardLocked } = useBoardLockStatus();
+  const { locked: boardLocked } = useBoardLockStatus(proClientId);
   const readOnly = !proClientId && boardLocked;
 
   const effectiveUserId = proClientId || user?.id;

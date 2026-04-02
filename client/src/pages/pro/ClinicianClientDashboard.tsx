@@ -821,6 +821,17 @@ export default function ClinicianClientDashboard() {
                   toast({ title: "No Builder Assigned", description: "Please assign a builder above first.", variant: "destructive" });
                   return;
                 }
+                // Workspace identity guard — real UUID required.
+                // Never navigate with a proStore record ID; that would load the pro's own data.
+                const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                if (!UUID_RE.test(resolvedClientUserId)) {
+                  toast({
+                    title: "Client not connected",
+                    description: "This client hasn't linked their account yet. Ask them to enter your access code in the app.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
                 localStorage.setItem("pro-client-id", resolvedClientUserId);
                 setLocation(`/pro/clients/${resolvedClientUserId}/${entry.proRoute}`);
               }}
