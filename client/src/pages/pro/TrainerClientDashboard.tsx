@@ -904,7 +904,7 @@ export default function TrainerClientDashboard() {
               <Button
                 onClick={toggleBoardControl}
                 disabled={boardControlLoading}
-                className={`text-sm font-semibold active:scale-[0.97] ${boardControl === 'professional' ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+                className={`text-sm font-semibold active:scale-[0.97] ${boardControl === 'professional' ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-blue-600 text-white'}`}
               >
                 {boardControlLoading ? "Updating..." : boardControl === 'professional' ? "Release Control" : "Take Control"}
               </Button>
