@@ -219,9 +219,9 @@ app.use(session({
   }
 }));
 
-// Disable caching on macros endpoints to prevent stale 304s
+// Disable caching on macros and studio endpoints to prevent stale 304s
 app.use((req, res, next) => {
-  if (req.path.includes("/macros")) {
+  if (req.path.includes("/macros") || req.path.includes("/studios")) {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");

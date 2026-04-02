@@ -138,17 +138,30 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
       const headers: Record<string, string> = { ...getAuthHeaders() };
 
       const studioRes = await fetch(apiUrl("/api/studios/my-studio"), { headers });
-      if (!studioRes.ok) return;
+      if (!studioRes.ok) {
+        console.warn(`[ProClients] my-studio fetch failed: ${studioRes.status}`);
+        return;
+      }
       const { studio } = await studioRes.json();
-      if (!studio) return;
+      if (!studio) {
+        console.warn("[ProClients] my-studio returned null studio");
+        return;
+      }
 
       const clientsRes = await fetch(
         apiUrl(`/api/studios/${studio.id}/clients?workspace=${resolvedWorkspace}`),
         { headers },
       );
-      if (!clientsRes.ok) return;
+      if (!clientsRes.ok) {
+        console.warn(`[ProClients] clients fetch failed: ${clientsRes.status}`);
+        return;
+      }
       const { clients: dbClients } = await clientsRes.json();
-      if (!dbClients || dbClients.length === 0) return;
+      if (!dbClients || dbClients.length === 0) {
+        console.warn("[ProClients] DB returned 0 clients for workspace:", resolvedWorkspace);
+        return;
+      }
+      console.log(`[ProClients] DB returned ${dbClients.length} clients for workspace: ${resolvedWorkspace}`);
 
       const localClients = proStore.listClients(resolvedWorkspace);
 
