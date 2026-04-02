@@ -2014,6 +2014,7 @@ export default function AntiInflammatoryMenuBuilder() {
           onOpenChange={setSnackCreatorOpen}
           onSnackGenerated={handleSnackSelect}
           dietType={clinicalMode}
+          starchContext={starchContext}
         />
 
         {/* Shopping List Buttons - Dual buttons in Day Mode, single in Week Mode */}

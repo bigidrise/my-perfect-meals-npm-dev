@@ -2004,6 +2004,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           onOpenChange={setSnackCreatorOpen}
           onSnackGenerated={handleSnackSelect}
           dietType="performance"
+          starchContext={starchContext}
         />
 
         {/* Shopping List Buttons */}

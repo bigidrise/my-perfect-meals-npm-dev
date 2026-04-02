@@ -2385,6 +2385,7 @@ export default function WeeklyMealBoard() {
           open={snackCreatorOpen}
           onOpenChange={setSnackCreatorOpen}
           onSnackGenerated={handleSnackSelect}
+          starchContext={starchContext}
         />
 
         {/* Quick Tour Modal */}

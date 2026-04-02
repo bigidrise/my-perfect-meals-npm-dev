@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Cookie, Loader2 } from "lucide-react";
 import { useSnackCreatorRequest, DietType, BeachBodyPhase } from "@/hooks/useSnackCreatorRequest";
+import { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsage } from "@/lib/guestMode";
@@ -18,6 +19,7 @@ import { SafetyGuardBanner, EMPTY_SAFETY_ALERT } from "@/components/SafetyGuardB
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
+import { StarchOverrideToggle } from "@/components/StarchOverrideToggle";
 import { isAllergyRelatedError } from "@/utils/allergyAlert";
 
 interface SnackCreatorModalProps {
@@ -26,6 +28,7 @@ interface SnackCreatorModalProps {
   onSnackGenerated: (snack: any) => void;
   dietType?: DietType;
   dietPhase?: BeachBodyPhase;
+  starchContext?: StarchContext;
 }
 
 export function SnackCreatorModal({
@@ -34,10 +37,12 @@ export function SnackCreatorModal({
   onSnackGenerated,
   dietType,
   dietPhase,
+  starchContext,
 }: SnackCreatorModalProps) {
   const [description, setDescription] = useState("");
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [pendingGeneration, setPendingGeneration] = useState(false);
+  const [starchOverride, setStarchOverride] = useState(false);
   
   const { user } = useAuth();
   
@@ -58,6 +63,15 @@ export function SnackCreatorModal({
     hasActiveOverride
   } = useSafetyGuardPrecheck();
   
+  const starchStatus = useMemo(() => {
+    if (!starchContext || !starchContext.existingMeals) {
+      return { slotsUsed: 0, maxSlots: 1, isExhausted: false };
+    }
+    const maxSlots = starchContext.strategy === 'flex' ? 2 : 1;
+    const slotsUsed = starchContext.existingMeals.filter(m => m.hasStarch).length;
+    return { slotsUsed, maxSlots, isExhausted: slotsUsed >= maxSlots };
+  }, [starchContext]);
+
   const handleSafetyOverride = (enabled: boolean, token?: string) => {
     setSafetyEnabled(enabled);
     if (token) {
@@ -82,19 +96,20 @@ export function SnackCreatorModal({
     if (!open) {
       setDescription("");
       setSafetyEnabled(true);
+      setStarchOverride(false);
       clearAlert();
       cancel();
     }
   }, [open, cancel, clearAlert]);
 
   const executeGeneration = async () => {
-    const snack = await generateSnack(description.trim(), dietType, dietPhase, overrideToken || undefined);
+    const snack = await generateSnack(description.trim(), dietType, dietPhase, overrideToken || undefined, starchOverride || undefined);
 
     if (snack) {
       if (isGuest) {
         trackGuestGenerationUsage();
       }
-      
+      setStarchOverride(false);
       toast({
         title: "Snack Created!",
         description: `${snack.name} is ready for you`,
@@ -222,6 +237,13 @@ export function SnackCreatorModal({
               disabled={isProcessing}
             />
             <GlucoseGuardToggle disabled={isProcessing} />
+            {starchContext && starchStatus.isExhausted && (
+              <StarchOverrideToggle
+                active={starchOverride}
+                onToggle={setStarchOverride}
+                disabled={isProcessing}
+              />
+            )}
           </div>
 
           <div className="flex gap-3 pt-2">

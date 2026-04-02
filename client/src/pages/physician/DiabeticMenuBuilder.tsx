@@ -1959,6 +1959,7 @@ export default function DiabeticMenuBuilder() {
         onOpenChange={setSnackCreatorOpen}
         onSnackGenerated={handleSnackSelect}
         dietType="diabetic"
+        starchContext={starchContext}
       />
 
       {/* Shopping List Buttons - Dual buttons in Day Mode, single in Week Mode */}
