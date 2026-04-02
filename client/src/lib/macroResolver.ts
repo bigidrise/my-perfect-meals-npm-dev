@@ -120,7 +120,21 @@ export function getResolvedTargets(userId?: string): ResolvedTargets {
 
     if (hasPro) {
       const proTargets = proStore.getTargets(clientId);
-      const totalCarbs = (proTargets.starchyCarbs || 0) + (proTargets.fibrousCarbs || 0);
+
+      // When the coach left starchy/fibrous blank (zero), fall back to the
+      // user's own macro-calculator targets for those two fields only.
+      // Protein, fat, and all other pro fields are still coach-authoritative.
+      const selfFallback = proTargets.starchyCarbs > 0 && proTargets.fibrousCarbs > 0
+        ? null
+        : getSelfTargets(userId);
+      const resolvedStarchy = proTargets.starchyCarbs > 0
+        ? proTargets.starchyCarbs
+        : (selfFallback?.starchyCarbs_g ?? 0);
+      const resolvedFibrous = proTargets.fibrousCarbs > 0
+        ? proTargets.fibrousCarbs
+        : (selfFallback?.fibrousCarbs_g ?? 0);
+
+      const totalCarbs = resolvedStarchy + resolvedFibrous;
       const totalKcal = ((proTargets.protein || 0) * 4) + (totalCarbs * 4) + ((proTargets.fat || 0) * 9);
 
       const client = proStore.getClient(clientId);
@@ -136,8 +150,8 @@ export function getResolvedTargets(userId?: string): ResolvedTargets {
         protein_g: proTargets.protein,
         carbs_g: totalCarbs,
         fat_g: proTargets.fat,
-        starchyCarbs_g: proTargets.starchyCarbs || 0,
-        fibrousCarbs_g: proTargets.fibrousCarbs || 0,
+        starchyCarbs_g: resolvedStarchy,
+        fibrousCarbs_g: resolvedFibrous,
         starchStrategy: proTargets.starchStrategy || 'one',
         source: 'pro',
         flags: proTargets.flags,

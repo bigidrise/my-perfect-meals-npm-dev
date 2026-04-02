@@ -5,7 +5,7 @@
 // • Simple, readable components; black-glass aesthetic; consistent text colors
 // • Charts use recharts and render from local data
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -410,27 +410,20 @@ export default function MyBiometrics() {
   );
   const [proName, setProName] = useState<string>("");
 
-  const refreshTargets = async () => {
-    const resolved = getResolvedTargets(user?.id);
-    if (resolved.source !== "none") {
-      setTargets({
-        calories: resolved.calories,
-        protein_g: resolved.protein_g,
-        carbs_g: resolved.carbs_g,
-        fat_g: resolved.fat_g,
-      });
-      setTargetSource(resolved.source);
-      if (resolved.source === "pro" && resolved.setBy) {
-        setProName(resolved.setBy);
-      }
-      return;
-    }
+  // Always keep a ref to the latest refreshTargets so the event listeners
+  // (registered once at mount with []) never call a stale closure.
+  const refreshTargetsRef = useRef<() => Promise<void>>(async () => {});
 
+  const refreshTargets = async () => {
+    // Priority 1: canonical DB record — always fetch fresh, no browser cache.
+    // Both Macro Calculator and Studio Save Targets write to this same record,
+    // so reading it first guarantees Studio changes are immediately visible here.
     if (user?.id) {
       try {
         const res = await fetch(apiUrl(`/api/users/${user.id}/macro-targets`), {
           headers: { ...getAuthHeaders() },
           credentials: "include",
+          cache: "no-store",
         });
         if (res.ok) {
           const data = await res.json();
@@ -440,22 +433,51 @@ export default function MyBiometrics() {
               protein_g: data.protein_g,
               carbs_g: data.carbs_g,
               fat_g: data.fat_g,
+              starchyCarbs_g: data.starchyCarbs_g,
+              fibrousCarbs_g: data.fibrousCarbs_g,
             });
-            setTargetSource("pro");
-            setProName("Your professional");
+            // Use resolver only to determine the source label (pro vs self).
+            const resolved = getResolvedTargets(user.id);
+            setTargetSource(resolved.source === "pro" ? "pro" : "self");
+            if (resolved.source === "pro" && resolved.setBy) {
+              setProName(resolved.setBy);
+            }
             return;
           }
         }
       } catch {
+        // Network failure — fall through to local resolver below
       }
+    }
+
+    // Priority 2: local resolver (localStorage / proStore) — offline fallback.
+    const resolved = getResolvedTargets(user?.id);
+    if (resolved.source !== "none") {
+      setTargets({
+        calories: resolved.calories,
+        protein_g: resolved.protein_g,
+        carbs_g: resolved.carbs_g,
+        fat_g: resolved.fat_g,
+        starchyCarbs_g: resolved.starchyCarbs_g,
+        fibrousCarbs_g: resolved.fibrousCarbs_g,
+      });
+      setTargetSource(resolved.source);
+      if (resolved.source === "pro" && resolved.setBy) {
+        setProName(resolved.setBy);
+      }
+      return;
     }
 
     setTargets(null);
     setTargetSource("none");
   };
 
+  // Keep the ref current every render so event listeners always call the latest version.
+  refreshTargetsRef.current = refreshTargets;
+
   useEffect(() => {
     refreshTargets();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   useEffect(() => {
@@ -465,12 +487,12 @@ export default function MyBiometrics() {
         e.key?.includes("targets") ||
         e.key?.includes("pro")
       ) {
-        refreshTargets();
+        refreshTargetsRef.current();
       }
     };
 
     const handleCustomEvent = () => {
-      refreshTargets();
+      refreshTargetsRef.current();
     };
 
     window.addEventListener("storage", handleStorage);
