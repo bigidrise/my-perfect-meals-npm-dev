@@ -442,7 +442,7 @@ export default function ClinicianClientDashboard() {
 
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
               <Settings className="h-5 w-5" /> Macro Targets
             </CardTitle>
           </CardHeader>
@@ -616,7 +616,7 @@ export default function ClinicianClientDashboard() {
 
             <div className="col-span-full flex gap-2">
               <Button onClick={saveTargets} className="bg-lime-600 border border-white/20 text-white font-bold px-8 text-lg py-3 shadow-2xl transition-all duration-200 active:scale-[0.98] flex-1">
-                Save Targets &amp; Dietary Directives
+                Save Targets; Dietary Directives
               </Button>
               <Button
                 onClick={async () => {
@@ -648,7 +648,7 @@ export default function ClinicianClientDashboard() {
 
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
               <Stethoscope className="h-5 w-5" /> Clinical Context
             </CardTitle>
           </CardHeader>
@@ -728,7 +728,7 @@ export default function ClinicianClientDashboard() {
 
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
               <Ruler className="h-5 w-5" /> Body Composition
             </CardTitle>
           </CardHeader>
@@ -770,7 +770,7 @@ export default function ClinicianClientDashboard() {
 
         <Card className="bg-white/5 border border-teal-500/30">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
               <Trophy className="h-5 w-5 text-teal-400" /> Assign Clinical Builder
             </CardTitle>
           </CardHeader>
@@ -796,7 +796,7 @@ export default function ClinicianClientDashboard() {
                       {isActive && <Check className="h-4 w-4 flex-shrink-0" />}
                       <span className="font-bold text-sm">{entry.label}</span>
                     </div>
-                    <span className="text-xs text-white/60 font-normal leading-snug">{entry.description}</span>
+                    <span className="text-xs text-white/60 font-normal leading-snug line-clamp-2 w-full">{entry.description}</span>
                   </Button>
                 );
               })}
@@ -806,7 +806,7 @@ export default function ClinicianClientDashboard() {
 
         <Card className="bg-white/5 border border-amber-500/30">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
               <Dumbbell className="h-5 w-5 text-amber-400" /> Open Patient Builder
             </CardTitle>
           </CardHeader>
@@ -849,7 +849,7 @@ export default function ClinicianClientDashboard() {
 
         <Card className={`bg-white/5 border ${boardControl === 'professional' ? 'border-red-500/50' : 'border-white/20'}`}>
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
               {boardControl === 'professional'
                 ? <Lock className="h-5 w-5 text-red-400" />
                 : <Unlock className="h-5 w-5 text-white/60" />}
