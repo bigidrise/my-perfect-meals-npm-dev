@@ -14,6 +14,7 @@ import { VoiceConcierge } from "@/components/VoiceConcierge";
 import ScrollManager from "@/components/ScrollManager";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
+import { useMacroTargetSync } from "@/hooks/useMacroTargetSync";
 import { loadRewardful } from "@/lib/rewardful";
 import { AudioProvider } from "@/audio/AudioProvider";
 import { PageTitleProvider } from "@/contexts/PageTitleContext";
@@ -48,6 +49,11 @@ if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios") {
 
 function VisibilityRefreshMount() {
   useVisibilityRefresh();
+  return null;
+}
+
+function MacroTargetSyncMount() {
+  useMacroTargetSync();
   return null;
 }
 
@@ -171,6 +177,7 @@ export default function App() {
             <AudioProvider>
               <VoiceProvider>
                 <VisibilityRefreshMount />
+                <MacroTargetSyncMount />
                 <ScrollManager />
                 <UpdateBanner show={showUpdate} />
                 <CopilotSystem onAction={handleCopilotAction}>
