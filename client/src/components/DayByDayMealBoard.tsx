@@ -78,17 +78,16 @@ export function DayByDayMealBoard({
       const { post } = await import("@/lib/api");
       const logDate = activeDayISO;
 
-      // Log each meal
+      // Log each meal to the canonical macro logging endpoint
       for (const meal of allDayMeals) {
-        await post("/api/food-logs", {
-          userId,
-          logDate,
-          foodName: meal.title || meal.name || "Meal",
-          calories: meal.nutrition?.calories || 0,
+        await post("/api/macros/log", {
+          loggedAt: new Date().toISOString(),
+          mealType: "lunch",
+          kcal: meal.nutrition?.calories || 0,
           protein: meal.nutrition?.protein || 0,
           carbs: meal.nutrition?.carbs || 0,
           fat: meal.nutrition?.fat || 0,
-          servingSize: meal.servings || 1
+          source: "day-by-day-board",
         });
       }
 

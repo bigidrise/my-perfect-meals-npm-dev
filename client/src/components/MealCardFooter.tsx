@@ -39,9 +39,9 @@ export default function MealCardFooter({
       } else {
         // Default logging behavior - POST to database API
         const logEntry = {
-          timestamp: new Date().toISOString(),
+          loggedAt: new Date().toISOString(),
           mealType: meal.mealType || "snack",
-          calories: Math.round(meal.nutritionPerServing.calories * servings),
+          kcal: Math.round(meal.nutritionPerServing.calories * servings),
           protein: Math.round(meal.nutritionPerServing.protein * servings),
           carbs: Math.round(meal.nutritionPerServing.carbs * servings),
           fat: Math.round(meal.nutritionPerServing.fat * servings),
@@ -49,9 +49,9 @@ export default function MealCardFooter({
           mealId: meal.id,
         };
         
-        // POST to the correct API endpoint
+        // POST to the canonical macro logging endpoint
         const { post } = await import("@/lib/api");
-        const result = await post("/api/food-logs", logEntry);
+        const result = await post("/api/macros/log", logEntry);
         console.log("✅ Meal logged successfully:", result);
         
         // Emit the macros:updated event for dashboard refresh

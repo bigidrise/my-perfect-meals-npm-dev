@@ -229,28 +229,19 @@ export async function addMealToMacros({
   console.log("📊 Adding meal to macros:", { date, slot, meal: meal.title });
 
   const logEntry = {
-    id: meal.id || crypto.randomUUID(),
-    name: `${meal.title} (${meal.servings || 1} serving${meal.servings !== 1 ? "s" : ""})`,
-    date: date || new Date().toISOString().split("T")[0], // YYYY-MM-DD format
-    time: new Date().toLocaleTimeString("en-US", {
-      hour12: false,
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
-    calories: meal.nutrition.calories,
+    mealId: meal.id,
+    loggedAt: new Date().toISOString(),
+    mealType: slot || "lunch",
+    kcal: meal.nutrition.calories,
     protein: meal.nutrition.protein,
     carbs: meal.nutrition.carbs,
     fat: meal.nutrition.fat,
-    fiber: 0, // Default values for missing fields
-    sugar: 0,
-    sodium: 0,
-    meal_type: slot || "lunch",
-    timestamp: new Date().toISOString(),
+    source: "weekly-meal-board",
   };
 
   console.log("📝 Sending log entry:", logEntry);
 
-  const result = await post("/api/food-logs", logEntry);
+  const result = await post("/api/macros/log", logEntry);
 
   // Trigger macro refresh in Biometrics dashboard
   if (typeof window !== "undefined") {
