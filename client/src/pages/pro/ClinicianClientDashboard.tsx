@@ -770,7 +770,7 @@ export default function ClinicianClientDashboard() {
 
         <Card className="bg-white/5 border border-teal-500/30">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2 text-md font-semibold">
+            <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
               <Trophy className="h-5 w-5 text-teal-400" /> Assign Clinical Builder
             </CardTitle>
           </CardHeader>
@@ -806,7 +806,7 @@ export default function ClinicianClientDashboard() {
 
         <Card className="bg-white/5 border border-amber-500/30">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2 text-md font-semibold">
+            <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
               <Dumbbell className="h-5 w-5 text-amber-400" /> Open Patient Builder
             </CardTitle>
           </CardHeader>
@@ -837,7 +837,7 @@ export default function ClinicianClientDashboard() {
                 localStorage.setItem("pro-client-id", resolvedClientUserId);
                 setLocation(`/pro/clients/${resolvedClientUserId}/${entry.proRoute}`);
               }}
-              className="w-full sm:w-[400px] bg-amber-600 border border-amber-400/30 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
+              className="w-full sm:w-[400px] bg-lime-600 border border-amber-400/30 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
               <LayoutGrid className="h-4 w-4 mr-2" />
               {activeProtocolLabel
@@ -849,7 +849,7 @@ export default function ClinicianClientDashboard() {
 
         <Card className={`bg-white/5 border ${boardControl === 'professional' ? 'border-red-500/50' : 'border-white/20'}`}>
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2 text-md font-semibold">
+            <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
               {boardControl === 'professional'
                 ? <Lock className="h-5 w-5 text-red-400" />
                 : <Unlock className="h-5 w-5 text-white/60" />}
@@ -874,7 +874,7 @@ export default function ClinicianClientDashboard() {
               <Button
                 onClick={toggleBoardControl}
                 disabled={boardControlLoading}
-                className={`text-sm font-semibold active:scale-[0.97] ${boardControl === 'professional' ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+                className={`text-sm font-semibold active:scale-[0.97] ${boardControl === 'professional' ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-blue-600 text-white'}`}
               >
                 {boardControlLoading ? "Updating..." : boardControl === 'professional' ? "Release Control" : "Take Control"}
               </Button>
