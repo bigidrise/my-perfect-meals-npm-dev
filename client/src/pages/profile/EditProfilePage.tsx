@@ -1134,6 +1134,9 @@ export default function EditProfilePage() {
                   Allergies: {allergiesText.trim() || "None"}
                 </p>
                 <p className="text-white/80 text-xs">
+                  Foods to Avoid: {avoidedFoods.length > 0 ? avoidedFoods.join(", ") : "None"}
+                </p>
+                <p className="text-white/80 text-xs">
                   Flavor: {form.palateSpiceTolerance === "none" ? "No spice" : (form.palateSpiceTolerance?.charAt(0).toUpperCase() ?? "") + (form.palateSpiceTolerance?.slice(1) ?? "")} spice, {form.palateSeasoningIntensity} seasoning
                 </p>
                 <p className="text-white/80 text-xs">

@@ -21,6 +21,7 @@ import {
   isValidHubType
 } from "./hubCoupling";
 import { buildPalateSection, PalatePreferences } from "./promptBuilder";
+import { AVOIDANCE_EXPANSION } from "./allergyGuardrails";
 import { buildOncologySupportPrompt, isOncologySupportEnabled, type OncologySupportContext } from "./guardrails/prompt/oncologySupportPromptBuilder";
 import { filterOncologySafeMeals } from "./guardrails/validators/oncologySupportValidator";
 import { db } from "../db";
@@ -136,6 +137,7 @@ export type WeeklyMealReq = {
   mealTypes: MealType[];              // e.g., ["breakfast","lunch","dinner","snack"]
   dietaryRestrictions: string[];      // ["gluten_free","kosher","no_pork"]
   allergies: string[];                // ["peanut","tree nut","shellfish","egg","milk","soy","wheat"]
+  avoidIngredients?: string[];        // food avoidances/preferences (no PIN, not medical)
   selectedIngredients?: string[];     // ingredients to prioritize/include in meal generation
   medicalFlags: string[];             // ["type2_diabetes","low_gi",...]
   diversity?: { minUniqueProteins?: number; minUniqueVeg?: number };
@@ -403,6 +405,21 @@ function violatesAllergy(ings: Skeleton["ingredients"], allergies: string[]) {
   }
   
   return false;
+}
+
+function violatesAvoidance(ings: Skeleton["ingredients"], avoidIngredients: string[]): boolean {
+  if (!avoidIngredients.length) return false;
+  const expandedTerms = new Set<string>();
+  for (const item of avoidIngredients) {
+    const key = item.trim().toLowerCase();
+    expandedTerms.add(key);
+    const expanded = AVOIDANCE_EXPANSION[key];
+    if (expanded) expanded.forEach(t => expandedTerms.add(t.toLowerCase()));
+  }
+  return ings.some(ing => {
+    const name = ing.name.toLowerCase();
+    return Array.from(expandedTerms).some(term => name.includes(term));
+  });
 }
 
 function violatesDiet(ings: Skeleton["ingredients"], diet: string[]) {
@@ -869,7 +886,8 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
     
     return s.mealType === targetMealType &&
       (!userPrefs?.allergies || !violatesAllergy(s.ingredients, userPrefs.allergies)) &&
-      (!userPrefs?.dietaryRestrictions || !violatesDiet(s.ingredients, userPrefs.dietaryRestrictions));
+      (!userPrefs?.dietaryRestrictions || !violatesDiet(s.ingredients, userPrefs.dietaryRestrictions)) &&
+      (!userPrefs?.avoidIngredients?.length || !violatesAvoidance(s.ingredients, userPrefs.avoidIngredients));
   });
 
   // Apply glycemic filtering if settings exist
@@ -1304,7 +1322,8 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
       telemetry.tagFallback(sessionId, "catalog_fallback", "No specific matches, using general catalog");
       filtered = catalog.filter(s => 
         (!userPrefs?.allergies || !violatesAllergy(s.ingredients, userPrefs.allergies)) &&
-        (!userPrefs?.dietaryRestrictions || !violatesDiet(s.ingredients, userPrefs.dietaryRestrictions))
+        (!userPrefs?.dietaryRestrictions || !violatesDiet(s.ingredients, userPrefs.dietaryRestrictions)) &&
+        (!userPrefs?.avoidIngredients?.length || !violatesAvoidance(s.ingredients, userPrefs.avoidIngredients))
       );
     }
     
