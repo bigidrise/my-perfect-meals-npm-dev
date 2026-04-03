@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
-import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X } from "lucide-react";
+import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X, Link2Off, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import { getAuthHeaders } from "@/lib/auth";
@@ -29,6 +29,17 @@ type ConnectedResult = {
   studio: { studioId: string; studioName: string; membershipId: string } | null;
 };
 
+type ConnectionStatus = {
+  connected: boolean;
+  provider?: {
+    userId: string;
+    name: string;
+    role: string;
+    studioName: string | null;
+    studioId: string | null;
+  };
+};
+
 export default function MorePage() {
   const [, setLocation] = useLocation();
   const { user, refreshUser } = useAuth();
@@ -42,6 +53,9 @@ export default function MorePage() {
   const [connectedResult, setConnectedResult] = useState<ConnectedResult | null>(null);
   const [showWorkspaceChooser, setShowWorkspaceChooser] = useState(false);
   const [showProviderModal, setShowProviderModal] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus | null>(null);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
 
   const isProCareClient = !!user?.isProCare;
   const [showClientLegalModal, setShowClientLegalModal] = useState(false);
@@ -51,6 +65,34 @@ export default function MorePage() {
     document.title = "More | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
+
+  // Fetch real-time connection status from server
+  useEffect(() => {
+    async function fetchConnectionStatus() {
+      try {
+        const data = await apiRequest("/api/pro/connection-status");
+        setConnectionStatus(data);
+      } catch {
+        // Non-fatal — fall back to isProCare flag from user object
+        setConnectionStatus({ connected: isProCareClient });
+      }
+    }
+    fetchConnectionStatus();
+  }, [isProCareClient]);
+
+  async function disconnectFromProvider() {
+    try {
+      setDisconnecting(true);
+      await apiRequest("/api/pro/disconnect-self", { method: "POST" });
+      setShowDisconnectConfirm(false);
+      setConnectionStatus({ connected: false });
+      await refreshUser();
+    } catch (e: any) {
+      alert("Failed to disconnect. Please try again.");
+    } finally {
+      setDisconnecting(false);
+    }
+  }
 
   const proCareFeatures: ProCareFeature[] = [
     {
@@ -305,58 +347,89 @@ export default function MorePage() {
               );
             })}
 
-            {/* 2. Connect With Your Provider */}
-            <GlassCard className="border-2 border-orange-500/40">
-              <GlassCardContent className="p-6 space-y-4">
-                <div className="flex items-center gap-2">
-                  <KeyRound className="h-5 w-5 text-orange-500" />
-                  <h2 className="text-xl font-bold text-white">
-                    Connect With Your Provider
-                  </h2>
-                </div>
-                <p className="text-sm text-white/70">
-                  Use your provider's access code to link your account with your
-                  coach, trainer, or physician through the ProCare system.
-                </p>
-                <div>
-                  <Label className="text-white/80">Provider Access Code</Label>
-                  <Input
-                    value={accessCode}
-                    onChange={(e) => setAccessCode(e.target.value)}
-                    placeholder="Provider code (given by your coach or physician)"
-                    className="bg-black/40 text-white border-white/20 placeholder:text-white/40"
-                    data-testid="input-careteam-code"
-                  />
-                </div>
-                {error && (
-                  <div className="rounded-xl border border-red-500/50 bg-red-900/30 text-red-100 p-3">
-                    {error}
+            {/* 2. Provider Connection Card — context-aware */}
+            {connectionStatus?.connected && connectionStatus.provider ? (
+              /* ── CONNECTED STATE ── */
+              <GlassCard className="border-2 border-green-500/40">
+                <GlassCardContent className="p-6 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-5 w-5 text-green-400" />
+                    <h2 className="text-xl font-bold text-white">ProCare Connected</h2>
                   </div>
-                )}
-                <Button
-                  disabled={loading}
-                  onClick={connectWithCode}
-                  className="w-full bg-lime-600 hover:bg-lime-600 text-white"
-                  data-testid="button-submit-code"
-                >
-                  <ClipboardEdit className="h-4 w-4 mr-2" />
-                  Connect to Provider
-                </Button>
-                <p className="text-xs text-white/40 text-center">
-                  Access codes connect users with professionals. Subscriptions are purchased through the App Store.
-                </p>
-              </GlassCardContent>
-            </GlassCard>
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-1">
+                    <p className="text-sm font-semibold text-white">{connectionStatus.provider.name}</p>
+                    <p className="text-xs text-white/60 capitalize">
+                      {connectionStatus.provider.role}
+                      {connectionStatus.provider.studioName ? ` · ${connectionStatus.provider.studioName}` : ""}
+                    </p>
+                  </div>
+                  <p className="text-xs text-white/50">
+                    Your provider can view and manage your nutrition plan based on the permissions you've set.
+                    You can disconnect at any time — reconnecting requires a new access code from your provider.
+                  </p>
+                  <Button
+                    variant="destructive"
+                    className="w-full bg-red-700/80 hover:bg-red-700 text-white"
+                    onClick={() => setShowDisconnectConfirm(true)}
+                    data-testid="button-disconnect-provider"
+                  >
+                    <Link2Off className="h-4 w-4 mr-2" />
+                    Disconnect from {connectionStatus.provider.name}
+                  </Button>
+                </GlassCardContent>
+              </GlassCard>
+            ) : (
+              /* ── NOT CONNECTED STATE ── */
+              <GlassCard className="border-2 border-orange-500/40">
+                <GlassCardContent className="p-6 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <KeyRound className="h-5 w-5 text-orange-500" />
+                    <h2 className="text-xl font-bold text-white">
+                      Connect With Your Provider
+                    </h2>
+                  </div>
+                  <p className="text-sm text-white/70">
+                    Use your provider's access code to link your account with your
+                    coach, trainer, or physician through the ProCare system.
+                  </p>
+                  <div>
+                    <Label className="text-white/80">Provider Access Code</Label>
+                    <Input
+                      value={accessCode}
+                      onChange={(e) => setAccessCode(e.target.value)}
+                      placeholder="Provider code (given by your coach or physician)"
+                      className="bg-black/40 text-white border-white/20 placeholder:text-white/40"
+                      data-testid="input-careteam-code"
+                    />
+                  </div>
+                  {error && (
+                    <div className="rounded-xl border border-red-500/50 bg-red-900/30 text-red-100 p-3">
+                      {error}
+                    </div>
+                  )}
+                  <Button
+                    disabled={loading}
+                    onClick={connectWithCode}
+                    className="w-full bg-lime-600 hover:bg-lime-600 text-white"
+                    data-testid="button-submit-code"
+                  >
+                    <ClipboardEdit className="h-4 w-4 mr-2" />
+                    Connect to Provider
+                  </Button>
+                  <p className="text-xs text-white/40 text-center">
+                    Access codes connect users with professionals. Subscriptions are purchased through the App Store.
+                  </p>
+                </GlassCardContent>
+              </GlassCard>
+            )}
 
-            {/* Connected Success Card */}
-            {connectedResult && (
+            {/* Just-connected success banner */}
+            {connectedResult && !connectionStatus?.connected && (
               <GlassCard className="border-2 border-green-500/40">
                 <GlassCardContent className="p-6 space-y-3">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-5 w-5 text-green-400" />
-                    <h2 className="text-lg font-bold text-white">
-                      Connected!
-                    </h2>
+                    <h2 className="text-lg font-bold text-white">Connected!</h2>
                   </div>
                   {connectedResult.studio && (
                     <p className="text-sm text-white/80">
@@ -456,6 +529,44 @@ export default function MorePage() {
                 </div>
               </div>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Disconnect Confirmation Modal */}
+      {showDisconnectConfirm && connectionStatus?.provider && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+          <div className="w-full max-w-sm bg-zinc-950 border border-white/10 rounded-2xl p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-red-900/40">
+                <Link2Off className="h-5 w-5 text-red-400" />
+              </div>
+              <h3 className="text-lg font-bold text-white">Disconnect?</h3>
+            </div>
+            <p className="text-sm text-white/70">
+              This will remove your ProCare connection with{" "}
+              <span className="text-white font-semibold">{connectionStatus.provider.name}</span>.
+              Your history is preserved — to reconnect, you'll need a new access code from your provider.
+            </p>
+            <div className="flex gap-3 pt-1">
+              <Button
+                variant="outline"
+                className="flex-1 border-white/20 text-white hover:bg-white/10"
+                onClick={() => setShowDisconnectConfirm(false)}
+                disabled={disconnecting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1 bg-red-700 hover:bg-red-800"
+                onClick={disconnectFromProvider}
+                disabled={disconnecting}
+                data-testid="button-confirm-disconnect"
+              >
+                {disconnecting ? "Disconnecting…" : "Yes, Disconnect"}
+              </Button>
+            </div>
           </div>
         </div>
       )}

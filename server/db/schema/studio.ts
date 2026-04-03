@@ -14,6 +14,7 @@ export const activityActionEnum = pgEnum("activity_action", [
   "membership_created",
   "membership_activated", 
   "membership_paused",
+  "membership_disconnected",
   "builder_assigned",
   "board_created",
   "board_updated",

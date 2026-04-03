@@ -5,8 +5,7 @@ import { users } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { sendCareTeamInvite } from "../services/emailService";
-import { activateProCareClient, ActivationError } from "../services/procareActivation";
-import { endLink } from "../services/clientLinkService";
+import { activateProCareClient, deactivateProCareClient, ActivationError } from "../services/procareActivation";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { checkLegalAcceptance } from "../services/legalCheck";
 
@@ -323,13 +322,20 @@ router.post("/:id/revoke", requireAuth, async (req, res) => {
       return res.status(404).json({ error: "Member not found" });
     }
 
+    // Mark careTeamMember as revoked
     await db
       .update(careTeamMember)
       .set({ status: "revoked", updatedAt: new Date() })
       .where(eq(careTeamMember.id, id));
 
+    // Full ProCare deactivation (all 3 invariant records)
     if (existing.proUserId) {
-      await endLink(existing.userId, existing.proUserId);
+      try {
+        await deactivateProCareClient(existing.userId, existing.proUserId, userId, "provider_revoke");
+      } catch (deactivateErr) {
+        // Log but don't fail — careTeamMember was already revoked
+        console.error("⚠️ [CareTeam Revoke] deactivateProCareClient failed:", deactivateErr);
+      }
     }
 
     res.json({ ok: true });
