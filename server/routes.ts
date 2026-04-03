@@ -2007,6 +2007,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dietaryRestrictions: user.dietaryRestrictions || [],
         healthConditions: user.healthConditions || [],
         dislikedFoods: user.dislikedFoods || [],
+        avoidedFoods: user.avoidedFoods || [],
         likedFoods: user.likedFoods || [],
         studioMembership: studioMembershipData,
         medicalConditions: user.medicalConditions || [],
