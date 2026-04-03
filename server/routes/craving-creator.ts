@@ -100,6 +100,7 @@ router.post('/generate', requireAuth, async (req, res) => {
         userId: userId?.toString() || "1",
         dietaryRestrictions: user?.dietaryRestrictions || [],
         allergies: user?.allergies || [],
+        avoidIngredients: [...(user?.dislikedFoods || []), ...(user?.avoidedFoods || [])],
         medicalFlags: user?.healthConditions || [],
         macroTargets: macroTargets || undefined
       }

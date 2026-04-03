@@ -2,6 +2,24 @@
 import { MealGenerationRequest, UserOnboardingProfile } from "./mealEngineService";
 import { UnitPrefs } from "./validators";
 import { BASELINE_MACROS_PROMPT } from "./guardrails/baselineMacros";
+import { AVOIDANCE_EXPANSION } from "./allergyGuardrails";
+
+/** Expand avoidIngredients category labels into full ingredient lists for AI prompts. */
+function expandAvoidIngredients(raw: string[] | undefined): string[] {
+  if (!raw?.length) return [];
+  const out = new Set<string>();
+  for (const item of raw) {
+    const key = item.trim().toLowerCase();
+    const expanded = AVOIDANCE_EXPANSION[key];
+    if (expanded) {
+      out.add(key);
+      expanded.forEach(t => out.add(t));
+    } else {
+      out.add(key);
+    }
+  }
+  return Array.from(out);
+}
 
 // ─── VEGETABLE STRATEGY SYSTEM ───────────────────────────────────────────────
 
@@ -224,7 +242,8 @@ export function buildMealPrompt(
     );
   }
 
-  const avoid = Array.from(new Set([...(profile.allergies ?? []), ...(profile.avoidIngredients ?? [])]));
+  const expandedAvoidIngredients = expandAvoidIngredients(profile.avoidIngredients);
+  const avoid = Array.from(new Set([...(profile.allergies ?? []), ...expandedAvoidIngredients]));
   const bannedSweeteners = profile.bannedSweeteners?.length ? `Banned sweeteners: ${profile.bannedSweeteners.join(", ")}.` : "";
 
   const mediterraneanRules = diet.toLowerCase().includes('mediterranean') ? `
@@ -344,7 +363,7 @@ Calories/day target: ${profile.caloriesPerDay ?? "unknown"}
 Protein target/day: ${profile.proteinTargetG ?? "unknown"} g
 Medical: ${medical.join(" ")}
 Allergies: ${avoid.length ? avoid.join(", ") : "none"}
-Avoid ingredients: ${profile.avoidIngredients?.length ? profile.avoidIngredients.join(", ") : "none"}
+Avoid ingredients: ${expandedAvoidIngredients.length ? expandedAvoidIngredients.join(", ") : "none"}
 Sweeteners: allow ${profile.preferredSweeteners?.join(", ") || "standard options"}; ${bannedSweeteners}
 Body type: ${profile.bodyType ?? "n/a"}
 ${palateSection}
