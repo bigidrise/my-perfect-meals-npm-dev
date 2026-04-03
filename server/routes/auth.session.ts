@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { autoAcceptPendingInvites, lookupExistingMembership } from "../services/inviteAutoAccept";
+import { selfHealProCareState } from "../services/procareActivation";
 import { checkLegalAcceptance } from "../services/legalCheck";
 
 const router = Router();
@@ -103,6 +104,10 @@ router.post("/api/auth/signup", async (req, res) => {
   console.log("✅ Created new user ID:", newUser.id);
 
     const inviteResult = await autoAcceptPendingInvites(newUser.id, newUser.email);
+
+    if (!inviteResult.accepted) {
+      await selfHealProCareState(newUser.id);
+    }
 
     const membership = inviteResult.membership || await lookupExistingMembership(newUser.id);
 
@@ -251,6 +256,10 @@ router.post("/api/auth/login", async (req, res) => {
     console.log("✅ User logged in, ID:", user.id);
 
     const inviteResult = await autoAcceptPendingInvites(user.id, user.email);
+
+    if (!inviteResult.accepted) {
+      await selfHealProCareState(user.id);
+    }
 
     const membership = inviteResult.membership || await lookupExistingMembership(user.id);
 
