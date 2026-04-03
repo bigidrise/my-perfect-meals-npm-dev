@@ -2014,6 +2014,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         preferredBuilder: user.preferredBuilder || null,
         flavorPreference: user.flavorPreference || null,
         heatPreference: user.heatPreference || null,
+        sweetenerPreferences: user.sweetenerPreferences || [],
+        palateSpiceTolerance: user.palateSpiceTolerance || null,
+        palateSeasoningIntensity: user.palateSeasoningIntensity || null,
+        palateFlavorStyle: user.palateFlavorStyle || null,
         hasAllergyPin: !!user.safetyPinHash,
         fontSizePreference: user.fontSizePreference || "standard",
         dailyCalorieTarget: user.dailyCalorieTarget ?? null,
@@ -2069,6 +2073,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         heatPreference,
         sweetenerPreferences,
         avoidedFoods,
+        palateSpiceTolerance,
+        palateSeasoningIntensity,
+        palateFlavorStyle,
         goalType,
         goalTarget,
         goalTimelineWeeks,
@@ -2100,6 +2107,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (heatPreference !== undefined) updateData.heatPreference = heatPreference;
       if (sweetenerPreferences !== undefined) updateData.sweetenerPreferences = sweetenerPreferences;
       if (avoidedFoods !== undefined) updateData.avoidedFoods = avoidedFoods;
+      if (palateSpiceTolerance !== undefined) updateData.palateSpiceTolerance = palateSpiceTolerance;
+      if (palateSeasoningIntensity !== undefined) updateData.palateSeasoningIntensity = palateSeasoningIntensity;
+      if (palateFlavorStyle !== undefined) updateData.palateFlavorStyle = palateFlavorStyle;
       if (goalType !== undefined) updateData.goalType = goalType;
       if (goalTarget !== undefined) updateData.goalTarget = goalTarget;
       if (goalTimelineWeeks !== undefined) updateData.goalTimelineWeeks = goalTimelineWeeks;
