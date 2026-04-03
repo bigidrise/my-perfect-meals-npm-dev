@@ -5,8 +5,8 @@ import { users } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { sendCareTeamInvite } from "../services/emailService";
-import { bridgeToStudio } from "../services/studioBridge";
-import { createLink, endLink, ClientLinkError } from "../services/clientLinkService";
+import { activateProCareClient, ActivationError } from "../services/procareActivation";
+import { endLink } from "../services/clientLinkService";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { checkLegalAcceptance } from "../services/legalCheck";
 
@@ -70,7 +70,7 @@ router.post("/invite", requireAuth, async (req, res) => {
         .returning();
       member = m;
     } else {
-      console.log(`ℹ️ [CareTeam Invite] Pro caller (${caller?.professionalRole}) inviting patient — deferring careTeamMember creation to /connect to ensure correct direction`);
+      console.log(`ℹ️ [CareTeam Invite] Pro caller (${caller?.professionalRole}) inviting patient — deferring careTeamMember creation to /connect`);
     }
 
     await db.insert(careInvite).values({
@@ -106,7 +106,7 @@ router.post("/connect", requireAuth, async (req, res) => {
     }
 
     const trimmedCode = String(code).trim();
-    console.log(`🔍 [CareTeam Connect] Attempting code: "${trimmedCode}" (original: "${code}")`);
+    console.log(`🔍 [CareTeam Connect] Attempting code: "${trimmedCode}"`);
 
     const [invite] = await db
       .select()
@@ -118,7 +118,7 @@ router.post("/connect", requireAuth, async (req, res) => {
       : [null];
 
     if (!invite && !accessCodeRow) {
-      console.log(`❌ [CareTeam Connect] Code "${trimmedCode}" not found in careInvite or careAccessCode tables`);
+      console.log(`❌ [CareTeam Connect] Code "${trimmedCode}" not found`);
       return res.status(404).json({ error: "Invalid code" });
     }
 
@@ -154,10 +154,11 @@ router.post("/connect", requireAuth, async (req, res) => {
       const patientId = inviterIsPro ? userId : invite.userId;
       const resolvedProId = inviterIsPro ? invite.userId : userId;
 
+      let activation;
       try {
-        await createLink(patientId, resolvedProId);
+        activation = await activateProCareClient(patientId, resolvedProId, "care_team_connect_code");
       } catch (err) {
-        if (err instanceof ClientLinkError && err.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL") {
+        if (err instanceof ActivationError && err.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL") {
           return res.status(409).json({ error: err.code, message: err.message });
         }
         throw err;
@@ -191,7 +192,7 @@ router.post("/connect", requireAuth, async (req, res) => {
             })
             .returning();
           finalMember = newMember;
-          console.log(`✅ [CareTeam Connect] Replaced inverted careTeamMember with correct direction (userId=patient, proUserId=pro)`);
+          console.log(`✅ [CareTeam Connect] Replaced inverted careTeamMember`);
         } else {
           const [updatedMember] = await db
             .update(careTeamMember)
@@ -214,7 +215,7 @@ router.post("/connect", requireAuth, async (req, res) => {
           })
           .returning();
         finalMember = newMember;
-        console.log(`✅ [CareTeam Connect] Created careTeamMember (no prior record found)`);
+        console.log(`✅ [CareTeam Connect] Created careTeamMember`);
       }
 
       await db
@@ -222,11 +223,16 @@ router.post("/connect", requireAuth, async (req, res) => {
         .set({ accepted: true })
         .where(eq(careInvite.id, invite.id));
 
-      await db.update(users).set({ isProCare: true, role: "client" }).where(eq(users.id, patientId));
+      await db.update(users).set({ role: "client" }).where(eq(users.id, patientId));
 
-      const bridge = await bridgeToStudio(resolvedProId, patientId, "care_team_connect_code");
-
-      return res.json({ member: finalMember, studio: bridge });
+      return res.json({
+        member: finalMember,
+        studio: {
+          studioId: activation.studioId,
+          studioName: activation.studioName,
+          membershipId: activation.membershipId,
+        },
+      });
     }
 
     if (accessCodeRow) {
@@ -234,10 +240,11 @@ router.post("/connect", requireAuth, async (req, res) => {
         return res.status(400).json({ error: "Code expired" });
       }
 
+      let activation;
       try {
-        await createLink(userId, accessCodeRow.proUserId);
+        activation = await activateProCareClient(userId, accessCodeRow.proUserId, "care_team_access_code");
       } catch (err) {
-        if (err instanceof ClientLinkError && err.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL") {
+        if (err instanceof ActivationError && err.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL") {
           return res.status(409).json({ error: err.code, message: err.message });
         }
         throw err;
@@ -259,11 +266,16 @@ router.post("/connect", requireAuth, async (req, res) => {
         })
         .returning();
 
-      await db.update(users).set({ isProCare: true, role: "client" }).where(eq(users.id, userId));
+      await db.update(users).set({ role: "client" }).where(eq(users.id, userId));
 
-      const bridge = await bridgeToStudio(accessCodeRow.proUserId, userId, "care_team_access_code");
-
-      return res.json({ member: newMember, studio: bridge });
+      return res.json({
+        member: newMember,
+        studio: {
+          studioId: activation.studioId,
+          studioName: activation.studioName,
+          membershipId: activation.membershipId,
+        },
+      });
     }
   } catch (error) {
     console.error("❌ Error connecting with code:", error);
@@ -274,15 +286,12 @@ router.post("/connect", requireAuth, async (req, res) => {
 router.post("/:id/approve", requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
-
     const { id } = req.params;
 
     const [existing] = await db
       .select()
       .from(careTeamMember)
-      .where(
-        and(eq(careTeamMember.id, id), eq(careTeamMember.userId, userId))
-      );
+      .where(and(eq(careTeamMember.id, id), eq(careTeamMember.userId, userId)));
 
     if (!existing) {
       return res.status(404).json({ error: "Member not found" });
@@ -303,15 +312,12 @@ router.post("/:id/approve", requireAuth, async (req, res) => {
 router.post("/:id/revoke", requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
-
     const { id } = req.params;
 
     const [existing] = await db
       .select()
       .from(careTeamMember)
-      .where(
-        and(eq(careTeamMember.id, id), eq(careTeamMember.userId, userId))
-      );
+      .where(and(eq(careTeamMember.id, id), eq(careTeamMember.userId, userId)));
 
     if (!existing) {
       return res.status(404).json({ error: "Member not found" });
