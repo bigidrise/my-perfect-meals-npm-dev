@@ -59,6 +59,56 @@ export function maskNutButters(text: string): string {
 
 
 /**
+ * FOOD AVOIDANCE EXPANSION MAP
+ * Maps user-selected avoidance categories to specific ingredients that must be avoided.
+ * "vegetables" deliberately maps ONLY to fibrous/non-starchy vegetables.
+ * Starchy carbs (potatoes, sweet potatoes, corn, squash) are intentionally excluded
+ * so they remain available in the starch lane for macro planning.
+ */
+export const AVOIDANCE_EXPANSION: Record<string, string[]> = {
+  vegetables: [
+    "broccoli", "spinach", "kale", "asparagus", "zucchini", "green beans",
+    "brussels sprouts", "cauliflower", "cabbage", "arugula", "bok choy",
+    "collard greens", "swiss chard", "watercress", "beet greens",
+    "green peas", "snap peas", "snow peas", "artichoke", "artichokes",
+    "leeks", "celery", "fennel", "endive", "radicchio", "romaine",
+    "mixed greens", "salad greens", "microgreens",
+  ],
+  mushrooms: [
+    "mushroom", "mushrooms", "portobello", "shiitake", "cremini", "button mushroom",
+    "oyster mushroom", "king oyster", "enoki", "chanterelle", "morel",
+    "porcini", "maitake", "lion's mane", "truffle", "truffles",
+  ],
+  onions: [
+    "onion", "onions", "red onion", "white onion", "yellow onion",
+    "green onion", "scallion", "scallions", "shallot", "shallots",
+    "chives", "leek", "leeks",
+  ],
+  seafood: [
+    "seafood", "fish", "salmon", "tuna", "cod", "tilapia", "shrimp", "prawn",
+    "prawns", "crab", "lobster", "scallop", "scallops", "clam", "clams",
+    "mussel", "mussels", "oyster", "oysters", "squid", "calamari",
+    "octopus", "sardine", "sardines", "anchovy", "anchovies",
+    "halibut", "mahi", "mahi-mahi", "swordfish", "trout", "bass",
+    "mackerel", "snapper", "catfish", "flounder", "haddock",
+  ],
+  pork: [
+    "pork", "bacon", "ham", "prosciutto", "pancetta", "sausage", "salami",
+    "pepperoni", "chorizo", "carnitas", "pulled pork", "pork chop",
+    "pork tenderloin", "pork belly", "ribs", "spare ribs", "pork loin",
+    "pork shoulder", "ground pork", "Italian sausage", "bratwurst",
+    "mortadella", "pork rinds", "chicharron", "lard",
+  ],
+  "red meat": [
+    "beef", "steak", "ground beef", "bison", "lamb", "veal", "venison",
+    "elk", "goat", "mutton", "ribeye", "sirloin", "filet mignon",
+    "flank steak", "skirt steak", "chuck roast", "brisket",
+    "short ribs", "beef ribs", "hamburger", "burger", "meatball",
+    "meat sauce", "bolognese",
+  ],
+};
+
+/**
  * COMPREHENSIVE ALLERGEN EXPANSION MAP
  * Maps user-selected allergies to ALL related ingredients that must be blocked
  * This is the single source of truth for allergen blocking
