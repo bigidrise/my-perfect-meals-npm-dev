@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { useToast } from "@/hooks/use-toast";
+import { PillButton } from "@/components/ui/pill-button";
 
 const TOTAL_STEPS = 7;
 
@@ -367,40 +368,22 @@ export default function OnboardingV3() {
             <div className="text-center space-y-2">
               <h1 className="text-2xl font-bold text-white">Any food allergies?</h1>
             </div>
-            <div className="grid grid-cols-2 gap-3 max-w-md mx-auto">
+            <div className="flex flex-wrap gap-2 max-w-md mx-auto">
               {ALLERGY_OPTIONS.map((item) => (
-                <button
+                <PillButton
                   key={item}
+                  active={allergies.includes(item)}
                   onClick={() => handleAllergyToggle(item)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-lg border text-left text-sm transition-all ${
-                    allergies.includes(item)
-                      ? "bg-orange-500/20 border-orange-500 text-orange-300"
-                      : "bg-white/5 border-white/15 text-white/80 hover:border-white/30"
-                  }`}
                 >
-                  <div className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${
-                    allergies.includes(item) ? "bg-orange-500 border-orange-500" : "border-white/30"
-                  }`}>
-                    {allergies.includes(item) && <Check className="w-3 h-3 text-white" />}
-                  </div>
                   {item}
-                </button>
+                </PillButton>
               ))}
-              <button
+              <PillButton
+                active={allergies.includes("None")}
                 onClick={() => handleAllergyToggle("None")}
-                className={`col-span-2 flex items-center gap-2 px-4 py-3 rounded-lg border text-left text-sm transition-all ${
-                  allergies.includes("None")
-                    ? "bg-green-500/20 border-green-500 text-green-300"
-                    : "bg-white/5 border-white/15 text-white/80 hover:border-white/30"
-                }`}
               >
-                <div className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${
-                  allergies.includes("None") ? "bg-green-500 border-green-500" : "border-white/30"
-                }`}>
-                  {allergies.includes("None") && <Check className="w-3 h-3 text-white" />}
-                </div>
                 None
-              </button>
+              </PillButton>
             </div>
             <div className="max-w-md mx-auto flex gap-2">
               <Input
@@ -410,25 +393,24 @@ export default function OnboardingV3() {
                 className="text-white bg-white/10 border-white/20 flex-1"
                 onKeyDown={(e) => e.key === "Enter" && handleAddCustomAllergy()}
               />
-              <Button
-                onClick={handleAddCustomAllergy}
-                variant="outline"
-                className="bg-white/10 border-white/30 text-white active:bg-white/20"
+              <PillButton
+                active={false}
                 disabled={!customAllergyInput.trim()}
+                onClick={handleAddCustomAllergy}
               >
                 Add
-              </Button>
+              </PillButton>
             </div>
             {allergies.filter((a) => !ALLERGY_OPTIONS.includes(a) && a !== "None").length > 0 && (
               <div className="max-w-md mx-auto flex flex-wrap gap-2">
                 {allergies.filter((a) => !ALLERGY_OPTIONS.includes(a) && a !== "None").map((custom) => (
-                  <span
+                  <PillButton
                     key={custom}
-                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-orange-500/20 border border-orange-500 text-orange-300 text-sm"
+                    active={true}
+                    onClick={() => setAllergies((prev) => prev.filter((a) => a !== custom))}
                   >
-                    {custom}
-                    <button onClick={() => setAllergies((prev) => prev.filter((a) => a !== custom))} className="ml-1 hover:text-white">×</button>
-                  </span>
+                    {custom} ×
+                  </PillButton>
                 ))}
               </div>
             )}
@@ -440,31 +422,27 @@ export default function OnboardingV3() {
                   <p className="text-rose-300 font-semibold text-sm mb-0.5">Foods to Avoid</p>
                   <p className="text-white/50 text-xs">Foods or categories you never want in your meals — different from allergies, no PIN needed.</p>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-2 mb-3">
                   {["Vegetables", "Mushrooms", "Onions", "Seafood", "Pork", "Red Meat"].map((cat) => {
                     const stored = cat.toLowerCase();
-                    const active = avoidedFoods.includes(stored);
                     return (
-                      <button
+                      <PillButton
                         key={cat}
-                        type="button"
+                        active={avoidedFoods.includes(stored)}
                         onClick={() =>
                           setAvoidedFoods((prev) =>
-                            active ? prev.filter((f) => f !== stored) : [...prev, stored]
+                            prev.includes(stored)
+                              ? prev.filter((f) => f !== stored)
+                              : [...prev, stored]
                           )
                         }
-                        className={`px-3 py-1 rounded-full text-xs border transition-all ${
-                          active
-                            ? "bg-rose-500/30 border-rose-500 text-rose-300"
-                            : "bg-white/5 border-white/15 text-white/60"
-                        }`}
                       >
-                        {active ? "✕ " : "+ "}{cat}
-                      </button>
+                        {cat}
+                      </PillButton>
                     );
                   })}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 mb-3">
                   <input
                     type="text"
                     value={avoidedFoodInput}
@@ -478,11 +456,12 @@ export default function OnboardingV3() {
                         }
                       }
                     }}
-                    placeholder="Add a specific food..."
-                    className="flex-1 bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/30 placeholder:text-white/30"
+                    placeholder="Type a specific food..."
+                    className="flex-1 bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-white/30"
                   />
-                  <button
-                    type="button"
+                  <PillButton
+                    active={false}
+                    disabled={!avoidedFoodInput.trim()}
                     onClick={() => {
                       const trimmed = avoidedFoodInput.trim().toLowerCase();
                       if (trimmed && !avoidedFoods.includes(trimmed)) {
@@ -490,29 +469,23 @@ export default function OnboardingV3() {
                         setAvoidedFoodInput("");
                       }
                     }}
-                    disabled={!avoidedFoodInput.trim()}
-                    className="px-3 py-2 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-300 text-sm disabled:opacity-40"
                   >
                     Add
-                  </button>
+                  </PillButton>
                 </div>
-                {avoidedFoods.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {avoidedFoods.map((food) => (
-                      <span
-                        key={food}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-500/20 border border-rose-500/50 text-rose-300 text-xs"
-                      >
-                        {food}
-                        <button
-                          type="button"
+                {avoidedFoods.filter(f => !["vegetables","mushrooms","onions","seafood","pork","red meat"].includes(f)).length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {avoidedFoods
+                      .filter(f => !["vegetables","mushrooms","onions","seafood","pork","red meat"].includes(f))
+                      .map((food) => (
+                        <PillButton
+                          key={food}
+                          active={true}
                           onClick={() => setAvoidedFoods((prev) => prev.filter((f) => f !== food))}
-                          className="ml-0.5 hover:text-white"
                         >
-                          ×
-                        </button>
-                      </span>
-                    ))}
+                          {food} ×
+                        </PillButton>
+                      ))}
                   </div>
                 )}
               </div>
@@ -526,28 +499,15 @@ export default function OnboardingV3() {
             <div className="text-center space-y-2">
               <h1 className="text-2xl font-bold text-white">Any relevant medical conditions?</h1>
             </div>
-            <div className="grid grid-cols-1 gap-3 max-w-sm mx-auto">
+            <div className="flex flex-wrap gap-2 max-w-sm mx-auto">
               {MEDICAL_CONDITIONS.map((item) => (
-                <button
+                <PillButton
                   key={item.value}
+                  active={medicalConditions.includes(item.value)}
                   onClick={() => handleMedicalToggle(item.value)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg border text-left text-sm transition-all ${
-                    medicalConditions.includes(item.value)
-                      ? item.value === "none"
-                        ? "bg-green-500/20 border-green-500 text-green-300"
-                        : "bg-orange-500/20 border-orange-500 text-orange-300"
-                      : "bg-white/5 border-white/15 text-white/80 active:border-white/30"
-                  }`}
                 >
-                  <div className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${
-                    medicalConditions.includes(item.value)
-                      ? item.value === "none" ? "bg-green-500 border-green-500" : "bg-orange-500 border-orange-500"
-                      : "border-white/30"
-                  }`}>
-                    {medicalConditions.includes(item.value) && <Check className="w-3 h-3 text-white" />}
-                  </div>
                   {item.label}
-                </button>
+                </PillButton>
               ))}
             </div>
             <div className="max-w-sm mx-auto flex gap-2">
@@ -558,14 +518,13 @@ export default function OnboardingV3() {
                 className="text-white bg-white/10 border-white/20 flex-1"
                 onKeyDown={(e) => e.key === "Enter" && handleAddCustomCondition()}
               />
-              <Button
-                onClick={handleAddCustomCondition}
-                variant="outline"
-                className="bg-white/10 border-white/30 text-white active:bg-white/20"
+              <PillButton
+                active={false}
                 disabled={!customConditionInput.trim()}
+                onClick={handleAddCustomCondition}
               >
                 Add
-              </Button>
+              </PillButton>
             </div>
             {medicalConditions.filter(
               (c) => !MEDICAL_CONDITIONS.map((m) => m.value).includes(c) && c !== "none"
@@ -574,18 +533,13 @@ export default function OnboardingV3() {
                 {medicalConditions
                   .filter((c) => !MEDICAL_CONDITIONS.map((m) => m.value).includes(c) && c !== "none")
                   .map((custom) => (
-                    <span
+                    <PillButton
                       key={custom}
-                      className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-orange-500/20 border border-orange-500 text-orange-300 text-sm"
+                      active={true}
+                      onClick={() => setMedicalConditions((prev) => prev.filter((c) => c !== custom))}
                     >
-                      {custom}
-                      <button
-                        onClick={() => setMedicalConditions((prev) => prev.filter((c) => c !== custom))}
-                        className="ml-1 text-orange-300 active:text-white"
-                      >
-                        ×
-                      </button>
-                    </span>
+                      {custom} ×
+                    </PillButton>
                   ))}
               </div>
             )}
@@ -745,17 +699,13 @@ export default function OnboardingV3() {
               </label>
               <div className="flex flex-wrap gap-2">
                 {TIMELINE_OPTIONS.map((t) => (
-                  <button
+                  <PillButton
                     key={t.value}
+                    active={goalTimelineWeeks === t.value}
                     onClick={() => setGoalTimelineWeeks(goalTimelineWeeks === t.value ? null : t.value)}
-                    className={`px-4 py-2 rounded-full border text-xs font-medium transition-all ${
-                      goalTimelineWeeks === t.value
-                        ? "bg-orange-500 border-orange-500 text-white"
-                        : "bg-white/5 border-white/20 text-white/70"
-                    }`}
                   >
                     {t.label}
-                  </button>
+                  </PillButton>
                 ))}
               </div>
             </div>
@@ -770,17 +720,13 @@ export default function OnboardingV3() {
             </div>
             <div className="flex flex-wrap justify-center gap-3 max-w-md mx-auto">
               {FLAVOR_OPTIONS.map((opt) => (
-                <button
+                <PillButton
                   key={opt.value}
+                  active={flavorPreference === opt.value}
                   onClick={() => setFlavorPreference(opt.value)}
-                  className={`px-6 py-3 rounded-full border text-sm font-medium transition-all ${
-                    flavorPreference === opt.value
-                      ? "bg-orange-500 border-orange-500 text-white"
-                      : "bg-white/5 border-white/20 text-white/80 hover:border-white/40"
-                  }`}
                 >
                   {opt.label}
-                </button>
+                </PillButton>
               ))}
             </div>
 
@@ -813,17 +759,13 @@ export default function OnboardingV3() {
             </div>
             <div className="flex flex-wrap justify-center gap-3 max-w-md mx-auto">
               {SWEETENER_OPTIONS.map((opt) => (
-                <button
+                <PillButton
                   key={opt.value}
+                  active={sweetenerPreferences.includes(opt.value)}
                   onClick={() => toggleSweetener(opt.value)}
-                  className={`px-6 py-3 rounded-full border text-sm font-medium transition-all ${
-                    sweetenerPreferences.includes(opt.value)
-                      ? "bg-orange-500 border-orange-500 text-white"
-                      : "bg-white/5 border-white/20 text-white/80 hover:border-white/40"
-                  }`}
                 >
                   {opt.label}
-                </button>
+                </PillButton>
               ))}
             </div>
           </div>
