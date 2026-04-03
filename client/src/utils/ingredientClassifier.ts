@@ -10,8 +10,9 @@ import {
 } from '@/data/ingredientCategories';
 
 import { STARCHY_KEYWORDS } from '../../../shared/starchKeywords';
+import { FIBROUS_KEYWORDS } from '../../../shared/fibrousKeywords';
 
-export { STARCHY_KEYWORDS };
+export { STARCHY_KEYWORDS, FIBROUS_KEYWORDS };
 
 export interface ClassifiedIngredient {
   name: string;
@@ -116,5 +117,58 @@ export function detectStarchyIngredients(input: string | string[]): StarchDetect
   return {
     hasStarchy: matchedTerms.length > 0,
     matchedTerms,
+  };
+}
+
+/**
+ * Derive starchy and fibrous carb split from a meal's ingredients.
+ * Client-side port of server/utils/carbClassifier.ts deriveCarbs —
+ * uses the same shared keyword lists for identical classification.
+ *
+ * Supports both { name } and { item } ingredient shapes used across
+ * template meals and premade meal data files.
+ *
+ * Returns { starchyCarbs: 0, fibrousCarbs: 0 } when no ingredients
+ * are provided — caller should omit or keep those fields as-is.
+ */
+export function deriveSplitCarbs(
+  ingredients: Array<{ name?: string; item?: string } | string>,
+  totalCarbs: number,
+): { starchyCarbs: number; fibrousCarbs: number } {
+  if (!ingredients || ingredients.length === 0 || totalCarbs <= 0) {
+    return { starchyCarbs: 0, fibrousCarbs: 0 };
+  }
+
+  let starchyScore = 0;
+  let fibrousScore = 0;
+
+  for (const ing of ingredients) {
+    const raw = typeof ing === 'string' ? ing : (ing.name || (ing as any).item || '');
+    const name = raw.toLowerCase().trim();
+
+    for (const keyword of STARCHY_KEYWORDS) {
+      if (name.includes(keyword)) {
+        starchyScore += 1;
+        break;
+      }
+    }
+
+    for (const keyword of FIBROUS_KEYWORDS) {
+      if (name.includes(keyword)) {
+        fibrousScore += 1;
+        break;
+      }
+    }
+  }
+
+  const totalScore = starchyScore + fibrousScore;
+
+  if (totalScore === 0) {
+    return { starchyCarbs: 0, fibrousCarbs: totalCarbs };
+  }
+
+  return {
+    starchyCarbs: Math.round(totalCarbs * (starchyScore / totalScore)),
+    fibrousCarbs: Math.round(totalCarbs * (fibrousScore / totalScore)),
   };
 }

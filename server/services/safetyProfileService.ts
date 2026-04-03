@@ -5,7 +5,7 @@
 import { db } from "../db";
 import { users } from "../../shared/schema";
 import { eq } from "drizzle-orm";
-import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, buildForbiddenIngredients, UserSafetyProfile, maskPlantMilks, maskNutButters } from "./allergyGuardrails";
+import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, maskPlantMilks, maskNutButters } from "./allergyGuardrails";
 import { SafetyMode, validateAndConsumeOverrideToken, logSafetyOverride } from "./safetyPinService";
 
 export interface SafetyOptions {
@@ -207,6 +207,7 @@ export async function loadSafetyProfile(userId: string): Promise<SafetyProfile |
 function buildAllergyTermBank(profile: SafetyProfile): Set<string> {
   const terms = new Set<string>();
 
+  // ALLERGIES ONLY — avoidances are prompt-level preferences, not hard safety blocks
   for (const allergy of profile.allergies) {
     const key = normalize(allergy);
     const expanded = ALLERGEN_EXPANSION[key];
@@ -215,10 +216,6 @@ function buildAllergyTermBank(profile: SafetyProfile): Set<string> {
     } else {
       terms.add(key);
     }
-  }
-
-  for (const avoid of profile.avoidIngredients) {
-    terms.add(normalize(avoid));
   }
 
   return terms;

@@ -117,6 +117,8 @@ export default function OnboardingV3() {
   const [lastName, setLastName] = useState("");
   const [allergies, setAllergies] = useState<string[]>([]);
   const [customAllergyInput, setCustomAllergyInput] = useState("");
+  const [avoidedFoods, setAvoidedFoods] = useState<string[]>([]);
+  const [avoidedFoodInput, setAvoidedFoodInput] = useState("");
   const [medicalConditions, setMedicalConditions] = useState<string[]>([]);
   const [customConditionInput, setCustomConditionInput] = useState("");
   const [flavorPreference, setFlavorPreference] = useState("");
@@ -215,7 +217,7 @@ export default function OnboardingV3() {
           break;
         case 2: {
           const toSave = allergies.filter((a) => a !== "None");
-          await saveProfile({ allergies: toSave });
+          await saveProfile({ allergies: toSave, avoidedFoods });
           break;
         }
         case 3:
@@ -430,6 +432,91 @@ export default function OnboardingV3() {
                 ))}
               </div>
             )}
+
+            {/* Foods to Avoid */}
+            <div className="max-w-md mx-auto w-full pt-2">
+              <div className="rounded-xl border border-rose-500/30 bg-rose-950/10 p-4 space-y-3">
+                <div>
+                  <p className="text-rose-300 font-semibold text-sm mb-0.5">Foods to Avoid</p>
+                  <p className="text-white/50 text-xs">Foods or categories you never want in your meals — different from allergies, no PIN needed.</p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {["Vegetables", "Mushrooms", "Onions", "Seafood", "Pork", "Red Meat"].map((cat) => {
+                    const stored = cat.toLowerCase();
+                    const active = avoidedFoods.includes(stored);
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() =>
+                          setAvoidedFoods((prev) =>
+                            active ? prev.filter((f) => f !== stored) : [...prev, stored]
+                          )
+                        }
+                        className={`px-3 py-1 rounded-full text-xs border transition-all ${
+                          active
+                            ? "bg-rose-500/30 border-rose-500 text-rose-300"
+                            : "bg-white/5 border-white/15 text-white/60"
+                        }`}
+                      >
+                        {active ? "✕ " : "+ "}{cat}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={avoidedFoodInput}
+                    onChange={(e) => setAvoidedFoodInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const trimmed = avoidedFoodInput.trim().toLowerCase();
+                        if (trimmed && !avoidedFoods.includes(trimmed)) {
+                          setAvoidedFoods((prev) => [...prev, trimmed]);
+                          setAvoidedFoodInput("");
+                        }
+                      }
+                    }}
+                    placeholder="Add a specific food..."
+                    className="flex-1 bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/30 placeholder:text-white/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const trimmed = avoidedFoodInput.trim().toLowerCase();
+                      if (trimmed && !avoidedFoods.includes(trimmed)) {
+                        setAvoidedFoods((prev) => [...prev, trimmed]);
+                        setAvoidedFoodInput("");
+                      }
+                    }}
+                    disabled={!avoidedFoodInput.trim()}
+                    className="px-3 py-2 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-300 text-sm disabled:opacity-40"
+                  >
+                    Add
+                  </button>
+                </div>
+                {avoidedFoods.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {avoidedFoods.map((food) => (
+                      <span
+                        key={food}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-500/20 border border-rose-500/50 text-rose-300 text-xs"
+                      >
+                        {food}
+                        <button
+                          type="button"
+                          onClick={() => setAvoidedFoods((prev) => prev.filter((f) => f !== food))}
+                          className="ml-0.5 hover:text-white"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         );
 

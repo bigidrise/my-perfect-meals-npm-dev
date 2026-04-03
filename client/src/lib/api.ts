@@ -2,6 +2,7 @@
 import { getDeviceId } from "@/utils/deviceId";
 import { Capacitor } from "@capacitor/core";
 import { getAuthHeaders } from "@/lib/auth";
+import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 
 type Json = Record<string, any>;
 
@@ -228,29 +229,34 @@ export async function addMealToMacros({
   // Use the same working pattern as craving creator
   console.log("📊 Adding meal to macros:", { date, slot, meal: meal.title });
 
+  // AI-generated meals carry split carbs at the top level or inside nutrition.
+  // Template/premade meals may not — derive from ingredients using the same
+  // classifier the server pipeline uses.
+  const existingStarchy = meal.starchyCarbs ?? meal.nutrition?.starchyCarbs;
+  const existingFibrous = meal.fibrousCarbs ?? meal.nutrition?.fibrousCarbs;
+  const hasSplit = typeof existingStarchy === "number" && typeof existingFibrous === "number"
+    && (existingStarchy > 0 || existingFibrous > 0);
+
+  const { starchyCarbs, fibrousCarbs } = hasSplit
+    ? { starchyCarbs: existingStarchy!, fibrousCarbs: existingFibrous! }
+    : deriveSplitCarbs(meal.ingredients ?? [], meal.nutrition.carbs);
+
   const logEntry = {
-    id: meal.id || crypto.randomUUID(),
-    name: `${meal.title} (${meal.servings || 1} serving${meal.servings !== 1 ? "s" : ""})`,
-    date: date || new Date().toISOString().split("T")[0], // YYYY-MM-DD format
-    time: new Date().toLocaleTimeString("en-US", {
-      hour12: false,
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
-    calories: meal.nutrition.calories,
+    mealId: meal.id,
+    loggedAt: new Date().toISOString(),
+    mealType: slot || "lunch",
+    kcal: meal.nutrition.calories,
     protein: meal.nutrition.protein,
     carbs: meal.nutrition.carbs,
     fat: meal.nutrition.fat,
-    fiber: 0, // Default values for missing fields
-    sugar: 0,
-    sodium: 0,
-    meal_type: slot || "lunch",
-    timestamp: new Date().toISOString(),
+    starchyCarbs,
+    fibrousCarbs,
+    source: "weekly-meal-board",
   };
 
   console.log("📝 Sending log entry:", logEntry);
 
-  const result = await post("/api/food-logs", logEntry);
+  const result = await post("/api/macros/log", logEntry);
 
   // Trigger macro refresh in Biometrics dashboard
   if (typeof window !== "undefined") {

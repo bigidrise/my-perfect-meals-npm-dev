@@ -43,7 +43,7 @@ interface UseSnackCreatorRequestResult {
   generating: boolean;
   progress: number;
   error: string | null;
-  generateSnack: (description: string, dietType?: DietType, dietPhase?: BeachBodyPhase, overrideToken?: string) => Promise<Snack | null>;
+  generateSnack: (description: string, dietType?: DietType, dietPhase?: BeachBodyPhase, overrideToken?: string, forceStarch?: boolean) => Promise<Snack | null>;
   cancel: () => void;
 }
 
@@ -82,7 +82,8 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
     description: string,
     dietType?: DietType,
     dietPhase?: BeachBodyPhase,
-    overrideToken?: string
+    overrideToken?: string,
+    forceStarch?: boolean
   ): Promise<Snack | null> => {
     setGenerating(true);
     setError(null);
@@ -100,10 +101,11 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
           input: description,
           userId,
           count: 1,
-          dietType: dietType || null, // Pass diet type for guardrails
-          dietPhase: dietPhase || null, // Pass phase for BeachBody
-          overrideToken: overrideToken || null, // SafetyGuard override token
-          safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT", // Required for override token to work
+          dietType: dietType || null,
+          dietPhase: dietPhase || null,
+          overrideToken: overrideToken || null,
+          safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
+          forceStarch: forceStarch || false,
         }),
         signal: abortControllerRef.current.signal,
       });

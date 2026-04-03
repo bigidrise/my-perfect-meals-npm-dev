@@ -53,13 +53,13 @@ export function deriveCarbSplit(
   }
 
   const totalClassified = starchyCount + fibrousCount;
-  
+
   if (totalClassified === 0) {
     return { starchyGrams: 0, fibrousGrams: totalCarbs };
   }
 
-  const starchyRatio = starchyCount / (totalClassified || 1);
-  const fibrousRatio = fibrousCount / (totalClassified || 1);
+  const starchyRatio = starchyCount / totalClassified;
+  const fibrousRatio = fibrousCount / totalClassified;
 
   return {
     starchyGrams: Math.round(totalCarbs * starchyRatio),

@@ -27,6 +27,7 @@ const UpdateProfileSchema = z.object({
   palateFlavorStyle: z.enum(["classic", "herb", "savory", "bright"]).optional(),
   fontSizePreference: z.enum(["standard", "large", "xl"]).optional(),
   sweetenerPreferences: z.array(z.string()).optional(),
+  avoidedFoods: z.array(z.string()).optional(),
   fromOnboarding: z.boolean().optional(),
   // Client goals
   goalType: z.enum(["lose", "maintain", "gain"]).optional().nullable(),
@@ -76,6 +77,7 @@ router.put("/profile", requireAuth, async (req, res) => {
     if (patch.palateFlavorStyle !== undefined) updateData.palateFlavorStyle = patch.palateFlavorStyle;
     if (patch.fontSizePreference !== undefined) updateData.fontSizePreference = patch.fontSizePreference;
     if (patch.sweetenerPreferences !== undefined) updateData.sweetenerPreferences = patch.sweetenerPreferences;
+    if (patch.avoidedFoods !== undefined) updateData.avoidedFoods = patch.avoidedFoods;
     if (patch.goalType !== undefined) updateData.goalType = patch.goalType;
     if (patch.goalTarget !== undefined) updateData.goalTarget = patch.goalTarget;
     if (patch.goalTimelineWeeks !== undefined) updateData.goalTimelineWeeks = patch.goalTimelineWeeks;

@@ -63,7 +63,7 @@ export function deriveCarbs(
   }
 
   const totalScore = starchyScore + fibrousScore;
-  
+
   if (totalScore === 0) {
     return {
       starchyCarbs: 0,
