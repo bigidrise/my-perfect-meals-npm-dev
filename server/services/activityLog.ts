@@ -3,7 +3,7 @@ import { clientActivityLog, studioMemberships } from "../db/schema/studio";
 import { eq } from "drizzle-orm";
 
 type ActivityAction =
-  | "membership_created" | "membership_activated" | "membership_paused"
+  | "membership_created" | "membership_activated" | "membership_paused" | "membership_disconnected"
   | "builder_assigned" | "board_created" | "board_updated" | "board_deleted"
   | "program_updated" | "macros_updated" | "settings_changed"
   | "invite_sent" | "invite_accepted" | "note_added"
