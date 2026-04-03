@@ -73,6 +73,11 @@ export const AVOIDANCE_EXPANSION: Record<string, string[]> = {
     "green peas", "snap peas", "snow peas", "artichoke", "artichokes",
     "leeks", "celery", "fennel", "endive", "radicchio", "romaine",
     "mixed greens", "salad greens", "microgreens",
+    "lettuce", "mixed salad", "salad mix",
+    "peppers", "bell pepper", "bell peppers", "red pepper", "green pepper", "yellow pepper",
+    "cucumber", "cucumbers",
+    "eggplant", "aubergine",
+    "mushrooms", "onions",
   ],
   mushrooms: [
     "mushroom", "mushrooms", "portobello", "shiitake", "cremini", "button mushroom",
