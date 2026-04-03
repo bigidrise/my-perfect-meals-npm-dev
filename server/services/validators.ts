@@ -45,8 +45,8 @@ export async function validateMeal(
   const conf = { ...DEFAULT_CFG, ...(cfg ?? {}) };
   const reasons: string[] = [];
 
-  // Allergies / Avoids
-  const allBans = new Set([...(profile.allergies ?? []), ...(profile.avoidIngredients ?? [])].map(norm));
+  // Allergies only — avoidances are prompt-level preferences, not hard safety blocks
+  const allBans = new Set([...(profile.allergies ?? [])].map(norm));
   let allergiesCleared = true;
   for (const ing of meal.ingredients) {
     if (containsBanned(ing.item, allBans)) {
