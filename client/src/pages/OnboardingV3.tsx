@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { useToast } from "@/hooks/use-toast";
+import { PillButton } from "@/components/ui/pill-button";
 
 const TOTAL_STEPS = 7;
 
@@ -440,31 +441,27 @@ export default function OnboardingV3() {
                   <p className="text-rose-300 font-semibold text-sm mb-0.5">Foods to Avoid</p>
                   <p className="text-white/50 text-xs">Foods or categories you never want in your meals — different from allergies, no PIN needed.</p>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-2 mb-3">
                   {["Vegetables", "Mushrooms", "Onions", "Seafood", "Pork", "Red Meat"].map((cat) => {
                     const stored = cat.toLowerCase();
-                    const active = avoidedFoods.includes(stored);
                     return (
-                      <button
+                      <PillButton
                         key={cat}
-                        type="button"
+                        active={avoidedFoods.includes(stored)}
                         onClick={() =>
                           setAvoidedFoods((prev) =>
-                            active ? prev.filter((f) => f !== stored) : [...prev, stored]
+                            prev.includes(stored)
+                              ? prev.filter((f) => f !== stored)
+                              : [...prev, stored]
                           )
                         }
-                        className={`px-3 py-1 rounded-full text-xs border transition-all ${
-                          active
-                            ? "bg-rose-500/30 border-rose-500 text-rose-300"
-                            : "bg-white/5 border-white/15 text-white/60"
-                        }`}
                       >
-                        {active ? "✕ " : "+ "}{cat}
-                      </button>
+                        {cat}
+                      </PillButton>
                     );
                   })}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 mb-3">
                   <input
                     type="text"
                     value={avoidedFoodInput}
@@ -478,11 +475,12 @@ export default function OnboardingV3() {
                         }
                       }
                     }}
-                    placeholder="Add a specific food..."
-                    className="flex-1 bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/30 placeholder:text-white/30"
+                    placeholder="Type a specific food..."
+                    className="flex-1 bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-white/30"
                   />
-                  <button
-                    type="button"
+                  <PillButton
+                    active={false}
+                    disabled={!avoidedFoodInput.trim()}
                     onClick={() => {
                       const trimmed = avoidedFoodInput.trim().toLowerCase();
                       if (trimmed && !avoidedFoods.includes(trimmed)) {
@@ -490,29 +488,23 @@ export default function OnboardingV3() {
                         setAvoidedFoodInput("");
                       }
                     }}
-                    disabled={!avoidedFoodInput.trim()}
-                    className="px-3 py-2 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-300 text-sm disabled:opacity-40"
                   >
                     Add
-                  </button>
+                  </PillButton>
                 </div>
-                {avoidedFoods.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {avoidedFoods.map((food) => (
-                      <span
-                        key={food}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-500/20 border border-rose-500/50 text-rose-300 text-xs"
-                      >
-                        {food}
-                        <button
-                          type="button"
+                {avoidedFoods.filter(f => !["vegetables","mushrooms","onions","seafood","pork","red meat"].includes(f)).length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {avoidedFoods
+                      .filter(f => !["vegetables","mushrooms","onions","seafood","pork","red meat"].includes(f))
+                      .map((food) => (
+                        <PillButton
+                          key={food}
+                          active={true}
                           onClick={() => setAvoidedFoods((prev) => prev.filter((f) => f !== food))}
-                          className="ml-0.5 hover:text-white"
                         >
-                          ×
-                        </button>
-                      </span>
-                    ))}
+                          {food} ×
+                        </PillButton>
+                      ))}
                   </div>
                 )}
               </div>
