@@ -5,7 +5,7 @@
 import { db } from "../db";
 import { users } from "../../shared/schema";
 import { eq } from "drizzle-orm";
-import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, buildForbiddenIngredients, UserSafetyProfile, maskPlantMilks, maskNutButters } from "./allergyGuardrails";
+import { ALLERGEN_EXPANSION, AVOIDANCE_EXPANSION, RESTRICTION_EXPANSION, buildForbiddenIngredients, UserSafetyProfile, maskPlantMilks, maskNutButters } from "./allergyGuardrails";
 import { SafetyMode, validateAndConsumeOverrideToken, logSafetyOverride } from "./safetyPinService";
 
 export interface SafetyOptions {
@@ -218,7 +218,14 @@ function buildAllergyTermBank(profile: SafetyProfile): Set<string> {
   }
 
   for (const avoid of profile.avoidIngredients) {
-    terms.add(normalize(avoid));
+    const key = normalize(avoid);
+    const expanded = AVOIDANCE_EXPANSION[key];
+    if (expanded) {
+      terms.add(key);
+      expanded.forEach(term => terms.add(normalize(term)));
+    } else {
+      terms.add(key);
+    }
   }
 
   return terms;

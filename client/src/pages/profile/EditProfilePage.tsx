@@ -208,6 +208,11 @@ export default function EditProfilePage() {
   const [goalTarget, setGoalTarget] = useState<string>((user as any)?.goalTarget || "");
   const [goalTimelineWeeks, setGoalTimelineWeeks] = useState<number | null>((user as any)?.goalTimelineWeeks || null);
 
+  const [avoidedFoods, setAvoidedFoods] = useState<string[]>(
+    Array.isArray((user as any)?.avoidedFoods) ? (user as any).avoidedFoods : []
+  );
+  const [avoidedFoodInput, setAvoidedFoodInput] = useState("");
+
   const [allergiesUnlocked, setAllergiesUnlocked] = useState(false);
   const [allergyEditToken, setAllergyEditToken] = useState<string | null>(null);
   const [showPinModal, setShowPinModal] = useState(false);
@@ -238,6 +243,7 @@ export default function EditProfilePage() {
     setGoalType(((user as any)?.goalType as GoalType) || null);
     setGoalTarget((user as any)?.goalTarget || "");
     setGoalTimelineWeeks((user as any)?.goalTimelineWeeks ?? null);
+    setAvoidedFoods(Array.isArray((user as any)?.avoidedFoods) ? (user as any).avoidedFoods : []);
     // NOTE: intentionally NOT resetting allergiesUnlocked / allergyEditToken here
     // so that a background user-data refresh doesn't wipe the PIN unlock mid-flow
   }, [initial]);
@@ -336,12 +342,13 @@ export default function EditProfilePage() {
       const originalGoalTimelineWeeks = (user as any)?.goalTimelineWeeks || null;
       const goalChanged = goalTarget !== originalGoalTarget || goalTimelineWeeks !== originalGoalTimelineWeeks;
 
-      const payload: EditProfilePayload & { allergyEditToken?: string; heatPreference?: string } = {
+      const payload: EditProfilePayload & { allergyEditToken?: string; heatPreference?: string; avoidedFoods?: string[] } = {
         ...form,
         dietaryRestrictions: dietaryArray,
         allergies: allergiesChanged ? allergiesArray : undefined,
         sweetenerPreferences,
         heatPreference,
+        avoidedFoods,
         goalType: goalType || null,
         goalTarget: goalTarget.trim() || null,
         goalTimelineWeeks: goalTimelineWeeks,
@@ -702,6 +709,98 @@ export default function EditProfilePage() {
                 <p className="text-white/60 text-xs mt-2">
                   Your allergies are protected by your Safety PIN. This prevents accidental changes.
                 </p>
+              </div>
+
+              {/* Foods to Avoid Section */}
+              <div className="rounded-xl border border-rose-500/30 bg-rose-950/10 p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base">🚫</span>
+                  <span className="text-rose-300 font-semibold text-sm">Foods to Avoid</span>
+                </div>
+                <p className="text-white/60 text-xs mb-3">
+                  Foods or categories you never want in your meals. No PIN needed — this is a preference, not a medical safety setting.
+                </p>
+
+                {/* Quick-tap category chips */}
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {["Vegetables", "Mushrooms", "Onions", "Seafood", "Pork", "Red Meat"].map((cat) => {
+                    const stored = cat.toLowerCase();
+                    const active = avoidedFoods.includes(stored);
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() =>
+                          setAvoidedFoods((prev) =>
+                            active ? prev.filter((f) => f !== stored) : [...prev, stored]
+                          )
+                        }
+                        className={`px-3 py-1 rounded-full text-xs border transition-all ${
+                          active
+                            ? "bg-rose-500/30 border-rose-500 text-rose-300"
+                            : "bg-white/5 border-white/15 text-white/60 hover:border-white/30"
+                        }`}
+                      >
+                        {active ? "✕ " : "+ "}{cat}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Custom food input */}
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={avoidedFoodInput}
+                    onChange={(e) => setAvoidedFoodInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const trimmed = avoidedFoodInput.trim().toLowerCase();
+                        if (trimmed && !avoidedFoods.includes(trimmed)) {
+                          setAvoidedFoods((prev) => [...prev, trimmed]);
+                          setAvoidedFoodInput("");
+                        }
+                      }
+                    }}
+                    placeholder="Type a food or ingredient..."
+                    className="flex-1 bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/30 placeholder:text-white/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const trimmed = avoidedFoodInput.trim().toLowerCase();
+                      if (trimmed && !avoidedFoods.includes(trimmed)) {
+                        setAvoidedFoods((prev) => [...prev, trimmed]);
+                        setAvoidedFoodInput("");
+                      }
+                    }}
+                    disabled={!avoidedFoodInput.trim()}
+                    className="px-3 py-2 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-300 text-sm disabled:opacity-40"
+                  >
+                    Add
+                  </button>
+                </div>
+
+                {/* Active avoided foods tags */}
+                {avoidedFoods.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {avoidedFoods.map((food) => (
+                      <span
+                        key={food}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-500/20 border border-rose-500/50 text-rose-300 text-xs"
+                      >
+                        {food}
+                        <button
+                          type="button"
+                          onClick={() => setAvoidedFoods((prev) => prev.filter((f) => f !== food))}
+                          className="ml-0.5 hover:text-white"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="rounded-xl border border-white/10 bg-black/30 p-3">
