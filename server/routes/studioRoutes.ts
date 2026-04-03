@@ -9,6 +9,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { logClientActivity, logClientActivityForStudioMember } from "../services/activityLog";
 import { pushToUser } from "../services/pushNotify";
+import { deactivateProCareClient, ActivationError } from "../services/procareActivation";
 
 const router = Router();
 
@@ -209,17 +210,24 @@ router.patch("/:studioId/clients/:clientUserId/archive", async (req, res) => {
       .where(and(eq(studios.id, studioId), eq(studios.ownerUserId, userId)));
     if (!studio) return res.status(404).json({ error: "Studio not found" });
 
-    await db
-      .update(studioMemberships)
-      .set({ isArchived: true, updatedAt: new Date() })
-      .where(and(
-        eq(studioMemberships.studioId, studioId),
-        eq(studioMemberships.clientUserId, clientUserId),
-      ));
+    // Archive = full ProCare disconnect (deactivates all 3 invariant records atomically)
+    await deactivateProCareClient(clientUserId, userId, userId, "provider_archive");
 
     res.json({ success: true });
-  } catch (error) {
-    console.error("Error archiving client:", error);
+  } catch (err) {
+    if (err instanceof ActivationError && err.code === "STUDIO_NOT_FOUND") {
+      // Studio may not exist yet — fall back to just marking the membership archived
+      const { studioId, clientUserId } = req.params;
+      await db
+        .update(studioMemberships)
+        .set({ isArchived: true, status: "revoked", updatedAt: new Date() })
+        .where(and(
+          eq(studioMemberships.studioId, studioId),
+          eq(studioMemberships.clientUserId, clientUserId),
+        ));
+      return res.json({ success: true });
+    }
+    console.error("Error archiving client:", err);
     res.status(500).json({ error: "Failed to archive client" });
   }
 });
