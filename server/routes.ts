@@ -2068,6 +2068,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         flavorPreference,
         heatPreference,
         sweetenerPreferences,
+        avoidedFoods,
         goalType,
         goalTarget,
         goalTimelineWeeks,
@@ -2098,6 +2099,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (flavorPreference !== undefined) updateData.flavorPreference = flavorPreference;
       if (heatPreference !== undefined) updateData.heatPreference = heatPreference;
       if (sweetenerPreferences !== undefined) updateData.sweetenerPreferences = sweetenerPreferences;
+      if (avoidedFoods !== undefined) updateData.avoidedFoods = avoidedFoods;
       if (goalType !== undefined) updateData.goalType = goalType;
       if (goalTarget !== undefined) updateData.goalTarget = goalTarget;
       if (goalTimelineWeeks !== undefined) updateData.goalTimelineWeeks = goalTimelineWeeks;
