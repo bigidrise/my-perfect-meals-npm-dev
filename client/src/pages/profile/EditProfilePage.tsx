@@ -712,37 +712,33 @@ export default function EditProfilePage() {
               </div>
 
               {/* Foods to Avoid Section */}
-              <div className="rounded-xl border border-rose-500/30 bg-rose-950/10 p-3">
+              <div className="rounded-xl border border-white/10 bg-black/30 p-3">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-base">🚫</span>
-                  <span className="text-rose-300 font-semibold text-sm">Foods to Avoid</span>
+                  <span className="text-white/80 font-semibold text-sm">Foods to Avoid</span>
                 </div>
                 <p className="text-white/60 text-xs mb-3">
                   Foods or categories you never want in your meals. No PIN needed — this is a preference, not a medical safety setting.
                 </p>
 
-                {/* Quick-tap category chips */}
-                <div className="flex flex-wrap gap-1.5 mb-3">
+                {/* Quick-tap category pills */}
+                <div className="flex flex-wrap gap-2 mb-3">
                   {["Vegetables", "Mushrooms", "Onions", "Seafood", "Pork", "Red Meat"].map((cat) => {
                     const stored = cat.toLowerCase();
-                    const active = avoidedFoods.includes(stored);
                     return (
-                      <button
+                      <PillButton
                         key={cat}
-                        type="button"
+                        active={avoidedFoods.includes(stored)}
                         onClick={() =>
                           setAvoidedFoods((prev) =>
-                            active ? prev.filter((f) => f !== stored) : [...prev, stored]
+                            prev.includes(stored)
+                              ? prev.filter((f) => f !== stored)
+                              : [...prev, stored]
                           )
                         }
-                        className={`px-3 py-1 rounded-full text-xs border transition-all ${
-                          active
-                            ? "bg-rose-500/30 border-rose-500 text-rose-300"
-                            : "bg-white/5 border-white/15 text-white/60 hover:border-white/30"
-                        }`}
                       >
-                        {active ? "✕ " : "+ "}{cat}
-                      </button>
+                        {cat}
+                      </PillButton>
                     );
                   })}
                 </div>
@@ -762,11 +758,12 @@ export default function EditProfilePage() {
                         }
                       }
                     }}
-                    placeholder="Type a food or ingredient..."
-                    className="flex-1 bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/30 placeholder:text-white/30"
+                    placeholder="Type a specific food..."
+                    className="flex-1 bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-white/30"
                   />
-                  <button
-                    type="button"
+                  <PillButton
+                    active={false}
+                    disabled={!avoidedFoodInput.trim()}
                     onClick={() => {
                       const trimmed = avoidedFoodInput.trim().toLowerCase();
                       if (trimmed && !avoidedFoods.includes(trimmed)) {
@@ -774,31 +771,25 @@ export default function EditProfilePage() {
                         setAvoidedFoodInput("");
                       }
                     }}
-                    disabled={!avoidedFoodInput.trim()}
-                    className="px-3 py-2 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-300 text-sm disabled:opacity-40"
                   >
                     Add
-                  </button>
+                  </PillButton>
                 </div>
 
-                {/* Active avoided foods tags */}
-                {avoidedFoods.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {avoidedFoods.map((food) => (
-                      <span
-                        key={food}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-500/20 border border-rose-500/50 text-rose-300 text-xs"
-                      >
-                        {food}
-                        <button
-                          type="button"
+                {/* Custom avoided foods — shown as active pills */}
+                {avoidedFoods.filter(f => !["vegetables","mushrooms","onions","seafood","pork","red meat"].includes(f)).length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {avoidedFoods
+                      .filter(f => !["vegetables","mushrooms","onions","seafood","pork","red meat"].includes(f))
+                      .map((food) => (
+                        <PillButton
+                          key={food}
+                          active={true}
                           onClick={() => setAvoidedFoods((prev) => prev.filter((f) => f !== food))}
-                          className="ml-0.5 hover:text-white"
                         >
-                          ×
-                        </button>
-                      </span>
-                    ))}
+                          {food} ×
+                        </PillButton>
+                      ))}
                   </div>
                 )}
               </div>
