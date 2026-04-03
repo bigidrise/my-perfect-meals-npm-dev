@@ -27,6 +27,7 @@ import {
   ChevronDown,
   ChevronUp,
   X,
+  Link2Off,
 } from "lucide-react";
 import TrashButton from "@/components/ui/TrashButton";
 import ProClientFolderModal from "@/components/pro/ProClientFolderModal";
@@ -65,6 +66,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
   const [dbSynced, setDbSynced] = useState(false);
   const [folderClient, setFolderClient] = useState<ClientProfile | null>(null);
   const [folderOpen, setFolderOpen] = useState(false);
+  const [archivePendingClient, setArchivePendingClient] = useState<ClientProfile | null>(null);
 
   const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
   const [totalUnread, setTotalUnread] = useState(0);
@@ -583,7 +585,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                         ) : (
                           <>
                             <Button
-                              onClick={() => archiveClient(c.id)}
+                              onClick={() => setArchivePendingClient(c)}
                               variant="outline"
                               size="sm"
                               className="bg-orange-600/20 border-orange-500/30 text-orange-300"
@@ -686,6 +688,43 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
         onNavigate={setLocation}
         isPhysician={isPhysician}
       />
+
+      {archivePendingClient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 max-w-sm w-full flex flex-col gap-4 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-orange-500/20 border border-orange-500/40 flex items-center justify-center flex-shrink-0">
+                <Link2Off className="h-5 w-5 text-orange-400" />
+              </div>
+              <div>
+                <div className="text-white font-bold text-base">Archive {archivePendingClient.name}?</div>
+                <div className="text-white/50 text-xs mt-0.5">This will disconnect their ProCare access</div>
+              </div>
+            </div>
+            <p className="text-white/70 text-sm leading-relaxed">
+              Archiving <span className="text-white font-medium">{archivePendingClient.name}</span> will immediately end their ProCare connection. Their history is preserved and they can reconnect with a new access code.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 bg-white/5 border-white/20 text-white"
+                onClick={() => setArchivePendingClient(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 bg-orange-600 text-white"
+                onClick={() => {
+                  archiveClient(archivePendingClient.id);
+                  setArchivePendingClient(null);
+                }}
+              >
+                Yes, Archive
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }
