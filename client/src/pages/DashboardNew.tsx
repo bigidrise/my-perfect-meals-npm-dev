@@ -46,7 +46,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { TrialBanner } from "@/components/TrialBanner";
 import { TrialExpiredModal } from "@/components/TrialExpiredModal";
-import { hasActivePaidSubscription, hasPaidPlan } from "@/lib/subscriptionCheck";
+import {
+  hasActivePaidSubscription,
+  hasPaidPlan,
+} from "@/lib/subscriptionCheck";
 import { getResolvedTargets } from "@/lib/macroResolver";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { ComplianceCard } from "@/components/dashboard/ComplianceCard";
@@ -426,24 +429,18 @@ export default function DashboardNew() {
               <div className="grid grid-cols-3 gap-3">
                 <div className="flex flex-col items-center p-2 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
                   <Flame className="h-4 w-4 text-blue-500 mb-1" />
-                  <div className="text-xs text-white/60">Protein</div>
-                  <div className="text-sm font-bold text-white">
-                    {Math.round(todayMacros.protein)}g
-                  </div>
+                  <div className="text-sm font-semibold text-white/80">Protein</div>
+                  <div className="text-sm font-bold text-white"></div>
                 </div>
                 <div className="flex flex-col items-center p-2 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
                   <TrendingUp className="h-4 w-4 text-orange-500 mb-1" />
-                  <div className="text-xs text-white/60">Carbs</div>
-                  <div className="text-sm font-bold text-white">
-                    {Math.round(todayMacros.carbs)}g
-                  </div>
+                  <div className="text-sm font-semibold text-white/80">Carbs</div>
+                  <div className="text-sm font-bold text-white"></div>
                 </div>
                 <div className="flex flex-col items-center p-2 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
                   <Activity className="h-4 w-4 text-purple-500 mb-1" />
-                  <div className="text-xs text-white/60">Fat</div>
-                  <div className="text-sm font-bold text-white">
-                    {Math.round(todayMacros.fat)}g
-                  </div>
+                  <div className="text-sm font-semibold text-white/80">Fats</div>
+                  <div className="text-sm font-bold text-white"></div>
                 </div>
               </div>
             </div>
