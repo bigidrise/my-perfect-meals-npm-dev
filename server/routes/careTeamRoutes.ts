@@ -249,26 +249,50 @@ router.post("/connect", requireAuth, async (req, res) => {
         throw err;
       }
 
-      const [newMember] = await db
-        .insert(careTeamMember)
-        .values({
-          userId,
-          proUserId: accessCodeRow.proUserId,
-          name: `Linked-${trimmedCode.slice(-4)}`,
-          role: "other",
-          status: "active",
-          permissions: {
-            canViewMacros: true,
-            canAddMeals: false,
-            canEditPlan: false,
-          },
-        })
-        .returning();
+      // Check for an existing careTeamMember row for this user (reconnect / provider-switch path)
+      const [existingCareTeamMember] = await db
+        .select()
+        .from(careTeamMember)
+        .where(eq(careTeamMember.userId, userId));
+
+      let member;
+      if (existingCareTeamMember) {
+        // Reactivate or re-point to new provider
+        const [updated] = await db
+          .update(careTeamMember)
+          .set({
+            proUserId: accessCodeRow.proUserId,
+            name: `Linked-${trimmedCode.slice(-4)}`,
+            status: "active",
+            updatedAt: new Date(),
+          })
+          .where(eq(careTeamMember.id, existingCareTeamMember.id))
+          .returning();
+        member = updated;
+        console.log(`♻️ [CareTeam Connect] Reactivated existing careTeamMember for ${userId}`);
+      } else {
+        const [inserted] = await db
+          .insert(careTeamMember)
+          .values({
+            userId,
+            proUserId: accessCodeRow.proUserId,
+            name: `Linked-${trimmedCode.slice(-4)}`,
+            role: "other",
+            status: "active",
+            permissions: {
+              canViewMacros: true,
+              canAddMeals: false,
+              canEditPlan: false,
+            },
+          })
+          .returning();
+        member = inserted;
+      }
 
       await db.update(users).set({ role: "client" }).where(eq(users.id, userId));
 
       return res.json({
-        member: newMember,
+        member,
         studio: {
           studioId: activation.studioId,
           studioName: activation.studioName,

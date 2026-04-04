@@ -706,14 +706,13 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
             </p>
             <div className="flex gap-3">
               <Button
-                variant="outline"
-                className="flex-1 bg-white/5 border-white/20 text-white"
+                className="flex-1 bg-white/10 border border-white/20 text-white hover:bg-white/20"
                 onClick={() => setArchivePendingClient(null)}
               >
                 Cancel
               </Button>
               <Button
-                className="flex-1 bg-orange-600 text-white"
+                className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
                 onClick={() => {
                   archiveClient(archivePendingClient.id);
                   setArchivePendingClient(null);

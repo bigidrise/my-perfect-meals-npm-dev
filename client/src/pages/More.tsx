@@ -550,8 +550,7 @@ export default function MorePage() {
             </p>
             <div className="flex gap-3 pt-1">
               <Button
-                variant="outline"
-                className="flex-1 border-white/20 text-white hover:bg-white/10"
+                className="flex-1 bg-white/10 border border-white/20 text-white hover:bg-white/20"
                 onClick={() => setShowDisconnectConfirm(false)}
                 disabled={disconnecting}
               >
