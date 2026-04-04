@@ -259,27 +259,29 @@ router.post("/connect", requireAuth, async (req, res) => {
         throw err;
       }
 
-      // Check for an existing careTeamMember row for this user (reconnect / provider-switch path)
-      const [existingCareTeamMember] = await db
+      // Reconnect / provider-switch path for careTeamMember:
+      // 1. Prefer an exact match for this user + this provider
+      // 2. If none found, insert fresh — do NOT randomly grab an unrelated historical row
+      const [exactMatch] = await db
         .select()
         .from(careTeamMember)
-        .where(eq(careTeamMember.userId, userId));
+        .where(
+          and(
+            eq(careTeamMember.userId, userId),
+            eq(careTeamMember.proUserId, accessCodeRow.proUserId)
+          )
+        );
 
       let member;
-      if (existingCareTeamMember) {
-        // Reactivate or re-point to new provider
+      if (exactMatch) {
+        // Reactivate the exact relationship for this provider
         const [updated] = await db
           .update(careTeamMember)
-          .set({
-            proUserId: accessCodeRow.proUserId,
-            name: `Linked-${trimmedCode.slice(-4)}`,
-            status: "active",
-            updatedAt: new Date(),
-          })
-          .where(eq(careTeamMember.id, existingCareTeamMember.id))
+          .set({ status: "active", updatedAt: new Date() })
+          .where(eq(careTeamMember.id, exactMatch.id))
           .returning();
         member = updated;
-        console.log(`♻️ [CareTeam Connect] Reactivated existing careTeamMember for ${userId}`);
+        console.log(`♻️ [CareTeam Connect] Reactivated careTeamMember for ${userId} → ${accessCodeRow.proUserId}`);
       } else {
         const [inserted] = await db
           .insert(careTeamMember)
@@ -297,6 +299,7 @@ router.post("/connect", requireAuth, async (req, res) => {
           })
           .returning();
         member = inserted;
+        console.log(`✅ [CareTeam Connect] Created careTeamMember for ${userId} → ${accessCodeRow.proUserId}`);
       }
 
       await db.update(users).set({ role: "client" }).where(eq(users.id, userId));

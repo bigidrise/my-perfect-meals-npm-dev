@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { db } from "../db";
 import { studioMemberships, studios } from "../db/schema/studio";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 declare global {
   namespace Express {
@@ -33,7 +33,13 @@ export async function loadStudioMembership(req: Request, res: Response, next: Ne
     const [membership] = await db
       .select()
       .from(studioMemberships)
-      .where(eq(studioMemberships.clientUserId, userId));
+      .where(
+        and(
+          eq(studioMemberships.clientUserId, userId),
+          eq(studioMemberships.status, "active"),
+          eq(studioMemberships.isArchived, false)
+        )
+      );
 
     if (membership) {
       const [studio] = await db
