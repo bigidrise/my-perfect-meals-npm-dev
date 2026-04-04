@@ -157,8 +157,13 @@ router.post("/connect", requireAuth, async (req, res) => {
       try {
         activation = await activateProCareClient(patientId, resolvedProId, "care_team_connect_code");
       } catch (err) {
-        if (err instanceof ActivationError && err.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL") {
-          return res.status(409).json({ error: err.code, message: err.message });
+        if (err instanceof ActivationError) {
+          if (err.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL") {
+            return res.status(409).json({ error: err.code, message: err.message });
+          }
+          if (err.code === "SELF_ACTIVATION") {
+            return res.status(400).json({ error: "You cannot connect to your own provider code." });
+          }
         }
         throw err;
       }
@@ -243,8 +248,13 @@ router.post("/connect", requireAuth, async (req, res) => {
       try {
         activation = await activateProCareClient(userId, accessCodeRow.proUserId, "care_team_access_code");
       } catch (err) {
-        if (err instanceof ActivationError && err.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL") {
-          return res.status(409).json({ error: err.code, message: err.message });
+        if (err instanceof ActivationError) {
+          if (err.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL") {
+            return res.status(409).json({ error: err.code, message: err.message });
+          }
+          if (err.code === "SELF_ACTIVATION") {
+            return res.status(400).json({ error: "You cannot connect to your own provider code." });
+          }
         }
         throw err;
       }
