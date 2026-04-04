@@ -42,6 +42,12 @@ router.post("/invite", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Invalid email format. Please enter a valid email address." });
     }
 
+    // Block self-invites — caller cannot invite their own email address
+    const [callerUser] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId));
+    if (callerUser?.email && callerUser.email.trim().toLowerCase() === email) {
+      return res.status(400).json({ error: "You cannot send a care team invite to yourself. Enter your provider's email address." });
+    }
+
     console.log(`📧 Care Team invite request - role: ${role}`);
 
     const inviteCode = `MP-${nanoid(4).toUpperCase()}-${nanoid(3).toUpperCase()}`;
