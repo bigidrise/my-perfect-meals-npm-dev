@@ -135,17 +135,21 @@ export async function activateProCareClient(
         console.log(`♻️ [ProCareActivation] Restored existing membership for client ${clientUserId} in studio ${studio!.id}`);
       }
     } else if (otherStudioMembership) {
-      // Switching provider — archive old relationship and create new row
-      await tx
+      // Switching provider — unique constraint allows only ONE row per client.
+      // Update the existing row to point to the new studio rather than archive+insert.
+      const [updated] = await tx
         .update(studioMemberships)
-        .set({ status: "revoked", isArchived: true, updatedAt: new Date() })
-        .where(eq(studioMemberships.id, otherStudioMembership.id));
-
-      const [inserted] = await tx
-        .insert(studioMemberships)
-        .values({ studioId: studio!.id, clientUserId, status: "active", workspace, joinedAt: new Date() })
+        .set({
+          studioId: studio!.id,
+          status: "active",
+          isArchived: false,
+          workspace,
+          joinedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(studioMemberships.id, otherStudioMembership.id))
         .returning();
-      membership = inserted;
+      membership = updated;
       console.log(`🔄 [ProCareActivation] Switched provider for client ${clientUserId} to studio ${studio!.id}`);
     } else {
       // Brand new relationship
