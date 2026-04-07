@@ -378,9 +378,10 @@ export default function DashboardNew() {
         >
           <ProfileSheet>
             <button
-              className="p-2 bg-black/50 backdrop-blur-sm border border-white/10 rounded-lg hover:bg-black/70 hover:border-orange-500/30 transition-all"
+              className="flex items-center gap-1.5 px-3 py-2 bg-black/50 backdrop-blur-sm border border-white/10 rounded-lg hover:bg-black/70 hover:border-orange-500/30 transition-all"
               data-testid="button-my-hub"
             >
+              <span className="text-xs font-semibold text-white/80">Hub</span>
               <HubControlIcon size="md" />
             </button>
           </ProfileSheet>
