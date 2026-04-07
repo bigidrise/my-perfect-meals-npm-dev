@@ -112,7 +112,8 @@ export default function DesktopHeader() {
           </span>
         )}
         <ProfileSheet>
-          <button className="p-2 rounded-lg hover:bg-white/5 transition-colors">
+          <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors">
+            <span className="text-xs font-semibold text-white/80">Hub</span>
             <HubControlIcon size="md" />
           </button>
         </ProfileSheet>
