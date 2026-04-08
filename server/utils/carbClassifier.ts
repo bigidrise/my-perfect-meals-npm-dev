@@ -46,18 +46,27 @@ export function deriveCarbs(
 
   for (const ing of ingredients) {
     const name = (typeof ing === 'string' ? ing : (ing.name || ing.item || '')).toLowerCase();
-    
-    for (const keyword of STARCHY_KEYWORDS) {
+
+    // Fibrous is checked first and wins — vegetable/produce ingredients are
+    // always fibrous regardless of any starchy-sounding word in their name
+    // (e.g. "cauliflower rice" matches fibrous via "cauliflower", so "rice"
+    // is never evaluated and the ingredient is not dual-classified)
+    let isFibrous = false;
+    for (const keyword of FIBROUS_KEYWORDS) {
       if (name.includes(keyword)) {
-        starchyScore += 1;
+        isFibrous = true;
+        fibrousScore += 1;
         break;
       }
     }
-    
-    for (const keyword of FIBROUS_KEYWORDS) {
-      if (name.includes(keyword)) {
-        fibrousScore += 1;
-        break;
+
+    // Starchy check only runs when the ingredient is not already fibrous
+    if (!isFibrous) {
+      for (const keyword of STARCHY_KEYWORDS) {
+        if (name.includes(keyword)) {
+          starchyScore += 1;
+          break;
+        }
       }
     }
   }

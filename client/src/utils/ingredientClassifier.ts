@@ -96,10 +96,15 @@ export interface StarchDetectionResult {
 export function detectStarchyIngredients(input: string | string[]): StarchDetectionResult {
   const inputs = Array.isArray(input) ? input : [input];
   const matchedTerms: string[] = [];
-  
+
   for (const text of inputs) {
     const normalized = text.toLowerCase().trim();
-    
+
+    // Fibrous wins — if the ingredient is a vegetable/produce item,
+    // skip the starchy check entirely (e.g. "cauliflower rice" is not starchy)
+    const isFibrous = FIBROUS_KEYWORDS.some((k) => normalized.includes(k));
+    if (isFibrous) continue;
+
     for (const keyword of STARCHY_KEYWORDS) {
       if (keyword.length <= 4) {
         const regex = new RegExp(`\\b${keyword}\\b`, 'i');
@@ -113,7 +118,7 @@ export function detectStarchyIngredients(input: string | string[]): StarchDetect
       }
     }
   }
-  
+
   return {
     hasStarchy: matchedTerms.length > 0,
     matchedTerms,
@@ -146,17 +151,25 @@ export function deriveSplitCarbs(
     const raw = typeof ing === 'string' ? ing : (ing.name || (ing as any).item || '');
     const name = raw.toLowerCase().trim();
 
-    for (const keyword of STARCHY_KEYWORDS) {
+    // Fibrous is checked first and wins — vegetable/produce ingredients are
+    // always fibrous regardless of any starchy-sounding word in their name
+    // (e.g. "cauliflower rice" is fibrous; "rice" is never evaluated for it)
+    let isFibrous = false;
+    for (const keyword of FIBROUS_KEYWORDS) {
       if (name.includes(keyword)) {
-        starchyScore += 1;
+        isFibrous = true;
+        fibrousScore += 1;
         break;
       }
     }
 
-    for (const keyword of FIBROUS_KEYWORDS) {
-      if (name.includes(keyword)) {
-        fibrousScore += 1;
-        break;
+    // Starchy check only runs when the ingredient is not already fibrous
+    if (!isFibrous) {
+      for (const keyword of STARCHY_KEYWORDS) {
+        if (name.includes(keyword)) {
+          starchyScore += 1;
+          break;
+        }
       }
     }
   }

@@ -10,6 +10,7 @@
  */
 
 import { STARCHY_KEYWORDS } from '../../../shared/starchKeywords';
+import { FIBROUS_KEYWORDS } from '../../../shared/fibrousKeywords';
 
 interface Ingredient {
   name?: string;
@@ -31,12 +32,34 @@ export interface StarchClassification {
 }
 
 /**
- * Check if an ingredient contains any starchy carb
- * Uses the shared STARCHY_KEYWORDS list for consistency with server-side logic
+ * Check if an ingredient is fibrous (vegetable/produce-based).
+ * Fibrous classification takes priority — if this returns true,
+ * the ingredient must not be evaluated as starchy.
+ */
+function containsFibrous(ingredientName: string): boolean {
+  const name = ingredientName.toLowerCase().trim();
+  for (const keyword of FIBROUS_KEYWORDS) {
+    if (name.includes(keyword)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Check if an ingredient contains any starchy carb.
+ * Only called after confirming the ingredient is NOT fibrous.
+ * Uses the shared STARCHY_KEYWORDS list for consistency with server-side logic.
  */
 function containsStarch(ingredientName: string): string | null {
   const name = ingredientName.toLowerCase().trim();
-  
+
+  // Fibrous wins — vegetable-based ingredients are never starchy,
+  // even when their name contains a starchy-sounding word (e.g. "cauliflower rice")
+  if (containsFibrous(name)) {
+    return null;
+  }
+
   for (const starch of STARCHY_KEYWORDS) {
     if (starch.length <= 4) {
       const regex = new RegExp(`\\b${starch}\\b`, 'i');
@@ -49,7 +72,7 @@ function containsStarch(ingredientName: string): string | null {
       }
     }
   }
-  
+
   return null;
 }
 
