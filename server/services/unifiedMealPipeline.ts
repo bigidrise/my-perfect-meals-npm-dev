@@ -1154,10 +1154,16 @@ export async function generateFromDescriptionUnified(
     
     if (userId) {
       if (isValidHubType(dietType)) {
+        // Caller explicitly named a clinical hub — use it directly.
         effectiveHubType = dietType;
-      } else {
+      } else if (dietType == null) {
+        // No diet type provided at all — auto-detect from the user's profile.
+        // This covers legacy callers that omit the field entirely.
         effectiveHubType = await detectHubTypeFromProfile(userId);
       }
+      // else: caller passed an explicit non-hub diet type (e.g. "general-nutrition",
+      // "beachbody") — respect that intent and skip clinical hub injection entirely.
+      // The weekly meal builder, general nutrition builder, etc. all fall here.
       
       if (effectiveHubType) {
         try {
@@ -1463,9 +1469,10 @@ export async function generateSnackFromCravingUnified(
     if (userId) {
       if (isValidHubType(dietType)) {
         snackEffectiveHubType = dietType;
-      } else {
+      } else if (dietType == null) {
         snackEffectiveHubType = await detectHubTypeFromProfile(userId);
       }
+      // else: explicit non-hub diet type → skip clinical hub injection
       
       if (snackEffectiveHubType) {
         try {
