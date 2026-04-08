@@ -9,10 +9,10 @@ import {
   PANTRY_STAPLES
 } from '@/data/ingredientCategories';
 
-import { STARCHY_KEYWORDS } from '../../../shared/starchKeywords';
+import { STARCHY_KEYWORDS, EXPLICIT_STARCH_KEYWORDS } from '../../../shared/starchKeywords';
 import { FIBROUS_KEYWORDS } from '../../../shared/fibrousKeywords';
 
-export { STARCHY_KEYWORDS, FIBROUS_KEYWORDS };
+export { STARCHY_KEYWORDS, EXPLICIT_STARCH_KEYWORDS, FIBROUS_KEYWORDS };
 
 export interface ClassifiedIngredient {
   name: string;
@@ -125,6 +125,42 @@ export function detectStarchyIngredients(input: string | string[]): StarchDetect
     hasStarchy: matchedTerms.length > 0,
     matchedTerms,
   };
+}
+
+/**
+ * Detect whether a free-text user description contains an explicit, named
+ * starch request that should auto-override the starch slot guard.
+ *
+ * Uses EXPLICIT_STARCH_KEYWORDS (unambiguous starch foods) and respects
+ * fibrous-first protection — if the starch keyword appears inside a known
+ * fibrous phrase (e.g. "cauliflower rice"), it is NOT counted as explicit.
+ *
+ * Returns true  → clear starch intent: auto-override, skip dialog
+ * Returns false → vague/ambiguous: keep dialog path
+ */
+export function hasExplicitStarchRequest(description: string): boolean {
+  const descLower = description.toLowerCase().trim();
+
+  for (const keyword of EXPLICIT_STARCH_KEYWORDS) {
+    // Check presence with word-boundary protection for short keywords
+    const present =
+      keyword.length <= 4
+        ? new RegExp(`\\b${keyword}\\b`, 'i').test(descLower)
+        : descLower.includes(keyword);
+
+    if (!present) continue;
+
+    // Fibrous-first: if this keyword sits inside a known fibrous phrase
+    // that is also present in the description, it is overridden — skip it.
+    // Example: "rice" in "cauliflower rice" → overridden, not explicit starch.
+    const overridden = FIBROUS_KEYWORDS.some(
+      (fk) => fk.includes(keyword) && descLower.includes(fk),
+    );
+
+    if (!overridden) return true;
+  }
+
+  return false;
 }
 
 /**
