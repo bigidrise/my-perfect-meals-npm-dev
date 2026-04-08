@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useLocation, useRoute } from "wouter";
 import { usePageTitle } from "@/contexts/PageTitleContext";
-import { proStore } from "@/lib/proData";
 import { MealCard, Meal } from "@/components/MealCard";
 import { getWeekBoard, saveWeekBoard, removeMealFromCurrentWeek, getCurrentWeekBoard, getWeekBoardByDate, putWeekBoard, type WeekBoard, getDayLists, setDayLists, cloneDayLists } from "@/lib/boardApi";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
@@ -28,7 +27,6 @@ import { ProTipCard } from "@/components/ProTipCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { lockDay, isDayLocked } from "@/lib/lockedDays";
 import { setQuickView } from "@/lib/macrosQuickView";
-import { getMacroTargets } from "@/lib/dailyLimits";
 import WeeklyOverviewModal from "@/components/WeeklyOverviewModal";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { normalizeIngredients } from "@/utils/ingredientParser";
@@ -126,17 +124,6 @@ export default function WeeklyMealBoard() {
   const readOnly = !proClientId && boardLocked;
 
   const effectiveUserId = proClientId || user?.id;
-
-  // Coach Targets - READ ONLY (set from Client Dashboard)
-  const coachTargetsDisplay = useMemo(() => {
-    const targets = proStore.getTargets(clientId);
-    return {
-      protein: targets.protein || 0,
-      starchy: targets.starchyCarbs || 0,
-      fibrous: targets.fibrousCarbs || 0,
-      fats: targets.fat || 0,
-    };
-  }, [clientId]);
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
@@ -1282,54 +1269,6 @@ export default function WeeklyMealBoard() {
           ))
         )}
 
-        {/* ================================
-            COACH TARGETS (General Nutrition Builder) - READ ONLY
-            Set from Client Dashboard
-        ==================================== */}
-        <div className="col-span-full mt-6 rounded-2xl bg-black/30 backdrop-blur-xl border border-white/20 p-6">
-          <h2 className="text-white text-lg font-bold mb-4 flex items-center gap-2">
-            🎯 Coach Targets
-          </h2>
-
-          <div className="grid grid-cols-2 gap-4">
-            {/* Protein */}
-            <div className="flex flex-col">
-              <label className="text-sm text-white/70 mb-1">Protein (g)</label>
-              <div className="bg-black/40 border border-white/20 text-white rounded-xl px-3 py-2">
-                {coachTargetsDisplay.protein}
-              </div>
-            </div>
-
-            {/* Starchy Carbs */}
-            <div className="flex flex-col">
-              <label className="text-sm text-white/70 mb-1">Starchy Carbs (g)</label>
-              <div className="bg-black/40 border border-white/20 text-white rounded-xl px-3 py-2">
-                {coachTargetsDisplay.starchy}
-              </div>
-            </div>
-
-            {/* Fibrous Carbs */}
-            <div className="flex flex-col">
-              <label className="text-sm text-white/70 mb-1">Fibrous Carbs (g)</label>
-              <div className="bg-black/40 border border-white/20 text-white rounded-xl px-3 py-2">
-                {coachTargetsDisplay.fibrous}
-              </div>
-            </div>
-
-            {/* Fats */}
-            <div className="flex flex-col">
-              <label className="text-sm text-white/70 mb-1">Fats (g)</label>
-              <div className="bg-black/40 border border-white/20 text-white rounded-xl px-3 py-2">
-                {coachTargetsDisplay.fats}
-              </div>
-            </div>
-          </div>
-
-          <p className="mt-4 text-sm text-white/60 text-center">
-            Set targets from Client Dashboard
-          </p>
-        </div>
-
         {/* Pro Tip Card */}
         <ProTipCard />
 
@@ -1339,14 +1278,13 @@ export default function WeeklyMealBoard() {
             userId={effectiveUserId}
             showQuickAddButton={false}
             targetsOverride={(() => {
-              const coachTargets = proStore.getTargets(clientId);
-              const totalCarbs = (coachTargets.starchyCarbs || 0) + (coachTargets.fibrousCarbs || 0);
+              const resolved = getResolvedTargets(effectiveUserId);
               return {
-                protein_g: coachTargets.protein,
-                carbs_g: totalCarbs,
-                fat_g: coachTargets.fat,
-                starchyCarbs_g: coachTargets.starchyCarbs || 0,
-                fibrousCarbs_g: coachTargets.fibrousCarbs || 0,
+                protein_g: resolved.protein_g || 0,
+                carbs_g: resolved.carbs_g || 0,
+                fat_g: resolved.fat_g || 0,
+                starchyCarbs_g: resolved.starchyCarbs_g,
+                fibrousCarbs_g: resolved.fibrousCarbs_g,
               };
             })()}
           />
@@ -1402,33 +1340,20 @@ export default function WeeklyMealBoard() {
               fibrousCarbs: slots.breakfast.fibrousCarbs + slots.lunch.fibrousCarbs + slots.dinner.fibrousCarbs + slots.snacks.fibrousCarbs,
             };
             const dayAlreadyLocked = isDayLocked(activeDayISO, effectiveUserId);
-            
-            // Get coach targets from proStore for this client
-            const coachTargets = proStore.getTargets(clientId);
-            const totalCarbs = (coachTargets.starchyCarbs || 0) + (coachTargets.fibrousCarbs || 0);
-            const totalCalories = (coachTargets.protein * 4) + (totalCarbs * 4) + (coachTargets.fat * 9);
-            const targetsForFooter = {
-              calories: totalCalories,
-              protein_g: coachTargets.protein,
-              carbs_g: totalCarbs,
-              fat_g: coachTargets.fat,
-              starchyCarbs_g: coachTargets.starchyCarbs || 0,
-              fibrousCarbs_g: coachTargets.fibrousCarbs || 0,
-            };
+            const resolved = getResolvedTargets(effectiveUserId);
             
             return (
               <div className="col-span-full mb-6">
                 <RemainingMacrosFooter
                   consumedOverride={consumed}
-                  targetsOverride={targetsForFooter}
                   showSaveButton={!dayAlreadyLocked}
                   layoutMode="inline"
                   onSaveDay={async () => {
                     const targets = {
-                      calories: targetsForFooter.calories,
-                      protein_g: targetsForFooter.protein_g,
-                      carbs_g: targetsForFooter.carbs_g,
-                      fat_g: targetsForFooter.fat_g,
+                      calories: resolved.calories || 0,
+                      protein_g: resolved.protein_g || 0,
+                      carbs_g: resolved.carbs_g || 0,
+                      fat_g: resolved.fat_g || 0,
                     };
                     const result = await lockDay({
                       dateISO: activeDayISO,
