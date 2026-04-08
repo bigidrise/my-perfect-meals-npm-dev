@@ -24,7 +24,7 @@ import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { StarchOverrideToggle } from "@/components/StarchOverrideToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
-import { detectStarchyIngredients } from "@/utils/ingredientClassifier";
+import { detectStarchyIngredients, hasExplicitStarchRequest } from "@/utils/ingredientClassifier";
 import { isAllergyRelatedError } from "@/utils/allergyAlert";
 
 interface CreateWithChefModalProps {
@@ -193,15 +193,28 @@ export function CreateWithChefModal({
       return;
     }
 
-    // STARCH GUARD CHECK - if starch slots exhausted AND requesting starchy food
-    // Skip if user has explicitly enabled starch override for this meal
+    // STARCH GUARD — Option C: intent-aware, not a hard blocker
+    // If starch slots are exhausted and the user hasn't already overridden:
+    //   • Explicit named starch (rice, pasta, hash browns…) → auto-override,
+    //     no dialog. Server's own starchy-keyword detection will set forceStarch.
+    //   • Vague / ambiguous starch reference → show the dialog so user decides.
+    //   • No starch detected at all → proceed normally.
     if (starchStatus.isExhausted && !starchOverride) {
-      const detection = detectStarchyIngredients(description.trim());
-      if (detection.hasStarchy) {
-        console.log('🥔 [StarchGuard] BLOCKED - Starch slots exhausted, starchy request detected');
-        setStarchBlocked(true);
-        setStarchMatchedTerms(detection.matchedTerms);
-        return;
+      const trimmedDesc = description.trim();
+
+      if (hasExplicitStarchRequest(trimmedDesc)) {
+        // User named a real starch — respect their intent, skip the dialog.
+        // The server detects the keyword independently and applies forceStarch.
+        console.log('🥔 [StarchGuard] AUTO-OVERRIDE: explicit starch named, proceeding without dialog');
+        // fall through to normal generation below
+      } else {
+        const detection = detectStarchyIngredients(trimmedDesc);
+        if (detection.hasStarchy) {
+          console.log('🥔 [StarchGuard] DIALOG: vague starch reference, showing override prompt');
+          setStarchBlocked(true);
+          setStarchMatchedTerms(detection.matchedTerms);
+          return;
+        }
       }
     }
 

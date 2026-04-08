@@ -11,6 +11,49 @@
  * 3. Server: Auto-detection of user-requested starchy foods
  */
 
+/**
+ * EXPLICIT_STARCH_KEYWORDS — intent-aware auto-override list
+ *
+ * A curated subset of STARCHY_KEYWORDS covering unambiguously named starch
+ * foods. When a user's free-text description matches one of these terms
+ * (and it is not overridden by a fibrous phrase), the starch slot guard
+ * auto-overrides silently — no dialog shown — because user intent is clear.
+ *
+ * Deliberately EXCLUDED:
+ *   - pizza, sandwich, burger, muffin, cracker  (ambiguous composition)
+ *   - beans, lentils, chickpeas, hummus         (legumes stay in general carb detection only)
+ *   - pea/peas, roll, wrap, corn                (too short / too vague)
+ */
+export const EXPLICIT_STARCH_KEYWORDS: string[] = [
+  // Potatoes
+  'potato', 'potatoes', 'hash brown', 'hashbrown',
+  'fries', 'french fries', 'mashed potato', 'baked potato',
+  'sweet potato', 'yam',
+
+  // Rice
+  'rice', 'white rice', 'brown rice', 'jasmine rice', 'basmati rice', 'wild rice',
+
+  // Pasta (named varieties — generic "noodles" kept out intentionally)
+  'pasta', 'spaghetti', 'penne', 'fettuccine', 'macaroni', 'lasagna', 'ramen',
+
+  // Bread / baked
+  'bread', 'toast', 'bagel', 'bun', 'croissant', 'biscuit',
+
+  // Flatbreads / breakfast starch
+  'tortilla', 'flour tortilla', 'pancake', 'waffle', 'crepe', 'pita', 'flatbread',
+
+  // Grains
+  'oats', 'oatmeal', 'steel cut oats', 'rolled oats',
+  'quinoa', 'couscous', 'polenta', 'grits',
+  'barley', 'bulgur', 'farro', 'millet',
+
+  // Cereal
+  'cereal', 'granola', 'cornflakes', 'rice krispies', 'puffed rice',
+
+  // Corn — explicit forms only
+  'corn tortilla', 'popcorn',
+];
+
 export const STARCHY_KEYWORDS = [
   'potato', 'potatoes', 'tater', 'hash brown', 'hashbrown',
   'french fries', 'fries', 'mashed potato', 'baked potato',
