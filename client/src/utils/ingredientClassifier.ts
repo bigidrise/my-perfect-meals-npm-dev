@@ -100,10 +100,12 @@ export function detectStarchyIngredients(input: string | string[]): StarchDetect
   for (const text of inputs) {
     const normalized = text.toLowerCase().trim();
 
-    // Fibrous wins — if the ingredient is a vegetable/produce item,
-    // skip the starchy check entirely (e.g. "cauliflower rice" is not starchy)
-    const isFibrous = FIBROUS_KEYWORDS.some((k) => normalized.includes(k));
-    if (isFibrous) continue;
+    // No fibrous suppression here — this function scans free-text user
+    // descriptions, not individual ingredient names. A request like
+    // "brown rice with broccoli" legitimately contains BOTH starchy and
+    // fibrous words; the starchy term must still be detected.
+    // Fibrous-first logic belongs only in per-ingredient scorers
+    // (deriveSplitCarbs, containsStarch) where each item is evaluated alone.
 
     for (const keyword of STARCHY_KEYWORDS) {
       if (keyword.length <= 4) {
