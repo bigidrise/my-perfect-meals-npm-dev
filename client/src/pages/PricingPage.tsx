@@ -720,9 +720,9 @@ export default function PricingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {consumerPlans.map((plan) => {
               const features =
-                plan.sku === "mpm_basic_monthly"
+                plan.sku === "mpm_basic"
                   ? basicFeatures
-                  : plan.sku === "mpm_premium_monthly"
+                  : plan.sku === "mpm_premium"
                     ? premiumFeatures
                     : ultimateFeatures;
 

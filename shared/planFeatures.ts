@@ -27,7 +27,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
   free: {
     tier: "free",
     displayFeatures: [
-      "AI Fridge Rescue (1/day)",
+      "AI Fridge Rescue (1x per week)",
       "Macro Calculator",
       "MacroScan",
       "Biometrics Tracking",
@@ -44,6 +44,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
     tier: "basic",
     displayFeatures: [
       "Everything in Free",
+      "AI Fridge Rescue (unlimited)",
       "Copilot Voice Guidance",
       "Multi-Language Voice Input & Translation",
       "Weekly Meal Builder",
@@ -61,6 +62,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "alcohol_hub",
       "hormones_women",
       "hormones_men",
+      "fridge_rescue",
     ],
   },
   premium: {
@@ -71,7 +73,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "Craving Presets (healthy AI-created favorites)",
       "Craving Creator plus Studio (healthy versions of your favorite cravings)",
       "Dessert Creator plus Studio (healthy versions of your favorite desserts)",
-      "Fridge Rescue plus Studio (turn what you have into meals)",
+      "Fridge Rescue Studio (turn what you have into full custom meals)",
       "Restaurant Guide",
       "Find Meals Near Me",
     ],
@@ -122,6 +124,7 @@ export const IOS_DISPLAY_FEATURES: Record<string, string[]> = {
   basic: [
     "Copilot Voice Guidance",
     "Multi-Language Voice Input & Translation",
+    "AI Fridge Rescue (unlimited)",
     "Weekly Meal Board",
     "GLP-1 & Diabetic Support",
     "Anti-Inflammatory Builder",
