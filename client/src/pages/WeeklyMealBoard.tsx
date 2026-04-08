@@ -2378,6 +2378,7 @@ export default function WeeklyMealBoard() {
           mealType={createWithChefSlot}
           onMealGenerated={handleCreateWithChefSelect}
           starchContext={starchContext}
+          dietType="general-nutrition"
         />
 
         {/* Snack Creator Modal (Phase 2 - craving to healthy snack) */}
