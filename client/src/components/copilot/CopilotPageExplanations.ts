@@ -491,6 +491,36 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
+  "/performance-competition-builder": {
+    pageId: "performance-competition-builder-athlete",
+    title: "Performance & Competition Meal Builder",
+    description:
+      "Build precision performance meals for training and competition. The starch indicator shows your daily starch meal status — green means slots available, orange means they're covered for the day.",
+    spokenText:
+      "Welcome to the Performance and Competition Meal Builder. This builder is designed for athletes who are training hard, prepping for competition, or dialing in performance nutrition. Use Create with Chef to describe exactly what you want — any cuisine, any protein source, any structure — and I'll build meals that support your output. Pay attention to the starch indicator at the top — green means starch slots are available, orange means they're covered for today. Fibrous carbs like vegetables are unlimited and should make up the base of your meals, while starchy carbs are managed using the Starch Game Plan you set in the Macro Calculator. As you build, focus on protein and carbs first — those drive energy availability, recovery, and performance. Fat and calories still matter, but protein and carbs are your primary levers. When you're finished for the day, you can send everything to Biometrics, add ingredients to your shopping list, or lock your day in. Build breakfast, lunch, dinner, and snacks to match your training schedule and let the builder do the heavy lifting.",
+    autoClose: true,
+  },
+
+  "/pro/performance-competition-builder": {
+    pageId: "pro-performance-competition-builder-standalone",
+    title: "Performance & Competition Meal Builder",
+    description:
+      "Build precision performance meals for training and competition. The starch indicator shows your daily starch meal status — green means slots available, orange means they're covered for the day.",
+    spokenText:
+      "Welcome to the Performance and Competition Meal Builder. This builder is designed for athletes who are training hard, prepping for competition, or dialing in performance nutrition. Use Create with Chef to describe exactly what you want — any cuisine, any protein source, any structure — and I'll build meals that support your output. Pay attention to the starch indicator at the top — green means starch slots are available, orange means they're covered for today. Fibrous carbs like vegetables are unlimited and should make up the base of your meals, while starchy carbs are managed using the Starch Game Plan you set in the Macro Calculator. As you build, focus on protein and carbs first — those drive energy availability, recovery, and performance. Fat and calories still matter, but protein and carbs are your primary levers. When you're finished for the day, you can send everything to Biometrics, add ingredients to your shopping list, or lock your day in. Build breakfast, lunch, dinner, and snacks to match your training schedule and let the builder do the heavy lifting.",
+    autoClose: true,
+  },
+
+  "/pro/general-nutrition-builder": {
+    pageId: "pro-general-nutrition-builder-standalone",
+    title: "General Nutrition Meal Builder",
+    description:
+      "Build balanced, everyday meals for sustainable nutrition. Plan your week by meal slot, manage starchy and fibrous carbs, and stay aligned with your macro targets.",
+    spokenText:
+      "Welcome to the General Nutrition Meal Builder. This builder is your go-to for everyday, sustainable eating — not a specialty diet, not a competition prep, just solid nutrition that fits your lifestyle and goals. Use Create with Chef to describe what you want — any cuisine, any style — and I'll build meals that match your targets. Pay attention to the starch indicator — green means starch slots are available, orange means they're covered for today. Fibrous carbs like vegetables are unlimited and should anchor your meals, while starchy carbs like rice, pasta, and potatoes are managed using the Starch Game Plan from your Macro Calculator. Build breakfast, lunch, dinner, and snacks one at a time, or plan your full week. As you build, focus on protein and starchy carbs — those two drive the most change in how you feel and perform. When you're done, send your day to Biometrics, add ingredients to your shopping list, or lock it in and move on. This builder is designed to feel easy — use it daily and let it become your routine.",
+    autoClose: true,
+  },
+
   "/pro/clients/:id/performance-competition-builder": {
     pageId: "procare-performance-competition-builder",
     title: "ProCare Performance & Competition Meal Builder",
