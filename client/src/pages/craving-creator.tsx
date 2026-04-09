@@ -1353,18 +1353,27 @@ export default function CravingCreator() {
 
                         return medicalBadges && medicalBadges.length > 0 ? (
                           <div className="mb-4">
-                            <div className="flex items-center gap-3">
-                              <HealthBadgesPopover
-                                badges={medicalBadges.map((b: any) =>
-                                  typeof b === "string"
-                                    ? b
-                                    : b.badge || b.id || b.condition || b.label,
-                                )}
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                <HealthBadgesPopover
+                                  badges={medicalBadges.map((b: any) =>
+                                    typeof b === "string"
+                                      ? b
+                                      : b.badge || b.id || b.condition || b.label,
+                                  )}
+                                />
+                                <h3 className="font-semibold text-white">
+                                  Medical Safety
+                                </h3>
+                              </div>
+                              <TrashButton
+                                size="sm"
+                                ariaLabel="Remove meal"
+                                title="Remove meal"
+                                confirm={true}
+                                confirmMessage="Remove this meal?"
+                                onClick={() => setGeneratedMeals(prev => prev.filter((_, i) => i !== index))}
                               />
-
-                              <h3 className="font-semibold text-white">
-                                Medical Safety
-                              </h3>
                             </div>
                           </div>
                         ) : null;

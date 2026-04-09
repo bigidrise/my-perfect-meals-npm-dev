@@ -26,6 +26,7 @@ import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import PhaseGate from "@/components/PhaseGate";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
+import TrashButton from "@/components/ui/TrashButton";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
@@ -891,6 +892,17 @@ export default function DessertCreator() {
                           Medical Safety
                         </h3>
                       </div>
+                      <TrashButton
+                        size="sm"
+                        ariaLabel="Remove dessert"
+                        title="Remove dessert"
+                        confirm={true}
+                        confirmMessage="Remove this dessert?"
+                        onClick={() => {
+                          setGeneratedDessert(null);
+                          localStorage.removeItem("mpm_dessert_creator_result");
+                        }}
+                      />
                     </div>
                   </div>
 
