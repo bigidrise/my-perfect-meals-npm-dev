@@ -138,19 +138,7 @@ export function MealCard({
       )}
 
       <div className="p-4">
-        <div className="absolute top-2 right-2 z-50" onClick={(e) => e.stopPropagation()}>
-          <TrashButton
-            size="sm"
-            onClick={() => onUpdated(null)}
-            ariaLabel="Delete meal"
-            title="Delete meal"
-            confirm={true}
-            confirmMessage="Remove this meal from the board?"
-            className="touch-manipulation"
-          />
-        </div>
-
-        <div className="pr-12">
+        <div>
           <div className="flex items-start justify-between gap-2">
             <h3 className="text-white font-semibold leading-snug text-lg flex-1">
               {displayTitle.includes('(') ? (
@@ -168,12 +156,12 @@ export function MealCard({
             )}
           </div>
           
-          {/* Description (EXACT COPY FROM FRIDGE RESCUE) */}
+          {/* Description */}
           {displayDescription && (
             <p className="text-sm text-white/80 mt-1">{displayDescription}</p>
           )}
 
-          {/* Medical Badges - RESTORED DROPDOWN (EXACT COPY FROM FRIDGE RESCUE) */}
+          {/* Medical Safety row — always rendered, trash anchored to the right */}
           {(() => {
             const userProfile = getUserMedicalProfile(1);
             const mealForBadges = {
@@ -185,10 +173,27 @@ export function MealCard({
             const medicalBadges = generateMedicalBadges(mealForBadges, userProfile);
             const badgeIds = medicalBadges.map(b => b.badge);
             
-            return medicalBadges && medicalBadges.length > 0 && (
-              <div className="mt-2 flex items-center gap-2">
-                <HealthBadgesPopover badges={badgeIds} />
-                <h3 className="font-semibold text-white text-sm">Medical Safety</h3>
+            return (
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  {medicalBadges.length > 0 && (
+                    <>
+                      <HealthBadgesPopover badges={badgeIds} />
+                      <h3 className="font-semibold text-white text-sm">Medical Safety</h3>
+                    </>
+                  )}
+                </div>
+                <div onClick={(e) => e.stopPropagation()}>
+                  <TrashButton
+                    size="sm"
+                    onClick={() => onUpdated(null)}
+                    ariaLabel="Delete meal"
+                    title="Delete meal"
+                    confirm={true}
+                    confirmMessage="Remove this meal from the board?"
+                    className="touch-manipulation"
+                  />
+                </div>
               </div>
             );
           })()}
