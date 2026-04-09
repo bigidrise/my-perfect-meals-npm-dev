@@ -81,10 +81,10 @@ const SWEETENER_OPTIONS = [
 ];
 
 const BUILDER_OPTIONS = [
-  { id: "general", name: "General Nutrition", description: "Balanced, healthy meals for everyday life" },
+  { id: "weekly", name: "Weekly Meal Builder", description: "Balanced, healthy meals for everyday life" },
   { id: "diabetic", name: "Diabetes Support", description: "Blood-sugar awareness and stability" },
   { id: "glp1", name: "GLP-1 Support", description: "For users on GLP-1 medications" },
-  { id: "anti-inflammatory", name: "Anti-Inflammatory", description: "Support long-term inflammation management" },
+  { id: "anti_inflammatory", name: "Anti-Inflammatory", description: "Support long-term inflammation management" },
 ];
 
 function getRecommendedBuilder(conditions: string[]): string {
@@ -102,8 +102,8 @@ function getRecommendedBuilder(conditions: string[]): string {
     conditions.includes("rheumatoid-arthritis") ||
     conditions.includes("psoriasis") ||
     conditions.includes("lupus")
-  ) return "anti-inflammatory";
-  return "general";
+  ) return "anti_inflammatory";
+  return "weekly";
 }
 
 export default function OnboardingV3() {
