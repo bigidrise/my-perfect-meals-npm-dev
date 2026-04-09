@@ -65,7 +65,7 @@ export async function attemptBuilderSwitch(
   }
 
   if (user.builderSwitchUnlimited) {
-    await db.update(users).set({ selectedMealBuilder: newBuilder }).where(eq(users.id, userId));
+    await db.update(users).set({ selectedMealBuilder: newBuilder, activeBoard: newBuilder }).where(eq(users.id, userId));
     const status = await getBuilderSwitchStatus(userId);
     return { success: true, status };
   }
@@ -86,6 +86,7 @@ export async function attemptBuilderSwitch(
     .update(users)
     .set({
       selectedMealBuilder: newBuilder,
+      activeBoard: newBuilder,
       builderChangesUsed: used + 1,
     })
     .where(eq(users.id, userId));
