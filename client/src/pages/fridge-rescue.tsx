@@ -1066,19 +1066,29 @@ const FridgeRescuePage = () => {
                       </div>
 
                       {/* Medical Badges */}
-                      <div className="flex items-center gap-2">
-                        <HealthBadgesPopover
-                          badges={
-                            meal.medicalBadges?.map((b: any) =>
-                              typeof b === "string"
-                                ? b
-                                : b.badge || b.id || b.condition || b.label,
-                            ) || []
-                          }
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <HealthBadgesPopover
+                            badges={
+                              meal.medicalBadges?.map((b: any) =>
+                                typeof b === "string"
+                                  ? b
+                                  : b.badge || b.id || b.condition || b.label,
+                              ) || []
+                            }
+                          />
+                          <h3 className="font-semibold text-white text-sm">
+                            Medical Safety
+                          </h3>
+                        </div>
+                        <TrashButton
+                          size="sm"
+                          ariaLabel="Remove meal"
+                          title="Remove meal"
+                          confirm={true}
+                          confirmMessage="Remove this meal?"
+                          onClick={() => setMeals(prev => prev.filter((_, i) => i !== index))}
                         />
-                        <h3 className="font-semibold text-white text-sm">
-                          Medical Safety
-                        </h3>
                       </div>
 
                       {/* Ingredients */}

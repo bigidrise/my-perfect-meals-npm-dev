@@ -44,6 +44,7 @@ import {
 import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import TrashButton from "@/components/ui/TrashButton";
 
 const BEVERAGE_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -703,6 +704,14 @@ export default function BeverageCreator() {
                           Medical Safety
                         </h3>
                       </div>
+                      <TrashButton
+                        size="sm"
+                        ariaLabel="Remove beverage"
+                        title="Remove beverage"
+                        confirm={true}
+                        confirmMessage="Remove this beverage?"
+                        onClick={() => setGeneratedBeverage(null)}
+                      />
                     </div>
                   </div>
 
