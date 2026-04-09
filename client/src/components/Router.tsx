@@ -158,9 +158,7 @@ import PairingsAI from "@/pages/lifestyle/PairingsAI";
 import WineListHelper from "@/pages/lifestyle/WineListHelper";
 import ReduceDrinkingPlan from "@/pages/lifestyle/ReduceDrinkingPlan";
 // DELETED: CravingPresets
-import CravingStudio from "@/pages/craving-creator/CravingStudio";
-import DessertStudio from "@/pages/dessert-creator/DessertStudio";
-import FridgeRescueStudio from "@/pages/fridge-rescue/FridgeRescueStudio";
+// RETIRED: CravingStudio, DessertStudio, FridgeRescueStudio — moved to client/src/legacy/studio-retired/
 import EditProfilePage from "@/pages/profile/EditProfilePage";
 import SavedMeals from "@/pages/SavedMeals";
 
@@ -536,9 +534,7 @@ export default function Router() {
           component={CravingCreatorLanding}
         />
         <Route path="/craving-desserts" component={CravingDessertCreator} />
-        <Route path="/craving-studio" component={withGate(CravingStudio, 'studioCreators')} />
-        <Route path="/dessert-studio" component={withGate(DessertStudio, 'studioCreators')} />
-        <Route path="/fridge-rescue-studio" component={FridgeRescueStudio} />
+        {/* RETIRED: /craving-studio, /dessert-studio, /fridge-rescue-studio — Studio features decommissioned */}
         {/* DELETED: /craving-presets, /alcohol-hub, /alcohol/lean-and-social, /alcohol-smart-sips, /mocktails-low-cal-mixers, /alcohol-log (Phase 1 cleanup) */}
         {/* DELETED: /beer-pairing, /bourbon-spirits, /meal-pairing-ai, /wine-pairing (replaced by /lifestyle/pairings-ai) */}
         <Route path="/weaning-off-tool" component={WeaningOffTool} />
