@@ -20,20 +20,31 @@ export function KeepItSimpleToggle({
   };
 
   return (
-    <PillButton
-      onClick={handleClick}
-      disabled={disabled}
-      variant="ghost"
-      className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${
-        keepItSimple
-          ? "border-sky-500/40 bg-sky-500/10 text-sky-400"
-          : "border-white/20 bg-white/5 text-white/70"
-      } transition-all ${className}`}
-    >
-      <Minus className="w-4 h-4" />
-      <span className="text-xs font-medium">
-        {keepItSimple ? "Keep It Simple: ON" : "Keep It Simple"}
-      </span>
-    </PillButton>
+    <div className={`space-y-1 ${className}`}>
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          <Minus className="w-3.5 h-3.5 text-sky-400" />
+          <span className="text-xs text-white/70 font-medium">
+            Keep It Simple <span className="text-white/50">—</span>{" "}
+            <span className="text-sky-400/80">Ingredient Control</span>
+          </span>
+        </div>
+
+        <PillButton
+          disabled={disabled}
+          onClick={handleClick}
+          active={keepItSimple}
+          aria-label={keepItSimple ? "Keep It Simple On - Click to disable" : "Keep It Simple Off - Click to enable"}
+        >
+          {keepItSimple ? "On" : "Off"}
+        </PillButton>
+      </div>
+
+      <p className="text-[11px] text-white/40 pl-5">
+        {keepItSimple
+          ? "AI will use only what you listed — no extra ingredients added"
+          : "AI may add vegetables, sides, or balancing ingredients"}
+      </p>
+    </div>
   );
 }
