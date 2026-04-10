@@ -29,6 +29,11 @@ export const CopilotSheet: React.FC = () => {
   const audioCloseTimerRef = useRef<NodeJS.Timeout | null>(null);  // Post-audio close delay
   const audioSafetyTimerRef = useRef<NodeJS.Timeout | null>(null);  // Audio stall watchdog
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+
+  // =========================================
+  // USER PAUSE STATE - Prevents auto-resume and auto-close while paused
+  // =========================================
+  const [userPaused, setUserPaused] = useState(false);
   
   // Clear text-mode reading timer only
   const clearReadingTimer = useCallback(() => {
@@ -99,9 +104,9 @@ export const CopilotSheet: React.FC = () => {
   useEffect(() => {
     if (!lastResponse?.autoClose || !lastResponse?.spokenText) return;
     
-    // Don't set reading timer if user is listening to audio (audio timer takes over)
-    if (isAudioPlaying) {
-      return; // Don't clear anything - audio timers are in control
+    // Don't set reading timer if audio is playing or user manually paused
+    if (isAudioPlaying || userPaused) {
+      return; // Don't clear anything - audio/pause controls are in control
     }
     
     // Clear previous reading timer before setting new one
@@ -119,7 +124,7 @@ export const CopilotSheet: React.FC = () => {
     return () => {
       clearReadingTimer();
     };
-  }, [lastResponse?.autoClose, lastResponse?.spokenText, isAudioPlaying, close, clearReadingTimer]);
+  }, [lastResponse?.autoClose, lastResponse?.spokenText, isAudioPlaying, userPaused, close, clearReadingTimer]);
 
   // =========================================
   // TEXT-FIRST: On-demand TTS (user taps "Listen" button)
@@ -216,6 +221,50 @@ export const CopilotSheet: React.FC = () => {
   }, [clearAutoCloseTimers, close]);
 
   // =========================================
+  // PAUSE - Halts audio at current timestamp, prevents auto-resume/auto-close
+  // =========================================
+  const handlePause = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    setIsAudioPlaying(false);
+    setUserPaused(true);
+    clearAudioTimers(); // Stop safety timer — don't close while paused
+  }, [clearAudioTimers]);
+
+  // =========================================
+  // RESUME - Continues from same position, clears pause lock
+  // =========================================
+  const handleResume = useCallback(async () => {
+    if (!audioRef.current) return;
+    try {
+      await audioRef.current.play();
+      setIsAudioPlaying(true);
+      setUserPaused(false);
+    } catch (err) {
+      console.error('[Copilot] Resume failed:', err);
+    }
+  }, []);
+
+  // =========================================
+  // STOP - Fully resets audio, keeps sheet open so user can read
+  // =========================================
+  const handleStop = useCallback(() => {
+    ttsService.stop();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setAudioUrl(prevUrl => {
+      if (prevUrl) URL.revokeObjectURL(prevUrl);
+      return null;
+    });
+    setIsAudioPlaying(false);
+    setUserPaused(false);
+    clearAutoCloseTimers(); // Sheet stays open
+  }, [clearAutoCloseTimers]);
+
+  // =========================================
   // AUTOPLAY HANDLING - Retry with manual play if autoPlay blocked
   // Browsers often block autoPlay, so we manually trigger play() as fallback
   // =========================================
@@ -273,6 +322,7 @@ export const CopilotSheet: React.FC = () => {
       });
       setAudioBlocked(false);
       setIsAudioPlaying(false);
+      setUserPaused(false);
       
       // CRITICAL: Clear all auto-close timers when user manually closes
       clearAutoCloseTimers();
@@ -413,19 +463,39 @@ export const CopilotSheet: React.FC = () => {
 
                 {/* Input removed - Copilot is now tap-to-action only */}
 
-                {/* Audio status indicator with Skip button - shows when audio is playing */}
-                {isAudioPlaying && (
+                {/* Playback controls - visible while playing or paused */}
+                {(isAudioPlaying || userPaused) && (
                   <div className="px-4 pt-2">
                     <div className="rounded-xl bg-orange-500/10 border border-orange-400/30 px-3 py-2 flex items-center justify-between">
-                      <p className="text-xs text-orange-300/90 animate-pulse">
-                        🔊 Playing...
+                      <p className="text-xs text-orange-300/90">
+                        {isAudioPlaying
+                          ? <span className="animate-pulse">🔊 Playing...</span>
+                          : <span>⏸ Paused</span>
+                        }
                       </p>
-                      <button
-                        onClick={handleSkipExplanation}
-                        className="!min-h-0 !min-w-0 px-3 py-1 rounded-full bg-white/10 text-[10px] font-medium text-white/80 hover:bg-white/20 transition-colors"
-                      >
-                        Skip
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {isAudioPlaying ? (
+                          <button
+                            onClick={handlePause}
+                            className="!min-h-0 !min-w-0 px-3 py-1 rounded-full bg-white/10 text-[10px] font-medium text-white/80 hover:bg-white/20 transition-colors"
+                          >
+                            ⏸ Pause
+                          </button>
+                        ) : (
+                          <button
+                            onClick={handleResume}
+                            className="!min-h-0 !min-w-0 px-3 py-1 rounded-full bg-orange-500/30 text-[10px] font-medium text-orange-200 hover:bg-orange-500/50 transition-colors"
+                          >
+                            ▶ Resume
+                          </button>
+                        )}
+                        <button
+                          onClick={handleStop}
+                          className="!min-h-0 !min-w-0 px-3 py-1 rounded-full bg-white/10 text-[10px] font-medium text-white/60 hover:bg-white/20 transition-colors"
+                        >
+                          ⏹ Stop
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -508,15 +578,15 @@ export const CopilotSheet: React.FC = () => {
                           {lastResponse.spokenText && (
                             <button
                               onClick={handleListenToResponse}
-                              disabled={isAudioPlaying}
+                              disabled={isAudioPlaying || userPaused}
                               className={`text-xs px-2 py-1 rounded-full transition-all ${
-                                isAudioPlaying
-                                  ? "bg-orange-500/50 text-white"
+                                isAudioPlaying || userPaused
+                                  ? "bg-orange-500/50 text-white opacity-60 cursor-not-allowed"
                                   : "bg-orange-500/40 text-white border-2 border-orange-400 hover:bg-orange-500/60 animate-pulse"
                               }`}
                               title="Listen to response"
                             >
-                              {isAudioPlaying ? "🔊 Playing..." : "🔊 Listen"}
+                              {isAudioPlaying ? "🔊 Playing..." : userPaused ? "⏸ Paused" : "🔊 Listen"}
                             </button>
                           )}
                           <button
