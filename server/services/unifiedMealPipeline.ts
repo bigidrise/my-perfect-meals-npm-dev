@@ -12,7 +12,7 @@
  */
 
 import { generateImage } from './imageService';
-import { buildVegetableStrategyPrompt, NutritionStrategyContext } from './promptBuilder';
+import { buildVegetableStrategyPrompt, NutritionStrategyContext, buildStrictModeBlock } from './promptBuilder';
 import { getDeterministicFallback, findMatchingTemplates, templateToMeal } from './templateMatcher';
 import { STARCHY_KEYWORDS } from '../../shared/starchKeywords';
 import { createIngredientSignature, hashSignature } from './ingredientSignature';
@@ -164,6 +164,7 @@ export interface MealGenerationRequest {
   starchContext?: StarchContext; // Starch Game Plan context for intelligent carb distribution
   nutritionStrategy?: NutritionStrategyContext; // Vegetable system + cut intensity guardrails
   safetyAlreadyChecked?: boolean; // Skip internal safety check if route already verified with override token
+  strictMode?: boolean; // "Keep It Simple" — AI uses ONLY user-listed ingredients, no additions
 }
 
 export interface MealGenerationResponse {
@@ -415,7 +416,8 @@ export async function generateCravingMealUnified(
   cravingInput: string,
   mealType: string,
   userId?: string,
-  dietaryRestrictionsOverride?: string[]
+  dietaryRestrictionsOverride?: string[],
+  strictMode: boolean = false
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
 
@@ -537,7 +539,7 @@ export async function generateCravingMealUnified(
       const openai = getOpenAI();
       
       const prompt = `You are a creative chef helping someone satisfy their food craving.
-${cravingDietBlock ? `\n${cravingDietBlock}\n` : ""}
+${cravingDietBlock ? `\n${cravingDietBlock}\n` : ""}${strictMode ? `\n${buildStrictModeBlock(cravingInput)}\n` : ""}
 CRAVING: "${cravingInput}"
 MEAL TYPE: ${validMealType}
 
@@ -766,7 +768,8 @@ function buildVarietyPrompt(
   dietBlock: string,
   dietRestrictions: string[],
   excludeClause: string,
-  allergyBlock: string = ''
+  allergyBlock: string = '',
+  strictMode: boolean = false
 ): string {
   const primaryDiet = getPrimaryDiet(dietRestrictions);
   const dietLine = primaryDiet
@@ -829,7 +832,8 @@ OUTPUT FORMAT — ONLY valid JSON, no markdown:
 }
 
 INGREDIENT FORMAT: US measurements only (oz, lb, cup, tbsp, tsp, each, fl oz). Never grams or ml.
-MEAL TYPE context: ${validMealType}`;
+MEAL TYPE context: ${validMealType}
+${strictMode ? `\n${buildStrictModeBlock(cravingInput)}` : ""}`;
 }
 
 /** Parse raw AI content into options array */
@@ -878,7 +882,8 @@ export async function generateCravingMealOptions(
   mealType: string,
   userId?: string,
   dietaryRestrictionsOverride?: string[],
-  excludeMeals?: string[]
+  excludeMeals?: string[],
+  strictMode: boolean = false
 ): Promise<UnifiedMeal[]> {
   const validMealType = normalizeMealType(mealType);
   const category = inferCravingCategory(cravingInput, validMealType);
@@ -926,7 +931,7 @@ export async function generateCravingMealOptions(
 
   /** One attempt at calling AI and parsing result */
   const attempt = async (stricterMode: boolean): Promise<any[]> => {
-    const prompt = buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock);
+    const prompt = buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode);
     const stricter = stricterMode
       ? `\n\nSECOND ATTEMPT — STRICT MODE: The previous response drifted from the dish family. You MUST generate 3 options that are clearly recognizable variations of "${dishFamily}". No exceptions.`
       : "";
@@ -1123,7 +1128,8 @@ export async function generateFromDescriptionUnified(
   userId?: string,
   dietType?: DietType,
   starchContext?: StarchContext,
-  nutritionStrategy?: NutritionStrategyContext
+  nutritionStrategy?: NutritionStrategyContext,
+  strictMode: boolean = false
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
   
@@ -1245,7 +1251,8 @@ Create the recipe for: "${description}"`;
 
     // Apply diet-specific guardrails to the prompt
     const guardrailResult = applyGuardrails(basePrompt, dietType || null, validMealType);
-    const prompt = guardrailResult.modifiedPrompt;
+    // Inject Keep It Simple AFTER guardrails so it takes final precedence
+    const prompt = guardrailResult.modifiedPrompt + (strictMode ? `\n\n${buildStrictModeBlock(description)}` : "");
     
     if (guardrailResult.appliedRules.length > 0) {
       console.log(`🛡️ Applied guardrails: ${guardrailResult.appliedRules.join(', ')}`);
@@ -1780,14 +1787,14 @@ export async function generateMealUnified(
       const cravingInput = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateCravingMealUnified(cravingInput, request.mealType, request.userId);
+      result = await generateCravingMealUnified(cravingInput, request.mealType, request.userId, undefined, request.strictMode === true);
       break;
 
     case 'create-with-chef':
       const chefDescription = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType, request.starchContext, request.nutritionStrategy);
+      result = await generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType, request.starchContext, request.nutritionStrategy, request.strictMode === true);
       break;
 
     case 'snack-creator':

@@ -804,7 +804,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("🥕 Fridge Rescue route hit - generating 3 meals");
 
       const userId = getAuthUserId(req);
-      const { fridgeItems, servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken, skipPalate } = req.body;
+      const { fridgeItems, servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken, skipPalate, strictMode } = req.body;
 
       if (!fridgeItems || !Array.isArray(fridgeItems) || fridgeItems.length === 0) {
         console.error("[FRIDGE] validation error: invalid fridgeItems", fridgeItems);
@@ -916,7 +916,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         servings,
         macroTargets,
         skipPalate,
-        palatePrefs: palatePrefs as any
+        palatePrefs: palatePrefs as any,
+        strictMode: strictMode === true
       });
 
       const { recordGeneration } = await import("./services/aiHealthMetrics");
@@ -3267,7 +3268,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/meals/craving-creator", async (req, res) => {
     try {
-      const { targetMealType, cravingInput, dietaryRestrictions, userId: bodyUserId, servings = 1, safetyMode, overrideToken } = req.body;
+      const { targetMealType, cravingInput, dietaryRestrictions, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode } = req.body;
 
       // Fix A: Resolve authenticated user from session/token (server-authoritative).
       // Never rely solely on client-sent userId — client may not send it at all.
@@ -3350,7 +3351,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         targetMealType || "lunch",
         userId,
         bodyDietRestrictions,
-        excludeMeals
+        excludeMeals,
+        strictMode === true
       );
 
       if (!mealOptions || mealOptions.length === 0) {

@@ -3,7 +3,7 @@ import { generateImage } from './imageService';
 import { deriveCarbSplit } from './generators/macros/carbSplit';
 import { convertStructuredIngredients } from '../utils/unitConverter';
 import { enforceCarbs } from '../utils/carbClassifier';
-import { buildPalateSection, PalatePreferences } from './promptBuilder';
+import { buildPalateSection, PalatePreferences, buildStrictModeBlock } from './promptBuilder';
 import { BASELINE_MACROS } from './guardrails/baselineMacros';
 import { buildDietPromptBlock, violatesDietaryConstraints } from './allergyGuardrails';
 
@@ -128,6 +128,7 @@ interface FridgeRescueRequest {
   };
   skipPalate?: boolean;
   palatePrefs?: PalatePreferences;
+  strictMode?: boolean;
 }
 
 // Medical condition compatibility checker - using correct badge format
@@ -191,7 +192,7 @@ function getMedicalBadges(meal: any, userConditions: string[] = []): Array<{
 }
 
 export async function generateFridgeRescueMeals(request: FridgeRescueRequest): Promise<FridgeRescueMeal[]> {
-  const { fridgeItems, user, servings = 2, macroTargets, skipPalate, palatePrefs } = request;
+  const { fridgeItems, user, servings = 2, macroTargets, skipPalate, palatePrefs, strictMode = false } = request;
   const userConditions = user?.healthConditions || [];
   
   // 🎨 PALATE PREFERENCES: Build flavor guidance section
@@ -265,7 +266,7 @@ This is for athlete meal planning - precision is critical for contest preparatio
 ` : "";
 
   const prompt = `You are a creative chef helping someone make meals with limited ingredients from their fridge.
-${fridgeDietBlock ? `\n${fridgeDietBlock}\n` : ""}
+${fridgeDietBlock ? `\n${fridgeDietBlock}\n` : ""}${strictMode ? `\n${buildStrictModeBlock(fridgeItems.join(", "))}\n` : ""}
 TASK: Create 3 different, realistic meals using ONLY these ingredients: ${fridgeItems.join(', ')}
 Each meal should be portioned for ${servings} serving${servings > 1 ? 's' : ''}. Scale all ingredient quantities and nutritional values accordingly.
 ${macroTargetingText}

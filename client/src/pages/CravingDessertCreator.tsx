@@ -44,6 +44,7 @@ import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
+import { KeepItSimpleToggle } from "@/components/KeepItSimpleToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import FavoriteButton from "@/components/FavoriteButton";
@@ -197,6 +198,7 @@ export default function DessertCreator() {
 
   // Flavor preference toggle - Personal = use user's palate, Neutral = for others
   const [flavorPersonal, setFlavorPersonal] = useState(true);
+  const [keepItSimple, setKeepItSimple] = useState(false);
 
   // SafetyGuard preflight hook
   const {
@@ -357,6 +359,7 @@ export default function DessertCreator() {
             !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: !safetyEnabled ? overrideToken : undefined,
           skipPalate: !flavorPersonal,
+          strictMode: keepItSimple,
         }),
       });
 
@@ -723,6 +726,23 @@ export default function DessertCreator() {
                   {flavorPersonal
                     ? "Using your palate preferences"
                     : "Neutral seasoning for others"}
+                </p>
+              </div>
+
+              {/* Keep It Simple Section */}
+              <div className="mt-2 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+                <span className="text-xs text-white/60 block mb-2">
+                  Ingredient Control
+                </span>
+                <KeepItSimpleToggle
+                  keepItSimple={keepItSimple}
+                  onToggle={setKeepItSimple}
+                  disabled={isGenerating}
+                />
+                <p className="text-xs text-white/40 mt-1">
+                  {keepItSimple
+                    ? "AI will use only what you listed — nothing added"
+                    : "AI may add complementary ingredients"}
                 </p>
               </div>
 

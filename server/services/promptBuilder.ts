@@ -380,3 +380,21 @@ Generate ONE ${req.mealType || "meal"} obeying all rules. ${req.source === "crav
 
   return { system: sys, user };
 }
+
+/**
+ * Keep It Simple mode — injected AFTER all diet/medical guardrails so it takes final precedence.
+ * When enabled, the AI is forbidden from adding any ingredient not explicitly listed by the user.
+ */
+export function buildStrictModeBlock(ingredientHint?: string): string {
+  return `
+🚫 KEEP IT SIMPLE MODE (HARD CONSTRAINT — HIGHEST PRIORITY)
+This rule overrides all other instructions about creativity or enhancement.
+- Use ONLY the ingredients explicitly requested by the user${ingredientHint ? ` (${ingredientHint})` : ""}.
+- Do NOT add any new ingredients whatsoever.
+- Do NOT add pantry staples (oil, salt, pepper, butter, water, sauces, spices) unless explicitly listed.
+- Do NOT add garnish, toppings, optional extras, substitutions, or "chef upgrades".
+- Do NOT "enhance" or "optimize" the ingredient list in any way.
+- If an ingredient is not in the user's request, it does not exist.
+The output MUST contain only the user-provided ingredients. No exceptions.
+`.trim();
+}
