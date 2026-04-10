@@ -1249,13 +1249,18 @@ FORMAT: Return as JSON object:
 
 Create the recipe for: "${description}"`;
 
-    // Apply diet-specific guardrails to the prompt
-    const guardrailResult = applyGuardrails(basePrompt, dietType || null, validMealType);
-    // Inject Keep It Simple AFTER guardrails so it takes final precedence
-    const prompt = guardrailResult.modifiedPrompt + (strictMode ? `\n\n${buildStrictModeBlock(description)}` : "");
-    
-    if (guardrailResult.appliedRules.length > 0) {
-      console.log(`🛡️ Applied guardrails: ${guardrailResult.appliedRules.join(', ')}`);
+    // Apply diet-specific guardrails — skip entirely when strictMode is ON
+    // (guardrails inject balance/wholefood rules that add unwanted ingredients)
+    let prompt: string;
+    if (strictMode) {
+      prompt = `${basePrompt}\n\n${buildStrictModeBlock(description)}`;
+      console.log(`🔒 [StrictMode] Guardrails skipped — user override active`);
+    } else {
+      const guardrailResult = applyGuardrails(basePrompt, dietType || null, validMealType);
+      prompt = guardrailResult.modifiedPrompt;
+      if (guardrailResult.appliedRules.length > 0) {
+        console.log(`🛡️ Applied guardrails: ${guardrailResult.appliedRules.join(', ')}`);
+      }
     }
 
     const messages: Array<{ role: 'system' | 'user'; content: string }> = [];
