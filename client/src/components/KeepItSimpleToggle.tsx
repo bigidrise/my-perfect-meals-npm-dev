@@ -40,7 +40,7 @@ export function KeepItSimpleToggle({
         </PillButton>
       </div>
 
-      <p className="text-[11px] text-white/40 pl-5">
+      <p className={`text-xs pl-5 font-medium ${keepItSimple ? "text-sky-300" : "text-white/60"}`}>
         {keepItSimple
           ? "AI will use only what you listed — no extra ingredients added"
           : "AI may add vegetables, sides, or balancing ingredients"}
