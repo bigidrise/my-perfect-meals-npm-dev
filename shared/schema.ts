@@ -371,6 +371,10 @@ export const users = pgTable("users", {
   procareEntryPath: text("procare_entry_path").$type<"certified"|"experienced"|"non_certified">(), // which path they chose
   // Onboarding V2 - Medical conditions, builder recommendation, flavor preference
   medicalConditions: text("medical_conditions").array().default(sql`ARRAY[]::text[]`), // diabetes-type1, diabetes-type2, prediabetes, glp1, anti-inflammatory, none
+  // Self-selected specialty health protocol — activates the appropriate clinical variant of the Anti-Inflammatory Builder
+  // without requiring lab values. Labs remain optional for precision refinement.
+  // Values: 'renal' | 'cardiac' | 'liver-disease' | 'liver-support' | 'oncology-support' | null
+  specialtyCondition: text("specialty_condition"),
   preferredBuilder: text("preferred_builder"), // diabetic, glp1, anti-inflammatory, general — starting recommendation from onboarding
   flavorPreference: text("flavor_preference"), // bold-spicy, comfort, mediterranean, balanced, unsure
   heatPreference: text("heat_preference"), // none, mild, medium, hot, very-hot, unsure

@@ -229,14 +229,18 @@ router.get("/:userId", requireAuth, async (req, res) => {
       .limit(1);
 
     if (rows.length === 0) {
-      // Still check oncologySupportEnabled even with no labs on file
+      // Still check oncologySupportEnabled + specialtyCondition even with no labs on file
       const userRows0 = await db
-        .select({ oncologySupportContext: users.oncologySupportContext })
+        .select({ oncologySupportContext: users.oncologySupportContext, specialtyCondition: users.specialtyCondition })
         .from(users)
         .where(eq(users.id, userId as any))
         .limit(1);
       const oncologyCtx0 = userRows0[0]?.oncologySupportContext as { enabled?: boolean } | null ?? null;
-      return res.json({ labs: null, oncologySupportEnabled: !!(oncologyCtx0?.enabled) });
+      return res.json({
+        labs: null,
+        oncologySupportEnabled: !!(oncologyCtx0?.enabled),
+        specialtyCondition: userRows0[0]?.specialtyCondition ?? null,
+      });
     }
 
     const r = rows[0];
@@ -255,9 +259,9 @@ router.get("/:userId", requireAuth, async (req, res) => {
       ejectionFraction:      r.ejectionFraction,
     });
 
-    // Fetch the user's oncologySupportContext to include in the response
+    // Fetch the user's oncologySupportContext + specialtyCondition to include in the response
     const userRows = await db
-      .select({ oncologySupportContext: users.oncologySupportContext })
+      .select({ oncologySupportContext: users.oncologySupportContext, specialtyCondition: users.specialtyCondition })
       .from(users)
       .where(eq(users.id, userId as any))
       .limit(1);
@@ -291,6 +295,8 @@ router.get("/:userId", requireAuth, async (req, res) => {
       protocolSubtitle: labSignalToSubtitle(protocolSignal),
       // Physician-assigned oncology support overlay (independent of lab values)
       oncologySupportEnabled: !!(oncologyCtx?.enabled),
+      // User self-selected specialty condition (activates protocol without lab entry)
+      specialtyCondition: userRows[0]?.specialtyCondition ?? null,
     });
   } catch (error: any) {
     console.error("[clinicalLabs GET]", error);

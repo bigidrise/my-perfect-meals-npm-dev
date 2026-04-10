@@ -227,6 +227,22 @@ export default function AntiInflammatoryMenuBuilder() {
           setClinicalModeState('oncology-support');
           return;
         }
+        // User self-selected specialty condition — higher priority than lab-derived signal
+        if (data?.specialtyCondition) {
+          const conditionModeMap: Record<string, ClinicalMode> = {
+            'renal':            'kidney-disease',
+            'cardiac':          'heart-failure',
+            'liver-disease':    'liver-disease',
+            'liver-support':    'liver-support',
+            'oncology-support': 'oncology-support',
+          };
+          const mappedMode = conditionModeMap[data.specialtyCondition] as ClinicalMode | undefined;
+          if (mappedMode) {
+            console.log("[AntiInflamBuilder] specialtyCondition →", data.specialtyCondition, "→ mode:", mappedMode);
+            setClinicalModeState(mappedMode);
+            return;
+          }
+        }
         if (!data?.protocolSignal?.protocol) return;
         const labMode = data.protocolSignal.protocol as ClinicalMode;
         console.log("[AntiInflamBuilder] setting clinicalMode from labs →", labMode);
