@@ -465,7 +465,7 @@ export function CreateWithChefModal({
               <div className="py-2 px-3 bg-black/30 rounded-lg border border-white/10">
                 <span className="text-xs text-white/60 block mb-2">Ingredient Control</span>
                 <KeepItSimpleToggle
-                  active={strictMode}
+                  keepItSimple={strictMode}
                   onToggle={setStrictMode}
                   disabled={isProcessing}
                 />
