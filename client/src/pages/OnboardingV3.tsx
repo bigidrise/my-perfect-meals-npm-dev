@@ -581,9 +581,17 @@ export default function OnboardingV3() {
                 ))}
               </div>
               {specialtyCondition === "oncology-support" && (
-                <p className="text-rose-300/80 text-xs mt-2">
-                  This provides general nutritional guidance for cancer support — not a substitute for oncology medical care.
-                </p>
+                <div className="mt-3 rounded-xl border border-rose-500/40 bg-rose-950/30 p-3">
+                  <div className="flex items-start gap-2">
+                    <span className="text-rose-400 text-base mt-0.5">🎗️</span>
+                    <div>
+                      <p className="text-rose-300 text-xs font-semibold mb-1">Important — Not a Medical Diagnosis</p>
+                      <p className="text-white/70 text-xs leading-relaxed">
+                        Selecting this activates general nutritional guidance designed to support people going through cancer treatment — things like managing appetite, nausea, and energy needs. This is <span className="text-white font-medium">not a diagnosis</span>, not a treatment plan, and <span className="text-white font-medium">not a substitute for your oncology team's medical care</span>. Always follow your doctor's guidance first.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           </div>
