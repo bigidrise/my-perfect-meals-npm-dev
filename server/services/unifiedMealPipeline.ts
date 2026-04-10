@@ -1148,7 +1148,7 @@ export async function generateFromDescriptionUnified(
   // Get starch placement decision
   const starchPlacement = determineStarchPlacement(validMealType, starchContext);
   const starchGuidance = buildStarchGuidance(validMealType, starchContext);
-  const vegetableStrategyGuidance = nutritionStrategy ? buildVegetableStrategyPrompt(nutritionStrategy) : '';
+  const vegetableStrategyGuidance = (!strictMode && nutritionStrategy) ? buildVegetableStrategyPrompt(nutritionStrategy) : '';
   
   console.log(`👨‍🍳 Create With Chef: Generating meal from description: "${description}" for ${validMealType}${dietType ? ` (diet: ${dietType})` : ''} | Starch: ${starchPlacement.shouldIncludeStarch ? 'YES' : 'NO'} (${starchPlacement.reason})${vegetableStrategyGuidance ? ' | 🥦 VegStrategy: ON' : ''}`);
   

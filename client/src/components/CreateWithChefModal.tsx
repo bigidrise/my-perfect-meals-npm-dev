@@ -22,6 +22,7 @@ import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsa
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { StarchOverrideToggle } from "@/components/StarchOverrideToggle";
+import { KeepItSimpleToggle } from "@/components/KeepItSimpleToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { detectStarchyIngredients, hasExplicitStarchRequest } from "@/utils/ingredientClassifier";
@@ -53,6 +54,7 @@ export function CreateWithChefModal({
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [pendingGeneration, setPendingGeneration] = useState(false);
   const [starchOverride, setStarchOverride] = useState(false);
+  const [strictMode, setStrictMode] = useState(false);
 
   // Starch Guard state
   const [starchBlocked, setStarchBlocked] = useState(false);
@@ -112,6 +114,7 @@ export function CreateWithChefModal({
       setDescription("");
       setSafetyEnabled(true);
       setStarchOverride(false);
+      setStrictMode(false);
       clearSafetyAlert();
       setStarchBlocked(false);
       setStarchMatchedTerms([]);
@@ -134,7 +137,8 @@ export function CreateWithChefModal({
       {
         safetyMode: !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
         overrideToken: !safetyEnabled ? overrideToken || undefined : undefined,
-      }
+      },
+      strictMode
     );
 
     if (meal) {
@@ -455,6 +459,16 @@ export function CreateWithChefModal({
                     disabled={isProcessing}
                   />
                 )}
+              </div>
+
+              {/* Ingredient Control */}
+              <div className="py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+                <span className="text-xs text-white/60 block mb-2">Ingredient Control</span>
+                <KeepItSimpleToggle
+                  active={strictMode}
+                  onToggle={setStrictMode}
+                  disabled={isProcessing}
+                />
               </div>
 
               {/* Starch Budget Info - show when starch context available */}
