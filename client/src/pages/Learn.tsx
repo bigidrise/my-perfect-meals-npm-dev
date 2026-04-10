@@ -20,6 +20,7 @@ import {
   Zap,
   Users,
   Layers,
+  Minus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
@@ -217,6 +218,60 @@ const libraryTopics: LibraryTopic[] = [
         {
           heading: "The Bottom Line",
           text: "You are not eating less food. You are eating smarter. The Vegetable Volume System is how the app keeps you full while still moving toward your goals.",
+        },
+      ],
+    },
+  },
+  {
+    id: "keep-it-simple",
+    title: "Keep It Simple — Ingredient Control",
+    subtitle: "Use only what you listed. Nothing else.",
+    icon: Minus,
+    content: {
+      sections: [
+        {
+          heading: "What Is Keep It Simple?",
+          text: "Keep It Simple is an ingredient control switch. When it is turned on, the AI uses only the ingredients you described — nothing more. No vegetables added. No balancing sides. No pantry staples slipped in. If you did not say it, it does not exist in your meal.",
+        },
+        {
+          heading: "Why This Matters",
+          text: "By default, My Perfect Meals is designed to help you hit your nutrition targets. That means the AI may add vegetables, fibrous carbs, or balancing ingredients to round out your meal. That system works great most of the time. But sometimes you just want exactly what you asked for — eggs, bacon, and toast — and nothing else. Keep It Simple gives you that control.",
+        },
+        {
+          heading: "When To Use It",
+          list: [
+            "You want a specific meal exactly as described with no additions",
+            "You already know what you are eating and just need the recipe",
+            "You have limited ingredients and do not want substitutions",
+            "You are tracking your own macros and do not want the AI adjusting the meal",
+          ],
+        },
+        {
+          heading: "What It Turns Off",
+          list: [
+            "Vegetable Volume System — no automatic vegetable additions",
+            "Fibrous carb enforcement — no sides or balancing greens added",
+            "Nutrition balance guardrails — no wholefood priority adjustments",
+            "Ingredient suggestions — the AI sticks strictly to your description",
+          ],
+        },
+        {
+          heading: "Where To Find It",
+          list: [
+            "Craving Creator — under Ingredient Control",
+            "Fridge Rescue — under Ingredient Control",
+            "Create a Dish — under Ingredient Control",
+            "Dessert Creator — under Ingredient Control",
+            "Create with AI Chef — under Ingredient Control inside the meal builder modal",
+          ],
+        },
+        {
+          heading: "How To Use It",
+          text: "Look for the Keep It Simple toggle in the Ingredient Control section of any generator. Tap it once to turn it on — it lights up sky blue when active. Tap again to turn it off. It resets to off each time you open a new generator session so it never surprises you.",
+        },
+        {
+          heading: "Important",
+          text: "Keep It Simple is not the default. The app is designed to help you reach your goals automatically. This switch exists for moments when you want full control over exactly what goes into your meal — no more, no less.",
         },
       ],
     },
