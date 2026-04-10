@@ -30,6 +30,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
+import { KeepItSimpleToggle } from "@/components/KeepItSimpleToggle";
 import { useStarchGuardPrecheck } from "@/hooks/useStarchGuardPrecheck";
 import {
   StarchGuardIntercept,
@@ -325,6 +326,7 @@ export default function CreateDishPage() {
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [flavorPersonal, setFlavorPersonal] = useState(true);
+  const [keepItSimple, setKeepItSimple] = useState(false);
 
   const {
     alert: starchAlert,
@@ -407,6 +409,7 @@ export default function CreateDishPage() {
           sweetenerPreferences,
           skipPalate: !flavorPersonal,
           excludeMeals: getRecentMeals(),
+          strictMode: keepItSimple,
         }),
       });
 
@@ -684,6 +687,23 @@ export default function CreateDishPage() {
                       onFlavorChange={setFlavorPersonal}
                       disabled={isGenerating}
                     />
+                  </div>
+
+                  {/* Keep It Simple Section */}
+                  <div className="mt-2 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+                    <span className="text-xs text-white/60 block mb-2">
+                      Ingredient Control
+                    </span>
+                    <KeepItSimpleToggle
+                      keepItSimple={keepItSimple}
+                      onToggle={setKeepItSimple}
+                      disabled={isGenerating}
+                    />
+                    <p className="text-xs text-white/40 mt-1">
+                      {keepItSimple
+                        ? "AI will use only what you listed — nothing added"
+                        : "AI may add complementary ingredients"}
+                    </p>
                   </div>
 
                   {isGenerating && (

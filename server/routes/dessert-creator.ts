@@ -10,7 +10,7 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
-import { buildPalateSection, PalatePreferences } from "../services/promptBuilder";
+import { buildPalateSection, PalatePreferences, buildStrictModeBlock } from "../services/promptBuilder";
 import { buildDietPromptBlock, violatesDietaryConstraints } from "../services/allergyGuardrails";
 
 let _openai: OpenAI | null = null;
@@ -97,6 +97,7 @@ dessertCreatorRouter.post("/", async (req, res) => {
       safetyMode,
       overrideToken,
       skipPalate,
+      strictMode,
     } = req.body ?? {};
 
     if (isDev) console.log("[DESSERT] Request params:", { dessertCategory, flavorFamily, servingSize, cakeStyle, cakeType });
@@ -251,7 +252,7 @@ CELEBRATION CAKE REQUIREMENTS:
     const prompt = `
 You are a master pastry chef + nutrition expert inside the My Perfect Meals system.
 Generate a FULL structured dessert recipe.
-${dietPromptBlock ? `\n${dietPromptBlock}\n` : ""}
+${dietPromptBlock ? `\n${dietPromptBlock}\n` : ""}${strictMode === true ? `\n${buildStrictModeBlock(specificDessert || `${flavorFamily} ${dessertCategory}`)}\n` : ""}
 
 Return JSON ONLY, following this exact schema:
 
