@@ -2035,10 +2035,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         availabilityStatus: (user as any).availabilityStatus ?? null,
         backAt: (user as any).backAt?.toISOString?.() ?? (user as any).backAt ?? null,
         oncologySupportIntent: user.oncologySupportIntent ?? null,
+        specialtyCondition: user.specialtyCondition ?? null,
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);
       res.status(500).json({ error: "Failed to fetch user profile" });
+    }
+  });
+
+  // PATCH /api/user/specialty-condition
+  // Saves the user's self-selected specialty health protocol.
+  // Allowed values: 'renal' | 'cardiac' | 'liver-disease' | 'liver-support' | 'oncology-support' | null
+  app.patch("/api/user/specialty-condition", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const ALLOWED = ["renal", "cardiac", "liver-disease", "liver-support", "oncology-support"] as const;
+      const { condition } = req.body;
+      if (condition !== null && condition !== undefined && !ALLOWED.includes(condition)) {
+        return res.status(400).json({ error: "Invalid specialty condition value" });
+      }
+      await db.update(users).set({ specialtyCondition: condition ?? null }).where(eq(users.id, userId));
+      console.log(`[specialty-condition] User ${userId} set → ${condition ?? "null"}`);
+      res.json({ ok: true, specialtyCondition: condition ?? null });
+    } catch (error: any) {
+      console.error("[specialty-condition PATCH]", error);
+      res.status(500).json({ error: "Failed to save specialty condition" });
     }
   });
 

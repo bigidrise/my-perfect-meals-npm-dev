@@ -135,6 +135,7 @@ export default function OnboardingV3() {
   const [pinError, setPinError] = useState("");
   const [oncologyIntroAnswer, setOncologyIntroAnswer] = useState<"yes" | "skip" | null>(null);
   const [oncologySupportIntentChoice, setOncologySupportIntentChoice] = useState<"own_provider" | "request_support" | "self_directed" | null>(null);
+  const [specialtyCondition, setSpecialtyCondition] = useState<string | null>(null);
 
   const progress = (step / TOTAL_STEPS) * 100;
 
@@ -228,6 +229,12 @@ export default function OnboardingV3() {
             return;
           }
           await saveProfile({ medicalConditions });
+          // Save specialty condition separately (fire-and-forget — non-blocking)
+          fetch(apiUrl("/api/user/specialty-condition"), {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify({ condition: specialtyCondition }),
+          }).catch(() => {});
           break;
         case 4: {
           const intent = oncologyIntroAnswer === "yes" ? oncologySupportIntentChoice : null;
@@ -543,6 +550,42 @@ export default function OnboardingV3() {
                   ))}
               </div>
             )}
+
+            {/* Specialty Health Protocol — optional */}
+            <div className="max-w-sm mx-auto rounded-xl border border-sky-500/30 bg-sky-950/20 p-4 mt-2">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-base">🩺</span>
+                <span className="text-sky-300 font-semibold text-sm">Specialty Health Protocol</span>
+                <span className="text-white/40 text-xs">(optional)</span>
+              </div>
+              <p className="text-white/60 text-xs mb-3">
+                Do you have one of these conditions? Selecting one immediately activates the right nutrition protocol in your Anti-Inflammatory Builder — no lab entry required.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { label: "Kidney / Renal Disease", value: "renal" },
+                  { label: "Cardiac / Heart Disease", value: "cardiac" },
+                  { label: "Liver Disease", value: "liver-disease" },
+                  { label: "Liver Support", value: "liver-support" },
+                  { label: "Cancer / Oncology Support", value: "oncology-support" },
+                ].map((opt) => (
+                  <PillButton
+                    key={opt.value}
+                    active={specialtyCondition === opt.value}
+                    onClick={() =>
+                      setSpecialtyCondition((prev) => prev === opt.value ? null : opt.value)
+                    }
+                  >
+                    {opt.label}
+                  </PillButton>
+                ))}
+              </div>
+              {specialtyCondition === "oncology-support" && (
+                <p className="text-rose-300/80 text-xs mt-2">
+                  This provides general nutritional guidance for cancer support — not a substitute for oncology medical care.
+                </p>
+              )}
+            </div>
           </div>
         );
 

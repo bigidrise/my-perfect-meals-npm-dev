@@ -213,6 +213,10 @@ export default function EditProfilePage() {
   );
   const [avoidedFoodInput, setAvoidedFoodInput] = useState("");
 
+  const [specialtyCondition, setSpecialtyCondition] = useState<string | null>(
+    (user as any)?.specialtyCondition ?? null
+  );
+
   const [allergiesUnlocked, setAllergiesUnlocked] = useState(false);
   const [allergyEditToken, setAllergyEditToken] = useState<string | null>(null);
   const [showPinModal, setShowPinModal] = useState(false);
@@ -371,6 +375,17 @@ export default function EditProfilePage() {
         const txt = await res.text();
         throw new Error(txt || "Failed to update profile");
       }
+
+      // Save specialty condition separately (its own PATCH endpoint)
+      await fetch(apiUrl("/api/user/specialty-condition"), {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(authToken ? { "x-auth-token": authToken } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify({ condition: specialtyCondition }),
+      }).catch(() => {});
 
       await refreshUser?.();
 
@@ -791,6 +806,49 @@ export default function EditProfilePage() {
                         </PillButton>
                       ))}
                   </div>
+                )}
+              </div>
+
+              {/* Specialty Health Protocol Section */}
+              <div className="rounded-xl border border-sky-500/30 bg-sky-950/20 p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base">🩺</span>
+                  <span className="text-sky-300 font-semibold text-sm">Specialty Health Protocol</span>
+                </div>
+                <p className="text-white/60 text-xs mb-3">
+                  Select if you have one of these conditions. This immediately activates the appropriate nutrition protocol in your Anti-Inflammatory Builder — no lab entry required. You can always add labs later for precision refinement.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { label: "Kidney / Renal Disease", value: "renal" },
+                    { label: "Cardiac / Heart Disease", value: "cardiac" },
+                    { label: "Liver Disease", value: "liver-disease" },
+                    { label: "Liver Support", value: "liver-support" },
+                    { label: "Cancer / Oncology Support", value: "oncology-support" },
+                  ] as const).map((opt) => (
+                    <PillButton
+                      key={opt.value}
+                      active={specialtyCondition === opt.value}
+                      onClick={() =>
+                        setSpecialtyCondition((prev) => prev === opt.value ? null : opt.value)
+                      }
+                    >
+                      {opt.label}
+                    </PillButton>
+                  ))}
+                  {specialtyCondition && (
+                    <PillButton
+                      active={false}
+                      onClick={() => setSpecialtyCondition(null)}
+                    >
+                      Clear ×
+                    </PillButton>
+                  )}
+                </div>
+                {specialtyCondition === "oncology-support" && (
+                  <p className="text-rose-300/80 text-xs mt-2">
+                    This provides general nutritional guidance for cancer support — not a substitute for oncology medical care.
+                  </p>
                 )}
               </div>
 
