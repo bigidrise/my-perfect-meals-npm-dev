@@ -625,17 +625,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const { 
-        type = 'craving',           // 'craving' | 'fridge-rescue' | 'premade' | 'create-with-chef'
-        mealType = 'lunch',         // 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'snacks'
-        input,                      // string (craving) or string[] (ingredients)
+        type = 'craving',
+        mealType = 'lunch',
+        input,
         userId,
         macroTargets,
         count = 1,
-        dietType,                   // Diet-specific guardrails (anti-inflammatory, diabetic, etc.)
-        starchContext,              // Starch Game Plan context for intelligent carb distribution
-        nutritionStrategy: bodyNutritionStrategy, // Explicitly provided nutrition strategy
-        safetyMode,                 // Safety override mode
-        overrideToken               // One-time override token from PIN verification
+        dietType,
+        starchContext,
+        nutritionStrategy: bodyNutritionStrategy,
+        safetyMode,
+        overrideToken,
+        strictMode
       } = req.body;
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
@@ -703,8 +704,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { recordGeneration } = await import("./services/aiHealthMetrics");
 
       // Auto-enrich nutritionStrategy from user profile if not explicitly provided
+      // Skip entirely when strictMode is on — no veg targets should be injected
       let nutritionStrategy = bodyNutritionStrategy ?? null;
-      if (!nutritionStrategy && userId && type === 'create-with-chef') {
+      if (!strictMode && !nutritionStrategy && userId && type === 'create-with-chef') {
         try {
           const { db } = await import("./db");
           const { users } = await import("../shared/schema");
@@ -754,7 +756,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dietType,
         starchContext,
         nutritionStrategy: nutritionStrategy ?? undefined,
-        safetyAlreadyChecked: true // Route already verified with enforceSafetyProfile (may include override token)
+        strictMode: strictMode === true,
+        safetyAlreadyChecked: true
       });
 
       const durationMs = Date.now() - startTime;

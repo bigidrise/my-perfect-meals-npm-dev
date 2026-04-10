@@ -64,7 +64,7 @@ interface UseCreateWithChefRequestResult {
   generating: boolean;
   progress: number;
   error: string | null;
-  generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner", dietType?: DietType, dietPhase?: BeachBodyPhase, starchContext?: StarchContext, safetyOptions?: SafetyOptions) => Promise<Meal | null>;
+  generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner", dietType?: DietType, dietPhase?: BeachBodyPhase, starchContext?: StarchContext, safetyOptions?: SafetyOptions, strictMode?: boolean) => Promise<Meal | null>;
   cancel: () => void;
 }
 
@@ -109,7 +109,8 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
     dietType?: DietType,
     dietPhase?: BeachBodyPhase,
     starchContext?: StarchContext,
-    safetyOptions?: SafetyOptions
+    safetyOptions?: SafetyOptions,
+    strictMode?: boolean
   ): Promise<Meal | null> => {
     setGenerating(true);
     setError(null);
@@ -127,11 +128,12 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
           input: description,
           userId,
           count: 1,
-          dietType: dietType || null, // Pass diet type for guardrails
-          dietPhase: dietPhase || null, // Pass phase for BeachBody
-          starchContext: starchContext || null, // Pass starch context for intelligent carb distribution
+          dietType: dietType || null,
+          dietPhase: dietPhase || null,
+          starchContext: starchContext || null,
           safetyMode: safetyOptions?.safetyMode || "STRICT",
           overrideToken: safetyOptions?.overrideToken,
+          strictMode: strictMode === true,
         }),
         signal: abortControllerRef.current.signal,
       });
