@@ -3293,7 +3293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/meals/craving-creator", async (req, res) => {
     try {
-      const { targetMealType, cravingInput, dietaryRestrictions, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode } = req.body;
+      const { targetMealType, cravingInput, dietaryRestrictions, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode } = req.body;
 
       // Fix A: Resolve authenticated user from session/token (server-authoritative).
       // Never rely solely on client-sent userId — client may not send it at all.
@@ -3377,7 +3377,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId,
         bodyDietRestrictions,
         excludeMeals,
-        strictMode === true
+        strictMode === true,
+        (generationMode === 'recipe' ? 'recipe' : 'meal')
       );
 
       if (!mealOptions || mealOptions.length === 0) {

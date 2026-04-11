@@ -2,8 +2,8 @@
 import express from "express";
 import { z } from "zod";
 import { db } from "../db";
-import { mealInstances, userRecipes } from "@shared/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { mealInstances, userRecipes, users } from "@shared/schema";
+import { eq, sql } from "drizzle-orm";
 import { 
   preCheckRequest, 
   extractSafetyProfile, 
@@ -13,9 +13,21 @@ import {
 
 const router = express.Router();
 
-// Mock authentication middleware
-const requireAuth = (req: any, res: any, next: any) => {
-  req.user = { id: "mock-user-id" };
+function resolveUserId(req: any): string | undefined {
+  return req.authUser?.id
+    || (req.session as any)?.userId
+    || (req.user?.id !== "mock-user-id" ? req.user?.id : undefined);
+}
+
+const requireAuth = async (req: any, res: any, next: any) => {
+  const token = req.headers["x-auth-token"] as string | undefined;
+  if (token) {
+    try {
+      const [tokenUser] = await db.select({ id: users.id }).from(users).where(eq(users.authToken, token)).limit(1);
+      if (tokenUser) { req.user = { id: tokenUser.id }; }
+    } catch { }
+  }
+  if (!req.user) req.user = {};
   next();
 };
 
@@ -44,16 +56,14 @@ const logMealSchema = z.object({
 // POST /api/craving-creator/generate - Generate recipe based on craving
 router.post('/generate', requireAuth, async (req, res) => {
   try {
-    const { craving, mealType = 'dinner', userId = '1', macroTargets, servings = 2 } = req.body;
+    const { craving, mealType = 'dinner', macroTargets, servings = 2 } = req.body;
+    const userId = resolveUserId(req) || req.body.userId || '1';
     
     console.log('🔥 CRAVING ROUTE HIT', Date.now());
     console.log('🍳 Craving Creator generating meal:', { craving, mealType, userId, servings });
     
     // Import the actual AI meal generator
     const { generateCravingMeal } = await import('../services/stableMealGenerator');
-    const { users } = await import('@shared/schema');
-    const { db } = await import('../db');
-    const { eq } = await import('drizzle-orm');
     
     // Get user data for medical personalization
     let user = null;
