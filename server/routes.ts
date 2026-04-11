@@ -2067,16 +2067,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User profile update endpoint - saves onboarding/profile data
   // CRITICAL: This is the single source of truth for allergies, dietary restrictions, etc.
   app.put("/api/users/profile", requireAuth, async (req: any, res) => {
+    const _startMs = Date.now();
+    const _step = req.body?.fromOnboarding ? (req.body?._step || "unknown_onboarding_step") : "settings";
     try {
       const validation = validateProfilePayload(req.body);
       if (!validation.valid) {
+        console.warn(`[profile] 400 validation_failed — step: ${_step}, missing: ${validation.missing?.join(", ")}`);
         return res.status(400).json({
           error: `Profile payload missing required fields: ${validation.missing?.join(", ")}`,
+          code: "VALIDATION_FAILED",
+          step: _step,
         });
       }
 
       const authReq = req as AuthenticatedRequest;
       const userId = authReq.authUser.id;
+      console.log(`[profile] PUT start — userId: ${userId}, step: ${_step}, fields: ${Object.keys(req.body).filter(k => k !== 'fromOnboarding' && k !== '_step').join(", ")}`);
       
       const {
         firstName,
@@ -2188,15 +2194,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
       
-      console.log(`✅ Profile updated for user ${userId}:`, Object.keys(updateData).join(", "));
+      console.log(`✅ [profile] PUT success — userId: ${userId}, step: ${_step}, fields: ${Object.keys(updateData).join(", ")}, durationMs: ${Date.now() - _startMs}`);
       
       res.json({
         success: true,
         message: "Profile updated successfully",
       });
     } catch (error: any) {
-      console.error("Error updating user profile:", error);
-      res.status(500).json({ error: "Failed to update user profile" });
+      console.error(`[profile] PUT error — step: ${_step}, durationMs: ${Date.now() - _startMs}, error: ${error?.message || error}`);
+      res.status(500).json({ error: "Failed to update user profile", code: "SERVER_ERROR" });
     }
   });
 
