@@ -249,41 +249,8 @@ export default function Profile() {
       <div className="bg-black/40 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoUpload}
-                className="hidden"
-                id="profile-photo-input"
-              />
-              <label
-                htmlFor="profile-photo-input"
-                className="cursor-pointer block"
-              >
-                <div className="relative w-24 h-24 rounded-full overflow-hidden bg-gradient-primary shadow-lg ring-2 ring-purple-500/50">
-                  {profilePhotoUrl ? (
-                    <img
-                      src={profilePhotoUrl}
-                      alt={userName}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <User className="h-10 w-10 text-white" />
-                    </div>
-                  )}
-                  {isUploadingPhoto && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <Loader2 className="h-8 w-8 text-white animate-spin" />
-                    </div>
-                  )}
-                </div>
-                <div className="absolute -bottom-1 -right-1 p-2 rounded-full bg-purple-600 border-2 border-black/40">
-                  <Camera className="h-4 w-4 text-white" />
-                </div>
-              </label>
+            <div className="w-16 h-16 rounded-full bg-gradient-primary shadow-lg ring-2 ring-purple-500/50 flex items-center justify-center flex-shrink-0">
+              <User className="h-8 w-8 text-white" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white tracking-tight">
