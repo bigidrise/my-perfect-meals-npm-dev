@@ -405,30 +405,12 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
           </SheetDescription>
         </SheetHeader>
 
-        {/* Hidden file input for web */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleFileInput}
-          className="hidden"
-        />
-
         {/* User Info Section */}
         <div className="mt-6 p-4 bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl">
-          <div className="flex items-center gap-3">
-            <div className="relative h-20 w-20 rounded-full bg-black/40 border-2 border-orange-400/30 overflow-hidden shadow-lg ring-2 ring-orange-500/30">
-              <div className="w-full h-full flex items-center justify-center">
-                <User className="h-9 w-9 text-white/70" />
-              </div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-white font-semibold truncate">{userName}</h3>
-              {userEmail && (
-                <p className="text-white/70 text-sm truncate">{userEmail}</p>
-              )}
-            </div>
-          </div>
+          <h3 className="text-white font-semibold truncate">{userName}</h3>
+          {userEmail && (
+            <p className="text-white/70 text-sm truncate">{userEmail}</p>
+          )}
         </div>
 
         {/* Meal Reminders */}
