@@ -323,7 +323,7 @@ export default function OnboardingV3() {
   };
 
   const validatePin = () => {
-    if (pin.length < 4 || pin.length > 6) return "PIN must be 4-6 digits";
+    if (pin.length !== 4) return "PIN must be exactly 4 digits";
     if (pin !== confirmPin) return "PINs do not match";
     return "";
   };
@@ -386,7 +386,7 @@ export default function OnboardingV3() {
 
   const recommended = getRecommendedBuilder(medicalConditions);
 
-  const canFinish = selectedBuilder && pin.length >= 4 && pin.length <= 6 && pin === confirmPin;
+  const canFinish = selectedBuilder && pin.length === 4 && pin === confirmPin;
 
   const renderPage = () => {
     switch (step) {
@@ -917,8 +917,8 @@ export default function OnboardingV3() {
                   <Input
                     type={showPin ? "text" : "password"}
                     value={pin}
-                    onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                    placeholder="Enter PIN (4-6 digits)"
+                    onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    placeholder="Enter 4-digit PIN"
                     className="text-white bg-white/10 border-white/20 pr-10"
                     inputMode="numeric"
                   />
@@ -933,7 +933,7 @@ export default function OnboardingV3() {
                 <Input
                   type={showPin ? "text" : "password"}
                   value={confirmPin}
-                  onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
                   placeholder="Confirm PIN"
                   className="text-white bg-white/10 border-white/20"
                   inputMode="numeric"
