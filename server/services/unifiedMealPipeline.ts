@@ -836,6 +836,105 @@ MEAL TYPE context: ${validMealType}
 ${strictMode ? `\n${buildStrictModeBlock(cravingInput)}` : ""}`;
 }
 
+/** Recipe Mode prompt — culinary-ratio-first, not macro-first */
+function buildRecipeVarietyPrompt(
+  cravingInput: string,
+  validMealType: string,
+  dishFamily: string,
+  dietBlock: string,
+  dietRestrictions: string[],
+  excludeClause: string,
+  allergyBlock: string = '',
+  strictMode: boolean = false
+): string {
+  const primaryDiet = getPrimaryDiet(dietRestrictions);
+  const dietLine = primaryDiet
+    ? `DIET: ${primaryDiet.toUpperCase()} — ALL 3 options must comply. Zero exceptions.`
+    : `DIET: None set.`;
+
+  return `You are a professional chef generating real-world recipes. Think like a cook, NOT a nutrition calculator.
+${allergyBlock ? '\n' + allergyBlock + '\n' : ''}
+═══════════════════════════════════════
+RECIPE MODE — CULINARY-FIRST RULES:
+═══════════════════════════════════════
+
+PRIORITY 1 — CULINARY ACCURACY (non-negotiable):
+  - Use REALISTIC ingredient ratios for this type of dish
+  - Do NOT scale ingredients by macro targets
+  - Eggs: most dishes use 2–4 eggs. Never exceed what a real recipe requires.
+  - Flour/butter/sugar: follow standard baking/cooking proportions for the dish
+  - Serving size must be realistic (a dinner roll is a roll, not a macro-portioned block)
+  - Scale by RECIPE LOGIC, not nutrition math
+
+PRIORITY 2 — ALLERGEN SAFETY & DIET (non-negotiable):
+  ${dietLine}
+  ${dietBlock ? dietBlock : ''}
+PRIORITY 3 — DISH VARIETY:
+  The user requested: "${cravingInput}"
+  Core dish family: "${dishFamily}"
+  Generate 3 distinct variations using different:
+  - Preparation methods (baked vs pan-fried vs stovetop)
+  - Flavor profiles (classic vs herbed vs spiced)
+  - Textures or formats
+
+${excludeClause}
+
+═══════════════════════════════════════
+OUTPUT FORMAT — ONLY valid JSON, no markdown:
+═══════════════════════════════════════
+{
+  "options": [
+    {
+      "name": "Specific recipe name",
+      "description": "1-2 sentence appetizing description",
+      "ingredients": [{"name": "ingredient", "quantity": "2", "unit": "cup"}],
+      "instructions": "Full step-by-step recipe as a single paragraph",
+      "calories": 350,
+      "protein": 8,
+      "starchyCarbs": 40,
+      "fibrousCarbs": 3,
+      "fat": 12,
+      "cookingTime": "25 minutes"
+    },
+    {},
+    {}
+  ]
+}
+
+INGREDIENT FORMAT: US measurements only (oz, lb, cup, tbsp, tsp, each, fl oz). Never grams or ml.
+CRITICAL SANITY CHECK: Before outputting, verify your ingredient counts are physically realistic for ${cravingInput}. A dozen rolls does not require 5 dozen eggs.
+MEAL TYPE context: ${validMealType}
+${strictMode ? `\n${buildStrictModeBlock(cravingInput)}` : ""}`;
+}
+
+/** Deterministic post-generation sanity check for unrealistic ingredient quantities.
+ *  Returns true if quantities look sane, false if a re-generation should be triggered. */
+function checkIngredientSanity(options: any[], servings: number = 1): boolean {
+  const s = Math.max(1, servings);
+  for (const opt of options) {
+    for (const ing of (opt.ingredients || [])) {
+      const name = (ing.name || '').toLowerCase();
+      const qty = parseFloat(ing.quantity) || 0;
+      if (!qty) continue;
+      // Eggs — more than 4 per serving is suspicious (most recipes: 2-3 eggs regardless of servings)
+      if (name.includes('egg') && !name.includes('eggplant') && !name.includes('noodle')) {
+        if (qty > Math.max(6, 4 * s)) {
+          console.warn(`[RECIPE SANITY] Unrealistic eggs: ${qty} for ${s} serving(s) in "${opt.name}"`);
+          return false;
+        }
+      }
+      // Flour — more than 4 cups per single serving is suspicious
+      if (name.includes('flour') && (ing.unit || '').toLowerCase() === 'cup') {
+        if (qty > Math.max(8, 4 * s)) {
+          console.warn(`[RECIPE SANITY] Unrealistic flour: ${qty} cups for ${s} serving(s) in "${opt.name}"`);
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
 /** Parse raw AI content into options array */
 function parseVarietyContent(content: string): any[] {
   let jsonStr = content;
@@ -883,7 +982,8 @@ export async function generateCravingMealOptions(
   userId?: string,
   dietaryRestrictionsOverride?: string[],
   excludeMeals?: string[],
-  strictMode: boolean = false
+  strictMode: boolean = false,
+  generationMode: 'meal' | 'recipe' = 'meal'
 ): Promise<UnifiedMeal[]> {
   const validMealType = normalizeMealType(mealType);
   const category = inferCravingCategory(cravingInput, validMealType);
@@ -929,9 +1029,16 @@ export async function generateCravingMealOptions(
 
   const openai = getOpenAI();
 
+  const isRecipeMode = generationMode === 'recipe';
+  if (isRecipeMode) {
+    console.log(`🍳 [RECIPE MODE] Using culinary-ratio prompt for "${cravingInput}"`);
+  }
+
   /** One attempt at calling AI and parsing result */
   const attempt = async (stricterMode: boolean): Promise<any[]> => {
-    const prompt = buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode);
+    const prompt = isRecipeMode
+      ? buildRecipeVarietyPrompt(cravingInput, validMealType, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode)
+      : buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode);
     const stricter = stricterMode
       ? `\n\nSECOND ATTEMPT — STRICT MODE: The previous response drifted from the dish family. You MUST generate 3 options that are clearly recognizable variations of "${dishFamily}". No exceptions.`
       : "";
@@ -952,6 +1059,16 @@ export async function generateCravingMealOptions(
   } catch (e) {
     console.error("[VARIETY ENGINE] JSON parse failed on first attempt, retrying…");
     rawOptions = await attempt(true);
+  }
+
+  // Recipe Mode: post-generation sanity check for unrealistic ingredient quantities
+  if (isRecipeMode && !checkIngredientSanity(rawOptions)) {
+    console.warn("[RECIPE MODE] Sanity check failed — regenerating with stricter culinary constraints");
+    try {
+      rawOptions = await attempt(true);
+    } catch (sanityRetryErr) {
+      console.error("[RECIPE MODE] Sanity retry failed:", sanityRetryErr);
+    }
   }
 
   // Server-side validation — check category, dish family, diet for each option

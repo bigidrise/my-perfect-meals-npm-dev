@@ -98,15 +98,18 @@ dessertCreatorRouter.post("/", async (req, res) => {
       overrideToken,
       skipPalate,
       strictMode,
+      customDessertDescription,
     } = req.body ?? {};
 
-    if (isDev) console.log("[DESSERT] Request params:", { dessertCategory, flavorFamily, servingSize, cakeStyle, cakeType });
+    const hasCustomDescription = !!(customDessertDescription && typeof customDessertDescription === 'string' && customDessertDescription.trim().length > 0);
 
-    if (!dessertCategory) {
+    if (isDev) console.log("[DESSERT] Request params:", { dessertCategory, flavorFamily, servingSize, cakeStyle, cakeType, hasCustomDescription });
+
+    if (!hasCustomDescription && !dessertCategory) {
       return res.status(400).json({ error: "Dessert category is required" });
     }
 
-    if (!flavorFamily) {
+    if (!hasCustomDescription && !flavorFamily) {
       return res.status(400).json({ error: "Flavor family is required" });
     }
 
@@ -249,10 +252,14 @@ CELEBRATION CAKE REQUIREMENTS:
 ` : ""}
 ` : "";
 
+    const dessertIdentifier = hasCustomDescription
+      ? customDessertDescription.trim()
+      : (specificDessert || `${flavorFamily} ${dessertCategory}`);
+
     const prompt = `
 You are a master pastry chef + nutrition expert inside the My Perfect Meals system.
 Generate a FULL structured dessert recipe.
-${dietPromptBlock ? `\n${dietPromptBlock}\n` : ""}${strictMode === true ? `\n${buildStrictModeBlock(specificDessert || `${flavorFamily} ${dessertCategory}`)}\n` : ""}
+${dietPromptBlock ? `\n${dietPromptBlock}\n` : ""}${strictMode === true ? `\n${buildStrictModeBlock(dessertIdentifier)}\n` : ""}
 
 Return JSON ONLY, following this exact schema:
 
@@ -288,9 +295,11 @@ Return JSON ONLY, following this exact schema:
 }
 
 CRITERIA:
-- Dessert CATEGORY: "${categoryLabel}" (this defines the structure - pie, cake, cookies, etc.)
+${hasCustomDescription ? `- PRIMARY DESCRIPTION (highest priority): "${customDessertDescription.trim()}" — use this as the creative direction for the recipe. Create exactly what is described.
+- Dessert CATEGORY (supplementary): "${categoryLabel || "derived from description"}"
+- Flavor FAMILY (supplementary): "${flavorLabel || "derived from description"}"` : `- Dessert CATEGORY: "${categoryLabel}" (this defines the structure - pie, cake, cookies, etc.)
 - Flavor FAMILY: "${flavorLabel}" (this defines the main taste direction)
-- Specific dessert requested: "${specificDessert || "Create your own unique version"}"
+- Specific dessert requested: "${specificDessert || "Create your own unique version"}"`}
 - Dietary requirements: "${dietaryRules}"
 - Number of servings: ${serving.count}
 ${cakeRulesBlock}

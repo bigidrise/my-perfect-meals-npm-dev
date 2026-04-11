@@ -159,6 +159,7 @@ export default function DessertCreator() {
   const { user } = useAuth();
   const userId = user?.id || "";
 
+  const [customDessertDescription, setCustomDessertDescription] = useState("");
   const [dessertCategory, setDessertCategory] = useState("");
   const [flavorFamily, setFlavorFamily] = useState("");
   const [specificDessert, setSpecificDessert] = useState("");
@@ -285,16 +286,18 @@ export default function DessertCreator() {
 
   async function handleGenerateDessert(skipPreflight = false, overrideToken?: string) {
     setDietAdaptedNotice(null);
-    if (!dessertCategory) {
+    const hasCustomDescription = customDessertDescription.trim().length > 0;
+
+    if (!hasCustomDescription && !dessertCategory) {
       toast({
         title: "Missing Information",
-        description: "Please select a dessert category.",
+        description: "Describe what you want to make, or select a dessert category.",
         variant: "destructive",
       });
       return;
     }
 
-    if (!flavorFamily) {
+    if (!hasCustomDescription && !flavorFamily) {
       toast({
         title: "Missing Information",
         description: "Please select a flavor family.",
@@ -305,8 +308,9 @@ export default function DessertCreator() {
 
     // SafetyGuard preflight check if safety is enabled and no override
     if (safetyEnabled && !hasActiveOverride && !overrideToken) {
-      const requestDescription =
-        `${dessertCategory} ${flavorFamily} ${specificDessert}`.trim();
+      const requestDescription = hasCustomDescription
+        ? customDessertDescription.trim()
+        : `${dessertCategory} ${flavorFamily} ${specificDessert}`.trim();
       const isSafe = await checkSafety(requestDescription, "dessert-creator");
       if (!isSafe) {
         return; // Banner will show automatically
@@ -360,6 +364,7 @@ export default function DessertCreator() {
           overrideToken: !safetyEnabled ? overrideToken : undefined,
           skipPalate: !flavorPersonal,
           strictMode: keepItSimple,
+          customDessertDescription: customDessertDescription.trim() || undefined,
         }),
       });
 
@@ -535,9 +540,38 @@ export default function DessertCreator() {
             </CardHeader>
 
             <CardContent className="space-y-4">
+              {/* Prominent free-text input — when filled, dropdowns become optional */}
               <div>
                 <label className="block text-md font-medium text-white mb-1">
-                  Dessert Category <span className="text-orange-400">*</span>
+                  What dessert do you want to make?
+                  <span className="ml-2 text-xs text-orange-300 font-normal">
+                    (optional — fills in the rest)
+                  </span>
+                </label>
+                <textarea
+                  value={customDessertDescription}
+                  onChange={(e) => setCustomDessertDescription(e.target.value)}
+                  placeholder='e.g. "A rustic peach galette with almond frangipane" or "Dark chocolate lava cake, gluten-free"'
+                  rows={3}
+                  className="w-full rounded-lg bg-black/60 border border-orange-400/40 text-white placeholder-white/30 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400/60 resize-none"
+                />
+                {customDessertDescription.trim().length > 0 && (
+                  <p className="text-xs text-orange-300 mt-1">
+                    Category and flavor selections below are optional — your description takes priority.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 text-white/30">
+                <div className="flex-1 h-px bg-white/10" />
+                <span className="text-xs">or choose from options below</span>
+                <div className="flex-1 h-px bg-white/10" />
+              </div>
+
+              <div>
+                <label className="block text-md font-medium text-white mb-1">
+                  Dessert Category{" "}
+                  {!customDessertDescription.trim() && <span className="text-orange-400">*</span>}
                 </label>
                 <Select
                   value={dessertCategory}
@@ -599,7 +633,8 @@ export default function DessertCreator() {
 
               <div>
                 <label className="block text-md font-medium text-white mb-1">
-                  Flavor Family <span className="text-orange-400">*</span>
+                  Flavor Family{" "}
+                  {!customDessertDescription.trim() && <span className="text-orange-400">*</span>}
                 </label>
                 <Select value={flavorFamily} onValueChange={setFlavorFamily}>
                   <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">

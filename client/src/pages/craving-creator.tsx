@@ -435,6 +435,8 @@ export default function CravingCreator() {
   // Flavor preference toggle - Personal = use user's palate, Neutral = for others
   const [flavorPersonal, setFlavorPersonal] = useState(true);
   const [keepItSimple, setKeepItSimple] = useState(false);
+  // Generation mode: 'meal' = macro-first (default), 'recipe' = culinary-ratio-first
+  const [generationMode, setGenerationMode] = useState<'meal' | 'recipe'>('meal');
 
   // 🔐 SafetyGuard preflight system
   const {
@@ -570,6 +572,7 @@ export default function CravingCreator() {
           skipPalate: !flavorPersonal,
           excludeMeals: getRecentMeals(),
           strictMode: keepItSimple,
+          generationMode,
         }),
       });
 
@@ -1099,6 +1102,42 @@ export default function CravingCreator() {
                       {keepItSimple
                         ? "AI will use only what you listed — nothing added"
                         : "AI may add complementary ingredients"}
+                    </p>
+                  </div>
+
+                  {/* Generation Mode Toggle */}
+                  <div className="mt-2 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+                    <span className="text-xs text-white/60 block mb-2">
+                      Generation Mode
+                    </span>
+                    <div className="flex rounded-lg overflow-hidden border border-white/20">
+                      <button
+                        onClick={() => setGenerationMode('meal')}
+                        disabled={isGenerating}
+                        className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                          generationMode === 'meal'
+                            ? 'bg-lime-600 text-white'
+                            : 'bg-black/40 text-white/50 hover:text-white/80'
+                        }`}
+                      >
+                        Meal Mode
+                      </button>
+                      <button
+                        onClick={() => setGenerationMode('recipe')}
+                        disabled={isGenerating}
+                        className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                          generationMode === 'recipe'
+                            ? 'bg-orange-600 text-white'
+                            : 'bg-black/40 text-white/50 hover:text-white/80'
+                        }`}
+                      >
+                        Recipe Mode
+                      </button>
+                    </div>
+                    <p className="text-xs text-white/40 mt-1">
+                      {generationMode === 'recipe'
+                        ? 'Chef-first: uses real culinary ratios — ideal for breads, baked goods & traditional dishes'
+                        : 'Nutrition-first: optimized for your macro and diet targets'}
                     </p>
                   </div>
 
