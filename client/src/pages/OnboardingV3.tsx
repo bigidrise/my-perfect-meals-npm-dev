@@ -150,13 +150,46 @@ export default function OnboardingV3() {
     if (!selectedBuilder) setSelectedBuilder(rec);
   }, [medicalConditions]);
 
-  const saveProfile = async (fields: Record<string, unknown>) => {
-    const res = await fetch(apiUrl("/api/users/profile"), {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-      body: JSON.stringify({ ...fields, fromOnboarding: true }),
-    });
-    if (!res.ok) throw new Error("Failed to save profile");
+  /** Fetch with a 15-second timeout to surface hung requests as a clear error */
+  const fetchWithTimeout = async (url: string, options: RequestInit, timeoutMs = 15000): Promise<Response> => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } catch (err: any) {
+      if (err?.name === "AbortError") throw new Error("Request timed out after 15 seconds. Check your connection and try again.");
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  /** Returns a human-readable message from a non-ok profile response */
+  const parseProfileError = async (res: Response, step: string): Promise<string> => {
+    let body: any = {};
+    try { body = await res.json(); } catch { /* ignore parse errors */ }
+    const code = body?.code || "";
+    const serverMsg = body?.error || "";
+    console.error(`[onboarding] saveProfile failed — step: ${step}, status: ${res.status}, code: ${code}, server: ${serverMsg}`);
+    if (res.status === 401) return "Your session expired. Please sign out and sign back in to continue.";
+    if (res.status === 403) return serverMsg || "Action not permitted at this step.";
+    if (res.status === 400) return serverMsg || "Some profile data was invalid. Please review your entries.";
+    return `Something went wrong saving your profile (step: ${step}). Please try again.`;
+  };
+
+  const saveProfile = async (fields: Record<string, unknown>, step: string) => {
+    const res = await fetchWithTimeout(
+      apiUrl("/api/users/profile"),
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify({ ...fields, fromOnboarding: true, _step: step }),
+      }
+    );
+    if (!res.ok) {
+      const msg = await parseProfileError(res, step);
+      throw new Error(msg);
+    }
   };
 
   const handleAllergyToggle = (item: string) => {
@@ -215,11 +248,11 @@ export default function OnboardingV3() {
             setSaving(false);
             return;
           }
-          await saveProfile({ firstName: firstName.trim(), lastName: lastName.trim() });
+          await saveProfile({ firstName: firstName.trim(), lastName: lastName.trim() }, "name");
           break;
         case 2: {
           const toSave = allergies.filter((a) => a !== "None");
-          await saveProfile({ allergies: toSave, avoidedFoods });
+          await saveProfile({ allergies: toSave, avoidedFoods }, "allergies");
           break;
         }
         case 3:
@@ -228,7 +261,7 @@ export default function OnboardingV3() {
             setSaving(false);
             return;
           }
-          await saveProfile({ medicalConditions });
+          await saveProfile({ medicalConditions }, "medical_conditions");
           // Save specialty condition separately (fire-and-forget — non-blocking)
           fetch(apiUrl("/api/user/specialty-condition"), {
             method: "PATCH",
@@ -261,7 +294,7 @@ export default function OnboardingV3() {
             goalTarget: goalTarget.trim() || null,
             goalTimelineWeeks: goalTimelineWeeks ?? null,
             goalStartDate: new Date().toISOString(),
-          });
+          }, "goals");
           break;
         case 6:
           if (!flavorPreference) {
@@ -273,12 +306,13 @@ export default function OnboardingV3() {
             flavorPreference,
             heatPreference: heatPreference || "unsure",
             sweetenerPreferences
-          });
+          }, "flavor");
           break;
       }
       setStep((s) => s + 1);
-    } catch {
-      toast({ title: "Something went wrong. Please try again.", variant: "destructive" });
+    } catch (err: any) {
+      const msg = err?.message || "Something went wrong. Please try again.";
+      toast({ title: msg, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -306,25 +340,37 @@ export default function OnboardingV3() {
     }
     setSaving(true);
     try {
-      await saveProfile({ preferredBuilder: selectedBuilder });
+      await saveProfile({ preferredBuilder: selectedBuilder }, "builder");
 
-      await fetch(apiUrl("/api/safety-pin/set"), {
+      const pinRes = await fetchWithTimeout(apiUrl("/api/safety-pin/set"), {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({ pin }),
       });
+      if (!pinRes.ok) {
+        let pinMsg = "Failed to save your safety PIN.";
+        if (pinRes.status === 401) pinMsg = "Your session expired. Please sign out and sign back in.";
+        console.error(`[onboarding] safety-pin/set failed — status: ${pinRes.status}`);
+        throw new Error(pinMsg);
+      }
 
-      const completeRes = await fetch(apiUrl("/api/user/complete-onboarding"), {
+      const completeRes = await fetchWithTimeout(apiUrl("/api/user/complete-onboarding"), {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({ onboardingMode: "independent" }),
       });
-      if (!completeRes.ok) throw new Error("Failed to complete onboarding");
+      if (!completeRes.ok) {
+        let completeMsg = "Could not activate your plan.";
+        if (completeRes.status === 401) completeMsg = "Your session expired. Please sign out and sign back in.";
+        console.error(`[onboarding] complete-onboarding failed — status: ${completeRes.status}`);
+        throw new Error(completeMsg);
+      }
 
       await refreshUser();
       setLocation("/macro-counter?from=onboarding");
-    } catch {
-      toast({ title: "Something went wrong. Please try again.", variant: "destructive" });
+    } catch (err: any) {
+      const msg = err?.message || "Something went wrong. Please try again.";
+      toast({ title: msg, variant: "destructive" });
     } finally {
       setSaving(false);
     }

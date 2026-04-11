@@ -56,6 +56,7 @@ export async function requireAuth(
   res: Response,
   next: NextFunction
 ): Promise<void> {
+  const route = `${req.method} ${req.path}`;
   const token = req.headers["x-auth-token"] as string;
   const sessionUser = (req as any).session?.userId;
 
@@ -71,12 +72,13 @@ export async function requireAuth(
         (req as AuthenticatedRequest).authUser = buildAuthUser(user);
         return next();
       }
-    } catch (error) {
-      console.error("Auth token lookup error:", error);
-    }
-  }
 
-  if (sessionUser) {
+      // Token present but not found in DB
+      console.warn(`[requireAuth] 401 token_not_found — route: ${route}, tokenPrefix: ${token.slice(0, 8)}…`);
+    } catch (error) {
+      console.error(`[requireAuth] 401 db_error (token lookup) — route: ${route}`, error);
+    }
+  } else if (sessionUser) {
     try {
       const [user] = await db
         .select()
@@ -88,12 +90,18 @@ export async function requireAuth(
         (req as AuthenticatedRequest).authUser = buildAuthUser(user);
         return next();
       }
+
+      // Session userId present but user not found
+      console.warn(`[requireAuth] 401 session_user_not_found — route: ${route}, userId: ${sessionUser}`);
     } catch (error) {
-      console.error("Session lookup error:", error);
+      console.error(`[requireAuth] 401 db_error (session lookup) — route: ${route}`, error);
     }
+  } else {
+    // No token and no session
+    console.warn(`[requireAuth] 401 missing_credentials — route: ${route}, hasToken: false, hasSession: false`);
   }
 
-  res.status(401).json({ error: "Authentication required" });
+  res.status(401).json({ error: "Authentication required", code: "AUTH_REQUIRED" });
   return;
 }
 
