@@ -62,7 +62,6 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import DashboardNew from "@/pages/DashboardNew";
 import Learn from "@/pages/Learn";
-import ProfileNew from "@/pages/Profile";
 import PrivacySecurity from "@/pages/privacy";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
