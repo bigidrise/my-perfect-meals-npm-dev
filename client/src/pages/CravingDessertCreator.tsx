@@ -570,8 +570,7 @@ export default function DessertCreator() {
 
               <div>
                 <label className="block text-md font-medium text-white mb-1">
-                  Dessert Category{" "}
-                  {!customDessertDescription.trim() && <span className="text-orange-400">*</span>}
+                  Dessert Category
                 </label>
                 <Select
                   value={dessertCategory}
@@ -633,8 +632,7 @@ export default function DessertCreator() {
 
               <div>
                 <label className="block text-md font-medium text-white mb-1">
-                  Flavor Family{" "}
-                  {!customDessertDescription.trim() && <span className="text-orange-400">*</span>}
+                  Flavor Family
                 </label>
                 <Select value={flavorFamily} onValueChange={setFlavorFamily}>
                   <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
