@@ -248,20 +248,15 @@ export default function Profile() {
       {/* Header */}
       <div className="bg-black/40 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-primary shadow-lg ring-2 ring-purple-500/50 flex items-center justify-center flex-shrink-0">
-              <User className="h-8 w-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white tracking-tight">
-                {userName}
-              </h1>
-              {userEmail && (
-                <p className="text-sm text-white/90">
-                  {userEmail}
-                </p>
-              )}
-            </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white tracking-tight">
+              {userName}
+            </h1>
+            {userEmail && (
+              <p className="text-sm text-white/90">
+                {userEmail}
+              </p>
+            )}
           </div>
         </div>
       </div>
