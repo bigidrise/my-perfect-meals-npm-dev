@@ -103,16 +103,17 @@ export default function MeetYourCoach() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(apiUrl("/api/providers"), {
+        const res = await fetch(apiUrl("/api/professionals/providers"), {
           headers: { ...getAuthHeaders() },
           credentials: "include",
         });
         if (!res.ok) return;
-        const data: Array<{
+        const json: { providers: Array<{
           professionalRole?: string;
           availabilityStatus?: string;
           backAt?: string | null;
-        }> = await res.json();
+        }> } = await res.json();
+        const data = json.providers ?? [];
 
         const firstTrainer = data.find((p) => p.professionalRole === "trainer");
         const firstPhysician = data.find((p) => p.professionalRole === "physician");
