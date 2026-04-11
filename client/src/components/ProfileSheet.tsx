@@ -352,7 +352,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       testId: "menu-about",
     },
     {
-      title: "Find a Professional",
+      title: "Hire a Professional",
       description: "Browse certified, professional coaches and physicians.",
       icon: Users,
       route: "/coaches",
