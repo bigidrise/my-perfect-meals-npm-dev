@@ -10,6 +10,7 @@ import TrashButton from "@/components/ui/TrashButton";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import MealCardActions from "@/components/MealCardActions";
 import { StarchMealBadge } from "@/components/StarchMealBadge";
+import DietStyleBadge from "@/components/DietStyleBadge";
 
 // Keep your Meal type colocated here (WeeklyMealBoard imports from this file)
 export type Meal = {
@@ -155,6 +156,7 @@ export function MealCard({
               <StarchMealBadge meal={{ name: displayTitle, ingredients: displayIngredients }} />
             )}
           </div>
+          <DietStyleBadge className="mt-1" />
           
           {/* Description */}
           {displayDescription && (
