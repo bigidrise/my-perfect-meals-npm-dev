@@ -35,8 +35,7 @@ function BuilderAccessGuard({ builderKey, component: Component }: { builderKey: 
   if (user.id === COACHING_ADMIN_USER_ID || (user as any).builderSwitchUnlimited) return <Component />;
   const active = user.activeBoard as BuilderKey | null | undefined;
   if (!active) {
-    setLocation("/select-builder");
-    return null;
+    return <Component />;
   }
   if (active !== builderKey) {
     const correctRoute = BUILDER_MAP[active]?.clientRoute;
