@@ -11,7 +11,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { useToast } from "@/hooks/use-toast";
 import { PillButton } from "@/components/ui/pill-button";
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 8;
 
 const GOAL_OPTIONS = [
   { label: "Lose Weight", value: "lose", emoji: "🔥" },
@@ -80,6 +80,17 @@ const SWEETENER_OPTIONS = [
   { label: "Avoid Sweeteners", value: "avoid" }
 ];
 
+const DIET_OPTIONS = [
+  { label: "No Restriction", value: "none" },
+  { label: "Keto", value: "keto" },
+  { label: "Mediterranean", value: "mediterranean" },
+  { label: "Paleo", value: "paleo" },
+  { label: "Vegan", value: "vegan" },
+  { label: "Vegetarian", value: "vegetarian" },
+  { label: "Pescatarian", value: "pescatarian" },
+  { label: "Custom", value: "custom" },
+];
+
 const BUILDER_OPTIONS = [
   { id: "weekly", name: "Weekly Meal Builder", description: "Balanced, healthy meals for everyday life" },
   { id: "diabetic", name: "Diabetes Support", description: "Blood-sugar awareness and stability" },
@@ -136,6 +147,8 @@ export default function OnboardingV3() {
   const [oncologyIntroAnswer, setOncologyIntroAnswer] = useState<"yes" | "skip" | null>(null);
   const [oncologySupportIntentChoice, setOncologySupportIntentChoice] = useState<"own_provider" | "request_support" | "self_directed" | null>(null);
   const [specialtyCondition, setSpecialtyCondition] = useState<string | null>(null);
+  const [dietaryStyle, setDietaryStyle] = useState("");
+  const [customDietInput, setCustomDietInput] = useState("");
 
   const progress = (step / TOTAL_STEPS) * 100;
 
@@ -283,7 +296,25 @@ export default function OnboardingV3() {
           }).catch(() => {});
           break;
         }
-        case 5:
+        case 5: {
+          if (!dietaryStyle) {
+            toast({ title: "Please select an eating style, or choose 'No Restriction'", variant: "destructive" });
+            setSaving(false);
+            return;
+          }
+          if (dietaryStyle === "custom" && !customDietInput.trim()) {
+            toast({ title: "Please describe your eating style", variant: "destructive" });
+            setSaving(false);
+            return;
+          }
+          const restrictions =
+            dietaryStyle === "none"
+              ? []
+              : [dietaryStyle === "custom" ? customDietInput.trim().toLowerCase() : dietaryStyle];
+          await saveProfile({ dietaryRestrictions: restrictions }, "dietary_style");
+          break;
+        }
+        case 6:
           if (!goalType) {
             toast({ title: "Please select your main goal", variant: "destructive" });
             setSaving(false);
@@ -296,7 +327,7 @@ export default function OnboardingV3() {
             goalStartDate: new Date().toISOString(),
           }, "goals");
           break;
-        case 6:
+        case 7:
           if (!flavorPreference) {
             toast({ title: "Please pick a flavor style", variant: "destructive" });
             setSaving(false);
@@ -757,6 +788,39 @@ export default function OnboardingV3() {
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
+              <h1 className="text-2xl font-bold text-white">What eating style fits you best?</h1>
+              <p className="text-white/60 text-sm">We'll tailor every meal to this automatically.</p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-2 max-w-sm mx-auto">
+              {DIET_OPTIONS.map((opt) => (
+                <PillButton
+                  key={opt.value}
+                  active={dietaryStyle === opt.value}
+                  onClick={() => setDietaryStyle(opt.value)}
+                >
+                  {opt.label}
+                </PillButton>
+              ))}
+            </div>
+            {dietaryStyle === "custom" && (
+              <div className="max-w-sm mx-auto animate-in fade-in slide-in-from-bottom-2 duration-200">
+                <input
+                  type="text"
+                  value={customDietInput}
+                  onChange={(e) => setCustomDietInput(e.target.value)}
+                  placeholder="e.g. Whole30, raw food, halal..."
+                  className="w-full bg-black/40 border border-white/20 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/60 placeholder:text-white/30"
+                  autoFocus
+                />
+              </div>
+            )}
+          </div>
+        );
+
+      case 6:
+        return (
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="text-center space-y-2">
               <h1 className="text-2xl font-bold text-white">What's your main goal?</h1>
               <p className="text-white/60 text-sm">We'll personalize your plan around this</p>
             </div>
@@ -809,7 +873,7 @@ export default function OnboardingV3() {
           </div>
         );
 
-      case 6:
+      case 7:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
@@ -868,7 +932,7 @@ export default function OnboardingV3() {
           </div>
         );
 
-      case 7:
+      case 8:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
@@ -979,7 +1043,12 @@ export default function OnboardingV3() {
           {step < TOTAL_STEPS ? (
             <Button
               onClick={handleNext}
-              disabled={saving || (step === 4 && oncologyIntroAnswer === "yes" && !oncologySupportIntentChoice)}
+              disabled={
+              saving ||
+              (step === 4 && oncologyIntroAnswer === "yes" && !oncologySupportIntentChoice) ||
+              (step === 5 && !dietaryStyle) ||
+              (step === 5 && dietaryStyle === "custom" && !customDietInput.trim())
+            }
               className="flex-1 bg-orange-500 active:bg-orange-700 text-white"
             >
               {saving
