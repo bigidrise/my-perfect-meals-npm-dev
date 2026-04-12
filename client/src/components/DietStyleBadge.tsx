@@ -1,6 +1,7 @@
 // client/src/components/DietStyleBadge.tsx
 // Shows a small pill on meal cards confirming the meal fits the user's dietary style
 import { useAuth } from "@/contexts/AuthContext";
+import { useProClient } from "@/contexts/ProClientContext";
 
 const DIET_CONFIG: Record<string, { label: string; color: string }> = {
   keto:           { label: "Keto ✓",          color: "bg-purple-500/20 border-purple-400/40 text-purple-300" },
@@ -16,7 +17,12 @@ const SKIP = new Set(["no-restriction", "no_restriction", "none", ""]);
 
 export default function DietStyleBadge({ className = "" }: { className?: string }) {
   const { user } = useAuth();
+  const { isProCareMode } = useProClient();
   const restrictions: string[] = (user as any)?.dietaryRestrictions ?? [];
+
+  // In Pro Care Mode the logged-in user is a coach — their own diet
+  // has nothing to do with the client's meals, so hide the badge entirely.
+  if (isProCareMode) return null;
 
   const active = restrictions
     .map((r) => r.toLowerCase().trim())
