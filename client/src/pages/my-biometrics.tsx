@@ -1322,6 +1322,12 @@ export default function MyBiometrics() {
         title: "✓ Weight saved",
         description: "Your weight has been saved successfully.",
       });
+
+      const returnTo = sessionStorage.getItem("biometrics:returnTo");
+      if (returnTo) {
+        sessionStorage.removeItem("biometrics:returnTo");
+        setTimeout(() => setLocation(returnTo), 900);
+      }
     } catch (error) {
       console.error("Error saving weight:", error);
       toast({
