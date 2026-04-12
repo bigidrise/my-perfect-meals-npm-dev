@@ -27,6 +27,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
   free: {
     tier: "free",
     displayFeatures: [
+      "Create a Meal (AI meal generator)",
       "AI Fridge Rescue (1x per week)",
       "Macro Calculator",
       "MacroScan",
@@ -45,7 +46,6 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
     displayFeatures: [
       "Everything in Free",
       "AI Fridge Rescue (unlimited)",
-      "Copilot Voice Guidance",
       "Multi-Language Voice Input & Translation",
       "Weekly Meal Builder",
       "GLP-1 Hub and Meal Builder",
@@ -69,7 +69,6 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
     tier: "premium",
     displayFeatures: [
       "Everything in Basic",
-      "Chef's Kitchen Studio (create & customize meals)",
       "Craving Presets (healthy AI-created favorites)",
       "Craving Creator plus Studio (healthy versions of your favorite cravings)",
       "Dessert Creator plus Studio (healthy versions of your favorite desserts)",
