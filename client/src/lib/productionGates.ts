@@ -78,7 +78,7 @@ export function isFeatureEnabled(feature: GatedFeature, userEmail?: string | nul
 export function getGatedMessage(feature: GatedFeature): string {
   const messages: Record<GatedFeature, string> = {
     studioCreators: "Chef is warming up — this experience is temporarily paused while we finalize the next upgrade.",
-    chefsKitchen: "Chef's Kitchen is being upgraded. Check back soon!",
+    chefsKitchen: "Create a Dish is being upgraded. Check back soon!",
     handsFreeVoice: "Hands-free mode is coming soon. Use tap-to-talk for now.",
     quickCreators: "",
     talkToChef: "",

@@ -27,7 +27,6 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
   free: {
     tier: "free",
     displayFeatures: [
-      "Create a Meal (AI meal generator)",
       "AI Fridge Rescue (1x per week)",
       "Macro Calculator",
       "MacroScan",
@@ -45,6 +44,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
     tier: "basic",
     displayFeatures: [
       "Everything in Free",
+      "Create a Dish (AI meal generator)",
       "AI Fridge Rescue (unlimited)",
       "Multi-Language Voice Input & Translation",
       "Weekly Meal Builder",
@@ -121,6 +121,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
 
 export const IOS_DISPLAY_FEATURES: Record<string, string[]> = {
   basic: [
+    "Create a Dish (AI meal generator)",
     "Copilot Voice Guidance",
     "Multi-Language Voice Input & Translation",
     "AI Fridge Rescue (unlimited)",
@@ -135,7 +136,6 @@ export const IOS_DISPLAY_FEATURES: Record<string, string[]> = {
   ],
   premium: [
     "Everything in Basic, plus:",
-    "Chef's Kitchen Studio",
     "Craving Creator / Studio",
     "Craving Presets",
     "Dessert Creator / Studio",

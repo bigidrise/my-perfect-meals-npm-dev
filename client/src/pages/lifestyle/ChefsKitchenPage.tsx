@@ -353,7 +353,7 @@ export default function ChefsKitchenPage() {
   }, [generatedMeal]);
 
   useEffect(() => {
-    document.title = "Chef's Kitchen 👨🏿‍🍳 | My Perfect Meals";
+    document.title = "Create a Dish | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
@@ -590,7 +590,7 @@ export default function ChefsKitchenPage() {
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <h1 className="text-lg font-bold text-white truncate">Chef's Kitchen</h1>
+            <h1 className="text-lg font-bold text-white truncate">Create a Dish</h1>
             <img
               src="/icons/chef.png"
               alt="Chef"
@@ -619,7 +619,7 @@ export default function ChefsKitchenPage() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
-                      <h2 className="text-lg font-bold text-white">Chef's Kitchen</h2>
+                      <h2 className="text-lg font-bold text-white">Create a Dish</h2>
                     </div>
                     <p className="text-sm text-white/70">
                       Tell us what you want to make — we'll build it with you.

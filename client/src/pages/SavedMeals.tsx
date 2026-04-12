@@ -18,7 +18,7 @@ const SOURCE_LABELS: Record<string, string> = {
   "craving-creator": "Craving Creator",
   "dessert-creator": "Dessert Creator",
   "fridge-rescue": "Fridge Rescue",
-  "chefs-kitchen": "Chef's Kitchen",
+  "chefs-kitchen": "Create a Dish",
   "weekly-board": "Weekly Board",
   "pairings-ai": "Drink Pairings",
   "wine-list-helper": "Wine List Helper",

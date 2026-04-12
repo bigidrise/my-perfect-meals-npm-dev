@@ -120,7 +120,7 @@ const libraryTopics: LibraryTopic[] = [
             "Anti-Inflammatory Meal Builder",
             "General Nutrition Meal Builder",
             "Diabetic Meal Builder",
-            "Chef's Kitchen Studio",
+            "Create a Dish",
             "Fridge Rescue & Fridge Rescue Studio",
           ],
         },
@@ -599,7 +599,7 @@ const libraryTopics: LibraryTopic[] = [
           text: "Built for reduced appetite environments. Nutrient density, protein priority, easier-to-finish meals for GLP-1 users.",
         },
         {
-          heading: "Chef's Kitchen",
+          heading: "Create a Dish",
           text: "Creates one complete dish at a time. Not a meal plan — a real cooking tool. Step-by-step execution, real kitchen meals, practical prep.",
         },
         {
