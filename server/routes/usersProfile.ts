@@ -71,7 +71,13 @@ router.put("/profile", requireAuth, async (req, res) => {
     if (patch.medicalConditions !== undefined) updateData.medicalConditions = patch.medicalConditions;
     if (patch.flavorPreference !== undefined) updateData.flavorPreference = patch.flavorPreference;
     if (patch.heatPreference !== undefined) updateData.heatPreference = patch.heatPreference;
-    if (patch.preferredBuilder !== undefined) updateData.preferredBuilder = patch.preferredBuilder;
+    if (patch.preferredBuilder !== undefined) {
+      updateData.preferredBuilder = patch.preferredBuilder;
+      // Sync activeBoard when set during onboarding so the builder guard works for new users
+      if (patch.fromOnboarding) {
+        (updateData as any).activeBoard = patch.preferredBuilder;
+      }
+    }
     if (patch.palateSpiceTolerance !== undefined) updateData.palateSpiceTolerance = patch.palateSpiceTolerance;
     if (patch.palateSeasoningIntensity !== undefined) updateData.palateSeasoningIntensity = patch.palateSeasoningIntensity;
     if (patch.palateFlavorStyle !== undefined) updateData.palateFlavorStyle = patch.palateFlavorStyle;
