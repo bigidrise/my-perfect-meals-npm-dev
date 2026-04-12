@@ -2284,6 +2284,7 @@ export default function MacroCounter() {
                             timestamp: Date.now(),
                           }),
                         );
+                        sessionStorage.setItem("biometrics:returnTo", "/macro-counter");
                         setLocation(buildBiometricsUrl({ section: "weight", from: "macro-calculator" }));
                       }}
                       className="w-full py-3 bg-lime-600 border border-lime-300 text-white font-semibold rounded-xl"
