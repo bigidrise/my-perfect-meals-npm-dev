@@ -7,6 +7,7 @@ import { ChefHat, Clock, ChevronDown, ChevronUp, RefreshCw } from "lucide-react"
 import { useState } from "react";
 import HealthBadgesPopover from "./badges/HealthBadgesPopover";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
+import DietStyleBadge from "@/components/DietStyleBadge";
 
 interface WeeklyMealCardProps {
   dateISO: string;
@@ -166,6 +167,7 @@ export default function WeeklyMealCard({ dateISO, slot, meal, time, onRegenerate
 
       <CardHeader className="pb-3">
         <CardTitle className="text-lg text-white">{title}</CardTitle>
+        <DietStyleBadge className="mt-1" />
         {description && (
           <CardDescription className="text-sm text-white/80">
             {description}

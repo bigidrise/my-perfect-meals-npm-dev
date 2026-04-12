@@ -10,6 +10,7 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import type { MacroSourceSlug } from "@/lib/macroSourcesConfig";
 import { isFeatureEnabled } from "@/lib/productionGates";
 import FavoriteButton from "@/components/FavoriteButton";
+import DietStyleBadge from "@/components/DietStyleBadge";
 
 export interface GeneratedMealData {
   id: string;
@@ -177,6 +178,8 @@ export default function GeneratedMealCard({
           Create New
         </button>
       </div>
+
+      <DietStyleBadge />
 
       {mealToShow.description && (
         <p className="text-white/90">{mealToShow.description}</p>
