@@ -32,7 +32,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/lifestyle": "Lifestyle Hub",
   "/lifestyle/create-a-dish": "Create a Dish",
   "/lifestyle/beverage-creator": "Beverage Creator",
-  "/lifestyle/chefs-kitchen": "Chef's Kitchen",
+  "/lifestyle/chefs-kitchen": "Create a Dish",
   "/lifestyle/chef-pairings": "Chef Pairings",
   "/lifestyle/pairings-hub": "Pairings Hub",
   "/lifestyle/pairings-ai": "Drink Pairings",
