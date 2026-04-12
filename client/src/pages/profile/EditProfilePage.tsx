@@ -1236,7 +1236,12 @@ export default function EditProfilePage() {
                     : "Not set"}
                 </p>
                 <p className="text-white/80 text-xs">
-                  Restrictions: {dietaryText.trim() || "None"}
+                  Restrictions:{" "}
+                  {dietaryStyle === "none" || !dietaryStyle
+                    ? "None"
+                    : dietaryStyle === "custom"
+                      ? customDietInput.trim() || "Custom"
+                      : DIET_OPTIONS.find((o) => o.value === dietaryStyle)?.label || dietaryStyle}
                 </p>
                 <p className="text-white/80 text-xs">
                   Allergies: {allergiesText.trim() || "None"}
