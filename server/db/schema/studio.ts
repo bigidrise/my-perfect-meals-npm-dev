@@ -222,3 +222,39 @@ export const clientCycleProtocols = pgTable("client_cycle_protocols", {
 
 export type ClientCycleProtocol = typeof clientCycleProtocols.$inferSelect;
 export type InsertClientCycleProtocol = typeof clientCycleProtocols.$inferInsert;
+
+// ─── Check-in Schedules ──────────────────────────────────────────────────────
+// Persists the follow-up dates the coach sets so the server background job
+// can fire alerts to both the coach and the client at the right time.
+
+export const checkInSchedules = pgTable("check_in_schedules", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  studioId: uuid("studio_id").notNull().references(() => studios.id, { onDelete: "cascade" }),
+  clientUserId: text("client_user_id").notNull(),
+  proUserId: text("pro_user_id").notNull(),
+  dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
+  note: text("note"),
+  done: boolean("done").notNull().default(false),
+  alertsSent: jsonb("alerts_sent").$type<Record<string, boolean>>().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  studioClientIdx: index("idx_checkin_studio_client").on(table.studioId, table.clientUserId),
+  dueAtIdx: index("idx_checkin_due_at").on(table.dueAt),
+}));
+
+export type CheckInSchedule = typeof checkInSchedules.$inferSelect;
+export type InsertCheckInSchedule = typeof checkInSchedules.$inferInsert;
+
+// ─── Check-in Alert Preferences ──────────────────────────────────────────────
+// Stored per studio (coach/physician). Intervals are: "2h" | "24h" | "48h" | "1w"
+
+export const checkInAlertPrefs = pgTable("check_in_alert_prefs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  studioId: uuid("studio_id").notNull().references(() => studios.id, { onDelete: "cascade" }).unique(),
+  intervals: jsonb("intervals").$type<string[]>().notNull().default(["24h", "1w"]),
+  enabled: boolean("enabled").notNull().default(true),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type CheckInAlertPrefs = typeof checkInAlertPrefs.$inferSelect;
+export type InsertCheckInAlertPrefs = typeof checkInAlertPrefs.$inferInsert;
