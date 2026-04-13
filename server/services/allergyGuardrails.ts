@@ -326,14 +326,18 @@ export const ALLERGEN_EXPANSION: Record<string, string[]> = {
 };
 
 /**
- * DIET PRIORITY ORDER — strictest wins when multiple diets are present
+ * DIET PRIORITY ORDER — strictest wins when multiple diets are present.
+ * keto and paleo are strict (filter-first); vegan/vegetarian/pescatarian are flexible (modify-allowed).
  */
-export const DIET_PRIORITY = ["vegan", "vegetarian", "pescatarian"] as const;
+export const DIET_PRIORITY = ["vegan", "vegetarian", "pescatarian", "keto", "paleo"] as const;
 export type DietMode = typeof DIET_PRIORITY[number];
+
+/** Strict diets — invalid meals must be rejected outright, not modified */
+const STRICT_DIETS: DietMode[] = ["keto", "paleo"];
 
 /**
  * Resolve a single primary diet from a dietary restrictions array.
- * Follows priority: vegan > vegetarian > pescatarian
+ * Follows priority: vegan > vegetarian > pescatarian > keto > paleo
  * Returns null if no diet mode is present.
  */
 export function getPrimaryDiet(restrictions: string[]): DietMode | null {
@@ -388,13 +392,59 @@ export const RESTRICTION_EXPANSION: Record<string, string[]> = {
   "no pork": [
     "pork", "bacon", "ham", "prosciutto", "pancetta", "pork chop",
     "pork loin", "pork belly", "chorizo", "sausage", "lard"
+  ],
+
+  keto: [
+    // All grains and grain-based foods
+    "pasta", "spaghetti", "fettuccine", "penne", "linguine", "rigatoni", "lasagna",
+    "ravioli", "tagliatelle", "gnocchi", "noodle", "noodles", "orzo", "macaroni",
+    "rice", "white rice", "brown rice", "fried rice", "risotto",
+    "bread", "toast", "baguette", "roll", "rolls", "sandwich bread", "sourdough",
+    "tortilla", "tortillas", "wrap", "pita", "flatbread", "naan",
+    "corn", "cornmeal", "polenta", "corn tortilla",
+    "oats", "oatmeal", "granola",
+    "wheat", "barley", "rye", "millet", "quinoa",
+    "cereal", "crackers", "pretzels",
+    // Sugars and sweeteners
+    "sugar", "cane sugar", "brown sugar", "powdered sugar", "maple syrup",
+    "honey", "agave", "corn syrup", "high fructose corn syrup",
+    "molasses", "jam", "jelly", "syrup",
+    // Starchy vegetables
+    "potato", "potatoes", "sweet potato", "yam", "parsnip", "beet", "beets",
+    // Legumes
+    "beans", "black beans", "kidney beans", "pinto beans", "chickpeas",
+    "lentils", "edamame", "soy beans",
+    // Fruit juice and sugary drinks
+    "fruit juice", "orange juice", "apple juice", "soda", "sweetened beverage"
+  ],
+
+  paleo: [
+    // All grains
+    "wheat", "oats", "barley", "rye", "corn", "rice", "quinoa",
+    "bread", "pasta", "noodles", "cereal", "crackers", "tortilla", "pita",
+    "oatmeal", "granola", "couscous", "bulgur", "farro",
+    // All dairy
+    "milk", "cheese", "butter", "cream", "yogurt", "ice cream", "whey",
+    "casein", "dairy", "mozzarella", "parmesan", "cheddar", "ricotta",
+    "brie", "feta", "gouda", "sour cream", "cream cheese",
+    // Legumes
+    "beans", "black beans", "kidney beans", "pinto beans", "chickpeas",
+    "lentils", "peanuts", "peanut butter", "soy", "tofu", "tempeh",
+    "edamame", "hummus",
+    // Processed and refined
+    "refined sugar", "sugar", "cane sugar", "corn syrup", "agave",
+    "artificial sweetener", "canola oil", "vegetable oil", "soybean oil",
+    "margarine", "processed food", "refined flour",
+    // Potatoes (white — sweet potatoes are paleo-allowed)
+    "white potato", "white potatoes", "french fries", "mashed potatoes"
   ]
 };
 
 /**
  * Build a CRITICAL DIETARY RULE prompt block for injection into AI generators.
  * Uses word-boundary–safe forbidden lists from RESTRICTION_EXPANSION.
- * Priority: vegan > vegetarian > pescatarian (strictest wins).
+ * Priority: vegan > vegetarian > pescatarian > keto > paleo (strictest wins).
+ * Keto and paleo are STRICT diets — invalid meals are rejected outright, not modified.
  * Returns an empty string when no diet mode applies.
  */
 export function buildDietPromptBlock(restrictions: string[]): string {
@@ -402,15 +452,42 @@ export function buildDietPromptBlock(restrictions: string[]): string {
   if (!diet) return "";
 
   const forbidden = RESTRICTION_EXPANSION[diet] || [];
-  return [
+  const isStrict = STRICT_DIETS.includes(diet);
+
+  const baseBlock = [
     `CRITICAL DIETARY RULE:`,
     `This user strictly follows a ${diet.toUpperCase()} diet. This is NON-NEGOTIABLE.`,
     `STRICTLY FORBIDDEN — NEVER include ANY of these ingredients or derivatives:`,
     forbidden.join(", ") + ".",
     `Meals that contain any forbidden ingredient are INVALID and must not be generated.`,
-    `If a craving seems to conflict with this diet (e.g., asking for a burger while vegan),`,
-    `create a compliant alternative (e.g., a vegan black-bean burger) — never violate the diet.`,
-  ].join("\n");
+  ];
+
+  if (isStrict) {
+    // Strict diets: filter-first, no modifications of invalid meals
+    baseBlock.push(
+      `STRICT DIET ENFORCEMENT:`,
+      `Do NOT attempt to modify a non-compliant meal into compliance (e.g., do not suggest "remove the pasta" for a pasta dish).`,
+      `If a dish fundamentally violates this diet, reject it entirely and choose a different, naturally compliant meal.`,
+      `Only return meals that are inherently compliant without requiring modifications to the core dish.`,
+    );
+    if (diet === "keto") {
+      baseBlock.push(
+        `KETO TONE RULE: Never describe carbohydrates as beneficial. Focus on protein, healthy fats, satiety, and stable blood sugar. Avoid phrases like "provides energy from carbs" or "carbs for fuel."`,
+      );
+    } else if (diet === "paleo") {
+      baseBlock.push(
+        `PALEO TONE RULE: Never describe grains, dairy, or legumes as beneficial. Focus on whole-food protein, natural fats, vegetable variety, and sustained energy. Avoid phrases like "good source of grains" or "provides dairy protein."`,
+      );
+    }
+  } else {
+    // Flexible diets: compliant alternatives are acceptable
+    baseBlock.push(
+      `If a craving seems to conflict with this diet (e.g., asking for a burger while vegan),`,
+      `create a compliant alternative (e.g., a vegan black-bean burger) — never violate the diet.`,
+    );
+  }
+
+  return baseBlock.join("\n");
 }
 
 /**

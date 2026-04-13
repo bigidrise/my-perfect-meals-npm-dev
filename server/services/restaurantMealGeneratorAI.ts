@@ -207,6 +207,24 @@ export async function generateRestaurantMealsAI(request: RestaurantMealRequest):
 - Beef, pork, chicken, turkey, and their stocks or broths are NOT allowed
 - Dairy and eggs ARE allowed — do NOT suggest removing them
 - Modifications should focus on confirming no land-animal meat — not dairy`;
+    } else if (primaryDiet === "keto") {
+      dietBehaviorBlock = `\nKETO BEHAVIOR RULES (apply ONLY for keto — STRICT enforcement, filter-first):
+- This is a strict low-carb diet. Do NOT return meals based on pasta, rice, bread, tortillas, grains, or sugar
+- Do NOT attempt to modify a high-carb dish into keto compliance (do not say "ask to remove the pasta" for a pasta dish)
+- If a dish is inherently high-carb, reject it entirely and choose a different, naturally low-carb meal
+- Only return meals that are inherently keto-compliant: protein (meat, fish, eggs), non-starchy vegetables, and healthy fats
+- In the "modifications" field, focus on confirming preparation method (grilled vs fried), sauce choice, and portion — never on removing a core carb
+- In the "reason" field, NEVER describe carbohydrates as beneficial. Focus on protein, healthy fats, satiety, and stable blood sugar
+- Suggested formats: grilled meats, egg-based dishes, salads with protein, vegetable-forward plates, lettuce wraps`;
+    } else if (primaryDiet === "paleo") {
+      dietBehaviorBlock = `\nPALEO BEHAVIOR RULES (apply ONLY for paleo — STRICT enforcement, filter-first):
+- This is a strict whole-food diet. Do NOT return meals containing grains, dairy, legumes, or processed ingredients
+- Do NOT attempt to modify a non-compliant dish into paleo compliance (do not say "ask to hold the cheese" for a dairy-based dish)
+- If a dish is inherently non-paleo, reject it entirely and choose a different, naturally compliant meal
+- Only return meals that are inherently paleo-compliant: meat, fish, eggs, vegetables, fruit, nuts, and natural fats (olive oil, avocado)
+- Sweet potatoes ARE allowed. White potatoes, dairy, grains, and legumes are NOT
+- In the "reason" field, NEVER describe grains, dairy, or legumes as beneficial. Focus on whole-food protein, natural fats, and sustained energy
+- Suggested formats: grilled or roasted meats, fish dishes, vegetable-based plates, protein-forward salads`;
     }
 
     // Use OpenAI to generate restaurant-specific meals
