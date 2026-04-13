@@ -35,14 +35,61 @@ export function getOrderInstructions(diet: string, mealName: string): string[] {
       );
       break;
 
-    case "vegetarian":
-      instructions.push(
-        "Confirm no meat, poultry, or seafood is in the dish",
-        "Ask about meat-based stocks or broths used in cooking",
-        "Request vegetable broth if a soup or sauce base is involved",
-        "Check for hidden meat in garnishes or toppings",
-      );
+    case "vegetarian": {
+      // Pattern-matched instructions — specific per dish type, then generic fallback
+      if (normalizedMeal.includes("taco") || normalizedMeal.includes("burrito") || normalizedMeal.includes("wrap") || normalizedMeal.includes("quesadilla")) {
+        instructions.push(
+          "Confirm fillings contain no meat, chicken, or pork",
+          "Ask if cooking surfaces are shared with meat items",
+          "Request extra beans or grilled vegetables for better protein balance",
+          "Cheese and sour cream are fine — no need to remove them",
+        );
+      } else if (normalizedMeal.includes("pasta") || normalizedMeal.includes("marinara") || normalizedMeal.includes("shells") || normalizedMeal.includes("lasagna") || normalizedMeal.includes("noodle") || normalizedMeal.includes("spaghetti") || normalizedMeal.includes("linguine") || normalizedMeal.includes("fettuccine")) {
+        instructions.push(
+          "Confirm the sauce is not made with meat or animal-based broth",
+          "Ask for sauce on the side to control portions",
+          "Cheese is vegetarian-safe — no need to remove it",
+          "If protein feels low, consider adding a side of beans or an egg-based starter",
+        );
+      } else if (normalizedMeal.includes("pizza")) {
+        instructions.push(
+          "Confirm toppings contain no meat, anchovies, or pepperoni",
+          "Cheese and dairy toppings are vegetarian-safe",
+          "Ask about the sauce base — confirm no meat-based ingredients",
+          "Consider adding extra vegetables or an egg topping for more protein",
+        );
+      } else if (normalizedMeal.includes("salad")) {
+        instructions.push(
+          "Ask for dressing on the side",
+          "Confirm no meat-based toppings or croutons cooked in meat fat",
+          "Cheese and egg toppings are vegetarian-safe and add protein",
+          "If protein feels low, ask about adding beans, chickpeas, or a boiled egg",
+        );
+      } else if (normalizedMeal.includes("bowl") || normalizedMeal.includes("rice") || normalizedMeal.includes("grain")) {
+        instructions.push(
+          "Confirm the base is built without chicken or beef broth",
+          "Ask about shared cooking surfaces if the kitchen handles meat",
+          "Dairy toppings like cheese or Greek yogurt are vegetarian-safe",
+          "Consider adding extra legumes or a fried egg for more protein",
+        );
+      } else if (normalizedMeal.includes("soup") || normalizedMeal.includes("stew") || normalizedMeal.includes("chowder") || normalizedMeal.includes("bisque")) {
+        instructions.push(
+          "Ask if the base broth is vegetable-based — not chicken or beef stock",
+          "Confirm no hidden meat pieces or garnishes",
+          "Dairy cream in the soup is vegetarian-safe",
+          "Request a side of bread or beans if you need more substance",
+        );
+      } else {
+        // Generic vegetarian fallback
+        instructions.push(
+          "Confirm no meat, poultry, or seafood is in the dish",
+          "Ask if any sauces or broths are made with animal-based stock",
+          "Dairy and eggs are vegetarian-safe — no need to avoid them",
+          "Check for hidden meat in garnishes or toppings",
+        );
+      }
       break;
+    }
 
     case "keto":
       instructions.push(

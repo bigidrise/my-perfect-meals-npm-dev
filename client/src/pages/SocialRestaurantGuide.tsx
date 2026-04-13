@@ -145,7 +145,7 @@ function clearRestaurantCache() {
 const DIET_PILL_CONFIG: Record<string, { label: string; color: string }> = {
   keto:          { label: "Keto (Verify Prep)",          color: "bg-purple-500/20 border-purple-400/40 text-purple-300" },
   vegan:         { label: "Vegan (Verify Prep)",          color: "bg-green-500/20 border-green-400/40 text-green-300" },
-  vegetarian:    { label: "Vegetarian (Verify Prep)",     color: "bg-emerald-500/20 border-emerald-400/40 text-emerald-300" },
+  vegetarian:    { label: "Vegetarian Friendly (Verify Prep)", color: "bg-emerald-500/20 border-emerald-400/40 text-emerald-300" },
   pescatarian:   { label: "Pescatarian (Verify Prep)",    color: "bg-blue-500/20 border-blue-400/40 text-blue-300" },
   mediterranean: { label: "Mediterranean (Verify Prep)",  color: "bg-amber-500/20 border-amber-400/40 text-amber-300" },
   paleo:         { label: "Paleo (Verify Prep)",          color: "bg-orange-500/20 border-orange-400/40 text-orange-300" },

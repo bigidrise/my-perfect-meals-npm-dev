@@ -159,10 +159,40 @@ export async function generateRestaurantMealsAI(request: RestaurantMealRequest):
     ];
     const randomVarietyHint = varietyInstructions[Math.floor(Math.random() * varietyInstructions.length)];
 
+    // Build mutually exclusive diet behavior block — prevents cross-contamination between diet modes.
+    // Each block applies ONLY to its exact diet. No shared fallback language.
+    let dietBehaviorBlock = "";
+    if (primaryDiet === "vegetarian") {
+      dietBehaviorBlock = `\nVEGETARIAN BEHAVIOR RULES (apply ONLY for vegetarian — do NOT apply vegan logic here):
+- Dairy products (cheese, butter, milk, cream, yogurt) ARE permitted and should NOT be removed or avoided
+- Eggs ARE permitted and should NOT be removed or avoided
+- In the "modifications" field, NEVER suggest removing cheese or dairy — these are vegetarian-safe foods
+- If a dish is heavy on dairy, suggest portion adjustment only (e.g., "ask for lighter cheese" — never "no cheese")
+- Modifications should focus on confirming no meat, poultry, seafood, gelatin, or animal-based broths only
+- If the meal protein is below 20g, add a gentle coaching note in modifications such as "consider adding beans, lentils, eggs, or extra cheese for more protein" — frame it as a suggestion, not a criticism
+- Ensure recommendations feel natural for vegetarian eating — do not apply vegan caution or restriction`;
+    } else if (primaryDiet === "vegan") {
+      dietBehaviorBlock = `\nVEGAN BEHAVIOR RULES (apply ONLY for vegan — do NOT apply these to vegetarian users):
+- All animal products are strictly forbidden: meat, poultry, fish, shellfish, dairy, eggs, honey, gelatin, lard, bone broth
+- In the "modifications" field, confirm no dairy, no eggs, and request plant-based oils instead of butter
+- Suggest plant-based protein sources: tofu, tempeh, lentils, chickpeas, black beans
+- If protein is below 20g, suggest "consider adding tofu, tempeh, or extra legumes for more protein"`;
+    } else if (primaryDiet === "pescatarian") {
+      dietBehaviorBlock = `\nPESCATARIAN BEHAVIOR RULES (apply ONLY for pescatarian — do NOT apply to vegetarian or vegan users):
+- Fish and seafood ARE allowed and encouraged as protein sources
+- Beef, pork, chicken, turkey, and their stocks or broths are NOT allowed
+- Dairy and eggs ARE allowed — do NOT suggest removing them
+- Modifications should focus on confirming no land-animal meat — not dairy`;
+    }
+
     // Use OpenAI to generate restaurant-specific meals
     const prompt = `You are a nutrition expert helping someone choose healthy meals at "${restaurantName}", a ${cuisine} restaurant.
 
-${medicalContext}${allergyContext}${dietaryContext}${avoidContext}${cravingInstructions}
+${medicalContext}${allergyContext}${dietaryContext}${avoidContext}${cravingInstructions}${dietBehaviorBlock}
+
+TONE AND LANGUAGE RULES:
+- For the "reason" field: use system-based language focused on energy balance, satiety, and macro alignment — explain how the meal supports the user's goals. Avoid generic textbook phrases like "good source of calcium", "rich in vitamins", or "provides essential nutrients."
+- Ensure all recommendations feel natural for the user's diet. Do not default to stricter diet behaviors than required by the diet mode specified above.
 
 IMPORTANT: Generate 3 UNIQUE and DIFFERENT meal recommendations. Each time this request is made, create completely different meals from previous suggestions. ${randomVarietyHint}
 
@@ -192,8 +222,8 @@ Return ONLY a JSON array of 3 meals with this exact structure:
     "starchyCarbs": 20,
     "fibrousCarbs": 10,
     "fat": 15,
-    "reason": "Why this is a good choice for health goals",
-    "modifications": "Specific ordering instructions (e.g., sauce on side, no cheese)",
+    "reason": "How this meal supports the user's energy, satiety, and macro goals",
+    "modifications": "Specific ordering instructions focused on preparation method and diet compliance",
     "ingredients": ["ingredient1", "ingredient2", "ingredient3"]
   }
 ]
