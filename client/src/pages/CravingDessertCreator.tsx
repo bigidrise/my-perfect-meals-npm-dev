@@ -36,7 +36,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
-import DietBadge from "@/components/meal/DietBadge";
+import DietStyleBadge from "@/components/DietStyleBadge";
 import {
   DietGuardIntercept,
   DietAdaptedNotice,
@@ -845,6 +845,10 @@ export default function DessertCreator() {
                       className="mb-4"
                     />
                   )}
+
+                  <div className="mb-3">
+                    <DietStyleBadge />
+                  </div>
 
                   <p className="text-white/90 mb-4">
                     {generatedDessert.description}
