@@ -27,7 +27,6 @@ import {
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
 import { CompetitionMealPickerDrawer } from "@/components/pickers/CompetitionMealPickerDrawer";
-import SnackPickerDrawer from "@/components/pickers/SnackPickerDrawer";
 import { CreateWithChefButton } from "@/components/CreateWithChefButton";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { SnackCreatorModal } from "@/components/SnackCreatorModal";
@@ -350,9 +349,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
 
   // Snack Creator modal state (Phase 2)
   const [snackCreatorOpen, setSnackCreatorOpen] = useState(false);
-
-  // Snack Picker state
-  const [snackPickerOpen, setSnackPickerOpen] = useState(false);
 
   // Guided Tour state
   const [hasSeenInfo, setHasSeenInfo] = useState(false);
@@ -762,7 +758,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     [activeDayISO, board, saveBoard, toast],
   );
 
-  // Handler for snack selection from SnackPickerDrawer (Competition Snacks)
+  // Handler for snack selection from AI Snack Creator
   const handleSnackSelect = useCallback(
     async (snack: any) => {
       if (!board) return;
@@ -1473,15 +1469,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         <SnackCreatorButton
                           onClick={() => setSnackCreatorOpen(true)}
                         />
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-white/80 hover:bg-black/50 border border-emerald-400/30 text-xs font-medium flex items-center gap-1"
-                          onClick={() => setSnackPickerOpen(true)}
-                        >
-                          <Plus className="h-4 w-4" />
-                          Add Snack
-                        </Button>
                       </div>
                     </div>
 
@@ -1890,14 +1877,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           isOpen={shoppingListModal.isOpen}
           onClose={() => setShoppingListModal({ isOpen: false, meal: null })}
           meal={shoppingListModal.meal}
-        />
-
-        {/* Snack Picker Drawer - Competition Snacks */}
-        <SnackPickerDrawer
-          open={snackPickerOpen}
-          onClose={() => setSnackPickerOpen(false)}
-          onSnackSelect={handleSnackSelect}
-          dietType="competition"
         />
 
         {/* Create With Chef Modal - with STRICT performance guardrails */}
