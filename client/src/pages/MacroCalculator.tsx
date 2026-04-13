@@ -1335,7 +1335,6 @@ export default function MacroCounter() {
     age > 0 &&
     cm > 0 &&
     kg > 0 &&
-    waistVal > 0 &&
     !!activity;
 
   const saveWaistToBiometrics = async () => {
@@ -3298,8 +3297,8 @@ export default function MacroCounter() {
                             }}
                           />
                           {!waistVal && (
-                            <p className="text-xs text-orange-300 mt-1">
-                              Required for calculation
+                            <p className="text-xs text-white/50 mt-1">
+                              Optional — add for deeper metabolic insights
                             </p>
                           )}
                         </div>
