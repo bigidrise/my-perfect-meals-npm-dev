@@ -32,7 +32,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
-import DietBadge from "@/components/meal/DietBadge";
+import DietStyleBadge from "@/components/DietStyleBadge";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
@@ -653,7 +653,7 @@ export default function BeverageCreator() {
                   </div>
 
                   <div className="mb-3">
-                    <DietBadge diet={normalizeDiet(user?.dietaryRestrictions)} />
+                    <DietStyleBadge />
                   </div>
 
                   <p className="text-white/90 mb-4">

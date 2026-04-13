@@ -57,6 +57,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet, filterMealsByDiet } from "@/utils/dietaryFilter";
+import DietStyleBadge from "@/components/DietStyleBadge";
 import {
   DietGuardIntercept,
   DietAdaptedNotice,
@@ -987,6 +988,10 @@ const FridgeRescuePage = () => {
                   className="mb-6"
                 />
               )}
+
+              <div className="mb-4">
+                <DietStyleBadge />
+              </div>
 
               <div className="grid grid-cols-1 gap-6 mb-8 max-w-2xl mx-auto">
                 {meals.map((meal, index) => (
