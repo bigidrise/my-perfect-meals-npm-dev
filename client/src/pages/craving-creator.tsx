@@ -1280,6 +1280,10 @@ export default function CravingCreator() {
                         />
                       )}
 
+                      <div className="mb-3">
+                        <DietBadge diet={normalizeDiet(user?.dietaryRestrictions)} />
+                      </div>
+
                       <p className="text-white/90 mb-4">{meal.description}</p>
 
                       {/* Meal Image - Show if available */}
