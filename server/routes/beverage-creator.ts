@@ -7,7 +7,7 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
 import { buildPalateSection, PalatePreferences } from "../services/promptBuilder";
-import { buildDietPromptBlock, violatesDietaryConstraints } from "../services/allergyGuardrails";
+import { buildDietPromptBlock, violatesDietaryConstraints, resolveDietCategoryStrategy, type DietCategoryStrategy } from "../services/allergyGuardrails";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -115,6 +115,14 @@ beverageCreatorRouter.post("/", async (req, res) => {
 
     let palateGuidance = "\nFLAVOR STYLE: Use light, neutral flavoring suitable for serving to guests or family.";
     let dietPromptBlock = "";
+    let activeRestrictions: string[] = [];
+    let dietCategoryStrategy: DietCategoryStrategy = {
+      conflictLevel: 'none',
+      effectiveCategory: beverageCategory,
+      requestedCategory: beverageCategory,
+      coachingBlock: '',
+    };
+
     if (userId && userId !== "1") {
       try {
         const [user] = await db.select({
@@ -135,10 +143,10 @@ beverageCreatorRouter.post("/", async (req, res) => {
             console.log(`🎨 [BEVERAGE] Loaded palate preferences for user`);
           }
           // Dietary constraints always enforced regardless of skipPalate
-          const restrictions = (user.dietaryRestrictions as string[]) || [];
-          dietPromptBlock = buildDietPromptBlock(restrictions);
+          activeRestrictions = (user.dietaryRestrictions as string[]) || [];
+          dietPromptBlock = buildDietPromptBlock(activeRestrictions);
           if (dietPromptBlock) {
-            console.log(`🥗 [BEVERAGE] Dietary constraint enforced: ${restrictions.join("|")}`);
+            console.log(`🥗 [BEVERAGE] Dietary constraint enforced: ${activeRestrictions.join("|")}`);
           }
         }
       } catch (err) {
@@ -152,6 +160,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
     if (!dietPromptBlock && dietaryPreferences) {
       const bodyRestrictions = (Array.isArray(dietaryPreferences) ? dietaryPreferences : [dietaryPreferences]).filter(Boolean);
       if (bodyRestrictions.length > 0) {
+        activeRestrictions = bodyRestrictions;
         dietPromptBlock = buildDietPromptBlock(bodyRestrictions);
         if (dietPromptBlock) {
           console.log(`🥗 [BEVERAGE] Dietary constraint (body fallback): ${bodyRestrictions.join("|")}`);
@@ -159,15 +168,26 @@ beverageCreatorRouter.post("/", async (req, res) => {
       }
     }
 
+    // Resolve diet × category strategy — coaching intelligence layer
+    // Silently redirects incompatible category/diet combos and injects optimization blocks
+    if (activeRestrictions.length > 0) {
+      dietCategoryStrategy = resolveDietCategoryStrategy(activeRestrictions, beverageCategory);
+      if (dietCategoryStrategy.conflictLevel !== 'none') {
+        console.log(`🔀 [BEVERAGE] Diet-category ${dietCategoryStrategy.conflictLevel}: ${beverageCategory} → ${dietCategoryStrategy.effectiveCategory} (diet: ${activeRestrictions.join("|")})`);
+      }
+    }
+
     const serving = SERVING_MULTIPLIERS[servingSize] || SERVING_MULTIPLIERS.single;
-    const categoryLabel = CATEGORY_LABELS[beverageCategory] || beverageCategory;
+    // Use effectiveCategory for generation (may differ from requested for redirect cases)
+    const effectiveCategory = dietCategoryStrategy.effectiveCategory;
+    const categoryLabel = CATEGORY_LABELS[effectiveCategory] || effectiveCategory;
     const flavorLabel = FLAVOR_LABELS[flavorFamily] || flavorFamily;
     const dietaryRules = Array.isArray(dietaryPreferences) && dietaryPreferences.length > 0
       ? dietaryPreferences.map((d: string) => d.replace(/-/g, " ")).join(", ")
       : "none specified";
 
     const categorySpecificRules = (() => {
-      switch (beverageCategory) {
+      switch (effectiveCategory) {
         case "cocktail":
           return `\n🍸 COCKTAIL-SPECIFIC RULES:
 - Generate a balanced cocktail with correct alcohol ratios
@@ -224,7 +244,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
     const prompt = `
 You are a professional mixologist, nutritionist, and beverage chef inside the My Perfect Meals system.
 Generate a FULL structured beverage recipe.
-${dietPromptBlock ? `\n${dietPromptBlock}\n` : ""}
+${dietPromptBlock ? `\n${dietPromptBlock}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}
 The result MUST be a drink. Never generate solid food, meals, or desserts.
 
 Return JSON ONLY, following this exact schema:
@@ -362,6 +382,11 @@ INCORRECT (NEVER DO THIS):
       imageUrl,
       medicalBadges,
       ...(dietAdapted && { dietAdapted: true, dietNotice }),
+      ...(dietCategoryStrategy.conflictLevel !== 'none' && {
+        dietCategoryConflict: dietCategoryStrategy.conflictLevel,
+        requestedCategory: dietCategoryStrategy.requestedCategory,
+        effectiveCategory: dietCategoryStrategy.effectiveCategory,
+      }),
       meta: {
         userId: userId ?? "1",
         beverageCategory,
