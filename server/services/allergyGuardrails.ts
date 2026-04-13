@@ -490,6 +490,115 @@ export function buildDietPromptBlock(restrictions: string[]): string {
   return baseBlock.join("\n");
 }
 
+// ─── DIET × BEVERAGE CATEGORY INTELLIGENCE ──────────────────────────────────
+
+export type ConflictLevel = 'none' | 'caution' | 'redirect';
+
+export interface DietCategoryStrategy {
+  conflictLevel: ConflictLevel;
+  effectiveCategory: string;   // what the AI should generate (may differ for redirect)
+  requestedCategory: string;   // what the user originally selected
+  coachingBlock: string;       // injected into AI prompt — framed as optimization, never restriction
+}
+
+// High-conflict pairs: category is fundamentally incompatible with diet.
+// AI silently generates effectiveCategory instead.
+const DIET_REDIRECT_MAP: Record<string, Record<string, string>> = {
+  keto:  { milkshake: 'protein-shake' },
+  paleo: { milkshake: 'smoothie' },
+};
+
+// Caution pairs: same category is kept, but AI prompt gets constraint block.
+const DIET_CAUTION_MAP: Record<string, string[]> = {
+  keto:  ['smoothie', 'frozen', 'cocktail', 'mocktail'],
+  paleo: ['smoothie', 'frozen', 'cocktail', 'coffee'],
+  vegan: ['milkshake', 'protein-shake', 'coffee', 'frozen'],
+};
+
+function buildRedirectPromptBlock(diet: string, requestedCategory: string, effectiveCategory: string): string {
+  const effectiveLabel = effectiveCategory.replace(/-/g, ' ');
+  const requestedLabel = requestedCategory.replace(/-/g, ' ');
+  return [
+    `DRINK OPTIMIZATION:`,
+    `The user is looking for a ${requestedLabel} experience. Based on their ${diet} lifestyle, a ${effectiveLabel} is the best-fitting option that delivers a similar level of enjoyment and satisfaction.`,
+    `Generate a ${effectiveLabel} that matches the flavor satisfaction and indulgence they were looking for.`,
+    `Present the result as curated and optimized for them specifically — do NOT mention that their original selection was unavailable or restricted.`,
+    `Frame this as the ideal choice for their goals.`,
+  ].join('\n');
+}
+
+// Per-diet, per-category constraint blocks — optimization framing, not restriction
+const CAUTION_PROMPT_BLOCKS: Record<string, Record<string, string>> = {
+  keto: {
+    smoothie:  `SMOOTHIE OPTIMIZATION FOR KETO:\n- Use low-sugar fruits only: strawberries, blueberries, raspberries, blackberries (no banana, mango, pineapple, grape)\n- No fruit juice bases — use unsweetened almond milk, coconut milk, or water\n- Emphasize healthy fats: avocado, coconut cream, almond butter\n- Add protein: protein powder (whey or plant-based), full-fat Greek yogurt\n- No added sugar, honey, agave, or sweetened bases\n- Each serving should be under 10g net carbs`,
+    frozen:    `FROZEN DRINK OPTIMIZATION FOR KETO:\n- No sugar-based syrups, fruit juice, or sweetened mixers\n- Use heavy cream or coconut cream for richness and texture\n- Flavor with unsweetened cocoa, vanilla extract, cinnamon, or low-carb fruits (berries)\n- Sweeten only with stevia or erythritol if needed — no honey, agave, or sugar`,
+    cocktail:  `COCKTAIL OPTIMIZATION FOR KETO:\n- No sugary mixers, fruit juice, simple syrup, grenadine, or triple sec\n- Use spirits naturally (vodka, gin, tequila, whiskey, rum) — these are keto-friendly\n- Mix with soda water, sparkling water, fresh citrus juice (small amounts), or bitters\n- Garnish with citrus peel, fresh herbs, or a few berries`,
+    mocktail:  `MOCKTAIL OPTIMIZATION FOR KETO:\n- No sugar syrups, fruit juice, agave, or honey\n- Build flavor with sparkling water, fresh citrus, herbs (mint, basil, rosemary), cucumber, and bitters\n- A small amount of low-sugar kombucha can add complexity\n- Keep net carbs under 5g per serving`,
+  },
+  paleo: {
+    smoothie:  `SMOOTHIE OPTIMIZATION FOR PALEO:\n- No dairy milk — use coconut milk, almond milk, or cashew milk\n- No refined sugar, agave, or processed protein powders\n- Use whole fruit for natural sweetness (berries, banana in moderation)\n- Add protein via collagen powder, nut butter, or seeds\n- No legume-based ingredients (no soy milk, no peanut butter)`,
+    frozen:    `FROZEN DRINK OPTIMIZATION FOR PALEO:\n- No dairy or refined sugar\n- Use coconut cream or coconut milk as the base for creaminess\n- Sweeten with whole fruit only — no syrups or processed sweeteners\n- No artificial additives or processed flavorings`,
+    cocktail:  `COCKTAIL OPTIMIZATION FOR PALEO:\n- No sugary mixers or heavy juice bases\n- Wine and quality distilled spirits are generally paleo-acceptable\n- Mix with sparkling water, fresh citrus juice, or herbs\n- Avoid grain-based beers or malt-based drinks`,
+    coffee:    `COFFEE DRINK OPTIMIZATION FOR PALEO:\n- Use coconut milk, almond milk, or cashew milk — no dairy cream or cow's milk\n- No refined sugar or artificial sweeteners\n- Coconut sugar in small amounts is acceptable\n- Cinnamon, vanilla, and raw cacao are excellent paleo-friendly additions`,
+  },
+  vegan: {
+    milkshake:       `MILKSHAKE OPTIMIZATION FOR VEGAN:\n- Use oat milk, almond milk, coconut milk, or cashew milk as the base\n- Use dairy-free ice cream or frozen banana for creaminess and body\n- No honey — sweeten with maple syrup, agave, or ripe banana\n- No animal-derived thickeners, gelatin, or additives`,
+    'protein-shake': `PROTEIN SHAKE OPTIMIZATION FOR VEGAN:\n- Use plant-based protein powder only: pea protein, hemp protein, or brown rice protein\n- No whey, casein, or any dairy-derived protein\n- Base with plant milk or water\n- No honey — sweeten naturally with dates, banana, or a touch of maple syrup`,
+    coffee:          `COFFEE DRINK OPTIMIZATION FOR VEGAN:\n- Use oat milk, almond milk, soy milk, or coconut milk — no dairy cream or cow's milk\n- No honey — sweeten with maple syrup, coconut sugar, or leave unsweetened\n- Confirm any syrups used are vegan-certified (some contain dairy derivatives)`,
+    frozen:          `FROZEN DRINK OPTIMIZATION FOR VEGAN:\n- No dairy — use coconut cream, oat milk, or almond milk\n- No honey, gelatin, or animal-derived additives\n- Use fruit, cacao, or plant-based flavoring for character and sweetness`,
+  },
+};
+
+/**
+ * Resolves the best generation strategy when a user's diet conflicts with their selected
+ * beverage category. Returns conflict level, effective category for generation, and a
+ * coaching block to inject into the AI prompt.
+ *
+ * Tone: always framed as optimization and personalization — never as restriction or correction.
+ * Users should feel guided, not corrected.
+ */
+export function resolveDietCategoryStrategy(
+  restrictions: string[],
+  category: string,
+): DietCategoryStrategy {
+  const diet = getPrimaryDiet(restrictions);
+  const base: DietCategoryStrategy = {
+    conflictLevel: 'none',
+    effectiveCategory: category,
+    requestedCategory: category,
+    coachingBlock: '',
+  };
+
+  if (!diet) return base;
+
+  // Redirect: category is fundamentally incompatible — generate different category silently
+  const redirectTarget = DIET_REDIRECT_MAP[diet]?.[category];
+  if (redirectTarget) {
+    return {
+      conflictLevel: 'redirect',
+      effectiveCategory: redirectTarget,
+      requestedCategory: category,
+      coachingBlock: buildRedirectPromptBlock(diet, category, redirectTarget),
+    };
+  }
+
+  // Caution: same category allowed but needs constraint injection
+  const cautionCategories = DIET_CAUTION_MAP[diet] || [];
+  if (cautionCategories.includes(category)) {
+    const cautionBlock = CAUTION_PROMPT_BLOCKS[diet]?.[category] || '';
+    return {
+      conflictLevel: 'caution',
+      effectiveCategory: category,
+      requestedCategory: category,
+      coachingBlock: cautionBlock,
+    };
+  }
+
+  return base;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * Check whether generated text violates the user's primary dietary constraint.
  * Uses word-boundary matching to avoid false positives (eggplant ≠ egg, almond milk ≠ milk).
