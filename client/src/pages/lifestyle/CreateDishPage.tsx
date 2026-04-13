@@ -49,6 +49,7 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import PhaseGate from "@/components/PhaseGate";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
+import DietStyleBadge from "@/components/DietStyleBadge";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 
 interface StructuredIngredient {
@@ -855,6 +856,10 @@ export default function CreateDishPage() {
                           className="mb-4"
                         />
                       )}
+
+                      <div className="mb-3">
+                        <DietStyleBadge />
+                      </div>
 
                       <p className="text-white/90 mb-4">{meal.description}</p>
 
