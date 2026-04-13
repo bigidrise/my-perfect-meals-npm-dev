@@ -26,7 +26,6 @@ import {
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
 import { AthleteMealPickerDrawer } from "@/components/pickers/AthleteMealPickerDrawer";
-import SnackPickerDrawer from "@/components/pickers/SnackPickerDrawer";
 import MealPremadePicker from "@/components/pickers/MealPremadePicker";
 import {
   RemainingMacrosFooter,
@@ -274,8 +273,6 @@ export default function BeachBodyMealBoard() {
   >(null);
   const [showOverview, setShowOverview] = React.useState(false);
 
-  // Snack Picker state
-  const [snackPickerOpen, setSnackPickerOpen] = useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
 
   // Day/Week planning state - MUST be defined before callbacks that use them
@@ -917,7 +914,7 @@ export default function BeachBodyMealBoard() {
     [activeDayISO, board, saveBoard, toast],
   );
 
-  // Handler for snack selection from SnackPickerDrawer
+  // Handler for snack selection from AI Snack Creator
   const handleSnackSelect = useCallback(
     async (snack: any) => {
       if (!board) return;
@@ -1981,14 +1978,6 @@ export default function BeachBodyMealBoard() {
           }}
         />
 
-        {/* Snack Picker Drawer - Competition prep snacks (one category) */}
-        <SnackPickerDrawer
-          open={snackPickerOpen}
-          onClose={() => setSnackPickerOpen(false)}
-          onSnackSelect={handleSnackSelect}
-          dietType="competition"
-        />
-
         <WeeklyOverviewModal
           open={showOverview}
           onClose={() => setShowOverview(false)}
@@ -2062,13 +2051,12 @@ export default function BeachBodyMealBoard() {
           starchContext={starchContext}
         />
 
-        {/* Snack Creator Modal (Phase 2 - craving to healthy snack) - with BeachBody guardrails */}
+        {/* Snack Creator Modal - contest prep guardrails (performance mode) */}
         <SnackCreatorModal
           open={snackCreatorOpen}
           onOpenChange={setSnackCreatorOpen}
           onSnackGenerated={handleSnackSelect}
-          dietType="beachbody"
-          dietPhase="lean"
+          dietType="performance"
           starchContext={starchContext}
         />
 
