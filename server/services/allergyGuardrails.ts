@@ -431,8 +431,8 @@ export const RESTRICTION_EXPANSION: Record<string, string[]> = {
     "beans", "black beans", "kidney beans", "pinto beans", "chickpeas",
     "lentils", "peanuts", "peanut butter", "soy", "tofu", "tempeh",
     "edamame", "hummus",
-    // Processed and refined
-    "refined sugar", "sugar", "cane sugar", "corn syrup", "agave",
+    // Processed and refined sweeteners
+    "refined sugar", "sugar", "cane sugar", "corn syrup", "agave", "honey",
     "artificial sweetener", "canola oil", "vegetable oil", "soybean oil",
     "margarine", "processed food", "refined flour",
     // Potatoes (white — sweet potatoes are paleo-allowed)
@@ -536,10 +536,10 @@ const CAUTION_PROMPT_BLOCKS: Record<string, Record<string, string>> = {
     mocktail:  `MOCKTAIL OPTIMIZATION FOR KETO:\n- No sugar syrups, fruit juice, agave, or honey\n- Build flavor with sparkling water, fresh citrus, herbs (mint, basil, rosemary), cucumber, and bitters\n- A small amount of low-sugar kombucha can add complexity\n- Keep net carbs under 5g per serving`,
   },
   paleo: {
-    smoothie:  `SMOOTHIE OPTIMIZATION FOR PALEO:\n- No dairy milk — use coconut milk, almond milk, or cashew milk\n- No refined sugar, agave, or processed protein powders\n- Use whole fruit for natural sweetness (berries, banana in moderation)\n- Add protein via collagen powder, nut butter, or seeds\n- No legume-based ingredients (no soy milk, no peanut butter)`,
-    frozen:    `FROZEN DRINK OPTIMIZATION FOR PALEO:\n- No dairy or refined sugar\n- Use coconut cream or coconut milk as the base for creaminess\n- Sweeten with whole fruit only — no syrups or processed sweeteners\n- No artificial additives or processed flavorings`,
-    cocktail:  `COCKTAIL OPTIMIZATION FOR PALEO:\n- No sugary mixers or heavy juice bases\n- Wine and quality distilled spirits are generally paleo-acceptable\n- Mix with sparkling water, fresh citrus juice, or herbs\n- Avoid grain-based beers or malt-based drinks`,
-    coffee:    `COFFEE DRINK OPTIMIZATION FOR PALEO:\n- Use coconut milk, almond milk, or cashew milk — no dairy cream or cow's milk\n- No refined sugar or artificial sweeteners\n- Coconut sugar in small amounts is acceptable\n- Cinnamon, vanilla, and raw cacao are excellent paleo-friendly additions`,
+    smoothie:  `SMOOTHIE OPTIMIZATION FOR PALEO:\n- No dairy milk — use coconut milk, almond milk, or cashew milk\n- STRICTLY NO honey, agave, refined sugar, or any processed sweetener — these are not paleo-compliant\n- Use controlled fruit portions for natural sweetness: small amounts of berries preferred; banana only in very small quantities\n- DO NOT make this fruit-heavy — balance fruit with fats and protein to keep macros structured\n- STRICTLY NO whey protein, casein, or any dairy-derived protein powder — use collagen powder, egg white protein, or nut butter instead\n- No legume-based ingredients (no soy milk, no peanut butter)\n- Target moderate protein (15g+) and controlled carbs — this should feel intentional and performance-aware, not like a basic fruit drink\n- The result should feel premium and designed: rich texture, satisfying, and clearly built for someone who trains and eats with purpose`,
+    frozen:    `FROZEN DRINK OPTIMIZATION FOR PALEO:\n- No dairy or refined sugar\n- STRICTLY NO honey, agave, syrups, or processed sweeteners\n- STRICTLY NO whey or any dairy-derived protein\n- Use coconut cream or coconut milk as the base for richness and creaminess\n- Sweeten only with whole fruit in controlled portions — keep carbs in check\n- This should feel indulgent and crafted, not like a generic blended fruit drink`,
+    cocktail:  `COCKTAIL OPTIMIZATION FOR PALEO:\n- No sugary mixers, heavy juice bases, honey, or agave\n- Wine and quality distilled spirits are generally paleo-acceptable\n- Mix with sparkling water, fresh citrus juice, or herbs\n- Avoid grain-based beers or malt-based drinks`,
+    coffee:    `COFFEE DRINK OPTIMIZATION FOR PALEO:\n- Use coconut milk, almond milk, or cashew milk — no dairy cream or cow's milk\n- STRICTLY NO refined sugar, honey, or artificial sweeteners\n- A small amount of coconut sugar or medjool date is acceptable if sweetness is needed\n- Cinnamon, vanilla, and raw cacao are excellent paleo-friendly additions`,
   },
   vegan: {
     milkshake:       `MILKSHAKE OPTIMIZATION FOR VEGAN:\n- Use oat milk, almond milk, coconut milk, or cashew milk as the base\n- Use dairy-free ice cream or frozen banana for creaminess and body\n- No honey — sweeten with maple syrup, agave, or ripe banana\n- No animal-derived thickeners, gelatin, or additives`,

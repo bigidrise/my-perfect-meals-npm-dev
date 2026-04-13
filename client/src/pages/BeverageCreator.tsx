@@ -652,6 +652,10 @@ export default function BeverageCreator() {
                     </button>
                   </div>
 
+                  <div className="mb-3">
+                    <DietBadge diet={normalizeDiet(user?.dietaryRestrictions)} />
+                  </div>
+
                   <p className="text-white/90 mb-4">
                     {generatedBeverage.description}
                   </p>
