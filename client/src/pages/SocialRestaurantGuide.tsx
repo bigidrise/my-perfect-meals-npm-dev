@@ -334,16 +334,6 @@ export default function RestaurantGuidePage() {
     hasCachedResults ? "results" : "entry",
   );
 
-  // Speak entry script on mount (if starting fresh)
-  useEffect(() => {
-    if (guidedStep === "entry" && !hasSpokenEntryRef.current) {
-      hasSpokenEntryRef.current = true;
-      const timer = setTimeout(() => {
-        speak(RESTAURANT_GUIDE_ENTRY);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [guidedStep, speak]);
 
   // Auto-mark info as seen since Copilot provides guidance now
   useEffect(() => {
