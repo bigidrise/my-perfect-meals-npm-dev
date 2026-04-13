@@ -2943,9 +2943,12 @@ export default function MacroCounter() {
           {/* FULL CALCULATOR VIEW - Only shown after guided flow is complete OR if user has existing settings */}
           {guidedStep === "done" && (
             <>
-              {/* Quick Edit sticky summary card */}
+              {/* Quick Edit fixed summary bar — always visible, never scrolls */}
               {results && (
-                <div className="sticky top-0 z-20 bg-black/85 backdrop-blur-md border-b border-white/10 px-4 py-3 -mx-4 mb-2">
+                <div
+                  className="fixed left-0 right-0 z-40 bg-black/85 backdrop-blur-md border-b border-white/10 px-4 py-3"
+                  style={{ top: "calc(env(safe-area-inset-top, 0px) + 56px)" }}
+                >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <Target className="h-4 w-4 text-lime-400" />
@@ -2977,6 +2980,8 @@ export default function MacroCounter() {
                   </div>
                 </div>
               )}
+              {/* Spacer matching the fixed bar height so content isn't hidden underneath */}
+              {results && <div className="h-28" />}
 
               {/* Recalculate with Chef Button */}
               <Card className="bg-black/30 backdrop-blur-lg border border-lime-500/30 shadow-lg">
