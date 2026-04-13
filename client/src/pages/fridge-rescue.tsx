@@ -2,6 +2,7 @@
 // BACKUP: backups/fridge-rescue-stable-version.tsx
 // FEATURES: Perfect fridge ingredient rescue, AI meal generation, ingredient optimization, medical personalization
 import { useState, useRef, useEffect } from "react";
+import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { motion } from "framer-motion";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -258,6 +259,8 @@ const FridgeRescuePage = () => {
     activeDiet,
   } = useDietGuardPrecheck();
   const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(null);
+  const [stepsExpanded, setStepsExpanded] = useState<Record<string, boolean>>({});
+  const [activeSteps, setActiveSteps] = useState<Record<string, number | null>>({});
   const [expandedInstructions, setExpandedInstructions] = useState<string[]>(
     [],
   );
@@ -1258,41 +1261,34 @@ const FridgeRescuePage = () => {
                         </ul>
                       </div>
 
-                      {/* Cooking Instructions */}
-                      <div className="space-y-2">
-                        <h4 className="text-sm font-semibold text-white">
-                          Instructions:
-                        </h4>
-                        <div className="text-xs text-white/80">
-                          {meal.instructions.length > 120 ? (
-                            <div>
-                              <p className="mb-2">
-                                {expandedInstructions.includes(meal.id)
-                                  ? meal.instructions
-                                  : `${meal.instructions.substring(0, 120)}...`}
-                              </p>
-                              <button
-                                onClick={() => toggleInstructions(meal.id)}
-                                className="flex items-center gap-1 text-green-400 hover:text-green-300 text-xs font-medium"
-                              >
-                                {expandedInstructions.includes(meal.id) ? (
-                                  <>
-                                    <ChevronUp className="h-3 w-3" />
-                                    Show Less
-                                  </>
-                                ) : (
-                                  <>
-                                    <ChevronDown className="h-3 w-3" />
-                                    Show Full Instructions
-                                  </>
-                                )}
-                              </button>
+                      {/* Cooking Instructions - step-by-step */}
+                      {(() => {
+                        const steps = normalizeInstructions(meal.instructions);
+                        if (steps.length === 0) return null;
+                        const expanded = !!stepsExpanded[meal.id];
+                        const visibleSteps = expanded ? steps : steps.slice(0, 3);
+                        return (
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-semibold text-white">Instructions:</h4>
+                            <div className="space-y-2">
+                              {visibleSteps.map((step, index) => (
+                                <div key={index}
+                                  className={`flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-colors select-none ${activeSteps[meal.id] === index ? "bg-orange-500/20 border border-orange-500/40" : "hover:bg-white/5"}`}
+                                  onClick={() => setActiveSteps((prev) => ({ ...prev, [meal.id]: prev[meal.id] === index ? null : index }))}>
+                                  <div className="min-w-[26px] h-[26px] w-[26px] rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">{index + 1}</div>
+                                  <p className="text-sm leading-relaxed text-white/80">{step}</p>
+                                </div>
+                              ))}
                             </div>
-                          ) : (
-                            <p>{meal.instructions}</p>
-                          )}
-                        </div>
-                      </div>
+                            {steps.length > 3 && (
+                              <button className="mt-1 text-xs text-orange-400 font-medium cursor-pointer active:text-orange-300 select-none"
+                                onClick={() => { setStepsExpanded((prev) => ({ ...prev, [meal.id]: !expanded })); if (expanded) setActiveSteps((prev) => ({ ...prev, [meal.id]: null })); }}>
+                                {expanded ? "Show less" : `Show all ${steps.length} steps`}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* Standardized 3-Row Button Layout */}
                       <div className="mt-auto pt-4 space-y-2">

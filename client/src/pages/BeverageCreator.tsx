@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -134,6 +135,8 @@ export default function BeverageCreator() {
   const [servingSize, setServingSize] = useState("single");
   const [dietaryPreference, setDietaryPreference] = useState("");
   const [customDietary, setCustomDietary] = useState("");
+  const [instructionsExpanded, setInstructionsExpanded] = useState(false);
+  const [activeStep, setActiveStep] = useState<number | null>(null);
   const [generatedBeverage, setGeneratedBeverage] = useState<any | null>(() => {
     try {
       const saved = localStorage.getItem("mpm_beverage_creator_result");
@@ -733,16 +736,32 @@ export default function BeverageCreator() {
                     </div>
                   )}
 
-                  {generatedBeverage.instructions && (
-                    <div className="mb-4">
-                      <h4 className="font-semibold mb-2 text-white">
-                        Instructions:
-                      </h4>
-                      <div className="text-sm text-white/80 whitespace-pre-line max-h-40 overflow-y-auto">
-                        {generatedBeverage.instructions}
+                  {(() => {
+                    const steps = normalizeInstructions(generatedBeverage.instructions);
+                    if (steps.length === 0) return null;
+                    const visibleSteps = instructionsExpanded ? steps : steps.slice(0, 3);
+                    return (
+                      <div className="mb-4">
+                        <h4 className="font-semibold mb-2 text-white">Instructions:</h4>
+                        <div className="space-y-2">
+                          {visibleSteps.map((step, index) => (
+                            <div key={index}
+                              className={`flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-colors select-none ${activeStep === index ? "bg-orange-500/20 border border-orange-500/40" : "hover:bg-white/5"}`}
+                              onClick={() => setActiveStep(activeStep === index ? null : index)}>
+                              <div className="min-w-[26px] h-[26px] w-[26px] rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">{index + 1}</div>
+                              <p className="text-sm leading-relaxed text-white/85">{step}</p>
+                            </div>
+                          ))}
+                        </div>
+                        {steps.length > 3 && (
+                          <button className="mt-2 text-xs text-orange-400 font-medium cursor-pointer active:text-orange-300 select-none"
+                            onClick={() => { setInstructionsExpanded(!instructionsExpanded); if (instructionsExpanded) setActiveStep(null); }}>
+                            {instructionsExpanded ? "Show less" : `Show all ${steps.length} steps`}
+                          </button>
+                        )}
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {generatedBeverage.reasoning && (
                     <div className="mb-4">
