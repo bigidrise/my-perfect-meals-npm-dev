@@ -48,6 +48,7 @@ import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import PhaseGate from "@/components/PhaseGate";
+import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 
 interface StructuredIngredient {
@@ -325,6 +326,8 @@ export default function CreateDishPage() {
   };
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [stepsExpanded, setStepsExpanded] = useState<Record<string, boolean>>({});
+  const [activeSteps, setActiveSteps] = useState<Record<string, number | null>>({});
   const [flavorPersonal, setFlavorPersonal] = useState(true);
   const [keepItSimple, setKeepItSimple] = useState(false);
 
@@ -1043,16 +1046,33 @@ export default function CreateDishPage() {
                         </div>
                       )}
 
-                      {meal.instructions && (
-                        <div className="mb-4">
-                          <h4 className="font-semibold mb-2 text-white">
-                            Instructions:
-                          </h4>
-                          <div className="text-sm text-white/80 whitespace-pre-line max-h-40 overflow-y-auto">
-                            {meal.instructions}
+                      {(() => {
+                        const steps = normalizeInstructions(meal.instructions);
+                        if (steps.length === 0) return null;
+                        const expanded = !!stepsExpanded[meal.id];
+                        const visibleSteps = expanded ? steps : steps.slice(0, 3);
+                        return (
+                          <div className="mb-4">
+                            <h4 className="font-semibold mb-2 text-white">Instructions:</h4>
+                            <div className="space-y-2">
+                              {visibleSteps.map((step, index) => (
+                                <div key={index}
+                                  className={`flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-colors select-none ${activeSteps[meal.id] === index ? "bg-orange-500/20 border border-orange-500/40" : "hover:bg-white/5"}`}
+                                  onClick={() => setActiveSteps((prev) => ({ ...prev, [meal.id]: prev[meal.id] === index ? null : index }))}>
+                                  <div className="min-w-[26px] h-[26px] w-[26px] rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">{index + 1}</div>
+                                  <p className="text-sm leading-relaxed text-white/85">{step}</p>
+                                </div>
+                              ))}
+                            </div>
+                            {steps.length > 3 && (
+                              <button className="mt-2 text-xs text-orange-400 font-medium cursor-pointer active:text-orange-300 select-none"
+                                onClick={() => { setStepsExpanded((prev) => ({ ...prev, [meal.id]: !expanded })); if (expanded) setActiveSteps((prev) => ({ ...prev, [meal.id]: null })); }}>
+                                {expanded ? "Show less" : `Show all ${steps.length} steps`}
+                              </button>
+                            )}
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
 
                       {meal.reasoning && (
                         <div className="mb-4">

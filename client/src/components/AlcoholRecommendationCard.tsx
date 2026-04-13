@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Wine, Beer, Coffee, Martini, Sparkles, Heart, Shield } from "lucide-react";
+import { normalizeInstructions } from "@/utils/normalizeInstructions";
 
 interface AlcoholRecommendation {
   name: string;
@@ -39,6 +41,9 @@ export default function AlcoholRecommendationCard({
   recommendation, 
   className = "" 
 }: AlcoholRecommendationCardProps) {
+  const [instructionsExpanded, setInstructionsExpanded] = useState(false);
+  const [activeStep, setActiveStep] = useState<number | null>(null);
+
   return (
     <Card className={`w-full ${className}`}>
       <CardHeader>
@@ -131,20 +136,33 @@ export default function AlcoholRecommendationCard({
           </div>
         )}
 
-        {/* Instructions */}
-        {recommendation.instructions && recommendation.instructions.length > 0 && (
-          <div>
-            <h4 className="font-medium mb-2">Instructions:</h4>
-            <ol className="text-sm text-gray-600 space-y-1">
-              {recommendation.instructions.map((instruction, index) => (
-                <li key={index} className="flex gap-2">
-                  <span className="font-medium text-gray-400">{index + 1}.</span>
-                  {instruction}
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
+        {/* Instructions - step-by-step */}
+        {(() => {
+          const steps = normalizeInstructions(recommendation.instructions);
+          if (steps.length === 0) return null;
+          const visibleSteps = instructionsExpanded ? steps : steps.slice(0, 3);
+          return (
+            <div>
+              <h4 className="font-medium mb-2">Instructions:</h4>
+              <div className="space-y-2">
+                {visibleSteps.map((step, index) => (
+                  <div key={index}
+                    className={`flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-colors select-none ${activeStep === index ? "bg-orange-100 border border-orange-300" : "hover:bg-gray-50"}`}
+                    onClick={() => setActiveStep(activeStep === index ? null : index)}>
+                    <div className="min-w-[26px] h-[26px] w-[26px] rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">{index + 1}</div>
+                    <p className="text-sm leading-relaxed text-gray-700">{step}</p>
+                  </div>
+                ))}
+              </div>
+              {steps.length > 3 && (
+                <button className="mt-2 text-xs text-orange-500 font-medium cursor-pointer select-none"
+                  onClick={() => { setInstructionsExpanded(!instructionsExpanded); if (instructionsExpanded) setActiveStep(null); }}>
+                  {instructionsExpanded ? "Show less" : `Show all ${steps.length} steps`}
+                </button>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Pairing Reason */}
         {recommendation.pairingReason && (

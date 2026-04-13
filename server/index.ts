@@ -99,6 +99,7 @@ import builderPlansRouter from "./routes/builderPlans";
 import iosVerifyRouter from "./routes/iosVerify";
 import translateRouter from "./routes/translate";
 import studioGeneratorRouter from "./routes/studioGenerator";
+import checkInSchedulesRouter from "./routes/checkInSchedules";
 
 const app = express();
 
@@ -504,6 +505,9 @@ if (USE_FACEBOOK) {
 import smsRoutes from "./routes/sms";
 app.use("/api/sms", smsRoutes);
 
+// Check-in schedules + alert preferences
+app.use("/api/check-in-schedules", checkInSchedulesRouter);
+
 // Initialize SMS worker (side-effect import)
 import "./workers/smsWorker";
 
@@ -520,6 +524,17 @@ const initDailyRemindersLazy = async () => {
 
 // Initialize after first request rather than at startup
 setTimeout(initDailyRemindersLazy, 1000);
+
+// Check-in alert cron (every 20 min)
+let checkInAlertInitialized = false;
+const initCheckInAlertLazy = async () => {
+  if (!checkInAlertInitialized) {
+    const { initCheckInAlertCron } = await import("./cron/checkInAlerts");
+    initCheckInAlertCron();
+    checkInAlertInitialized = true;
+  }
+};
+setTimeout(initCheckInAlertLazy, 3000);
 
 // Import and start warmup service
 import { warmupService } from "./services/warmupService";

@@ -17,7 +17,7 @@ export function SnackCreatorButton({ onClick, disabled, className }: SnackCreato
       disabled={disabled}
     >
       <Cookie className="h-3 w-3" />
-      Snack Creator
+      AI Snack Creator
     </Button>
   );
 }

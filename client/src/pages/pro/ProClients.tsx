@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import TrashButton from "@/components/ui/TrashButton";
 import ProClientFolderModal from "@/components/pro/ProClientFolderModal";
+import CheckInAlertPreferences from "@/components/pro/CheckInAlertPreferences";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
 
@@ -416,6 +417,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
           </button>
           <h1 className="text-lg font-bold text-white flex-1 truncate min-w-0">{portalTitle}</h1>
           <div className="flex-shrink-0 flex items-center gap-2">
+            <CheckInAlertPreferences />
             <QuickTourButton onClick={quickTour.openTour} />
           </div>
         </div>

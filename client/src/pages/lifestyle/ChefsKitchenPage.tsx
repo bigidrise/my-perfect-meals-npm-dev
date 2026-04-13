@@ -60,36 +60,9 @@ import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
+import { normalizeInstructions } from "@/utils/normalizeInstructions";
 
 type KitchenMode = "studio" | "prepare";
-
-function normalizeInstructions(raw: string | string[] | undefined): string[] {
-  if (!raw) return [];
-  if (Array.isArray(raw)) {
-    const filtered = raw.filter(Boolean);
-    if (filtered.length > 1) return filtered;
-    if (filtered.length === 1) {
-      const parsed = normalizeInstructions(filtered[0]);
-      return parsed.length > 1 ? parsed : filtered;
-    }
-    return filtered;
-  }
-  const numberedInlinePattern = /\b(\d+[\.\):])\s+/g;
-  const hasNumberedSteps = numberedInlinePattern.test(raw);
-  if (hasNumberedSteps) {
-    return raw
-      .split(/\b\d+[\.\):]\s+/)
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .map((s) => s.replace(/\.$/, "").trim() + ".");
-  }
-  const sentences = raw
-    .split(/\.\s+(?=[A-Z])/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((s) => (s.endsWith(".") ? s : s + "."));
-  return sentences.length > 0 ? sentences : [raw];
-}
 
 function getInitialMode(): { mode: KitchenMode; meal: GeneratedMeal | null } {
   try {
@@ -217,6 +190,8 @@ export default function ChefsKitchenPage() {
 
   // Display meal (for translations)
   const [displayMeal, setDisplayMeal] = useState<GeneratedMeal | null>(null);
+  const [kitchenInstructionsExpanded, setKitchenInstructionsExpanded] = useState(false);
+  const [kitchenActiveStep, setKitchenActiveStep] = useState<number | null>(null);
   const mealToShow = displayMeal || generatedMeal;
 
   // Diet guard
@@ -1020,16 +995,32 @@ export default function ChefsKitchenPage() {
                   )}
 
                   {/* Instructions */}
-                  {mealToShow.instructions && (
-                    <div>
-                      <h4 className="font-semibold mb-2 text-white">Instructions:</h4>
-                      <div className="text-sm text-white/80 whitespace-pre-line max-h-40 overflow-y-auto">
-                        {Array.isArray(mealToShow.instructions)
-                          ? mealToShow.instructions.join("\n")
-                          : mealToShow.instructions}
+                  {(() => {
+                    const steps = normalizeInstructions(mealToShow.instructions);
+                    if (steps.length === 0) return null;
+                    const visibleSteps = kitchenInstructionsExpanded ? steps : steps.slice(0, 3);
+                    return (
+                      <div>
+                        <h4 className="font-semibold mb-2 text-white">Instructions:</h4>
+                        <div className="space-y-2">
+                          {visibleSteps.map((step, index) => (
+                            <div key={index}
+                              className={`flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-colors select-none ${kitchenActiveStep === index ? "bg-orange-500/20 border border-orange-500/40" : "hover:bg-white/5"}`}
+                              onClick={() => setKitchenActiveStep(kitchenActiveStep === index ? null : index)}>
+                              <div className="min-w-[26px] h-[26px] w-[26px] rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">{index + 1}</div>
+                              <p className="text-sm leading-relaxed text-white/85">{step}</p>
+                            </div>
+                          ))}
+                        </div>
+                        {steps.length > 3 && (
+                          <button className="mt-2 text-xs text-orange-400 font-medium cursor-pointer active:text-orange-300 select-none"
+                            onClick={() => { setKitchenInstructionsExpanded(!kitchenInstructionsExpanded); if (kitchenInstructionsExpanded) setKitchenActiveStep(null); }}>
+                            {kitchenInstructionsExpanded ? "Show less" : `Show all ${steps.length} steps`}
+                          </button>
+                        )}
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Reasoning */}
                   {mealToShow.reasoning && (

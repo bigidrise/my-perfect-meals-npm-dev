@@ -61,6 +61,7 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronUp,
+  Save,
 } from "lucide-react";
 
 // Guided flow step type
@@ -877,6 +878,8 @@ export default function MacroCounter() {
   const { toast } = useToast();
   const { user, refreshUser } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const isDirtyFirstRenderRef = useRef(true);
   const [isProSession] = useState(() => localStorage.getItem("pro-session") === "true");
 
   const isFromOnboarding = window.location.search.includes("from=onboarding");
@@ -1326,6 +1329,14 @@ export default function MacroCounter() {
     return () => ctrl.abort();
   }, [user?.id]);
 
+  useEffect(() => {
+    if (isDirtyFirstRenderRef.current) {
+      isDirtyFirstRenderRef.current = false;
+      return;
+    }
+    setIsDirty(true);
+  }, [goal, bodyType, userType, age, heightFt, heightIn, weightLbs, heightCm, weightKg, waistIn, waistCm, activity, starchStrategy, strictMode, mealsPerDay]);
+
   const kg = units === "imperial" ? kgFromLbs(weightLbs) : weightKg;
   const cm =
     units === "imperial" ? cmFromFeetInches(heightFt, heightIn) : heightCm;
@@ -1335,7 +1346,6 @@ export default function MacroCounter() {
     age > 0 &&
     cm > 0 &&
     kg > 0 &&
-    waistVal > 0 &&
     !!activity;
 
   const saveWaistToBiometrics = async () => {
@@ -1471,6 +1481,59 @@ export default function MacroCounter() {
       });
     } catch (err) {
       console.error("Failed to save estimated body fat:", err);
+    }
+  };
+
+  const handleQuickSave = async () => {
+    if (!results || !isCalcInputValid || isSaving) return;
+    setIsSaving(true);
+    try {
+      const adjustedProtein = Math.max(0, results.macros.protein.g + advisoryDeltas.protein);
+      const adjustedCarbs = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
+      const adjustedFat = Math.max(0, results.macros.fat.g + advisoryDeltas.fat);
+      const fibrousCarbs_g = results.macros.carbs.fibrous;
+      const starchyCarbs_g = Math.max(0, adjustedCarbs - fibrousCarbs_g);
+      const vegetableCupsPerMeal = (results.macros as any).vegetableCupsPerMeal ?? 3;
+      const vegetableCupsPerDay = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
+      await setMacroTargets(
+        {
+          calories: results.target,
+          protein_g: adjustedProtein,
+          carbs_g: adjustedCarbs,
+          fat_g: adjustedFat,
+          starchyCarbs_g,
+          fibrousCarbs_g,
+          starchStrategy,
+          cutIntensity,
+          cutStyle,
+          starchyCarbCap_g,
+          allowZeroStarchyOnLowDay,
+          fibrousCarbSafetyCap_g,
+          strictMode,
+          mealsPerDay,
+          vegetableCupsPerMeal,
+          vegetableCupsPerDay,
+        },
+        user?.id,
+      );
+      window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
+      saveBiometricsToProfile().catch(() => {});
+      saveWaistToBiometrics().catch(() => {});
+      saveEstimatedBodyFat().catch(() => {});
+      setIsDirty(false);
+      toast({
+        title: "Macro Targets Updated",
+        description: "Your daily macro targets have been recalculated and saved.",
+      });
+    } catch (error) {
+      console.error("Failed to update macro targets:", error);
+      toast({
+        title: "Update Failed",
+        description: "Failed to update your macro targets. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -2880,6 +2943,41 @@ export default function MacroCounter() {
           {/* FULL CALCULATOR VIEW - Only shown after guided flow is complete OR if user has existing settings */}
           {guidedStep === "done" && (
             <>
+              {/* Quick Edit sticky summary card */}
+              {results && (
+                <div className="sticky top-0 z-20 bg-black/85 backdrop-blur-md border-b border-white/10 px-4 py-3 -mx-4 mb-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Target className="h-4 w-4 text-lime-400" />
+                      <span className="text-xs font-semibold text-white/80 uppercase tracking-wide">Your Macros</span>
+                      <span className="text-[10px] text-lime-400/80 bg-lime-400/10 px-1.5 py-0.5 rounded-full">Live update</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      disabled={!isDirty || !isCalcInputValid || isSaving}
+                      onClick={handleQuickSave}
+                      className="bg-lime-600 hover:bg-lime-500 text-white font-semibold text-xs rounded-lg px-3 py-1.5 h-auto disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Save className="h-3 w-3 mr-1" />
+                      {isSaving ? "Saving..." : isDirty ? "Update Macros" : "Saved"}
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { label: "Calories", value: `${results.target}`, unit: "kcal" },
+                      { label: "Protein", value: `${Math.max(0, results.macros.protein.g + advisoryDeltas.protein)}`, unit: "g" },
+                      { label: "Carbs", value: `${Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs)}`, unit: "g" },
+                      { label: "Fat", value: `${Math.max(0, results.macros.fat.g + advisoryDeltas.fat)}`, unit: "g" },
+                    ].map((m) => (
+                      <div key={m.label} className="bg-white/5 rounded-lg px-2 py-1.5 text-center">
+                        <div className="text-white font-bold text-sm leading-tight">{m.value}<span className="text-[10px] text-white/50 ml-0.5">{m.unit}</span></div>
+                        <div className="text-[10px] text-white/50 mt-0.5">{m.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Recalculate with Chef Button */}
               <Card className="bg-black/30 backdrop-blur-lg border border-lime-500/30 shadow-lg">
                 <CardContent className="p-4 flex items-center justify-between">
@@ -3298,8 +3396,8 @@ export default function MacroCounter() {
                             }}
                           />
                           {!waistVal && (
-                            <p className="text-xs text-orange-300 mt-1">
-                              Required for calculation
+                            <p className="text-xs text-white/50 mt-1">
+                              Optional — add for deeper metabolic insights
                             </p>
                           )}
                         </div>
@@ -3585,66 +3683,13 @@ export default function MacroCounter() {
                       </div>
 
                       <Button
-                        disabled={!isCalcInputValid || isSaving}
-                        onClick={async () => {
-                          setIsSaving(true);
-                          try {
-                            const adjustedProtein = Math.max(0, results.macros.protein.g + advisoryDeltas.protein);
-                            const adjustedCarbs = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
-                            const adjustedFat = Math.max(0, results.macros.fat.g + advisoryDeltas.fat);
-                            const fibrousCarbs_g = results.macros.carbs.fibrous;
-                            const starchyCarbs_g = Math.max(0, adjustedCarbs - fibrousCarbs_g);
-                            const vegetableCupsPerMeal = (results.macros as any).vegetableCupsPerMeal ?? 3;
-                            const vegetableCupsPerDay = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
-
-                            await setMacroTargets(
-                              {
-                                calories: results.target,
-                                protein_g: adjustedProtein,
-                                carbs_g: adjustedCarbs,
-                                fat_g: adjustedFat,
-                                starchyCarbs_g,
-                                fibrousCarbs_g,
-                                starchStrategy,
-                                cutIntensity,
-                                cutStyle,
-                                starchyCarbCap_g,
-                                allowZeroStarchyOnLowDay,
-                                fibrousCarbSafetyCap_g,
-                                strictMode,
-                                mealsPerDay,
-                                vegetableCupsPerMeal,
-                                vegetableCupsPerDay,
-                              },
-                              user?.id,
-                            );
-
-                            window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
-
-                            saveBiometricsToProfile().catch(() => {});
-                            saveWaistToBiometrics().catch(() => {});
-                            saveEstimatedBodyFat().catch(() => {});
-
-                            toast({
-                              title: "Macro Targets Updated",
-                              description: "Your daily macro targets have been recalculated and saved.",
-                            });
-                          } catch (error) {
-                            console.error("Failed to update macro targets:", error);
-                            toast({
-                              title: "Update Failed",
-                              description: "Failed to update your macro targets. Please try again.",
-                              variant: "destructive",
-                            });
-                          } finally {
-                            setIsSaving(false);
-                          }
-                        }}
-                        className="w-full mt-4 bg-lime-600 text-white font-semibold text-base rounded-xl"
+                        disabled={!isDirty || !isCalcInputValid || isSaving}
+                        onClick={handleQuickSave}
+                        className="w-full mt-4 bg-lime-600 text-white font-semibold text-base rounded-xl disabled:opacity-40"
                         data-testid="macro-update-button"
                       >
                         <Target className="h-4 w-4 mr-2" />
-                        {isSaving ? "Updating..." : "Update"}
+                        {isSaving ? "Updating..." : isDirty ? "Update Macros" : "Saved"}
                       </Button>
                     </CardContent>
                   </Card>

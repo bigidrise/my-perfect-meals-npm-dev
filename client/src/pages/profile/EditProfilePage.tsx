@@ -131,6 +131,31 @@ const GOAL_LABELS: Record<FitnessGoal, string> = {
   endurance: "Endurance",
 };
 
+const DIET_OPTIONS = [
+  { label: "No Restriction", value: "none" },
+  { label: "Keto", value: "keto" },
+  { label: "Mediterranean", value: "mediterranean" },
+  { label: "Paleo", value: "paleo" },
+  { label: "Vegan", value: "vegan" },
+  { label: "Vegetarian", value: "vegetarian" },
+  { label: "Pescatarian", value: "pescatarian" },
+  { label: "Custom", value: "custom" },
+];
+
+const KNOWN_DIET_VALUES = new Set(DIET_OPTIONS.map((o) => o.value));
+
+function initDietaryStyle(restrictions: string[]): string {
+  if (!restrictions.length) return "none";
+  const first = restrictions[0];
+  return KNOWN_DIET_VALUES.has(first) ? first : "custom";
+}
+
+function initCustomDietInput(restrictions: string[]): string {
+  if (!restrictions.length) return "";
+  const first = restrictions[0];
+  return KNOWN_DIET_VALUES.has(first) ? "" : first;
+}
+
 export default function EditProfilePage() {
   const [, setLocation] = useLocation();
   const { user, refreshUser } = useAuth();
@@ -189,8 +214,11 @@ export default function EditProfilePage() {
   }, [user]);
 
   const [form, setForm] = useState<EditProfilePayload>(initial);
-  const [dietaryText, setDietaryText] = useState(
-    initial.dietaryRestrictions.join(", "),
+  const [dietaryStyle, setDietaryStyle] = useState(
+    initDietaryStyle(initial.dietaryRestrictions),
+  );
+  const [customDietInput, setCustomDietInput] = useState(
+    initCustomDietInput(initial.dietaryRestrictions),
   );
   const [allergiesText, setAllergiesText] = useState(
     initial.allergies.join(", "),
@@ -242,7 +270,8 @@ export default function EditProfilePage() {
   useEffect(() => {
     document.title = "Edit Profile | My Perfect Meals";
     setForm(initial);
-    setDietaryText(initial.dietaryRestrictions.join(", "));
+    setDietaryStyle(initDietaryStyle(initial.dietaryRestrictions));
+    setCustomDietInput(initCustomDietInput(initial.dietaryRestrictions));
     setAllergiesText(initial.allergies.join(", "));
     setGoalType(((user as any)?.goalType as GoalType) || null);
     setGoalTarget((user as any)?.goalTarget || "");
@@ -318,10 +347,14 @@ export default function EditProfilePage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const dietaryArray = dietaryText
-        .split(",")
-        .map((s: string) => s.trim())
-        .filter(Boolean);
+      const dietaryArray =
+        dietaryStyle === "none"
+          ? []
+          : [
+              dietaryStyle === "custom"
+                ? customDietInput.trim().toLowerCase()
+                : dietaryStyle,
+            ].filter(Boolean);
       const allergiesArray = allergiesText
         .split(",")
         .map((s: string) => s.trim())
@@ -660,16 +693,34 @@ export default function EditProfilePage() {
             subtitle="Optional — leave blank if you don't have any."
           >
             <div className="space-y-3">
-              <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                <label className="text-white/70 text-xs">
-                  Dietary Restrictions (comma-separated)
-                </label>
-                <textarea
-                  value={dietaryText}
-                  onChange={(e) => setDietaryText(e.target.value)}
-                  className="mt-1 w-full min-h-[90px] bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/40"
-                  placeholder="e.g. gluten-free, keto, pescatarian..."
-                />
+              <div className="rounded-xl border border-white/10 bg-black/30 p-4">
+                <div className="mb-3">
+                  <p className="text-white font-semibold text-sm">Preferences & restrictions</p>
+                  <p className="text-white/60 text-xs mt-0.5">Pick your eating style — we'll tailor every meal to it automatically.</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {DIET_OPTIONS.map((opt) => (
+                    <PillButton
+                      key={opt.value}
+                      active={dietaryStyle === opt.value}
+                      onClick={() => setDietaryStyle(opt.value)}
+                    >
+                      {opt.label}
+                    </PillButton>
+                  ))}
+                </div>
+                {dietaryStyle === "custom" && (
+                  <div className="mt-3">
+                    <input
+                      type="text"
+                      value={customDietInput}
+                      onChange={(e) => setCustomDietInput(e.target.value)}
+                      placeholder="e.g. Whole30, raw food, halal..."
+                      className="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/40 placeholder:text-white/30"
+                      autoFocus
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-3">
@@ -1185,7 +1236,12 @@ export default function EditProfilePage() {
                     : "Not set"}
                 </p>
                 <p className="text-white/80 text-xs">
-                  Restrictions: {dietaryText.trim() || "None"}
+                  Restrictions:{" "}
+                  {dietaryStyle === "none" || !dietaryStyle
+                    ? "None"
+                    : dietaryStyle === "custom"
+                      ? customDietInput.trim() || "Custom"
+                      : DIET_OPTIONS.find((o) => o.value === dietaryStyle)?.label || dietaryStyle}
                 </p>
                 <p className="text-white/80 text-xs">
                   Allergies: {allergiesText.trim() || "None"}

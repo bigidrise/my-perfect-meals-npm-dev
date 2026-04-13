@@ -11,6 +11,7 @@ import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import MealCardActions from "@/components/MealCardActions";
 import { StarchMealBadge } from "@/components/StarchMealBadge";
 import DietStyleBadge from "@/components/DietStyleBadge";
+import { normalizeInstructions } from "@/utils/normalizeInstructions";
 
 // Keep your Meal type colocated here (WeeklyMealBoard imports from this file)
 export type Meal = {
@@ -59,6 +60,8 @@ export function MealCard({
   const { toast } = useToast();
   const [macrosLogged, setMacrosLogged] = React.useState(false);
   const [ingredientsExpanded, setIngredientsExpanded] = React.useState(false);
+  const [instructionsExpanded, setInstructionsExpanded] = React.useState(false);
+  const [activeStep, setActiveStep] = React.useState<number | null>(null);
   const [translatedContent, setTranslatedContent] = React.useState<{
     name?: string;
     description?: string;
@@ -68,6 +71,8 @@ export function MealCard({
 
   React.useEffect(() => {
     setTranslatedContent({});
+    setInstructionsExpanded(false);
+    setActiveStep(null);
   }, [meal.id]);
 
   const title = meal.title || meal.name || "Meal";
@@ -267,23 +272,46 @@ export function MealCard({
           </div>
         )}
 
-        {/* Cooking Instructions - handles both string and array formats */}
-        {displayInstructions && (
-          <div className="mt-3 space-y-2">
-            <h4 className="text-sm font-semibold text-white">Instructions:</h4>
-            <div className="text-xs text-white/80">
-              {typeof displayInstructions === "string" ? (
-                <p>{displayInstructions}</p>
-              ) : Array.isArray(displayInstructions) ? (
-                <ol className="list-decimal list-inside space-y-1">
-                  {displayInstructions.map((step, i) => (
-                    <li key={i}>{step}</li>
-                  ))}
-                </ol>
-              ) : null}
+        {/* Cooking Instructions - step-by-step, collapsible, tap-to-highlight */}
+        {(() => {
+          const steps = normalizeInstructions(displayInstructions);
+          if (steps.length === 0) return null;
+          const visibleSteps = instructionsExpanded ? steps : steps.slice(0, 3);
+          return (
+            <div className="mt-3">
+              <h4 className="text-sm font-semibold text-white mb-2">Instructions:</h4>
+              <div className="space-y-2">
+                {visibleSteps.map((step, index) => (
+                  <div
+                    key={index}
+                    className={`flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-colors select-none ${
+                      activeStep === index
+                        ? "bg-orange-500/20 border border-orange-500/40"
+                        : "hover:bg-white/5"
+                    }`}
+                    onClick={() => setActiveStep(activeStep === index ? null : index)}
+                  >
+                    <div className="min-w-[26px] h-[26px] w-[26px] rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+                      {index + 1}
+                    </div>
+                    <p className="text-sm leading-relaxed text-white/85">{step}</p>
+                  </div>
+                ))}
+              </div>
+              {steps.length > 3 && (
+                <button
+                  className="mt-2 text-xs text-orange-400 font-medium cursor-pointer active:text-orange-300 select-none"
+                  onClick={() => {
+                    setInstructionsExpanded(!instructionsExpanded);
+                    if (instructionsExpanded) setActiveStep(null);
+                  }}
+                >
+                  {instructionsExpanded ? "Show less" : `Show all ${steps.length} steps`}
+                </button>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Action Buttons */}
         <div className="mt-3 flex flex-col gap-2">
