@@ -20,6 +20,7 @@ import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { StarchOverrideToggle } from "@/components/StarchOverrideToggle";
+import { KeepItSimpleToggle } from "@/components/KeepItSimpleToggle";
 import { isAllergyRelatedError } from "@/utils/allergyAlert";
 
 interface SnackCreatorModalProps {
@@ -43,6 +44,7 @@ export function SnackCreatorModal({
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [pendingGeneration, setPendingGeneration] = useState(false);
   const [starchOverride, setStarchOverride] = useState(false);
+  const [strictMode, setStrictMode] = useState(false);
   
   const { user } = useAuth();
   
@@ -97,13 +99,14 @@ export function SnackCreatorModal({
       setDescription("");
       setSafetyEnabled(true);
       setStarchOverride(false);
+      setStrictMode(false);
       clearAlert();
       cancel();
     }
   }, [open, cancel, clearAlert]);
 
   const executeGeneration = async () => {
-    const snack = await generateSnack(description.trim(), dietType, dietPhase, overrideToken || undefined, starchOverride || undefined);
+    const snack = await generateSnack(description.trim(), dietType, dietPhase, overrideToken || undefined, starchOverride || undefined, strictMode === true);
 
     if (snack) {
       if (isGuest) {
@@ -244,6 +247,16 @@ export function SnackCreatorModal({
                 disabled={isProcessing}
               />
             )}
+          </div>
+
+          {/* Ingredient Control */}
+          <div className="py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+            <span className="text-xs text-white/60 block mb-2">Ingredient Control</span>
+            <KeepItSimpleToggle
+              keepItSimple={strictMode}
+              onToggle={setStrictMode}
+              disabled={isProcessing}
+            />
           </div>
 
           <div className="flex gap-3 pt-2">

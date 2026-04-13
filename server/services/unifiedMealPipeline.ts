@@ -1585,7 +1585,8 @@ Create the recipe for: "${description}"`;
 export async function generateSnackFromCravingUnified(
   cravingDescription: string,
   userId?: string,
-  dietType?: DietType
+  dietType?: DietType,
+  strictMode: boolean = false
 ): Promise<MealGenerationResponse> {
   console.log(`🍪 Snack Creator: Generating healthy snack from craving: "${cravingDescription}"${dietType ? ` (diet: ${dietType})` : ''}`);
   
@@ -1674,10 +1675,19 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
 
     // Apply diet-specific guardrails to the prompt
     const guardrailResult = applyGuardrails(basePrompt, dietType || null, 'snack');
-    const prompt = guardrailResult.modifiedPrompt;
+    const guardrailedPrompt = guardrailResult.modifiedPrompt;
     
     if (guardrailResult.appliedRules.length > 0) {
       console.log(`🛡️ Applied snack guardrails: ${guardrailResult.appliedRules.join(', ')}`);
+    }
+
+    // Apply Keep It Simple — same block as Create with Chef, no variation
+    const prompt = strictMode
+      ? `${guardrailedPrompt}\n\n${buildStrictModeBlock(cravingDescription)}`
+      : guardrailedPrompt;
+
+    if (strictMode) {
+      console.log(`🔒 [KeepItSimple] Snack Creator strict mode ON — no extra ingredients`);
     }
 
     const messages: Array<{ role: 'system' | 'user'; content: string }> = [];
@@ -1923,7 +1933,7 @@ export async function generateMealUnified(
       const snackCraving = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateSnackFromCravingUnified(snackCraving, request.userId, request.dietType);
+      result = await generateSnackFromCravingUnified(snackCraving, request.userId, request.dietType, request.strictMode === true);
       break;
 
     case 'fridge-rescue':
