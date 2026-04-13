@@ -29,7 +29,6 @@ import {
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { MealPickerDrawer } from "@/components/pickers/MealPickerDrawer";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
-import { AddSnackModal } from "@/components/AddSnackModal";
 import { RemainingMacrosFooter, type ConsumedMacros } from "@/components/biometrics/RemainingMacrosFooter";
 import { DailyTargetsCard } from "@/components/biometrics/DailyTargetsCard";
 import { ProTipCard } from "@/components/ProTipCard";
@@ -66,6 +65,7 @@ import {
   ShoppingCart,
   X,
   Lock,
+  Trash2,
 } from "lucide-react";
 import { FEATURES } from "@/utils/features";
 import { DayChips } from "@/components/DayChips";
@@ -85,7 +85,7 @@ import { setActiveBuilderNs } from "@/lib/activeBuilderNs";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
 import MealPremadePicker from "@/components/pickers/MealPremadePicker";
-import SnackPickerDrawer from "@/components/pickers/SnackPickerDrawer";
+
 import AdditionalMacrosModal from "@/components/modals/AdditionalMacrosModal";
 import { CreateWithChefButton } from "@/components/CreateWithChefButton";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
@@ -123,18 +123,6 @@ const ANTI_INFLAMMATORY_TOUR_STEPS: TourStep[] = [
   { icon: "🥔", title: "Watch Your Starch Slots", description: "The starch indicator shows your daily starch meal status. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!" },
   { icon: "*", title: "What the Asterisks Mean", description: "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first." }
 ];
-
-// Helper function to create new snacks
-function makeNewSnack(nextIndex: number): Meal {
-  return {
-    id: `snk-${Date.now()}`,
-    title: "Snack",
-    servings: 1,
-    ingredients: [],
-    instructions: [],
-    nutrition: { calories: 0, protein: 0, carbs: 0, fat: 0 },
-  };
-}
 
 // CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
 // Using noon UTC anchor pattern to prevent day-shift bugs
@@ -360,7 +348,7 @@ export default function AntiInflammatoryMenuBuilder() {
   const [manualModalList, setManualModalList] = React.useState<
     "breakfast" | "lunch" | "dinner" | "snacks" | null
   >(null);
-  const [showSnackModal, setShowSnackModal] = React.useState(false);
+  const [dynamicMealCount, setDynamicMealCount] = React.useState(0);
   const [showOverview, setShowOverview] = React.useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = React.useState(false);
 
@@ -407,9 +395,6 @@ export default function AntiInflammatoryMenuBuilder() {
 
   // Snack Creator modal state (Phase 2)
   const [snackCreatorOpen, setSnackCreatorOpen] = useState(false);
-
-  // Snack Picker modal state (completely separate from meal pickers)
-  const [snackPickerOpen, setSnackPickerOpen] = useState(false);
 
   // Locked day dialog state
   const [lockedDayDialogOpen, setLockedDayDialogOpen] = useState(false);
@@ -566,7 +551,7 @@ export default function AntiInflammatoryMenuBuilder() {
   // Guided Tour state
   const [hasSeenInfo, setHasSeenInfo] = useState(false);
   const [tourStep, setTourStep] = useState<
-    "breakfast" | "lunch" | "dinner" | "snacks" | "complete"
+    "breakfast" | "lunch" | "dinner" | "complete"
   >("breakfast");
 
   // Daily Totals Info state (appears after first meal is created)
@@ -700,10 +685,9 @@ export default function AntiInflammatoryMenuBuilder() {
       savedStep === "breakfast" ||
       savedStep === "lunch" ||
       savedStep === "dinner" ||
-      savedStep === "snacks" ||
       savedStep === "complete"
     ) {
-      setTourStep(savedStep);
+      setTourStep(savedStep as "breakfast" | "lunch" | "dinner" | "complete");
     }
   }, []);
 
@@ -732,12 +716,6 @@ export default function AntiInflammatoryMenuBuilder() {
         "dinner",
       );
     } else if (tourStep === "dinner" && lists.dinner.length > 0) {
-      setTourStep("snacks");
-      localStorage.setItem(
-        "anti-inflammatory-menu-builder-tour-step",
-        "snacks",
-      );
-    } else if (tourStep === "snacks" && lists.snacks.length > 0) {
       setTourStep("complete");
       localStorage.setItem(
         "anti-inflammatory-menu-builder-tour-step",
@@ -1085,95 +1063,35 @@ export default function AntiInflammatoryMenuBuilder() {
   }, [board, loading]);
 
 
-  // Add Snack handlers
-  const onAddSnack = useCallback(() => setShowSnackModal(true), []);
+  // Add a new dynamic meal slot (Meal 4+)
+  const handleAddMealSlot = useCallback(() => {
+    setDynamicMealCount((prev) => prev + 1);
+    toast({ title: "Meal Slot Added", description: `Meal ${4 + dynamicMealCount} is ready to use` });
+  }, [dynamicMealCount, toast]);
 
-  const onSaveSnack = useCallback(
-    async (p: {
-      title: string;
-      brand?: string;
-      servingDesc?: string;
-      servings: number;
-      calories: number;
-      protein?: number;
-      carbs?: number;
-      fat?: number;
-      includeInShoppingList: boolean;
-    }) => {
-      if (!board) return;
-
-      // Figure out next orderIndex based on where we're saving (day vs week)
-      const currentSnacks =
-        FEATURES.dayPlanning === "alpha" &&
-        planningMode === "day" &&
-        activeDayISO
-          ? (getDayLists(board, activeDayISO).snacks ?? [])
-          : (board.lists.snacks ?? []);
-
-      const nextIndex =
-        currentSnacks.length > 0
-          ? Math.max(...currentSnacks.map((s: any) => s?.orderIndex ?? 0)) + 1
-          : 0;
-
-      // Build the snack entry (keep your existing shape)
-      const newSnack: Meal = {
-        id: `snk-${Date.now()}`,
-        title: p.title,
-        name: `Snack ${nextIndex + 1}`, // keep your original naming
-        servings: p.servings,
-        ingredients: [], // quick snacks: no ingredients
-        instructions: [], // quick snacks: no instructions
-        nutrition: {
-          calories: p.calories,
-          protein: p.protein ?? 0,
-          carbs: p.carbs ?? 0,
-          fat: p.fat ?? 0,
-        },
-        orderIndex: nextIndex,
-        entryType: "quick" as const,
-        brand: p.brand,
-        servingDesc: p.servingDesc,
-        includeInShoppingList: p.includeInShoppingList === true,
-      } as any;
-
-      try {
-        if (
-          FEATURES.dayPlanning === "alpha" &&
-          planningMode === "day" &&
-          activeDayISO
-        ) {
-          // ✅ DAY MODE: write into this day's lists
-          const dayLists = getDayLists(board, activeDayISO);
-          const updatedDay = {
-            ...dayLists,
-            snacks: [...(dayLists.snacks ?? []), newSnack],
-          };
-          const updatedBoard = setDayLists(board, activeDayISO, updatedDay);
-          const { week } = await putWeekBoard(weekStartISO, updatedBoard, proClientId, namespace);
-          setBoard(week);
-        } else {
-          // ✅ WEEK (legacy) MODE: write into legacy week lists
-          const snacks = board.lists.snacks ?? [];
-          const updated: WeekBoard = {
-            ...board,
-            lists: { ...board.lists, snacks: [...snacks, newSnack] },
-          };
-          setBoard(updated);
-          await putWeekBoard(weekStartISO, updated, proClientId, namespace);
-        }
-
-        window.dispatchEvent(new Event("macros:updated"));
-      } catch (e) {
-        console.error("Failed to save snack:", e);
-        // Best-effort rollback if we had optimistically set state in week mode
-        try {
-          const { week } = await getWeekBoardByDate(weekStartISO, proClientId);
-          setBoard(week);
-        } catch {}
+  // Remove a dynamic meal slot and clean up board data
+  const handleRemoveMealSlot = useCallback(async (mealNumber: number) => {
+    if (!board) return;
+    try {
+      const slotPrefix = `dyn-${mealNumber}-`;
+      if (FEATURES.dayPlanning === "alpha" && planningMode === "day" && activeDayISO) {
+        const dayLists = getDayLists(board, activeDayISO);
+        const updatedDayLists = { ...dayLists, snacks: dayLists.snacks.filter((meal: Meal) => !meal.id.startsWith(slotPrefix)) };
+        const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+        setBoard(updatedBoard);
+        await saveBoard(updatedBoard);
+      } else {
+        const updatedBoard = { ...board, lists: { ...board.lists, snacks: board.lists.snacks.filter((meal: Meal) => !meal.id.startsWith(slotPrefix)) } };
+        setBoard(updatedBoard);
+        await saveBoard(updatedBoard);
       }
-    },
-    [board, weekStartISO, planningMode, activeDayISO],
-  );
+      setDynamicMealCount((prev) => Math.max(0, prev - 1));
+      toast({ title: "Meal Slot Removed", description: `Meal ${mealNumber} has been deleted` });
+    } catch (error) {
+      console.error("Failed to remove meal slot:", error);
+      toast({ title: "Error", description: "Failed to remove meal slot", variant: "destructive" });
+    }
+  }, [board, planningMode, activeDayISO, saveBoard, toast]);
 
   // Week navigation handlers - just update weekStartISO, the useWeeklyBoard hook handles fetching with cache fallback
   const gotoWeek = useCallback((targetISO: string) => {
@@ -1285,11 +1203,10 @@ export default function AntiInflammatoryMenuBuilder() {
     setManualModalOpen(true);
   }
 
-  const lists: Array<["breakfast" | "lunch" | "dinner" | "snacks", string]> = [
-    ["breakfast", "Breakfast"],
-    ["lunch", "Lunch"],
-    ["dinner", "Dinner"],
-    ["snacks", "Snacks"],
+  const lists: Array<["breakfast" | "lunch" | "dinner", string]> = [
+    ["breakfast", "Meal 1"],
+    ["lunch", "Meal 2"],
+    ["dinner", "Meal 3"],
   ];
 
   const handleLogAllMacros = useCallback(async () => {
@@ -1543,205 +1460,192 @@ export default function AntiInflammatoryMenuBuilder() {
           planningMode === "day" &&
           activeDayISO &&
           board
-            ? // DAY MODE: Show only the active day's meals
+            ? // DAY MODE: Meal 1/2/3, dynamic Meal 4+, Snacks
               (() => {
                 const dayLists = getDayLists(board, activeDayISO);
-                return lists.map(([key, label]) => (
-                  <section
-                    key={key}
-                    data-meal-id={key === "snacks" ? "snack1" : key}
-                    className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-white/90 text-lg font-medium">
-                        {label}
-                      </h2>
-                      <GlobalMealActionBar
-                        slot={key as "breakfast" | "lunch" | "dinner" | "snacks"}
-                        onCreateWithAI={() => {
-                          if (key === "snacks") {
-                            setSnackPickerOpen(true);
-                          } else {
-                            setAiMealSlot(key as "breakfast" | "lunch" | "dinner" | "snacks");
-                            setAiMealModalOpen(true);
-                          }
-                        }}
-                        onCreateWithChef={() => {
-                          setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner");
-                          setCreateWithChefOpen(true);
-                        }}
-                        onSnackCreator={() => {
-                          setSnackCreatorOpen(true);
-                        }}
-                        onManualAdd={() => openManualModal(key)}
-                        onLogSnack={() => {}}
-                        showLogSnack={false}
-                      />
+                return (
+                  <>
+                    {lists.map(([key, label]) => (
+                      <section key={key} data-meal-id={key} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4">
+                        <div className="flex items-center justify-between mb-4">
+                          <h2 className="text-white/90 text-lg font-medium">{label}</h2>
+                          <GlobalMealActionBar
+                            slot={key as "breakfast" | "lunch" | "dinner"}
+                            onCreateWithAI={() => {
+                              setAiMealSlot(key as "breakfast" | "lunch" | "dinner" | "snacks");
+                              setAiMealModalOpen(true);
+                            }}
+                            onCreateWithChef={() => {
+                              setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner");
+                              setCreateWithChefOpen(true);
+                            }}
+                            onSnackCreator={() => setSnackCreatorOpen(true)}
+                            onManualAdd={() => openManualModal(key)}
+                            onLogSnack={() => {}}
+                            showLogSnack={false}
+                          />
+                        </div>
+                        <div className="space-y-3">
+                          {dayLists[key as keyof typeof dayLists].map((meal: Meal, idx: number) => (
+                            <MealCard key={meal.id} date={activeDayISO} slot={key} meal={meal} showStarchBadge={true} data-wt="wmb-meal-card"
+                              onUpdated={(m) => {
+                                if (m === null) {
+                                  if (meal.id.startsWith("ai-meal-")) clearAIMealsCache();
+                                  const updatedDayLists = { ...dayLists, [key]: dayLists[key as keyof typeof dayLists].filter((e) => e.id !== meal.id) };
+                                  const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+                                  setBoard(updatedBoard);
+                                  putWeekBoard(weekStartISO, updatedBoard, proClientId)
+                                    .then(({ week }) => { if (week) setBoard(week); })
+                                    .catch((err) => {
+                                      console.error("❌ Delete sync failed (Day mode):", err);
+                                      toast({ title: "Sync pending", description: "Changes will sync automatically." });
+                                    });
+                                } else {
+                                  const updatedDayLists = { ...dayLists, [key]: dayLists[key as keyof typeof dayLists].map((e, i) => i === idx ? m : e) };
+                                  const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+                                  putWeekBoard(weekStartISO, updatedBoard, proClientId).then(({ week }) => setBoard(week));
+                                }
+                              }}
+                            />
+                          ))}
+                          {dayLists[key as keyof typeof dayLists].length === 0 && (
+                            <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
+                              <p className="mb-2">No {label.toLowerCase()} yet</p>
+                              <p className="text-xs text-white/40">Use "Create with Chef" or "+" to add meals</p>
+                            </div>
+                          )}
+                        </div>
+                      </section>
+                    ))}
+
+                    {/* Dynamic Meal Cards (Meal 4+) */}
+                    {Array.from({ length: dynamicMealCount }, (_, i) => {
+                      const mealNumber = 4 + i;
+                      const slotPrefix = `dyn-${mealNumber}-`;
+                      return (
+                        <section key={`dynamic-meal-${mealNumber}`} className="rounded-2xl border border-amber-800 bg-amber-950/40 backdrop-blur p-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-white/90 text-lg font-medium">Meal {mealNumber}</h2>
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="ghost" className="text-white/80 hover:bg-black/50 border border-amber-400/40 text-xs font-medium flex items-center gap-1"
+                                onClick={() => { setCreateWithChefSlot("breakfast"); setCreateWithChefOpen(true); }}>
+                                <Sparkles className="h-3 w-3" />
+                                Create with Chef
+                              </Button>
+                              <Button size="sm" variant="ghost" className="text-white/80 hover:bg-white/10" onClick={() => openManualModal("breakfast")}>
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-900/30" onClick={() => handleRemoveMealSlot(mealNumber)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="space-y-3">
+                            {dayLists.snacks.filter((m: Meal) => m.id.startsWith(slotPrefix)).map((meal: Meal) => (
+                              <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true}
+                                onUpdated={(m) => {
+                                  if (m === null) {
+                                    const updatedDayLists = { ...dayLists, snacks: dayLists.snacks.filter((e) => e.id !== meal.id) };
+                                    const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+                                    setBoard(updatedBoard);
+                                    saveBoard(updatedBoard).catch((err) => {
+                                      console.error("❌ Delete sync failed:", err);
+                                      toast({ title: "Sync pending", description: "Changes will sync automatically." });
+                                    });
+                                  } else {
+                                    const updatedDayLists = { ...dayLists, snacks: dayLists.snacks.map((e) => e.id === meal.id ? m : e) };
+                                    const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+                                    saveBoard(updatedBoard);
+                                  }
+                                }}
+                              />
+                            ))}
+                            {dayLists.snacks.filter((m: Meal) => m.id.startsWith(slotPrefix)).length === 0 && (
+                              <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
+                                <p className="mb-2">No Meal {mealNumber} yet</p>
+                                <p className="text-xs text-white/40">Use "+" to add meals</p>
+                              </div>
+                            )}
+                          </div>
+                        </section>
+                      );
+                    })}
+
+                    {/* Add Meal Button */}
+                    <div className="col-span-full flex justify-center my-4">
+                      <Button onClick={handleAddMealSlot} className="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-8 py-3 rounded-xl flex items-center gap-2">
+                        <Plus className="h-5 w-5" />
+                        Add Meal {4 + dynamicMealCount}
+                      </Button>
                     </div>
 
-                    <div className="space-y-3">
-                      {dayLists[key as keyof typeof dayLists].map(
-                        (meal: Meal, idx: number) => (
-                          <MealCard
-                            key={meal.id}
-                            date={activeDayISO}
-                            slot={key}
-                            meal={meal}
-                            showStarchBadge={true}
-                            data-wt="wmb-meal-card"
+                    {/* Snack Creator Section */}
+                    <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4 col-span-full">
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-white/90 text-lg font-medium">Snacks</h2>
+                        <Button size="sm" variant="ghost" className="text-white/80 hover:bg-black/50 border border-purple-400/40 text-xs font-medium flex items-center gap-1" onClick={() => setSnackCreatorOpen(true)}>
+                          <Sparkles className="h-3 w-3" />
+                          Add Snack
+                        </Button>
+                      </div>
+                      <div className="space-y-3">
+                        {dayLists.snacks.filter((m: Meal) => !m.id.startsWith("dyn-")).map((meal: Meal) => (
+                          <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true}
                             onUpdated={(m) => {
                               if (m === null) {
-                                // REMOVE MEAL in Day mode - use the new system
-
-                                // 🗑️ If it's an AI meal, also clear from localStorage
-                                if (meal.id.startsWith("ai-meal-")) {
-                                  console.log(
-                                    "🗑️ Deleting AI meal from localStorage:",
-                                    meal.name,
-                                  );
-                                  clearAIMealsCache();
-                                }
-
-                                const updatedDayLists = {
-                                  ...dayLists,
-                                  [key]: dayLists[
-                                    key as keyof typeof dayLists
-                                  ].filter(
-                                    (existingMeal) =>
-                                      existingMeal.id !== meal.id,
-                                  ),
-                                };
-                                const updatedBoard = setDayLists(
-                                  board,
-                                  activeDayISO,
-                                  updatedDayLists,
-                                );
+                                const updatedDayLists = { ...dayLists, snacks: dayLists.snacks.filter((e) => e.id !== meal.id) };
+                                const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
                                 setBoard(updatedBoard);
-                                putWeekBoard(weekStartISO, updatedBoard, proClientId)
-                                  .then(({ week }) => {
-                                    if (week) setBoard(week);
-                                  })
-                                  .catch((err) => {
-                                    console.error(
-                                      "❌ Delete sync failed (Day mode):",
-                                      err,
-                                    );
-                                    toast({
-                                      title: "Sync pending",
-                                      description: "Changes will sync automatically.",
-                                    });
-                                  });
+                                saveBoard(updatedBoard).catch((err) => {
+                                  console.error("❌ Delete sync failed:", err);
+                                  toast({ title: "Sync pending", description: "Changes will sync automatically." });
+                                });
                               } else {
-                                // Update meal in day lists
-                                const updatedDayLists = {
-                                  ...dayLists,
-                                  [key]: dayLists[
-                                    key as keyof typeof dayLists
-                                  ].map((existingMeal, i) =>
-                                    i === idx ? m : existingMeal,
-                                  ),
-                                };
-                                const updatedBoard = setDayLists(
-                                  board,
-                                  activeDayISO,
-                                  updatedDayLists,
-                                );
-                                putWeekBoard(weekStartISO, updatedBoard, proClientId).then(
-                                  ({ week }) => setBoard(week),
-                                );
+                                const updatedDayLists = { ...dayLists, snacks: dayLists.snacks.map((e) => e.id === meal.id ? m : e) };
+                                const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+                                saveBoard(updatedBoard);
                               }
                             }}
                           />
-                        ),
-                      )}
-                      {dayLists[key as keyof typeof dayLists].length === 0 && (
-                        <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
-                          <p className="mb-2">
-                            No {label.toLowerCase()} meals yet
-                          </p>
-                          <p className="text-xs text-white/40">
-                            Use "Create with Chef" or "+" to add meals
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </section>
-                ));
+                        ))}
+                        {dayLists.snacks.filter((m: Meal) => !m.id.startsWith("dyn-")).length === 0 && (
+                          <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
+                            <p className="mb-2">No snacks yet</p>
+                            <p className="text-xs text-white/40">Use "Add Snack" to create snacks</p>
+                          </div>
+                        )}
+                      </div>
+                    </section>
+                  </>
+                );
               })()
-            : // WEEK MODE: Show traditional week view (legacy lists)
+            : // WEEK MODE: Meal 1/2/3 only
               lists.map(([key, label]) => (
-                <section
-                  key={key}
-                  data-meal-id={key === "snacks" ? "snack1" : key}
-                  className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4"
-                >
+                <section key={key} data-meal-id={key} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-white/90 text-lg font-medium">
-                      {label}
-                    </h2>
+                    <h2 className="text-white/90 text-lg font-medium">{label}</h2>
                     <div className="flex gap-2">
-                      {/* Plus button for manual entry */}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-white/80 hover:bg-white/10 disabled:opacity-30"
-                        onClick={() => openManualModal(key)}
-                        disabled={readOnly}
-                      >
+                      <Button size="sm" variant="ghost" className="text-white/80 hover:bg-white/10 disabled:opacity-30" onClick={() => openManualModal(key)} disabled={readOnly}>
                         <Plus className="h-4 w-4" />
                       </Button>
-
-                      {/* Special Add Snack button for snacks section only */}
-                      {key === "snacks" && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-white/70 hover:bg-white/10 text-xs font-medium disabled:opacity-30"
-                          onClick={() => openPicker("snacks")}
-                          disabled={readOnly}
-                        >
-                          Add Snack
-                        </Button>
-                      )}
                     </div>
                   </div>
-
                   <div className="space-y-3">
                     {board.lists[key].map((meal: Meal, idx: number) => (
-                      <MealCard
-                        key={meal.id}
-                        date={"board"}
-                        slot={key}
-                        meal={meal}
-                        showStarchBadge={true}
+                      <MealCard key={meal.id} date={"board"} slot={key} meal={meal} showStarchBadge={true}
                         onUpdated={(m) => {
                           if (m === null) {
-                            // Remove meal using new API
                             if (!board) return;
                             const updatedBoard = {
                               ...board,
-                              lists: {
-                                ...board.lists,
-                                [key]: board.lists[key].filter(
-                                  (item: Meal) => item.id !== meal.id,
-                                ),
-                              },
+                              lists: { ...board.lists, [key]: board.lists[key].filter((item: Meal) => item.id !== meal.id) },
                               version: board.version + 1,
-                              meta: {
-                                ...board.meta,
-                                lastUpdatedAt: new Date().toISOString(),
-                              },
+                              meta: { ...board.meta, lastUpdatedAt: new Date().toISOString() },
                             };
                             setBoard(updatedBoard);
                             saveBoard(updatedBoard).catch((err) => {
-                              console.error(
-                                "❌ Delete sync failed (Board mode):",
-                                err,
-                              );
-                              toast({
-                                title: "Sync pending",
-                                description: "Changes will sync automatically.",
-                              });
+                              console.error("❌ Delete sync failed (Board mode):", err);
+                              toast({ title: "Sync pending", description: "Changes will sync automatically." });
                             });
                           } else {
                             onItemUpdated(key, idx, m);
@@ -1751,12 +1655,8 @@ export default function AntiInflammatoryMenuBuilder() {
                     ))}
                     {board.lists[key].length === 0 && (
                       <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
-                        <p className="mb-2">
-                          No {label.toLowerCase()} meals yet
-                        </p>
-                        <p className="text-xs text-white/40">
-                          Use "Create with Chef" or "+" to add meals
-                        </p>
+                        <p className="mb-2">No {label.toLowerCase()} yet</p>
+                        <p className="text-xs text-white/40">Use "Create with Chef" or "+" to add meals</p>
                       </div>
                     )}
                   </div>
@@ -1952,12 +1852,6 @@ export default function AntiInflammatoryMenuBuilder() {
           }}
         />
 
-        <AddSnackModal
-          open={showSnackModal}
-          onClose={() => setShowSnackModal(false)}
-          onSave={onSaveSnack}
-        />
-
         <WeeklyOverviewModal
           open={showOverview}
           onClose={() => setShowOverview(false)}
@@ -2004,14 +1898,6 @@ export default function AntiInflammatoryMenuBuilder() {
           mealType={premadePickerSlot}
           dietType={clinicalMode}
           onMealSelect={handlePremadeSelect}
-        />
-
-        {/* Snack Picker Modal - Completely independent system for snacks */}
-        <SnackPickerDrawer
-          open={snackPickerOpen}
-          onClose={() => setSnackPickerOpen(false)}
-          dietType={clinicalMode}
-          onSnackSelect={handleSnackSelect}
         />
 
         {/* Create With Chef Modal - with clinical mode guardrails */}
