@@ -1004,9 +1004,26 @@ export async function generateCravingMealOptions(
       dietRestrictions = (u?.dietaryRestrictions as string[]) || [];
 
       const allergies: string[] = (u?.allergies as string[]) || [];
+
+      // Build full forbidden list from BOTH allergies AND dietary restrictions
+      // (e.g. "no pork" expands to bacon, ham, lard, etc. — same hard block as allergies)
+      const fullSafetyProfile: UserSafetyProfile = {
+        allergies,
+        dietaryRestrictions: dietRestrictions,
+        avoidIngredients: []
+      };
+      const allForbidden = buildForbiddenIngredients(fullSafetyProfile);
+
       if (allergies.length > 0) {
         allergyBlock = `\n🚨 ALLERGEN BLOCK — ABSOLUTE MEDICAL SAFETY REQUIREMENT:\nThis user has confirmed allergies to: ${allergies.join(', ')}.\nDo NOT include these ingredients or any derivative/hidden form in ANY of the 3 options. This overrides all other instructions.`;
         console.log(`[VARIETY ENGINE] Allergy block active for user ${userId}: ${allergies.join(', ')}`);
+      }
+
+      // Hard prohibition for dietary avoidances (no pork, halal, kosher, etc.)
+      // Uses the same force level as the allergy block — not a polite suggestion
+      if (allForbidden.length > 0) {
+        allergyBlock += `\n🚫 ABSOLUTE PROHIBITION — DIETARY RESTRICTIONS:\nThe following ingredients must NEVER appear in any of the 3 meal options: ${allForbidden.join(', ')}. No exceptions. This overrides all other instructions.`;
+        console.log(`[VARIETY ENGINE] Restriction block active: ${allForbidden.join(', ')}`);
       }
 
       const healthConditions: string[] = (u?.healthConditions as string[]) || [];
