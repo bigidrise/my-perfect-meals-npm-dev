@@ -602,7 +602,7 @@ Respond with ONLY valid JSON in this exact format:
       const starchyCarbs = aiMeal.starchyCarbs ?? 0;
       const fibrousCarbs = aiMeal.fibrousCarbs ?? 0;
       // Total carbs = starchyCarbs + fibrousCarbs (for backward compatibility)
-      const totalCarbs = aiMeal.carbs ?? ((starchyCarbs + fibrousCarbs) || 35);
+      const totalCarbs = aiMeal.carbs ?? ((starchyCarbs ?? 0) + (fibrousCarbs ?? 0));
       
       const rawMeal: UnifiedMeal = {
         id: `craving-ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -948,7 +948,7 @@ function parseVarietyContent(content: string): any[] {
 function mapToUnifiedMeal(opt: any, idx: number, cravingInput: string, validMealType: string): UnifiedMeal {
   const starchyCarbs = opt.starchyCarbs ?? 0;
   const fibrousCarbs = opt.fibrousCarbs ?? 0;
-  const totalCarbs = opt.carbs ?? ((starchyCarbs + fibrousCarbs) || 35);
+  const totalCarbs = opt.carbs ?? ((starchyCarbs ?? 0) + (fibrousCarbs ?? 0));
   const raw: UnifiedMeal = {
     id: `variety-ai-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 9)}`,
     name: opt.name || `${cravingInput} Option ${idx + 1}`,
@@ -1418,7 +1418,7 @@ Create the recipe for: "${description}"`;
       const mealData = JSON.parse(content);
       const starchyCarbs = typeof mealData.starchyCarbs === 'number' ? mealData.starchyCarbs : 0;
       const fibrousCarbs = typeof mealData.fibrousCarbs === 'number' ? mealData.fibrousCarbs : 0;
-      const totalCarbs = (starchyCarbs + fibrousCarbs) || mealData.carbs || 35;
+      const totalCarbs = mealData.carbs ?? ((starchyCarbs ?? 0) + (fibrousCarbs ?? 0));
       
       const tempMeal: UnifiedMeal = {
         id: `chef-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -1728,7 +1728,7 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
       const snackData = JSON.parse(content);
       const snackStarchyCarbs = typeof snackData.starchyCarbs === 'number' ? snackData.starchyCarbs : 0;
       const snackFibrousCarbs = typeof snackData.fibrousCarbs === 'number' ? snackData.fibrousCarbs : 0;
-      const snackTotalCarbs = (snackStarchyCarbs + snackFibrousCarbs) || snackData.carbs || 15;
+      const snackTotalCarbs = snackData.carbs ?? ((snackStarchyCarbs ?? 0) + (snackFibrousCarbs ?? 0));
       
       const tempSnack: UnifiedMeal = {
         id: `snack-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
