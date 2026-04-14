@@ -1000,18 +1000,22 @@ export async function generateCravingMealOptions(
         dietaryRestrictions: users.dietaryRestrictions,
         allergies: users.allergies,
         healthConditions: users.healthConditions,
+        avoidedFoods: users.avoidedFoods,
       }).from(users).where(eq(users.id, userId)).limit(1);
 
       dietRestrictions = (u?.dietaryRestrictions as string[]) || [];
 
       const allergies: string[] = (u?.allergies as string[]) || [];
+      const avoidedFoods: string[] = (u?.avoidedFoods as string[]) || [];
 
-      // Build full forbidden list from BOTH allergies AND dietary restrictions
-      // (e.g. "no pork" expands to bacon, ham, lard, etc. — same hard block as allergies)
+      // Build full forbidden list from allergies + dietary restrictions + foods-to-avoid.
+      // All three sources are treated with identical enforcement.
+      // avoidIngredients ("pork") expands via buildForbiddenIngredients → "no pork" →
+      //   bacon, ham, prosciutto, lard, chorizo, sausage, etc.
       const fullSafetyProfile: UserSafetyProfile = {
         allergies,
         dietaryRestrictions: dietRestrictions,
-        avoidIngredients: []
+        avoidIngredients: avoidedFoods,
       };
       allForbiddenIngredients = buildForbiddenIngredients(fullSafetyProfile);
 
