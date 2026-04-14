@@ -602,9 +602,30 @@ export function buildForbiddenIngredients(profile: UserSafetyProfile): string[] 
     }
   }
   
-  // Add explicit avoid ingredients
+  // Expand and add avoided ingredients — treated identically to dietary restrictions.
+  // "pork" in foods-to-avoid expands the same as "no pork" in restrictions:
+  //   → pork, bacon, ham, prosciutto, lard, chorizo, sausage, etc.
   for (const avoid of profile.avoidIngredients || []) {
-    forbidden.add(normalize(avoid));
+    const key = normalize(avoid);
+    forbidden.add(key); // always add the literal term
+
+    // Try "no <term>" prefix match in RESTRICTION_EXPANSION (e.g. "pork" → "no pork")
+    const noKeyExpansion = RESTRICTION_EXPANSION["no " + key];
+    if (noKeyExpansion) {
+      noKeyExpansion.forEach(ing => forbidden.add(normalize(ing)));
+    }
+
+    // Try direct key match in RESTRICTION_EXPANSION (e.g. "halal", "kosher")
+    const directExpansion = RESTRICTION_EXPANSION[key];
+    if (directExpansion) {
+      directExpansion.forEach(ing => forbidden.add(normalize(ing)));
+    }
+
+    // Try ALLERGEN_EXPANSION for allergen-style avoidances (e.g. "dairy", "shellfish")
+    const allergenExpansion = ALLERGEN_EXPANSION[key];
+    if (allergenExpansion) {
+      allergenExpansion.forEach(ing => forbidden.add(normalize(ing)));
+    }
   }
   
   return Array.from(forbidden);
