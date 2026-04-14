@@ -41,6 +41,8 @@ import {
   DietAdaptedNotice,
 } from "@/components/DietGuardIntercept";
 import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
+import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { setQuickView } from "@/lib/macrosQuickView";
 import TrashButton from "@/components/ui/TrashButton";
@@ -212,6 +214,17 @@ export default function CreateDishPage() {
     null,
   );
 
+  // 🔐 SafetyGuard preflight system
+  const {
+    alert: safetyAlert,
+    checkSafety,
+    clearAlert: clearSafetyAlert,
+    setOverrideToken,
+    overrideToken,
+    hasActiveOverride,
+  } = useSafetyGuardPrecheck();
+  const [pendingGeneration, setPendingGeneration] = useState(false);
+
   const { user } = useAuth();
   const sweetenerPreferences = user?.sweetenerPreferences || [];
   const userId = user?.id || "";
@@ -361,6 +374,21 @@ export default function CreateDishPage() {
     return parts.join(". ");
   };
 
+  const handleSafetyOverride = (_enabled: boolean, token?: string) => {
+    if (token) {
+      setOverrideToken(token);
+      clearSafetyAlert();
+      setPendingGeneration(true);
+    }
+  };
+
+  useEffect(() => {
+    if (pendingGeneration && overrideToken && !isGenerating) {
+      setPendingGeneration(false);
+      handleGenerateDish(true);
+    }
+  }, [pendingGeneration, overrideToken, isGenerating]);
+
   const handleGenerateDish = async (skipPreflight = false) => {
     setDietAdaptedNotice(null);
 
@@ -374,6 +402,14 @@ export default function CreateDishPage() {
     }
 
     const prompt = buildPrompt();
+
+    // 🔐 SafetyGuard pre-flight — blocks allergic ingredients before any API call
+    if (!skipPreflight && !hasActiveOverride) {
+      const isSafe = await checkSafety(prompt, "create-dish");
+      if (!isSafe) {
+        return;
+      }
+    }
 
     if (!skipPreflight && starchDecision !== "let_chef_pick") {
       const starchOk = checkStarch(prompt);
@@ -479,16 +515,15 @@ export default function CreateDishPage() {
       const errorMsg = error.message || "";
       if (isAllergyRelatedError(errorMsg)) {
         toast({
-          title: "ALLERGY ALERT",
+          title: "Allergy Alert",
           description: formatAllergyAlertDescription(errorMsg),
           variant: "warning",
         });
       } else {
         toast({
-          title: "ALLERGY ALERT",
-          description:
-            "SafetyGuard detected a potential concern. Try a different dish or adjust your request.",
-          variant: "warning",
+          title: "Something went wrong",
+          description: "Unable to create the dish. Please try again.",
+          variant: "destructive",
         });
       }
     } finally {
@@ -638,6 +673,17 @@ export default function CreateDishPage() {
                       {notes.length}/250
                     </p>
                   </div>
+
+                  {/* SafetyGuard Preflight Banner */}
+                  <SafetyGuardBanner
+                    alert={safetyAlert}
+                    mealRequest={dishInput}
+                    onDismiss={clearSafetyAlert}
+                    onOverrideSuccess={(token) =>
+                      handleSafetyOverride(false, token)
+                    }
+                    className="mt-3"
+                  />
 
                   <StarchGuardIntercept
                     alert={starchAlert}
