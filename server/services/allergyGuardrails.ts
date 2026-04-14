@@ -326,10 +326,15 @@ export const ALLERGEN_EXPANSION: Record<string, string[]> = {
 };
 
 /**
- * DIET PRIORITY ORDER — strictest wins when multiple diets are present
+ * DIET PRIORITY ORDER — strictest wins when multiple diets are present.
+ * keto and paleo are strict diets (filter-first, reject-and-replace).
+ * vegan / vegetarian / pescatarian are flexible (compliant-alternative allowed).
  */
-export const DIET_PRIORITY = ["vegan", "vegetarian", "pescatarian"] as const;
+export const DIET_PRIORITY = ["vegan", "vegetarian", "pescatarian", "keto", "paleo"] as const;
 export type DietMode = typeof DIET_PRIORITY[number];
+
+/** Strict diets reject non-compliant meals outright rather than modifying them. */
+const STRICT_DIETS: DietMode[] = ["keto", "paleo"];
 
 /**
  * Resolve a single primary diet from a dietary restrictions array.
@@ -388,13 +393,59 @@ export const RESTRICTION_EXPANSION: Record<string, string[]> = {
   "no pork": [
     "pork", "bacon", "ham", "prosciutto", "pancetta", "pork chop",
     "pork loin", "pork belly", "chorizo", "sausage", "lard"
+  ],
+
+  keto: [
+    // High-carb grains
+    "bread", "rice", "pasta", "noodles", "oats", "oatmeal", "wheat", "flour",
+    "cereal", "crackers", "tortilla", "pita", "bagel", "muffin", "croissant",
+    "corn", "cornmeal", "cornstarch", "grits", "polenta", "quinoa", "barley",
+    "couscous", "farro", "granola",
+    // High-starch vegetables
+    "potato", "potatoes", "sweet potato", "sweet potatoes", "yam", "yams",
+    "parsnip", "parsnips",
+    // Sugars and sweeteners
+    "sugar", "brown sugar", "cane sugar", "powdered sugar", "honey",
+    "maple syrup", "agave", "corn syrup", "high fructose corn syrup",
+    "molasses", "date syrup", "coconut sugar",
+    // High-sugar fruits
+    "banana", "bananas", "mango", "mangoes", "pineapple", "grapes", "raisins",
+    "dates", "figs", "dried fruit",
+    // Legumes (high carb)
+    "beans", "black beans", "kidney beans", "pinto beans", "chickpeas",
+    "lentils", "peas", "edamame",
+    // Sugary drinks and bases
+    "juice", "fruit juice", "soda", "sweetened milk", "condensed milk",
+    "chocolate syrup", "caramel"
+  ],
+
+  paleo: [
+    // All grains
+    "wheat", "oats", "barley", "rye", "corn", "rice", "quinoa",
+    "bread", "pasta", "noodles", "cereal", "crackers", "tortilla", "pita",
+    "oatmeal", "granola", "couscous", "bulgur", "farro",
+    // All dairy
+    "milk", "cheese", "butter", "cream", "yogurt", "ice cream", "whey",
+    "casein", "dairy", "mozzarella", "parmesan", "cheddar", "ricotta",
+    "brie", "feta", "gouda", "sour cream", "cream cheese",
+    // Legumes
+    "beans", "black beans", "kidney beans", "pinto beans", "chickpeas",
+    "lentils", "peanuts", "peanut butter", "soy", "tofu", "tempeh",
+    "edamame", "hummus",
+    // Processed and refined sweeteners
+    "refined sugar", "sugar", "cane sugar", "corn syrup", "agave", "honey",
+    "artificial sweetener", "canola oil", "vegetable oil", "soybean oil",
+    "margarine", "processed food", "refined flour",
+    // Potatoes (white — sweet potatoes are paleo-allowed)
+    "white potato", "white potatoes", "french fries", "mashed potatoes"
   ]
 };
 
 /**
  * Build a CRITICAL DIETARY RULE prompt block for injection into AI generators.
  * Uses word-boundary–safe forbidden lists from RESTRICTION_EXPANSION.
- * Priority: vegan > vegetarian > pescatarian (strictest wins).
+ * Priority: vegan > vegetarian > pescatarian > keto > paleo (strictest wins).
+ * Keto and paleo are STRICT diets — non-compliant meals are rejected outright, not modified.
  * Returns an empty string when no diet mode applies.
  */
 export function buildDietPromptBlock(restrictions: string[]): string {
@@ -402,15 +453,39 @@ export function buildDietPromptBlock(restrictions: string[]): string {
   if (!diet) return "";
 
   const forbidden = RESTRICTION_EXPANSION[diet] || [];
-  return [
+  const isStrict = (STRICT_DIETS as string[]).includes(diet);
+
+  const baseBlock = [
     `CRITICAL DIETARY RULE:`,
     `This user strictly follows a ${diet.toUpperCase()} diet. This is NON-NEGOTIABLE.`,
     `STRICTLY FORBIDDEN — NEVER include ANY of these ingredients or derivatives:`,
     forbidden.join(", ") + ".",
     `Meals that contain any forbidden ingredient are INVALID and must not be generated.`,
-    `If a craving seems to conflict with this diet (e.g., asking for a burger while vegan),`,
-    `create a compliant alternative (e.g., a vegan black-bean burger) — never violate the diet.`,
-  ].join("\n");
+  ];
+
+  if (isStrict) {
+    baseBlock.push(
+      `If a dish fundamentally violates this diet, reject it entirely and choose a different, naturally compliant meal.`,
+      `Only return meals that are inherently compliant without requiring modifications to the core dish.`,
+    );
+    if (diet === "keto") {
+      baseBlock.push(
+        `KETO TONE RULE: Never describe carbohydrates as beneficial. Focus on protein, healthy fats, satiety, and stable blood sugar. Avoid phrases like "provides energy from carbs" or "carbs for fuel."`,
+        `KETO MACRO RULE: Keep total carbohydrates under 10g net carbs per serving. High-fat, moderate-protein meals are the goal.`,
+      );
+    } else if (diet === "paleo") {
+      baseBlock.push(
+        `PALEO TONE RULE: Never describe grains, dairy, or legumes as beneficial. Focus on whole-food protein, natural fats, vegetable variety, and sustained energy. Avoid phrases like "good source of grains" or "provides dairy protein."`,
+      );
+    }
+  } else {
+    baseBlock.push(
+      `If a craving seems to conflict with this diet (e.g., asking for a burger while vegan),`,
+      `create a compliant alternative (e.g., a vegan black-bean burger) — never violate the diet.`,
+    );
+  }
+
+  return baseBlock.join("\n");
 }
 
 /**
