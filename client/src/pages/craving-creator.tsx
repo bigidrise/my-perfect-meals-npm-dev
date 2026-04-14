@@ -61,7 +61,7 @@ import { ProDietaryDirectives } from "@/components/ProDietaryDirectives";
 import PhaseGate from "@/components/PhaseGate";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
-import DietBadge from "@/components/meal/DietBadge";
+import DietStyleBadge from "@/components/DietStyleBadge";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
@@ -1279,6 +1279,10 @@ export default function CravingCreator() {
                           className="mb-4"
                         />
                       )}
+
+                      <div className="mb-3">
+                        <DietStyleBadge mealCompliant={meal?.dietaryComplianceVerified ?? true} />
+                      </div>
 
                       <p className="text-white/90 mb-4">{meal.description}</p>
 
