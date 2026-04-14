@@ -55,6 +55,13 @@ export type FinalMeal = {
   imageUrl?: string | null;
   createdAt?: Date;
   _debug?: DebugMetadata | null;
+  /** Phase 2: Behavioral memory audit trail — profile hash, evidence count, categories */
+  _behavioralAudit?: {
+    profileHash: string;
+    evidenceCount: number;
+    categories: string[];
+    derivedAt: string;
+  } | null;
 };
 
 // Generate DALL-E image
