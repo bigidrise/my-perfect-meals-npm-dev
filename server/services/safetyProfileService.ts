@@ -214,7 +214,21 @@ function buildAllergyTermBank(profile: SafetyProfile): Set<string> {
     if (expanded) {
       expanded.forEach(term => terms.add(normalize(term)));
     } else {
-      terms.add(key);
+      // Fallback: split by spaces — handles merged entries like "Dairy shellfish"
+      // stored as a single string (e.g. user typed without comma separators)
+      const words = key.split(/\s+/).filter(Boolean);
+      let anyWordMatched = false;
+      for (const word of words) {
+        const wordExpanded = ALLERGEN_EXPANSION[word];
+        if (wordExpanded) {
+          wordExpanded.forEach(term => terms.add(normalize(term)));
+          anyWordMatched = true;
+        }
+      }
+      if (!anyWordMatched) {
+        // Last resort: store the whole key so at least an exact phrase match still works
+        terms.add(key);
+      }
     }
   }
 
@@ -290,10 +304,24 @@ function findMatchedCategories(terms: string[], profile: SafetyProfile): string[
   
   for (const allergyCategory of profile.allergies) {
     const key = normalize(allergyCategory);
-    const expanded = ALLERGEN_EXPANSION[key];
-    if (expanded) {
+
+    // Collect all expansion lists for this stored allergy value
+    // (handles merged entries like "Dairy shellfish" → try "dairy" + "shellfish" separately)
+    const expansions: string[][] = [];
+    const direct = ALLERGEN_EXPANSION[key];
+    if (direct) {
+      expansions.push(direct);
+    } else {
+      for (const word of key.split(/\s+/).filter(Boolean)) {
+        const wordExpanded = ALLERGEN_EXPANSION[word];
+        if (wordExpanded) expansions.push(wordExpanded);
+      }
+    }
+
+    for (const expanded of expansions) {
+      const expandedNormalized = expanded.map(e => normalize(e));
       for (const term of terms) {
-        if (expanded.map(e => normalize(e)).includes(normalize(term))) {
+        if (expandedNormalized.includes(normalize(term))) {
           if (!categories.includes(allergyCategory)) {
             categories.push(allergyCategory);
           }
