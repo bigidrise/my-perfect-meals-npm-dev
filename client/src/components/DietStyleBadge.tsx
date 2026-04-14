@@ -1,5 +1,10 @@
 // client/src/components/DietStyleBadge.tsx
-// Shows a small pill on meal cards confirming the meal fits the user's dietary style
+// Shows a small pill on meal cards confirming the meal fits the user's dietary style.
+//
+// For vegan / vegetarian / pescatarian the badge is ONLY shown when
+// mealCompliant === true (post-generation validation confirmed compliance).
+// undefined ("never validated") and false ("failed / unresolvable") both suppress
+// the badge for these diets — "we didn't check" must never look like "we verified".
 import { useAuth } from "@/contexts/AuthContext";
 import { useProClient } from "@/contexts/ProClientContext";
 
@@ -13,9 +18,27 @@ const DIET_CONFIG: Record<string, { label: string; color: string }> = {
   custom:         { label: "Custom Diet ✓",    color: "bg-pink-500/20 border-pink-400/40 text-pink-300" },
 };
 
+// These diets require post-generation validation before the badge may be shown.
+const VALIDATION_REQUIRED = new Set(["vegan", "vegetarian", "pescatarian"]);
+
 const SKIP = new Set(["no-restriction", "no_restriction", "none", ""]);
 
-export default function DietStyleBadge({ className = "" }: { className?: string }) {
+interface DietStyleBadgeProps {
+  className?: string;
+  /**
+   * Controls badge visibility for validation-required diets (vegan / vegetarian / pescatarian).
+   *
+   * - true      → post-generation validation passed → show badge
+   * - false     → validation failed or unresolvable → suppress badge
+   * - undefined → meal was never validated (cached / legacy / no pipeline data)
+   *               → ALSO suppress badge — "not checked" ≠ "verified"
+   *
+   * Non-validated diets (keto, paleo, etc.) always show unless explicitly false.
+   */
+  mealCompliant?: boolean;
+}
+
+export default function DietStyleBadge({ className = "", mealCompliant }: DietStyleBadgeProps) {
   const { user } = useAuth();
   const { isProCareMode } = useProClient();
   const restrictions: string[] = (user as any)?.dietaryRestrictions ?? [];
@@ -26,7 +49,18 @@ export default function DietStyleBadge({ className = "" }: { className?: string 
 
   const active = restrictions
     .map((r) => r.toLowerCase().trim())
-    .filter((r) => !SKIP.has(r) && DIET_CONFIG[r]);
+    .filter((r) => !SKIP.has(r) && DIET_CONFIG[r])
+    .filter((r) => {
+      if (VALIDATION_REQUIRED.has(r)) {
+        // Strict gate: badge only when compliance is explicitly confirmed.
+        // false  → failed validation  → suppress
+        // undefined → never validated → suppress (same as unverified)
+        // true   → validated pass    → show
+        return mealCompliant === true;
+      }
+      // Non-validated diets (keto, paleo, etc.): show unless explicitly false.
+      return mealCompliant !== false;
+    });
 
   if (active.length === 0) return null;
 

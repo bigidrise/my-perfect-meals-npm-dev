@@ -993,3 +993,168 @@ export function logSafetyEnforcement(
     `Action: ${action.toUpperCase()}${violations.length > 0 ? ` | Violations: ${violations.join(", ")}` : ''}`
   );
 }
+
+// ─── VEGAN / VEGETARIAN / PESCATARIAN SUBSTITUTION MAP ───────────────────────
+
+/**
+ * Maps each commonly forbidden vegan ingredient to its best plant-based
+ * replacement. Used in the post-generation substitution pass before triggering
+ * an AI regeneration retry.
+ *
+ * Keys must be lowercase and match ingredient names as they appear in recipes.
+ */
+export const VEGAN_SUBSTITUTION_MAP: Record<string, string> = {
+  // Sweeteners
+  'honey':                  'agave syrup',
+  'raw honey':              'agave syrup',
+  'honey drizzle':          'maple syrup drizzle',
+  'honey glaze':            'maple syrup glaze',
+
+  // Dairy — fats
+  'butter':                 'plant-based butter',
+  'unsalted butter':        'plant-based butter',
+  'salted butter':          'plant-based butter',
+  'clarified butter':       'coconut oil',
+  'ghee':                   'coconut oil',
+
+  // Dairy — milks and cream
+  'milk':                   'oat milk',
+  'whole milk':             'oat milk',
+  'skim milk':              'oat milk',
+  '2% milk':                'oat milk',
+  'heavy cream':            'coconut cream',
+  'heavy whipping cream':   'coconut cream',
+  'half and half':          'oat milk creamer',
+  'half & half':            'oat milk creamer',
+  'cream':                  'coconut cream',
+  'condensed milk':         'coconut condensed milk',
+  'evaporated milk':        'coconut evaporated milk',
+  'buttermilk':             'plant-based buttermilk',
+  'sour cream':             'cashew sour cream',
+
+  // Dairy — cheese / yogurt
+  'cheese':                 'nutritional yeast',
+  'parmesan':               'nutritional yeast',
+  'parmesan cheese':        'nutritional yeast',
+  'mozzarella':             'vegan mozzarella',
+  'cheddar':                'vegan cheddar',
+  'feta':                   'vegan feta',
+  'cream cheese':           'cashew cream cheese',
+  'ricotta':                'tofu ricotta',
+  'yogurt':                 'coconut yogurt',
+  'greek yogurt':           'coconut yogurt',
+
+  // Dairy — proteins
+  'whey':                   'pea protein',
+  'whey protein':           'pea protein powder',
+  'whey isolate':           'pea protein powder',
+  'casein':                 'pea protein',
+  'casein protein':         'pea protein powder',
+
+  // Eggs
+  'egg':                    'flax egg',
+  'eggs':                   'flax eggs',
+  'egg white':              'aquafaba',
+  'egg whites':             'aquafaba',
+  'egg yolk':               'silken tofu',
+  'egg yolks':              'silken tofu',
+
+  // Gelling / thickening agents
+  'gelatin':                'agar-agar',
+  'collagen peptides':      'agar-agar',
+  'beef collagen':          'agar-agar',
+  'chicken collagen':       'agar-agar',
+
+  // Animal fats
+  'lard':                   'coconut oil',
+  'suet':                   'plant-based shortening',
+  'tallow':                 'coconut oil',
+  'schmaltz':               'olive oil',
+  'duck fat':               'olive oil',
+
+  // Stocks and broths
+  'chicken stock':          'vegetable broth',
+  'chicken broth':          'vegetable broth',
+  'beef stock':             'vegetable broth',
+  'beef broth':             'vegetable broth',
+  'bone broth':             'vegetable broth',
+  'fish stock':             'seaweed-based broth',
+  'fish sauce':             'soy sauce with nori',
+
+  // Condiments / flavour agents
+  'anchovies':              'capers',
+  'anchovy paste':          'miso paste',
+  'worcestershire sauce':   'vegan worcestershire sauce',
+  'mayonnaise':             'vegan mayonnaise',
+  'mayo':                   'vegan mayonnaise',
+};
+
+/**
+ * Per-diet substitution map selection.
+ * Vegetarian and pescatarian only share a subset of the vegan map.
+ */
+const VEGETARIAN_SUBSTITUTION_MAP: Record<string, string> = {
+  'gelatin':        'agar-agar',
+  'lard':           'plant-based shortening',
+  'suet':           'plant-based shortening',
+  'tallow':         'coconut oil',
+  'chicken stock':  'vegetable broth',
+  'chicken broth':  'vegetable broth',
+  'beef stock':     'vegetable broth',
+  'beef broth':     'vegetable broth',
+  'bone broth':     'vegetable broth',
+  'anchovies':      'capers',
+  'fish sauce':     'soy sauce',
+  'fish stock':     'vegetable broth',
+};
+
+const PESCATARIAN_SUBSTITUTION_MAP: Record<string, string> = {
+  'lard':           'olive oil',
+  'suet':           'plant-based shortening',
+  'tallow':         'coconut oil',
+  'chicken stock':  'vegetable broth',
+  'chicken broth':  'vegetable broth',
+  'beef stock':     'vegetable broth',
+  'beef broth':     'vegetable broth',
+  'bone broth':     'vegetable broth',
+};
+
+type DietaryMode = 'vegan' | 'vegetarian' | 'pescatarian';
+
+function getSubstitutionMap(diet: DietaryMode): Record<string, string> {
+  if (diet === 'vegetarian') return VEGETARIAN_SUBSTITUTION_MAP;
+  if (diet === 'pescatarian') return PESCATARIAN_SUBSTITUTION_MAP;
+  return VEGAN_SUBSTITUTION_MAP;
+}
+
+export interface SubstitutionResult {
+  ingredients: Array<{ name: string; quantity: string; unit: string }>;
+  substitutionsApplied: Array<{ original: string; replacement: string }>;
+}
+
+/**
+ * Apply diet-appropriate ingredient substitutions to a meal's ingredient list.
+ * Returns the updated ingredient list and a log of what was swapped.
+ * Only performs exact-match substitutions to avoid unintended flavor changes.
+ *
+ * IMPORTANT: Call this at most ONCE before triggering an AI regeneration.
+ */
+export function applyDietarySubstitutions(
+  ingredients: Array<{ name: string; quantity: string; unit: string }>,
+  diet: DietaryMode,
+): SubstitutionResult {
+  const map = getSubstitutionMap(diet);
+  const substitutionsApplied: Array<{ original: string; replacement: string }> = [];
+
+  const updated = ingredients.map(ing => {
+    const key = ing.name.toLowerCase().trim();
+    const replacement = map[key];
+    if (replacement) {
+      substitutionsApplied.push({ original: ing.name, replacement });
+      return { ...ing, name: replacement };
+    }
+    return ing;
+  });
+
+  return { ingredients: updated, substitutionsApplied };
+}

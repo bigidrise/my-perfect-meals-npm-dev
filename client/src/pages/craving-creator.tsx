@@ -115,6 +115,7 @@ interface MealData {
     color: string;
   }>;
   imageUrl?: string;
+  dietaryComplianceVerified?: boolean;
 }
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { setQuickView } from "@/lib/macrosQuickView";
@@ -1281,7 +1282,7 @@ export default function CravingCreator() {
                       )}
 
                       <div className="mb-3">
-                        <DietStyleBadge />
+                        <DietStyleBadge mealCompliant={meal.dietaryComplianceVerified} />
                       </div>
 
                       <p className="text-white/90 mb-4">{meal.description}</p>

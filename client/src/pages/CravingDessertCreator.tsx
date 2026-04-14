@@ -847,7 +847,7 @@ export default function DessertCreator() {
                   )}
 
                   <div className="mb-3">
-                    <DietStyleBadge />
+                    <DietStyleBadge mealCompliant={generatedDessert.dietaryComplianceVerified} />
                   </div>
 
                   <p className="text-white/90 mb-4">

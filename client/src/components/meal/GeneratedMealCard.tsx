@@ -46,6 +46,13 @@ export interface GeneratedMealData {
   servings?: number;
   reasoning?: string;
   substitutionNotes?: string[];
+  /**
+   * Populated by the pipeline after post-generation dietary validation.
+   * true  → meal passed vegan/vegetarian/pescatarian validation (show badge)
+   * false → meal failed or could not be verified (suppress badge)
+   * undefined → legacy / non-vegan diet, badge shows per user preference
+   */
+  dietaryComplianceVerified?: boolean;
 }
 
 interface GeneratedMealCardProps {
@@ -179,7 +186,7 @@ export default function GeneratedMealCard({
         </button>
       </div>
 
-      <DietStyleBadge />
+      <DietStyleBadge mealCompliant={generatedMeal.dietaryComplianceVerified} />
 
       {mealToShow.description && (
         <p className="text-white/90">{mealToShow.description}</p>

@@ -15,6 +15,9 @@ export type DietType =
   | 'performance'
   | 'general-nutrition'
   | 'procare'
+  | 'vegan'
+  | 'vegetarian'
+  | 'pescatarian'
   | null; // null = no guardrails (Weekly Meal Board)
 
 export type BeachBodyPhase = 'lean' | 'carb-control' | 'maintenance' | 'sculpt';

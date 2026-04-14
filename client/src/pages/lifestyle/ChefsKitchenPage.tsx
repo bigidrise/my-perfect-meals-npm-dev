@@ -108,6 +108,7 @@ interface GeneratedMeal {
   servingSize?: string;
   servings?: number;
   reasoning?: string;
+  dietaryComplianceVerified?: boolean;
 }
 
 const COOK_METHODS = [
@@ -897,7 +898,7 @@ export default function ChefsKitchenPage() {
                   </div>
 
                   <div className="mb-3">
-                    <DietStyleBadge />
+                    <DietStyleBadge mealCompliant={mealToShow.dietaryComplianceVerified} />
                   </div>
 
                   {mealToShow.description && (
