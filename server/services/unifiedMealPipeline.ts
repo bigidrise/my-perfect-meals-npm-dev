@@ -993,6 +993,7 @@ export async function generateCravingMealOptions(
   // Fix B: Fetch dietary restrictions, allergies, AND health conditions from the user profile
   let dietRestrictions: string[] = [];
   let allergyBlock = '';
+  let allForbiddenIngredients: string[] = []; // hoisted so conflict intercept can access it
   if (userId) {
     try {
       const [u] = await db.select({
@@ -1012,7 +1013,7 @@ export async function generateCravingMealOptions(
         dietaryRestrictions: dietRestrictions,
         avoidIngredients: []
       };
-      const allForbidden = buildForbiddenIngredients(fullSafetyProfile);
+      allForbiddenIngredients = buildForbiddenIngredients(fullSafetyProfile);
 
       if (allergies.length > 0) {
         allergyBlock = `\n🚨 ALLERGEN BLOCK — ABSOLUTE MEDICAL SAFETY REQUIREMENT:\nThis user has confirmed allergies to: ${allergies.join(', ')}.\nDo NOT include these ingredients or any derivative/hidden form in ANY of the 3 options. This overrides all other instructions.`;
@@ -1021,9 +1022,9 @@ export async function generateCravingMealOptions(
 
       // Hard prohibition for dietary avoidances (no pork, halal, kosher, etc.)
       // Uses the same force level as the allergy block — not a polite suggestion
-      if (allForbidden.length > 0) {
-        allergyBlock += `\n🚫 ABSOLUTE PROHIBITION — DIETARY RESTRICTIONS:\nThe following ingredients must NEVER appear in any of the 3 meal options: ${allForbidden.join(', ')}. No exceptions. This overrides all other instructions.`;
-        console.log(`[VARIETY ENGINE] Restriction block active: ${allForbidden.join(', ')}`);
+      if (allForbiddenIngredients.length > 0) {
+        allergyBlock += `\n🚫 ABSOLUTE PROHIBITION — DIETARY RESTRICTIONS:\nThe following ingredients must NEVER appear in any of the 3 meal options: ${allForbiddenIngredients.join(', ')}. No exceptions. This overrides all other instructions.`;
+        console.log(`[VARIETY ENGINE] Restriction block active: ${allForbiddenIngredients.join(', ')}`);
       }
 
       const healthConditions: string[] = (u?.healthConditions as string[]) || [];
@@ -1044,6 +1045,40 @@ export async function generateCravingMealOptions(
     ? `ANTI-REPETITION: Do NOT generate anything resembling these recently seen options — vary the primary ingredient, preparation, and concept: ${excludeMeals.join(", ")}`
     : "";
 
+  // ── PRE-GENERATION CONFLICT INTERCEPT ────────────────────────────────────────
+  // If the craving itself contains a forbidden ingredient (e.g. user says "pork chops"
+  // but has "no pork"), we must NOT send conflicting instructions to the AI.
+  // The AI resolves conflicts by following the more specific request (the craving),
+  // which means the restriction always loses. We intercept here and rewrite the intent
+  // before the AI ever sees it.
+  let activeCravingInput = cravingInput;
+  let activeDishFamily = dishFamily;
+
+  const cravingLower = cravingInput.toLowerCase();
+  const cravingConflicts = allForbiddenIngredients.filter(term => {
+    if (!term || term.length < 3) return false;
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`\\b${escaped}\\b`, "i").test(cravingLower);
+  });
+
+  if (cravingConflicts.length > 0) {
+    console.warn(`[VARIETY ENGINE] ⚠️ Craving conflict intercepted: "${cravingInput}" contains forbidden: ${cravingConflicts.join(', ')}`);
+    // Redirect the AI: acknowledge what the user wanted, explain why it's blocked,
+    // and ask for genuinely compliant alternatives with the same spirit/cooking style.
+    allergyBlock = `🚫 CONFLICT INTERCEPT — READ FIRST, OVERRIDES ALL ELSE:
+The user requested "${cravingInput}" but this dish contains FORBIDDEN ingredients (${cravingConflicts.join(', ')}).
+YOU MUST NOT generate "${cravingInput}" or any version of it.
+Instead, generate 3 genuinely different meals that:
+  • Satisfy a similar craving (same meal type, similar cooking method or flavor profile)
+  • Contain ZERO forbidden ingredients
+  • Are completely pork-free, using chicken, turkey, beef, lamb, fish, or plant proteins as appropriate
+Do NOT mention pork, bacon, ham, or any forbidden item in the meal name, description, or ingredients.
+` + allergyBlock;
+    activeCravingInput = `an alternative to "${cravingInput}" — must avoid ${cravingConflicts.join(', ')}`;
+    activeDishFamily = "alternative";
+  }
+  // ─────────────────────────────────────────────────────────────────────────────
+
   const openai = getOpenAI();
 
   const isRecipeMode = generationMode === 'recipe';
@@ -1054,8 +1089,8 @@ export async function generateCravingMealOptions(
   /** One attempt at calling AI and parsing result */
   const attempt = async (stricterMode: boolean): Promise<any[]> => {
     const prompt = isRecipeMode
-      ? buildRecipeVarietyPrompt(cravingInput, validMealType, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode)
-      : buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode);
+      ? buildRecipeVarietyPrompt(activeCravingInput, validMealType, activeDishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode)
+      : buildVarietyPrompt(activeCravingInput, validMealType, category, activeDishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode);
     const stricter = stricterMode
       ? `\n\nSECOND ATTEMPT — STRICT MODE: The previous response drifted from the dish family. You MUST generate 3 options that are clearly recognizable variations of "${dishFamily}". No exceptions.`
       : "";
