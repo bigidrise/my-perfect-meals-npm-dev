@@ -27,6 +27,8 @@ import { filterOncologySafeMeals } from "./guardrails/validators/oncologySupport
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
+// Phase 2 Step 1: Behavioral memory — read-only preference profile
+import { derivePreferenceProfile, buildBehavioralMemoryPromptSection, type PreferenceProfile } from "./behavioralMemoryService";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -643,14 +645,19 @@ const InstructionsSchema = z.object({
   })).min(1)
 });
 
-async function instructBatch(items: Skeleton[], palatePrefs?: PalatePreferences, skipPalate?: boolean): Promise<Record<string,string[]>> {
+async function instructBatch(items: Skeleton[], palatePrefs?: PalatePreferences, skipPalate?: boolean, behavioralMemorySection?: string): Promise<Record<string,string[]>> {
   try {
     // Build palate section if preferences exist and not skipped
     const palateGuidance = (!skipPalate && palatePrefs) 
       ? `\n\nFLAVOR PREFERENCES: ${buildPalateSection(palatePrefs)}` 
       : "\n\nFLAVOR: Use light, neutral seasoning suitable for serving to guests or family.";
     
-    const sys = `You write short, precise cooking instructions ONLY. Return JSON { instructions: [{ name, steps[] }] }. Steps are imperative, max 8, no fluff.${palateGuidance}`;
+    // Phase 2 Step 2: Behavioral memory — bounded soft preference hints (never overrides rules)
+    const memoryGuidance = (behavioralMemorySection && behavioralMemorySection.length > 0)
+      ? `\n\n${behavioralMemorySection}`
+      : "";
+    
+    const sys = `You write short, precise cooking instructions ONLY. Return JSON { instructions: [{ name, steps[] }] }. Steps are imperative, max 8, no fluff.${palateGuidance}${memoryGuidance}`;
     const user = `Generate instructions for these meals: ${items.map(s => `${s.name}: ${s.ingredients.map(i => i.name).join(', ')}`).join('; ')}`;
     
     const response = await getOpenAI().chat.completions.create({
@@ -822,6 +829,28 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
     }
   } else if (skipPalate) {
     console.log(`🎨 Palate preferences skipped - using neutral seasoning for shared meal`);
+  }
+
+  // 🧠 Phase 2 Step 1: Behavioral memory — derive preference profile (read-only, no writes)
+  let behavioralMemorySection: string = "";
+  let behavioralProfile: PreferenceProfile | null = null;
+  if (userPrefs?.userId && !skipPalate) {
+    try {
+      behavioralProfile = await derivePreferenceProfile(userPrefs.userId);
+      if (behavioralProfile && behavioralProfile.likes.length > 0) {
+        behavioralMemorySection = buildBehavioralMemoryPromptSection(behavioralProfile);
+        console.log(
+          `🧠 [BehavioralMemory] Loaded profile — ` +
+          `evidence=${behavioralProfile.auditMeta.evidenceCount}, ` +
+          `categories=[${behavioralProfile.auditMeta.categories.join(",")}], ` +
+          `hash=${behavioralProfile.auditMeta.profileHash}`
+        );
+      } else {
+        console.log(`🧠 [BehavioralMemory] No preference history yet for user ${userPrefs.userId.slice(0, 8)}`);
+      }
+    } catch (err) {
+      console.warn("⚠️ [BehavioralMemory] Could not derive preference profile:", err);
+    }
   }
   
   // 🩺 HUB COUPLING: Get medical context for diabetic/GLP-1 users
@@ -1446,8 +1475,8 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
   
   const medicalBadges = medicalBadgesFor(selected, userPrefs?.medicalFlags || []);
   
-  // Generate instructions for single meal with palate preferences
-  const instructionsMap = await instructBatch([selected], palatePrefs, skipPalate);
+  // Generate instructions with palate preferences + behavioral memory (soft hints, post-enforcement)
+  const instructionsMap = await instructBatch([selected], palatePrefs, skipPalate, behavioralMemorySection);
   
   // Create more descriptive meal description
   const mainIngredients = selected.ingredients.slice(0, 3).map(i => i.name).join(', ');
@@ -1491,6 +1520,14 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
   // Build debug metadata and close session
   const debugMetadata = telemetry.buildDebugMetadata(sessionId);
   telemetry.closeSession(sessionId);
+
+  // Phase 2: Behavioral memory audit (observability without DB migration)
+  const behavioralAudit = behavioralProfile ? {
+    profileHash:    behavioralProfile.auditMeta.profileHash,
+    evidenceCount:  behavioralProfile.auditMeta.evidenceCount,
+    categories:     behavioralProfile.auditMeta.categories,
+    derivedAt:      behavioralProfile.auditMeta.derivedAt,
+  } : null;
   
   return {
     id: `craving-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -1510,6 +1547,7 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
     servingSize: "1 serving",
     imageUrl: imageUrl,
     createdAt: new Date(),
-    _debug: debugMetadata
+    _debug: debugMetadata,
+    _behavioralAudit: behavioralAudit,
   };
 }
