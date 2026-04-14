@@ -26,6 +26,7 @@ import holidayFamilyRecipeRouter from "./routes/holiday-family-recipe";
 import { generateCravingMeal, generateWeeklyMeals } from "./services/stableMealGenerator";
 import { generateCravingMealWithProfile } from "./services/generators/cravingCreatorWrapped";
 import { enforceSafetyProfile } from "./services/safetyProfileService";
+import { runEnforcement, toRouteResponse } from "./services/enforcementGateway";
 import { 
   hasUserSetPin, 
   setUserPin, 
@@ -639,23 +640,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         strictMode
       } = req.body;
 
-      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      // 🚨 ENFORCEMENT GATEWAY: Pre-generation — Tier 1 (allergy) + Tier 2 (religious)
       if (userId && input) {
         const inputText = Array.isArray(input) ? input.join(' ') : input;
-        const safetyCheck = await enforceSafetyProfile(userId, inputText, `meals-generate-${type}`, {
+        const enforcement = await runEnforcement({
+          userId,
+          builderType: type || "create_dish",
+          phase: "pre_generation",
+          inputText,
           safetyMode: safetyMode || "STRICT",
-          overrideToken: overrideToken
+          overrideToken,
         });
-        if (safetyCheck.result === "BLOCKED") {
-          console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
-          return res.status(400).json({
-            success: false,
-            source: 'error',
-            error: safetyCheck.message,
-            safetyBlocked: true,
-            blockedTerms: safetyCheck.blockedTerms,
-            suggestion: safetyCheck.suggestion
-          });
+        const routeResponse = toRouteResponse(enforcement);
+        if (routeResponse.blocked || routeResponse.reviewRequired) {
+          return res.status(400).json({ source: 'error', ...routeResponse.errorPayload });
         }
       }
 
@@ -828,33 +826,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      // 🚨 ENFORCEMENT GATEWAY: Pre-generation — Tier 1 (allergy) + Tier 2 (religious)
       {
         const ingredientsText = fridgeItems.join(' ');
-        const safetyCheck = await enforceSafetyProfile(userId, ingredientsText, "meals-fridge-rescue", {
+        const enforcement = await runEnforcement({
+          userId,
+          builderType: "fridge_rescue",
+          phase: "pre_generation",
+          inputText: ingredientsText,
           safetyMode: safetyMode || "STRICT",
-          overrideToken: safetyMode === "CUSTOM_AUTHENTICATED" ? overrideToken : undefined
+          overrideToken: safetyMode === "CUSTOM_AUTHENTICATED" ? overrideToken : undefined,
         });
-        
-        // If override token was valid, safety check returns SAFE even for blocked terms
-        if (safetyCheck.result === "BLOCKED") {
-          console.log(`🚫 [SAFETY] Blocked fridge rescue for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
-          return res.status(400).json({
-            success: false,
-            error: safetyCheck.message,
-            safetyBlocked: true,
-            blockedTerms: safetyCheck.blockedTerms,
-            suggestion: safetyCheck.suggestion
-          });
-        }
-        if (safetyCheck.result === "AMBIGUOUS") {
-          return res.status(400).json({
-            success: false,
-            error: safetyCheck.message,
-            safetyAmbiguous: true,
-            ambiguousTerms: safetyCheck.ambiguousTerms,
-            suggestion: safetyCheck.suggestion
-          });
+        const routeResponse = toRouteResponse(enforcement);
+        if (routeResponse.blocked || routeResponse.reviewRequired) {
+          return res.status(400).json(routeResponse.errorPayload);
         }
         
         // Log if override was used
@@ -1046,29 +1031,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("🎯 AI Meal Creator generating meal plan:", { userId, days, scheduleCount: schedule?.length });
 
-      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
-      // Check selectedIngredients against user's allergy profile
+      // 🚨 ENFORCEMENT GATEWAY: Pre-generation — Tier 1 (allergy) + Tier 2 (religious)
       if (userId && selectedIngredients && selectedIngredients.length > 0) {
         const ingredientsText = selectedIngredients.join(' ');
-        const safetyCheck = await enforceSafetyProfile(userId, ingredientsText, "ai-generate-meal-plan");
-        if (safetyCheck.result === "BLOCKED") {
-          console.log(`🚫 [SAFETY] Blocked AI meal plan for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
-          return res.status(400).json({
-            success: false,
-            error: safetyCheck.message,
-            safetyBlocked: true,
-            blockedTerms: safetyCheck.blockedTerms,
-            suggestion: safetyCheck.suggestion
-          });
-        }
-        if (safetyCheck.result === "AMBIGUOUS") {
-          return res.status(400).json({
-            success: false,
-            error: safetyCheck.message,
-            safetyAmbiguous: true,
-            ambiguousTerms: safetyCheck.ambiguousTerms,
-            suggestion: safetyCheck.suggestion
-          });
+        const enforcement = await runEnforcement({
+          userId,
+          builderType: "meal_planner",
+          phase: "pre_generation",
+          inputText: ingredientsText,
+        });
+        const routeResponse = toRouteResponse(enforcement);
+        if (routeResponse.blocked || routeResponse.reviewRequired) {
+          return res.status(400).json(routeResponse.errorPayload);
         }
       }
 
@@ -1612,30 +1586,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { userId, familyRecipe, cuisineType } = req.body;
       
-      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      // 🚨 ENFORCEMENT GATEWAY: Pre-generation — Tier 1 (allergy) + Tier 2 (religious)
       if (userId) {
-        // Check family recipe and cuisine type for allergens
         const inputText = [familyRecipe, cuisineType].filter(Boolean).join(' ');
         if (inputText) {
-          const safetyCheck = await enforceSafetyProfile(userId, inputText, "meals-holiday-feast");
-          if (safetyCheck.result === "BLOCKED") {
-            console.log(`🚫 [SAFETY] Blocked holiday feast for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
-            return res.status(400).json({
-              success: false,
-              error: safetyCheck.message,
-              safetyBlocked: true,
-              blockedTerms: safetyCheck.blockedTerms,
-              suggestion: safetyCheck.suggestion
-            });
-          }
-          if (safetyCheck.result === "AMBIGUOUS") {
-            return res.status(400).json({
-              success: false,
-              error: safetyCheck.message,
-              safetyAmbiguous: true,
-              ambiguousTerms: safetyCheck.ambiguousTerms,
-              suggestion: safetyCheck.suggestion
-            });
+          const enforcement = await runEnforcement({
+            userId,
+            builderType: "holiday_feast",
+            phase: "pre_generation",
+            inputText,
+          });
+          const routeResponse = toRouteResponse(enforcement);
+          if (routeResponse.blocked || routeResponse.reviewRequired) {
+            return res.status(400).json(routeResponse.errorPayload);
           }
         }
       }
