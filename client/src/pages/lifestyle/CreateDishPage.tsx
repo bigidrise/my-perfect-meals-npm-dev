@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import ThinkingDots from "@/components/ThinkingDots";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -758,11 +759,8 @@ export default function CreateDishPage() {
                   </div>
 
                   {isGenerating && (
-                    <div className="space-y-2 mt-2">
-                      <Progress value={progress} className="h-2 bg-white/10" />
-                      <p className="text-center text-sm text-white/70">
-                        Chef is crafting your dish…
-                      </p>
+                    <div className="flex justify-center mt-2">
+                      <ThinkingDots label="Chef is crafting your dish…" />
                     </div>
                   )}
 
@@ -782,11 +780,8 @@ export default function CreateDishPage() {
           </div>
 
           {isPlatingMeal && (
-            <div className="mt-8 flex flex-col items-center gap-4 py-10">
-              <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-              <p className="text-white/80 text-base font-medium">
-                Chef is plating your dish…
-              </p>
+            <div className="mt-8 flex justify-center py-10">
+              <ThinkingDots label="Chef is plating your dish…" />
             </div>
           )}
 

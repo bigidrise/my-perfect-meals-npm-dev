@@ -3,6 +3,7 @@
 // FEATURES: Perfect fridge ingredient rescue, AI meal generation, ingredient optimization, medical personalization
 import { useState, useRef, useEffect } from "react";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
+import ThinkingDots from "@/components/ThinkingDots";
 import { motion } from "framer-motion";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -829,19 +830,8 @@ const FridgeRescuePage = () => {
 
                 {/* Progress Bar */}
                 {isLoading && (
-                  <div className="w-full mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-white/80">
-                        AI Analysis Progress
-                      </span>
-                      <span className="text-sm text-white/80">
-                        {Math.round(progress)}%
-                      </span>
-                    </div>
-                    <Progress
-                      value={progress}
-                      className="h-3 bg-black/30 border border-white/20"
-                    />
+                  <div className="w-full mb-4 flex justify-center">
+                    <ThinkingDots label="Rescuing your meal…" />
                   </div>
                 )}
 

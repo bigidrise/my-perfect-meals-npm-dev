@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import BreathingOrb from "@/components/BreathingOrb";
 import {
   Dialog,
   DialogContent,
@@ -432,12 +433,8 @@ export function CreateWithChefModal({
               />
 
               {isProcessing && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-white/70">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {safetyChecking ? "Checking safety profile..." : "Chef is preparing your meal..."}
-                  </div>
-                  <Progress value={safetyChecking ? 30 : progress} className="h-2" />
+                <div className="flex justify-center">
+                  <BreathingOrb label={safetyChecking ? "Checking safety profile…" : "Chef is preparing your meal…"} />
                 </div>
               )}
 

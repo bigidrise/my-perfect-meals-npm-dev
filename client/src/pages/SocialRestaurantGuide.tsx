@@ -18,6 +18,7 @@
 // - Medical personalization with user health data integration
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import ThinkingDots from "@/components/ThinkingDots";
 import { normalizeDiet, filterMealsByDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import DietBadge from "@/components/meal/DietBadge";
 import { motion } from "framer-motion";
@@ -892,19 +893,8 @@ export default function RestaurantGuidePage() {
                   <p className="text-white/70 text-center">
                     Searching {restaurantInput} for {cravingInput} options
                   </p>
-                  <div className="mt-6">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-white/80">
-                        AI Analysis Progress
-                      </span>
-                      <span className="text-sm text-white/80">
-                        {Math.round(progress)}%
-                      </span>
-                    </div>
-                    <Progress
-                      value={progress}
-                      className="h-3 bg-black/30 border border-white/20"
-                    />
+                  <div className="mt-6 flex justify-center">
+                    <ThinkingDots label="Finding your dishes…" />
                   </div>
                 </CardContent>
               </Card>

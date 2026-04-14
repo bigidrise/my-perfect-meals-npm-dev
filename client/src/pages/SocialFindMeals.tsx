@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
+import ThinkingDots from "@/components/ThinkingDots";
 import {
   Card,
   CardContent,
@@ -609,19 +610,8 @@ export default function MealFinder() {
                   <p className="text-white/70 text-center">
                     Searching for {mealQuery} options near you
                   </p>
-                  <div className="mt-6">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-white/80">
-                        AI Analysis Progress
-                      </span>
-                      <span className="text-sm text-white/80">
-                        {Math.round(progress)}%
-                      </span>
-                    </div>
-                    <Progress
-                      value={progress}
-                      className="h-3 bg-black/30 border border-white/20"
-                    />
+                  <div className="mt-6 flex justify-center">
+                    <ThinkingDots label="Finding meals near you…" />
                   </div>
                 </CardContent>
               </Card>
