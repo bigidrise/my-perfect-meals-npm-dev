@@ -449,65 +449,117 @@ export const RESTRICTION_EXPANSION: Record<string, string[]> = {
  * Returns an empty string when no diet mode applies.
  */
 export function buildDietPromptBlock(restrictions: string[]): string {
+  const normalized = (restrictions || []).map(r => r.trim().toLowerCase());
   const diet = getPrimaryDiet(restrictions);
-  if (!diet) return "";
+  const isStrict = diet ? (STRICT_DIETS as string[]).includes(diet) : false;
 
-  const forbidden = RESTRICTION_EXPANSION[diet] || [];
-  const isStrict = (STRICT_DIETS as string[]).includes(diet);
+  const blocks: string[] = [];
 
-  const baseBlock = [
-    `CRITICAL DIETARY RULE:`,
-    `This user strictly follows a ${diet.toUpperCase()} diet. This is NON-NEGOTIABLE.`,
-    `STRICTLY FORBIDDEN — NEVER include ANY of these ingredients or derivatives:`,
-    forbidden.join(", ") + ".",
-    `Meals that contain any forbidden ingredient are INVALID and must not be generated.`,
-  ];
-
-  if (isStrict) {
-    baseBlock.push(
-      `If a dish fundamentally violates this diet, reject it entirely and choose a different, naturally compliant meal.`,
-      `Only return meals that are inherently compliant without requiring modifications to the core dish.`,
+  // ── PRIMARY DIET BLOCK ──────────────────────────────────────────────────────
+  if (diet) {
+    const forbidden = RESTRICTION_EXPANSION[diet] || [];
+    blocks.push(
+      `CRITICAL DIETARY RULE:`,
+      `This user strictly follows a ${diet.toUpperCase()} diet. This is NON-NEGOTIABLE.`,
+      `STRICTLY FORBIDDEN — NEVER include ANY of these ingredients or derivatives:`,
+      forbidden.join(", ") + ".",
+      `Meals that contain any forbidden ingredient are INVALID and must not be generated.`,
     );
-    if (diet === "keto") {
-      baseBlock.push(
-        `KETO TONE RULE: Never describe carbohydrates as beneficial. Focus on protein, healthy fats, satiety, and stable blood sugar. Avoid phrases like "provides energy from carbs" or "carbs for fuel."`,
-        `KETO MACRO RULE: Keep total carbohydrates under 10g net carbs per serving. High-fat, moderate-protein meals are the goal.`,
+
+    if (isStrict) {
+      blocks.push(
+        `If a dish fundamentally violates this diet, reject it entirely and choose a different, naturally compliant meal.`,
+        `Only return meals that are inherently compliant without requiring modifications to the core dish.`,
       );
-    } else if (diet === "paleo") {
-      baseBlock.push(
-        `PALEO TONE RULE: Never describe grains, dairy, or legumes as beneficial. Focus on whole-food protein, natural fats, vegetable variety, and sustained energy. Avoid phrases like "good source of grains" or "provides dairy protein."`,
+      if (diet === "keto") {
+        blocks.push(
+          `KETO TONE RULE: Never describe carbohydrates as beneficial. Focus on protein, healthy fats, satiety, and stable blood sugar. Avoid phrases like "provides energy from carbs" or "carbs for fuel."`,
+          `KETO MACRO RULE: Keep total carbohydrates under 10g net carbs per serving. High-fat, moderate-protein meals are the goal.`,
+        );
+      } else if (diet === "paleo") {
+        blocks.push(
+          `PALEO TONE RULE: Never describe grains, dairy, or legumes as beneficial. Focus on whole-food protein, natural fats, vegetable variety, and sustained energy. Avoid phrases like "good source of grains" or "provides dairy protein."`,
+        );
+      }
+    } else {
+      blocks.push(
+        `If a craving seems to conflict with this diet (e.g., asking for a burger while vegan),`,
+        `create a compliant alternative (e.g., a vegan black-bean burger) — never violate the diet.`,
       );
     }
-  } else {
-    baseBlock.push(
-      `If a craving seems to conflict with this diet (e.g., asking for a burger while vegan),`,
-      `create a compliant alternative (e.g., a vegan black-bean burger) — never violate the diet.`,
+  }
+
+  // ── AVOIDANCE RESTRICTIONS BLOCK ────────────────────────────────────────────
+  // Handles: "no pork", "no red meat", "halal", "kosher", and any other
+  // named avoidances that exist in RESTRICTION_EXPANSION but are NOT the
+  // primary diet. These are user preferences set during onboarding.
+  const avoidanceKeys = Object.keys(RESTRICTION_EXPANSION).filter(
+    key => !["vegan","vegetarian","pescatarian","keto","paleo"].includes(key)
+  );
+  const additionalForbidden = new Set<string>();
+  const matchedAvoidances: string[] = [];
+
+  for (const key of avoidanceKeys) {
+    if (normalized.includes(key)) {
+      matchedAvoidances.push(key);
+      for (const term of RESTRICTION_EXPANSION[key]) {
+        additionalForbidden.add(term);
+      }
+    }
+  }
+
+  // Remove any terms already covered by the primary diet block to avoid duplication
+  if (diet) {
+    for (const term of (RESTRICTION_EXPANSION[diet] || [])) {
+      additionalForbidden.delete(term);
+    }
+  }
+
+  if (additionalForbidden.size > 0) {
+    const avoidanceLabel = matchedAvoidances.map(a => a.toUpperCase()).join(" + ");
+    if (blocks.length > 0) blocks.push(""); // blank separator line
+    blocks.push(
+      `ADDITIONAL USER AVOIDANCES (${avoidanceLabel}) — NON-NEGOTIABLE:`,
+      `NEVER include ANY of these ingredients or derivatives: ${[...additionalForbidden].join(", ")}.`,
     );
   }
 
-  return baseBlock.join("\n");
+  return blocks.join("\n");
 }
 
 /**
- * Check whether generated text violates the user's primary dietary constraint.
- * Uses word-boundary matching to avoid false positives (eggplant ≠ egg, almond milk ≠ milk).
+ * Check whether generated text violates the user's dietary constraints.
+ * Checks BOTH the primary diet (vegan/keto/etc.) AND all named avoidances
+ * (no pork, no red meat, halal, kosher) that are in RESTRICTION_EXPANSION.
+ * Uses word-boundary matching to avoid false positives (eggplant ≠ egg).
  * Returns { violates, reasons } so callers can log the violation.
  */
 export function violatesDietaryConstraints(
   text: string,
   restrictions: string[]
 ): { violates: boolean; reasons: string[] } {
-  const diet = getPrimaryDiet(restrictions);
-  if (!diet) return { violates: false, reasons: [] };
+  if (!restrictions || restrictions.length === 0) return { violates: false, reasons: [] };
 
-  const forbidden = RESTRICTION_EXPANSION[diet] || [];
+  const normalized = restrictions.map(r => r.trim().toLowerCase());
+
+  // Collect forbidden terms from ALL restriction keys that match the user
+  const allForbidden = new Set<string>();
+  for (const key of Object.keys(RESTRICTION_EXPANSION)) {
+    if (normalized.includes(key)) {
+      for (const term of RESTRICTION_EXPANSION[key]) {
+        allForbidden.add(term);
+      }
+    }
+  }
+
+  if (allForbidden.size === 0) return { violates: false, reasons: [] };
+
   const lower = text.toLowerCase();
-  // Mask plant milks and nut butters before bare-word checks
   const milkMasked = maskPlantMilks(lower);
   const butterMasked = maskNutButters(lower);
 
   const reasons: string[] = [];
-  for (const term of forbidden) {
+  for (const term of allForbidden) {
     if (!term) continue;
     const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const pattern = new RegExp(`\\b${escaped}\\b`, "i");
