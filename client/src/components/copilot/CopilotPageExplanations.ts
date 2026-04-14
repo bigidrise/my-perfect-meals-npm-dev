@@ -238,13 +238,13 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
-  "/planner": {
-    pageId: "planner",
-    title: "Planner",
+  "/builders": {
+    pageId: "builders",
+    title: "Meal Builders",
     description:
       "Your central hub for building meal plans that match your goals, schedule, and lifestyle.",
     spokenText:
-      "This is your Planner — this is where everything comes together. Inside this page, you’ll see your meal builder — the one designed for your goals. Whether that’s weekly planning, diabetic support, GLP-1, anti-inflammatory, or another focus, this is where you build your meals day by day. Open your builder, and start creating your meals. I’ll walk you through each step as you go — from choosing meals, to dialing in portions, and staying on track. This is where planning turns into action — let’s get started.",
+      "This is your Meal Builders page — this is where everything comes together. Inside, you’ll find your assigned meal builder, the one designed specifically for your goals. Whether that’s weekly planning, diabetic support, GLP-1, anti-inflammatory, or another focus, this is where you build your meals day by day. Tap your builder to get started, and I’ll walk you through each step as you go — from choosing meals, to dialing in portions, and staying on track. This is where planning turns into action — let’s go.",
     autoClose: true,
   },
 

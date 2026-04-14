@@ -75,10 +75,10 @@ export default function BottomNav() {
         path: "/dashboard",
       },
       {
-        id: "planner",
-        label: "Planner",
+        id: "builders",
+        label: "Builders",
         icon: CalendarDays,
-        path: "/planner",
+        path: "/builders",
       },
       {
         id: "lifestyle",

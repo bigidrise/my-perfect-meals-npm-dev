@@ -32,7 +32,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/planner", label: "Planner", icon: Calendar },
+  { path: "/builders", label: "Builders", icon: Calendar },
   { path: "/lifestyle", label: "Lifestyle", icon: ChefHat },
   { path: "/more", label: "More", icon: MoreHorizontal },
 ];
@@ -78,7 +78,7 @@ export default function DesktopLayout({ children }: Props) {
 
   const isOnPersonalRoute =
     location.startsWith("/dashboard") ||
-    location.startsWith("/planner") ||
+    location.startsWith("/builders") ||
     location.startsWith("/lifestyle") ||
     location.startsWith("/more");
 
