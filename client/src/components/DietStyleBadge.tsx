@@ -3,8 +3,9 @@
 // PIPELINE RULE: Server is the authority. medicalBadges = truth. UI = display only.
 //
 // Primary source: `badges` prop (from meal.medicalBadges, set by server validation).
-// Fallback: user.dietaryRestrictions + user.dietType — ONLY when badges is empty
-//           (covers legacy meals and cached meals that predate the validation pipeline).
+// Fallback: user.dietaryRestrictions + user.dietType — ONLY when badges is undefined/null
+//           (no validation ran at all — legacy/cached meals predating the pipeline).
+//           [] = server said "nothing" → respect it, never fall back.
 // mealCompliant is gone. That system was the bug.
 import { useAuth } from "@/contexts/AuthContext";
 import { useProClient } from "@/contexts/ProClientContext";
@@ -42,13 +43,15 @@ export default function DietStyleBadge({ className = "", badges }: DietStyleBadg
 
   let activeKeys: string[];
 
-  if (badges && badges.length > 0) {
-    // PRIMARY PATH: server provided validated badges — use them directly.
+  if (badges != null) {
+    // PRIMARY PATH: server provided a validated badge list (even if empty).
+    // [] = "validated — nothing passed" → show nothing, do NOT fall back.
+    // undefined/null = "no validation ran" → fall through to fallback.
     activeKeys = badges
       .map((b) => b.toLowerCase().trim())
       .filter((b) => !SKIP.has(b) && DIET_CONFIG[b]);
   } else {
-    // FALLBACK PATH: no server badges available (legacy/cached meal).
+    // FALLBACK PATH: no validation context at all (legacy/cached meal).
     // Read from user profile — dietaryRestrictions array first, then dietType.
     const userRestrictions: string[] = (user as any)?.dietaryRestrictions ?? [];
     const userDietType: string = (user as any)?.dietType ?? "";
