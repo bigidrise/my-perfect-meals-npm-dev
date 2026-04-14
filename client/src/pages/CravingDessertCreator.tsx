@@ -2,6 +2,7 @@
 // New 5-field structure: Category, Flavor Family, Specific Dessert, Serving Size, Dietary
 import { useState, useEffect, useRef } from "react";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
+import ThinkingDots from "@/components/ThinkingDots";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -783,21 +784,8 @@ export default function DessertCreator() {
               </div>
 
               {isGenerating || safetyChecking ? (
-                <div className="max-w-md mx-auto mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-white/80">
-                      {safetyChecking
-                        ? "Checking Safety Profile"
-                        : "AI Analysis Progress"}
-                    </span>
-                    <span className="text-sm text-white/80">
-                      {safetyChecking ? "..." : `${Math.round(progress)}%`}
-                    </span>
-                  </div>
-                  <Progress
-                    value={safetyChecking ? 30 : progress}
-                    className="h-3 bg-black/30 border border-white/20"
-                  />
+                <div className="max-w-md mx-auto mb-4 flex justify-center">
+                  <ThinkingDots label={safetyChecking ? "Checking safety…" : "Creating your dessert…"} />
                 </div>
               ) : (
                 <GlassButton
