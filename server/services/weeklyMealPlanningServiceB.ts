@@ -45,7 +45,7 @@ export const weeklyMealPlanningServiceB = {
               day: dayIndex + 1,
               meals: dayMeals.map((meal: any) => {
                 const ings = meal.ingredients || [];
-                const carbs = meal.nutrition?.carbs_g || 40;
+                const carbs = meal.nutrition?.carbs_g ?? 0;
                 const { starchyGrams, fibrousGrams } = deriveCarbSplit(ings, carbs);
                 return {
                   id: meal.id,

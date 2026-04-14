@@ -5,7 +5,7 @@ import { MealType, WeeklyMealReq } from "./stableMealGenerator";
 import { randomUUID } from "crypto";
 import * as telemetry from "./aiTelemetry";
 import type { DebugMetadata } from "./aiTelemetry";
-import { BASELINE_MACROS } from "./guardrails/baselineMacros";
+import { getBaselineMacroPrompt } from "./guardrails/promptPolicyGate";
 import { buildDietPromptBlock, violatesDietaryConstraints } from "./allergyGuardrails";
 
 let openai: OpenAI | null = null;
@@ -94,13 +94,7 @@ export async function generateMealFromPrompt(prompt: string, mealType: MealType,
           role: "system",
           content: `You are a certified meal planning nutritionist. Create healthy, realistic meals using US standard measurements (oz, cups, tbsp, tsp, pounds).
 ${dietPromptBlock ? `\n${dietPromptBlock}\n` : ""}
-BASELINE MACRO REQUIREMENTS (MANDATORY):
-Every meal must meet these minimum targets:
-- Protein: ${BASELINE_MACROS.protein}g (lean meats, fish, eggs, legumes, dairy)
-- Starchy Carbs: ${BASELINE_MACROS.starchyCarbs}g (rice, potatoes, quinoa, bread, oats, pasta)
-- Fibrous Carbs: ${BASELINE_MACROS.fibrousCarbs}g (vegetables, leafy greens, broccoli, peppers, tomatoes)
-
-These are baseline minimums for balanced, nutritious meals. If the user requests MORE, honor that request.
+${getBaselineMacroPrompt({ builderType: "general", dietType: dietaryRestrictions[0] ?? "general", mealType: mealType })}
 
 Format your response as:
 

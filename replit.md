@@ -282,6 +282,54 @@ The display label was renamed but the stored value `bold-spicy` remains unchange
 ### Prompt path
 `stableMealGenerator.ts` and `dessert-creator.ts` both load `flavorPreference`, `heatPreference`, and `medicalConditions` from the DB and pass them into `buildPalateSection()`. No scattered prompt edits — one central function.
 
+## Macro Truth Architecture (v1.0 — April 2026)
+
+### The Problem That Was Fixed
+The system was injecting "MANDATORY minimum carbs" instructions into ALL AI prompts — including keto, diabetic, anti-inflammatory, and liver support builders. Diabetic users were being told by the AI to use 25g starchy carbs minimum. Hardcoded numeric fallbacks (|| 30, || 35, || 40) were inventing carbs when the AI returned none.
+
+### Macro Truth Contract (`server/services/guardrails/macroTruthContract.ts`)
+The single source of truth for macro semantics:
+- **null** = unknown. AI did not provide this value. Never invented.
+- **0** = known zero. The food genuinely contains none of this macro.
+- No layer may invent a macro value. No fallback numerics.
+- Validation layers may REJECT or REGENERATE — never MUTATE.
+- Guidance layers may SUGGEST — never enter the pipeline.
+
+### Prompt Policy Gatekeeper (`server/services/guardrails/promptPolicyGate.ts`)
+Single authority for deciding whether balanced-meal macro guidance can be injected into a prompt.
+- **Blocked forever**: keto, diabetic, GLP-1, carnivore, anti-inflammatory, liver-support, fridge-rescue, restaurant, snacks, single-ingredient
+- **Allowed**: general/balanced nutrition only
+- Framing is changed from "MANDATORY minimums" to "targets, not requirements"
+
+### Files Cleaned (Baseline Injection Removed)
+- `server/services/promptBuilder.ts` — uses gatekeeper, passing diet context
+- `server/services/universalMealGenerator.ts` — uses gatekeeper
+- `server/services/fridgeRescueGenerator.ts` — uses gatekeeper (always blocked)
+- `server/services/guardrails/prompt/diabeticPromptBuilder.ts` — BASELINE removed entirely
+- `server/services/guardrails/prompt/antiInflammatoryPromptBuilder.ts` — BASELINE removed
+- `server/services/guardrails/prompt/liverSupportPromptBuilder.ts` — BASELINE removed
+- `server/services/guardrails/prompt/generalNutritionPromptBuilder.ts` — uses gatekeeper
+
+### Numeric Fallbacks Removed
+All `|| 30`, `|| 35`, `|| 40`, `|| 25`, `|| 15`, `|| 20` carb defaults replaced with:
+- Server pipeline: `resolveAICarbsStrict(aiMeal)` → returns `number | null`
+- Client pickers: `?? null` (displays `—` for unknown)
+- `UnifiedMeal.carbs` type updated to `number | null`
+
+### Cache Versioning
+- `IngredientSignatureInput` now accepts `policyVersion` field
+- Default version `mtp1` baked into all new cache keys
+- Old contaminated cache entries generate misses → fresh generation
+- Diet type already included in cache keys (cross-diet contamination prevented)
+
+### Macro Audit Logger (`server/utils/macroAuditLogger.ts`)
+Set `MACRO_AUDIT=true` in env to enable debug logging at:
+1. `prompt_sent` — logs whether baseline injection was included
+2. `ai_raw` — logs what the AI returned for carbs
+3. `post_processing` — logs post-pipeline carb values
+4. `api_payload` — logs final payload to client
+5. `cache` — logs cache hit/miss/write decisions
+
 ## External Dependencies
 -   **PostgreSQL**: Primary database.
 -   **OpenAI API**: AI-powered features.

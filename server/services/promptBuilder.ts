@@ -1,7 +1,7 @@
 // server/services/promptBuilder.ts
 import { MealGenerationRequest, UserOnboardingProfile } from "./mealEngineService";
 import { UnitPrefs } from "./validators";
-import { BASELINE_MACROS_PROMPT } from "./guardrails/baselineMacros";
+import { getBaselineMacroPrompt } from "./guardrails/promptPolicyGate";
 import { AVOIDANCE_EXPANSION } from "./allergyGuardrails";
 
 /** Expand avoidIngredients category labels into full ingredient lists for AI prompts. */
@@ -285,7 +285,7 @@ ABSOLUTE RULES:
 - Respect diet type (${diet}) and ingredient bans.
 - Use straightforward, kitchen-ready instructions only. No fluff, no tips, no equipment essays.${mediterraneanRules}${liverSupportRules}
 
-${BASELINE_MACROS_PROMPT}
+${getBaselineMacroPrompt({ dietType: diet, mealType: req.mealType })}
 
 🚨 MEAL TYPE APPROPRIATENESS RULES (CRITICAL - NEVER VIOLATE):
 - BREAKFAST: Appropriate foods include eggs, oatmeal, toast, pancakes, yogurt, smoothies, cereal, fruit bowls, breakfast sandwiches. NEVER assign heavy dinner foods like steak, casseroles, or pasta dishes to breakfast.

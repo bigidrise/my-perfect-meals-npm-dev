@@ -58,6 +58,8 @@ import {
 } from './safetyProfileService';
 import { storage } from '../storage';
 import OpenAI from 'openai';
+import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
+import { macroAudit, macroAuditPrompt, macroAuditCache } from '../utils/macroAuditLogger';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -117,7 +119,7 @@ export interface UnifiedMeal {
   instructions: string | string[];
   calories: number;
   protein: number;
-  carbs: number; // Total carbs (starchyCarbs + fibrousCarbs) for backward compatibility
+  carbs: number | null; // Total carbs — null means unknown (AI did not provide). NEVER invented.
   starchyCarbs?: number; // Nutrition Schema v1.1: Rice, pasta, bread, potatoes, etc.
   fibrousCarbs?: number; // Nutrition Schema v1.1: Vegetables, leafy greens, etc.
   fat: number;
@@ -465,6 +467,7 @@ export async function generateCravingMealUnified(
   
   const cached = await getCachedMeals(signature);
   if (cached && cached.meals.length > 0) {
+    macroAuditCache(cached.meals[0]?.name ?? cravingInput, "hit", signature, { carbs: cached.meals[0]?.carbs });
     console.log(`🚀 Cache hit for craving: "${cravingInput}" diet:${cravingPrimaryDiet} (source: ${cached.source})`);
     return {
       success: true,
@@ -610,8 +613,9 @@ Respond with ONLY valid JSON in this exact format:
       // Extract starchyCarbs and fibrousCarbs from AI response
       const starchyCarbs = aiMeal.starchyCarbs ?? 0;
       const fibrousCarbs = aiMeal.fibrousCarbs ?? 0;
-      // Total carbs = starchyCarbs + fibrousCarbs (for backward compatibility)
-      const totalCarbs = aiMeal.carbs ?? ((starchyCarbs + fibrousCarbs) || 35);
+      // Total carbs: resolveAICarbsStrict returns null if AI provided no carb data (never invents a value)
+      const totalCarbs = resolveAICarbsStrict(aiMeal);
+      macroAudit("ai_raw", aiMeal.name ?? cravingInput, { carbs: totalCarbs, protein: aiMeal.protein, calories: aiMeal.calories }, { source: "craving-ai" });
       
       const rawMeal: UnifiedMeal = {
         id: `craving-ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -721,7 +725,8 @@ Respond with ONLY valid JSON in this exact format:
       }
 
       console.log(`✅ AI generated meal: ${unifiedMeal.name}`);
-      
+      macroAudit("post_processing", unifiedMeal.name, { carbs: unifiedMeal.carbs, protein: unifiedMeal.protein, calories: unifiedMeal.calories }, { diet: cravingPrimaryDiet });
+      macroAuditCache(unifiedMeal.name, "write", signature, { carbs: unifiedMeal.carbs });
       // Cache the AI-generated meal
       await cacheMeals(signature, [unifiedMeal], validMealType, 'ai');
       
@@ -1036,7 +1041,7 @@ function parseVarietyContent(content: string): any[] {
 function mapToUnifiedMeal(opt: any, idx: number, cravingInput: string, validMealType: string): UnifiedMeal {
   const starchyCarbs = opt.starchyCarbs ?? 0;
   const fibrousCarbs = opt.fibrousCarbs ?? 0;
-  const totalCarbs = opt.carbs ?? ((starchyCarbs + fibrousCarbs) || 35);
+  const totalCarbs = resolveAICarbsStrict(opt);
   const raw: UnifiedMeal = {
     id: `variety-ai-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 9)}`,
     name: opt.name || `${cravingInput} Option ${idx + 1}`,
@@ -1510,7 +1515,7 @@ Create the recipe for: "${description}"`;
       const mealData = JSON.parse(content);
       const starchyCarbs = typeof mealData.starchyCarbs === 'number' ? mealData.starchyCarbs : 0;
       const fibrousCarbs = typeof mealData.fibrousCarbs === 'number' ? mealData.fibrousCarbs : 0;
-      const totalCarbs = (starchyCarbs + fibrousCarbs) || mealData.carbs || 35;
+      const totalCarbs = resolveAICarbsStrict(mealData);
       
       let tempMeal: UnifiedMeal = {
         id: `chef-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -1892,7 +1897,7 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
       const snackData = JSON.parse(content);
       const snackStarchyCarbs = typeof snackData.starchyCarbs === 'number' ? snackData.starchyCarbs : 0;
       const snackFibrousCarbs = typeof snackData.fibrousCarbs === 'number' ? snackData.fibrousCarbs : 0;
-      const snackTotalCarbs = (snackStarchyCarbs + snackFibrousCarbs) || snackData.carbs || 15;
+      const snackTotalCarbs = resolveAICarbsStrict(snackData);
       
       let tempSnack: UnifiedMeal = {
         id: `snack-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

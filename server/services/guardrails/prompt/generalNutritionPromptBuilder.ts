@@ -7,7 +7,7 @@
 
 import type { GuardrailRequest } from '../types';
 import { generalNutritionRules, GENERAL_NUTRITION_SNACK_RULES } from '../rules/generalNutritionRules';
-import { BASELINE_MACROS_PROMPT, BASELINE_MACROS_SNACK_PROMPT } from '../baselineMacros';
+import { getBaselineMacroPrompt, getBaselineMacroSnackPrompt } from '../../promptPolicyGate';
 
 export function buildGeneralNutritionPrompt(request: GuardrailRequest): string {
   const isSnack = request.mealType === 'snack';
@@ -34,7 +34,7 @@ REQUIREMENTS:
 DO NOT USE: ${blockedList}
 PREFER: ${preferredList}
 
-${BASELINE_MACROS_PROMPT}
+${getBaselineMacroPrompt({ builderType: "general", mealType: request.mealType })}
 
 MACRO BALANCE:
 - Protein: Present in meaningful amount
@@ -57,7 +57,7 @@ GENERAL NUTRITION SNACK - SMART SNACKING
 
 Create a healthy, satisfying snack that provides real nutrition.
 
-${BASELINE_MACROS_SNACK_PROMPT}
+${getBaselineMacroSnackPrompt({ builderType: "general" })}
 
 SNACK PRIORITIES:
 - Include some protein or fiber for satiety

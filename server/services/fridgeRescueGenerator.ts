@@ -4,7 +4,8 @@ import { deriveCarbSplit } from './generators/macros/carbSplit';
 import { convertStructuredIngredients } from '../utils/unitConverter';
 import { enforceCarbs } from '../utils/carbClassifier';
 import { buildPalateSection, PalatePreferences, buildStrictModeBlock } from './promptBuilder';
-import { BASELINE_MACROS } from './guardrails/baselineMacros';
+import { getBaselineMacroPrompt } from './guardrails/promptPolicyGate';
+import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 import { buildDietPromptBlock, violatesDietaryConstraints } from './allergyGuardrails';
 
 let _openai: OpenAI | null = null;
@@ -272,12 +273,7 @@ Each meal should be portioned for ${servings} serving${servings > 1 ? 's' : ''}.
 ${macroTargetingText}
 ${palateGuidance}
 
-BASELINE MACRO REQUIREMENTS (MANDATORY):
-Every meal must meet these minimum targets:
-- Protein: ${BASELINE_MACROS.protein}g (lean meats, fish, eggs, legumes, dairy)
-- Starchy Carbs: ${BASELINE_MACROS.starchyCarbs}g (rice, potatoes, quinoa, bread, oats, pasta)
-- Fibrous Carbs: ${BASELINE_MACROS.fibrousCarbs}g (vegetables, leafy greens, broccoli, peppers, tomatoes)
-${macroTargets ? 'NOTE: The user has specified CUSTOM macro targets above which override these baselines.' : 'These are the baseline minimums for balanced, nutritious meals.'}
+${getBaselineMacroPrompt({ builderType: "fridge_rescue", dietType: "fridge_rescue" })}
 
 RULES:
 - Use ONLY the ingredients provided - do not add any others
@@ -422,7 +418,7 @@ Remember: Only use ingredients from this list: ${fridgeItems.join(', ')}`;
       // Prefer AI-provided starchyCarbs/fibrousCarbs, fallback to deriveCarbSplit
       const aiStarchyCarbs = meal.starchyCarbs ?? null;
       const aiFibrousCarbs = meal.fibrousCarbs ?? null;
-      const totalCarbs = meal.carbs ?? (((aiStarchyCarbs ?? 0) + (aiFibrousCarbs ?? 0)) || 25);
+      const totalCarbs = resolveAICarbsStrict(meal);
       
       // Use AI values if provided, otherwise derive from ingredients
       let starchyCarbs: number;

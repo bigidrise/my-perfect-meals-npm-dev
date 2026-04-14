@@ -1,20 +1,15 @@
 import { applyGuardrailsToPrompt, getGuardrails } from '../../../../shared/clinical/guardrails';
-import { BASELINE_MACROS_PROMPT, BASELINE_MACROS_SNACK_PROMPT } from '../baselineMacros';
 
 export function buildLiverSupportPrompt(basePrompt: string): string {
   const withGuardrails = applyGuardrailsToPrompt('liver-support', basePrompt);
 
-  return `${withGuardrails}
-
-${BASELINE_MACROS_PROMPT}`;
+  return withGuardrails;
 }
 
 export function buildLiverSupportSnackPrompt(basePrompt: string): string {
   const rules = getGuardrails('liver-support');
 
   return `${basePrompt}
-
-${BASELINE_MACROS_SNACK_PROMPT}
 
 LIVER SUPPORT SNACK GUARDRAILS (MANDATORY):
 - No alcohol of any kind
