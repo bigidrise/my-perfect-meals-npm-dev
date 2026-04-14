@@ -353,7 +353,7 @@ export default function SnackPickerDrawer({
         nutrition: generatedSnack.nutrition || {
           calories: generatedSnack.calories || 150,
           protein: generatedSnack.protein || 10,
-          carbs: generatedSnack.carbs || 15,
+          carbs: generatedSnack.carbs ?? null,
           fat: generatedSnack.fat || 8
         },
         medicalBadges: generatedSnack.medicalBadges || [],

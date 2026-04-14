@@ -7,6 +7,7 @@ import { generateImage } from './imageService';
 import { generateRestaurantMeals as generateFallbackMeals } from './restaurantMealGenerator';
 import { enforceCarbs } from '../utils/carbClassifier';
 import { buildDietPromptBlock, violatesDietaryConstraints, getPrimaryDiet } from './allergyGuardrails';
+import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -335,7 +336,7 @@ Make the meals sound authentic to ${restaurantName}. Vary the protein sources an
       // Extract starchyCarbs and fibrousCarbs from AI response
       const starchyCarbs = meal.starchyCarbs ?? 0;
       const fibrousCarbs = meal.fibrousCarbs ?? 0;
-      const totalCarbs = (meal.carbs ?? (starchyCarbs + fibrousCarbs)) || 30;
+      const totalCarbs = resolveAICarbsStrict(meal);
       
       return {
         id: mealId,

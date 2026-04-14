@@ -828,7 +828,7 @@ export default function MealPremadePicker({
         nutrition: generatedMeal.nutrition || {
           calories: generatedMeal.calories || 350,
           protein: generatedMeal.protein || 30,
-          carbs: generatedMeal.carbs || 20,
+          carbs: generatedMeal.carbs ?? null,
           fat: generatedMeal.fat || 15,
         },
         medicalBadges: generatedMeal.medicalBadges || [],

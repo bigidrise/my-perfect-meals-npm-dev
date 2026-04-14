@@ -113,7 +113,7 @@ Return ONLY valid JSON - no explanations or extra text.`;
     meal.nutrition = {
       calories: meal.nutrition?.calories || 400,
       protein_g: meal.nutrition?.protein || meal.nutrition?.protein_g || 25,
-      carbs_g: meal.nutrition?.carbs || meal.nutrition?.carbs_g || 30,
+      carbs_g: meal.nutrition?.carbs ?? meal.nutrition?.carbs_g ?? null,
       fat_g: meal.nutrition?.fat || meal.nutrition?.fat_g || 15,
       fiber_g: meal.nutrition?.fiber || meal.nutrition?.fiber_g || 8,
       sugar_g: meal.nutrition?.sugar || meal.nutrition?.sugar_g || 5
