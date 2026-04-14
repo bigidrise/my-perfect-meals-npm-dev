@@ -15,22 +15,7 @@ const DIET_CONFIG: Record<string, { label: string; color: string }> = {
 
 const SKIP = new Set(["no-restriction", "no_restriction", "none", ""]);
 
-/**
- * Diets that require a post-generation validator to confirm compliance before
- * the badge is shown. Until a validator exists for these diets, the badge is
- * suppressed to prevent false "Keto ✓" / "Paleo ✓" signals.
- *
- * Phase 2 will add keto/paleo validators and remove them from this set.
- */
-const REQUIRES_VALIDATION = new Set(["keto", "paleo"]);
-
-export default function DietStyleBadge({
-  className = "",
-  validatedDiets,
-}: {
-  className?: string;
-  validatedDiets?: Set<string>;
-}) {
+export default function DietStyleBadge({ className = "" }: { className?: string }) {
   const { user } = useAuth();
   const { isProCareMode } = useProClient();
   const restrictions: string[] = (user as any)?.dietaryRestrictions ?? [];
@@ -41,13 +26,7 @@ export default function DietStyleBadge({
 
   const active = restrictions
     .map((r) => r.toLowerCase().trim())
-    .filter((r) => {
-      if (SKIP.has(r) || !DIET_CONFIG[r]) return false;
-      // Diets in REQUIRES_VALIDATION are only shown when the caller passes
-      // a validatedDiets set that explicitly includes this diet key.
-      if (REQUIRES_VALIDATION.has(r)) return validatedDiets?.has(r) ?? false;
-      return true;
-    });
+    .filter((r) => !SKIP.has(r) && DIET_CONFIG[r]);
 
   if (active.length === 0) return null;
 
