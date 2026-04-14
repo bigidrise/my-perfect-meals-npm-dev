@@ -161,7 +161,7 @@ export function MealCard({
               <StarchMealBadge meal={{ name: displayTitle, ingredients: displayIngredients }} />
             )}
           </div>
-          <DietStyleBadge className="mt-1" />
+          <DietStyleBadge className="mt-1" badges={meal.medicalBadges || []} />
           
           {/* Description */}
           {displayDescription && (
