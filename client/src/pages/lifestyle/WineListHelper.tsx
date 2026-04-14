@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { ArrowLeft, BookOpen, Award } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassButton } from "@/components/glass";
-import { Progress } from "@/components/ui/progress";
+import CometBar from "@/components/CometBar";
 import { useToast } from "@/hooks/use-toast";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -236,19 +236,8 @@ export default function WineListHelper() {
                 </div>
 
                 {isGenerating || safetyChecking ? (
-                  <div className="max-w-md mx-auto mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-white/80">
-                        {safetyChecking ? "Checking Safety Profile" : "Analyzing Wine List"}
-                      </span>
-                      <span className="text-sm text-white/80">
-                        {safetyChecking ? "..." : `${Math.round(progress)}%`}
-                      </span>
-                    </div>
-                    <Progress
-                      value={safetyChecking ? 30 : progress}
-                      className="h-3 bg-black/30 border border-white/20"
-                    />
+                  <div className="max-w-md mx-auto mb-4 flex justify-center">
+                    <CometBar label={safetyChecking ? "Checking safety…" : "Scanning the wine list…"} />
                   </div>
                 ) : (
                   <GlassButton
