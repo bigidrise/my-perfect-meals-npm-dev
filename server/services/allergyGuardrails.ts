@@ -326,18 +326,14 @@ export const ALLERGEN_EXPANSION: Record<string, string[]> = {
 };
 
 /**
- * DIET PRIORITY ORDER — strictest wins when multiple diets are present.
- * keto and paleo are strict (filter-first); vegan/vegetarian/pescatarian are flexible (modify-allowed).
+ * DIET PRIORITY ORDER — strictest wins when multiple diets are present
  */
-export const DIET_PRIORITY = ["vegan", "vegetarian", "pescatarian", "keto", "paleo"] as const;
+export const DIET_PRIORITY = ["vegan", "vegetarian", "pescatarian"] as const;
 export type DietMode = typeof DIET_PRIORITY[number];
-
-/** Strict diets — invalid meals must be rejected outright, not modified */
-const STRICT_DIETS: DietMode[] = ["keto", "paleo"];
 
 /**
  * Resolve a single primary diet from a dietary restrictions array.
- * Follows priority: vegan > vegetarian > pescatarian > keto > paleo
+ * Follows priority: vegan > vegetarian > pescatarian
  * Returns null if no diet mode is present.
  */
 export function getPrimaryDiet(restrictions: string[]): DietMode | null {
@@ -392,59 +388,13 @@ export const RESTRICTION_EXPANSION: Record<string, string[]> = {
   "no pork": [
     "pork", "bacon", "ham", "prosciutto", "pancetta", "pork chop",
     "pork loin", "pork belly", "chorizo", "sausage", "lard"
-  ],
-
-  keto: [
-    // All grains and grain-based foods
-    "pasta", "spaghetti", "fettuccine", "penne", "linguine", "rigatoni", "lasagna",
-    "ravioli", "tagliatelle", "gnocchi", "noodle", "noodles", "orzo", "macaroni",
-    "rice", "white rice", "brown rice", "fried rice", "risotto",
-    "bread", "toast", "baguette", "roll", "rolls", "sandwich bread", "sourdough",
-    "tortilla", "tortillas", "wrap", "pita", "flatbread", "naan",
-    "corn", "cornmeal", "polenta", "corn tortilla",
-    "oats", "oatmeal", "granola",
-    "wheat", "barley", "rye", "millet", "quinoa",
-    "cereal", "crackers", "pretzels",
-    // Sugars and sweeteners
-    "sugar", "cane sugar", "brown sugar", "powdered sugar", "maple syrup",
-    "honey", "agave", "corn syrup", "high fructose corn syrup",
-    "molasses", "jam", "jelly", "syrup",
-    // Starchy vegetables
-    "potato", "potatoes", "sweet potato", "yam", "parsnip", "beet", "beets",
-    // Legumes
-    "beans", "black beans", "kidney beans", "pinto beans", "chickpeas",
-    "lentils", "edamame", "soy beans",
-    // Fruit juice and sugary drinks
-    "fruit juice", "orange juice", "apple juice", "soda", "sweetened beverage"
-  ],
-
-  paleo: [
-    // All grains
-    "wheat", "oats", "barley", "rye", "corn", "rice", "quinoa",
-    "bread", "pasta", "noodles", "cereal", "crackers", "tortilla", "pita",
-    "oatmeal", "granola", "couscous", "bulgur", "farro",
-    // All dairy
-    "milk", "cheese", "butter", "cream", "yogurt", "ice cream", "whey",
-    "casein", "dairy", "mozzarella", "parmesan", "cheddar", "ricotta",
-    "brie", "feta", "gouda", "sour cream", "cream cheese",
-    // Legumes
-    "beans", "black beans", "kidney beans", "pinto beans", "chickpeas",
-    "lentils", "peanuts", "peanut butter", "soy", "tofu", "tempeh",
-    "edamame", "hummus",
-    // Processed and refined sweeteners
-    "refined sugar", "sugar", "cane sugar", "corn syrup", "agave", "honey",
-    "artificial sweetener", "canola oil", "vegetable oil", "soybean oil",
-    "margarine", "processed food", "refined flour",
-    // Potatoes (white — sweet potatoes are paleo-allowed)
-    "white potato", "white potatoes", "french fries", "mashed potatoes"
   ]
 };
 
 /**
  * Build a CRITICAL DIETARY RULE prompt block for injection into AI generators.
  * Uses word-boundary–safe forbidden lists from RESTRICTION_EXPANSION.
- * Priority: vegan > vegetarian > pescatarian > keto > paleo (strictest wins).
- * Keto and paleo are STRICT diets — invalid meals are rejected outright, not modified.
+ * Priority: vegan > vegetarian > pescatarian (strictest wins).
  * Returns an empty string when no diet mode applies.
  */
 export function buildDietPromptBlock(restrictions: string[]): string {
@@ -452,152 +402,16 @@ export function buildDietPromptBlock(restrictions: string[]): string {
   if (!diet) return "";
 
   const forbidden = RESTRICTION_EXPANSION[diet] || [];
-  const isStrict = STRICT_DIETS.includes(diet);
-
-  const baseBlock = [
+  return [
     `CRITICAL DIETARY RULE:`,
     `This user strictly follows a ${diet.toUpperCase()} diet. This is NON-NEGOTIABLE.`,
     `STRICTLY FORBIDDEN — NEVER include ANY of these ingredients or derivatives:`,
     forbidden.join(", ") + ".",
     `Meals that contain any forbidden ingredient are INVALID and must not be generated.`,
-  ];
-
-  if (isStrict) {
-    // Strict diets: filter-first, no modifications of invalid meals
-    baseBlock.push(
-      `STRICT DIET ENFORCEMENT:`,
-      `Do NOT attempt to modify a non-compliant meal into compliance (e.g., do not suggest "remove the pasta" for a pasta dish).`,
-      `If a dish fundamentally violates this diet, reject it entirely and choose a different, naturally compliant meal.`,
-      `Only return meals that are inherently compliant without requiring modifications to the core dish.`,
-    );
-    if (diet === "keto") {
-      baseBlock.push(
-        `KETO TONE RULE: Never describe carbohydrates as beneficial. Focus on protein, healthy fats, satiety, and stable blood sugar. Avoid phrases like "provides energy from carbs" or "carbs for fuel."`,
-      );
-    } else if (diet === "paleo") {
-      baseBlock.push(
-        `PALEO TONE RULE: Never describe grains, dairy, or legumes as beneficial. Focus on whole-food protein, natural fats, vegetable variety, and sustained energy. Avoid phrases like "good source of grains" or "provides dairy protein."`,
-      );
-    }
-  } else {
-    // Flexible diets: compliant alternatives are acceptable
-    baseBlock.push(
-      `If a craving seems to conflict with this diet (e.g., asking for a burger while vegan),`,
-      `create a compliant alternative (e.g., a vegan black-bean burger) — never violate the diet.`,
-    );
-  }
-
-  return baseBlock.join("\n");
+    `If a craving seems to conflict with this diet (e.g., asking for a burger while vegan),`,
+    `create a compliant alternative (e.g., a vegan black-bean burger) — never violate the diet.`,
+  ].join("\n");
 }
-
-// ─── DIET × BEVERAGE CATEGORY INTELLIGENCE ──────────────────────────────────
-
-export type ConflictLevel = 'none' | 'caution' | 'redirect';
-
-export interface DietCategoryStrategy {
-  conflictLevel: ConflictLevel;
-  effectiveCategory: string;   // what the AI should generate (may differ for redirect)
-  requestedCategory: string;   // what the user originally selected
-  coachingBlock: string;       // injected into AI prompt — framed as optimization, never restriction
-}
-
-// High-conflict pairs: category is fundamentally incompatible with diet.
-// AI silently generates effectiveCategory instead.
-const DIET_REDIRECT_MAP: Record<string, Record<string, string>> = {
-  keto:  { milkshake: 'protein-shake' },
-  paleo: { milkshake: 'smoothie' },
-};
-
-// Caution pairs: same category is kept, but AI prompt gets constraint block.
-const DIET_CAUTION_MAP: Record<string, string[]> = {
-  keto:  ['smoothie', 'frozen', 'cocktail', 'mocktail'],
-  paleo: ['smoothie', 'frozen', 'cocktail', 'coffee'],
-  vegan: ['milkshake', 'protein-shake', 'coffee', 'frozen'],
-};
-
-function buildRedirectPromptBlock(diet: string, requestedCategory: string, effectiveCategory: string): string {
-  const effectiveLabel = effectiveCategory.replace(/-/g, ' ');
-  const requestedLabel = requestedCategory.replace(/-/g, ' ');
-  return [
-    `DRINK OPTIMIZATION:`,
-    `The user is looking for a ${requestedLabel} experience. Based on their ${diet} lifestyle, a ${effectiveLabel} is the best-fitting option that delivers a similar level of enjoyment and satisfaction.`,
-    `Generate a ${effectiveLabel} that matches the flavor satisfaction and indulgence they were looking for.`,
-    `Present the result as curated and optimized for them specifically — do NOT mention that their original selection was unavailable or restricted.`,
-    `Frame this as the ideal choice for their goals.`,
-  ].join('\n');
-}
-
-// Per-diet, per-category constraint blocks — optimization framing, not restriction
-const CAUTION_PROMPT_BLOCKS: Record<string, Record<string, string>> = {
-  keto: {
-    smoothie:  `SMOOTHIE OPTIMIZATION FOR KETO:\n- Use low-sugar fruits only: strawberries, blueberries, raspberries, blackberries (no banana, mango, pineapple, grape)\n- No fruit juice bases — use unsweetened almond milk, coconut milk, or water\n- Emphasize healthy fats: avocado, coconut cream, almond butter\n- Add protein: protein powder (whey or plant-based), full-fat Greek yogurt\n- No added sugar, honey, agave, or sweetened bases\n- Each serving should be under 10g net carbs`,
-    frozen:    `FROZEN DRINK OPTIMIZATION FOR KETO:\n- No sugar-based syrups, fruit juice, or sweetened mixers\n- Use heavy cream or coconut cream for richness and texture\n- Flavor with unsweetened cocoa, vanilla extract, cinnamon, or low-carb fruits (berries)\n- Sweeten only with stevia or erythritol if needed — no honey, agave, or sugar`,
-    cocktail:  `COCKTAIL OPTIMIZATION FOR KETO:\n- No sugary mixers, fruit juice, simple syrup, grenadine, or triple sec\n- Use spirits naturally (vodka, gin, tequila, whiskey, rum) — these are keto-friendly\n- Mix with soda water, sparkling water, fresh citrus juice (small amounts), or bitters\n- Garnish with citrus peel, fresh herbs, or a few berries`,
-    mocktail:  `MOCKTAIL OPTIMIZATION FOR KETO:\n- No sugar syrups, fruit juice, agave, or honey\n- Build flavor with sparkling water, fresh citrus, herbs (mint, basil, rosemary), cucumber, and bitters\n- A small amount of low-sugar kombucha can add complexity\n- Keep net carbs under 5g per serving`,
-  },
-  paleo: {
-    smoothie:  `SMOOTHIE OPTIMIZATION FOR PALEO:\n- No dairy milk — use coconut milk, almond milk, or cashew milk\n- STRICTLY NO honey, agave, refined sugar, or any processed sweetener — these are not paleo-compliant\n- Use controlled fruit portions for natural sweetness: small amounts of berries preferred; banana only in very small quantities\n- DO NOT make this fruit-heavy — balance fruit with fats and protein to keep macros structured\n- STRICTLY NO whey protein, casein, or any dairy-derived protein powder — use collagen powder, egg white protein, or nut butter instead\n- No legume-based ingredients (no soy milk, no peanut butter)\n- Target moderate protein (15g+) and controlled carbs — this should feel intentional and performance-aware, not like a basic fruit drink\n- The result should feel premium and designed: rich texture, satisfying, and clearly built for someone who trains and eats with purpose`,
-    frozen:    `FROZEN DRINK OPTIMIZATION FOR PALEO:\n- No dairy or refined sugar\n- STRICTLY NO honey, agave, syrups, or processed sweeteners\n- STRICTLY NO whey or any dairy-derived protein\n- Use coconut cream or coconut milk as the base for richness and creaminess\n- Sweeten only with whole fruit in controlled portions — keep carbs in check\n- This should feel indulgent and crafted, not like a generic blended fruit drink`,
-    cocktail:  `COCKTAIL OPTIMIZATION FOR PALEO:\n- No sugary mixers, heavy juice bases, honey, or agave\n- Wine and quality distilled spirits are generally paleo-acceptable\n- Mix with sparkling water, fresh citrus juice, or herbs\n- Avoid grain-based beers or malt-based drinks`,
-    coffee:    `COFFEE DRINK OPTIMIZATION FOR PALEO:\n- Use coconut milk, almond milk, or cashew milk — no dairy cream or cow's milk\n- STRICTLY NO refined sugar, honey, or artificial sweeteners\n- A small amount of coconut sugar or medjool date is acceptable if sweetness is needed\n- Cinnamon, vanilla, and raw cacao are excellent paleo-friendly additions`,
-  },
-  vegan: {
-    milkshake:       `MILKSHAKE OPTIMIZATION FOR VEGAN:\n- Use oat milk, almond milk, coconut milk, or cashew milk as the base\n- Use dairy-free ice cream or frozen banana for creaminess and body\n- No honey — sweeten with maple syrup, agave, or ripe banana\n- No animal-derived thickeners, gelatin, or additives`,
-    'protein-shake': `PROTEIN SHAKE OPTIMIZATION FOR VEGAN:\n- Use plant-based protein powder only: pea protein, hemp protein, or brown rice protein\n- No whey, casein, or any dairy-derived protein\n- Base with plant milk or water\n- No honey — sweeten naturally with dates, banana, or a touch of maple syrup`,
-    coffee:          `COFFEE DRINK OPTIMIZATION FOR VEGAN:\n- Use oat milk, almond milk, soy milk, or coconut milk — no dairy cream or cow's milk\n- No honey — sweeten with maple syrup, coconut sugar, or leave unsweetened\n- Confirm any syrups used are vegan-certified (some contain dairy derivatives)`,
-    frozen:          `FROZEN DRINK OPTIMIZATION FOR VEGAN:\n- No dairy — use coconut cream, oat milk, or almond milk\n- No honey, gelatin, or animal-derived additives\n- Use fruit, cacao, or plant-based flavoring for character and sweetness`,
-  },
-};
-
-/**
- * Resolves the best generation strategy when a user's diet conflicts with their selected
- * beverage category. Returns conflict level, effective category for generation, and a
- * coaching block to inject into the AI prompt.
- *
- * Tone: always framed as optimization and personalization — never as restriction or correction.
- * Users should feel guided, not corrected.
- */
-export function resolveDietCategoryStrategy(
-  restrictions: string[],
-  category: string,
-): DietCategoryStrategy {
-  const diet = getPrimaryDiet(restrictions);
-  const base: DietCategoryStrategy = {
-    conflictLevel: 'none',
-    effectiveCategory: category,
-    requestedCategory: category,
-    coachingBlock: '',
-  };
-
-  if (!diet) return base;
-
-  // Redirect: category is fundamentally incompatible — generate different category silently
-  const redirectTarget = DIET_REDIRECT_MAP[diet]?.[category];
-  if (redirectTarget) {
-    return {
-      conflictLevel: 'redirect',
-      effectiveCategory: redirectTarget,
-      requestedCategory: category,
-      coachingBlock: buildRedirectPromptBlock(diet, category, redirectTarget),
-    };
-  }
-
-  // Caution: same category allowed but needs constraint injection
-  const cautionCategories = DIET_CAUTION_MAP[diet] || [];
-  if (cautionCategories.includes(category)) {
-    const cautionBlock = CAUTION_PROMPT_BLOCKS[diet]?.[category] || '';
-    return {
-      conflictLevel: 'caution',
-      effectiveCategory: category,
-      requestedCategory: category,
-      coachingBlock: cautionBlock,
-    };
-  }
-
-  return base;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Check whether generated text violates the user's primary dietary constraint.

@@ -8,7 +8,7 @@ import {
   DietAdaptedNotice,
 } from "@/components/DietGuardIntercept";
 import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
-import DietStyleBadge from "@/components/DietStyleBadge";
+import DietBadge from "@/components/meal/DietBadge";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
@@ -894,10 +894,6 @@ export default function ChefsKitchenPage() {
                     >
                       Create New
                     </button>
-                  </div>
-
-                  <div className="mb-3">
-                    <DietStyleBadge />
                   </div>
 
                   {mealToShow.description && (

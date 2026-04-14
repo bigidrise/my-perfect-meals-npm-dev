@@ -19,30 +19,6 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
-// ─── Duplicate detection helpers ────────────────────────────────────────────
-// Expanded keyword groups — catches pasta by many names, tacos by all variants, etc.
-const FORMAT_GROUPS: Record<string, string[]> = {
-  pasta:     ["pasta", "spaghetti", "fettuccine", "penne", "ravioli", "lasagna", "linguine", "rigatoni", "tagliatelle", "gnocchi", "noodle", "orzo", "carbonara", "alfredo"],
-  taco:      ["taco", "burrito", "quesadilla", "enchilada", "fajita"],
-  bowl:      ["bowl", "rice bowl", "grain bowl"],
-  pizza:     ["pizza", "flatbread"],
-  salad:     ["salad"],
-  risotto:   ["risotto"],
-  wrap:      ["wrap"],
-  sandwich:  ["sandwich", "panini", "sub", "hoagie"],
-  stirfry:   ["stir fry", "stir-fry", "stir fried"],
-  soup:      ["soup", "chowder", "bisque", "stew", "broth"],
-};
-
-function detectFormatGroup(mealName: string): string | null {
-  const normalized = mealName.toLowerCase();
-  for (const [group, keywords] of Object.entries(FORMAT_GROUPS)) {
-    if (keywords.some(kw => normalized.includes(kw))) return group;
-  }
-  return null;
-}
-// ────────────────────────────────────────────────────────────────────────────
-
 interface RestaurantMealRequest {
   restaurantName: string;
   cuisine: string;
@@ -183,70 +159,12 @@ export async function generateRestaurantMealsAI(request: RestaurantMealRequest):
     ];
     const randomVarietyHint = varietyInstructions[Math.floor(Math.random() * varietyInstructions.length)];
 
-    // Build mutually exclusive diet behavior block — prevents cross-contamination between diet modes.
-    // Each block applies ONLY to its exact diet. No shared fallback language.
-    let dietBehaviorBlock = "";
-    if (primaryDiet === "vegetarian") {
-      dietBehaviorBlock = `\nVEGETARIAN BEHAVIOR RULES (apply ONLY for vegetarian — do NOT apply vegan logic here):
-- Dairy products (cheese, butter, milk, cream, yogurt) ARE permitted and should NOT be removed or avoided
-- Eggs ARE permitted and should NOT be removed or avoided
-- In the "modifications" field, NEVER suggest removing cheese or dairy — these are vegetarian-safe foods
-- If a dish is heavy on dairy, suggest portion adjustment only (e.g., "ask for lighter cheese" — never "no cheese")
-- Modifications should focus on confirming no meat, poultry, seafood, gelatin, or animal-based broths only
-- If the meal protein is below 20g, add a gentle coaching note in modifications such as "consider adding beans, lentils, eggs, or extra cheese for more protein" — frame it as a suggestion, not a criticism
-- Ensure recommendations feel natural for vegetarian eating — do not apply vegan caution or restriction`;
-    } else if (primaryDiet === "vegan") {
-      dietBehaviorBlock = `\nVEGAN BEHAVIOR RULES (apply ONLY for vegan — do NOT apply these to vegetarian users):
-- All animal products are strictly forbidden: meat, poultry, fish, shellfish, dairy, eggs, honey, gelatin, lard, bone broth
-- In the "modifications" field, confirm no dairy, no eggs, and request plant-based oils instead of butter
-- Suggest plant-based protein sources: tofu, tempeh, lentils, chickpeas, black beans
-- If protein is below 20g, suggest "consider adding tofu, tempeh, or extra legumes for more protein"`;
-    } else if (primaryDiet === "pescatarian") {
-      dietBehaviorBlock = `\nPESCATARIAN BEHAVIOR RULES (apply ONLY for pescatarian — do NOT apply to vegetarian or vegan users):
-- Fish and seafood ARE allowed and encouraged as protein sources
-- Beef, pork, chicken, turkey, and their stocks or broths are NOT allowed
-- Dairy and eggs ARE allowed — do NOT suggest removing them
-- Modifications should focus on confirming no land-animal meat — not dairy`;
-    } else if (primaryDiet === "keto") {
-      dietBehaviorBlock = `\nKETO BEHAVIOR RULES (apply ONLY for keto — STRICT enforcement, filter-first):
-- This is a strict low-carb diet. Do NOT return meals based on pasta, rice, bread, tortillas, grains, or sugar
-- Do NOT attempt to modify a high-carb dish into keto compliance (do not say "ask to remove the pasta" for a pasta dish)
-- If a dish is inherently high-carb, reject it entirely and choose a different, naturally low-carb meal
-- Only return meals that are inherently keto-compliant: protein (meat, fish, eggs), non-starchy vegetables, and healthy fats
-- In the "modifications" field, focus on confirming preparation method (grilled vs fried), sauce choice, and portion — never on removing a core carb
-- In the "reason" field, NEVER describe carbohydrates as beneficial. Focus on protein, healthy fats, satiety, and stable blood sugar
-- Suggested formats: grilled meats, egg-based dishes, salads with protein, vegetable-forward plates, lettuce wraps`;
-    } else if (primaryDiet === "paleo") {
-      dietBehaviorBlock = `\nPALEO BEHAVIOR RULES (apply ONLY for paleo — STRICT enforcement, filter-first):
-- This is a strict whole-food diet. Do NOT return meals containing grains, dairy, legumes, or processed ingredients
-- Do NOT attempt to modify a non-compliant dish into paleo compliance (do not say "ask to hold the cheese" for a dairy-based dish)
-- If a dish is inherently non-paleo, reject it entirely and choose a different, naturally compliant meal
-- Only return meals that are inherently paleo-compliant: meat, fish, eggs, vegetables, fruit, nuts, and natural fats (olive oil, avocado)
-- Sweet potatoes ARE allowed. White potatoes, dairy, grains, and legumes are NOT
-- In the "reason" field, NEVER describe grains, dairy, or legumes as beneficial. Focus on whole-food protein, natural fats, and sustained energy
-- Suggested formats: grilled or roasted meats, fish dishes, vegetable-based plates, protein-forward salads`;
-    }
-
     // Use OpenAI to generate restaurant-specific meals
     const prompt = `You are a nutrition expert helping someone choose healthy meals at "${restaurantName}", a ${cuisine} restaurant.
 
-${medicalContext}${allergyContext}${dietaryContext}${avoidContext}${cravingInstructions}${dietBehaviorBlock}
-
-TONE AND LANGUAGE RULES:
-- For the "reason" field: use system-based language focused on energy balance, satiety, and macro alignment — explain how the meal supports the user's goals. Avoid generic textbook phrases like "good source of calcium", "rich in vitamins", "provides essential nutrients", or "provides carbohydrates for energy." Instead say things like "supports steady energy", "balances protein and carbs for consistency", or "keeps you full without a spike."
-- Ensure all recommendations feel natural for the user's diet. Do not default to stricter diet behaviors than required by the diet mode specified above.
+${medicalContext}${allergyContext}${dietaryContext}${avoidContext}${cravingInstructions}
 
 IMPORTANT: Generate 3 UNIQUE and DIFFERENT meal recommendations. Each time this request is made, create completely different meals from previous suggestions. ${randomVarietyHint}
-
-MEAL STRUCTURE — return exactly 3 meals filling these 3 different slots. Do not put the same meal type in more than one slot:
-1. One hearty main entrée (a filling baked entrée, a protein-forward plate, or a grilled dish)
-2. One lighter or lower-calorie option (a salad, a broth-based soup, or a smaller plate)
-3. One alternative format (a bowl, a wrap, a flatbread, or a non-traditional variation of the cuisine)
-
-CUISINE VARIETY RULES:
-- Italian: return one pasta dish, one vegetable-forward entrée (eggplant, mushroom, zucchini, etc.), and one salad or lighter option. Never return 3 pasta dishes.
-- Mexican: return one taco or burrito, one bowl or plate, and one salad or lighter option. Never return 3 tacos.
-- All other cuisines: ensure the 3 meals cover clearly different meal structures and preparation styles — never repeat the same base format.
 
 Generate 3 specific meal recommendations that would realistically be available at this restaurant. Each meal should:
 1. Have a realistic name that sounds like an actual menu item from this type of restaurant
@@ -254,7 +172,7 @@ Generate 3 specific meal recommendations that would realistically be available a
 3. Include accurate macro estimates (calories, protein, carbs, fat)
 4. Provide specific ordering modifications to make it healthier
 5. List the main ingredients
-6. Fill a different slot from the 3 structure categories above
+6. Be DIFFERENT from each other (different proteins, cooking styles, and meal types)
 
 Request ID: ${varietyTimestamp}
 
@@ -274,8 +192,8 @@ Return ONLY a JSON array of 3 meals with this exact structure:
     "starchyCarbs": 20,
     "fibrousCarbs": 10,
     "fat": 15,
-    "reason": "How this meal supports the user's energy, satiety, and macro goals",
-    "modifications": "Specific ordering instructions focused on preparation method and diet compliance",
+    "reason": "Why this is a good choice for health goals",
+    "modifications": "Specific ordering instructions (e.g., sauce on side, no cheese)",
     "ingredients": ["ingredient1", "ingredient2", "ingredient3"]
   }
 ]
@@ -355,63 +273,6 @@ Make the meals sound authentic to ${restaurantName}. Vary the protein sources an
     });
 
     console.log(`✅ AI generated ${meals.length} restaurant-specific meals for ${restaurantName}`);
-
-    // ── Post-generation duplicate check ──────────────────────────────────────
-    // Scan meal names for format group collisions. If two meals share the same
-    // group (e.g. pasta + pasta), regenerate the later one with an explicit
-    // instruction that prevents "different sauce, same dish" tricks.
-    const seenGroups = new Map<string, number>(); // group → first meal index
-    for (let i = 0; i < meals.length; i++) {
-      const group = detectFormatGroup(meals[i].name);
-      if (!group) continue;
-      if (seenGroups.has(group)) {
-        console.warn(`⚠️ [VARIETY] Duplicate format group "${group}" at index ${i} ("${meals[i].name}") — regenerating`);
-        try {
-          const existingNames = meals.map(m => m.name).join(", ");
-          const fixPrompt = `You are a nutrition expert for ${restaurantName}, a ${cuisine} restaurant.
-The previous meal results contained duplicate meal formats. The current meals are: ${existingNames}.
-The previous result duplicated an existing meal format. Return a meal that is clearly a different type and structure from the previous results.
-It must NOT be another ${group} dish. It must fill the "alternative format" slot — for example a bowl, a wrap, a salad, or another non-traditional option.
-${dietaryContext}${dietBehaviorBlock}
-Return ONLY a single JSON object (not an array) with this exact structure:
-{"name":"...","description":"...","calories":0,"protein":0,"starchyCarbs":0,"fibrousCarbs":0,"fat":0,"reason":"...","modifications":"...","ingredients":[]}`;
-          const fixCompletion = await getOpenAI().chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [{ role: "user", content: fixPrompt }],
-            temperature: 0.9,
-            max_tokens: 400,
-          });
-          const fixText = fixCompletion.choices[0]?.message?.content?.trim()
-            ?.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-          if (fixText) {
-            const fixedMeal = JSON.parse(fixText);
-            const starchy = fixedMeal.starchyCarbs ?? 0;
-            const fibrous = fixedMeal.fibrousCarbs ?? 0;
-            meals[i] = {
-              id: `${restaurantName.toLowerCase().replace(/\s+/g, '-')}-ai-meal-${i + 1}-${Date.now()}`,
-              name: fixedMeal.name || meals[i].name,
-              description: fixedMeal.description || meals[i].description,
-              calories: fixedMeal.calories || meals[i].calories,
-              protein: fixedMeal.protein || meals[i].protein,
-              carbs: starchy + fibrous || meals[i].carbs,
-              starchyCarbs: starchy,
-              fibrousCarbs: fibrous,
-              fat: fixedMeal.fat || meals[i].fat,
-              reason: fixedMeal.reason || meals[i].reason,
-              modifications: fixedMeal.modifications || meals[i].modifications,
-              ingredients: Array.isArray(fixedMeal.ingredients) ? fixedMeal.ingredients : meals[i].ingredients,
-              medicalBadges: meals[i].medicalBadges,
-            };
-            console.log(`✅ [VARIETY] Replaced duplicate with "${meals[i].name}"`);
-          }
-        } catch (e) {
-          console.warn(`⚠️ [VARIETY] Fallback regeneration failed — keeping original`, e);
-        }
-      } else {
-        seenGroups.set(group, i);
-      }
-    }
-    // ─────────────────────────────────────────────────────────────────────────
 
     if (userAllergies.length > 0) {
       const allergyTerms = userAllergies.map(a => a.toLowerCase());
