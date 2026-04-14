@@ -18,7 +18,7 @@
 // - Medical personalization with user health data integration
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import ThinkingDots from "@/components/ThinkingDots";
+import CometBar from "@/components/CometBar";
 import { normalizeDiet, filterMealsByDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import DietBadge from "@/components/meal/DietBadge";
 import { motion } from "framer-motion";
@@ -894,7 +894,7 @@ export default function RestaurantGuidePage() {
                     Searching {restaurantInput} for {cravingInput} options
                   </p>
                   <div className="mt-6 flex justify-center">
-                    <ThinkingDots label="Finding your dishes…" />
+                    <CometBar label="Scanning the menu…" />
                   </div>
                 </CardContent>
               </Card>

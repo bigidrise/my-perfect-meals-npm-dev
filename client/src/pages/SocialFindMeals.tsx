@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
-import ThinkingDots from "@/components/ThinkingDots";
+import CometBar from "@/components/CometBar";
 import {
   Card,
   CardContent,
@@ -611,7 +611,7 @@ export default function MealFinder() {
                     Searching for {mealQuery} options near you
                   </p>
                   <div className="mt-6 flex justify-center">
-                    <ThinkingDots label="Finding meals near you…" />
+                    <CometBar label="Scanning nearby…" />
                   </div>
                 </CardContent>
               </Card>
