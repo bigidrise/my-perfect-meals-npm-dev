@@ -661,33 +661,39 @@ export function buildSafetyGuardrails(profile: UserSafetyProfile): SafetyGuardra
   const forbiddenIngredients = buildForbiddenIngredients(profile);
   
   const promptLines: string[] = [];
-  
-  if (allergies.length > 0) {
-    promptLines.push(
-      `🚨 CRITICAL ALLERGY SAFETY: User has life-threatening allergies to: ${allergies.join(", ")}.`
-    );
 
+  // ── HARD PROHIBITION BLOCK ───────────────────────────────────────────────────
+  // Fires whenever ANY forbidden ingredient exists — whether from allergies,
+  // dietary restrictions (no pork, halal, kosher), or explicit avoidances.
+  // Previously this only fired when allergies were present, allowing avoidances
+  // to slip through with soft "Strictly comply" language.
+  if (forbiddenIngredients.length > 0) {
+    // Allergy-specific header (only when there are true medical allergies)
+    if (allergies.length > 0) {
+      promptLines.push(
+        `🚨 CRITICAL ALLERGY SAFETY: User has life-threatening allergies to: ${allergies.join(", ")}.`
+      );
+      const dairyClarification = buildDairyClarificationBlock(allergies);
+      if (dairyClarification) {
+        promptLines.push(dairyClarification);
+      }
+    }
+
+    // Always-hard prohibition — applies to ALL forbidden ingredients regardless of source
     const humanizedList = humanizeForPrompt(forbiddenIngredients.slice(0, 50));
     promptLines.push(
       `ABSOLUTE PROHIBITION: You must NEVER include, suggest, or use ANY of these ingredients or their derivatives: ${humanizedList.join(", ")}${forbiddenIngredients.length > 50 ? '...' : ''}.`
     );
-
-    const dairyClarification = buildDairyClarificationBlock(allergies);
-    if (dairyClarification) {
-      promptLines.push(dairyClarification);
-    }
   }
-  
+
+  // ── DIET MODE BLOCK ──────────────────────────────────────────────────────────
+  // Handles vegan / vegetarian / pescatarian / keto / paleo + named avoidances.
+  // The diet block already covers no-pork/halal/kosher via buildDietPromptBlock;
+  // the forbidden list above is the hard enforcement layer on top of it.
   if (restrictions.length > 0) {
-    // Use hard CRITICAL language for recognized diet modes (vegan/vegetarian/pescatarian)
     const dietBlock = buildDietPromptBlock(restrictions);
     if (dietBlock) {
       promptLines.push(dietBlock);
-    } else {
-      // Generic fallback for other restrictions (halal, kosher, no_pork, etc.)
-      promptLines.push(
-        `DIETARY REQUIREMENTS: User follows ${restrictions.join(", ")} diet. Strictly comply with these restrictions.`
-      );
     }
   }
   
