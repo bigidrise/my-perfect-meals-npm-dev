@@ -62,6 +62,7 @@ import PhaseGate from "@/components/PhaseGate";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import DietStyleBadge from "@/components/DietStyleBadge";
+import ThinkingDots from "@/components/ThinkingDots";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
@@ -1146,20 +1147,8 @@ export default function CravingCreator() {
                   </div>
 
                   {isGenerating ? (
-                    <div className="max-w-md mx-auto mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-white/80">
-                          AI Analysis Progress
-                        </span>
-                        <span className="text-sm text-white/80">
-                          {Math.round(progress)}%
-                        </span>
-                      </div>
-                      <Progress
-                        value={progress}
-                        className="h-3 bg-black/30 border border-white/20"
-                      />
-                      <p className="text-white/70 text-sm text-center mt-3"></p>
+                    <div className="max-w-md mx-auto mb-4 flex justify-center">
+                      <ThinkingDots label="Creating your craving…" />
                     </div>
                   ) : (
                     <GlassButton
@@ -1181,9 +1170,8 @@ export default function CravingCreator() {
 
           {/* 🎲 Variety Engine: Meal Options Panel */}
           {isPlatingMeal && (
-            <div className="mt-8 flex flex-col items-center gap-4 py-10">
-              <div className="w-10 h-10 border-4 border-lime-500 border-t-transparent rounded-full animate-spin" />
-              <p className="text-white/80 text-base font-medium">Chef is plating your meal…</p>
+            <div className="mt-8 flex justify-center py-10">
+              <ThinkingDots label="Chef is plating your meal…" />
             </div>
           )}
 
@@ -1282,7 +1270,7 @@ export default function CravingCreator() {
                       )}
 
                       <div className="mb-3">
-                        <DietStyleBadge mealCompliant={meal.dietaryComplianceVerified} />
+                        <DietStyleBadge badges={meal.medicalBadges || []} />
                       </div>
 
                       <p className="text-white/90 mb-4">{meal.description}</p>
