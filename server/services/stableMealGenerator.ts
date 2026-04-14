@@ -383,12 +383,12 @@ function loadCatalog(): Skeleton[] {
 // ---- RULES (in CODE, deterministic) ----
 import { buildForbiddenIngredients, scanForViolations, UserSafetyProfile, getPrimaryDiet, RESTRICTION_EXPANSION } from "./allergyGuardrails";
 
-function violatesAllergy(ings: Skeleton["ingredients"], allergies: string[], dietaryRestrictions: string[] = []) {
+function violatesAllergy(ings: Skeleton["ingredients"], allergies: string[], dietaryRestrictions: string[] = [], avoidIngredients: string[] = []) {
   // Use comprehensive guardrails system for allergy + restriction checking
   const safetyProfile: UserSafetyProfile = {
     allergies: allergies,
     dietaryRestrictions: dietaryRestrictions,
-    avoidIngredients: []
+    avoidIngredients: avoidIngredients
   };
   
   const forbiddenIngredients = buildForbiddenIngredients(safetyProfile);
@@ -885,7 +885,7 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
     }
     
     return s.mealType === targetMealType &&
-      (!userPrefs?.allergies || !violatesAllergy(s.ingredients, userPrefs.allergies, userPrefs.dietaryRestrictions ?? [])) &&
+      (!userPrefs?.allergies || !violatesAllergy(s.ingredients, userPrefs.allergies, userPrefs.dietaryRestrictions ?? [], userPrefs.avoidIngredients ?? [])) &&
       (!userPrefs?.dietaryRestrictions || !violatesDiet(s.ingredients, userPrefs.dietaryRestrictions)) &&
       (!userPrefs?.avoidIngredients?.length || !violatesAvoidance(s.ingredients, userPrefs.avoidIngredients));
   });
@@ -1321,7 +1321,7 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
       // Fallback to any meal type if no matches found
       telemetry.tagFallback(sessionId, "catalog_fallback", "No specific matches, using general catalog");
       filtered = catalog.filter(s => 
-        (!userPrefs?.allergies || !violatesAllergy(s.ingredients, userPrefs.allergies, userPrefs.dietaryRestrictions ?? [])) &&
+        (!userPrefs?.allergies || !violatesAllergy(s.ingredients, userPrefs.allergies, userPrefs.dietaryRestrictions ?? [], userPrefs.avoidIngredients ?? [])) &&
         (!userPrefs?.dietaryRestrictions || !violatesDiet(s.ingredients, userPrefs.dietaryRestrictions)) &&
         (!userPrefs?.avoidIngredients?.length || !violatesAvoidance(s.ingredients, userPrefs.avoidIngredients))
       );

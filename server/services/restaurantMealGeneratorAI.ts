@@ -6,7 +6,7 @@ import OpenAI from 'openai';
 import { generateImage } from './imageService';
 import { generateRestaurantMeals as generateFallbackMeals } from './restaurantMealGenerator';
 import { enforceCarbs } from '../utils/carbClassifier';
-import { buildDietPromptBlock, violatesDietaryConstraints, getPrimaryDiet } from './allergyGuardrails';
+import { buildDietPromptBlock, buildSafetyGuardrails, buildForbiddenIngredients, violatesDietaryConstraints, getPrimaryDiet } from './allergyGuardrails';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -112,9 +112,13 @@ export async function generateRestaurantMealsAI(request: RestaurantMealRequest):
   const userDietaryRestrictions = user?.dietaryRestrictions || [];
   const userAvoidedFoods = user?.avoidedFoods || user?.dislikedFoods || [];
 
-  const allergyContext = userAllergies.length > 0
-    ? `\n\nCRITICAL ALLERGY SAFETY: User is allergic to: ${userAllergies.join(", ")}. NEVER suggest meals containing these ingredients or any derivatives. This is a medical safety requirement.`
-    : "";
+  // Build hard prohibition block covering allergies + dietary restrictions + foods to avoid
+  const hardProhibitionBlock = buildSafetyGuardrails({
+    allergies: userAllergies,
+    dietaryRestrictions: userDietaryRestrictions,
+    avoidIngredients: userAvoidedFoods
+  });
+  const allergyContext = hardProhibitionBlock ? `\n\n${hardProhibitionBlock}` : "";
 
   // Use hard dietary constraint block for vegan/vegetarian/pescatarian; generic fallback for others
   const dietPromptBlock = buildDietPromptBlock(userDietaryRestrictions);
@@ -124,9 +128,7 @@ export async function generateRestaurantMealsAI(request: RestaurantMealRequest):
       ? `\nDietary restrictions: ${userDietaryRestrictions.join(", ")}. All meals must comply.`
       : "";
 
-  const avoidContext = userAvoidedFoods.length > 0
-    ? `\nUser avoids these foods: ${userAvoidedFoods.join(", ")}. Do not include them.`
-    : "";
+  const avoidContext = "";
 
   const medicalContext = userConditions.length > 0
     ? `User has the following health conditions: ${userConditions.join(", ")}. Consider these when suggesting modifications.`

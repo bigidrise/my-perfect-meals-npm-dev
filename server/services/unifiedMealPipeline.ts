@@ -421,15 +421,22 @@ export async function generateCravingMealUnified(
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
 
-  // Step 0: Fetch dietary restrictions FIRST — before cache or template checks
+  // Step 0: Fetch dietary restrictions + avoidedFoods + allergies FIRST — before cache or template checks
   // This ensures the cache key is diet-aware and templates are validated against the user's diet
   let cravingDietBlock = "";
   let cravingDietRestrictions: string[] = [];
+  let cravingAvoidedFoods: string[] = [];
+  let cravingAllergies: string[] = [];
   if (userId) {
     try {
-      const [cravingUser] = await db.select({ dietaryRestrictions: users.dietaryRestrictions })
-        .from(users).where(eq(users.id, userId)).limit(1);
+      const [cravingUser] = await db.select({
+        dietaryRestrictions: users.dietaryRestrictions,
+        avoidedFoods: users.avoidedFoods,
+        allergies: users.allergies
+      }).from(users).where(eq(users.id, userId)).limit(1);
       cravingDietRestrictions = (cravingUser?.dietaryRestrictions as string[]) || [];
+      cravingAvoidedFoods = (cravingUser?.avoidedFoods as string[]) || [];
+      cravingAllergies = (cravingUser?.allergies as string[]) || [];
     } catch (err) {
       console.warn("[CRAVING] Could not fetch dietary restrictions:", err);
     }
@@ -442,6 +449,16 @@ export async function generateCravingMealUnified(
   cravingDietBlock = buildDietPromptBlock(cravingDietRestrictions);
   if (cravingDietBlock) {
     console.log(`🥗 [CRAVING] Dietary constraint enforced: ${cravingDietRestrictions.join("|")}`);
+  }
+
+  // Build hard avoidance prohibition block (same pipeline as allergy system)
+  const cravingAvoidBlock = buildSafetyGuardrails({
+    allergies: cravingAllergies,
+    dietaryRestrictions: cravingDietRestrictions,
+    avoidIngredients: cravingAvoidedFoods
+  });
+  if (cravingAvoidedFoods.length > 0) {
+    console.log(`🚫 [CRAVING] Foods to avoid enforced: ${cravingAvoidedFoods.join(", ")}`);
   }
 
   // Resolve primary diet for cache key segregation
@@ -539,7 +556,7 @@ export async function generateCravingMealUnified(
       const openai = getOpenAI();
       
       const prompt = `You are a creative chef helping someone satisfy their food craving.
-${cravingDietBlock ? `\n${cravingDietBlock}\n` : ""}${strictMode ? `\n${buildStrictModeBlock(cravingInput)}\n` : ""}
+${cravingAvoidBlock ? `\n${cravingAvoidBlock}\n` : ""}${cravingDietBlock ? `\n${cravingDietBlock}\n` : ""}${strictMode ? `\n${buildStrictModeBlock(cravingInput)}\n` : ""}
 CRAVING: "${cravingInput}"
 MEAL TYPE: ${validMealType}
 
