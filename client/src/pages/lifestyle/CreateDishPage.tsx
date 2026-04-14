@@ -539,10 +539,7 @@ export default function CreateDishPage() {
                     
                     Create a Dish
                   </CardTitle>
-                  <p className="text-sm text-white/60 mt-1">
-                    Tell Chef what you want to cook and let AI build the perfect
-                    recipe for you.
-                  </p>
+                
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
