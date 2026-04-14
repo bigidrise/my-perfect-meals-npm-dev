@@ -7,7 +7,7 @@
 
 import type { GuardrailRequest } from '../types';
 import { generalNutritionRules, GENERAL_NUTRITION_SNACK_RULES } from '../rules/generalNutritionRules';
-import { getBaselineMacroPrompt, getBaselineMacroSnackPrompt } from '../../promptPolicyGate';
+import { getBaselineMacroPrompt, getBaselineMacroSnackPrompt } from '../promptPolicyGate';
 
 export function buildGeneralNutritionPrompt(request: GuardrailRequest): string {
   const isSnack = request.mealType === 'snack';
