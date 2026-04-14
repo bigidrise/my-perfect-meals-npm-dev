@@ -327,18 +327,17 @@ export const ALLERGEN_EXPANSION: Record<string, string[]> = {
 
 /**
  * DIET PRIORITY ORDER — strictest wins when multiple diets are present.
- * keto and paleo are strict diets (filter-first, reject-and-replace).
- * vegan / vegetarian / pescatarian are flexible (compliant-alternative allowed).
+ * keto and paleo are strict (filter-first); vegan/vegetarian/pescatarian are flexible (modify-allowed).
  */
 export const DIET_PRIORITY = ["vegan", "vegetarian", "pescatarian", "keto", "paleo"] as const;
 export type DietMode = typeof DIET_PRIORITY[number];
 
-/** Strict diets reject non-compliant meals outright rather than modifying them. */
+/** Strict diets — invalid meals must be rejected outright, not modified */
 const STRICT_DIETS: DietMode[] = ["keto", "paleo"];
 
 /**
  * Resolve a single primary diet from a dietary restrictions array.
- * Follows priority: vegan > vegetarian > pescatarian
+ * Follows priority: vegan > vegetarian > pescatarian > keto > paleo
  * Returns null if no diet mode is present.
  */
 export function getPrimaryDiet(restrictions: string[]): DietMode | null {
@@ -396,27 +395,27 @@ export const RESTRICTION_EXPANSION: Record<string, string[]> = {
   ],
 
   keto: [
-    // High-carb grains
-    "bread", "rice", "pasta", "noodles", "oats", "oatmeal", "wheat", "flour",
-    "cereal", "crackers", "tortilla", "pita", "bagel", "muffin", "croissant",
-    "corn", "cornmeal", "cornstarch", "grits", "polenta", "quinoa", "barley",
-    "couscous", "farro", "granola",
-    // High-starch vegetables
-    "potato", "potatoes", "sweet potato", "sweet potatoes", "yam", "yams",
-    "parsnip", "parsnips",
+    // All grains and grain-based foods
+    "pasta", "spaghetti", "fettuccine", "penne", "linguine", "rigatoni", "lasagna",
+    "ravioli", "tagliatelle", "gnocchi", "noodle", "noodles", "orzo", "macaroni",
+    "rice", "white rice", "brown rice", "fried rice", "risotto",
+    "bread", "toast", "baguette", "roll", "rolls", "sandwich bread", "sourdough",
+    "tortilla", "tortillas", "wrap", "pita", "flatbread", "naan",
+    "corn", "cornmeal", "polenta", "corn tortilla",
+    "oats", "oatmeal", "granola",
+    "wheat", "barley", "rye", "millet", "quinoa",
+    "cereal", "crackers", "pretzels",
     // Sugars and sweeteners
-    "sugar", "brown sugar", "cane sugar", "powdered sugar", "honey",
-    "maple syrup", "agave", "corn syrup", "high fructose corn syrup",
-    "molasses", "date syrup", "coconut sugar",
-    // High-sugar fruits
-    "banana", "bananas", "mango", "mangoes", "pineapple", "grapes", "raisins",
-    "dates", "figs", "dried fruit",
-    // Legumes (high carb)
+    "sugar", "cane sugar", "brown sugar", "powdered sugar", "maple syrup",
+    "honey", "agave", "corn syrup", "high fructose corn syrup",
+    "molasses", "jam", "jelly", "syrup",
+    // Starchy vegetables
+    "potato", "potatoes", "sweet potato", "yam", "parsnip", "beet", "beets",
+    // Legumes
     "beans", "black beans", "kidney beans", "pinto beans", "chickpeas",
-    "lentils", "peas", "edamame",
-    // Sugary drinks and bases
-    "juice", "fruit juice", "soda", "sweetened milk", "condensed milk",
-    "chocolate syrup", "caramel"
+    "lentils", "edamame", "soy beans",
+    // Fruit juice and sugary drinks
+    "fruit juice", "orange juice", "apple juice", "soda", "sweetened beverage"
   ],
 
   paleo: [
@@ -445,121 +444,181 @@ export const RESTRICTION_EXPANSION: Record<string, string[]> = {
  * Build a CRITICAL DIETARY RULE prompt block for injection into AI generators.
  * Uses word-boundary–safe forbidden lists from RESTRICTION_EXPANSION.
  * Priority: vegan > vegetarian > pescatarian > keto > paleo (strictest wins).
- * Keto and paleo are STRICT diets — non-compliant meals are rejected outright, not modified.
+ * Keto and paleo are STRICT diets — invalid meals are rejected outright, not modified.
  * Returns an empty string when no diet mode applies.
  */
 export function buildDietPromptBlock(restrictions: string[]): string {
-  const normalized = (restrictions || []).map(r => r.trim().toLowerCase());
   const diet = getPrimaryDiet(restrictions);
-  const isStrict = diet ? (STRICT_DIETS as string[]).includes(diet) : false;
+  if (!diet) return "";
 
-  const blocks: string[] = [];
+  const forbidden = RESTRICTION_EXPANSION[diet] || [];
+  const isStrict = STRICT_DIETS.includes(diet);
 
-  // ── PRIMARY DIET BLOCK ──────────────────────────────────────────────────────
-  if (diet) {
-    const forbidden = RESTRICTION_EXPANSION[diet] || [];
-    blocks.push(
-      `CRITICAL DIETARY RULE:`,
-      `This user strictly follows a ${diet.toUpperCase()} diet. This is NON-NEGOTIABLE.`,
-      `STRICTLY FORBIDDEN — NEVER include ANY of these ingredients or derivatives:`,
-      forbidden.join(", ") + ".",
-      `Meals that contain any forbidden ingredient are INVALID and must not be generated.`,
+  const baseBlock = [
+    `CRITICAL DIETARY RULE:`,
+    `This user strictly follows a ${diet.toUpperCase()} diet. This is NON-NEGOTIABLE.`,
+    `STRICTLY FORBIDDEN — NEVER include ANY of these ingredients or derivatives:`,
+    forbidden.join(", ") + ".",
+    `Meals that contain any forbidden ingredient are INVALID and must not be generated.`,
+  ];
+
+  if (isStrict) {
+    // Strict diets: filter-first, no modifications of invalid meals
+    baseBlock.push(
+      `STRICT DIET ENFORCEMENT:`,
+      `Do NOT attempt to modify a non-compliant meal into compliance (e.g., do not suggest "remove the pasta" for a pasta dish).`,
+      `If a dish fundamentally violates this diet, reject it entirely and choose a different, naturally compliant meal.`,
+      `Only return meals that are inherently compliant without requiring modifications to the core dish.`,
     );
-
-    if (isStrict) {
-      blocks.push(
-        `If a dish fundamentally violates this diet, reject it entirely and choose a different, naturally compliant meal.`,
-        `Only return meals that are inherently compliant without requiring modifications to the core dish.`,
+    if (diet === "keto") {
+      baseBlock.push(
+        `KETO TONE RULE: Never describe carbohydrates as beneficial. Focus on protein, healthy fats, satiety, and stable blood sugar. Avoid phrases like "provides energy from carbs" or "carbs for fuel."`,
       );
-      if (diet === "keto") {
-        blocks.push(
-          `KETO TONE RULE: Never describe carbohydrates as beneficial. Focus on protein, healthy fats, satiety, and stable blood sugar. Avoid phrases like "provides energy from carbs" or "carbs for fuel."`,
-          `KETO MACRO RULE: Keep total carbohydrates under 10g net carbs per serving. High-fat, moderate-protein meals are the goal.`,
-        );
-      } else if (diet === "paleo") {
-        blocks.push(
-          `PALEO TONE RULE: Never describe grains, dairy, or legumes as beneficial. Focus on whole-food protein, natural fats, vegetable variety, and sustained energy. Avoid phrases like "good source of grains" or "provides dairy protein."`,
-        );
-      }
-    } else {
-      blocks.push(
-        `If a craving seems to conflict with this diet (e.g., asking for a burger while vegan),`,
-        `create a compliant alternative (e.g., a vegan black-bean burger) — never violate the diet.`,
+    } else if (diet === "paleo") {
+      baseBlock.push(
+        `PALEO TONE RULE: Never describe grains, dairy, or legumes as beneficial. Focus on whole-food protein, natural fats, vegetable variety, and sustained energy. Avoid phrases like "good source of grains" or "provides dairy protein."`,
       );
     }
-  }
-
-  // ── AVOIDANCE RESTRICTIONS BLOCK ────────────────────────────────────────────
-  // Handles: "no pork", "no red meat", "halal", "kosher", and any other
-  // named avoidances that exist in RESTRICTION_EXPANSION but are NOT the
-  // primary diet. These are user preferences set during onboarding.
-  const avoidanceKeys = Object.keys(RESTRICTION_EXPANSION).filter(
-    key => !["vegan","vegetarian","pescatarian","keto","paleo"].includes(key)
-  );
-  const additionalForbidden = new Set<string>();
-  const matchedAvoidances: string[] = [];
-
-  for (const key of avoidanceKeys) {
-    if (normalized.includes(key)) {
-      matchedAvoidances.push(key);
-      for (const term of RESTRICTION_EXPANSION[key]) {
-        additionalForbidden.add(term);
-      }
-    }
-  }
-
-  // Remove any terms already covered by the primary diet block to avoid duplication
-  if (diet) {
-    for (const term of (RESTRICTION_EXPANSION[diet] || [])) {
-      additionalForbidden.delete(term);
-    }
-  }
-
-  if (additionalForbidden.size > 0) {
-    const avoidanceLabel = matchedAvoidances.map(a => a.toUpperCase()).join(" + ");
-    if (blocks.length > 0) blocks.push(""); // blank separator line
-    blocks.push(
-      `ADDITIONAL USER AVOIDANCES (${avoidanceLabel}) — NON-NEGOTIABLE:`,
-      `NEVER include ANY of these ingredients or derivatives: ${[...additionalForbidden].join(", ")}.`,
+  } else {
+    // Flexible diets: compliant alternatives are acceptable
+    baseBlock.push(
+      `If a craving seems to conflict with this diet (e.g., asking for a burger while vegan),`,
+      `create a compliant alternative (e.g., a vegan black-bean burger) — never violate the diet.`,
     );
   }
 
-  return blocks.join("\n");
+  return baseBlock.join("\n");
 }
 
+// ─── DIET × BEVERAGE CATEGORY INTELLIGENCE ──────────────────────────────────
+
+export type ConflictLevel = 'none' | 'caution' | 'redirect';
+
+export interface DietCategoryStrategy {
+  conflictLevel: ConflictLevel;
+  effectiveCategory: string;   // what the AI should generate (may differ for redirect)
+  requestedCategory: string;   // what the user originally selected
+  coachingBlock: string;       // injected into AI prompt — framed as optimization, never restriction
+}
+
+// High-conflict pairs: category is fundamentally incompatible with diet.
+// AI silently generates effectiveCategory instead.
+const DIET_REDIRECT_MAP: Record<string, Record<string, string>> = {
+  keto:  { milkshake: 'protein-shake' },
+  paleo: { milkshake: 'smoothie' },
+};
+
+// Caution pairs: same category is kept, but AI prompt gets constraint block.
+const DIET_CAUTION_MAP: Record<string, string[]> = {
+  keto:  ['smoothie', 'frozen', 'cocktail', 'mocktail'],
+  paleo: ['smoothie', 'frozen', 'cocktail', 'coffee'],
+  vegan: ['milkshake', 'protein-shake', 'coffee', 'frozen'],
+};
+
+function buildRedirectPromptBlock(diet: string, requestedCategory: string, effectiveCategory: string): string {
+  const effectiveLabel = effectiveCategory.replace(/-/g, ' ');
+  const requestedLabel = requestedCategory.replace(/-/g, ' ');
+  return [
+    `DRINK OPTIMIZATION:`,
+    `The user is looking for a ${requestedLabel} experience. Based on their ${diet} lifestyle, a ${effectiveLabel} is the best-fitting option that delivers a similar level of enjoyment and satisfaction.`,
+    `Generate a ${effectiveLabel} that matches the flavor satisfaction and indulgence they were looking for.`,
+    `Present the result as curated and optimized for them specifically — do NOT mention that their original selection was unavailable or restricted.`,
+    `Frame this as the ideal choice for their goals.`,
+  ].join('\n');
+}
+
+// Per-diet, per-category constraint blocks — optimization framing, not restriction
+const CAUTION_PROMPT_BLOCKS: Record<string, Record<string, string>> = {
+  keto: {
+    smoothie:  `SMOOTHIE OPTIMIZATION FOR KETO:\n- Use low-sugar fruits only: strawberries, blueberries, raspberries, blackberries (no banana, mango, pineapple, grape)\n- No fruit juice bases — use unsweetened almond milk, coconut milk, or water\n- Emphasize healthy fats: avocado, coconut cream, almond butter\n- Add protein: protein powder (whey or plant-based), full-fat Greek yogurt\n- No added sugar, honey, agave, or sweetened bases\n- Each serving should be under 10g net carbs`,
+    frozen:    `FROZEN DRINK OPTIMIZATION FOR KETO:\n- No sugar-based syrups, fruit juice, or sweetened mixers\n- Use heavy cream or coconut cream for richness and texture\n- Flavor with unsweetened cocoa, vanilla extract, cinnamon, or low-carb fruits (berries)\n- Sweeten only with stevia or erythritol if needed — no honey, agave, or sugar`,
+    cocktail:  `COCKTAIL OPTIMIZATION FOR KETO:\n- No sugary mixers, fruit juice, simple syrup, grenadine, or triple sec\n- Use spirits naturally (vodka, gin, tequila, whiskey, rum) — these are keto-friendly\n- Mix with soda water, sparkling water, fresh citrus juice (small amounts), or bitters\n- Garnish with citrus peel, fresh herbs, or a few berries`,
+    mocktail:  `MOCKTAIL OPTIMIZATION FOR KETO:\n- No sugar syrups, fruit juice, agave, or honey\n- Build flavor with sparkling water, fresh citrus, herbs (mint, basil, rosemary), cucumber, and bitters\n- A small amount of low-sugar kombucha can add complexity\n- Keep net carbs under 5g per serving`,
+  },
+  paleo: {
+    smoothie:  `SMOOTHIE OPTIMIZATION FOR PALEO:\n- No dairy milk — use coconut milk, almond milk, or cashew milk\n- STRICTLY NO honey, agave, refined sugar, or any processed sweetener — these are not paleo-compliant\n- Use controlled fruit portions for natural sweetness: small amounts of berries preferred; banana only in very small quantities\n- DO NOT make this fruit-heavy — balance fruit with fats and protein to keep macros structured\n- STRICTLY NO whey protein, casein, or any dairy-derived protein powder — use collagen powder, egg white protein, or nut butter instead\n- No legume-based ingredients (no soy milk, no peanut butter)\n- Target moderate protein (15g+) and controlled carbs — this should feel intentional and performance-aware, not like a basic fruit drink\n- The result should feel premium and designed: rich texture, satisfying, and clearly built for someone who trains and eats with purpose`,
+    frozen:    `FROZEN DRINK OPTIMIZATION FOR PALEO:\n- No dairy or refined sugar\n- STRICTLY NO honey, agave, syrups, or processed sweeteners\n- STRICTLY NO whey or any dairy-derived protein\n- Use coconut cream or coconut milk as the base for richness and creaminess\n- Sweeten only with whole fruit in controlled portions — keep carbs in check\n- This should feel indulgent and crafted, not like a generic blended fruit drink`,
+    cocktail:  `COCKTAIL OPTIMIZATION FOR PALEO:\n- No sugary mixers, heavy juice bases, honey, or agave\n- Wine and quality distilled spirits are generally paleo-acceptable\n- Mix with sparkling water, fresh citrus juice, or herbs\n- Avoid grain-based beers or malt-based drinks`,
+    coffee:    `COFFEE DRINK OPTIMIZATION FOR PALEO:\n- Use coconut milk, almond milk, or cashew milk — no dairy cream or cow's milk\n- STRICTLY NO refined sugar, honey, or artificial sweeteners\n- A small amount of coconut sugar or medjool date is acceptable if sweetness is needed\n- Cinnamon, vanilla, and raw cacao are excellent paleo-friendly additions`,
+  },
+  vegan: {
+    milkshake:       `MILKSHAKE OPTIMIZATION FOR VEGAN:\n- Use oat milk, almond milk, coconut milk, or cashew milk as the base\n- Use dairy-free ice cream or frozen banana for creaminess and body\n- No honey — sweeten with maple syrup, agave, or ripe banana\n- No animal-derived thickeners, gelatin, or additives`,
+    'protein-shake': `PROTEIN SHAKE OPTIMIZATION FOR VEGAN:\n- Use plant-based protein powder only: pea protein, hemp protein, or brown rice protein\n- No whey, casein, or any dairy-derived protein\n- Base with plant milk or water\n- No honey — sweeten naturally with dates, banana, or a touch of maple syrup`,
+    coffee:          `COFFEE DRINK OPTIMIZATION FOR VEGAN:\n- Use oat milk, almond milk, soy milk, or coconut milk — no dairy cream or cow's milk\n- No honey — sweeten with maple syrup, coconut sugar, or leave unsweetened\n- Confirm any syrups used are vegan-certified (some contain dairy derivatives)`,
+    frozen:          `FROZEN DRINK OPTIMIZATION FOR VEGAN:\n- No dairy — use coconut cream, oat milk, or almond milk\n- No honey, gelatin, or animal-derived additives\n- Use fruit, cacao, or plant-based flavoring for character and sweetness`,
+  },
+};
+
 /**
- * Check whether generated text violates the user's dietary constraints.
- * Checks BOTH the primary diet (vegan/keto/etc.) AND all named avoidances
- * (no pork, no red meat, halal, kosher) that are in RESTRICTION_EXPANSION.
- * Uses word-boundary matching to avoid false positives (eggplant ≠ egg).
+ * Resolves the best generation strategy when a user's diet conflicts with their selected
+ * beverage category. Returns conflict level, effective category for generation, and a
+ * coaching block to inject into the AI prompt.
+ *
+ * Tone: always framed as optimization and personalization — never as restriction or correction.
+ * Users should feel guided, not corrected.
+ */
+export function resolveDietCategoryStrategy(
+  restrictions: string[],
+  category: string,
+): DietCategoryStrategy {
+  const diet = getPrimaryDiet(restrictions);
+  const base: DietCategoryStrategy = {
+    conflictLevel: 'none',
+    effectiveCategory: category,
+    requestedCategory: category,
+    coachingBlock: '',
+  };
+
+  if (!diet) return base;
+
+  // Redirect: category is fundamentally incompatible — generate different category silently
+  const redirectTarget = DIET_REDIRECT_MAP[diet]?.[category];
+  if (redirectTarget) {
+    return {
+      conflictLevel: 'redirect',
+      effectiveCategory: redirectTarget,
+      requestedCategory: category,
+      coachingBlock: buildRedirectPromptBlock(diet, category, redirectTarget),
+    };
+  }
+
+  // Caution: same category allowed but needs constraint injection
+  const cautionCategories = DIET_CAUTION_MAP[diet] || [];
+  if (cautionCategories.includes(category)) {
+    const cautionBlock = CAUTION_PROMPT_BLOCKS[diet]?.[category] || '';
+    return {
+      conflictLevel: 'caution',
+      effectiveCategory: category,
+      requestedCategory: category,
+      coachingBlock: cautionBlock,
+    };
+  }
+
+  return base;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Check whether generated text violates the user's primary dietary constraint.
+ * Uses word-boundary matching to avoid false positives (eggplant ≠ egg, almond milk ≠ milk).
  * Returns { violates, reasons } so callers can log the violation.
  */
 export function violatesDietaryConstraints(
   text: string,
   restrictions: string[]
 ): { violates: boolean; reasons: string[] } {
-  if (!restrictions || restrictions.length === 0) return { violates: false, reasons: [] };
+  const diet = getPrimaryDiet(restrictions);
+  if (!diet) return { violates: false, reasons: [] };
 
-  const normalized = restrictions.map(r => r.trim().toLowerCase());
-
-  // Collect forbidden terms from ALL restriction keys that match the user
-  const allForbidden = new Set<string>();
-  for (const key of Object.keys(RESTRICTION_EXPANSION)) {
-    if (normalized.includes(key)) {
-      for (const term of RESTRICTION_EXPANSION[key]) {
-        allForbidden.add(term);
-      }
-    }
-  }
-
-  if (allForbidden.size === 0) return { violates: false, reasons: [] };
-
+  const forbidden = RESTRICTION_EXPANSION[diet] || [];
   const lower = text.toLowerCase();
+  // Mask plant milks and nut butters before bare-word checks
   const milkMasked = maskPlantMilks(lower);
   const butterMasked = maskNutButters(lower);
 
   const reasons: string[] = [];
-  for (const term of allForbidden) {
+  for (const term of forbidden) {
     if (!term) continue;
     const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const pattern = new RegExp(`\\b${escaped}\\b`, "i");
@@ -602,30 +661,9 @@ export function buildForbiddenIngredients(profile: UserSafetyProfile): string[] 
     }
   }
   
-  // Expand and add avoided ingredients — treated identically to dietary restrictions.
-  // "pork" in foods-to-avoid expands the same as "no pork" in restrictions:
-  //   → pork, bacon, ham, prosciutto, lard, chorizo, sausage, etc.
+  // Add explicit avoid ingredients
   for (const avoid of profile.avoidIngredients || []) {
-    const key = normalize(avoid);
-    forbidden.add(key); // always add the literal term
-
-    // Try "no <term>" prefix match in RESTRICTION_EXPANSION (e.g. "pork" → "no pork")
-    const noKeyExpansion = RESTRICTION_EXPANSION["no " + key];
-    if (noKeyExpansion) {
-      noKeyExpansion.forEach(ing => forbidden.add(normalize(ing)));
-    }
-
-    // Try direct key match in RESTRICTION_EXPANSION (e.g. "halal", "kosher")
-    const directExpansion = RESTRICTION_EXPANSION[key];
-    if (directExpansion) {
-      directExpansion.forEach(ing => forbidden.add(normalize(ing)));
-    }
-
-    // Try ALLERGEN_EXPANSION for allergen-style avoidances (e.g. "dairy", "shellfish")
-    const allergenExpansion = ALLERGEN_EXPANSION[key];
-    if (allergenExpansion) {
-      allergenExpansion.forEach(ing => forbidden.add(normalize(ing)));
-    }
+    forbidden.add(normalize(avoid));
   }
   
   return Array.from(forbidden);
@@ -682,39 +720,33 @@ export function buildSafetyGuardrails(profile: UserSafetyProfile): SafetyGuardra
   const forbiddenIngredients = buildForbiddenIngredients(profile);
   
   const promptLines: string[] = [];
+  
+  if (allergies.length > 0) {
+    promptLines.push(
+      `🚨 CRITICAL ALLERGY SAFETY: User has life-threatening allergies to: ${allergies.join(", ")}.`
+    );
 
-  // ── HARD PROHIBITION BLOCK ───────────────────────────────────────────────────
-  // Fires whenever ANY forbidden ingredient exists — whether from allergies,
-  // dietary restrictions (no pork, halal, kosher), or explicit avoidances.
-  // Previously this only fired when allergies were present, allowing avoidances
-  // to slip through with soft "Strictly comply" language.
-  if (forbiddenIngredients.length > 0) {
-    // Allergy-specific header (only when there are true medical allergies)
-    if (allergies.length > 0) {
-      promptLines.push(
-        `🚨 CRITICAL ALLERGY SAFETY: User has life-threatening allergies to: ${allergies.join(", ")}.`
-      );
-      const dairyClarification = buildDairyClarificationBlock(allergies);
-      if (dairyClarification) {
-        promptLines.push(dairyClarification);
-      }
-    }
-
-    // Always-hard prohibition — applies to ALL forbidden ingredients regardless of source
     const humanizedList = humanizeForPrompt(forbiddenIngredients.slice(0, 50));
     promptLines.push(
       `ABSOLUTE PROHIBITION: You must NEVER include, suggest, or use ANY of these ingredients or their derivatives: ${humanizedList.join(", ")}${forbiddenIngredients.length > 50 ? '...' : ''}.`
     );
-  }
 
-  // ── DIET MODE BLOCK ──────────────────────────────────────────────────────────
-  // Handles vegan / vegetarian / pescatarian / keto / paleo + named avoidances.
-  // The diet block already covers no-pork/halal/kosher via buildDietPromptBlock;
-  // the forbidden list above is the hard enforcement layer on top of it.
+    const dairyClarification = buildDairyClarificationBlock(allergies);
+    if (dairyClarification) {
+      promptLines.push(dairyClarification);
+    }
+  }
+  
   if (restrictions.length > 0) {
+    // Use hard CRITICAL language for recognized diet modes (vegan/vegetarian/pescatarian)
     const dietBlock = buildDietPromptBlock(restrictions);
     if (dietBlock) {
       promptLines.push(dietBlock);
+    } else {
+      // Generic fallback for other restrictions (halal, kosher, no_pork, etc.)
+      promptLines.push(
+        `DIETARY REQUIREMENTS: User follows ${restrictions.join(", ")} diet. Strictly comply with these restrictions.`
+      );
     }
   }
   
@@ -960,4 +992,169 @@ export function logSafetyEnforcement(
     `${emoji} [SAFETY] ${timestamp} | User: ${userId} | Meal: "${mealName}" | ` +
     `Action: ${action.toUpperCase()}${violations.length > 0 ? ` | Violations: ${violations.join(", ")}` : ''}`
   );
+}
+
+// ─── VEGAN / VEGETARIAN / PESCATARIAN SUBSTITUTION MAP ───────────────────────
+
+/**
+ * Maps each commonly forbidden vegan ingredient to its best plant-based
+ * replacement. Used in the post-generation substitution pass before triggering
+ * an AI regeneration retry.
+ *
+ * Keys must be lowercase and match ingredient names as they appear in recipes.
+ */
+export const VEGAN_SUBSTITUTION_MAP: Record<string, string> = {
+  // Sweeteners
+  'honey':                  'agave syrup',
+  'raw honey':              'agave syrup',
+  'honey drizzle':          'maple syrup drizzle',
+  'honey glaze':            'maple syrup glaze',
+
+  // Dairy — fats
+  'butter':                 'plant-based butter',
+  'unsalted butter':        'plant-based butter',
+  'salted butter':          'plant-based butter',
+  'clarified butter':       'coconut oil',
+  'ghee':                   'coconut oil',
+
+  // Dairy — milks and cream
+  'milk':                   'oat milk',
+  'whole milk':             'oat milk',
+  'skim milk':              'oat milk',
+  '2% milk':                'oat milk',
+  'heavy cream':            'coconut cream',
+  'heavy whipping cream':   'coconut cream',
+  'half and half':          'oat milk creamer',
+  'half & half':            'oat milk creamer',
+  'cream':                  'coconut cream',
+  'condensed milk':         'coconut condensed milk',
+  'evaporated milk':        'coconut evaporated milk',
+  'buttermilk':             'plant-based buttermilk',
+  'sour cream':             'cashew sour cream',
+
+  // Dairy — cheese / yogurt
+  'cheese':                 'nutritional yeast',
+  'parmesan':               'nutritional yeast',
+  'parmesan cheese':        'nutritional yeast',
+  'mozzarella':             'vegan mozzarella',
+  'cheddar':                'vegan cheddar',
+  'feta':                   'vegan feta',
+  'cream cheese':           'cashew cream cheese',
+  'ricotta':                'tofu ricotta',
+  'yogurt':                 'coconut yogurt',
+  'greek yogurt':           'coconut yogurt',
+
+  // Dairy — proteins
+  'whey':                   'pea protein',
+  'whey protein':           'pea protein powder',
+  'whey isolate':           'pea protein powder',
+  'casein':                 'pea protein',
+  'casein protein':         'pea protein powder',
+
+  // Eggs
+  'egg':                    'flax egg',
+  'eggs':                   'flax eggs',
+  'egg white':              'aquafaba',
+  'egg whites':             'aquafaba',
+  'egg yolk':               'silken tofu',
+  'egg yolks':              'silken tofu',
+
+  // Gelling / thickening agents
+  'gelatin':                'agar-agar',
+  'collagen peptides':      'agar-agar',
+  'beef collagen':          'agar-agar',
+  'chicken collagen':       'agar-agar',
+
+  // Animal fats
+  'lard':                   'coconut oil',
+  'suet':                   'plant-based shortening',
+  'tallow':                 'coconut oil',
+  'schmaltz':               'olive oil',
+  'duck fat':               'olive oil',
+
+  // Stocks and broths
+  'chicken stock':          'vegetable broth',
+  'chicken broth':          'vegetable broth',
+  'beef stock':             'vegetable broth',
+  'beef broth':             'vegetable broth',
+  'bone broth':             'vegetable broth',
+  'fish stock':             'seaweed-based broth',
+  'fish sauce':             'soy sauce with nori',
+
+  // Condiments / flavour agents
+  'anchovies':              'capers',
+  'anchovy paste':          'miso paste',
+  'worcestershire sauce':   'vegan worcestershire sauce',
+  'mayonnaise':             'vegan mayonnaise',
+  'mayo':                   'vegan mayonnaise',
+};
+
+/**
+ * Per-diet substitution map selection.
+ * Vegetarian and pescatarian only share a subset of the vegan map.
+ */
+const VEGETARIAN_SUBSTITUTION_MAP: Record<string, string> = {
+  'gelatin':        'agar-agar',
+  'lard':           'plant-based shortening',
+  'suet':           'plant-based shortening',
+  'tallow':         'coconut oil',
+  'chicken stock':  'vegetable broth',
+  'chicken broth':  'vegetable broth',
+  'beef stock':     'vegetable broth',
+  'beef broth':     'vegetable broth',
+  'bone broth':     'vegetable broth',
+  'anchovies':      'capers',
+  'fish sauce':     'soy sauce',
+  'fish stock':     'vegetable broth',
+};
+
+const PESCATARIAN_SUBSTITUTION_MAP: Record<string, string> = {
+  'lard':           'olive oil',
+  'suet':           'plant-based shortening',
+  'tallow':         'coconut oil',
+  'chicken stock':  'vegetable broth',
+  'chicken broth':  'vegetable broth',
+  'beef stock':     'vegetable broth',
+  'beef broth':     'vegetable broth',
+  'bone broth':     'vegetable broth',
+};
+
+type DietaryMode = 'vegan' | 'vegetarian' | 'pescatarian';
+
+function getSubstitutionMap(diet: DietaryMode): Record<string, string> {
+  if (diet === 'vegetarian') return VEGETARIAN_SUBSTITUTION_MAP;
+  if (diet === 'pescatarian') return PESCATARIAN_SUBSTITUTION_MAP;
+  return VEGAN_SUBSTITUTION_MAP;
+}
+
+export interface SubstitutionResult {
+  ingredients: Array<{ name: string; quantity: string; unit: string }>;
+  substitutionsApplied: Array<{ original: string; replacement: string }>;
+}
+
+/**
+ * Apply diet-appropriate ingredient substitutions to a meal's ingredient list.
+ * Returns the updated ingredient list and a log of what was swapped.
+ * Only performs exact-match substitutions to avoid unintended flavor changes.
+ *
+ * IMPORTANT: Call this at most ONCE before triggering an AI regeneration.
+ */
+export function applyDietarySubstitutions(
+  ingredients: Array<{ name: string; quantity: string; unit: string }>,
+  diet: DietaryMode,
+): SubstitutionResult {
+  const map = getSubstitutionMap(diet);
+  const substitutionsApplied: Array<{ original: string; replacement: string }> = [];
+
+  const updated = ingredients.map(ing => {
+    const key = ing.name.toLowerCase().trim();
+    const replacement = map[key];
+    if (replacement) {
+      substitutionsApplied.push({ original: ing.name, replacement });
+      return { ...ing, name: replacement };
+    }
+    return ing;
+  });
+
+  return { ingredients: updated, substitutionsApplied };
 }

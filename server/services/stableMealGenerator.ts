@@ -383,12 +383,12 @@ function loadCatalog(): Skeleton[] {
 // ---- RULES (in CODE, deterministic) ----
 import { buildForbiddenIngredients, scanForViolations, UserSafetyProfile, getPrimaryDiet, RESTRICTION_EXPANSION } from "./allergyGuardrails";
 
-function violatesAllergy(ings: Skeleton["ingredients"], allergies: string[], dietaryRestrictions: string[] = [], avoidIngredients: string[] = []) {
-  // Use comprehensive guardrails system for allergy + restriction checking
+function violatesAllergy(ings: Skeleton["ingredients"], allergies: string[]) {
+  // Use comprehensive guardrails system for allergy checking
   const safetyProfile: UserSafetyProfile = {
     allergies: allergies,
-    dietaryRestrictions: dietaryRestrictions,
-    avoidIngredients: avoidIngredients
+    dietaryRestrictions: [],
+    avoidIngredients: []
   };
   
   const forbiddenIngredients = buildForbiddenIngredients(safetyProfile);
@@ -578,7 +578,7 @@ function pickFromCatalog(req: WeeklyMealReq, catalog: Skeleton[], slots: MealTyp
   
   let pool = correctedCatalog.filter(s =>
     slots.includes(s.mealType) &&
-    !violatesAllergy(s.ingredients, req.allergies, req.dietaryRestrictions) &&
+    !violatesAllergy(s.ingredients, req.allergies) &&
     !violatesDiet(s.ingredients, req.dietaryRestrictions) &&
     validateMealType(s) // Ensure meal type is appropriate
   );
@@ -885,7 +885,7 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
     }
     
     return s.mealType === targetMealType &&
-      (!userPrefs?.allergies || !violatesAllergy(s.ingredients, userPrefs.allergies, userPrefs.dietaryRestrictions ?? [], userPrefs.avoidIngredients ?? [])) &&
+      (!userPrefs?.allergies || !violatesAllergy(s.ingredients, userPrefs.allergies)) &&
       (!userPrefs?.dietaryRestrictions || !violatesDiet(s.ingredients, userPrefs.dietaryRestrictions)) &&
       (!userPrefs?.avoidIngredients?.length || !violatesAvoidance(s.ingredients, userPrefs.avoidIngredients));
   });
@@ -1321,7 +1321,7 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
       // Fallback to any meal type if no matches found
       telemetry.tagFallback(sessionId, "catalog_fallback", "No specific matches, using general catalog");
       filtered = catalog.filter(s => 
-        (!userPrefs?.allergies || !violatesAllergy(s.ingredients, userPrefs.allergies, userPrefs.dietaryRestrictions ?? [], userPrefs.avoidIngredients ?? [])) &&
+        (!userPrefs?.allergies || !violatesAllergy(s.ingredients, userPrefs.allergies)) &&
         (!userPrefs?.dietaryRestrictions || !violatesDiet(s.ingredients, userPrefs.dietaryRestrictions)) &&
         (!userPrefs?.avoidIngredients?.length || !violatesAvoidance(s.ingredients, userPrefs.avoidIngredients))
       );

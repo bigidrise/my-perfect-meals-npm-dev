@@ -42,8 +42,11 @@ import {
   UserSafetyProfile,
   buildDietPromptBlock,
   violatesDietaryConstraints,
-  getPrimaryDiet
+  getPrimaryDiet,
+  applyDietarySubstitutions,
+  RESTRICTION_EXPANSION,
 } from './allergyGuardrails';
+import { validateDietaryRestriction, type DietaryMode } from './guardrails/validators/dietaryRestrictionValidator';
 import { db } from '../db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
@@ -131,6 +134,12 @@ export interface UnifiedMeal {
     category: string;
   }>;
   source?: 'ai' | 'catalog' | 'fallback';
+  /**
+   * True only when post-generation dietary validation confirmed full compliance
+   * for vegan / vegetarian / pescatarian diets (isValid: true AND confidence: high).
+   * Undefined / false means the badge should NOT be shown.
+   */
+  dietaryComplianceVerified?: boolean;
 }
 
 /**
@@ -421,22 +430,15 @@ export async function generateCravingMealUnified(
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
 
-  // Step 0: Fetch dietary restrictions + avoidedFoods + allergies FIRST — before cache or template checks
+  // Step 0: Fetch dietary restrictions FIRST — before cache or template checks
   // This ensures the cache key is diet-aware and templates are validated against the user's diet
   let cravingDietBlock = "";
   let cravingDietRestrictions: string[] = [];
-  let cravingAvoidedFoods: string[] = [];
-  let cravingAllergies: string[] = [];
   if (userId) {
     try {
-      const [cravingUser] = await db.select({
-        dietaryRestrictions: users.dietaryRestrictions,
-        avoidedFoods: users.avoidedFoods,
-        allergies: users.allergies
-      }).from(users).where(eq(users.id, userId)).limit(1);
+      const [cravingUser] = await db.select({ dietaryRestrictions: users.dietaryRestrictions })
+        .from(users).where(eq(users.id, userId)).limit(1);
       cravingDietRestrictions = (cravingUser?.dietaryRestrictions as string[]) || [];
-      cravingAvoidedFoods = (cravingUser?.avoidedFoods as string[]) || [];
-      cravingAllergies = (cravingUser?.allergies as string[]) || [];
     } catch (err) {
       console.warn("[CRAVING] Could not fetch dietary restrictions:", err);
     }
@@ -449,16 +451,6 @@ export async function generateCravingMealUnified(
   cravingDietBlock = buildDietPromptBlock(cravingDietRestrictions);
   if (cravingDietBlock) {
     console.log(`🥗 [CRAVING] Dietary constraint enforced: ${cravingDietRestrictions.join("|")}`);
-  }
-
-  // Build hard avoidance prohibition block (same pipeline as allergy system)
-  const cravingAvoidBlock = buildSafetyGuardrails({
-    allergies: cravingAllergies,
-    dietaryRestrictions: cravingDietRestrictions,
-    avoidIngredients: cravingAvoidedFoods
-  });
-  if (cravingAvoidedFoods.length > 0) {
-    console.log(`🚫 [CRAVING] Foods to avoid enforced: ${cravingAvoidedFoods.join(", ")}`);
   }
 
   // Resolve primary diet for cache key segregation
@@ -556,7 +548,7 @@ export async function generateCravingMealUnified(
       const openai = getOpenAI();
       
       const prompt = `You are a creative chef helping someone satisfy their food craving.
-${cravingAvoidBlock ? `\n${cravingAvoidBlock}\n` : ""}${cravingDietBlock ? `\n${cravingDietBlock}\n` : ""}${strictMode ? `\n${buildStrictModeBlock(cravingInput)}\n` : ""}
+${cravingDietBlock ? `\n${cravingDietBlock}\n` : ""}${strictMode ? `\n${buildStrictModeBlock(cravingInput)}\n` : ""}
 CRAVING: "${cravingInput}"
 MEAL TYPE: ${validMealType}
 
@@ -619,7 +611,7 @@ Respond with ONLY valid JSON in this exact format:
       const starchyCarbs = aiMeal.starchyCarbs ?? 0;
       const fibrousCarbs = aiMeal.fibrousCarbs ?? 0;
       // Total carbs = starchyCarbs + fibrousCarbs (for backward compatibility)
-      const totalCarbs = aiMeal.carbs ?? ((starchyCarbs ?? 0) + (fibrousCarbs ?? 0));
+      const totalCarbs = aiMeal.carbs ?? ((starchyCarbs + fibrousCarbs) || 35);
       
       const rawMeal: UnifiedMeal = {
         id: `craving-ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -641,17 +633,93 @@ Respond with ONLY valid JSON in this exact format:
       };
       
       // ENFORCE CARBS: If AI returned 0s, derive from ingredients (data-layer enforcement)
-      const unifiedMeal = enforceCarbs(rawMeal);
-      
-      // POST-GENERATION dietary hard filter (vegan/vegetarian/pescatarian)
-      if (cravingDietRestrictions.length > 0) {
-        const mealText = `${unifiedMeal.name} ${unifiedMeal.ingredients.map((i: any) => i.name).join(' ')}`;
-        const { violates, reasons } = violatesDietaryConstraints(mealText, cravingDietRestrictions);
-        if (violates) {
-          console.warn(`⚠️ [DIET GUARD] Craving generator: ${reasons.join(", ")} — diet: ${cravingDietRestrictions.join("|")}`);
+      let unifiedMeal = enforceCarbs(rawMeal);
+      let cravingDietaryComplianceVerified = false;
+
+      // POST-GENERATION dietary validation (vegan / vegetarian / pescatarian)
+      // Order: validate → substitute (max 1 pass) → re-validate → single AI regeneration
+      const cravingPrimaryDiet = getPrimaryDiet(cravingDietRestrictions);
+      if (cravingPrimaryDiet && ['vegan', 'vegetarian', 'pescatarian'].includes(cravingPrimaryDiet)) {
+        let cravingDietValidation = validateDietaryRestriction(
+          { name: unifiedMeal.name, ingredients: unifiedMeal.ingredients },
+          cravingPrimaryDiet as DietaryMode,
+        );
+
+        if (!cravingDietValidation.isValid || cravingDietValidation.confidence === 'low') {
+          // Step A: substitution pass (max 1)
+          if (cravingDietValidation.violations.length > 0) {
+            const { ingredients: subIngredients, substitutionsApplied } = applyDietarySubstitutions(
+              unifiedMeal.ingredients,
+              cravingPrimaryDiet as DietaryMode,
+            );
+            if (substitutionsApplied.length > 0) {
+              console.log(`🔄 [DIET GUARD] Craving substitution pass for ${cravingPrimaryDiet}: ${substitutionsApplied.map(s => `${s.original} → ${s.replacement}`).join(', ')}`);
+              unifiedMeal = { ...unifiedMeal, ingredients: subIngredients };
+              cravingDietValidation = validateDietaryRestriction(
+                { name: unifiedMeal.name, ingredients: unifiedMeal.ingredients },
+                cravingPrimaryDiet as DietaryMode,
+              );
+            }
+          }
+
+          // Step B: single AI regeneration if still invalid
+          if (!cravingDietValidation.isValid || cravingDietValidation.confidence === 'low') {
+            console.warn(`⚠️ [DIET GUARD] Craving ${cravingPrimaryDiet} violation: ${cravingDietValidation.violations.join('; ')} — triggering single regeneration`);
+            try {
+              const openai = getOpenAI();
+              const fixHint = `DIETARY VIOLATION DETECTED. This user strictly follows a ${cravingPrimaryDiet.toUpperCase()} diet. ` +
+                `Violations: ${cravingDietValidation.violations.join('; ')}. ` +
+                `Regenerate a fully compliant ${cravingPrimaryDiet} meal for the craving "${cravingInput}". ` +
+                `FORBIDDEN: ${(RESTRICTION_EXPANSION[cravingPrimaryDiet] || []).join(', ')}.`;
+              const regenResponse = await openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: [
+                  { role: 'user', content: fixHint },
+                ],
+                response_format: { type: "json_object" },
+                max_tokens: 1500,
+              });
+              const regenContent = regenResponse.choices?.[0]?.message?.content;
+              if (regenContent) {
+                const regenMeal = JSON.parse(regenContent);
+                const regenNormalized = normalizeIngredients(regenMeal.ingredients || []);
+                const regenRaw: UnifiedMeal = {
+                  ...unifiedMeal,
+                  name: regenMeal.name || unifiedMeal.name,
+                  description: regenMeal.description || unifiedMeal.description,
+                  ingredients: regenNormalized,
+                  instructions: regenMeal.instructions || unifiedMeal.instructions,
+                };
+                const regenValidation = validateDietaryRestriction(
+                  { name: regenRaw.name, ingredients: regenRaw.ingredients },
+                  cravingPrimaryDiet as DietaryMode,
+                );
+                if (regenValidation.isValid && regenValidation.confidence !== 'low') {
+                  console.log(`✅ [DIET GUARD] Craving regeneration succeeded — ${cravingPrimaryDiet} compliant: ${regenRaw.name}`);
+                  unifiedMeal = enforceCarbs(regenRaw);
+                  cravingDietaryComplianceVerified = true;
+                } else {
+                  console.error(`❌ [DIET GUARD] Craving regeneration still non-compliant for ${cravingPrimaryDiet} — badge suppressed`);
+                }
+              }
+            } catch (regenErr) {
+              console.warn(`⚠️ [DIET GUARD] Craving regeneration attempt failed:`, regenErr);
+            }
+          } else {
+            console.log(`✅ [DIET GUARD] Craving ${cravingPrimaryDiet} compliance confirmed after substitution — confidence: ${cravingDietValidation.confidence}`);
+            cravingDietaryComplianceVerified = true;
+          }
+        } else {
+          console.log(`✅ [DIET GUARD] Craving ${cravingPrimaryDiet} compliance confirmed — confidence: ${cravingDietValidation.confidence}`);
+          cravingDietaryComplianceVerified = true;
+        }
+
+        unifiedMeal = { ...unifiedMeal, dietaryComplianceVerified: cravingDietaryComplianceVerified };
+        if (cravingDietaryComplianceVerified) {
+          console.log(`🌿 [DIET GUARD] ${cravingPrimaryDiet} badge authorized for craving: ${unifiedMeal.name}`);
         }
       }
-      
+
       console.log(`✅ AI generated meal: ${unifiedMeal.name}`);
       
       // Cache the AI-generated meal
@@ -668,6 +736,7 @@ Respond with ONLY valid JSON in this exact format:
       console.error(`❌ AI generation failed, using catalog fallback:`, aiError.message);
       
       const fallback = getDeterministicFallback(validMealType, [cravingInput]);
+      const CRAVING_DIET_VALIDATION_REQUIRED = ['vegan', 'vegetarian', 'pescatarian'];
       const rawFallbackMeal: UnifiedMeal = {
         id: fallback.id,
         name: fallback.name,
@@ -684,7 +753,9 @@ Respond with ONLY valid JSON in this exact format:
         difficulty: 'Easy',
         imageUrl: fallback.imageUrl,
         medicalBadges: [],
-        source: 'catalog'
+        source: 'catalog',
+        // Hard guarantee: unverified catalog fallbacks are never vegan/veg/pesc compliant
+        dietaryComplianceVerified: CRAVING_DIET_VALIDATION_REQUIRED.includes(cravingPrimaryDiet) ? false : undefined,
       };
       
       // ENFORCE CARBS: Derive from ingredients for catalog fallback
@@ -965,7 +1036,7 @@ function parseVarietyContent(content: string): any[] {
 function mapToUnifiedMeal(opt: any, idx: number, cravingInput: string, validMealType: string): UnifiedMeal {
   const starchyCarbs = opt.starchyCarbs ?? 0;
   const fibrousCarbs = opt.fibrousCarbs ?? 0;
-  const totalCarbs = opt.carbs ?? ((starchyCarbs ?? 0) + (fibrousCarbs ?? 0));
+  const totalCarbs = opt.carbs ?? ((starchyCarbs + fibrousCarbs) || 35);
   const raw: UnifiedMeal = {
     id: `variety-ai-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 9)}`,
     name: opt.name || `${cravingInput} Option ${idx + 1}`,
@@ -1010,42 +1081,20 @@ export async function generateCravingMealOptions(
   // Fix B: Fetch dietary restrictions, allergies, AND health conditions from the user profile
   let dietRestrictions: string[] = [];
   let allergyBlock = '';
-  let allForbiddenIngredients: string[] = []; // hoisted so conflict intercept can access it
   if (userId) {
     try {
       const [u] = await db.select({
         dietaryRestrictions: users.dietaryRestrictions,
         allergies: users.allergies,
         healthConditions: users.healthConditions,
-        avoidedFoods: users.avoidedFoods,
       }).from(users).where(eq(users.id, userId)).limit(1);
 
       dietRestrictions = (u?.dietaryRestrictions as string[]) || [];
 
       const allergies: string[] = (u?.allergies as string[]) || [];
-      const avoidedFoods: string[] = (u?.avoidedFoods as string[]) || [];
-
-      // Build full forbidden list from allergies + dietary restrictions + foods-to-avoid.
-      // All three sources are treated with identical enforcement.
-      // avoidIngredients ("pork") expands via buildForbiddenIngredients → "no pork" →
-      //   bacon, ham, prosciutto, lard, chorizo, sausage, etc.
-      const fullSafetyProfile: UserSafetyProfile = {
-        allergies,
-        dietaryRestrictions: dietRestrictions,
-        avoidIngredients: avoidedFoods,
-      };
-      allForbiddenIngredients = buildForbiddenIngredients(fullSafetyProfile);
-
       if (allergies.length > 0) {
         allergyBlock = `\n🚨 ALLERGEN BLOCK — ABSOLUTE MEDICAL SAFETY REQUIREMENT:\nThis user has confirmed allergies to: ${allergies.join(', ')}.\nDo NOT include these ingredients or any derivative/hidden form in ANY of the 3 options. This overrides all other instructions.`;
         console.log(`[VARIETY ENGINE] Allergy block active for user ${userId}: ${allergies.join(', ')}`);
-      }
-
-      // Hard prohibition for dietary avoidances (no pork, halal, kosher, etc.)
-      // Uses the same force level as the allergy block — not a polite suggestion
-      if (allForbiddenIngredients.length > 0) {
-        allergyBlock += `\n🚫 ABSOLUTE PROHIBITION — DIETARY RESTRICTIONS:\nThe following ingredients must NEVER appear in any of the 3 meal options: ${allForbiddenIngredients.join(', ')}. No exceptions. This overrides all other instructions.`;
-        console.log(`[VARIETY ENGINE] Restriction block active: ${allForbiddenIngredients.join(', ')}`);
       }
 
       const healthConditions: string[] = (u?.healthConditions as string[]) || [];
@@ -1066,40 +1115,6 @@ export async function generateCravingMealOptions(
     ? `ANTI-REPETITION: Do NOT generate anything resembling these recently seen options — vary the primary ingredient, preparation, and concept: ${excludeMeals.join(", ")}`
     : "";
 
-  // ── PRE-GENERATION CONFLICT INTERCEPT ────────────────────────────────────────
-  // If the craving itself contains a forbidden ingredient (e.g. user says "pork chops"
-  // but has "no pork"), we must NOT send conflicting instructions to the AI.
-  // The AI resolves conflicts by following the more specific request (the craving),
-  // which means the restriction always loses. We intercept here and rewrite the intent
-  // before the AI ever sees it.
-  let activeCravingInput = cravingInput;
-  let activeDishFamily = dishFamily;
-
-  const cravingLower = cravingInput.toLowerCase();
-  const cravingConflicts = allForbiddenIngredients.filter(term => {
-    if (!term || term.length < 3) return false;
-    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return new RegExp(`\\b${escaped}\\b`, "i").test(cravingLower);
-  });
-
-  if (cravingConflicts.length > 0) {
-    console.warn(`[VARIETY ENGINE] ⚠️ Craving conflict intercepted: "${cravingInput}" contains forbidden: ${cravingConflicts.join(', ')}`);
-    // Redirect the AI: acknowledge what the user wanted, explain why it's blocked,
-    // and ask for genuinely compliant alternatives with the same spirit/cooking style.
-    allergyBlock = `🚫 CONFLICT INTERCEPT — READ FIRST, OVERRIDES ALL ELSE:
-The user requested "${cravingInput}" but this dish contains FORBIDDEN ingredients (${cravingConflicts.join(', ')}).
-YOU MUST NOT generate "${cravingInput}" or any version of it.
-Instead, generate 3 genuinely different meals that:
-  • Satisfy a similar craving (same meal type, similar cooking method or flavor profile)
-  • Contain ZERO forbidden ingredients
-  • Are completely pork-free, using chicken, turkey, beef, lamb, fish, or plant proteins as appropriate
-Do NOT mention pork, bacon, ham, or any forbidden item in the meal name, description, or ingredients.
-` + allergyBlock;
-    activeCravingInput = `an alternative to "${cravingInput}" — must avoid ${cravingConflicts.join(', ')}`;
-    activeDishFamily = "alternative";
-  }
-  // ─────────────────────────────────────────────────────────────────────────────
-
   const openai = getOpenAI();
 
   const isRecipeMode = generationMode === 'recipe';
@@ -1110,8 +1125,8 @@ Do NOT mention pork, bacon, ham, or any forbidden item in the meal name, descrip
   /** One attempt at calling AI and parsing result */
   const attempt = async (stricterMode: boolean): Promise<any[]> => {
     const prompt = isRecipeMode
-      ? buildRecipeVarietyPrompt(activeCravingInput, validMealType, activeDishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode)
-      : buildVarietyPrompt(activeCravingInput, validMealType, category, activeDishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode);
+      ? buildRecipeVarietyPrompt(cravingInput, validMealType, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode)
+      : buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode);
     const stricter = stricterMode
       ? `\n\nSECOND ATTEMPT — STRICT MODE: The previous response drifted from the dish family. You MUST generate 3 options that are clearly recognizable variations of "${dishFamily}". No exceptions.`
       : "";
@@ -1466,6 +1481,10 @@ Create the recipe for: "${description}"`;
     let finalMealData: any = null;
     let attemptCount = 0;
     let lastFixHint: string | null = null;
+    let substitutionPassUsed = false;
+    // undefined = no validation context (non-vegan/vegetarian/pescatarian or legacy path)
+    // true  = compliance confirmed   false = compliance failed / unresolvable
+    let dietaryComplianceVerified: boolean | undefined = undefined;
 
     while (attemptCount < MAX_REGENERATION_ATTEMPTS) {
       attemptCount++;
@@ -1491,9 +1510,9 @@ Create the recipe for: "${description}"`;
       const mealData = JSON.parse(content);
       const starchyCarbs = typeof mealData.starchyCarbs === 'number' ? mealData.starchyCarbs : 0;
       const fibrousCarbs = typeof mealData.fibrousCarbs === 'number' ? mealData.fibrousCarbs : 0;
-      const totalCarbs = mealData.carbs ?? ((starchyCarbs ?? 0) + (fibrousCarbs ?? 0));
+      const totalCarbs = (starchyCarbs + fibrousCarbs) || mealData.carbs || 35;
       
-      const tempMeal: UnifiedMeal = {
+      let tempMeal: UnifiedMeal = {
         id: `chef-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         name: mealData.name,
         description: mealData.description,
@@ -1537,23 +1556,65 @@ Create the recipe for: "${description}"`;
         }
       }
 
-      // POST-GENERATION dietary hard filter (vegan/vegetarian/pescatarian)
-      if (chefDietRestrictions.length > 0) {
-        const mealText = `${tempMeal.name} ${tempMeal.ingredients.map((i: any) => i.name).join(' ')}`;
-        const { violates, reasons } = violatesDietaryConstraints(mealText, chefDietRestrictions);
-        if (violates) {
-          console.warn(`⚠️ [DIET GUARD] Create-With-Chef: ${reasons.join(", ")} — diet: ${chefDietRestrictions.join("|")}`);
-          if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
-            lastFixHint = `DIETARY VIOLATION DETECTED. The user follows a strict ${chefDietRestrictions[0]} diet. Issues found: ${reasons.join(", ")}. Regenerate with a fully ${chefDietRestrictions[0]}-compliant recipe that contains ZERO animal products.`;
-            continue;
+      // POST-GENERATION dietary validation (vegan / vegetarian / pescatarian)
+      // Order: validate → substitute (max 1 pass) → re-validate → regenerate (max 1 retry)
+      const chefPrimaryDiet = getPrimaryDiet(chefDietRestrictions);
+      if (chefPrimaryDiet && ['vegan', 'vegetarian', 'pescatarian'].includes(chefPrimaryDiet)) {
+        let dietValidation = validateDietaryRestriction(
+          { name: tempMeal.name, ingredients: tempMeal.ingredients },
+          chefPrimaryDiet as DietaryMode,
+        );
+
+        if (!dietValidation.isValid || dietValidation.confidence === 'low') {
+          // Step A: attempt automatic ingredient substitution (max 1 pass)
+          if (!substitutionPassUsed && dietValidation.violations.length > 0) {
+            substitutionPassUsed = true;
+            const { ingredients: subIngredients, substitutionsApplied } = applyDietarySubstitutions(
+              tempMeal.ingredients,
+              chefPrimaryDiet as DietaryMode,
+            );
+            if (substitutionsApplied.length > 0) {
+              console.log(`🔄 [DIET GUARD] Substitution pass for ${chefPrimaryDiet}: ${substitutionsApplied.map(s => `${s.original} → ${s.replacement}`).join(', ')}`);
+              tempMeal = { ...tempMeal, ingredients: subIngredients };
+              // Re-validate after substitution
+              dietValidation = validateDietaryRestriction(
+                { name: tempMeal.name, ingredients: tempMeal.ingredients },
+                chefPrimaryDiet as DietaryMode,
+              );
+            }
           }
+
+          // Step B: if still invalid, trigger AI regeneration (uses existing retry loop)
+          if (!dietValidation.isValid || dietValidation.confidence === 'low') {
+            const violationSummary = dietValidation.violations.join('; ');
+            console.warn(`⚠️ [DIET GUARD] Create-With-Chef ${chefPrimaryDiet} violation — attempt ${attemptCount}: ${violationSummary}`);
+            if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
+              const forbidden = (chefDietRestrictions[0] || chefPrimaryDiet).toUpperCase();
+              lastFixHint = `DIETARY VIOLATION DETECTED. This user strictly follows a ${forbidden} diet. ` +
+                `Violations found: ${violationSummary}. ` +
+                `Regenerate a fully compliant recipe — every ingredient must be ${chefPrimaryDiet}-safe. ` +
+                `FORBIDDEN: ${(RESTRICTION_EXPANSION[chefPrimaryDiet] || []).join(', ')}.`;
+              continue;
+            }
+            // Exhausted retries — meal cannot be certified
+            console.error(`❌ [DIET GUARD] ${chefPrimaryDiet} compliance unresolvable after ${attemptCount} attempts — badge suppressed`);
+            dietaryComplianceVerified = false;
+          } else {
+            console.log(`✅ [DIET GUARD] ${chefPrimaryDiet} compliance confirmed after substitution — confidence: ${dietValidation.confidence}`);
+            dietaryComplianceVerified = true;
+          }
+        } else {
+          console.log(`✅ [DIET GUARD] ${chefPrimaryDiet} compliance confirmed — confidence: ${dietValidation.confidence}`);
+          dietaryComplianceVerified = true;
         }
       }
 
       const substitutionNotes = Array.isArray(mealData.substitutionNotes) && mealData.substitutionNotes.length > 0
         ? mealData.substitutionNotes.filter((n: any) => typeof n === 'string' && n.trim().length > 0)
         : undefined;
-      finalMealData = { ...mealData, starchyCarbs, fibrousCarbs, totalCarbs, substitutionNotes };
+      // IMPORTANT: use tempMeal.ingredients (not mealData.ingredients) so that any
+      // dietary substitutions applied during validation are persisted to the response.
+      finalMealData = { ...mealData, ingredients: tempMeal.ingredients, starchyCarbs, fibrousCarbs, totalCarbs, substitutionNotes };
       break;
     }
     
@@ -1604,8 +1665,13 @@ Create the recipe for: "${description}"`;
       imageUrl,
       substitutionNotes: finalMealData.substitutionNotes,
       medicalBadges: [],
-      source: 'ai'
+      source: 'ai',
+      dietaryComplianceVerified,
     };
+    
+    if (dietaryComplianceVerified) {
+      console.log(`🌿 [DIET GUARD] ${getPrimaryDiet(chefDietRestrictions)} badge authorized for: ${unifiedMeal.name}`);
+    }
     
     console.log(`✅ Create With Chef generated complete meal: ${unifiedMeal.name}`);
     
@@ -1621,6 +1687,8 @@ Create the recipe for: "${description}"`;
     
     // Fallback to deterministic template
     const fallback = getDeterministicFallback(validMealType, [description]);
+    const CHEF_DIET_VALIDATION_REQUIRED = ['vegan', 'vegetarian', 'pescatarian'];
+    const chefFallbackPrimaryDiet = dietType ? String(dietType).toLowerCase() : '';
     const fallbackMeal: UnifiedMeal = {
       id: fallback.id,
       name: fallback.name,
@@ -1637,7 +1705,9 @@ Create the recipe for: "${description}"`;
       difficulty: 'Easy',
       imageUrl: fallback.imageUrl,
       medicalBadges: [],
-      source: 'fallback'
+      source: 'fallback',
+      // Hard guarantee: unverified fallbacks are never vegan/veg/pesc compliant
+      dietaryComplianceVerified: CHEF_DIET_VALIDATION_REQUIRED.includes(chefFallbackPrimaryDiet) ? false : undefined,
     };
     
     return {
@@ -1689,6 +1759,23 @@ export async function generateSnackFromCravingUnified(
       }
     }
     
+    // Fetch dietary restrictions from user profile (vegan/vegetarian/pescatarian)
+    let snackDietRestrictions: string[] = [];
+    let snackDietBlock = '';
+    if (userId) {
+      try {
+        const [snackUser] = await db.select({ dietaryRestrictions: users.dietaryRestrictions })
+          .from(users).where(eq(users.id, userId)).limit(1);
+        snackDietRestrictions = (snackUser?.dietaryRestrictions as string[]) || [];
+        snackDietBlock = buildDietPromptBlock(snackDietRestrictions) || '';
+        if (snackDietBlock) {
+          console.log(`🥗 [SNACK] Dietary constraint enforced in prompt: ${snackDietRestrictions.join('|')}`);
+        }
+      } catch (err) {
+        console.warn('[SNACK] Could not fetch dietary restrictions:', err);
+      }
+    }
+
     const OpenAI = (await import('openai')).default;
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     
@@ -1716,7 +1803,7 @@ REQUIREMENTS:
 CARBOHYDRATE BREAKDOWN (CRITICAL):
 - starchyCarbs: Carbs from rice, pasta, bread, potatoes, grains, beans, corn, oats, crackers
 - fibrousCarbs: Carbs from vegetables, leafy greens, fruits, berries
-${snackHubCoupling?.promptFragment?.userPromptAddition || ''}
+${snackDietBlock}${snackHubCoupling?.promptFragment?.userPromptAddition || ''}
 🚨 U.S. MEASUREMENT RULES (CRITICAL - NO GRAMS ALLOWED):
 - Use ONLY these units: oz, lb, cup, tbsp, tsp, each, fl oz
 - NEVER use grams (g), milliliters (ml), or metric units for ANY ingredient
@@ -1776,6 +1863,10 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
     let finalSnackData: any = null;
     let snackAttemptCount = 0;
     let snackLastFixHint: string | null = null;
+    let snackSubstitutionPassUsed = false;
+    // undefined = no validation context (non-vegan/vegetarian/pescatarian or legacy path)
+    // true  = compliance confirmed   false = compliance failed / unresolvable
+    let snackDietaryComplianceVerified: boolean | undefined = undefined;
 
     while (snackAttemptCount < SNACK_MAX_REGENERATION_ATTEMPTS) {
       snackAttemptCount++;
@@ -1801,9 +1892,9 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
       const snackData = JSON.parse(content);
       const snackStarchyCarbs = typeof snackData.starchyCarbs === 'number' ? snackData.starchyCarbs : 0;
       const snackFibrousCarbs = typeof snackData.fibrousCarbs === 'number' ? snackData.fibrousCarbs : 0;
-      const snackTotalCarbs = snackData.carbs ?? ((snackStarchyCarbs ?? 0) + (snackFibrousCarbs ?? 0));
+      const snackTotalCarbs = (snackStarchyCarbs + snackFibrousCarbs) || snackData.carbs || 15;
       
-      const tempSnack: UnifiedMeal = {
+      let tempSnack: UnifiedMeal = {
         id: `snack-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         name: snackData.name,
         description: snackData.description,
@@ -1847,7 +1938,54 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
         }
       }
 
-      finalSnackData = { ...snackData, snackStarchyCarbs, snackFibrousCarbs, snackTotalCarbs };
+      // POST-GENERATION dietary validation for snacks (vegan / vegetarian / pescatarian)
+      const snackPrimaryDiet = getPrimaryDiet(snackDietRestrictions);
+      if (snackPrimaryDiet && ['vegan', 'vegetarian', 'pescatarian'].includes(snackPrimaryDiet)) {
+        let snackDietValidation = validateDietaryRestriction(
+          { name: tempSnack.name, ingredients: tempSnack.ingredients },
+          snackPrimaryDiet as DietaryMode,
+        );
+
+        if (!snackDietValidation.isValid || snackDietValidation.confidence === 'low') {
+          if (!snackSubstitutionPassUsed && snackDietValidation.violations.length > 0) {
+            snackSubstitutionPassUsed = true;
+            const { ingredients: subIngredients, substitutionsApplied } = applyDietarySubstitutions(
+              tempSnack.ingredients,
+              snackPrimaryDiet as DietaryMode,
+            );
+            if (substitutionsApplied.length > 0) {
+              console.log(`🔄 [DIET GUARD] Snack substitution pass for ${snackPrimaryDiet}: ${substitutionsApplied.map(s => `${s.original} → ${s.replacement}`).join(', ')}`);
+              tempSnack = { ...tempSnack, ingredients: subIngredients };
+              snackDietValidation = validateDietaryRestriction(
+                { name: tempSnack.name, ingredients: tempSnack.ingredients },
+                snackPrimaryDiet as DietaryMode,
+              );
+            }
+          }
+
+          if (!snackDietValidation.isValid || snackDietValidation.confidence === 'low') {
+            const snackViolationSummary = snackDietValidation.violations.join('; ');
+            console.warn(`⚠️ [DIET GUARD] Snack ${snackPrimaryDiet} violation — attempt ${snackAttemptCount}: ${snackViolationSummary}`);
+            if (snackAttemptCount < SNACK_MAX_REGENERATION_ATTEMPTS) {
+              snackLastFixHint = `DIETARY VIOLATION DETECTED. This user strictly follows a ${snackPrimaryDiet.toUpperCase()} diet. ` +
+                `Violations: ${snackViolationSummary}. ` +
+                `Regenerate a fully ${snackPrimaryDiet}-compliant snack. ` +
+                `FORBIDDEN: ${(RESTRICTION_EXPANSION[snackPrimaryDiet] || []).join(', ')}.`;
+              continue;
+            }
+            console.error(`❌ [DIET GUARD] Snack ${snackPrimaryDiet} compliance unresolvable — badge suppressed`);
+            snackDietaryComplianceVerified = false;
+          } else {
+            console.log(`✅ [DIET GUARD] Snack ${snackPrimaryDiet} compliance confirmed after substitution — confidence: ${snackDietValidation.confidence}`);
+            snackDietaryComplianceVerified = true;
+          }
+        } else {
+          console.log(`✅ [DIET GUARD] Snack ${snackPrimaryDiet} compliance confirmed — confidence: ${snackDietValidation.confidence}`);
+          snackDietaryComplianceVerified = true;
+        }
+      }
+
+      finalSnackData = { ...snackData, snackStarchyCarbs, snackFibrousCarbs, snackTotalCarbs, tempSnackIngredients: tempSnack.ingredients };
       break;
     }
     
@@ -1877,15 +2015,17 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
       console.warn('⚠️ DALL-E image generation failed for snack, using fallback:', imgError);
     }
     
+    const snackIngredients = finalSnackData.tempSnackIngredients || (finalSnackData.ingredients || []).map((ing: any) => ({
+      name: ing.name,
+      quantity: String(ing.quantity || ''),
+      unit: ing.unit || ''
+    }));
+
     const unifiedSnack: UnifiedMeal = {
       id: `snack-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: finalSnackData.name,
       description: finalSnackData.description,
-      ingredients: (finalSnackData.ingredients || []).map((ing: any) => ({
-        name: ing.name,
-        quantity: String(ing.quantity || ''),
-        unit: ing.unit || ''
-      })),
+      ingredients: snackIngredients,
       instructions: finalSnackData.instructions,
       calories: finalSnackData.calories || 150,
       protein: finalSnackData.protein || 8,
@@ -1897,8 +2037,13 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
       difficulty: 'Easy',
       imageUrl,
       medicalBadges: [],
-      source: 'ai'
+      source: 'ai',
+      dietaryComplianceVerified: snackDietaryComplianceVerified,
     };
+    
+    if (snackDietaryComplianceVerified) {
+      console.log(`🌿 [DIET GUARD] ${getPrimaryDiet(snackDietRestrictions)} snack badge authorized for: ${unifiedSnack.name}`);
+    }
     
     console.log(`✅ Snack Creator generated complete snack: ${unifiedSnack.name}`);
     
@@ -1914,6 +2059,8 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
     
     // Fallback to deterministic template for snacks
     const fallback = getDeterministicFallback('snack', [cravingDescription]);
+    const SNACK_DIET_VALIDATION_REQUIRED = ['vegan', 'vegetarian', 'pescatarian'];
+    const snackFallbackPrimaryDiet = dietType ? String(dietType).toLowerCase() : '';
     const fallbackSnack: UnifiedMeal = {
       id: fallback.id,
       name: fallback.name,
@@ -1930,7 +2077,9 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
       difficulty: 'Easy',
       imageUrl: fallback.imageUrl,
       medicalBadges: [],
-      source: 'fallback'
+      source: 'fallback',
+      // Hard guarantee: unverified fallbacks are never vegan/veg/pesc compliant
+      dietaryComplianceVerified: snackFallbackPrimaryDiet && SNACK_DIET_VALIDATION_REQUIRED.includes(snackFallbackPrimaryDiet) ? false : undefined,
     };
     
     return {

@@ -88,6 +88,7 @@ interface MealData {
     color: string;
   }>;
   imageUrl?: string;
+  dietaryComplianceVerified?: boolean;
 }
 
 // ============================================================
@@ -539,7 +540,10 @@ export default function CreateDishPage() {
                     
                     Create a Dish
                   </CardTitle>
-                
+                  <p className="text-sm text-white/60 mt-1">
+                    Tell Chef what you want to cook and let AI build the perfect
+                    recipe for you.
+                  </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
@@ -855,7 +859,7 @@ export default function CreateDishPage() {
                       )}
 
                       <div className="mb-3">
-                        <DietStyleBadge mealCompliant={meal?.dietaryComplianceVerified ?? true} />
+                        <DietStyleBadge mealCompliant={meal.dietaryComplianceVerified} />
                       </div>
 
                       <p className="text-white/90 mb-4">{meal.description}</p>

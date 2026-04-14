@@ -427,6 +427,14 @@ const libraryTopics: LibraryTopic[] = [
           heading: "Why This Matters",
           text: "Foods do not cause weight gain. Context does.\n\nYou can gain weight with healthy foods and lose weight while eating foods people call unhealthy. What matters is portion size, frequency, and direction.\n\nStarch Guard removes food guilt and replaces it with structure. It allows enjoyment without loss of control. It helps you eat freely while still moving forward.\n\nThat is the strategy.",
         },
+        {
+          heading: "Why Timing Matters",
+          text: "The app distributes starchy carbs intentionally — not just how many, but when.\n\nThink of your body like a business. During the day it is open and running operations. It can put starchy carbs to work for energy, focus, and performance. At night it shifts into a different mode — one focused on cleaning, repairing, and resetting.\n\nIf you keep sending energy demands in late at night, it can interfere with that recovery process. This is why concentrating starchy carbs earlier in the day can support your energy during active hours, your recovery while you sleep, and your overall sleep quality.\n\nLate fast-digesting carbs may keep your body metabolically active when it is supposed to be winding down. Shifting them earlier gives your system the space it needs to do its overnight work.",
+        },
+        {
+          heading: "This Is a Strategy, Not a Restriction",
+          text: "Starch timing is not a rule. It is a framework.\n\nIf you train late in the evening, your body has different energy demands at night. If your schedule works better with carbs distributed differently, that flexibility is built in.\n\nYou can choose One Starch Meal — which concentrates starchy carbs into a single meal — or Flex Split — which spreads them across two meals. Either way, the system adapts to your life.\n\nThe goal is to give your body what it needs, when it needs it. Not to restrict. Not to frustrate. To support.",
+        },
       ],
     },
   },

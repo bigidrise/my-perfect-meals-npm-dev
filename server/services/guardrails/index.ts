@@ -6,6 +6,7 @@
  */
 
 import type { DietType, GuardrailRequest, GuardrailResult, ValidationResult, BeachBodyPhase } from './types';
+import { validateDietaryRestriction, type DietaryMode } from './validators/dietaryRestrictionValidator';
 import { antiInflammatoryRules } from './rules/antiInflammatoryRules';
 import { buildAntiInflammatoryPrompt, buildAntiInflammatorySnackPrompt, getAntiInflammatorySystemPrompt } from './prompt/antiInflammatoryPromptBuilder';
 import { validateAntiInflammatoryMeal, getValidationSummary } from './validators/antiInflammatoryValidator';
@@ -306,6 +307,35 @@ export function validateMealForDiet(
         glp1Result.violations.forEach(v => console.log(`  ⚠️ ${v}`));
       }
       return glp1Result;
+
+    case 'vegan':
+    case 'vegetarian':
+    case 'pescatarian': {
+      const dietaryResult = validateDietaryRestriction(
+        {
+          name: meal.name,
+          ingredients: meal.ingredients,
+          instructions: meal.instructions,
+        },
+        dietType as DietaryMode,
+      );
+      if (dietaryResult.violations.length > 0) {
+        console.log(`🌿 ${dietType.charAt(0).toUpperCase() + dietType.slice(1)} Validation: ${dietaryResult.violations.length} violation(s) found — confidence: ${dietaryResult.confidence}`);
+        dietaryResult.dietaryViolations.forEach(v =>
+          console.log(`  ⚠️ [${v.severity.toUpperCase()}] ${v.reason}`)
+        );
+      } else {
+        console.log(`✅ ${dietType.charAt(0).toUpperCase() + dietType.slice(1)} Validation: passed — confidence: ${dietaryResult.confidence}`);
+      }
+      return {
+        isValid: dietaryResult.isValid && dietaryResult.confidence !== 'low',
+        violations: dietaryResult.violations,
+        blockedIngredients: dietaryResult.blockedIngredients ?? [],
+        warnings: dietaryResult.confidence === 'low'
+          ? ['Meal contains unverifiable ingredients — compliance cannot be confirmed']
+          : undefined,
+      };
+    }
 
     default:
       return {

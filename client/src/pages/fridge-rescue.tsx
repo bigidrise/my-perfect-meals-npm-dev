@@ -990,7 +990,7 @@ const FridgeRescuePage = () => {
               )}
 
               <div className="mb-4">
-                <DietStyleBadge mealCompliant={true} />
+                <DietStyleBadge />
               </div>
 
               <div className="grid grid-cols-1 gap-6 mb-8 max-w-2xl mx-auto">

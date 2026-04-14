@@ -215,16 +215,6 @@ export default function MealFinder() {
     hasCachedResults ? "results" : "entry",
   );
 
-  // Speak entry script on mount (if starting fresh)
-  useEffect(() => {
-    if (guidedStep === "entry" && !hasSpokenEntryRef.current) {
-      hasSpokenEntryRef.current = true;
-      const timer = setTimeout(() => {
-        speak(FIND_MY_MEAL_ENTRY);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [guidedStep, speak]);
 
   useEffect(() => {
     if (hasRestoredRef.current) return;

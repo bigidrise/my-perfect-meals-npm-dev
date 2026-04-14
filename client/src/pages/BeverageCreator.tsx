@@ -653,7 +653,7 @@ export default function BeverageCreator() {
                   </div>
 
                   <div className="mb-3">
-                    <DietStyleBadge mealCompliant={generatedBeverage?.dietaryComplianceVerified ?? true} />
+                    <DietStyleBadge mealCompliant={generatedBeverage.dietaryComplianceVerified} />
                   </div>
 
                   <p className="text-white/90 mb-4">
