@@ -26,7 +26,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/biometrics": "My Biometrics",
   "/biometrics/body-composition": "Body Composition",
   "/biometrics/sleep": "Sleep Tracker",
-  "/planner": "Meal Planner",
+  "/builders": "Meal Builders",
   "/get-inspiration": "Daily Journal & Inspiration",
   "/pricing": "Plans & Pricing",
   "/lifestyle": "Lifestyle Hub",

@@ -47,7 +47,7 @@ function BuilderAccessGuard({ builderKey, component: Component }: { builderKey: 
 
 // Plan Builder Pages
 // DELETED: PlanBuilderTurbo, PlanBuilderHub, CompetitionBeachbodyBoard
-import Planner from "@/pages/Planner";
+import Builders from "@/pages/Builders";
 import WeeklyMealBoard from "@/pages/WeeklyMealBoard";
 import BeachBodyMealBoard from "@/pages/BeachBodyMealBoard";
 import MacroCounter from "@/pages/MacroCalculator";
@@ -203,7 +203,7 @@ const SafeBiometrics = withPageErrorBoundary(MyBiometrics, "Biometrics");
 const SafeBodyComposition = withPageErrorBoundary(BodyComposition, "Body Composition");
 const SafeSleep = withPageErrorBoundary(Sleep, "Sleep Tracking");
 const SafeWeeklyMealBoard = withPageErrorBoundary(WeeklyMealBoard, "Weekly Meal Board");
-const SafePlanner = withPageErrorBoundary(Planner, "Planner");
+const SafeBuilders = withPageErrorBoundary(Builders, "Builders");
 const SafeShoppingList = withPageErrorBoundary(ShoppingListMasterView, "Shopping List");
 const SafeMore = withPageErrorBoundary(MorePage, "More");
 const SafeCareTeam = withPageErrorBoundary(CareTeam, "Care Team");
@@ -466,7 +466,8 @@ export default function Router() {
         {/* DELETED: TemplateHub route */}
         <Route path="/weekly" component={GuardedWeeklyMealBoard} />
         {/* DELETED: PlanBuilderTurbo, ProteinPlannerPage, PlanBuilderHub, CompetitionBeachbodyBoard routes */}
-        <Route path="/planner" component={SafePlanner} />
+        <Route path="/builders" component={SafeBuilders} />
+        <Route path="/planner">{() => { window.location.replace("/builders"); return null; }}</Route>
         <Route path="/weekly-meal-board" component={GuardedWeeklyMealBoard} />
         <Route path="/beach-body-meal-board" component={GuardedBeachBodyBuilder} />
         {/* Legacy redirects - redirect Classic Builder to Weekly Meal Board */}
