@@ -447,7 +447,7 @@ export default function PricingPage() {
               </a>
               {" · "}
               <button
-                onClick={() => setLocation("/privacy-policy")}
+                onClick={() => window.location.href = "/privacy-policy"}
                 className="text-white/50 underline hover:text-white/70"
               >
                 Privacy Policy
@@ -1034,7 +1034,7 @@ export default function PricingPage() {
                 Terms of Service
               </button>
               <button
-                onClick={() => setLocation("/privacy-policy")}
+                onClick={() => window.location.href = "/privacy-policy"}
                 className="text-lime-400 underline hover:text-lime-300"
               >
                 Privacy Policy
@@ -1145,7 +1145,7 @@ export default function PricingPage() {
             </a>
             {" · "}
             <button
-              onClick={() => setLocation("/privacy-policy")}
+              onClick={() => window.location.href = "/privacy-policy"}
               className="text-white/50 underline hover:text-white/70"
             >
               Privacy Policy

@@ -255,13 +255,19 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
     }
   };
 
+  const LEGAL_ROUTES = ["/privacy-policy", "/terms", "/terms-of-service"];
+
   const handleMenuItemClick = (item: (typeof menuItems)[0]) => {
     if (item.action === "restorePurchases") {
       handleRestorePurchases();
     } else if (item.action === "contactSupport") {
       window.open("mailto:support@myperfectmeals.com?subject=My Perfect Meals Feedback", "_blank");
     } else if (item.route) {
-      setLocation(item.route);
+      if (LEGAL_ROUTES.includes(item.route)) {
+        window.location.href = item.route;
+      } else {
+        setLocation(item.route);
+      }
     }
   };
 

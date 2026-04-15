@@ -70,7 +70,7 @@ export default function PrivacySecurity() {
               Review how My Perfect Meals handles and protects your data.
             </p>
             <button
-              onClick={() => setLocation("/privacy-policy")}
+              onClick={() => window.location.href = "/privacy-policy"}
               className="text-lime-400 underline hover:text-lime-300"
             >
               View Privacy Policy
