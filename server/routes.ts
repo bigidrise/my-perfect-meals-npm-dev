@@ -899,6 +899,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // ── Load protocol envelope for full enforcement ────────────────────────
+      const fridgeProtocolEnvelope = await loadUserProtocolEnvelope(userId).catch(() => null)
+        ?? buildGuestEnvelope();
+
       // Generate multiple meals with proper macros and amounts
       const meals = await generateFridgeRescueMeals({ 
         fridgeItems, 
@@ -907,16 +911,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         macroTargets,
         skipPalate,
         palatePrefs: palatePrefs as any,
-        strictMode: strictMode === true
+        strictMode: strictMode === true,
+        protocolEnvelope: fridgeProtocolEnvelope,
       });
+
+      // ── Post-generation protocol scan (ingredient + instruction level) ──────
+      const cleanFridgeMeals = filterMealsByProtocol(meals, fridgeProtocolEnvelope, {
+        generatorName: "fridge_rescue",
+      });
+
+      if (cleanFridgeMeals.length === 0 && meals.length > 0) {
+        console.log(`⚠️ [FRIDGE] All generated meals violated protocol — returning error`);
+        return res.status(400).json({
+          error: "PROTOCOL_VIOLATION_ALL_MEALS",
+          message: "All generated meals contained ingredients or preparation steps that conflict with your dietary protocol. Please try different fridge items.",
+          retryable: true,
+        });
+      }
+
+      if (cleanFridgeMeals.length < meals.length) {
+        console.log(`⚠️ [FRIDGE] Removed ${meals.length - cleanFridgeMeals.length} violating meal(s) — serving ${cleanFridgeMeals.length}`);
+      }
 
       const { recordGeneration } = await import("./services/aiHealthMetrics");
       const durationMs = Date.now() - startTime;
       recordGeneration('/api/meals/fridge-rescue', 'ai', durationMs);
 
-      console.log("[FRIDGE] ok returning", meals.length, "meals");
+      console.log("[FRIDGE] ok returning", cleanFridgeMeals.length, "meals");
       res.json({
-        meals,
+        meals: cleanFridgeMeals,
         quota: {
           remaining: quotaCheck.remaining,
           limit: quotaCheck.limit,

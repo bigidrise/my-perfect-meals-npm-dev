@@ -7,6 +7,7 @@ import { buildPalateSection, PalatePreferences, buildStrictModeBlock } from './p
 import { getBaselineMacroPrompt } from './guardrails/promptPolicyGate';
 import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 import { buildDietPromptBlock, violatesDietaryConstraints } from './allergyGuardrails';
+import { enforceBeforeGenerate, UserProtocolEnvelope } from './protocolEnvelope';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -130,6 +131,9 @@ interface FridgeRescueRequest {
   skipPalate?: boolean;
   palatePrefs?: PalatePreferences;
   strictMode?: boolean;
+  /** Protocol envelope — when provided, replaces the loose diet block with full
+   *  ingredient + combination + instruction-level enforcement. */
+  protocolEnvelope?: UserProtocolEnvelope;
 }
 
 // Medical condition compatibility checker - using correct badge format
@@ -193,7 +197,7 @@ function getMedicalBadges(meal: any, userConditions: string[] = []): Array<{
 }
 
 export async function generateFridgeRescueMeals(request: FridgeRescueRequest): Promise<FridgeRescueMeal[]> {
-  const { fridgeItems, user, servings = 2, macroTargets, skipPalate, palatePrefs, strictMode = false } = request;
+  const { fridgeItems, user, servings = 2, macroTargets, skipPalate, palatePrefs, strictMode = false, protocolEnvelope } = request;
   const userConditions = user?.healthConditions || [];
   
   // 🎨 PALATE PREFERENCES: Build flavor guidance section
@@ -236,11 +240,27 @@ export async function generateFridgeRescueMeals(request: FridgeRescueRequest): P
   const medicalConditionsText = userConditions.length > 0 ? 
     `\n\nIMPORTANT: The user has these medical conditions: ${userConditions.join(", ")}. Ensure all meal recommendations are safe and appropriate for these conditions.` : "";
 
-  // DIETARY HARD CONSTRAINT (vegan/vegetarian/pescatarian)
-  const userDietaryRestrictions = user?.dietaryRestrictions || [];
-  const fridgeDietBlock = buildDietPromptBlock(userDietaryRestrictions as string[]);
-  if (fridgeDietBlock) {
-    console.log(`🥗 [FRIDGE] Dietary constraint enforced: ${userDietaryRestrictions.join("|")}`);
+  // ── PROTOCOL ENFORCEMENT BLOCK ────────────────────────────────────────────
+  // If a protocol envelope was passed from the route, use it to build the full
+  // enforcement block (ingredient + combination + procedural/instruction level).
+  // Otherwise fall back to the loose diet block from user.dietaryRestrictions
+  // (which is typically empty since the route didn't used to pass it).
+  let fridgeEnforcementBlock = '';
+  if (protocolEnvelope) {
+    const promptBlock = enforceBeforeGenerate(protocolEnvelope, {
+      generatorName: 'fridge_rescue',
+    });
+    fridgeEnforcementBlock = promptBlock.combined;
+    if (promptBlock.hasRestrictions) {
+      console.log(`🔒 [FRIDGE] Protocol enforcement active: identity=[${protocolEnvelope.dietaryIdentity.join(',')}] allergies=[${protocolEnvelope.allergies.join(',')}] avoidances=[${protocolEnvelope.avoidances.length} items]`);
+    }
+  } else {
+    // Legacy fallback — rarely populated since route passed no dietaryRestrictions
+    const userDietaryRestrictions = user?.dietaryRestrictions || [];
+    fridgeEnforcementBlock = buildDietPromptBlock(userDietaryRestrictions as string[]);
+    if (fridgeEnforcementBlock) {
+      console.log(`🥗 [FRIDGE] Fallback diet block: ${userDietaryRestrictions.join('|')}`);
+    }
   }
 
   // 🎯 Add macro targeting instructions if targets provided
@@ -267,7 +287,7 @@ This is for athlete meal planning - precision is critical for contest preparatio
 ` : "";
 
   const prompt = `You are a creative chef helping someone make meals with limited ingredients from their fridge.
-${fridgeDietBlock ? `\n${fridgeDietBlock}\n` : ""}${strictMode ? `\n${buildStrictModeBlock(fridgeItems.join(", "))}\n` : ""}
+${fridgeEnforcementBlock ? `\n${fridgeEnforcementBlock}\n` : ""}${strictMode ? `\n${buildStrictModeBlock(fridgeItems.join(", "))}\n` : ""}
 TASK: Create 3 different, realistic meals using ONLY these ingredients: ${fridgeItems.join(', ')}
 Each meal should be portioned for ${servings} serving${servings > 1 ? 's' : ''}. Scale all ingredient quantities and nutritional values accordingly.
 ${macroTargetingText}
