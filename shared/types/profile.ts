@@ -1,7 +1,7 @@
 export type DietType =
   | 'balanced' | 'keto' | 'low_carb' | 'low_fat' | 'mediterranean'
   | 'paleo' | 'vegan' | 'vegetarian' | 'pescatarian' | 'gluten_free'
-  | 'dairy_free' | 'custom';
+  | 'dairy_free' | 'kosher' | 'halal' | 'custom';
 
 export type Condition =
   | 'type1_diabetes' | 'type2_diabetes' | 'celiac' | 'crohns'

@@ -88,8 +88,18 @@ const DIET_OPTIONS = [
   { label: "Vegan", value: "vegan" },
   { label: "Vegetarian", value: "vegetarian" },
   { label: "Pescatarian", value: "pescatarian" },
+  { label: "Kosher", value: "kosher" },
+  { label: "Halal", value: "halal" },
   { label: "Custom", value: "custom" },
 ];
+
+const DIETARY_IDENTITY_HINTS: Record<string, string> = {
+  kosher: "Meals will follow ingredient, preparation, and combination rules — including no meat with dairy and no pork or shellfish.",
+  halal: "Meals will follow ingredient and preparation rules — including no pork, no alcohol in cooking, and certified meat sourcing.",
+  vegan: "All meals will be fully plant-based — no meat, dairy, eggs, or animal byproducts.",
+  vegetarian: "Meals will contain no meat or seafood. Dairy and eggs are included.",
+  pescatarian: "Meals will contain no land-based meat. Fish and seafood are included.",
+};
 
 const BUILDER_OPTIONS = [
   { id: "weekly", name: "Weekly Meal Builder", description: "Balanced, healthy meals for everyday life" },
@@ -802,13 +812,20 @@ export default function OnboardingV3() {
                 </PillButton>
               ))}
             </div>
+            {DIETARY_IDENTITY_HINTS[dietaryStyle] && (
+              <div className="max-w-sm mx-auto animate-in fade-in slide-in-from-bottom-2 duration-200">
+                <p className="text-center text-xs text-white/50 leading-relaxed px-2">
+                  {DIETARY_IDENTITY_HINTS[dietaryStyle]}
+                </p>
+              </div>
+            )}
             {dietaryStyle === "custom" && (
               <div className="max-w-sm mx-auto animate-in fade-in slide-in-from-bottom-2 duration-200">
                 <input
                   type="text"
                   value={customDietInput}
                   onChange={(e) => setCustomDietInput(e.target.value)}
-                  placeholder="e.g. Whole30, raw food, halal..."
+                  placeholder="e.g. Whole30, raw food, flexitarian..."
                   className="w-full bg-black/40 border border-white/20 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/60 placeholder:text-white/30"
                   autoFocus
                 />

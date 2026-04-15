@@ -6,6 +6,14 @@ interface DietBadgeProps {
 }
 
 const DIET_CONFIG: Record<string, { label: string; colors: string }> = {
+  kosher: {
+    label: "Kosher",
+    colors: "bg-amber-900/40 border-amber-500/50 text-amber-300",
+  },
+  halal: {
+    label: "Halal",
+    colors: "bg-teal-900/40 border-teal-500/50 text-teal-300",
+  },
   vegan: {
     label: "Vegan",
     colors: "bg-green-900/40 border-green-500/50 text-green-400",
