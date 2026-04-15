@@ -60,7 +60,7 @@ function MacroTargetSyncMount() {
 export default function App() {
   const [isAppReady, setIsAppReady] = useState(false);
   const [, setLocation] = useLocation();
-  const showUpdate = useUpdateCheck();
+  const { hasUpdate: showUpdate } = useUpdateCheck();
 
   useEffect(() => {
     setNavigationHandler((path) => {
