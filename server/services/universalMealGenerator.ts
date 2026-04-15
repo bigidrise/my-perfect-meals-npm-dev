@@ -6,7 +6,26 @@ import { randomUUID } from "crypto";
 import * as telemetry from "./aiTelemetry";
 import type { DebugMetadata } from "./aiTelemetry";
 import { getBaselineMacroPrompt } from "./guardrails/promptPolicyGate";
-import { buildDietPromptBlock, violatesDietaryConstraints } from "./allergyGuardrails";
+import { buildDietPromptBlock, violatesDietaryConstraints, AVOIDANCE_EXPANSION } from "./allergyGuardrails";
+
+/** Expand user avoidance categories into concrete ingredient lists for prompt injection. */
+function buildAvoidancePromptBlock(avoidIngredients: string[] | undefined): string {
+  if (!avoidIngredients?.length) return "";
+  const expanded = new Set<string>();
+  for (const item of avoidIngredients) {
+    const key = item.trim().toLowerCase();
+    expanded.add(key);
+    const mapped = AVOIDANCE_EXPANSION[key];
+    if (mapped) mapped.forEach(t => expanded.add(t));
+  }
+  const list = Array.from(expanded).join(", ");
+  return `
+⛔ FOODS TO AVOID — ABSOLUTE RULE (overrides everything, including the user's craving name):
+The user has explicitly marked these foods/ingredients as things they do not eat: ${list}
+- You MUST NOT include any of these in the meal — not as a main ingredient, not as a seasoning, not as a garnish.
+- If the user's craving request names an avoided ingredient (e.g. "BLT sandwich" when pork is avoided), substitute with a compliant alternative (e.g. turkey bacon) and keep the spirit of the dish.
+- There are NO exceptions to this rule.`;
+}
 
 let openai: OpenAI | null = null;
 
@@ -90,6 +109,7 @@ export async function generateMealFromPrompt(prompt: string, mealType: MealType,
   // Build dietary constraint block (empty string if no diet restriction)
   const dietaryRestrictions = userPrefs?.dietaryRestrictions || [];
   const dietPromptBlock = buildDietPromptBlock(dietaryRestrictions);
+  const avoidanceBlock = buildAvoidancePromptBlock(userPrefs?.avoidIngredients);
 
   let gptResponse;
   try {
@@ -101,6 +121,7 @@ export async function generateMealFromPrompt(prompt: string, mealType: MealType,
           role: "system",
           content: `You are a certified meal planning nutritionist. Create healthy, realistic meals using US standard measurements (oz, cups, tbsp, tsp, pounds).
 ${dietPromptBlock ? `\n${dietPromptBlock}\n` : ""}
+${avoidanceBlock}
 ${getBaselineMacroPrompt({ builderType: "general", dietType: dietaryRestrictions[0] ?? "general", mealType: mealType })}
 
 Format your response as:
