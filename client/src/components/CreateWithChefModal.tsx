@@ -481,20 +481,15 @@ export function CreateWithChefModal({
               )}
 
               <div className="flex gap-3 pt-2">
-                <Button
-                  className="flex-1 bg-lime-600 hover:bg-lime-600 text-white"
-                  onClick={handleGenerate}
-                  disabled={isProcessing || !description.trim()}
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      {safetyChecking ? "Checking..." : "Generating..."}
-                    </>
-                  ) : (
-                    <>Generate AI Meal</>
-                  )}
-                </Button>
+                {!isProcessing && (
+                  <Button
+                    className="flex-1 bg-lime-600 hover:bg-lime-600 text-white"
+                    onClick={handleGenerate}
+                    disabled={!description.trim()}
+                  >
+                    Generate AI Meal
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   className="flex-3 bg-black/60 backdrop-blur border-white/30 text-white active:border-white active:bg-black/80"

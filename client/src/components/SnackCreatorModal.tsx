@@ -8,8 +8,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import { Cookie, Loader2 } from "lucide-react";
+import { Cookie } from "lucide-react";
+import BreathingOrb from "@/components/BreathingOrb";
 import { useSnackCreatorRequest, DietType, BeachBodyPhase } from "@/hooks/useSnackCreatorRequest";
 import { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { useToast } from "@/hooks/use-toast";
@@ -220,12 +220,8 @@ export function SnackCreatorModal({
           )}
 
           {isProcessing && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-white/70">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {checking ? "Checking safety profile..." : "Creating your snack..."}
-              </div>
-              <Progress value={checking ? 30 : progress} className="h-2" />
+            <div className="flex justify-center">
+              <BreathingOrb label={checking ? "Checking safety profile…" : "Chef is preparing your snack…"} />
             </div>
           )}
 
@@ -260,20 +256,15 @@ export function SnackCreatorModal({
           </div>
 
           <div className="flex gap-3 pt-2">
-            <Button
-              className="flex-1 bg-lime-600 hover:bg-lime-500 text-white"
-              onClick={handleGenerate}
-              disabled={isProcessing || !description.trim()}
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {checking ? "Checking..." : "Creating..."}
-                </>
-              ) : (
-                <>Create Healthy Snack</>
-              )}
-            </Button>
+            {!isProcessing && (
+              <Button
+                className="flex-1 bg-lime-600 hover:bg-lime-500 text-white"
+                onClick={handleGenerate}
+                disabled={!description.trim()}
+              >
+                Create Healthy Snack
+              </Button>
+            )}
             <Button
               variant="outline"
               className="bg-black/60 backdrop-blur border-white/30 text-white"
