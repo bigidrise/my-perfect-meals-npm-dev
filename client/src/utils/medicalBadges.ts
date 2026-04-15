@@ -138,6 +138,54 @@ export function generateMedicalBadges(meal: any, userProfile: UserProfile): Medi
   dietaryRestrictions.forEach((restriction: string) => {
     const restrictionLower = restriction.toLowerCase();
     
+    if (restrictionLower.includes('kosher')) {
+      const KOSHER_FORBIDDEN = ['pork', 'bacon', 'ham', 'lard', 'shrimp', 'crab', 'lobster', 'clam', 'oyster', 'shellfish', 'scallop'];
+      const MEAT_TERMS = ['chicken', 'beef', 'lamb', 'turkey', 'veal', 'steak', 'brisket', 'meat'];
+      const DAIRY_TERMS = ['cheese', 'butter', 'cream', 'milk', 'yogurt', 'ghee'];
+      const hasForbidden = mealIngredients.some((i: string) => KOSHER_FORBIDDEN.some(f => i.includes(f)))
+        || KOSHER_FORBIDDEN.some(f => mealName.includes(f) || mealDescription.includes(f));
+      const hasMeatDairyMix = MEAT_TERMS.some(m => mealIngredients.some((i: string) => i.includes(m)) || mealName.includes(m))
+        && DAIRY_TERMS.some(d => mealIngredients.some((i: string) => i.includes(d)));
+      if (hasForbidden) {
+        badges.push({
+          badge: '❌ Not Kosher — Forbidden Ingredient',
+          explanation: 'This meal contains an ingredient that is not permitted under kosher law.',
+          type: 'alert'
+        });
+      } else if (hasMeatDairyMix) {
+        badges.push({
+          badge: '❌ Not Kosher — Meat & Dairy Mixed',
+          explanation: 'Mixing meat and dairy in the same meal violates kosher law (basar b\'chalav).',
+          type: 'alert'
+        });
+      } else {
+        badges.push({
+          badge: '✅ Kosher Compliant',
+          explanation: 'This meal does not contain known kosher violations. Confirm certification with your supplier.',
+          type: 'safe'
+        });
+      }
+    }
+
+    if (restrictionLower.includes('halal')) {
+      const HALAL_FORBIDDEN = ['pork', 'bacon', 'ham', 'lard', 'pepperoni', 'wine', 'beer', 'alcohol', 'sake', 'rum', 'bourbon', 'brandy'];
+      const hasForbidden = mealIngredients.some((i: string) => HALAL_FORBIDDEN.some(f => i.includes(f)))
+        || HALAL_FORBIDDEN.some(f => mealName.includes(f) || mealDescription.includes(f));
+      if (hasForbidden) {
+        badges.push({
+          badge: '❌ Not Halal — Forbidden Ingredient',
+          explanation: 'This meal contains an ingredient that is not permitted under halal law.',
+          type: 'alert'
+        });
+      } else {
+        badges.push({
+          badge: '✅ Halal Compliant',
+          explanation: 'This meal does not contain known halal violations. Confirm meat certification with your supplier.',
+          type: 'safe'
+        });
+      }
+    }
+
     if (restrictionLower.includes('vegetarian')) {
       const hasMeat = mealIngredients.some((ingredient: string) =>
         ['chicken', 'beef', 'pork', 'fish', 'turkey', 'lamb', 'bacon', 'ham'].some(meat => ingredient.includes(meat))

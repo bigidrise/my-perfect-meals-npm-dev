@@ -55,16 +55,20 @@ import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 const DIET_PILL_CONFIG: Record<string, { label: string; color: string }> = {
-  keto:          { label: "Keto (Verify Prep)",          color: "bg-purple-500/20 border-purple-400/40 text-purple-300" },
-  vegan:         { label: "Vegan (Verify Prep)",          color: "bg-green-500/20 border-green-400/40 text-green-300" },
-  vegetarian:    { label: "Vegetarian (Verify Prep)",     color: "bg-emerald-500/20 border-emerald-400/40 text-emerald-300" },
-  pescatarian:   { label: "Pescatarian (Verify Prep)",    color: "bg-blue-500/20 border-blue-400/40 text-blue-300" },
-  mediterranean: { label: "Mediterranean (Verify Prep)",  color: "bg-amber-500/20 border-amber-400/40 text-amber-300" },
-  paleo:         { label: "Paleo (Verify Prep)",          color: "bg-orange-500/20 border-orange-400/40 text-orange-300" },
-  custom:        { label: "Custom Diet (Verify Prep)",    color: "bg-pink-500/20 border-pink-400/40 text-pink-300" },
+  kosher:        { label: "Kosher (Verify Certification)", color: "bg-amber-500/20 border-amber-400/40 text-amber-300" },
+  halal:         { label: "Halal (Verify Certification)",  color: "bg-teal-500/20 border-teal-400/40 text-teal-300" },
+  keto:          { label: "Keto (Verify Prep)",            color: "bg-purple-500/20 border-purple-400/40 text-purple-300" },
+  vegan:         { label: "Vegan (Verify Prep)",           color: "bg-green-500/20 border-green-400/40 text-green-300" },
+  vegetarian:    { label: "Vegetarian (Verify Prep)",      color: "bg-emerald-500/20 border-emerald-400/40 text-emerald-300" },
+  pescatarian:   { label: "Pescatarian (Verify Prep)",     color: "bg-blue-500/20 border-blue-400/40 text-blue-300" },
+  mediterranean: { label: "Mediterranean (Verify Prep)",   color: "bg-amber-500/20 border-amber-400/40 text-amber-300" },
+  paleo:         { label: "Paleo (Verify Prep)",           color: "bg-orange-500/20 border-orange-400/40 text-orange-300" },
+  custom:        { label: "Custom Diet (Verify Prep)",     color: "bg-pink-500/20 border-pink-400/40 text-pink-300" },
 };
 
 const DIET_QUALIFIER_MAP: Record<string, string> = {
+  kosher:        "Confirm kosher certification with the restaurant",
+  halal:         "Confirm halal certification with the restaurant",
   keto:          "Low-carb, high-fat options available",
   vegan:         "Plant-forward options",
   vegetarian:    "Meat-free options available",
@@ -266,11 +270,16 @@ export default function MealFinder() {
       if (newResults.length === 0) {
         // Return to search step so user can try again — don't strand them on a blank screen
         setGuidedStep("step2");
+        const identityDiets = new Set(["kosher", "halal", "vegan", "vegetarian", "pescatarian"]);
+        const isIdentityDiet = identityDiets.has(userDiet);
+        const emptyDesc = rawResults.length > 0
+          ? isIdentityDiet
+            ? `No ${userDiet}-compliant meals were found nearby. Try searching for ${userDiet}-friendly cuisine or expanding your ZIP radius.`
+            : `No results matched your ${userDiet} diet. Try a different craving.`
+          : (data.message || "Nothing matched that search near your ZIP. Try a different craving or expand your search.");
         toast({
           title: "No Meals Found",
-          description: rawResults.length > 0
-            ? `No results matched your ${userDiet} diet. Try a different craving.`
-            : (data.message || "Nothing matched that search near your ZIP. Try a different craving or expand your search."),
+          description: emptyDesc,
           variant: "destructive",
         });
       } else {

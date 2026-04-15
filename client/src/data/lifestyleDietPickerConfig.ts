@@ -6,7 +6,9 @@ export type LifestyleDietKey =
   | "pescatarian"
   | "paleo"
   | "keto"
-  | "flexitarian";
+  | "flexitarian"
+  | "kosher"
+  | "halal";
 
 interface DietIngredients {
   proteins: string[];
@@ -681,6 +683,228 @@ export const lifestyleDietPickerConfig: Record<LifestyleDietKey, DietIngredients
         "Chocolate peanut butter cup",
         "Keto cheesecake bite",
         "Coconut fat bomb"
+      ]
+    }
+  },
+  kosher: {
+    proteins: [
+      "Chicken Breast (kosher-certified)",
+      "Lean Beef (kosher-certified)",
+      "Ground Beef (kosher-certified)",
+      "Lamb (kosher-certified)",
+      "Turkey Breast (kosher-certified)",
+      "Salmon",
+      "Tuna",
+      "Cod",
+      "Eggs",
+      "Lentils",
+      "Chickpeas",
+      "Black Beans",
+      "Edamame"
+    ],
+    starchyCarbs: [
+      "Quinoa",
+      "Brown Rice",
+      "Oats",
+      "Sweet Potato",
+      "Regular Potato",
+      "Whole Wheat Pasta",
+      "Whole Wheat Bread (kosher-certified)",
+      "Barley",
+      "Bulgur",
+      "Couscous",
+      "Challah (kosher-certified)"
+    ],
+    fibrousCarbs: [
+      "Spinach",
+      "Kale",
+      "Broccoli",
+      "Cauliflower",
+      "Asparagus",
+      "Green Beans",
+      "Zucchini",
+      "Bell Peppers",
+      "Tomatoes",
+      "Cucumber",
+      "Carrots",
+      "Mushrooms",
+      "Celery"
+    ],
+    fats: [
+      "Olive Oil",
+      "Avocado",
+      "Avocado Oil",
+      "Almonds",
+      "Walnuts",
+      "Cashews",
+      "Tahini",
+      "Chia Seeds",
+      "Flax Seeds"
+    ],
+    fruit: [
+      "Apples",
+      "Oranges",
+      "Berries",
+      "Grapes",
+      "Pears",
+      "Bananas",
+      "Pomegranate",
+      "Figs",
+      "Dates"
+    ],
+    snacks: {
+      sweetTreats: [
+        "Date and nut bites",
+        "Fresh fruit with tahini",
+        "Apple slices with almond butter",
+        "Pomegranate parfait (dairy-free)",
+        "Fruit sorbet (pareve)"
+      ],
+      savoryCrunchy: [
+        "Hummus with veggie sticks",
+        "Roasted chickpeas",
+        "Hard-boiled eggs",
+        "Almonds and dried fruit",
+        "Tuna on whole grain crackers"
+      ],
+      lightGentle: [
+        "Applesauce cup",
+        "Fruit cup",
+        "Cucumber rounds with hummus",
+        "Melon slices",
+        "Rice cakes"
+      ],
+      proteinEnergy: [
+        "Tuna salad cup",
+        "Hard-boiled eggs",
+        "Chicken bites (kosher-certified)",
+        "Edamame bowl",
+        "Lentil soup cup"
+      ],
+      drinkables: [
+        "Fruit smoothie",
+        "Green smoothie",
+        "Almond milk shake",
+        "Coconut water",
+        "Herbal tea"
+      ],
+      dessertBites: [
+        "Fruit sorbet (pareve)",
+        "Dark chocolate square (kosher-certified)",
+        "Date truffles",
+        "Coconut date balls",
+        "Banana nice cream"
+      ]
+    }
+  },
+  halal: {
+    proteins: [
+      "Chicken Breast (halal-certified)",
+      "Lean Beef (halal-certified)",
+      "Ground Beef (halal-certified)",
+      "Lamb (halal-certified)",
+      "Turkey Breast (halal-certified)",
+      "Salmon",
+      "Tuna",
+      "Cod",
+      "Shrimp",
+      "Eggs",
+      "Lentils",
+      "Chickpeas",
+      "Greek Yogurt"
+    ],
+    starchyCarbs: [
+      "Basmati Rice",
+      "Brown Rice",
+      "Quinoa",
+      "Sweet Potato",
+      "Regular Potato",
+      "Whole Wheat Bread",
+      "Whole Wheat Pasta",
+      "Pita Bread",
+      "Couscous",
+      "Bulgur",
+      "Farro"
+    ],
+    fibrousCarbs: [
+      "Spinach",
+      "Kale",
+      "Broccoli",
+      "Cauliflower",
+      "Asparagus",
+      "Green Beans",
+      "Zucchini",
+      "Bell Peppers",
+      "Tomatoes",
+      "Eggplant",
+      "Carrots",
+      "Cucumber",
+      "Mushrooms"
+    ],
+    fats: [
+      "Olive Oil",
+      "Avocado",
+      "Avocado Oil",
+      "Almonds",
+      "Walnuts",
+      "Cashews",
+      "Tahini",
+      "Coconut Oil",
+      "Chia Seeds"
+    ],
+    fruit: [
+      "Dates",
+      "Figs",
+      "Oranges",
+      "Apples",
+      "Bananas",
+      "Berries",
+      "Pomegranate",
+      "Mango",
+      "Grapes"
+    ],
+    snacks: {
+      sweetTreats: [
+        "Dates with almond butter",
+        "Greek yogurt with honey",
+        "Fresh fruit parfait",
+        "Chia pudding with coconut milk",
+        "Banana nice cream"
+      ],
+      savoryCrunchy: [
+        "Hummus with veggie sticks",
+        "Roasted chickpeas",
+        "Hard-boiled eggs",
+        "Trail mix with nuts and dried fruit",
+        "Chicken strips (halal-certified)"
+      ],
+      lightGentle: [
+        "Greek yogurt cup",
+        "Fruit cup",
+        "Cucumber rounds with hummus",
+        "Melon slices",
+        "Rice cakes with avocado"
+      ],
+      proteinEnergy: [
+        "Grilled chicken bites (halal-certified)",
+        "Tuna salad cup",
+        "Greek yogurt with granola",
+        "Hard-boiled eggs",
+        "Lentil soup cup"
+      ],
+      drinkables: [
+        "Fruit smoothie",
+        "Green smoothie",
+        "Coconut water",
+        "Mango lassi (no alcohol)",
+        "Mint lemonade"
+      ],
+      dessertBites: [
+        "Date energy balls",
+        "Coconut date truffles",
+        "Fruit sorbet",
+        "Baklava (halal-certified)",
+        "Dark chocolate square (halal-certified)"
       ]
     }
   },

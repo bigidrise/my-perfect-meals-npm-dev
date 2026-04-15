@@ -9,6 +9,70 @@ export function getOrderInstructions(diet: string, mealName: string): string[] {
   const instructions: string[] = [];
 
   switch (normalizedDiet) {
+    case "kosher":
+      instructions.push(
+        "Ask if the restaurant is kosher-certified or uses kosher-certified ingredients",
+        "Confirm meat and dairy are not served together in the same dish",
+        "Ask about shellfish — shrimp, crab, lobster, and clams are not kosher",
+        "Avoid pork and pork-derived products (bacon, lard, ham)",
+        "Ask if wine or grape products in sauces are kosher-certified",
+        "Confirm gelatin-containing items (desserts, marshmallows) are kosher-certified or avoided",
+      );
+      if (
+        normalizedMeal.includes("steak") ||
+        normalizedMeal.includes("burger") ||
+        normalizedMeal.includes("beef") ||
+        normalizedMeal.includes("chicken") ||
+        normalizedMeal.includes("lamb")
+      ) {
+        instructions.push(
+          "Confirm no butter, cream, or cheese sauces are served on or with the meat",
+          "Ask that utensils and cooking surfaces are kept separate from dairy",
+        );
+      }
+      if (
+        normalizedMeal.includes("pasta") ||
+        normalizedMeal.includes("pizza") ||
+        normalizedMeal.includes("bread")
+      ) {
+        instructions.push(
+          "If the dish contains meat, confirm no dairy (butter, cheese, cream) is in the recipe",
+        );
+      }
+      break;
+
+    case "halal":
+      instructions.push(
+        "Ask if the meat is halal-certified (hand-slaughtered with proper blessing)",
+        "Avoid pork and pork-derived products (bacon, lard, pepperoni, ham)",
+        "Confirm no alcohol is used in sauces, marinades, or cooking — including wine, beer, or sake",
+        "Ask if vanilla extract or flavor syrups are halal-certified (alcohol-free alternatives)",
+        "Confirm oyster sauce and Worcestershire sauce are halal-certified or excluded",
+        "Ask about gelatin in desserts — must be halal-certified or plant-based",
+      );
+      if (
+        normalizedMeal.includes("steak") ||
+        normalizedMeal.includes("burger") ||
+        normalizedMeal.includes("chicken") ||
+        normalizedMeal.includes("lamb") ||
+        normalizedMeal.includes("beef")
+      ) {
+        instructions.push(
+          "Specifically confirm the protein is sourced from a halal-certified supplier",
+        );
+      }
+      if (
+        normalizedMeal.includes("soup") ||
+        normalizedMeal.includes("stew") ||
+        normalizedMeal.includes("broth") ||
+        normalizedMeal.includes("bisque")
+      ) {
+        instructions.push(
+          "Confirm the base broth is made without wine, beer, or non-halal animal stock",
+        );
+      }
+      break;
+
     case "pescatarian":
       instructions.push(
         "Ask if the dish contains bacon, pork, or chicken",
