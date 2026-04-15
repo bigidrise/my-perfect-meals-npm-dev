@@ -28,7 +28,7 @@ import { generateCravingMealWithProfile } from "./services/generators/cravingCre
 import { enforceSafetyProfile } from "./services/safetyProfileService";
 import { runEnforcement, toRouteResponse } from "./services/enforcementGateway";
 import { scanForHiddenDietaryViolations, AVOIDANCE_EXPANSION } from "./services/allergyGuardrails";
-import { loadUserProtocolEnvelope, filterMealsByProtocol, buildGuestEnvelope } from "./services/protocolEnvelope";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol, buildGuestEnvelope, scanGeneratedOutput } from "./services/protocolEnvelope";
 import { 
   hasUserSetPin, 
   setUserPin, 
@@ -5822,9 +5822,15 @@ function getMealIngredientsDatabase() {
 
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+      // ── Protocol envelope enforcement ─────────────────────────────────────
+      const winePairingEnvelope = userId
+        ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+        : buildGuestEnvelope();
+      const winePairingProtocolBlock = enforceBeforeGenerate(winePairingEnvelope, { generatorName: 'wine_pairing' }).combined;
+
       // Build the prompt for wine pairing
       const prompt = `You are an expert sommelier. Provide 3 wine pairing recommendations for the following meal:
-
+${winePairingProtocolBlock ? `\n${winePairingProtocolBlock}\n` : ""}
 Meal Type: ${mealType}
 ${cuisine ? `Cuisine: ${cuisine}` : ''}
 ${mainIngredient ? `Main Ingredient: ${mainIngredient}` : ''}
@@ -5903,9 +5909,15 @@ Provide recommendations in JSON format with the following structure:
 
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+      // ── Protocol envelope enforcement ─────────────────────────────────────
+      const bourbonEnvelope = userId
+        ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+        : buildGuestEnvelope();
+      const bourbonProtocolBlock = enforceBeforeGenerate(bourbonEnvelope, { generatorName: 'bourbon_spirits_pairing' }).combined;
+
       // Build the prompt for bourbon/spirits pairing
       const prompt = `You are an expert master distiller and spirits connoisseur. Provide a premium bourbon or spirits pairing recommendation for the following meal:
-
+${bourbonProtocolBlock ? `\n${bourbonProtocolBlock}\n` : ""}
 Meal Type: ${mealType}
 ${cuisine ? `Cuisine: ${cuisine}` : ''}
 ${mainIngredient ? `Main Ingredient: ${mainIngredient}` : ''}
@@ -5980,8 +5992,15 @@ Provide a single BEST recommendation in JSON format with the following structure
 
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+      // ── Protocol envelope enforcement ─────────────────────────────────────
+      const mealPairingEnvelope = userId
+        ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+        : buildGuestEnvelope();
+      const mealPairingProtocolBlock = enforceBeforeGenerate(mealPairingEnvelope, { generatorName: 'meal_pairing' }).combined;
+
       // Build the prompt for meal pairing
       const prompt = `You are an expert chef and sommelier. Create the PERFECT meal recipe that pairs beautifully with this drink:
+${mealPairingProtocolBlock ? `\n${mealPairingProtocolBlock}\n` : ""}
 
 Drink Category: ${drinkType}
 Specific Drink: ${specificDrink}
@@ -6026,6 +6045,17 @@ Provide a single exceptional meal recommendation in JSON format with the followi
       });
 
       const result = JSON.parse(completion.choices[0].message.content || '{}');
+
+      // ── Post-gen scan (meal-pairing generates a real recipe with ingredients) ──
+      const mealPairingScan = scanGeneratedOutput(
+        { name: result.mealName, ingredients: result.ingredients, instructions: result.instructions },
+        mealPairingEnvelope,
+        { generatorName: 'meal_pairing' }
+      );
+      if (!mealPairingScan.passed) {
+        console.log(`🚫 [MEAL-PAIRING] Post-gen protocol violation: ${mealPairingScan.message}`);
+        return res.status(400).json({ error: "PROTOCOL_VIOLATION", message: mealPairingScan.message, retryable: true });
+      }
 
       res.json({
         id: `meal-pairing-${Date.now()}`,

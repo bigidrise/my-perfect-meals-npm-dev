@@ -6,6 +6,7 @@ import { buildPairingsConstraints } from "../services/pairings/pairingsPersonali
 import { generatePairingImages } from "../services/pairings/pairingsImageService";
 import { chatJson } from "../utils/openaiSafe";
 import { log } from "../vite";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope } from "../services/protocolEnvelope";
 
 const router = Router();
 
@@ -92,7 +93,14 @@ router.post("/", async (req, res) => {
     const profile = await loadPairingsProfile(userId);
     const constraints = buildPairingsConstraints(profile);
 
-    const prompt = buildWineListPrompt(wineListText, mealContext, constraints.fullConstraintBlock);
+    // ── Protocol envelope: add identity-level enforcement above profile constraints ──
+    const wineListEnvelope = await loadUserProtocolEnvelope(userId).catch(() => null) ?? buildGuestEnvelope();
+    const wineListProtocolBlock = enforceBeforeGenerate(wineListEnvelope, { generatorName: 'wine_list_helper' }).combined;
+    const augmentedConstraints = wineListProtocolBlock
+      ? `${wineListProtocolBlock}\n${constraints.fullConstraintBlock}`
+      : constraints.fullConstraintBlock;
+
+    const prompt = buildWineListPrompt(wineListText, mealContext, augmentedConstraints);
 
     let aiResult: any;
     try {
