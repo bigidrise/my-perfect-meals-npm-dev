@@ -45,6 +45,7 @@ import {
   getPrimaryDiet,
   applyDietarySubstitutions,
   RESTRICTION_EXPANSION,
+  AVOIDANCE_EXPANSION,
 } from './allergyGuardrails';
 import { validateDietaryRestriction, type DietaryMode } from './guardrails/validators/dietaryRestrictionValidator';
 import { db } from '../db';
@@ -60,6 +61,28 @@ import { storage } from '../storage';
 import OpenAI from 'openai';
 import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 import { macroAudit, macroAuditPrompt, macroAuditCache } from '../utils/macroAuditLogger';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AVOIDANCE PROMPT BLOCK BUILDER
+// Expands user avoidance categories into concrete ingredient lists for injection.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildVarietyAvoidanceBlock(avoidList: string[]): string {
+  if (!avoidList?.length) return "";
+  const expanded = new Set<string>();
+  for (const item of avoidList) {
+    const key = item.trim().toLowerCase();
+    expanded.add(key);
+    const mapped = AVOIDANCE_EXPANSION[key];
+    if (mapped) mapped.forEach(t => expanded.add(t));
+  }
+  const list = Array.from(expanded).join(", ");
+  return `\n⛔ FOODS TO AVOID — ABSOLUTE RULE (applies to ALL 3 options, overrides everything including the user's craving):
+The user has marked these as foods they do not eat: ${list}
+- Do NOT include any of these as a main ingredient, in a sauce, broth, seasoning, garnish, or coating.
+- If the user's craving is itself an avoided food (e.g. "lobster" when seafood is avoided), substitute with a compliant protein and keep the dish style.
+- This rule has NO exceptions across all 3 options.\n`;
+}
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -862,7 +885,8 @@ function buildVarietyPrompt(
   dietRestrictions: string[],
   excludeClause: string,
   allergyBlock: string = '',
-  strictMode: boolean = false
+  strictMode: boolean = false,
+  avoidanceBlock: string = ''
 ): string {
   const primaryDiet = getPrimaryDiet(dietRestrictions);
   const dietLine = primaryDiet
@@ -876,7 +900,7 @@ function buildVarietyPrompt(
     : `\nCATEGORY LOCK: This is a ${category.toUpperCase()} request. Stay within this food category.`;
 
   return `You are a precision chef AI. Your ONLY job is to generate 3 distinct variations of the same dish type.
-${allergyBlock ? allergyBlock + '\n' : ''}
+${allergyBlock ? allergyBlock + '\n' : ''}${avoidanceBlock ? avoidanceBlock + '\n' : ''}
 ═══════════════════════════════════════
 HIERARCHY (follow in this EXACT order):
 ═══════════════════════════════════════
@@ -938,7 +962,8 @@ function buildRecipeVarietyPrompt(
   dietRestrictions: string[],
   excludeClause: string,
   allergyBlock: string = '',
-  strictMode: boolean = false
+  strictMode: boolean = false,
+  avoidanceBlock: string = ''
 ): string {
   const primaryDiet = getPrimaryDiet(dietRestrictions);
   const dietLine = primaryDiet
@@ -946,7 +971,7 @@ function buildRecipeVarietyPrompt(
     : `DIET: None set.`;
 
   return `You are a professional chef generating real-world recipes. Think like a cook, NOT a nutrition calculator.
-${allergyBlock ? '\n' + allergyBlock + '\n' : ''}
+${allergyBlock ? '\n' + allergyBlock + '\n' : ''}${avoidanceBlock ? avoidanceBlock + '\n' : ''}
 ═══════════════════════════════════════
 RECIPE MODE — CULINARY-FIRST RULES:
 ═══════════════════════════════════════
@@ -1086,12 +1111,15 @@ export async function generateCravingMealOptions(
   // Fix B: Fetch dietary restrictions, allergies, AND health conditions from the user profile
   let dietRestrictions: string[] = [];
   let allergyBlock = '';
+  let avoidanceBlock = '';
   if (userId) {
     try {
       const [u] = await db.select({
         dietaryRestrictions: users.dietaryRestrictions,
         allergies: users.allergies,
         healthConditions: users.healthConditions,
+        dislikedFoods: users.dislikedFoods,
+        avoidedFoods: users.avoidedFoods,
       }).from(users).where(eq(users.id, userId)).limit(1);
 
       dietRestrictions = (u?.dietaryRestrictions as string[]) || [];
@@ -1105,6 +1133,16 @@ export async function generateCravingMealOptions(
       const healthConditions: string[] = (u?.healthConditions as string[]) || [];
       if (healthConditions.length > 0) {
         console.log(`[VARIETY ENGINE] Health conditions for user ${userId}: ${healthConditions.join(', ')}`);
+      }
+
+      // Merge dislikedFoods + avoidedFoods into a single avoidance list
+      const rawAvoidances: string[] = [
+        ...((u?.dislikedFoods as string[]) || []),
+        ...((u?.avoidedFoods as string[]) || []),
+      ];
+      if (rawAvoidances.length > 0) {
+        avoidanceBlock = buildVarietyAvoidanceBlock(rawAvoidances);
+        console.log(`[VARIETY ENGINE] Avoidance block active for user ${userId}: ${rawAvoidances.join(', ')}`);
       }
     } catch (err) {
       console.warn("[VARIETY ENGINE] Could not fetch user profile:", err);
@@ -1130,8 +1168,8 @@ export async function generateCravingMealOptions(
   /** One attempt at calling AI and parsing result */
   const attempt = async (stricterMode: boolean): Promise<any[]> => {
     const prompt = isRecipeMode
-      ? buildRecipeVarietyPrompt(cravingInput, validMealType, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode)
-      : buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode);
+      ? buildRecipeVarietyPrompt(cravingInput, validMealType, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock)
+      : buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock);
     const stricter = stricterMode
       ? `\n\nSECOND ATTEMPT — STRICT MODE: The previous response drifted from the dish family. You MUST generate 3 options that are clearly recognizable variations of "${dishFamily}". No exceptions.`
       : "";

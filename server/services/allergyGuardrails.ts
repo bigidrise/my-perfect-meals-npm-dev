@@ -1158,3 +1158,189 @@ export function applyDietarySubstitutions(
 
   return { ingredients: updated, substitutionsApplied };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HIDDEN INGREDIENT ENFORCEMENT
+// Catches non-obvious violations for kosher, halal, and other dietary rules.
+// These are ingredients that the AI may include without realizing they violate
+// a user's restriction — e.g. gelatin in desserts, lard in pastries,
+// alcohol in sauces, or shellfish derivatives in broths.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface HiddenViolation {
+  term: string;
+  category: string;
+  reason: string;
+}
+
+/**
+ * Hidden forms that violate kosher law beyond the obvious ingredient names.
+ * Includes pork derivatives, shellfish derivatives, and meat/dairy mixing signals.
+ */
+const KOSHER_HIDDEN_TERMS: Array<{ term: string; reason: string }> = [
+  // Pork-derived additives
+  { term: "gelatin",         reason: "Gelatin is typically pork-derived and not kosher unless certified" },
+  { term: "lard",            reason: "Lard is rendered pork fat — not kosher" },
+  { term: "l-cysteine",     reason: "L-cysteine may be derived from pork bristles or feathers" },
+  { term: "suet",            reason: "Suet is animal fat (often beef or pork) — kosher certification required" },
+  { term: "pork fat",        reason: "Pork fat is not kosher" },
+  { term: "schmaltz",        reason: "Schmaltz may be chicken or pork fat — source must be kosher" },
+  // Shellfish derivatives (may appear as broths/stocks/pastes)
+  { term: "shrimp paste",    reason: "Shrimp paste is a shellfish derivative — not kosher" },
+  { term: "fish sauce",      reason: "Fish sauce often contains shellfish — verify kosher certification" },
+  { term: "oyster sauce",    reason: "Oyster sauce is a shellfish derivative — not kosher" },
+  { term: "clam juice",      reason: "Clam juice is a shellfish derivative — not kosher" },
+  { term: "lobster base",    reason: "Lobster base is a shellfish derivative — not kosher" },
+  { term: "crab base",       reason: "Crab base is a shellfish derivative — not kosher" },
+  { term: "shellfish broth", reason: "Shellfish broth is not kosher" },
+  { term: "seafood stock",   reason: "Seafood stock may contain shellfish — not kosher unless certified" },
+  // Sauce/condiment traps
+  { term: "worcestershire",  reason: "Worcestershire sauce traditionally contains anchovies — not kosher unless certified" },
+  { term: "caesar dressing", reason: "Caesar dressing traditionally contains anchovies — not kosher unless certified" },
+  { term: "caesar salad",    reason: "Caesar dressing traditionally contains anchovies — not kosher unless certified" },
+  { term: "anchovy",         reason: "Anchovies are fish — may violate meat/fish separation in kosher cooking" },
+  { term: "anchovies",       reason: "Anchovies are fish — may violate meat/fish separation in kosher cooking" },
+  { term: "anchovy paste",   reason: "Anchovy paste — may violate meat/fish separation in kosher cooking" },
+  { term: "rennet",          reason: "Rennet in cheese must be kosher-certified" },
+  { term: "mono and diglycerides", reason: "Mono and diglycerides may be animal-derived — kosher certification required" },
+];
+
+/**
+ * Hidden forms that violate halal law beyond the obvious ingredient names.
+ */
+const HALAL_HIDDEN_TERMS: Array<{ term: string; reason: string }> = [
+  { term: "gelatin",         reason: "Gelatin is typically pork-derived and not halal unless certified" },
+  { term: "lard",            reason: "Lard is rendered pork fat — not halal" },
+  { term: "l-cysteine",     reason: "L-cysteine may be derived from pork bristles — not halal unless certified" },
+  { term: "pork fat",        reason: "Pork fat is not halal" },
+  { term: "wine",            reason: "Wine contains alcohol — not halal in cooking" },
+  { term: "white wine",      reason: "White wine contains alcohol — not halal" },
+  { term: "red wine",        reason: "Red wine contains alcohol — not halal" },
+  { term: "beer",            reason: "Beer contains alcohol — not halal" },
+  { term: "sake",            reason: "Sake is an alcoholic beverage — not halal" },
+  { term: "rum",             reason: "Rum is alcoholic — not halal in cooking" },
+  { term: "bourbon",         reason: "Bourbon is alcoholic — not halal in cooking" },
+  { term: "brandy",          reason: "Brandy is alcoholic — not halal in cooking" },
+  { term: "cognac",          reason: "Cognac is alcoholic — not halal in cooking" },
+  { term: "mirin",           reason: "Mirin is a sweet rice wine and may contain alcohol — verify halal status" },
+  { term: "oyster sauce",    reason: "Traditional oyster sauce may contain non-halal ingredients — verify certification" },
+  { term: "vanilla extract", reason: "Vanilla extract typically contains alcohol — use halal-certified alternative" },
+  { term: "worcestershire",  reason: "Worcestershire sauce may contain non-halal ingredients" },
+  { term: "mono and diglycerides", reason: "Mono and diglycerides may be pork-derived — halal certification required" },
+];
+
+/**
+ * Meat terms for kosher meat/dairy mixing detection.
+ * Presence of both a meat term AND a dairy term in the same meal is a kosher violation.
+ */
+const KOSHER_MEAT_TERMS = [
+  "beef", "steak", "ground beef", "hamburger", "burger", "brisket", "roast beef",
+  "pastrami", "corned beef", "veal", "lamb", "venison", "bison",
+  "chicken", "turkey", "duck", "goose", "hen", "poultry",
+  "chicken broth", "beef broth", "turkey broth", "meat broth", "bone broth",
+  "chicken stock", "beef stock", "turkey stock",
+  "chicken liver", "beef liver", "chopped liver",
+  "salami", "bologna",
+];
+
+const KOSHER_DAIRY_TERMS = [
+  "milk", "whole milk", "skim milk", "cream", "heavy cream", "half and half",
+  "butter", "cheese", "cheddar", "mozzarella", "parmesan", "feta", "brie",
+  "ricotta", "cottage cheese", "cream cheese", "gouda", "swiss", "provolone",
+  "sour cream", "whipped cream", "yogurt", "kefir", "ghee", "whey",
+  "dairy", "lactose",
+];
+
+/**
+ * Detect meat/dairy mixing in a meal (kosher violation — basar b'chalav).
+ * Returns true if both a meat term and a dairy term are found in the same meal text.
+ */
+function detectMeatDairyMixing(mealText: string): boolean {
+  const lower = mealText.toLowerCase();
+  const hasMeat = KOSHER_MEAT_TERMS.some(t => {
+    const esc = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`\\b${esc}\\b`, "i").test(lower);
+  });
+  if (!hasMeat) return false;
+  const hasDairy = KOSHER_DAIRY_TERMS.some(t => {
+    const esc = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`\\b${esc}\\b`, "i").test(lower);
+  });
+  return hasMeat && hasDairy;
+}
+
+/**
+ * Scan a generated meal for hidden dietary violations based on the user's diet type
+ * and their foods-to-avoid list.
+ *
+ * Returns an array of HiddenViolation objects (empty = no violations found).
+ *
+ * @param mealText  - Full text of the meal (name + description + ingredients + instructions joined)
+ * @param dietTypes - Array of diet type strings from the user profile (e.g. ["kosher"], ["halal"])
+ * @param avoidList - Array of user-specified avoidance categories (e.g. ["seafood", "pork"])
+ */
+export function scanForHiddenDietaryViolations(
+  mealText: string,
+  dietTypes: string[],
+  avoidList: string[] = []
+): HiddenViolation[] {
+  const violations: HiddenViolation[] = [];
+  const lower = mealText.toLowerCase();
+
+  const normalizedDiets = dietTypes.map(d => d.trim().toLowerCase());
+  const isKosher = normalizedDiets.some(d => d === "kosher" || d === "kosher-halal");
+  const isHalal  = normalizedDiets.some(d => d === "halal"  || d === "kosher-halal");
+
+  // ── Kosher hidden term scan ───────────────────────────────────────────────
+  if (isKosher) {
+    for (const { term, reason } of KOSHER_HIDDEN_TERMS) {
+      const esc = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (new RegExp(`\\b${esc}\\b`, "i").test(lower)) {
+        violations.push({ term, category: "kosher", reason });
+      }
+    }
+    // Meat/dairy mixing check
+    if (detectMeatDairyMixing(lower)) {
+      violations.push({
+        term: "meat + dairy combination",
+        category: "kosher",
+        reason: "Mixing meat and dairy in the same meal violates kosher law (basar b'chalav)"
+      });
+    }
+  }
+
+  // ── Halal hidden term scan ────────────────────────────────────────────────
+  if (isHalal) {
+    for (const { term, reason } of HALAL_HIDDEN_TERMS) {
+      const esc = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (new RegExp(`\\b${esc}\\b`, "i").test(lower)) {
+        // Avoid duplicate if already caught by kosher
+        if (!violations.find(v => v.term === term)) {
+          violations.push({ term, category: "halal", reason });
+        }
+      }
+    }
+  }
+
+  // ── User avoidance hidden scan ────────────────────────────────────────────
+  // Expand each avoided category and look for matches beyond AVOIDANCE_EXPANSION
+  // (which is the prompt-level list — this catches any that slipped through).
+  for (const item of avoidList) {
+    const key = item.trim().toLowerCase();
+    const expanded = AVOIDANCE_EXPANSION[key] || [key];
+    for (const term of expanded) {
+      const esc = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (new RegExp(`\\b${esc}\\b`, "i").test(lower)) {
+        if (!violations.find(v => v.term === term)) {
+          violations.push({
+            term,
+            category: key,
+            reason: `"${term}" is in the user's foods-to-avoid list (${key})`
+          });
+        }
+      }
+    }
+  }
+
+  return violations;
+}
