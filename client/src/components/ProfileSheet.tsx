@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useUpdateCheck } from "@/hooks/useUpdateCheck";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import {
@@ -69,6 +70,8 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
   const userEmail = user?.email || "";
   const profilePhotoUrl = user?.profilePhotoUrl;
   const isNative = Capacitor.isNativePlatform();
+
+  const { hasUpdate, isUpToDate, currentVersionLabel } = useUpdateCheck();
 
   const uploadPhoto = async (file: File) => {
     if (!file.type.startsWith("image/")) {
