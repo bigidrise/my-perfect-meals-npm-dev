@@ -11,7 +11,7 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
 import { buildPalateSection, PalatePreferences, buildStrictModeBlock } from "../services/promptBuilder";
-import { buildDietPromptBlock, violatesDietaryConstraints } from "../services/allergyGuardrails";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope } from "../services/protocolEnvelope";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -147,9 +147,17 @@ dessertCreatorRouter.post("/", async (req, res) => {
       }
     }
 
+    // ── Load protocol envelope (drives all dietary enforcement) ───────────────
+    const dessertEnvelope = (userId && userId !== "1")
+      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+      : buildGuestEnvelope();
+
+    const dessertProtocolBlock = enforceBeforeGenerate(dessertEnvelope, {
+      generatorName: 'dessert_creator',
+    }).combined;
+
     // 🎨 PALATE PREFERENCES: Load flavor preferences for seasoning/flavor guidance
     let palateGuidance = "\nFLAVOR STYLE: Use light, neutral flavoring suitable for serving to guests or family.";
-    let dietPromptBlock = "";
     if (userId && userId !== "1") {
       try {
         const [user] = await db.select({
@@ -159,7 +167,6 @@ dessertCreatorRouter.post("/", async (req, res) => {
           flavorPreference: users.flavorPreference,
           heatPreference: users.heatPreference,
           medicalConditions: users.medicalConditions,
-          dietaryRestrictions: users.dietaryRestrictions,
         }).from(users).where(eq(users.id, userId)).limit(1);
         
         if (user) {
@@ -175,29 +182,12 @@ dessertCreatorRouter.post("/", async (req, res) => {
             palateGuidance = `\nFLAVOR PREFERENCES: ${buildPalateSection(palatePrefs)}`;
             console.log(`🎨 [DESSERT] Loaded palate preferences: flavor=${user.flavorPreference}, heat=${user.heatPreference}`);
           }
-          // Dietary constraints always enforced regardless of skipPalate
-          const restrictions = (user.dietaryRestrictions as string[]) || [];
-          dietPromptBlock = buildDietPromptBlock(restrictions);
-          if (dietPromptBlock) {
-            console.log(`🥗 [DESSERT] Dietary constraint enforced: ${restrictions.join("|")}`);
-          }
         }
       } catch (err) {
         console.log("[DESSERT] Could not fetch user preferences:", err);
       }
     } else if (skipPalate) {
       console.log(`🎨 [DESSERT] Palate preferences skipped - using neutral flavoring for shared dessert`);
-    }
-
-    // Fallback: if DB had no dietary restriction, promote body dietaryPreferences to hard constraint
-    if (!dietPromptBlock && dietaryPreferences) {
-      const bodyRestrictions = (Array.isArray(dietaryPreferences) ? dietaryPreferences : [dietaryPreferences]).filter(Boolean);
-      if (bodyRestrictions.length > 0) {
-        dietPromptBlock = buildDietPromptBlock(bodyRestrictions);
-        if (dietPromptBlock) {
-          console.log(`🥗 [DESSERT] Dietary constraint (body fallback): ${bodyRestrictions.join("|")}`);
-        }
-      }
     }
 
     const serving = SERVING_MULTIPLIERS[servingSize] || SERVING_MULTIPLIERS.single;
@@ -259,7 +249,7 @@ CELEBRATION CAKE REQUIREMENTS:
     const prompt = `
 You are a master pastry chef + nutrition expert inside the My Perfect Meals system.
 Generate a FULL structured dessert recipe.
-${dietPromptBlock ? `\n${dietPromptBlock}\n` : ""}${strictMode === true ? `\n${buildStrictModeBlock(dessertIdentifier)}\n` : ""}
+${dessertProtocolBlock ? `\n${dessertProtocolBlock}\n` : ""}${strictMode === true ? `\n${buildStrictModeBlock(dessertIdentifier)}\n` : ""}
 
 Return JSON ONLY, following this exact schema:
 
@@ -351,6 +341,19 @@ INCORRECT (NEVER DO THIS):
       return res
         .status(500)
         .json({ error: "AI returned invalid JSON for dessert" });
+    }
+
+    // ── Post-gen protocol scan ──────────────────────────────────────────────
+    const dessertScan = scanGeneratedOutput(meal, dessertEnvelope, {
+      generatorName: 'dessert_creator',
+    });
+    if (!dessertScan.passed) {
+      console.log(`🚫 [DESSERT] Post-gen protocol violation: ${dessertScan.message}`);
+      return res.status(400).json({
+        error: "PROTOCOL_VIOLATION",
+        message: dessertScan.message,
+        retryable: true,
+      });
     }
 
     // Normalize ingredients to U.S. measurements (oz, cups, tbsp, tsp)
