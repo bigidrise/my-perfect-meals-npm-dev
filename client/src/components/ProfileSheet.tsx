@@ -44,7 +44,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useFontSize } from "@/contexts/FontSizeContext";
 import { useToast } from "@/hooks/use-toast";
 import IOSMealReminders from "@/components/ios/IOSMealReminders";
-import { useUpdateStatus } from "@/hooks/useUpdateCheck";
+import { useUpdateState } from "@/contexts/UpdateContext";
 import { Capacitor } from "@capacitor/core";
 import {
   Camera as CapacitorCamera,
@@ -66,7 +66,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
   const [showPhotoOptions, setShowPhotoOptions] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { hasUpdate, currentVersionLabel } = useUpdateStatus();
+  const { hasUpdate, currentVersionLabel } = useUpdateState();
 
   const userName = user?.name || user?.username || "User";
   const userEmail = user?.email || "";
@@ -429,13 +429,10 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
                 Updated {currentVersionLabel}
               </span>
             ) : hasUpdate ? (
-              <button
-                onClick={() => window.location.reload()}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 transition-colors"
-              >
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-500/20 border border-amber-500/40 text-amber-300">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                Update available — tap to refresh
-              </button>
+                Update available
+              </span>
             ) : (
               <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-lime-500/15 border border-lime-500/30 text-lime-400">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-lime-400" />
