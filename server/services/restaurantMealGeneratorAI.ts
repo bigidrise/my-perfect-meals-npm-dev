@@ -7,6 +7,7 @@ import { generateImage } from './imageService';
 import { generateRestaurantMeals as generateFallbackMeals } from './restaurantMealGenerator';
 import { enforceCarbs } from '../utils/carbClassifier';
 import { buildDietPromptBlock, violatesDietaryConstraints, getPrimaryDiet } from './allergyGuardrails';
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope, scanGeneratedOutput, UserProtocolEnvelope } from './protocolEnvelope';
 import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 
 let _openai: OpenAI | null = null;
@@ -49,6 +50,8 @@ interface RestaurantMealRequest {
   cuisine: string;
   user?: User;
   cravingContext?: string; // NEW: For Meal Finder - what food the user is craving
+  protocolBlock?: string;           // Pre-built protocol enforcement block from caller
+  protocolEnvelope?: UserProtocolEnvelope; // Envelope for post-gen scan
 }
 
 interface RestaurantMeal {
@@ -128,7 +131,7 @@ function getMedicalBadges(meal: any, userConditions: string[] = []): Array<{
  * Falls back to locked generator if AI fails
  */
 export async function generateRestaurantMealsAI(request: RestaurantMealRequest): Promise<RestaurantMeal[]> {
-  const { restaurantName, cuisine, user, cravingContext } = request;
+  const { restaurantName, cuisine, user, cravingContext, protocolBlock, protocolEnvelope } = request;
   const userConditions = user?.healthConditions || [];
 
   console.log(`🤖 AI Generator: Creating restaurant-specific meals for ${restaurantName} (${cuisine} cuisine)${cravingContext ? ` featuring ${cravingContext}` : ''}`);
@@ -230,7 +233,7 @@ export async function generateRestaurantMealsAI(request: RestaurantMealRequest):
 
     // Use OpenAI to generate restaurant-specific meals
     const prompt = `You are a nutrition expert helping someone choose healthy meals at "${restaurantName}", a ${cuisine} restaurant.
-
+${protocolBlock ? `\n${protocolBlock}\n` : ""}
 ${medicalContext}${allergyContext}${dietaryContext}${avoidContext}${cravingInstructions}${dietBehaviorBlock}
 
 TONE AND LANGUAGE RULES:
@@ -470,6 +473,32 @@ Return ONLY a single JSON object (not an array) with this exact structure:
 
     // ENFORCE CARBS: If AI returned 0s, derive from ingredients (data-layer enforcement)
     const enforcedMeals = meals.map(meal => enforceCarbs(meal));
+
+    // ── Post-gen protocol scan (filter any meals that slip through the prompt) ──
+    if (protocolEnvelope) {
+      const protocolSafeMeals = enforcedMeals.filter(meal => {
+        const scanResult = scanGeneratedOutput(
+          { name: meal.name, description: meal.description, ingredients: meal.ingredients },
+          protocolEnvelope,
+          { generatorName: 'restaurant_meals' }
+        );
+        if (!scanResult.passed) {
+          console.log(`🚫 [PROTOCOL SCAN] Removed "${meal.name}" — ${scanResult.message}`);
+          return false;
+        }
+        return true;
+      });
+      if (protocolSafeMeals.length < enforcedMeals.length) {
+        console.log(`🛡️ [PROTOCOL SCAN] Filtered ${enforcedMeals.length - protocolSafeMeals.length} protocol-violating meal(s)`);
+      }
+      if (protocolSafeMeals.length === 0) {
+        console.warn(`⚠️ [PROTOCOL SCAN] All meals failed protocol scan — falling back to locked generator`);
+        return generateFallbackMeals(request);
+      }
+      enforcedMeals.length = 0;
+      enforcedMeals.push(...protocolSafeMeals);
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     // Generate images in parallel for ALL meals at once (10x faster!)
     console.log(`🖼️ Generating images for all ${enforcedMeals.length} meals in parallel...`);
