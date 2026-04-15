@@ -26,6 +26,7 @@ import { requireAuth } from "./middleware/requireAuth";
 import { requireActiveAccess } from "./middleware/requireActiveAccess";
 import healthRouter from "./routes/health.routes";
 import keepaliveRouter from "./routes/keepalive";
+import legalPagesRouter from "./routes/legal-pages";
 
 // ⬇️ New: AI/Meals API router (this file must exist: server/routes/meals.ts)
 import mealsRouter from "./routes/meals";
@@ -626,6 +627,10 @@ async function start() {
     const bootTime = Date.now() - startTime;
     console.log(`🚀 Server running on 0.0.0.0:${PORT} (startup: ${bootTime}ms)`);
   });
+
+  // Legal pages — served as standalone HTML BEFORE Vite/SPA middleware so they are
+  // never caught by the React router. Required by Apple App Store and app stores.
+  app.use(legalPagesRouter);
 
   if (NODE_ENV === "development") {
     // Vite dev middleware for client with proper server instance
