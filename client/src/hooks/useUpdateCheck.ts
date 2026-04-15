@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { BUILD_VERSION } from "@/buildVersion";
+import { BUILD_VERSION, APP_SEMVER } from "@/buildVersion";
 
 const CHECK_INTERVAL_MS = 5 * 60 * 1000;
 
-function formatVersion(ts: string): string {
+function formatDate(ts: string): string {
   if (!ts || ts === "dev") return "Dev build";
   const num = Number(ts);
   if (isNaN(num)) return ts;
@@ -24,6 +24,7 @@ interface UpdateStatus {
 
 export function useUpdateCheck(): UpdateStatus {
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
+  const [latestSemver, setLatestSemver] = useState<string>(APP_SEMVER);
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
@@ -32,9 +33,8 @@ export function useUpdateCheck(): UpdateStatus {
         const res = await fetch("/release-manifest.json?ts=" + Date.now(), { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json();
-        if (data.version) {
-          setLatestVersion(data.version);
-        }
+        if (data.version) setLatestVersion(data.version);
+        if (data.semver) setLatestSemver(data.semver);
       } catch {}
       finally {
         setIsChecking(false);
@@ -50,11 +50,15 @@ export function useUpdateCheck(): UpdateStatus {
   const hasUpdate = !isDev && latestVersion !== null && latestVersion !== BUILD_VERSION;
   const isUpToDate = !hasUpdate && !isChecking;
 
+  const dateLabel = formatDate(BUILD_VERSION);
+  const currentVersionLabel = `v${APP_SEMVER} · ${dateLabel}`;
+  const latestVersionLabel = latestVersion ? `v${latestSemver} · ${formatDate(latestVersion)}` : "";
+
   return {
     hasUpdate,
     isUpToDate,
-    currentVersionLabel: formatVersion(BUILD_VERSION),
-    latestVersionLabel: latestVersion ? formatVersion(latestVersion) : "",
+    currentVersionLabel,
+    latestVersionLabel,
     isChecking,
   };
 }
