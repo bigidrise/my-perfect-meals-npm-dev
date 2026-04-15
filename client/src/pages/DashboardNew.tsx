@@ -430,17 +430,23 @@ export default function DashboardNew() {
               <div className="grid grid-cols-3 gap-3">
                 <div className="flex flex-col items-center p-2 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
                   <Flame className="h-4 w-4 text-blue-500 mb-1" />
-                  <div className="text-sm font-semibold text-white/80">Protein</div>
+                  <div className="text-sm font-semibold text-white/80">
+                    Protein
+                  </div>
                   <div className="text-sm font-bold text-white"></div>
                 </div>
                 <div className="flex flex-col items-center p-2 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
                   <TrendingUp className="h-4 w-4 text-orange-500 mb-1" />
-                  <div className="text-sm font-semibold text-white/80">Carbs</div>
+                  <div className="text-sm font-semibold text-white/80">
+                    Carbs
+                  </div>
                   <div className="text-sm font-bold text-white"></div>
                 </div>
                 <div className="flex flex-col items-center p-2 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
                   <Activity className="h-4 w-4 text-purple-500 mb-1" />
-                  <div className="text-sm font-semibold text-white/80">Fats</div>
+                  <div className="text-sm font-semibold text-white/80">
+                    Fats
+                  </div>
                   <div className="text-sm font-bold text-white"></div>
                 </div>
               </div>
@@ -816,7 +822,7 @@ export default function DashboardNew() {
                 className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-700 hover:from-orange-600 hover:to-orange-800 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl"
                 data-testid="button-go-to-planner"
               >
-                Go to Planner
+                Go to Builders
               </button>
             </CardContent>
           </Card>
