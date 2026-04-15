@@ -422,7 +422,8 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
           )}
 
           {/* Version Status */}
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <span className="text-[11px] text-white/40 font-medium">App version</span>
             {hasUpdate ? (
               <button
                 onClick={() => window.location.reload()}
