@@ -828,13 +828,6 @@ const FridgeRescuePage = () => {
                   </p>
                 </div>
 
-                {/* Progress Bar */}
-                {isLoading && (
-                  <div className="w-full mb-4 flex justify-center">
-                    <ThinkingDots label="Rescuing your meal…" />
-                  </div>
-                )}
-
                 {/* SafetyGuard Preflight Banner - Black/Yellow Alert */}
                 <SafetyGuardBanner
                   alert={safetyAlert}
@@ -937,16 +930,21 @@ const FridgeRescuePage = () => {
                   </p>
                 </div>
 
-                <button
-                  onClick={() => handleGenerateMeals()}
-                  disabled={isLoading || safetyChecking}
-                  data-testid="fridge-generate"
-                  className="w-full bg-lime-600 backdrop-blur-lg border border-white/20 text-white font-semibold py-4 px-6 rounded-xl transition-colors text-lg flex items-center justify-center gap-3"
-                >
-                  <div className="flex items-center gap-2">
-                    Generate 3 Meals
+                {isLoading || safetyChecking ? (
+                  <div className="flex justify-center">
+                    <ThinkingDots label={safetyChecking ? "Checking safety…" : "Rescuing your meal…"} />
                   </div>
-                </button>
+                ) : (
+                  <button
+                    onClick={() => handleGenerateMeals()}
+                    data-testid="fridge-generate"
+                    className="w-full bg-lime-600 backdrop-blur-lg border border-white/20 text-white font-semibold py-4 px-6 rounded-xl transition-colors text-lg flex items-center justify-center gap-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      Generate 3 Meals
+                    </div>
+                  </button>
+                )}
               </div>
             </div>
           </div>
