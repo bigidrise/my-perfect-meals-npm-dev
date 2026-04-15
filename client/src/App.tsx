@@ -29,7 +29,7 @@ import DevBadge from "./components/DevBadge";
 import DevNavigator from "./components/DevNavigator";
 import { Capacitor } from "@capacitor/core";
 import { VoiceProvider } from "@/voice/VoiceProvider";
-import { useUpdateCheck } from "@/hooks/useUpdateCheck";
+import { UpdateProvider, useUpdateState } from "@/contexts/UpdateContext";
 import { UpdateBanner } from "@/components/UpdateBanner";
 
 // Initialize native demo mode BEFORE React renders (for iOS preview recording)
@@ -57,10 +57,14 @@ function MacroTargetSyncMount() {
   return null;
 }
 
+function UpdateBannerMount() {
+  const { hasUpdate } = useUpdateState();
+  return <UpdateBanner show={hasUpdate} />;
+}
+
 export default function App() {
   const [isAppReady, setIsAppReady] = useState(false);
   const [, setLocation] = useLocation();
-  const showUpdate = useUpdateCheck();
 
   useEffect(() => {
     setNavigationHandler((path) => {
@@ -168,6 +172,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      <UpdateProvider>
       <DevBadge />
       <DevNavigator />
       <QueryClientProvider client={queryClient}>
@@ -179,7 +184,7 @@ export default function App() {
                 <VisibilityRefreshMount />
                 <MacroTargetSyncMount />
                 <ScrollManager />
-                <UpdateBanner show={showUpdate} />
+                <UpdateBannerMount />
                 <CopilotSystem onAction={handleCopilotAction}>
                 <ProClientProvider>
                 <PageTitleProvider>
@@ -201,6 +206,7 @@ export default function App() {
           </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>
+      </UpdateProvider>
     </ErrorBoundary>
   );
 }
