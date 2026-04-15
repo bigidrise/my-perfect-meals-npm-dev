@@ -1453,28 +1453,26 @@ export async function generateFromDescriptionUnified(
       }
     }
     
-    // Fetch user's primary dietary restriction (vegan/vegetarian/pescatarian)
-    let chefDietBlock = "";
-    let chefDietRestrictions: string[] = [];
-    if (userId) {
-      try {
-        const [chefUser] = await db.select({ dietaryRestrictions: users.dietaryRestrictions })
-          .from(users).where(eq(users.id, userId)).limit(1);
-        chefDietRestrictions = (chefUser?.dietaryRestrictions as string[]) || [];
-        chefDietBlock = buildDietPromptBlock(chefDietRestrictions);
-        if (chefDietBlock) {
-          console.log(`🥗 [CREATE-WITH-CHEF] Dietary constraint enforced: ${chefDietRestrictions.join("|")}`);
-        }
-      } catch (err) {
-        console.warn("[CREATE-WITH-CHEF] Could not fetch dietary restrictions:", err);
-      }
+    // ── Load protocol envelope (drives all dietary enforcement) ───────────────
+    const chefEnvelope = userId
+      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+      : buildGuestEnvelope();
+
+    const chefProtocolBlock = enforceBeforeGenerate(chefEnvelope, {
+      generatorName: 'create_with_chef',
+    }).combined;
+
+    // Use envelope's dietaryIdentity for vegan/vegetarian/pescatarian compliance loop
+    const chefDietRestrictions: string[] = chefEnvelope.dietaryIdentity;
+    if (chefProtocolBlock) {
+      console.log(`🥗 [CREATE-WITH-CHEF] Protocol enforcement active: ${chefDietRestrictions.join('|') || 'guest'}`);
     }
 
     const OpenAI = (await import('openai')).default;
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     
     let basePrompt = `You are a professional chef creating a personalized meal recipe.
-${chefDietBlock ? `\n${chefDietBlock}\n` : ""}
+${chefProtocolBlock ? `\n${chefProtocolBlock}\n` : ""}
 TASK: Create a complete ${validMealType} recipe based on this request: "${description}"
 
 REQUIREMENTS:
@@ -1672,6 +1670,23 @@ Create the recipe for: "${description}"`;
           console.log(`✅ [DIET GUARD] ${chefPrimaryDiet} compliance confirmed — confidence: ${dietValidation.confidence}`);
           dietaryComplianceVerified = true;
         }
+      }
+
+      // ── Post-gen protocol scan ────────────────────────────────────────────
+      const chefScan = scanGeneratedOutput(tempMeal, chefEnvelope, {
+        generatorName: 'create_with_chef',
+      });
+      if (!chefScan.passed) {
+        console.log(`🚫 [CREATE-WITH-CHEF] Post-gen protocol violation (attempt ${attemptCount}): ${chefScan.message}`);
+        if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
+          lastFixHint = `PROTOCOL VIOLATION: ${chefScan.message}. Regenerate a fully compliant recipe.`;
+          continue;
+        }
+        return {
+          success: false,
+          source: 'error',
+          error: chefScan.message,
+        };
       }
 
       const substitutionNotes = Array.isArray(mealData.substitutionNotes) && mealData.substitutionNotes.length > 0
