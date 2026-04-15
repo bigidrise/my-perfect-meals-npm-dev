@@ -2,15 +2,18 @@
  * Universal Enforcement Gateway
  * Phase 1 — Food Intelligence Layer
  *
- * The single law of the system. Every builder calls this before and after
- * generation. No exceptions, no bypass paths.
+ * UNIVERSAL PROTOCOL-FIRST ENFORCEMENT MODEL
+ * Dietary Identity is the outermost rule container. Every other constraint
+ * (allergies, medical limits, avoidances, preferences) is nested inside it.
  *
  * Priority order (highest to lowest — higher tier wins on conflict):
- *   Tier 1: Allergy / Safety (never overridden silently)
- *   Tier 2: Religious law (kosher, halal — hard enforcement)
- *   Tier 3: Medical hard limits (diabetic, GLP-1, etc.)
- *   Tier 4: Medical optimization targets
- *   Tier 5: User preferences
+ *   Tier 0: Dietary Identity — outermost container (kosher, halal, vegan,
+ *           vegetarian, gluten-free, paleo, etc.). Never overridden by any
+ *           inner tier. This runs BEFORE allergy checks.
+ *   Tier 1: Allergy / Safety (life-threatening) — absolute nested constraint
+ *   Tier 2: Medical hard limits (diabetic, GLP-1, etc.)
+ *   Tier 3: Medical optimization targets
+ *   Tier 4: User food avoidances (preference-level, no medical basis)
  *
  * Fail-closed contract:
  *   - Unknown provenance or certification for a strict protocol → BLOCK
@@ -23,10 +26,10 @@
 import { loadSafetyProfile, enforceSafetyProfile, type SafetyOptions } from "./safetyProfileService";
 import { scanTextForHighRiskIngredients } from "./ingredientIntelligence";
 import { evaluateRelationshipRules, type RuleViolation } from "./guardrails/rules/culturalRules";
-import { AVOIDANCE_EXPANSION } from "./allergyGuardrails";
+import { AVOIDANCE_EXPANSION, scanForHiddenDietaryViolations } from "./allergyGuardrails";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TIER 5 HELPER — expand user avoidance list and find violations in meal text
+// TIER 4 HELPER — expand user avoidance list and find violations in meal text
 // ─────────────────────────────────────────────────────────────────────────────
 
 function expandUserAvoidances(raw: string[]): { term: string; sourceCategory: string }[] {
@@ -103,7 +106,7 @@ export interface EnforcementRequest {
 }
 
 export interface EnforcementBlock {
-  tier: 1 | 2 | 3 | 4 | 5;
+  tier: 0 | 1 | 2 | 3 | 4 | 5;
   tierLabel: string;
   reasonCode: string;
   protocol: string;
@@ -128,24 +131,46 @@ export interface EnforcementResult {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PROTOCOL DETECTION
-// Derives active cultural/religious protocols from the user's diet type.
+// Derives active dietary identity protocols from the user's diet type.
+// "Dietary Identity" covers all named diet types — religious law, lifestyle
+// protocols, and medical-lifestyle hybrids alike.
 // Phase 2 replaces this with an explicit protocols[] array on the user profile.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const RELIGIOUS_DIET_PROTOCOLS: Record<string, string[]> = {
-  kosher: ["kosher"],
-  halal: ["halal"],
+/**
+ * Protocols that use the ingredient-intelligence + relationship-rules engine
+ * (kosher/halal require certification-level knowledge beyond a simple term scan).
+ */
+const CERTIFICATION_PROTOCOLS: Record<string, string[]> = {
+  kosher:        ["kosher"],
+  halal:         ["halal"],
   "kosher-halal": ["kosher", "halal"],
 };
 
-function deriveActiveProtocols(
+/**
+ * All dietary identity tags that the gateway enforces at Tier 0.
+ * The hidden-term scan handles vegan, vegetarian, and others.
+ */
+const ALL_DIETARY_IDENTITIES = new Set([
+  "kosher", "halal", "kosher-halal",
+  "vegan", "vegetarian",
+  "gluten-free", "paleo", "keto",
+  "anti-inflammatory", "diabetic-friendly",
+]);
+
+function deriveCertificationProtocols(
   dietType: string | null | undefined,
   protocolOverride?: string[]
 ): string[] {
   if (protocolOverride && protocolOverride.length > 0) return protocolOverride;
   if (!dietType) return [];
   const normalized = dietType.trim().toLowerCase();
-  return RELIGIOUS_DIET_PROTOCOLS[normalized] || [];
+  return CERTIFICATION_PROTOCOLS[normalized] || [];
+}
+
+function dietaryIdentityIsActive(dietType: string | null | undefined): boolean {
+  if (!dietType) return false;
+  return ALL_DIETARY_IDENTITIES.has(dietType.trim().toLowerCase());
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -188,6 +213,7 @@ function generateAuditId(): string {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CORE: runEnforcement
+// Tier 0 runs first — dietary identity is the outermost rule container.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function runEnforcement(request: EnforcementRequest): Promise<EnforcementResult> {
@@ -221,12 +247,135 @@ export async function runEnforcement(request: EnforcementRequest): Promise<Enfor
     return buildResult("ALLOW", blocks, warnings, auditId, request);
   }
 
-  const activeProtocols = deriveActiveProtocols(
-    (profile as any).dietType,
+  const dietType: string | null = (profile as any).dietType || null;
+  const certificationProtocols = deriveCertificationProtocols(
+    dietType,
     request.protocolOverride
   );
 
-  // ── TIER 1: Allergy / Safety check (existing SafetyGuard) ────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // TIER 0: DIETARY IDENTITY — outermost rule container
+  // Runs before allergy and every other check. Dietary identity is never
+  // overridden by medical logic, preferences, or any inner tier.
+  // ══════════════════════════════════════════════════════════════════════════
+
+  if (dietaryIdentityIsActive(dietType) || (request.protocolOverride && request.protocolOverride.length > 0)) {
+
+    // ── 0a. Certification protocols (kosher / halal) ───────────────────────
+    // These require provenance + combination-level knowledge beyond term scanning.
+    if (certificationProtocols.length > 0) {
+
+      // Ingredient Intelligence — fail-closed for unknown provenance
+      const intelligenceFindings = scanTextForHighRiskIngredients(textToCheck, certificationProtocols);
+
+      for (const finding of intelligenceFindings) {
+        const unsafeProtocols = certificationProtocols.filter(
+          p => finding.riskByProtocol[p] === "unsafe"
+        );
+        const unknownFailClosedProtocols = certificationProtocols.filter(
+          p =>
+            finding.riskByProtocol[p] === "unknown" &&
+            finding.intelligence?.failClosedProtocols.includes(p)
+        );
+
+        if (unsafeProtocols.length > 0) {
+          blocks.push({
+            tier: 0,
+            tierLabel: "Dietary Identity",
+            reasonCode: `INGREDIENT_UNSAFE_${unsafeProtocols[0].toUpperCase()}`,
+            protocol: unsafeProtocols[0],
+            blockingIngredient: finding.ingredientName,
+            message: finding.reason,
+            suggestedSubstitute: "Use a certified alternative appropriate for your protocol.",
+            reviewOverrideAllowed: false,
+          });
+        } else if (unknownFailClosedProtocols.length > 0) {
+          blocks.push({
+            tier: 0,
+            tierLabel: "Dietary Identity",
+            reasonCode: `INGREDIENT_UNKNOWN_FAIL_CLOSED`,
+            protocol: unknownFailClosedProtocols[0],
+            blockingIngredient: finding.ingredientName,
+            message: finding.reason,
+            suggestedSubstitute: "Use a certified kosher/halal alternative or a plant-based substitute.",
+            reviewOverrideAllowed: false,
+          });
+        }
+      }
+
+      // Short-circuit on hard block
+      const certHardBlock = blocks.find(b => b.tier === 0 && !b.reviewOverrideAllowed);
+      if (certHardBlock) {
+        logGatewayBlock(request, certHardBlock, auditId);
+        return buildResult("BLOCK", blocks, warnings, auditId, request);
+      }
+
+      // Relationship Rules — combination conflicts, dish categories
+      const ruleViolations = evaluateRelationshipRules(
+        textToCheck,
+        ingredientNames,
+        dishName,
+        certificationProtocols
+      );
+
+      for (const violation of ruleViolations) {
+        const { rule } = violation;
+        const primaryProtocol = rule.protocols.find(p => certificationProtocols.includes(p)) || rule.protocols[0];
+        blocks.push({
+          tier: 0,
+          tierLabel: "Dietary Identity",
+          reasonCode: rule.effect.reasonCode,
+          protocol: primaryProtocol,
+          blockingRule: rule.id,
+          blockingIngredient: violation.matchedOn || undefined,
+          message: rule.effect.message,
+          suggestedSubstitute: rule.effect.suggestedSubstitute,
+          reviewOverrideAllowed: rule.effect.reviewOverrideAllowed,
+        });
+      }
+
+      const certHardBlocks = blocks.filter(b => b.tier === 0 && !b.reviewOverrideAllowed);
+      const certSoftBlocks  = blocks.filter(b => b.tier === 0 && b.reviewOverrideAllowed);
+
+      if (certHardBlocks.length > 0) {
+        logGatewayBlock(request, certHardBlocks[0], auditId);
+        return buildResult("BLOCK", blocks, warnings, auditId, request);
+      }
+      if (certSoftBlocks.length > 0) {
+        logGatewayBlock(request, certSoftBlocks[0], auditId);
+        return buildResult("REVIEW_REQUIRED", blocks, warnings, auditId, request);
+      }
+    }
+
+    // ── 0b. Hidden-term scan for lifestyle protocols ───────────────────────
+    // Vegan, vegetarian, and other lifestyle protocols use the ingredient-level
+    // hidden-term scanner built in allergyGuardrails.
+    if (dietType && request.phase === "post_generation" && request.generatedMeal) {
+      const mealText = extractMealText(request.generatedMeal);
+      const hiddenViolations = scanForHiddenDietaryViolations(mealText, [dietType]);
+
+      for (const violation of hiddenViolations) {
+        const block: EnforcementBlock = {
+          tier: 0,
+          tierLabel: "Dietary Identity",
+          reasonCode: `HIDDEN_${violation.category.toUpperCase()}_VIOLATION`,
+          protocol: violation.category,
+          blockingIngredient: violation.term,
+          message: `${violation.reason} This violates your ${dietType} dietary identity.`,
+          suggestedSubstitute: `Use a ${dietType}-compliant alternative.`,
+          reviewOverrideAllowed: false,
+        };
+        blocks.push(block);
+        logGatewayBlock(request, block, auditId);
+        return buildResult("BLOCK", blocks, warnings, auditId, request);
+      }
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // TIER 1: ALLERGY / SAFETY — life-threatening, absolute nested constraint
+  // ══════════════════════════════════════════════════════════════════════════
+
   const safetyOptions: SafetyOptions = {
     safetyMode: request.safetyMode || "STRICT",
     overrideToken: request.safetyMode === "CUSTOM_AUTHENTICATED" ? request.overrideToken : undefined,
@@ -251,7 +400,7 @@ export async function runEnforcement(request: EnforcementRequest): Promise<Enfor
       reviewOverrideAllowed: false,
     });
 
-    logGatewayBlock(request, blocks[0], auditId);
+    logGatewayBlock(request, blocks[blocks.length - 1], auditId);
     return buildResult("BLOCK", blocks, warnings, auditId, request);
   }
 
@@ -267,111 +416,26 @@ export async function runEnforcement(request: EnforcementRequest): Promise<Enfor
       reviewOverrideAllowed: true,
     });
 
-    logGatewayBlock(request, blocks[0], auditId);
+    logGatewayBlock(request, blocks[blocks.length - 1], auditId);
     return buildResult("REVIEW_REQUIRED", blocks, warnings, auditId, request);
   }
 
-  // ── TIER 2: Religious / Cultural checks ──────────────────────────────────
-  if (activeProtocols.length > 0) {
+  // ══════════════════════════════════════════════════════════════════════════
+  // TIER 2–3: Medical hard limits and optimization targets
+  // Handled by DietGuard / StarchGuard in the UI layer and the guardrail
+  // prompt injection in the generation pipeline.
+  // ══════════════════════════════════════════════════════════════════════════
 
-    // 2a. Ingredient Intelligence — fail-closed for unknown provenance
-    const intelligenceFindings = scanTextForHighRiskIngredients(textToCheck, activeProtocols);
-
-    for (const finding of intelligenceFindings) {
-      const unsafeProtocols = activeProtocols.filter(
-        p => finding.riskByProtocol[p] === "unsafe"
-      );
-      const unknownFailClosedProtocols = activeProtocols.filter(
-        p =>
-          finding.riskByProtocol[p] === "unknown" &&
-          finding.intelligence?.failClosedProtocols.includes(p)
-      );
-
-      if (unsafeProtocols.length > 0) {
-        blocks.push({
-          tier: 2,
-          tierLabel: "Religious / Cultural Law",
-          reasonCode: `INGREDIENT_UNSAFE_${unsafeProtocols[0].toUpperCase()}`,
-          protocol: unsafeProtocols[0],
-          blockingIngredient: finding.ingredientName,
-          message: finding.reason,
-          suggestedSubstitute: "Use a certified alternative appropriate for your protocol.",
-          reviewOverrideAllowed: false,
-        });
-      } else if (unknownFailClosedProtocols.length > 0) {
-        // Fail-closed: unknown + strict protocol = BLOCK
-        blocks.push({
-          tier: 2,
-          tierLabel: "Religious / Cultural Law",
-          reasonCode: `INGREDIENT_UNKNOWN_FAIL_CLOSED`,
-          protocol: unknownFailClosedProtocols[0],
-          blockingIngredient: finding.ingredientName,
-          message: finding.reason,
-          suggestedSubstitute: "Use a certified kosher/halal alternative or a plant-based substitute.",
-          reviewOverrideAllowed: false,
-        });
-      }
-    }
-
-    // If a hard block from ingredient intelligence — short-circuit
-    const hardBlock = blocks.find(b => b.tier === 2 && !b.reviewOverrideAllowed);
-    if (hardBlock) {
-      logGatewayBlock(request, hardBlock, auditId);
-      return buildResult("BLOCK", blocks, warnings, auditId, request);
-    }
-
-    // 2b. Relationship Rules — combination conflicts, dish categories
-    const ruleViolations = evaluateRelationshipRules(
-      textToCheck,
-      ingredientNames,
-      dishName,
-      activeProtocols
-    );
-
-    for (const violation of ruleViolations) {
-      const { rule } = violation;
-      const primaryProtocol = rule.protocols.find(p => activeProtocols.includes(p)) || rule.protocols[0];
-
-      blocks.push({
-        tier: 2,
-        tierLabel: "Religious / Cultural Law",
-        reasonCode: rule.effect.reasonCode,
-        protocol: primaryProtocol,
-        blockingRule: rule.id,
-        blockingIngredient: violation.matchedOn || undefined,
-        message: rule.effect.message,
-        suggestedSubstitute: rule.effect.suggestedSubstitute,
-        reviewOverrideAllowed: rule.effect.reviewOverrideAllowed,
-      });
-    }
-
-    // Evaluate final decision after tier 2
-    const tier2HardBlocks = blocks.filter(b => b.tier === 2 && !b.reviewOverrideAllowed);
-    const tier2SoftBlocks = blocks.filter(b => b.tier === 2 && b.reviewOverrideAllowed);
-
-    if (tier2HardBlocks.length > 0) {
-      logGatewayBlock(request, tier2HardBlocks[0], auditId);
-      return buildResult("BLOCK", blocks, warnings, auditId, request);
-    }
-
-    if (tier2SoftBlocks.length > 0) {
-      logGatewayBlock(request, tier2SoftBlocks[0], auditId);
-      return buildResult("REVIEW_REQUIRED", blocks, warnings, auditId, request);
-    }
-  }
-
-  // ── TIER 3–5: Medical and preference checks ───────────────────────────────
-  // Currently handled by the existing DietGuard / StarchGuard in the UI layer
-  // and the guardrail prompt injection in the generation pipeline.
-  // The gateway records any warnings from the safety assessment.
   if (safetyAssessment.result === "DIET_ADAPT") {
     warnings.push(safetyAssessment.message || "Dietary adaptation applied");
   }
 
-  // ── TIER 5: User food avoidances (post-generation scan) ──────────────────
-  // This is the safety net for avoided foods. The AI prompt already instructs
-  // the model to skip avoided ingredients, but if it ignores the instruction
-  // this check catches the violation before the meal reaches the user.
+  // ══════════════════════════════════════════════════════════════════════════
+  // TIER 4: USER FOOD AVOIDANCES — preference-level (no medical basis)
+  // Safety net: AI prompt already instructs the model to skip avoided
+  // ingredients, but this catches leaks before they reach the user.
+  // ══════════════════════════════════════════════════════════════════════════
+
   if (request.phase === "post_generation" && request.generatedMeal) {
     const userAvoidIngredients: string[] = (profile as any).avoidIngredients || [];
     if (userAvoidIngredients.length > 0) {
@@ -379,7 +443,7 @@ export async function runEnforcement(request: EnforcementRequest): Promise<Enfor
       const violation = findAvoidanceViolation(mealText, userAvoidIngredients);
       if (violation) {
         const block: EnforcementBlock = {
-          tier: 5,
+          tier: 4,
           tierLabel: "User Food Avoidance",
           reasonCode: "AVOID_INGREDIENT_FOUND",
           protocol: "user_avoidance",
@@ -432,7 +496,7 @@ function logGatewayBlock(
   auditId: string
 ): void {
   console.log(
-    `🚫 [EnforcementGateway] ${block.decision || "BLOCK"} — ` +
+    `🚫 [EnforcementGateway] BLOCK — ` +
     `user=${request.userId} ` +
     `builder=${request.builderType} ` +
     `phase=${request.phase} ` +
