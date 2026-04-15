@@ -28,6 +28,7 @@ import { generateCravingMealWithProfile } from "./services/generators/cravingCre
 import { enforceSafetyProfile } from "./services/safetyProfileService";
 import { runEnforcement, toRouteResponse } from "./services/enforcementGateway";
 import { scanForHiddenDietaryViolations, AVOIDANCE_EXPANSION } from "./services/allergyGuardrails";
+import { loadUserProtocolEnvelope, filterMealsByProtocol, buildGuestEnvelope } from "./services/protocolEnvelope";
 import { 
   hasUserSetPin, 
   setUserPin, 
@@ -3280,6 +3281,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Final fallback: body-provided userId (legacy / admin callers only)
       if (!userId && bodyUserId) userId = bodyUserId;
 
+      // ── Load protocol envelope (single DB query — drives all enforcement) ──
+      const protocolEnvelope = userId
+        ? (await loadUserProtocolEnvelope(userId)) ?? buildGuestEnvelope()
+        : buildGuestEnvelope();
+
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       let dietAdapted = false;
       let dietNotice = "";
@@ -3355,64 +3361,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw new Error("Variety engine returned no options");
       }
 
-      // ── Post-generation avoidance + hidden ingredient scan ────────────────
-      // This is the safety net for foods-to-avoid and hidden dietary violations.
-      // The AI prompt already contained the avoidance list, but this scan catches
-      // any options that still violated rules — before the user ever sees them.
-      let scannedOptions = mealOptions;
-      if (user) {
-        const rawAvoidances: string[] = [
-          ...((user.dislikedFoods as string[]) || []),
-          ...((user.avoidedFoods  as string[]) || []),
-        ];
-        const userDietTypes: string[] = (user.dietaryRestrictions as string[]) || [];
+      // ── Post-generation protocol scan (ingredient + instruction level) ──────
+      // Uses the protocol envelope to filter any options that still violated the
+      // user's dietary identity, avoidances, or procedural rules after generation.
+      // This is the universal safety net — covers ingredients, hidden terms,
+      // combination violations, AND forbidden instruction phrases.
+      const cleanOptions = filterMealsByProtocol(mealOptions, protocolEnvelope, {
+        generatorName: "craving_creator",
+      });
 
-        const cleanOptions = mealOptions.filter(opt => {
-          // Build full searchable text from this option
-          const parts: string[] = [];
-          if (opt.name)        parts.push(opt.name);
-          if (opt.description) parts.push(opt.description);
-          if (Array.isArray(opt.ingredients)) {
-            for (const ing of opt.ingredients) {
-              if (typeof ing === "string") parts.push(ing);
-              else if (ing && typeof ing === "object") {
-                const i = ing as any;
-                if (i.name) parts.push(i.name);
-                if (i.item) parts.push(i.item);
-              }
-            }
-          }
-          if (opt.instructions) {
-            const instr = Array.isArray(opt.instructions)
-              ? opt.instructions.join(" ")
-              : String(opt.instructions);
-            parts.push(instr);
-          }
-          const mealText = parts.join(" ");
-
-          // Run hidden violation scan (kosher, halal, user avoidances)
-          const violations = scanForHiddenDietaryViolations(mealText, userDietTypes, rawAvoidances);
-          if (violations.length > 0) {
-            console.log(`🚫 [PostGen Scan] Filtered "${opt.name}" — violations: ${violations.map(v => v.term).join(", ")}`);
-            return false;
-          }
-          return true;
+      if (cleanOptions.length === 0 && mealOptions.length > 0) {
+        console.log(`⚠️ [ProtocolEnvelope] ALL options violated protocol — returning enforcement error`);
+        return res.status(400).json({
+          error: "AVOIDANCE_VIOLATION_ALL_OPTIONS",
+          message: "All generated options contained ingredients or instructions that conflict with your dietary protocol. Please try a different dish or adjust your craving description.",
+          retryable: true,
         });
-
-        if (cleanOptions.length === 0) {
-          console.log(`⚠️ [PostGen Scan] ALL 3 options violated avoidances — returning enforcement error`);
-          return res.status(400).json({
-            error: "AVOIDANCE_VIOLATION_ALL_OPTIONS",
-            message: "All generated options contained ingredients from your foods-to-avoid list. Please try a different dish or adjust your craving description.",
-            retryable: true,
-          });
-        }
-
-        if (cleanOptions.length < mealOptions.length) {
-          console.log(`⚠️ [PostGen Scan] Removed ${mealOptions.length - cleanOptions.length} violating option(s) — returning ${cleanOptions.length} clean option(s)`);
-        }
-        scannedOptions = cleanOptions;
       }
+
+      if (cleanOptions.length < mealOptions.length) {
+        console.log(`⚠️ [ProtocolEnvelope] Removed ${mealOptions.length - cleanOptions.length} violating option(s) — serving ${cleanOptions.length} clean option(s)`);
+      }
+
+      let scannedOptions = cleanOptions;
 
       // Format and optionally scale each option
       const formattedOptions = scannedOptions.map(meal => {
