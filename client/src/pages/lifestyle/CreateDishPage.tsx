@@ -570,7 +570,7 @@ export default function CreateDishPage() {
         </MobileHeaderGuard>
 
         <div
-          className={`max-w-2xl mx-auto px-4 pt-24 ${generatedMeals.length > 0 ? "pb-32" : "pb-8"}`}
+          className={`max-w-2xl mx-auto px-4 pt-28 ${generatedMeals.length > 0 ? "pb-32" : "pb-8"}`}
         >
           <div className="w-full max-w-4xl mx-auto">
             <div>
