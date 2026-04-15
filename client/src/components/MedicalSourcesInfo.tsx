@@ -309,6 +309,30 @@ export function MedicalSourcesInfo({
             </p>
           </section>
 
+          <section>
+            <h3 className="text-lg font-semibold text-white mb-3">
+              Dietary guidelines &amp; lifestyle standards
+            </h3>
+            <p className="text-white/60 text-xs mb-3">
+              Plant-based and lifestyle diets are informed by widely accepted nutrition and dietary guidelines.
+            </p>
+            <ul className="space-y-3">
+              <SourceItem
+                title="Academy of Nutrition and Dietetics"
+                description="Evidence-based guidance for vegetarian, vegan, and plant-based dietary patterns"
+                url="https://www.eatright.org/"
+              />
+              <SourceItem
+                title="British Dietetic Association"
+                description="Peer-reviewed dietary standards for plant-based and lifestyle-based diets"
+                url="https://www.bda.uk.com/"
+              />
+            </ul>
+            <p className="text-white/60 text-xs mt-3 leading-relaxed">
+              These guidelines help shape how vegetarian, vegan, and other lifestyle-based diets are applied within the system.
+            </p>
+          </section>
+
           <section className="bg-amber-900/20 border border-amber-500/30 rounded-xl p-4">
             <h3 className="text-amber-400 font-semibold mb-2 flex items-center gap-2">
               <Info className="w-4 h-4" />
