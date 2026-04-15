@@ -111,6 +111,21 @@ export const AVOIDANCE_EXPANSION: Record<string, string[]> = {
     "short ribs", "beef ribs", "hamburger", "burger", "meatball",
     "meat sauce", "bolognese",
   ],
+  dairy: [
+    "dairy", "milk", "whole milk", "skim milk", "2% milk", "cream",
+    "heavy cream", "half and half", "half-and-half", "butter", "ghee",
+    "cheese", "cheddar", "mozzarella", "parmesan", "feta", "brie",
+    "camembert", "ricotta", "cottage cheese", "cream cheese", "gouda",
+    "swiss cheese", "provolone", "blue cheese", "gorgonzola",
+    "yogurt", "greek yogurt", "kefir", "sour cream", "creme fraiche",
+    "whey", "casein", "lactose", "buttermilk", "custard", "ice cream",
+    "gelato", "whipped cream", "condensed milk", "evaporated milk",
+    "milk powder", "dried milk",
+  ],
+  milk: [
+    "milk", "whole milk", "skim milk", "2% milk", "dairy", "cream",
+    "butter", "cheese", "yogurt", "whey", "casein", "lactose",
+  ],
 };
 
 /**
@@ -1174,6 +1189,75 @@ export interface HiddenViolation {
 }
 
 /**
+ * Hidden animal-derived ingredients that violate vegan law.
+ * Focuses on non-obvious items the AI might slip in: condiment derivatives,
+ * hidden dairy, hidden egg, animal fats, and fish-derived sauces.
+ */
+const VEGAN_HIDDEN_TERMS: Array<{ term: string; reason: string }> = [
+  // Hidden dairy derivatives
+  { term: "butter",          reason: "Butter is an animal dairy product — not vegan" },
+  { term: "ghee",            reason: "Ghee is clarified butter — not vegan" },
+  { term: "cream",           reason: "Cream is an animal dairy product — not vegan (use coconut cream or oat cream)" },
+  { term: "heavy cream",     reason: "Heavy cream is an animal dairy product — not vegan" },
+  { term: "cream cheese",    reason: "Cream cheese is an animal dairy product — not vegan" },
+  { term: "sour cream",      reason: "Sour cream is an animal dairy product — not vegan" },
+  { term: "parmesan",        reason: "Parmesan is an animal dairy product — not vegan" },
+  { term: "mozzarella",      reason: "Mozzarella is an animal dairy product — not vegan" },
+  { term: "feta",            reason: "Feta is an animal dairy product — not vegan" },
+  { term: "cheese",          reason: "Cheese is an animal dairy product — not vegan (use plant-based cheese)" },
+  { term: "milk",            reason: "Dairy milk is an animal product — use plant milk instead" },
+  { term: "whey",            reason: "Whey is a dairy derivative — not vegan" },
+  { term: "casein",          reason: "Casein is a dairy protein — not vegan" },
+  // Hidden egg derivatives
+  { term: "egg wash",        reason: "Egg wash uses animal eggs — use plant milk or aquafaba instead" },
+  { term: "mayonnaise",      reason: "Standard mayonnaise contains eggs — use vegan mayonnaise" },
+  // Hidden fish/seafood-derived condiments
+  { term: "fish sauce",      reason: "Fish sauce is made from fermented fish — not vegan" },
+  { term: "oyster sauce",    reason: "Oyster sauce is made from oysters — not vegan" },
+  { term: "worcestershire",  reason: "Worcestershire sauce traditionally contains anchovies — not vegan" },
+  { term: "anchovy paste",   reason: "Anchovy paste is a fish derivative — not vegan" },
+  { term: "anchovy",         reason: "Anchovies are fish — not vegan" },
+  { term: "anchovies",       reason: "Anchovies are fish — not vegan" },
+  { term: "caesar dressing", reason: "Caesar dressing traditionally contains anchovies and egg — not vegan" },
+  { term: "caesar salad",    reason: "Caesar dressing traditionally contains anchovies and egg — not vegan" },
+  // Animal fats and derivatives
+  { term: "lard",            reason: "Lard is rendered pork fat — not vegan" },
+  { term: "gelatin",         reason: "Gelatin is typically animal-derived — use agar-agar instead" },
+  { term: "suet",            reason: "Suet is animal fat — not vegan" },
+  { term: "schmaltz",        reason: "Schmaltz is rendered poultry fat — not vegan" },
+  // Honey
+  { term: "honey",           reason: "Honey is an animal product — use maple syrup or agave instead" },
+];
+
+/**
+ * Hidden animal-derived ingredients that violate vegetarian law.
+ * Focuses on hidden fish/seafood derivatives and animal-based broths/fats
+ * that often appear in sauces, condiments, and soups.
+ */
+const VEGETARIAN_HIDDEN_TERMS: Array<{ term: string; reason: string }> = [
+  // Hidden fish/seafood-derived condiments
+  { term: "fish sauce",      reason: "Fish sauce is made from fermented fish — not vegetarian" },
+  { term: "worcestershire",  reason: "Worcestershire sauce traditionally contains anchovies — not vegetarian unless certified" },
+  { term: "anchovy paste",   reason: "Anchovy paste is a fish derivative — not vegetarian" },
+  { term: "anchovy",         reason: "Anchovies are fish — not vegetarian" },
+  { term: "anchovies",       reason: "Anchovies are fish — not vegetarian" },
+  { term: "shrimp paste",    reason: "Shrimp paste is a shellfish derivative — not vegetarian" },
+  { term: "oyster sauce",    reason: "Oyster sauce is made from oysters — not vegetarian" },
+  // Animal-derived gelatin and fats
+  { term: "gelatin",         reason: "Gelatin is typically animal-derived — use agar-agar instead" },
+  { term: "lard",            reason: "Lard is rendered pork fat — not vegetarian" },
+  { term: "suet",            reason: "Suet is animal fat — not vegetarian" },
+  { term: "schmaltz",        reason: "Schmaltz is rendered poultry fat — not vegetarian" },
+  // Hidden meat-based broths (common in soups, risottos, sauces)
+  { term: "chicken broth",   reason: "Chicken broth is an animal stock — use vegetable broth" },
+  { term: "beef broth",      reason: "Beef broth is an animal stock — use vegetable broth" },
+  { term: "bone broth",      reason: "Bone broth is an animal stock — use vegetable broth" },
+  { term: "chicken stock",   reason: "Chicken stock is an animal stock — use vegetable broth" },
+  { term: "beef stock",      reason: "Beef stock is an animal stock — use vegetable broth" },
+  { term: "meat broth",      reason: "Meat broth is an animal stock — use vegetable broth" },
+];
+
+/**
  * Hidden forms that violate kosher law beyond the obvious ingredient names.
  * Includes pork derivatives, shellfish derivatives, and meat/dairy mixing signals.
  */
@@ -1288,8 +1372,32 @@ export function scanForHiddenDietaryViolations(
   const lower = mealText.toLowerCase();
 
   const normalizedDiets = dietTypes.map(d => d.trim().toLowerCase());
-  const isKosher = normalizedDiets.some(d => d === "kosher" || d === "kosher-halal");
-  const isHalal  = normalizedDiets.some(d => d === "halal"  || d === "kosher-halal");
+  const isKosher      = normalizedDiets.some(d => d === "kosher" || d === "kosher-halal");
+  const isHalal       = normalizedDiets.some(d => d === "halal"  || d === "kosher-halal");
+  const isVegan       = normalizedDiets.some(d => d === "vegan");
+  const isVegetarian  = normalizedDiets.some(d => d === "vegetarian");
+
+  // ── Vegan hidden term scan ────────────────────────────────────────────────
+  if (isVegan) {
+    for (const { term, reason } of VEGAN_HIDDEN_TERMS) {
+      const esc = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (new RegExp(`\\b${esc}\\b`, "i").test(lower)) {
+        violations.push({ term, category: "vegan", reason });
+      }
+    }
+  }
+
+  // ── Vegetarian hidden term scan ───────────────────────────────────────────
+  if (isVegetarian && !isVegan) {
+    for (const { term, reason } of VEGETARIAN_HIDDEN_TERMS) {
+      const esc = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (new RegExp(`\\b${esc}\\b`, "i").test(lower)) {
+        if (!violations.find(v => v.term === term)) {
+          violations.push({ term, category: "vegetarian", reason });
+        }
+      }
+    }
+  }
 
   // ── Kosher hidden term scan ───────────────────────────────────────────────
   if (isKosher) {

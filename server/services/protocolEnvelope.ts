@@ -344,7 +344,7 @@ const PROTOCOL_PROCEDURE_MAP: Record<string, ProtocolProcedureRules> = {
  * Derive procedure rules for a given set of dietary identities.
  * Merges rules from all matching protocols (e.g. kosher + vegan stacks).
  */
-function deriveProcedureRules(dietaryIdentity: string[]): ProtocolProcedureRules {
+export function deriveProcedureRules(dietaryIdentity: string[]): ProtocolProcedureRules {
   const merged: ProtocolProcedureRules = {
     preparationRules: [],
     storageRules: [],
