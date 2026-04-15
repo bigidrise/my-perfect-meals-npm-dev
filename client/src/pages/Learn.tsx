@@ -782,6 +782,44 @@ const libraryTopics: LibraryTopic[] = [
       ],
     },
   },
+  {
+    id: "specialty-diets",
+    title: "Specialty Diets & Protocol System",
+    subtitle: "Kosher · Halal · Vegan · Gluten-Free · and more",
+    icon: Shield,
+    content: {
+      sections: [
+        {
+          heading: "What This System Does",
+          text: "My Perfect Meals doesn't just generate food. It enforces your dietary identity, your health needs, and your preparation rules — all at the same time. The system checks every meal before and after creation, so your protocol is respected at every level.",
+        },
+        {
+          heading: "The Three Levels of Compliance",
+          list: [
+            "Ingredient level — forbidden ingredients are blocked before the AI generates anything",
+            "Combination level — foods that cannot be combined under your protocol are detected, such as meat and dairy for kosher users",
+            "Preparation and instruction level — cooking steps are scanned for phrases that would violate your protocol, such as deglazing with wine for halal users or finishing a meat dish with butter for kosher users",
+          ],
+        },
+        {
+          heading: "How Priority Works",
+          text: "Your dietary identity is the outer wall. Everything else — medical limits, avoidances, and flavor preferences — is applied inside it. No craving, health goal, or preference can override your dietary protocol.",
+        },
+        {
+          heading: "Checked Before and After",
+          text: "Before the AI generates your meal, the full protocol is injected into the system as a structured set of rules. After generation, every result is scanned again — checking ingredient names, derivative terms, and forbidden instruction phrases — before you ever see it.",
+        },
+        {
+          heading: "Dietary Protocol Sources",
+          text: "This system is informed by recognized dietary and certification guidance from sources such as Orthodox Union, Star-K, OK Kosher Certification, and the Islamic Food and Nutrition Council of America (IFANCA).",
+        },
+        {
+          heading: "Important Note",
+          text: "This system is designed to guide compliant meal choices. For strict religious or medical adherence, always follow the guidance of your local religious authority or licensed physician.",
+        },
+      ],
+    },
+  },
 ];
 
 function LibraryItem({ topic }: { topic: LibraryTopic }) {

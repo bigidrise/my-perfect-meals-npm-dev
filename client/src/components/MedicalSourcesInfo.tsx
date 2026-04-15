@@ -275,6 +275,40 @@ export function MedicalSourcesInfo({
             </ul>
           </section>
 
+          <section>
+            <h3 className="text-lg font-semibold text-white mb-3">
+              Dietary protocol sources
+            </h3>
+            <p className="text-white/60 text-xs mb-3">
+              This system is informed by recognized dietary and certification guidance from sources such as:
+            </p>
+            <ul className="space-y-3">
+              <SourceItem
+                title="Orthodox Union (OU Kosher)"
+                description="Kosher dietary law certification and ingredient standards"
+                url="https://www.ou.org/kosher/"
+              />
+              <SourceItem
+                title="Star-K Kosher Certification"
+                description="Kosher compliance guidance for food production and preparation"
+                url="https://www.star-k.org/"
+              />
+              <SourceItem
+                title="OK Kosher Certification"
+                description="Kosher dietary standards and ingredient classification"
+                url="https://www.ok.org/"
+              />
+              <SourceItem
+                title="Islamic Food and Nutrition Council of America (IFANCA)"
+                description="Halal dietary standards, ingredient guidance, and food certification"
+                url="https://www.ifanca.org/"
+              />
+            </ul>
+            <p className="text-white/60 text-xs mt-3 leading-relaxed">
+              My Perfect Meals does not hold or claim formal religious certification. For strict religious adherence, always follow the guidance of your local religious authority.
+            </p>
+          </section>
+
           <section className="bg-amber-900/20 border border-amber-500/30 rounded-xl p-4">
             <h3 className="text-amber-400 font-semibold mb-2 flex items-center gap-2">
               <Info className="w-4 h-4" />

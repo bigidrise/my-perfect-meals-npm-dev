@@ -12,6 +12,7 @@
  */
 
 import { generateImage } from './imageService';
+import { loadUserProtocolEnvelope, enforceBeforeGenerate } from './protocolEnvelope';
 import { buildVegetableStrategyPrompt, NutritionStrategyContext, buildStrictModeBlock } from './promptBuilder';
 import { getDeterministicFallback, findMatchingTemplates, templateToMeal } from './templateMatcher';
 import { STARCHY_KEYWORDS } from '../../shared/starchKeywords';
@@ -1112,6 +1113,7 @@ export async function generateCravingMealOptions(
   let dietRestrictions: string[] = [];
   let allergyBlock = '';
   let avoidanceBlock = '';
+  let proceduralBlock = '';
   if (userId) {
     try {
       const [u] = await db.select({
@@ -1147,6 +1149,26 @@ export async function generateCravingMealOptions(
     } catch (err) {
       console.warn("[VARIETY ENGINE] Could not fetch user profile:", err);
     }
+
+    // ── Procedural enforcement block (instruction-level compliance) ──────────
+    // Load the full protocol envelope and extract the procedural layer.
+    // This adds preparation, equipment, and forbidden-instruction rules to
+    // the prompt — so the AI is constrained at the instruction level too.
+    try {
+      const envelope = await loadUserProtocolEnvelope(userId);
+      if (envelope) {
+        const promptBlock = enforceBeforeGenerate(envelope, {
+          userInput: cravingInput,
+          generatorName: 'craving_creator',
+        });
+        if (promptBlock.layers.procedural) {
+          proceduralBlock = promptBlock.layers.procedural;
+          console.log(`[VARIETY ENGINE] Procedural enforcement active for user ${userId} (${envelope.dietaryIdentity.join(', ')})`);
+        }
+      }
+    } catch (err) {
+      console.warn("[VARIETY ENGINE] Could not load protocol envelope for procedural block:", err);
+    }
   }
   if (dietaryRestrictionsOverride && dietaryRestrictionsOverride.length > 0) {
     const merged = new Set([...dietRestrictions, ...dietaryRestrictionsOverride]);
@@ -1175,7 +1197,7 @@ export async function generateCravingMealOptions(
       : "";
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
-      messages: [{ role: "user", content: prompt + stricter }],
+      messages: [{ role: "user", content: (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter }],
       temperature: stricterMode ? 0.6 : 0.85,
       max_tokens: 2500,
     });
