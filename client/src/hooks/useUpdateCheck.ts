@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BUILD_VERSION, APP_SEMVER } from "@/buildVersion";
+import { BUILD_VERSION } from "@/buildVersion";
 
 const CHECK_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -16,15 +16,11 @@ function formatDate(ts: string): string {
 
 interface UpdateStatus {
   hasUpdate: boolean;
-  isUpToDate: boolean;
   currentVersionLabel: string;
-  latestVersionLabel: string;
-  isChecking: boolean;
 }
 
-export function useUpdateCheck(): UpdateStatus {
+export function useUpdateCheck(): boolean & { status: UpdateStatus } {
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
-  const [latestSemver, setLatestSemver] = useState<string>(APP_SEMVER);
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
@@ -34,7 +30,6 @@ export function useUpdateCheck(): UpdateStatus {
         if (!res.ok) return;
         const data = await res.json();
         if (data.version) setLatestVersion(data.version);
-        if (data.semver) setLatestSemver(data.semver);
       } catch {}
       finally {
         setIsChecking(false);
@@ -48,17 +43,33 @@ export function useUpdateCheck(): UpdateStatus {
 
   const isDev = BUILD_VERSION === "dev";
   const hasUpdate = !isDev && latestVersion !== null && latestVersion !== BUILD_VERSION;
-  const isUpToDate = !hasUpdate && !isChecking;
 
-  const dateLabel = formatDate(BUILD_VERSION);
-  const currentVersionLabel = `v${APP_SEMVER} · ${dateLabel}`;
-  const latestVersionLabel = latestVersion ? `v${latestSemver} · ${formatDate(latestVersion)}` : "";
+  return hasUpdate as any;
+}
+
+export function useUpdateStatus(): UpdateStatus {
+  const [latestVersion, setLatestVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const res = await fetch("/release-manifest.json?ts=" + Date.now(), { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.version) setLatestVersion(data.version);
+      } catch {}
+    };
+
+    check();
+    const interval = setInterval(check, CHECK_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, []);
+
+  const isDev = BUILD_VERSION === "dev";
+  const hasUpdate = !isDev && latestVersion !== null && latestVersion !== BUILD_VERSION;
 
   return {
     hasUpdate,
-    isUpToDate,
-    currentVersionLabel,
-    latestVersionLabel,
-    isChecking,
+    currentVersionLabel: formatDate(BUILD_VERSION),
   };
 }
