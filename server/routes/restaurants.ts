@@ -8,6 +8,7 @@ import { coordsToZip } from "../services/zipToCoordsService";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope } from "../services/protocolEnvelope";
 
 const router = Router();
 
@@ -91,12 +92,20 @@ router.post("/guide", async (req, res) => {
       aiUser = { ...(user || {}), dietaryRestrictions: merged } as any;
     }
 
+    // ── Protocol envelope: enforce dietary identity before generation ──────────
+    const guideEnvelope = userId
+      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+      : buildGuestEnvelope();
+    const guideProtocolBlock = enforceBeforeGenerate(guideEnvelope, { generatorName: 'restaurant_guide' }).combined;
+
     // Step 2: Generate AI meal recommendations for this restaurant
     const recommendations = await generateRestaurantMealsAI({
       restaurantName: restaurantInfo.name,
       cuisine: detectedCuisine,
       cravingContext: craving,
-      user: aiUser
+      user: aiUser,
+      protocolBlock: guideProtocolBlock,
+      protocolEnvelope: guideEnvelope,
     });
 
     const generationTime = Date.now() - generationStart;
@@ -149,11 +158,19 @@ router.post("/analyze-menu", async (req, res) => {
       }
     }
     
+    // ── Protocol envelope: enforce dietary identity before generation ──────────
+    const analyzeEnvelope = userId
+      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+      : buildGuestEnvelope();
+    const analyzeProtocolBlock = enforceBeforeGenerate(analyzeEnvelope, { generatorName: 'restaurant_analyze_menu' }).combined;
+
     // Use AI generator (automatically falls back to locked generator if AI fails)
     const recommendations = await generateRestaurantMealsAI({
       restaurantName: restaurantName || `${cuisine} Restaurant`,
       cuisine: cuisine || "International",
-      user
+      user,
+      protocolBlock: analyzeProtocolBlock,
+      protocolEnvelope: analyzeEnvelope,
     });
 
     console.log(`✅ Generated ${recommendations.length} restaurant meal recommendations`);
