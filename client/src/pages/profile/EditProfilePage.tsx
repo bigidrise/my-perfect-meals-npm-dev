@@ -563,7 +563,7 @@ export default function EditProfilePage() {
                 />
               </div>
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2 pt-3">
                 <Button
                   className="w-full bg-lime-600 text-white"
                   disabled={!canContinueStep1}
@@ -667,7 +667,7 @@ export default function EditProfilePage() {
                 )}
               </div>
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2 pt-3">
                 <Button
                   variant="outline"
                   className="w-1/2 bg-black text-white"
@@ -676,7 +676,7 @@ export default function EditProfilePage() {
                   Back
                 </Button>
                 <Button
-                  className="w-1/2 bg-lime-600 text-white"
+                  className="flex-1 bg-lime-600 text-white"
                   disabled={!canContinueStep2}
                   onClick={() => setStep(3)}
                 >
@@ -1035,16 +1035,16 @@ export default function EditProfilePage() {
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2 pt-3">
                 <Button
                   variant="outline"
-                  className="w-1/2 bg-black text-white"
+                  className="flex-1 bg-black text-white"
                   onClick={() => setStep(2)}
                 >
                   Back
                 </Button>
                 <Button
-                  className="w-1/2 bg-lime-600 text-white"
+                  className="flex-1 bg-lime-600 text-white"
                   disabled={!canContinueStep3}
                   onClick={() => setStep(4)}
                 >
@@ -1175,16 +1175,16 @@ export default function EditProfilePage() {
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2 pt-3">
                 <Button
                   variant="outline"
-                  className="w-1/2 bg-black text-white"
+                  className="flex-1 bg-black text-white"
                   onClick={() => setStep(3)}
                 >
                   Back
                 </Button>
                 <Button
-                  className="w-1/2 bg-lime-600 text-white"
+                  className="flex-1 bg-lime-600 text-white"
                   disabled={glycemicSaving}
                   onClick={async () => {
                     await saveGlycemic({
@@ -1260,17 +1260,17 @@ export default function EditProfilePage() {
                 </p>
               </div>
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2 pt-3">
                 <Button
                   variant="outline"
-                  className="w-1/2 bg-black text-white"
+                  className="flex-1 bg-black text-white"
                   onClick={() => setStep(4)}
                   disabled={saving}
                 >
                   Back
                 </Button>
                 <Button
-                  className="w-1/2 bg-lime-600 text-white"
+                  className="flex-1 bg-lime-600 text-white"
                   onClick={handleSave}
                   disabled={saving}
                 >
