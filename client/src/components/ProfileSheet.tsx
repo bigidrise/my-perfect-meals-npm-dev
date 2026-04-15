@@ -420,6 +420,24 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
           {userEmail && (
             <p className="text-white/70 text-sm truncate">{userEmail}</p>
           )}
+
+          {/* Version Status */}
+          <div className="mt-3 flex items-center gap-2">
+            {hasUpdate ? (
+              <button
+                onClick={() => window.location.reload()}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 transition-colors"
+              >
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                Update available — tap to refresh
+              </button>
+            ) : (
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-lime-500/15 border border-lime-500/30 text-lime-400">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-lime-400" />
+                Up to date · {currentVersionLabel}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Meal Reminders */}
