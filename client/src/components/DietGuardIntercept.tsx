@@ -1,4 +1,4 @@
-import { Leaf, ChefHat, ArrowLeft } from "lucide-react";
+import { Leaf, ChefHat, ArrowLeft, ShieldAlert } from "lucide-react";
 import { DietGuardAlertState, DietGuardDecision } from "@/hooks/useDietGuardPrecheck";
 
 interface DietGuardInterceptProps {
@@ -7,9 +7,30 @@ interface DietGuardInterceptProps {
   className?: string;
 }
 
+const CULTURAL_PROTOCOLS = ["kosher", "halal"] as const;
+type CulturalProtocol = (typeof CULTURAL_PROTOCOLS)[number];
+
+function isCulturalProtocol(diet: string | null): diet is CulturalProtocol {
+  return diet === "kosher" || diet === "halal";
+}
+
 function capitalizeDiet(diet: string | null): string {
   if (!diet) return "Diet";
   return diet.charAt(0).toUpperCase() + diet.slice(1);
+}
+
+// Badge color class by protocol
+function getProtocolColor(diet: string | null): string {
+  if (diet === "kosher") return "text-blue-400";
+  if (diet === "halal") return "text-teal-400";
+  return "text-green-400";
+}
+
+// Icon background by protocol
+function getIconBgClass(diet: string | null): string {
+  if (diet === "kosher") return "bg-blue-900/40";
+  if (diet === "halal") return "bg-teal-900/40";
+  return "bg-neutral-700/50";
 }
 
 export function DietGuardIntercept({
@@ -19,19 +40,40 @@ export function DietGuardIntercept({
 }: DietGuardInterceptProps) {
   if (!alert.show) return null;
 
+  const isCultural = isCulturalProtocol(alert.diet);
+  const protocolColor = getProtocolColor(alert.diet);
+  const iconBgClass = getIconBgClass(alert.diet);
+
+  // For cultural protocols, only show "Let Chef Adapt It" when the conflict is adaptable
+  const showAdaptButton = !isCultural || alert.isAdaptable === true;
+
+  const headingText = isCultural
+    ? "Protocol Conflict"
+    : `${capitalizeDiet(alert.diet)} Preference`;
+
+  const subText = isCultural
+    ? alert.isAdaptable
+      ? `Chef can fix this for you — would you like to pick something else, or let the chef adapt it to your ${alert.diet} protocol?`
+      : `This ingredient requires certification certainty the app cannot provide. Please pick something else.`
+    : `Would you like to pick something else, or let the chef create a diet-friendly version for you?`;
+
   return (
     <div
       className={`rounded-xl border p-5 bg-neutral-900/80 border-neutral-600/50 backdrop-blur-sm ${className}`}
     >
       <div className="flex flex-col gap-4">
         <div className="flex items-start gap-3">
-          <div className="p-2.5 rounded-full bg-neutral-700/50">
-            <Leaf className="h-5 w-5 text-green-400" />
+          <div className={`p-2.5 rounded-full ${iconBgClass}`}>
+            {isCultural ? (
+              <ShieldAlert className={`h-5 w-5 ${protocolColor}`} />
+            ) : (
+              <Leaf className={`h-5 w-5 ${protocolColor}`} />
+            )}
           </div>
 
           <div className="flex-1 min-w-0">
             <h4 className="font-semibold text-neutral-200 mb-1">
-              {capitalizeDiet(alert.diet)} Preference
+              {headingText}
             </h4>
 
             <p className="text-neutral-400 text-sm mb-3">{alert.message}</p>
@@ -49,13 +91,13 @@ export function DietGuardIntercept({
               </div>
             )}
 
-            <p className="text-neutral-500 text-xs">
-              Would you like to pick something else, or let the chef create a{" "}
-              <span className="text-green-400 font-medium">
-                {alert.diet ?? "diet"}-friendly
-              </span>{" "}
-              version for you?
-            </p>
+            {alert.suggestedSubstitute && (
+              <p className={`text-xs mb-3 ${protocolColor} opacity-80`}>
+                {alert.suggestedSubstitute}
+              </p>
+            )}
+
+            <p className="text-neutral-500 text-xs">{subText}</p>
           </div>
         </div>
 
@@ -68,13 +110,15 @@ export function DietGuardIntercept({
             Pick Something Else
           </button>
 
-          <button
-            onClick={() => onDecision("let_chef_adapt")}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-neutral-700/80 border border-neutral-500/50 text-white text-sm font-medium transition-all active:scale-[0.98]"
-          >
-            <ChefHat className="h-4 w-4" />
-            Let Chef Adapt It
-          </button>
+          {showAdaptButton && (
+            <button
+              onClick={() => onDecision("let_chef_adapt")}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-neutral-700/80 border border-neutral-500/50 text-white text-sm font-medium transition-all active:scale-[0.98]"
+            >
+              <ChefHat className="h-4 w-4" />
+              Let Chef Adapt It
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -84,21 +128,36 @@ export function DietGuardIntercept({
 interface DietAdaptedNoticeProps {
   diet: string;
   notice?: string;
+  swapDetail?: string;
   className?: string;
 }
 
 export function DietAdaptedNotice({
   diet,
   notice,
+  swapDetail,
   className = "",
 }: DietAdaptedNoticeProps) {
+  const isCultural = diet === "kosher" || diet === "halal";
+  const iconColor = diet === "kosher" ? "text-blue-400" : diet === "halal" ? "text-teal-400" : "text-green-400";
+
+  const defaultNotice = isCultural
+    ? swapDetail
+      ? `Adapted for your ${diet} protocol — ${swapDetail}`
+      : `Adapted for your ${diet} protocol — ingredients adjusted to comply.`
+    : `Adapted for your ${diet} diet.`;
+
   return (
     <div
       className={`rounded-lg px-3 py-2 bg-neutral-800/60 border border-neutral-700/50 flex items-center gap-2 ${className}`}
     >
-      <Leaf className="h-3.5 w-3.5 text-green-400 shrink-0" />
+      {isCultural ? (
+        <ShieldAlert className={`h-3.5 w-3.5 ${iconColor} shrink-0`} />
+      ) : (
+        <Leaf className={`h-3.5 w-3.5 ${iconColor} shrink-0`} />
+      )}
       <p className="text-neutral-400 text-xs">
-        {notice ?? `Adapted for your ${diet} diet.`}
+        {notice ?? defaultNotice}
       </p>
     </div>
   );

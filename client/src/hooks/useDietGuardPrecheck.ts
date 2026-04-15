@@ -13,6 +13,8 @@ export interface DietGuardAlertState {
   matchedTerms: string[];
   message: string;
   diet: SupportedDiet | null;
+  isAdaptable?: boolean;
+  suggestedSubstitute?: string;
 }
 
 export const EMPTY_DIET_ALERT: DietGuardAlertState = {
@@ -20,6 +22,8 @@ export const EMPTY_DIET_ALERT: DietGuardAlertState = {
   matchedTerms: [],
   message: "",
   diet: null,
+  isAdaptable: undefined,
+  suggestedSubstitute: undefined,
 };
 
 // Advisory decisions — DietGuard never blocks permanently
@@ -37,6 +41,8 @@ interface UseDietGuardPrecheckResult {
   shouldShowIntercept: boolean;
   canProceed: boolean;
 }
+
+const CULTURAL_PROTOCOLS: SupportedDiet[] = ["kosher", "halal"];
 
 export function useDietGuardPrecheck(): UseDietGuardPrecheckResult {
   const [checking, setChecking] = useState(false);
@@ -62,14 +68,20 @@ export function useDietGuardPrecheck(): UseDietGuardPrecheckResult {
           return true;
         }
 
+        const isCultural = CULTURAL_PROTOCOLS.includes(activeDiet);
         const termsList = result.matchedTerms.slice(0, 3).join(", ");
-        const message = `You requested "${termsList}" which isn't typically part of a ${activeDiet} diet.`;
+
+        const message = isCultural
+          ? result.conflictMessage ?? `"${termsList}" conflicts with your ${activeDiet} protocol.`
+          : `You requested "${termsList}" which isn't typically part of a ${activeDiet} diet.`;
 
         setAlert({
           show: true,
           matchedTerms: result.matchedTerms,
           message,
           diet: activeDiet,
+          isAdaptable: result.isAdaptable,
+          suggestedSubstitute: result.suggestedSubstitute,
         });
 
         setDecisionState("pending");

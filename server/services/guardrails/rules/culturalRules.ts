@@ -25,6 +25,13 @@ export interface RelationshipRule {
   protocols: string[];
   description: string;
 
+  /**
+   * Whether a chef can fix this conflict by substituting ingredients.
+   * true  → show both "Pick Something Else" and "Let Chef Adapt It" in the intercept.
+   * false → hard-block; only "Pick Something Else" is shown (certification uncertainty cannot be resolved by substitution alone).
+   */
+  isAdaptable: boolean;
+
   when: {
     allIngredients?: string[];
     anyIngredient?: string[];
@@ -58,6 +65,7 @@ export const CULTURAL_RULES: RelationshipRule[] = [
     kind: "ingredient_pair_conflict",
     protocols: ["kosher"],
     description: "Meat and dairy cannot appear in the same kosher meal",
+    isAdaptable: true,
     when: {
       allIngredients: ["meat", "dairy"],
     },
@@ -66,7 +74,7 @@ export const CULTURAL_RULES: RelationshipRule[] = [
       severity: "hard",
       reasonCode: "KOSHER_MEAT_DAIRY_CONFLICT",
       message: "Kosher law prohibits combining meat and dairy in the same meal.",
-      suggestedSubstitute: "Choose either a meat-based meal or a dairy-based meal, not both.",
+      suggestedSubstitute: "Chef can remove the dairy component and use olive oil or a pareve alternative instead.",
       reviewOverrideAllowed: false,
     },
   },
@@ -76,6 +84,7 @@ export const CULTURAL_RULES: RelationshipRule[] = [
     kind: "ingredient_condition",
     protocols: ["kosher"],
     description: "Pork and pork products are not kosher",
+    isAdaptable: true,
     when: {
       anyIngredient: [
         "pork", "pig", "bacon", "ham", "prosciutto", "pancetta", "salami",
@@ -99,6 +108,7 @@ export const CULTURAL_RULES: RelationshipRule[] = [
     kind: "ingredient_condition",
     protocols: ["kosher"],
     description: "Shellfish and crustaceans are not kosher",
+    isAdaptable: true,
     when: {
       anyIngredient: [
         "shrimp", "prawn", "crab", "lobster", "clam", "mussel",
@@ -121,6 +131,7 @@ export const CULTURAL_RULES: RelationshipRule[] = [
     kind: "dish_category_review",
     protocols: ["kosher"],
     description: "Dish names that commonly combine meat and dairy trigger a review",
+    isAdaptable: true,
     when: {
       dishNameContains: [
         "cheeseburger", "cheese burger", "bacon cheeseburger",
@@ -128,14 +139,17 @@ export const CULTURAL_RULES: RelationshipRule[] = [
         "meat lasagna", "bolognese with cheese", "mac and cheese with meat",
         "hamburger with cheese", "philly cheesesteak", "chili with cheese",
         "beef quesadilla", "chicken quesadilla with cheese",
+        // Cream/butter-based pasta with meat — classic kosher meat+dairy conflict
+        "beef alfredo", "chicken alfredo with cream", "steak alfredo",
+        "meat in cream sauce", "beef in cream sauce",
       ],
     },
     effect: {
       decision: "REVIEW_REQUIRED",
       severity: "soft",
       reasonCode: "KOSHER_MEAT_DAIRY_DISH_REVIEW",
-      message: "This dish typically combines meat and dairy, which is not kosher. Please confirm the recipe excludes one.",
-      suggestedSubstitute: "Request a dairy-free version of this dish.",
+      message: "This dish typically combines meat and dairy, which is not permitted under kosher law.",
+      suggestedSubstitute: "Chef can remove the dairy component and use olive oil or an herb sauce instead.",
       reviewOverrideAllowed: true,
     },
   },
@@ -149,6 +163,7 @@ export const CULTURAL_RULES: RelationshipRule[] = [
     kind: "ingredient_condition",
     protocols: ["halal"],
     description: "Pork and all pork derivatives are haram",
+    isAdaptable: true,
     when: {
       anyIngredient: [
         "pork", "pig", "bacon", "ham", "prosciutto", "pancetta", "salami",
@@ -172,6 +187,7 @@ export const CULTURAL_RULES: RelationshipRule[] = [
     kind: "ingredient_condition",
     protocols: ["halal"],
     description: "Alcohol and alcohol-based ingredients are haram",
+    isAdaptable: true,
     when: {
       anyIngredient: [
         "wine", "red wine", "white wine", "beer", "ale", "lager", "stout",
@@ -195,6 +211,7 @@ export const CULTURAL_RULES: RelationshipRule[] = [
     kind: "ingredient_condition",
     protocols: ["halal"],
     description: "Blood and blood products are haram",
+    isAdaptable: true,
     when: {
       anyIngredient: [
         "blood sausage", "black pudding", "blood pudding", "blood cake",
@@ -220,6 +237,7 @@ export const CULTURAL_RULES: RelationshipRule[] = [
     kind: "ingredient_condition",
     protocols: ["kosher", "halal"],
     description: "Plain gelatin (unknown source) requires certification for strict protocols",
+    isAdaptable: false,
     when: {
       anyIngredient: ["gelatin", "gelatine"],
     },
@@ -241,6 +259,7 @@ export const CULTURAL_RULES: RelationshipRule[] = [
     kind: "ingredient_condition",
     protocols: ["kosher", "halal"],
     description: "Mono- and diglycerides may be pork-derived; require review for strict protocols",
+    isAdaptable: false,
     when: {
       anyIngredient: ["mono- and diglycerides", "monoglycerides", "diglycerides", "e471"],
     },
