@@ -9,6 +9,8 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope } from "../services/protocolEnvelope";
+import { scoreRestaurantsForDiet, buildDietQuery } from "../services/restaurantScorer";
+import { zipToCoordinates } from "../services/zipToCoordsService";
 
 const router = Router();
 
@@ -261,6 +263,87 @@ router.get("/test-key", async (_req, res) => {
     });
   } catch (err: any) {
     return res.json({ ok: false, keyPreview, networkError: err.message });
+  }
+});
+
+// Diet-aware restaurant finder: scores nearby restaurants for a user's dietary identity
+// POST /api/restaurants/find-nearby
+// Body: { zipCode, diet, userId? }
+router.post("/find-nearby", async (req, res) => {
+  try {
+    const { zipCode, diet, userId } = req.body;
+
+    if (!zipCode || !/^\d{5}$/.test(zipCode)) {
+      return res.status(400).json({ error: "Valid 5-digit ZIP code is required" });
+    }
+
+    const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: "Google Places API key not configured" });
+    }
+
+    const coords = await zipToCoordinates(zipCode);
+    if (!coords) {
+      return res.status(400).json({ error: `Could not resolve ZIP code ${zipCode}` });
+    }
+
+    const radiusMeters = Math.round(8 * 1609.34);
+    const dietStr = (diet || "general").toString();
+
+    async function searchPlaces(query: string): Promise<any[]> {
+      const response = await axios.get(
+        "https://maps.googleapis.com/maps/api/place/textsearch/json",
+        {
+          params: {
+            query,
+            location: `${coords!.lat},${coords!.lng}`,
+            radius: radiusMeters,
+            type: "restaurant",
+            key: apiKey,
+          },
+          timeout: 10000,
+        }
+      );
+      if (response.data.status === "OK") return response.data.results || [];
+      return [];
+    }
+
+    const primaryQuery = buildDietQuery(dietStr, false);
+    let places = await searchPlaces(primaryQuery);
+
+    if (places.length < 3) {
+      const fallbackPlaces = await searchPlaces(buildDietQuery(dietStr, true));
+      const existing = new Set(places.map((p: any) => p.place_id));
+      for (const p of fallbackPlaces) {
+        if (!existing.has(p.place_id)) places.push(p);
+        if (places.length >= 20) break;
+      }
+    }
+
+    const scored = scoreRestaurantsForDiet(places.slice(0, 20), dietStr);
+
+    const visible = scored.filter((r) => r.tier !== "BLOCKED");
+    const highMatch = visible.filter((r) => r.tier === "HIGH_MATCH").sort((a, b) => b.score - a.score);
+    const adaptable = visible.filter((r) => r.tier === "ADAPTABLE").sort((a, b) => b.score - a.score);
+
+    console.log(
+      `✅ [find-nearby] diet=${dietStr} zip=${zipCode} total=${places.length} high=${highMatch.length} adaptable=${adaptable.length} blocked=${scored.length - visible.length}`
+    );
+
+    return res.json({
+      diet: dietStr,
+      zipCode,
+      highMatch,
+      adaptable,
+      totalScored: scored.length,
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("find-nearby error:", error);
+    return res.status(500).json({
+      error: "Failed to find restaurants",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 

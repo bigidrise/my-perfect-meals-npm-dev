@@ -1,4 +1,8 @@
-export type SupportedDiet = "vegan" | "vegetarian" | "keto" | "pescatarian";
+import {
+  evaluateRelationshipRules,
+} from "../../../server/services/guardrails/rules/culturalRules";
+
+export type SupportedDiet = "vegan" | "vegetarian" | "keto" | "pescatarian" | "kosher" | "halal";
 
 // If user input already signals dietary intent, skip conflict detection
 const INTENT_OVERRIDES = [
@@ -102,6 +106,8 @@ export function normalizeDietPreference(raw: string | string[] | undefined | nul
   if (lower.includes("vegetarian")) return "vegetarian";
   if (lower.includes("keto")) return "keto";
   if (lower.includes("pescatarian") || lower.includes("pesco")) return "pescatarian";
+  if (lower.includes("kosher")) return "kosher";
+  if (lower.includes("halal")) return "halal";
   return null;
 }
 
@@ -110,18 +116,24 @@ function hasIntentOverride(input: string): boolean {
   return INTENT_OVERRIDES.some((kw) => lower.includes(kw));
 }
 
-function buildExclusionList(diet: SupportedDiet): string[] {
+function buildExclusionList(diet: SupportedDiet): string[] | null {
   switch (diet) {
     case "vegan": return VEGAN_EXCLUSIONS;
     case "vegetarian": return VEGETARIAN_EXCLUSIONS;
     case "keto": return KETO_EXCLUSIONS;
     case "pescatarian": return PESCATARIAN_EXCLUSIONS;
+    case "kosher":
+    case "halal":
+      return null;
   }
 }
 
 export interface DietConflictResult {
   hasConflict: boolean;
   matchedTerms: string[];
+  isAdaptable?: boolean;
+  suggestedSubstitute?: string;
+  conflictMessage?: string;
 }
 
 export function detectDietConflicts(
@@ -134,12 +146,39 @@ export function detectDietConflicts(
     return { hasConflict: false, matchedTerms: [] };
   }
 
-  // If user already signals dietary intent, skip conflict detection
+  // Kosher and halal route through the shared cultural rules engine —
+  // evaluateRelationshipRules from culturalRules.ts is the single source of truth
+  // for which conflicts are adaptable vs hard-blocked.
+  if (diet === "kosher" || diet === "halal") {
+    const violations = evaluateRelationshipRules(
+      text,
+      [],     // no pre-parsed ingredient list at precheck time
+      text,   // use the raw input as dishName too; rules check dishNameContains against it
+      [diet],
+    );
+
+    if (violations.length === 0) {
+      return { hasConflict: false, matchedTerms: [] };
+    }
+
+    const first = violations[0];
+    return {
+      hasConflict: true,
+      matchedTerms: [first.matchedOn],
+      isAdaptable: first.rule.isAdaptable,
+      suggestedSubstitute: first.rule.effect.suggestedSubstitute,
+      conflictMessage: first.rule.effect.message,
+    };
+  }
+
+  // Standard dietary exclusion list path (vegan, vegetarian, keto, pescatarian)
   if (hasIntentOverride(text)) {
     return { hasConflict: false, matchedTerms: [] };
   }
 
   const exclusions = buildExclusionList(diet);
+  if (!exclusions) return { hasConflict: false, matchedTerms: [] };
+
   const matched: string[] = [];
 
   for (const term of exclusions) {
