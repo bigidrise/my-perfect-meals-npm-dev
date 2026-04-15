@@ -44,6 +44,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useFontSize } from "@/contexts/FontSizeContext";
 import { useToast } from "@/hooks/use-toast";
 import IOSMealReminders from "@/components/ios/IOSMealReminders";
+import { useUpdateStatus } from "@/hooks/useUpdateCheck";
 import { Capacitor } from "@capacitor/core";
 import {
   Camera as CapacitorCamera,
@@ -64,6 +65,8 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [showPhotoOptions, setShowPhotoOptions] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { hasUpdate, currentVersionLabel } = useUpdateStatus();
 
   const userName = user?.name || user?.username || "User";
   const userEmail = user?.email || "";
