@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import BreathingOrb from "@/components/BreathingOrb";
 import {
   Dialog,
@@ -26,6 +26,8 @@ import { StarchOverrideToggle } from "@/components/StarchOverrideToggle";
 import { KeepItSimpleToggle } from "@/components/KeepItSimpleToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
+import { DietGuardIntercept } from "@/components/DietGuardIntercept";
 import { detectStarchyIngredients, hasExplicitStarchRequest } from "@/utils/ingredientClassifier";
 import { isAllergyRelatedError } from "@/utils/allergyAlert";
 
@@ -63,7 +65,18 @@ export function CreateWithChefModal({
   const [alternativeInput, setAlternativeInput] = useState("");
   
   const { user } = useAuth();
-  
+
+  // Ref lets "Let Chef Adapt It" skip the diet check on the next call without state timing issues
+  const dietAdaptModeRef = useRef(false);
+
+  const {
+    alert: dietAlert,
+    checkDiet,
+    clearAlert: clearDietAlert,
+    shouldShowIntercept: showDietIntercept,
+    setDecision: setDietDecision,
+  } = useDietGuardPrecheck();
+
   const isGuest = isGuestMode();
   const guestSession = isGuest ? getGuestSession() : null;
   const userId = user?.id?.toString() || guestSession?.sessionId || "";
@@ -117,12 +130,14 @@ export function CreateWithChefModal({
       setStarchOverride(false);
       setStrictMode(false);
       clearSafetyAlert();
+      clearDietAlert();
+      dietAdaptModeRef.current = false;
       setStarchBlocked(false);
       setStarchMatchedTerms([]);
       setAlternativeInput("");
       cancel();
     }
-  }, [open, cancel, clearSafetyAlert]);
+  }, [open, cancel, clearSafetyAlert, clearDietAlert]);
 
   const executeGeneration = async (mealDescription: string) => {
     const effectiveStarchContext = starchOverride && starchContext
@@ -198,6 +213,14 @@ export function CreateWithChefModal({
       return;
     }
 
+    // DIET GUARD — Tier 0: dietary identity (kosher, halal, vegan, etc.) is the outermost rule
+    // Skip if user already chose "Let Chef Adapt It"
+    if (!dietAdaptModeRef.current) {
+      const dietOk = checkDiet(description.trim());
+      if (!dietOk) return; // DietGuardIntercept now showing
+    }
+    dietAdaptModeRef.current = false;
+
     // STARCH GUARD — Option C: intent-aware, not a hard blocker
     // If starch slots are exhausted and the user hasn't already overridden:
     //   • Explicit named starch (rice, pasta, hash browns…) → auto-override,
@@ -250,6 +273,21 @@ export function CreateWithChefModal({
     }
   };
   
+  // Handle diet guard decision — "Pick Something Else" clears the alert,
+  // "Let Chef Adapt It" skips the diet check and proceeds to generation
+  const handleDietDecision = async (decision: "pick_something_else" | "let_chef_adapt") => {
+    if (decision === "pick_something_else") {
+      setDietDecision("pick_something_else");
+      clearDietAlert();
+      return;
+    }
+    // "let_chef_adapt" — bypass diet check and generate with protocol-aware adaptation
+    setDietDecision("let_chef_adapt");
+    dietAdaptModeRef.current = true;
+    clearDietAlert();
+    await handleGenerate();
+  };
+
   // Handle "Use My Alternative" - use user's fibrous carb choice
   const handleUseAlternative = async () => {
     if (!alternativeInput.trim()) {
@@ -424,13 +462,23 @@ export function CreateWithChefModal({
                 </p>
               </div>
 
+              {/* Diet Guard — Tier 0 protocol intercept */}
+              {showDietIntercept && (
+                <DietGuardIntercept
+                  alert={dietAlert}
+                  onDecision={handleDietDecision}
+                />
+              )}
+
               {/* SafetyGuard Preflight Banner */}
-              <SafetyGuardBanner
-                alert={safetyAlert}
-                mealRequest={description}
-                onDismiss={clearSafetyAlert}
-                onOverrideSuccess={(token) => handleSafetyOverride(false, token)}
-              />
+              {!showDietIntercept && (
+                <SafetyGuardBanner
+                  alert={safetyAlert}
+                  mealRequest={description}
+                  onDismiss={clearSafetyAlert}
+                  onOverrideSuccess={(token) => handleSafetyOverride(false, token)}
+                />
+              )}
 
               {isProcessing && (
                 <div className="flex justify-center">
@@ -481,7 +529,7 @@ export function CreateWithChefModal({
               )}
 
               <div className="flex gap-3 pt-2">
-                {!isProcessing && (
+                {!isProcessing && !showDietIntercept && (
                   <Button
                     className="flex-1 bg-lime-600 hover:bg-lime-600 text-white"
                     onClick={handleGenerate}

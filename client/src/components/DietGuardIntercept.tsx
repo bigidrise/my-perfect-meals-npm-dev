@@ -21,14 +21,14 @@ function capitalizeDiet(diet: string | null): string {
 
 // Badge color class by protocol
 function getProtocolColor(diet: string | null): string {
-  if (diet === "kosher") return "text-blue-400";
+  if (diet === "kosher") return "text-amber-400";
   if (diet === "halal") return "text-teal-400";
   return "text-green-400";
 }
 
 // Icon background by protocol
 function getIconBgClass(diet: string | null): string {
-  if (diet === "kosher") return "bg-blue-900/40";
+  if (diet === "kosher") return "bg-amber-900/40";
   if (diet === "halal") return "bg-teal-900/40";
   return "bg-neutral-700/50";
 }
