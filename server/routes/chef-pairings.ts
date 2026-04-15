@@ -1,6 +1,7 @@
 import { Router } from "express";
 import OpenAI from "openai";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope } from "../services/protocolEnvelope";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -58,8 +59,14 @@ chefPairingsRouter.post("/", async (req, res) => {
       }
     }
 
-    const prompt = `You are an expert sommelier, beer cicerone, and master distiller. Provide food and drink pairing recommendations for the following food item.
+    // ── Protocol envelope: enforce dietary identity before generation ──────────
+    const chefPairingsEnvelope = userId
+      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+      : buildGuestEnvelope();
+    const chefPairingsProtocolBlock = enforceBeforeGenerate(chefPairingsEnvelope, { generatorName: 'chef_pairings' }).combined;
 
+    const prompt = `You are an expert sommelier, beer cicerone, and master distiller. Provide food and drink pairing recommendations for the following food item.
+${chefPairingsProtocolBlock ? `\n${chefPairingsProtocolBlock}\n` : ""}
 Food Item: ${foodItem}
 ${cuisine ? `Cuisine: ${cuisine}` : ""}
 ${occasion ? `Occasion: ${occasion}` : ""}

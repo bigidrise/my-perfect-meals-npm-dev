@@ -6,6 +6,7 @@ import { buildPairingsConstraints } from "../services/pairings/pairingsPersonali
 import { generatePairingImages } from "../services/pairings/pairingsImageService";
 import { chatJson } from "../utils/openaiSafe";
 import { log } from "../vite";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope } from "../services/protocolEnvelope";
 
 const router = Router();
 
@@ -127,7 +128,14 @@ router.post("/", async (req, res) => {
     const profile = await loadPairingsProfile(userId);
     const constraints = buildPairingsConstraints(profile);
 
-    const prompt = buildPairingPrompt(mode, category, input, constraints.fullConstraintBlock);
+    // ── Protocol envelope: add identity-level enforcement above profile constraints ──
+    const pairingsEnvelope = await loadUserProtocolEnvelope(userId).catch(() => null) ?? buildGuestEnvelope();
+    const pairingsProtocolBlock = enforceBeforeGenerate(pairingsEnvelope, { generatorName: 'pairings_ai' }).combined;
+    const augmentedConstraints = pairingsProtocolBlock
+      ? { ...constraints, fullConstraintBlock: `${pairingsProtocolBlock}\n${constraints.fullConstraintBlock}` }
+      : constraints;
+
+    const prompt = buildPairingPrompt(mode, category, input, augmentedConstraints.fullConstraintBlock);
 
     let aiResult: any;
     try {
