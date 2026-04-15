@@ -197,6 +197,11 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
+// ---------- Legal pages — MUST be first, before ALL other middleware ----------
+// These routes must respond as plain standalone HTML with zero auth or session
+// dependency, so Apple App Store review and external visitors always see real docs.
+app.use(legalPagesRouter);
+
 // ---------- Production Middleware ----------
 app.use(requestId);
 app.use(logger);
@@ -627,10 +632,6 @@ async function start() {
     const bootTime = Date.now() - startTime;
     console.log(`🚀 Server running on 0.0.0.0:${PORT} (startup: ${bootTime}ms)`);
   });
-
-  // Legal pages — served as standalone HTML BEFORE Vite/SPA middleware so they are
-  // never caught by the React router. Required by Apple App Store and app stores.
-  app.use(legalPagesRouter);
 
   if (NODE_ENV === "development") {
     // Vite dev middleware for client with proper server instance
