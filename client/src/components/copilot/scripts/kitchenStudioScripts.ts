@@ -5,15 +5,15 @@ export const KITCHEN_STUDIO_INTRO = "What are we preparing today?";
 
 export const KITCHEN_STUDIO_STEP2 = "";
 
-// Kitchen Studio - Cooking method question
+// Kitchen Studio, Cooking method question
 export const KITCHEN_STUDIO_COOK_METHOD = "What are we using to cook?";
 
-// Kitchen Studio - After cooking method selected
+// Kitchen Studio, After cooking method selected
 export const KITCHEN_STUDIO_COOK_CONFIRMED = "";
 
-// Kitchen Studio - Preferences / guardrails (micro-lines)
+// Kitchen Studio, Preferences / guardrails (micro-lines)
 export const KITCHEN_STUDIO_PREFS_LINE1 =
-  "Tell me if you're — vegan, plant-based, keto, or you have food allergies or sensitivities?";
+  "Tell me if you're, vegan, plant-based, keto, or you have food allergies or sensitivities?";
 export const KITCHEN_STUDIO_PREFS_LINE2 =
   "Do you want to keep it lower in sugar, gluten, fat, or sodium?";
 export const KITCHEN_STUDIO_PREFS_LINE3 = "What cuisine are we feeling today?";
@@ -26,19 +26,19 @@ export const KITCHEN_STUDIO_PREFS_LINE5 =
 export const KITCHEN_STUDIO_INGREDIENTS_PACE =
   "Any dietary preference, low sugar, low sodium, gluten free, food allergies, or food to avoid?";
 
-// Kitchen Studio - After preferences confirmed
+// Kitchen Studio, After preferences confirmed
 export const KITCHEN_STUDIO_INGREDIENTS_CONFIRMED = "";
 
-// Kitchen Studio - Servings question
+// Kitchen Studio, Servings question
 export const KITCHEN_STUDIO_SERVINGS = "How many servings?";
 
-// Kitchen Studio - After servings confirmed
+// Kitchen Studio, After servings confirmed
 export const KITCHEN_STUDIO_SERVINGS_CONFIRMED = "";
 
-// Kitchen Studio - Chef's Setup (equipment)
+// Kitchen Studio, Chef's Setup (equipment)
 export const KITCHEN_STUDIO_EQUIPMENT = "If we have evrything we need, tap OK";
 
-// Kitchen Studio - After equipment confirmed
+// Kitchen Studio, After equipment confirmed
 export const KITCHEN_STUDIO_EQUIPMENT_CONFIRMED =
   "If everything looks good, tap, Create the Plan.";
 
@@ -69,24 +69,24 @@ export const KITCHEN_STUDIO_OPEN_PROGRESS2 = "";
 
 export const KITCHEN_STUDIO_OPEN_COMPLETE = "";
 
-// Phase 2 - Cooking narration scripts
-// Kitchen Cook Setup - spoken during equipment setup
+// Phase 2, Cooking narration scripts
+// Kitchen Cook Setup, spoken during equipment setup
 export const KITCHEN_COOK_SETUP =
   "Let's make sure you have everything you need before we start.";
 
-// Kitchen Cook Ready - spoken when meal is ready to prepare
+// Kitchen Cook Ready, spoken when meal is ready to prepare
 export const KITCHEN_COOK_READY = "Your meal is ready. Let's start cooking!";
 
-// Kitchen Timer Start - spoken when a timer begins
+// Kitchen Timer Start, spoken when a timer begins
 export const KITCHEN_TIMER_START =
   "Timer started. I'll let you know when it's done.";
 
-// Kitchen Timer Done - spoken when a timer completes
+// Kitchen Timer Done, spoken when a timer completes
 export const KITCHEN_TIMER_DONE = "Time's up! Let's move to the next step.";
 
-// Kitchen Plating - spoken during plating step
+// Kitchen Plating, spoken during plating step
 export const KITCHEN_PLATING =
   "Time to plate up. Make it look as good as it tastes.";
 
-// Kitchen Finished - spoken when meal is complete
+// Kitchen Finished, spoken when meal is complete
 export const KITCHEN_FINISHED = "And we're done! Enjoy your meal.";
