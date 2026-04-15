@@ -258,7 +258,9 @@ export default function CreateDishPage() {
   // ============================================================
   useEffect(() => {
     // Clear stale v1 cache that caused the overlay bug before this fix.
-    try { localStorage.removeItem("createDish.cache.v1"); } catch {}
+    try {
+      localStorage.removeItem("createDish.cache.v1");
+    } catch {}
 
     const cached = loadDishCache();
     if (cached?.generatedMeal?.id) {
@@ -342,8 +344,12 @@ export default function CreateDishPage() {
   };
 
   const [isGenerating, setIsGenerating] = useState(false);
-  const [stepsExpanded, setStepsExpanded] = useState<Record<string, boolean>>({});
-  const [activeSteps, setActiveSteps] = useState<Record<string, number | null>>({});
+  const [stepsExpanded, setStepsExpanded] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [activeSteps, setActiveSteps] = useState<Record<string, number | null>>(
+    {},
+  );
   const [flavorPersonal, setFlavorPersonal] = useState(true);
   const [keepItSimple, setKeepItSimple] = useState(false);
 
@@ -554,8 +560,6 @@ export default function CreateDishPage() {
                 <span className="text-sm font-medium">Back</span>
               </button>
 
-              
-
               <h1 className="text-lg font-bold text-white truncate min-w-0">
                 Create a Dish
               </h1>
@@ -573,13 +577,8 @@ export default function CreateDishPage() {
               <Card className="shadow-2xl bg-black/40 backdrop-blur-lg border border-orange-400/20 w-full max-w-xl mx-auto">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-xl text-white">
-                    
                     Create a Dish
                   </CardTitle>
-                  <p className="text-sm text-white/60 mt-1">
-                    Tell Chef what you want to cook and let AI build the perfect
-                    recipe for you.
-                  </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
@@ -900,7 +899,9 @@ export default function CreateDishPage() {
                       )}
 
                       <div className="mb-3">
-                        <DietStyleBadge mealCompliant={meal.dietaryComplianceVerified} />
+                        <DietStyleBadge
+                          mealCompliant={meal.dietaryComplianceVerified}
+                        />
                       </div>
 
                       <p className="text-white/90 mb-4">{meal.description}</p>
@@ -1039,7 +1040,10 @@ export default function CreateDishPage() {
                                   badges={medicalBadges.map((b: any) =>
                                     typeof b === "string"
                                       ? b
-                                      : b.badge || b.id || b.condition || b.label,
+                                      : b.badge ||
+                                        b.id ||
+                                        b.condition ||
+                                        b.label,
                                   )}
                                 />
                                 <h3 className="font-semibold text-white">
@@ -1052,7 +1056,10 @@ export default function CreateDishPage() {
                                 title="Remove meal"
                                 confirm={true}
                                 confirmMessage="Remove this meal?"
-                                onClick={() => { setGeneratedMeals([]); setGeneratedInSession(false); }}
+                                onClick={() => {
+                                  setGeneratedMeals([]);
+                                  setGeneratedInSession(false);
+                                }}
                               />
                             </div>
                           </div>
@@ -1097,24 +1104,54 @@ export default function CreateDishPage() {
                         const steps = normalizeInstructions(meal.instructions);
                         if (steps.length === 0) return null;
                         const expanded = !!stepsExpanded[meal.id];
-                        const visibleSteps = expanded ? steps : steps.slice(0, 3);
+                        const visibleSteps = expanded
+                          ? steps
+                          : steps.slice(0, 3);
                         return (
                           <div className="mb-4">
-                            <h4 className="font-semibold mb-2 text-white">Instructions:</h4>
+                            <h4 className="font-semibold mb-2 text-white">
+                              Instructions:
+                            </h4>
                             <div className="space-y-2">
                               {visibleSteps.map((step, index) => (
-                                <div key={index}
+                                <div
+                                  key={index}
                                   className={`flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-colors select-none ${activeSteps[meal.id] === index ? "bg-orange-500/20 border border-orange-500/40" : "hover:bg-white/5"}`}
-                                  onClick={() => setActiveSteps((prev) => ({ ...prev, [meal.id]: prev[meal.id] === index ? null : index }))}>
-                                  <div className="min-w-[26px] h-[26px] w-[26px] rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">{index + 1}</div>
-                                  <p className="text-sm leading-relaxed text-white/85">{step}</p>
+                                  onClick={() =>
+                                    setActiveSteps((prev) => ({
+                                      ...prev,
+                                      [meal.id]:
+                                        prev[meal.id] === index ? null : index,
+                                    }))
+                                  }
+                                >
+                                  <div className="min-w-[26px] h-[26px] w-[26px] rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+                                    {index + 1}
+                                  </div>
+                                  <p className="text-sm leading-relaxed text-white/85">
+                                    {step}
+                                  </p>
                                 </div>
                               ))}
                             </div>
                             {steps.length > 3 && (
-                              <button className="mt-2 text-xs text-orange-400 font-medium cursor-pointer active:text-orange-300 select-none"
-                                onClick={() => { setStepsExpanded((prev) => ({ ...prev, [meal.id]: !expanded })); if (expanded) setActiveSteps((prev) => ({ ...prev, [meal.id]: null })); }}>
-                                {expanded ? "Show less" : `Show all ${steps.length} steps`}
+                              <button
+                                className="mt-2 text-xs text-orange-400 font-medium cursor-pointer active:text-orange-300 select-none"
+                                onClick={() => {
+                                  setStepsExpanded((prev) => ({
+                                    ...prev,
+                                    [meal.id]: !expanded,
+                                  }));
+                                  if (expanded)
+                                    setActiveSteps((prev) => ({
+                                      ...prev,
+                                      [meal.id]: null,
+                                    }));
+                                }}
+                              >
+                                {expanded
+                                  ? "Show less"
+                                  : `Show all ${steps.length} steps`}
                               </button>
                             )}
                           </div>
