@@ -14,62 +14,48 @@ function formatDate(ts: string): string {
   });
 }
 
-interface UpdateStatus {
-  hasUpdate: boolean;
-  currentVersionLabel: string;
+async function fetchLatestVersion(): Promise<string | null> {
+  try {
+    const res = await fetch("/release-manifest.json?ts=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.version ?? null;
+  } catch {
+    return null;
+  }
 }
 
-export function useUpdateCheck(): boolean & { status: UpdateStatus } {
-  const [latestVersion, setLatestVersion] = useState<string | null>(null);
-  const [isChecking, setIsChecking] = useState(true);
+function isStale(latest: string | null): boolean {
+  if (!latest) return false;
+  if (BUILD_VERSION === "dev") return false;
+  return latest !== BUILD_VERSION;
+}
+
+/** Simple boolean — used by App.tsx for the global update banner */
+export function useUpdateCheck(): boolean {
+  const [latest, setLatest] = useState<string | null>(null);
 
   useEffect(() => {
-    const check = async () => {
-      try {
-        const res = await fetch("/release-manifest.json?ts=" + Date.now(), { cache: "no-store" });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.version) setLatestVersion(data.version);
-      } catch {}
-      finally {
-        setIsChecking(false);
-      }
-    };
-
-    check();
-    const interval = setInterval(check, CHECK_INTERVAL_MS);
+    fetchLatestVersion().then(setLatest);
+    const interval = setInterval(() => fetchLatestVersion().then(setLatest), CHECK_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []);
 
-  const isDev = BUILD_VERSION === "dev";
-  const hasUpdate = !isDev && latestVersion !== null && latestVersion !== BUILD_VERSION;
-
-  return hasUpdate as any;
+  return isStale(latest);
 }
 
-export function useUpdateStatus(): UpdateStatus {
-  const [latestVersion, setLatestVersion] = useState<string | null>(null);
+/** Full status object — used by ProfileSheet for the smart chip */
+export function useUpdateStatus() {
+  const [latest, setLatest] = useState<string | null>(null);
 
   useEffect(() => {
-    const check = async () => {
-      try {
-        const res = await fetch("/release-manifest.json?ts=" + Date.now(), { cache: "no-store" });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.version) setLatestVersion(data.version);
-      } catch {}
-    };
-
-    check();
-    const interval = setInterval(check, CHECK_INTERVAL_MS);
+    fetchLatestVersion().then(setLatest);
+    const interval = setInterval(() => fetchLatestVersion().then(setLatest), CHECK_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []);
-
-  const isDev = BUILD_VERSION === "dev";
-  const hasUpdate = !isDev && latestVersion !== null && latestVersion !== BUILD_VERSION;
 
   return {
-    hasUpdate,
+    hasUpdate: isStale(latest),
     currentVersionLabel: formatDate(BUILD_VERSION),
   };
 }
