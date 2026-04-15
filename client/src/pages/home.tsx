@@ -766,8 +766,8 @@ export default function Home() {
               <h3 className="font-semibold mb-4">Support</h3>
               <ul className="space-y-3 text-background/70">
                 <li><a href="mailto:support@myperfectmeals.com" className="text-background/70 hover:text-background">Contact Us</a></li>
-                <li><Button variant="link" onClick={() => navigate("/privacy-policy")} className="text-background/70 hover:text-background p-0 h-auto">Privacy Policy</Button></li>
-                <li><Button variant="link" onClick={() => navigate("/terms")} className="text-background/70 hover:text-background p-0 h-auto">Terms of Service</Button></li>
+                <li><a href="/privacy-policy" className="text-background/70 hover:text-background text-sm">Privacy Policy</a></li>
+                <li><a href="/terms" className="text-background/70 hover:text-background text-sm">Terms of Service</a></li>
               </ul>
             </div>
           </div>
