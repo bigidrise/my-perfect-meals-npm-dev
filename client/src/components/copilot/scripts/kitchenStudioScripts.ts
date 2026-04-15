@@ -20,7 +20,7 @@ export const KITCHEN_STUDIO_PREFS_LINE3 = "What cuisine are we feeling today?";
 export const KITCHEN_STUDIO_PREFS_LINE4 =
   "And how much time do you have? Do you want something quick and easy, or more involved?";
 export const KITCHEN_STUDIO_PREFS_LINE5 =
-  "You can also speak to me in any language. Use Translate on the meal card to match your phones languaage.";
+  "You can also speak to me in any language. Use Translate on the meal card to match your phone's language.";
 
 // If you need a single combined string for the UI, keep this too:
 export const KITCHEN_STUDIO_INGREDIENTS_PACE =
@@ -36,7 +36,7 @@ export const KITCHEN_STUDIO_SERVINGS = "How many servings?";
 export const KITCHEN_STUDIO_SERVINGS_CONFIRMED = "";
 
 // Kitchen Studio, Chef's Setup (equipment)
-export const KITCHEN_STUDIO_EQUIPMENT = "If we have evrything we need, tap OK";
+export const KITCHEN_STUDIO_EQUIPMENT = "If we have everything we need, tap OK";
 
 // Kitchen Studio, After equipment confirmed
 export const KITCHEN_STUDIO_EQUIPMENT_CONFIRMED =
