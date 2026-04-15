@@ -4,7 +4,6 @@ import { useLocation } from "wouter";
 import {
   ArrowLeft,
   ChevronDown,
-  ChevronUp,
   Play,
   Pause,
   Square,
@@ -21,6 +20,9 @@ import {
   Users,
   Layers,
   Minus,
+  Flame,
+  Stethoscope,
+  Dna,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
@@ -41,7 +43,14 @@ interface LibraryTopic {
   };
 }
 
-const libraryTopics: LibraryTopic[] = [
+interface LibrarySection {
+  id: string;
+  label: string;
+  description: string;
+  topics: LibraryTopic[];
+}
+
+const SECTION_START_HERE: LibraryTopic[] = [
   {
     id: "founder-story",
     title: "Why My Perfect Meals Exists",
@@ -95,8 +104,129 @@ const libraryTopics: LibraryTopic[] = [
     }
   },
   {
+    id: "meal-builder",
+    title: "How Meal Builders & Support Systems Work",
+    subtitle: "Builders, medical layers, and your plan",
+    icon: Layers,
+    content: {
+      sections: [
+        {
+          heading: "This Isn't Just a Meal Generator",
+          text: "Most nutrition apps give you generic meals and hope you figure it out. My Perfect Meals works differently. Every meal comes from a structured system built around your goals, your body, your preferences, and when needed, your medical context. You're not just getting meals — you're getting guided decisions before you eat.",
+        },
+        {
+          heading: "The Two-Layer System",
+          text: "Everything in the app runs on two layers. Layer 1 is your Meal Builder — your foundation that determines the type of meals you get. Layer 2 is your Support System — additional rules applied on top when needed based on health needs or physician guidance.",
+        },
+        {
+          heading: "General Nutrition",
+          text: "Your everyday system. Best for fat loss, maintenance, and building consistency. Balanced meals, real-life eating, sustainability.",
+        },
+        {
+          heading: "Performance & Competition",
+          text: "Built for serious training and physique goals. Higher precision, performance fueling, muscle support.",
+        },
+        {
+          heading: "Anti-Inflammatory",
+          text: "Your clinical-friendly foundation. Best for inflammation concerns, autoimmune support, and physician-guided nutrition. Cleaner ingredients, reduced inflammatory patterns, structured meals.",
+        },
+        {
+          heading: "Diabetic",
+          text: "Built for blood sugar awareness. Carb control, glucose stability, real-time adjustments through GlucoseGuard.",
+        },
+        {
+          heading: "GLP-1 Support",
+          text: "Built for reduced appetite environments. Nutrient density, protein priority, easier-to-finish meals for GLP-1 users.",
+        },
+        {
+          heading: "Create a Dish",
+          text: "Creates one complete dish at a time. Not a meal plan — a real cooking tool. Step-by-step execution, real kitchen meals, practical prep.",
+        },
+        {
+          heading: "Craving Creator",
+          text: "You tell the app what you want. It makes it fit your plan. Satisfying cravings, macro-aligned versions, no guilt approach.",
+        },
+        {
+          heading: "Dessert Creator",
+          text: "Desserts that actually fit your numbers. Portion-aware treats, realistic enjoyment, controlled indulgence.",
+        },
+        {
+          heading: "Fridge Rescue",
+          text: "Uses what you already have. Best for leftovers, low-effort days, and real-life situations where you just need a solution.",
+        },
+        {
+          heading: "Support Systems (When Needed)",
+          text: "Support systems are not separate builders. They are layers added on top of your meals when needed. They adjust ingredients, preparation style, food texture, and meal structure — without breaking your macros.",
+        },
+        {
+          heading: "Cardiac Support",
+          text: "Heart-aware meal structure. Emphasizes better fat quality, smarter sodium awareness, and supportive ingredient choices.",
+        },
+        {
+          heading: "Liver Support",
+          text: "Reduces strain on the liver. Cleaner foods, reduced processed load, supportive nutrition patterns.",
+        },
+        {
+          heading: "Kidney / Renal Support",
+          text: "Adds kidney-conscious structure. Physician-guided restrictions and careful ingredient selection.",
+        },
+        {
+          heading: "Lipid Support",
+          text: "Supports cholesterol and lipid goals. Focus on fat quality, fiber, and heart-supportive meals.",
+        },
+        {
+          heading: "Cancer Support Nutrition (Physician Assigned)",
+          text: "A physician-assigned support system — not treatment or medical care. Built on an anti-inflammatory foundation with protein support, easier-to-tolerate meals, appetite-aware structure, and symptom-sensitive adjustments. Examples include low-appetite support, nausea-friendly meals, soft food options, and low-prep meals during fatigue.",
+        },
+        {
+          heading: "With a Coach or Physician (ProCare)",
+          text: "When you connect with a professional through ProCare, they can assign your meal builder, apply support systems, and adjust your plan in real time. You still own your plan. They guide it.",
+        },
+        {
+          heading: "Why This Matters",
+          text: "Most apps track what you already ate. This app helps you decide what to eat before you eat it. That's where results actually happen — not in the log, but in the decision.",
+        },
+        {
+          heading: "Important",
+          text: "My Perfect Meals provides nutrition guidance only. It does not diagnose, treat, or replace medical care. Always follow your physician's recommendations for any medical condition.",
+        },
+      ],
+    },
+  },
+  {
+    id: "why-different",
+    title: "Why This App Is Different",
+    subtitle: "Not a tracker — a decision system",
+    icon: Zap,
+    content: {
+      sections: [
+        {
+          heading: "Not Another Calorie Counter",
+          text: "Most nutrition apps track what you ate. My Perfect Meals tells you what to eat—before you eat it.",
+        },
+        {
+          heading: "Key Differences",
+          list: [
+            "Proactive meal planning, not reactive tracking",
+            "AI-generated meals tailored to your exact needs",
+            "Behavioral guardrails that prevent diet failures",
+            "Coach voice guidance when you need support",
+          ],
+        },
+        {
+          heading: "The Philosophy",
+          text: "Information alone doesn't change behavior. Structure does. That's what this app provides.",
+        },
+      ],
+    },
+  },
+];
+
+const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
+  {
     id: "meal-generation",
     title: "How Meal Generation Works",
+    subtitle: "AI, macros, and real-time creation",
     icon: Sparkles,
     content: {
       sections: [
@@ -147,6 +277,7 @@ const libraryTopics: LibraryTopic[] = [
   {
     id: "macro-calculator",
     title: "How the Macro Calculator Works",
+    subtitle: "Science-based, personalized numbers",
     icon: Calculator,
     content: {
       sections: [
@@ -171,9 +302,146 @@ const libraryTopics: LibraryTopic[] = [
     },
   },
   {
+    id: "nutrition-budget",
+    title: "Nutrition Budget — Daily Tracking",
+    subtitle: "Real-time progress through your day",
+    icon: Calculator,
+    content: {
+      sections: [
+        {
+          heading: "What Is the Nutrition Budget?",
+          text: "The Nutrition Budget is a real-time tracking system that shows how much of your daily nutrition targets you've used — and what's left. It focuses on the three nutrients that matter most: Protein, Starchy Carbs, and Fibrous Carbs.",
+        },
+        {
+          heading: "How It Works",
+          list: [
+            "Your targets come from the Macro Calculator — one authoritative source",
+            "As you add meals throughout the day, the budget updates automatically",
+            "A banner at the top of each meal builder shows what's remaining",
+            "When a nutrient is covered, you'll see a checkmark and gentle coaching",
+          ],
+        },
+        {
+          heading: "What You'll See",
+          list: [
+            "Protein, Starchy Carbs, and Fiber remaining for the day",
+            "Helpful coaching when you're running low or covered",
+            "Forward-looking guidance — no judgment, just awareness",
+          ],
+        },
+        {
+          heading: "Works With Starch Guard",
+          text: "When your starchy carb budget is exhausted, Starch Guard steps in to help you substitute with fibrous carbs. See the Starch Guard section for details.",
+        },
+        {
+          heading: "Why It Exists",
+          text: "Most apps show you what you already ate. The Nutrition Budget shows you where you're headed — so every meal decision is informed, not guessed.",
+        },
+      ],
+    },
+  },
+  {
+    id: "compliance-system",
+    title: "Compliance System",
+    subtitle: "Macro adherence & coaching analytics",
+    icon: Shield,
+    content: {
+      sections: [
+        {
+          heading: "What Is Compliance?",
+          text: "Compliance measures how closely your daily nutrition matches the macro targets set in the Macro Calculator. Instead of judging foods, the system measures consistency with the plan designed for you.",
+        },
+        {
+          heading: "What Gets Measured",
+          list: [
+            "Macro adherence — how closely your protein, carbs, and fat match your targets",
+            "Logging consistency — how regularly meals are recorded",
+            "Daily averages across the last 7 days",
+          ],
+        },
+        {
+          heading: "Why Compliance Matters",
+          text: "In nutrition coaching, results come from consistency. Compliance helps your coach understand whether a program needs adjustment or whether the strategy simply needs more time.",
+        },
+        {
+          heading: "How Coaches Use It",
+          list: [
+            "Identify when a client is following the program closely",
+            "Detect when logging habits drop off",
+            "Determine whether program changes are necessary",
+          ],
+        },
+        {
+          heading: "Important",
+          text: "Compliance is not a grade. It is simply a signal that helps you and your coach understand what is happening so better decisions can be made.",
+        },
+      ],
+    },
+  },
+];
+
+const SECTION_NUTRITION_STRATEGY: LibraryTopic[] = [
+  {
+    id: "starchguard",
+    title: "Starch Guard — Weight Management",
+    subtitle: "Portion and frequency control for carbs",
+    icon: Flame,
+    content: {
+      sections: [
+        {
+          heading: "What Is Starch Guard?",
+          text: "Starch Guard is not a food blocker. It is a portion and frequency management system for insulin stimulating carbs.\n\nNo foods are labeled good or bad in this app. A food only moves you toward or away from your current goal. Starch Guard exists to help you enjoy the foods you like while keeping insulin exposure aligned with where you are trying to go.\n\nYou can eat potatoes. You can eat rice. You can eat pasta. Starch Guard simply helps control how often and how much of those foods appear across your day.",
+        },
+        {
+          heading: "The Science Behind It",
+          text: "Not all carbohydrates affect the body the same way.\n\nStarches and sugars break down quickly into glucose. Glucose raises blood sugar. Blood sugar triggers insulin. Insulin is the hormone that signals your body to store energy, including fat.\n\nInsulin itself is not bad. Repeated, frequent insulin spikes over time are what make weight control harder for most people.\n\nFibrous carbohydrates digest more slowly, produce a smaller insulin response, and provide volume, nutrients, and satiety. That is why the app emphasizes fibrous carbs once starch needs are met.\n\nThis is also why the app focuses more on starch than sodium. Sodium can cause temporary water weight that resolves quickly. Insulin driven weight gain is a longer term process. Managing insulin exposure is the lever that matters most for sustainable results.",
+        },
+        {
+          heading: "What Starch Guard Manages",
+          text: "Starch Guard does not ban foods. It manages high impact starch portions across the day.\n\nThese foods are treated as starch meals because they raise blood sugar more quickly in typical servings:",
+          list: [
+            "Potatoes and potato based dishes",
+            "Rice and rice based dishes",
+            "Bread, pasta, noodles, and refined flour products",
+            "Pancakes, waffles, and similar starch dense foods",
+          ],
+        },
+        {
+          heading: "What Happens After Starch Is Covered",
+          text: "Once your starch allocation for the day is used, the app guides you toward fibrous carbohydrates instead.\n\nFibrous carbs provide steady energy, fiber and micronutrients, a lower insulin response, and greater food volume.",
+          list: [
+            "Vegetables like broccoli, asparagus, spinach, and peppers",
+            "Beans, lentils, and chickpeas",
+            "Whole foods where fiber slows digestion",
+          ],
+        },
+        {
+          heading: "How Starch Guard Works in Practice",
+          text: "You receive a set number of starch meals per day based on your strategy and goals.\n\nWhen you request a meal with a starch after that allocation is covered, Starch Guard pauses meal creation and gives you two options:",
+          list: [
+            "Choose a different carb that fits the current phase of your day",
+            "Let Chef substitute a fibrous carb automatically",
+          ],
+        },
+        {
+          heading: "Why This Matters",
+          text: "Foods do not cause weight gain. Context does.\n\nYou can gain weight with healthy foods and lose weight while eating foods people call unhealthy. What matters is portion size, frequency, and direction.\n\nStarch Guard removes food guilt and replaces it with structure. It allows enjoyment without loss of control. It helps you eat freely while still moving forward.\n\nThat is the strategy.",
+        },
+        {
+          heading: "Why Timing Matters",
+          text: "The app distributes starchy carbs intentionally — not just how many, but when.\n\nThink of your body like a business. During the day it is open and running operations. It can put starchy carbs to work for energy, focus, and performance. At night it shifts into a different mode — one focused on cleaning, repairing, and resetting.\n\nIf you keep sending energy demands in late at night, it can interfere with that recovery process. This is why concentrating starchy carbs earlier in the day can support your energy during active hours, your recovery while you sleep, and your overall sleep quality.\n\nLate fast-digesting carbs may keep your body metabolically active when it is supposed to be winding down. Shifting them earlier gives your system the space it needs to do its overnight work.",
+        },
+        {
+          heading: "This Is a Strategy, Not a Restriction",
+          text: "Starch timing is not a rule. It is a framework.\n\nIf you train late in the evening, your body has different energy demands at night. If your schedule works better with carbs distributed differently, that flexibility is built in.\n\nYou can choose One Starch Meal — which concentrates starchy carbs into a single meal — or Flex Split — which spreads them across two meals. Either way, the system adapts to your life.\n\nThe goal is to give your body what it needs, when it needs it. Not to restrict. Not to frustrate. To support.",
+        },
+      ],
+    },
+  },
+  {
     id: "vegetable-volume",
     title: "Vegetable Volume System",
-    subtitle: "How meals stay full, satisfying, and effective",
+    subtitle: "Stay full and satisfied, even on low carbs",
     icon: Utensils,
     content: {
       sections: [
@@ -277,39 +545,128 @@ const libraryTopics: LibraryTopic[] = [
     },
   },
   {
-    id: "compliance-system",
-    title: "Compliance System",
-    subtitle: "Macro Adherence & Coaching Analytics",
+    id: "palate-preferences",
+    title: "Palate Preferences",
+    subtitle: "Flavor customization without macro impact",
+    icon: Utensils,
+    content: {
+      sections: [
+        {
+          heading: "What Are Palate Preferences?",
+          text: "By default, AI-generated meals are lightly seasoned to be safe for most palates. But everyone's taste is different. Palate Preferences let you tell the AI exactly how you like your food flavored — without affecting your macros.",
+        },
+        {
+          heading: "What You Can Customize",
+          list: [
+            "Spice Tolerance — from no heat at all to bring-on-the-fire",
+            "Seasoning Intensity — light and subtle to bold and pronounced",
+            "Flavor Style — classic comfort, herb-forward, savory umami, or bright and fresh",
+          ],
+        },
+        {
+          heading: "How It Works",
+          list: [
+            "Set your preferences during onboarding or update them anytime in Edit Profile",
+            "The AI reads your palate profile when generating every meal",
+            "Your macros stay exactly the same — only the flavor changes",
+            "No more bland meals if you love bold seasoning",
+          ],
+        },
+        {
+          heading: "Why It Exists",
+          text: "Nutrition apps often produce generic, underseasoned meals. Palate Preferences fix that by making flavor personal. If you want garlic, herbs, and heat — you'll get it. If you prefer mild and classic — that's what you'll see.",
+        },
+      ],
+    },
+  },
+  {
+    id: "cravings",
+    title: "How Cravings Are Handled",
+    subtitle: "Satisfy what you want, stay on plan",
+    icon: Heart,
+    content: {
+      sections: [
+        {
+          heading: "Cravings Aren't the Enemy",
+          text: "Instead of telling you to ignore cravings, the app helps you satisfy them within your macro budget.",
+        },
+        {
+          heading: "The Approach",
+          list: [
+            "Tell the app what you're craving",
+            "It generates a version that fits your macros",
+            "You eat what you want without going off track",
+            "No guilt, no willpower battles",
+          ],
+        },
+        {
+          heading: "The Result",
+          text: "Sustainable nutrition means not fighting your body. It means working with it.",
+        },
+      ],
+    },
+  },
+];
+
+const SECTION_HEALTH_SAFETY: LibraryTopic[] = [
+  {
+    id: "safetyguard",
+    title: "SafetyGuard™ — Allergy Protection",
+    subtitle: "Two-layer protection, always on",
     icon: Shield,
     content: {
       sections: [
         {
-          heading: "What Is Compliance?",
-          text: "Compliance measures how closely your daily nutrition matches the macro targets set in the Macro Calculator. Instead of judging foods, the system measures consistency with the plan designed for you.",
+          heading: "What Is SafetyGuard?",
+          text: "SafetyGuard is My Perfect Meals' two-layer allergy protection system. It's designed to help prevent meals from being created with ingredients you've marked as unsafe.",
         },
         {
-          heading: "What Gets Measured",
+          heading: "How SafetyGuard Works",
           list: [
-            "Macro adherence \u2014 how closely your protein, carbs, and fat match your targets",
-            "Logging consistency \u2014 how regularly meals are recorded",
-            "Daily averages across the last 7 days",
+            "Pre-generation checks stop meals that include known allergens before they're created",
+            "Post-generation validation scans ingredients and nutrition before a meal is shown",
+            "Protection is always on by default",
+            "Temporary overrides require a personal Safety PIN and apply to one meal only",
           ],
         },
         {
-          heading: "Why Compliance Matters",
-          text: "In nutrition coaching, results come from consistency. Compliance helps your coach understand whether a program needs adjustment or whether the strategy simply needs more time.",
+          heading: "Why It Exists",
+          text: "Food allergies are serious. SafetyGuard is designed to add structure and intentional decision-making at the exact moment meals are created.",
+        },
+      ],
+    },
+  },
+  {
+    id: "glucoseguard",
+    title: "GlucoseGuard™",
+    subtitle: "Real-time diabetic meal adjustment",
+    icon: Heart,
+    content: {
+      sections: [
+        {
+          heading: "What Is GlucoseGuard?",
+          text: "GlucoseGuard is for diabetics only. It reads your actual blood glucose level (mg/dL) from the Diabetic Hub and adjusts meal generation based on your current glucose state.",
         },
         {
-          heading: "How Coaches Use It",
+          heading: "How GlucoseGuard Works",
           list: [
-            "Identify when a client is following the program closely",
-            "Detect when logging habits drop off",
-            "Determine whether program changes are necessary",
+            "Reads your latest glucose log from the Diabetic Hub",
+            "When glucose is low, meals include more carbs to help stabilize",
+            "When glucose is elevated, meals go lower carb to help bring you back into range",
+            "Only appears in the Diabetic Hub and Diabetic Meal Builder",
           ],
         },
         {
-          heading: "Important",
-          text: "Compliance is not a grade. It is simply a signal that helps you and your coach understand what is happening so better decisions can be made.",
+          heading: "This Is Different From Starch Guard",
+          text: "Starch Guard is about weight management and limiting high-glycemic carbs. GlucoseGuard is about real-time glucose monitoring for diabetics. Most users don't need GlucoseGuard — they need Starch Guard.",
+        },
+        {
+          heading: "What It Does Not Do",
+          list: [
+            "Does not diagnose, treat, or manage diabetes",
+            "Does not monitor blood glucose or adjust medications",
+            "Does not replace medical care or professional advice",
+          ],
         },
       ],
     },
@@ -317,8 +674,8 @@ const libraryTopics: LibraryTopic[] = [
   {
     id: "waist-risk",
     title: "Waist-to-Height Risk",
-    subtitle: "Metabolic Health Indicator",
-    icon: Heart,
+    subtitle: "Metabolic health indicator",
+    icon: Stethoscope,
     content: {
       sections: [
         {
@@ -357,332 +714,71 @@ const libraryTopics: LibraryTopic[] = [
     },
   },
   {
-    id: "safetyguard",
-    title: "SafetyGuard\u2122 \u2014 Allergy Protection",
-    icon: Shield,
+    id: "medical-sources",
+    title: "Medical & Nutrition Sources",
+    subtitle: "Where the guidance comes from",
+    icon: FileText,
     content: {
       sections: [
         {
-          heading: "What Is SafetyGuard?",
-          text: "SafetyGuard is My Perfect Meals' two-layer allergy protection system. It's designed to help prevent meals from being created with ingredients you've marked as unsafe.",
+          heading: "Where the Data Comes From",
+          text: "All nutritional calculations and recommendations are based on peer-reviewed research and official guidelines.",
         },
         {
-          heading: "How SafetyGuard Works",
+          heading: "Primary Sources",
           list: [
-            "Pre-generation checks stop meals that include known allergens before they're created",
-            "Post-generation validation scans ingredients and nutrition before a meal is shown",
-            "Protection is always on by default",
-            "Temporary overrides require a personal Safety PIN and apply to one meal only",
+            "National Institutes of Health (NIH) — nih.gov",
+            "U.S. Department of Agriculture (USDA) — usda.gov",
+            "American Diabetes Association (ADA) — diabetes.org",
+            "World Health Organization (WHO) — who.int",
+            "Academy of Nutrition and Dietetics — eatright.org",
+            "Centers for Disease Control (CDC) — cdc.gov",
           ],
         },
         {
-          heading: "Why It Exists",
-          text: "Food allergies are serious. SafetyGuard is designed to add structure and intentional decision-making at the exact moment meals are created.",
+          heading: "Medical Disclaimer",
+          text: "This app provides nutritional information, not medical advice. Always consult a healthcare professional before making significant dietary changes, especially if you have a medical condition.",
         },
       ],
     },
   },
+];
+
+const SECTION_SPECIALIZED: LibraryTopic[] = [
   {
-    id: "starchguard",
-    title: "Starch Guard — Weight Management",
-    icon: Zap,
+    id: "specialty-diets",
+    title: "Specialty Diets & Protocol System",
+    subtitle: "Kosher · Halal · Vegan · Gluten-Free · and more",
+    icon: Dna,
     content: {
       sections: [
         {
-          heading: "What Is Starch Guard?",
-          text: "Starch Guard is not a food blocker. It is a portion and frequency management system for insulin stimulating carbs.\n\nNo foods are labeled good or bad in this app. A food only moves you toward or away from your current goal. Starch Guard exists to help you enjoy the foods you like while keeping insulin exposure aligned with where you are trying to go.\n\nYou can eat potatoes. You can eat rice. You can eat pasta. Starch Guard simply helps control how often and how much of those foods appear across your day.",
+          heading: "What This System Does",
+          text: "My Perfect Meals doesn't just generate food. It enforces your dietary identity, your health needs, and your preparation rules — all at the same time. The system checks every meal before and after creation, so your protocol is respected at every level.",
         },
         {
-          heading: "The Science Behind It",
-          text: "Not all carbohydrates affect the body the same way.\n\nStarches and sugars break down quickly into glucose. Glucose raises blood sugar. Blood sugar triggers insulin. Insulin is the hormone that signals your body to store energy, including fat.\n\nInsulin itself is not bad. Repeated, frequent insulin spikes over time are what make weight control harder for most people.\n\nFibrous carbohydrates digest more slowly, produce a smaller insulin response, and provide volume, nutrients, and satiety. That is why the app emphasizes fibrous carbs once starch needs are met.\n\nThis is also why the app focuses more on starch than sodium. Sodium can cause temporary water weight that resolves quickly. Insulin driven weight gain is a longer term process. Managing insulin exposure is the lever that matters most for sustainable results.",
-        },
-        {
-          heading: "What Starch Guard Manages",
-          text: "Starch Guard does not ban foods. It manages high impact starch portions across the day.\n\nThese foods are treated as starch meals because they raise blood sugar more quickly in typical servings:",
+          heading: "The Three Levels of Compliance",
           list: [
-            "Potatoes and potato based dishes",
-            "Rice and rice based dishes",
-            "Bread, pasta, noodles, and refined flour products",
-            "Pancakes, waffles, and similar starch dense foods",
+            "Ingredient level — forbidden ingredients are blocked before the AI generates anything",
+            "Combination level — foods that cannot be combined under your protocol are detected, such as meat and dairy for kosher users",
+            "Preparation and instruction level — cooking steps are scanned for phrases that would violate your protocol, such as deglazing with wine for halal users or finishing a meat dish with butter for kosher users",
           ],
         },
         {
-          heading: "What Happens After Starch Is Covered",
-          text: "Once your starch allocation for the day is used, the app guides you toward fibrous carbohydrates instead.\n\nFibrous carbs provide steady energy, fiber and micronutrients, a lower insulin response, and greater food volume.",
-          list: [
-            "Vegetables like broccoli, asparagus, spinach, and peppers",
-            "Beans, lentils, and chickpeas",
-            "Whole foods where fiber slows digestion",
-          ],
+          heading: "How Priority Works",
+          text: "Your dietary identity is the outer wall. Everything else — medical limits, avoidances, and flavor preferences — is applied inside it. No craving, health goal, or preference can override your dietary protocol.",
         },
         {
-          heading: "How Starch Guard Works in Practice",
-          text: "You receive a set number of starch meals per day based on your strategy and goals.\n\nWhen you request a meal with a starch after that allocation is covered, Starch Guard pauses meal creation and gives you two options:",
-          list: [
-            "Choose a different carb that fits the current phase of your day",
-            "Let Chef substitute a fibrous carb automatically",
-          ],
+          heading: "Checked Before and After",
+          text: "Before the AI generates your meal, the full protocol is injected into the system as a structured set of rules. After generation, every result is scanned again — checking ingredient names, derivative terms, and forbidden instruction phrases — before you ever see it.",
         },
         {
-          heading: "Why This Matters",
-          text: "Foods do not cause weight gain. Context does.\n\nYou can gain weight with healthy foods and lose weight while eating foods people call unhealthy. What matters is portion size, frequency, and direction.\n\nStarch Guard removes food guilt and replaces it with structure. It allows enjoyment without loss of control. It helps you eat freely while still moving forward.\n\nThat is the strategy.",
+          heading: "Dietary Protocol Sources",
+          text: "This system is informed by recognized dietary and certification guidance from sources such as Orthodox Union, Star-K, OK Kosher Certification, and the Islamic Food and Nutrition Council of America (IFANCA).",
         },
         {
-          heading: "Why Timing Matters",
-          text: "The app distributes starchy carbs intentionally — not just how many, but when.\n\nThink of your body like a business. During the day it is open and running operations. It can put starchy carbs to work for energy, focus, and performance. At night it shifts into a different mode — one focused on cleaning, repairing, and resetting.\n\nIf you keep sending energy demands in late at night, it can interfere with that recovery process. This is why concentrating starchy carbs earlier in the day can support your energy during active hours, your recovery while you sleep, and your overall sleep quality.\n\nLate fast-digesting carbs may keep your body metabolically active when it is supposed to be winding down. Shifting them earlier gives your system the space it needs to do its overnight work.",
-        },
-        {
-          heading: "This Is a Strategy, Not a Restriction",
-          text: "Starch timing is not a rule. It is a framework.\n\nIf you train late in the evening, your body has different energy demands at night. If your schedule works better with carbs distributed differently, that flexibility is built in.\n\nYou can choose One Starch Meal — which concentrates starchy carbs into a single meal — or Flex Split — which spreads them across two meals. Either way, the system adapts to your life.\n\nThe goal is to give your body what it needs, when it needs it. Not to restrict. Not to frustrate. To support.",
-        },
-      ],
-    },
-  },
-  {
-    id: "glucoseguard",
-    title: "GlucoseGuard™",
-    subtitle: "Diabetic Meal Adjustment",
-    icon: Heart,
-    content: {
-      sections: [
-        {
-          heading: "What Is GlucoseGuard?",
-          text: "GlucoseGuard is for diabetics only. It reads your actual blood glucose level (mg/dL) from the Diabetic Hub and adjusts meal generation based on your current glucose state.",
-        },
-        {
-          heading: "How GlucoseGuard Works",
-          list: [
-            "Reads your latest glucose log from the Diabetic Hub",
-            "When glucose is low, meals include more carbs to help stabilize",
-            "When glucose is elevated, meals go lower carb to help bring you back into range",
-            "Only appears in the Diabetic Hub and Diabetic Meal Builder",
-          ],
-        },
-        {
-          heading: "This Is Different From Starch Guard",
-          text: "Starch Guard is about weight management and limiting high-glycemic carbs. GlucoseGuard is about real-time glucose monitoring for diabetics. Most users don't need GlucoseGuard — they need Starch Guard.",
-        },
-        {
-          heading: "What It Does Not Do",
-          list: [
-            "Does not diagnose, treat, or manage diabetes",
-            "Does not monitor blood glucose or adjust medications",
-            "Does not replace medical care or professional advice",
-          ],
-        },
-      ],
-    },
-  },
-  {
-    id: "nutrition-budget",
-    title: "Nutrition Budget — Daily Tracking",
-    icon: Calculator,
-    content: {
-      sections: [
-        {
-          heading: "What Is the Nutrition Budget?",
-          text: "The Nutrition Budget is a real-time tracking system that shows how much of your daily nutrition targets you've used — and what's left. It focuses on the three nutrients that matter most: Protein, Starchy Carbs, and Fibrous Carbs.",
-        },
-        {
-          heading: "How It Works",
-          list: [
-            "Your targets come from the Macro Calculator — one authoritative source",
-            "As you add meals throughout the day, the budget updates automatically",
-            "A banner at the top of each meal builder shows what's remaining",
-            "When a nutrient is covered, you'll see a checkmark and gentle coaching",
-          ],
-        },
-        {
-          heading: "What You'll See",
-          list: [
-            "Protein, Starchy Carbs, and Fiber remaining for the day",
-            "Helpful coaching when you're running low or covered",
-            "Forward-looking guidance — no judgment, just awareness",
-          ],
-        },
-        {
-          heading: "Works With Starch Guard",
-          text: "When your starchy carb budget is exhausted, Starch Guard steps in to help you substitute with fibrous carbs. See the Starch Guard section for details.",
-        },
-        {
-          heading: "Why It Exists",
-          text: "Most apps only tell you what you ate. The Nutrition Budget tells you what to eat next. It's coaching in real-time, helping you make smarter choices as your day unfolds.",
-        },
-      ],
-    },
-  },
-  {
-    id: "palate-preferences",
-    title: "Palate Preferences",
-    subtitle: "Flavor Customization",
-    icon: Utensils,
-    content: {
-      sections: [
-        {
-          heading: "What Are Palate Preferences?",
-          text: "By default, AI-generated meals are lightly seasoned to be safe for most palates. But everyone's taste is different. Palate Preferences let you tell the AI exactly how you like your food flavored — without affecting your macros.",
-        },
-        {
-          heading: "What You Can Customize",
-          list: [
-            "Spice Tolerance — from no heat at all to bring-on-the-fire",
-            "Seasoning Intensity — light and subtle to bold and pronounced",
-            "Flavor Style — classic comfort, herb-forward, savory umami, or bright and fresh",
-          ],
-        },
-        {
-          heading: "How It Works",
-          list: [
-            "Set your preferences during onboarding or update them anytime in Edit Profile",
-            "The AI reads your palate profile when generating every meal",
-            "Your macros stay exactly the same — only the flavor changes",
-            "No more bland meals if you love bold seasoning",
-          ],
-        },
-        {
-          heading: "Why It Exists",
-          text: "Nutrition apps often produce generic, underseasoned meals. Palate Preferences fix that by making flavor personal. If you want garlic, herbs, and heat — you'll get it. If you prefer mild and classic — that's what you'll see.",
-        },
-      ],
-    },
-  },
-  {
-    id: "cravings",
-    title: "How Cravings Are Handled",
-    icon: Heart,
-    content: {
-      sections: [
-        {
-          heading: "Cravings Aren't the Enemy",
-          text: "Instead of telling you to ignore cravings, the app helps you satisfy them within your macro budget.",
-        },
-        {
-          heading: "The Approach",
-          list: [
-            "Tell the app what you're craving",
-            "It generates a version that fits your macros",
-            "You eat what you want without going off track",
-            "No guilt, no willpower battles",
-          ],
-        },
-        {
-          heading: "The Result",
-          text: "Sustainable nutrition means not fighting your body. It means working with it.",
-        },
-      ],
-    },
-  },
-  {
-    id: "meal-builder",
-    title: "How Meal Builders & Support Systems Work",
-    icon: Layers,
-    content: {
-      sections: [
-        {
-          heading: "This Isn't Just a Meal Generator",
-          text: "Most nutrition apps give you generic meals and hope you figure it out. My Perfect Meals works differently. Every meal comes from a structured system built around your goals, your body, your preferences, and when needed, your medical context. You're not just getting meals — you're getting guided decisions before you eat.",
-        },
-        {
-          heading: "The Two-Layer System",
-          text: "Everything in the app runs on two layers. Layer 1 is your Meal Builder — your foundation that determines the type of meals you get. Layer 2 is your Support System — additional rules applied on top when needed based on health needs or physician guidance.",
-        },
-        {
-          heading: "General Nutrition",
-          text: "Your everyday system. Best for fat loss, maintenance, and building consistency. Balanced meals, real-life eating, sustainability.",
-        },
-        {
-          heading: "Performance & Competition",
-          text: "Built for serious training and physique goals. Higher precision, performance fueling, muscle support.",
-        },
-        {
-          heading: "Anti-Inflammatory",
-          text: "Your clinical-friendly foundation. Best for inflammation concerns, autoimmune support, and physician-guided nutrition. Cleaner ingredients, reduced inflammatory patterns, structured meals.",
-        },
-        {
-          heading: "Diabetic",
-          text: "Built for blood sugar awareness. Carb control, glucose stability, real-time adjustments through GlucoseGuard.",
-        },
-        {
-          heading: "GLP-1 Support",
-          text: "Built for reduced appetite environments. Nutrient density, protein priority, easier-to-finish meals for GLP-1 users.",
-        },
-        {
-          heading: "Create a Dish",
-          text: "Creates one complete dish at a time. Not a meal plan — a real cooking tool. Step-by-step execution, real kitchen meals, practical prep.",
-        },
-        {
-          heading: "Craving Creator",
-          text: "You tell the app what you want. It makes it fit your plan. Satisfying cravings, macro-aligned versions, no guilt approach.",
-        },
-        {
-          heading: "Dessert Creator",
-          text: "Desserts that actually fit your numbers. Portion-aware treats, realistic enjoyment, controlled indulgence.",
-        },
-        {
-          heading: "Fridge Rescue",
-          text: "Uses what you already have. Best for leftovers, low-effort days, and real-life situations where you just need a solution.",
-        },
-        {
-          heading: "Support Systems (When Needed)",
-          text: "Support systems are not separate builders. They are layers added on top of your meals when needed. They adjust ingredients, preparation style, food texture, and meal structure — without breaking your macros.",
-        },
-        {
-          heading: "Cardiac Support",
-          text: "Heart-aware meal structure. Emphasizes better fat quality, smarter sodium awareness, and supportive ingredient choices.",
-        },
-        {
-          heading: "Liver Support",
-          text: "Reduces strain on the liver. Cleaner foods, reduced processed load, supportive nutrition patterns.",
-        },
-        {
-          heading: "Kidney / Renal Support",
-          text: "Adds kidney-conscious structure. Physician-guided restrictions and careful ingredient selection.",
-        },
-        {
-          heading: "Lipid Support",
-          text: "Supports cholesterol and lipid goals. Focus on fat quality, fiber, and heart-supportive meals.",
-        },
-        {
-          heading: "Cancer Support Nutrition (Physician Assigned)",
-          text: "A physician-assigned support system — not treatment or medical care. Built on an anti-inflammatory foundation with protein support, easier-to-tolerate meals, appetite-aware structure, and symptom-sensitive adjustments. Examples include low-appetite support, nausea-friendly meals, soft food options, and low-prep meals during fatigue.",
-        },
-        {
-          heading: "With a Coach or Physician (ProCare)",
-          text: "When you connect with a professional through ProCare, they can assign your meal builder, apply support systems, and adjust your plan in real time. You still own your plan. They guide it.",
-        },
-        {
-          heading: "Why This Matters",
-          text: "Most apps track what you already ate. This app helps you decide what to eat before you eat it. That's where results actually happen — not in the log, but in the decision.",
-        },
-        {
-          heading: "Important",
-          text: "My Perfect Meals provides nutrition guidance only. It does not diagnose, treat, or replace medical care. Always follow your physician's recommendations for any medical condition.",
-        },
-      ],
-    },
-  },
-  {
-    id: "why-different",
-    title: "Why This App Is Different",
-    icon: Zap,
-    content: {
-      sections: [
-        {
-          heading: "Not Another Calorie Counter",
-          text: "Most nutrition apps track what you ate. My Perfect Meals tells you what to eat—before you eat it.",
-        },
-        {
-          heading: "Key Differences",
-          list: [
-            "Proactive meal planning, not reactive tracking",
-            "AI-generated meals tailored to your exact needs",
-            "Behavioral guardrails that prevent diet failures",
-            "Coach voice guidance when you need support",
-          ],
-        },
-        {
-          heading: "The Philosophy",
-          text: "Information alone doesn't change behavior. Structure does. That's what this app provides.",
+          heading: "Important Note",
+          text: "This system is designed to guide compliant meal choices. For strict religious or medical adherence, always follow the guidance of your local religious authority or licensed physician.",
         },
       ],
     },
@@ -690,7 +786,7 @@ const libraryTopics: LibraryTopic[] = [
   {
     id: "procare",
     title: "ProCare",
-    subtitle: "Professional Coaching & Medical Oversight",
+    subtitle: "Professional coaching & medical oversight",
     icon: Users,
     content: {
       sections: [
@@ -754,71 +850,38 @@ const libraryTopics: LibraryTopic[] = [
       ],
     },
   },
+];
+
+const LIBRARY_SECTIONS: LibrarySection[] = [
   {
-    id: "medical-sources",
-    title: "Medical & Nutrition Sources",
-    icon: FileText,
-    content: {
-      sections: [
-        {
-          heading: "Where the Data Comes From",
-          text: "All nutritional calculations and recommendations are based on peer-reviewed research and official guidelines.",
-        },
-        {
-          heading: "Primary Sources",
-          list: [
-            "National Institutes of Health (NIH) — nih.gov",
-            "U.S. Department of Agriculture (USDA) — usda.gov",
-            "American Diabetes Association (ADA) — diabetes.org",
-            "World Health Organization (WHO) — who.int",
-            "Academy of Nutrition and Dietetics — eatright.org",
-            "Centers for Disease Control (CDC) — cdc.gov",
-          ],
-        },
-        {
-          heading: "Medical Disclaimer",
-          text: "This app provides nutritional information, not medical advice. Always consult a healthcare professional before making significant dietary changes, especially if you have a medical condition.",
-        },
-      ],
-    },
+    id: "start-here",
+    label: "START HERE",
+    description: "Guided entry",
+    topics: SECTION_START_HERE,
   },
   {
-    id: "specialty-diets",
-    title: "Specialty Diets & Protocol System",
-    subtitle: "Kosher · Halal · Vegan · Gluten-Free · and more",
-    icon: Shield,
-    content: {
-      sections: [
-        {
-          heading: "What This System Does",
-          text: "My Perfect Meals doesn't just generate food. It enforces your dietary identity, your health needs, and your preparation rules — all at the same time. The system checks every meal before and after creation, so your protocol is respected at every level.",
-        },
-        {
-          heading: "The Three Levels of Compliance",
-          list: [
-            "Ingredient level — forbidden ingredients are blocked before the AI generates anything",
-            "Combination level — foods that cannot be combined under your protocol are detected, such as meat and dairy for kosher users",
-            "Preparation and instruction level — cooking steps are scanned for phrases that would violate your protocol, such as deglazing with wine for halal users or finishing a meat dish with butter for kosher users",
-          ],
-        },
-        {
-          heading: "How Priority Works",
-          text: "Your dietary identity is the outer wall. Everything else — medical limits, avoidances, and flavor preferences — is applied inside it. No craving, health goal, or preference can override your dietary protocol.",
-        },
-        {
-          heading: "Checked Before and After",
-          text: "Before the AI generates your meal, the full protocol is injected into the system as a structured set of rules. After generation, every result is scanned again — checking ingredient names, derivative terms, and forbidden instruction phrases — before you ever see it.",
-        },
-        {
-          heading: "Dietary Protocol Sources",
-          text: "This system is informed by recognized dietary and certification guidance from sources such as Orthodox Union, Star-K, OK Kosher Certification, and the Islamic Food and Nutrition Council of America (IFANCA).",
-        },
-        {
-          heading: "Important Note",
-          text: "This system is designed to guide compliant meal choices. For strict religious or medical adherence, always follow the guidance of your local religious authority or licensed physician.",
-        },
-      ],
-    },
+    id: "core-systems",
+    label: "CORE SYSTEMS",
+    description: "How the app works",
+    topics: SECTION_CORE_SYSTEMS,
+  },
+  {
+    id: "nutrition-strategy",
+    label: "NUTRITION STRATEGY",
+    description: "User-facing systems",
+    topics: SECTION_NUTRITION_STRATEGY,
+  },
+  {
+    id: "health-safety",
+    label: "HEALTH & SAFETY",
+    description: "Trust layer",
+    topics: SECTION_HEALTH_SAFETY,
+  },
+  {
+    id: "specialized",
+    label: "SPECIALIZED SYSTEMS",
+    description: "Advanced differentiators",
+    topics: SECTION_SPECIALIZED,
   },
 ];
 
@@ -848,38 +911,32 @@ function LibraryItem({ topic }: { topic: LibraryTopic }) {
     <div className="w-full">
       <button
         onClick={handleToggle}
-        className={`w-full flex items-center px-4 py-3.5 rounded-xl transition-all duration-200 ${
+        className={`w-full flex items-start gap-3 px-4 py-4 rounded-xl transition-all duration-200 ${
           isExpanded
             ? "bg-black/70 border border-white/20 shadow-lg"
             : "bg-black/50 border border-white/10 hover:bg-black/60 hover:border-white/15"
         }`}
       >
-        <div className="flex items-center gap-3 min-w-0">
-          <Icon className="h-4 w-4 text-orange-400 flex-shrink-0" />
-          <div className="flex flex-col min-w-0">
-            <span className="text-white font-medium text-sm leading-tight">
-              {topic.title}
+        <Icon className="h-5 w-5 text-orange-400 mt-0.5 flex-shrink-0" />
+
+        <div className="flex flex-col flex-1 min-w-0 text-left">
+          <span className="text-white font-medium text-sm leading-tight">
+            {topic.title}
+          </span>
+          {topic.subtitle && (
+            <span className="text-xs text-white/55 mt-0.5 leading-snug line-clamp-1">
+              {topic.subtitle}
             </span>
-            {topic.subtitle && (
-              <span className="text-[11px] text-white/60 leading-tight">
-                {topic.subtitle}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1 text-[10px] text-white/50 mr-2">
-          <Headphones className="h-3 w-3" />
-          <span>Audio</span>
-        </div>
-
-        <div className="ml-3 flex-shrink-0">
-          {isExpanded ? (
-            <ChevronUp className="h-4 w-4 text-white/60" />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-white/60" />
           )}
         </div>
+
+        <motion.div
+          animate={{ rotate: isExpanded ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+          className="flex-shrink-0 mt-0.5"
+        >
+          <ChevronDown className="h-4 w-4 text-white/50" />
+        </motion.div>
       </button>
 
       <AnimatePresence>
@@ -891,7 +948,7 @@ function LibraryItem({ topic }: { topic: LibraryTopic }) {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="mt-2 p-4 bg-black/40 rounded-xl border border-white/10">
+            <div className="mt-1 p-4 bg-black/40 rounded-xl border border-white/10">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex gap-2">
                   <PillButton
@@ -987,43 +1044,50 @@ export default function Learn() {
       animate={{ opacity: 1 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white p-4"
     >
-      {/* Fixed Black Glass Navigation Banner */}
       <MobileHeaderGuard>
-      <div
-        className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-      >
-        <div className="px-4 pb-3 flex items-center gap-3">
-          <Button
-            onClick={() => navigate("/")}
-            className="bg-black/10 hover:bg-black/50 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1.5 px-2.5 h-9 flex-shrink-0"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="text-xs font-medium">Back</span>
-          </Button>
-          <div>
-            <h1 className="text-lg font-bold text-white">App Library</h1>
-            <p className="text-xs text-white/60">
-              Learn how My Perfect Meals works
-            </p>
+        <div
+          className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        >
+          <div className="px-4 pb-3 flex items-center gap-3">
+            <Button
+              onClick={() => navigate("/")}
+              className="bg-black/10 hover:bg-black/50 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1.5 px-2.5 h-9 flex-shrink-0"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-xs font-medium">Back</span>
+            </Button>
+            <div>
+              <h1 className="text-lg font-bold text-white">App Library</h1>
+              <p className="text-xs text-white/60">
+                Learn how My Perfect Meals works
+              </p>
+            </div>
           </div>
         </div>
-      </div>
       </MobileHeaderGuard>
 
-      {/* Content with padding for fixed header */}
       <div
         className="max-w-lg mx-auto pb-24"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
       >
-        <p className="text-xs text-white/60 mb-3 text-center">
-          Start with the founder story to understand why this app exists.
-        </p>
-        <div className="space-y-2">
-          {libraryTopics.map((topic) => (
-            <LibraryItem key={topic.id} topic={topic} />
-          ))}
-        </div>
+        {LIBRARY_SECTIONS.map((section) => (
+          <div key={section.id} className="mb-6">
+            <div className="mb-2 px-1">
+              <h3 className="text-xs font-semibold text-white/45 uppercase tracking-widest">
+                {section.label}
+              </h3>
+              <p className="text-[11px] text-white/30 mt-0.5">
+                {section.description}
+              </p>
+            </div>
+            <div className="space-y-2">
+              {section.topics.map((topic) => (
+                <LibraryItem key={topic.id} topic={topic} />
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </motion.div>
   );
