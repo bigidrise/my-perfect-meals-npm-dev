@@ -23,6 +23,39 @@
 import { loadSafetyProfile, enforceSafetyProfile, type SafetyOptions } from "./safetyProfileService";
 import { scanTextForHighRiskIngredients } from "./ingredientIntelligence";
 import { evaluateRelationshipRules, type RuleViolation } from "./guardrails/rules/culturalRules";
+import { AVOIDANCE_EXPANSION } from "./allergyGuardrails";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TIER 5 HELPER — expand user avoidance list and find violations in meal text
+// ─────────────────────────────────────────────────────────────────────────────
+
+function expandUserAvoidances(raw: string[]): { term: string; sourceCategory: string }[] {
+  const out: { term: string; sourceCategory: string }[] = [];
+  for (const item of raw) {
+    const key = item.trim().toLowerCase();
+    const expanded = AVOIDANCE_EXPANSION[key];
+    if (expanded) {
+      for (const t of expanded) out.push({ term: t, sourceCategory: key });
+    } else {
+      out.push({ term: key, sourceCategory: key });
+    }
+  }
+  return out;
+}
+
+function findAvoidanceViolation(
+  mealText: string,
+  avoidIngredients: string[]
+): { term: string; category: string } | null {
+  const expanded = expandUserAvoidances(avoidIngredients);
+  const lower = mealText.toLowerCase();
+  for (const { term, sourceCategory } of expanded) {
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`\\b${escaped}\\b`, "i");
+    if (regex.test(lower)) return { term, category: sourceCategory };
+  }
+  return null;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -333,6 +366,33 @@ export async function runEnforcement(request: EnforcementRequest): Promise<Enfor
   // The gateway records any warnings from the safety assessment.
   if (safetyAssessment.result === "DIET_ADAPT") {
     warnings.push(safetyAssessment.message || "Dietary adaptation applied");
+  }
+
+  // ── TIER 5: User food avoidances (post-generation scan) ──────────────────
+  // This is the safety net for avoided foods. The AI prompt already instructs
+  // the model to skip avoided ingredients, but if it ignores the instruction
+  // this check catches the violation before the meal reaches the user.
+  if (request.phase === "post_generation" && request.generatedMeal) {
+    const userAvoidIngredients: string[] = (profile as any).avoidIngredients || [];
+    if (userAvoidIngredients.length > 0) {
+      const mealText = extractMealText(request.generatedMeal);
+      const violation = findAvoidanceViolation(mealText, userAvoidIngredients);
+      if (violation) {
+        const block: EnforcementBlock = {
+          tier: 5,
+          tierLabel: "User Food Avoidance",
+          reasonCode: "AVOID_INGREDIENT_FOUND",
+          protocol: "user_avoidance",
+          blockingIngredient: violation.term,
+          message: `This meal contains "${violation.term}" which you've marked as a food to avoid (${violation.category}). Regenerating with a compliant alternative.`,
+          suggestedSubstitute: `A meal will be created without ${violation.category}.`,
+          reviewOverrideAllowed: false,
+        };
+        blocks.push(block);
+        logGatewayBlock(request, block, auditId);
+        return buildResult("BLOCK", blocks, warnings, auditId, request);
+      }
+    }
   }
 
   // ── ALLOW ─────────────────────────────────────────────────────────────────

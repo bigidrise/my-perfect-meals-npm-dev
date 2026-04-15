@@ -10,6 +10,7 @@ import {
   getSafeSubstitute,
   logSafetyEnforcement 
 } from "../services/allergyGuardrails";
+import { runEnforcement } from "../services/enforcementGateway";
 
 const router = express.Router();
 
@@ -119,6 +120,34 @@ router.post('/generate', requireAuth, async (req, res) => {
     // Validate that we got a meal back
     if (!generatedMeal || !generatedMeal.name) {
       return res.status(500).json({ error: "AI meal generation failed - no meal returned" });
+    }
+
+    // ── Post-generation avoidance enforcement ─────────────────────────────────
+    // Safety net: even if the AI prompt included the avoid list, this catches
+    // any violations before the meal reaches the user.
+    if (userId) {
+      const postCheck = await runEnforcement({
+        userId: userId.toString(),
+        builderType: "craving_creator",
+        phase: "post_generation",
+        generatedMeal: {
+          name: generatedMeal.name,
+          description: generatedMeal.description,
+          ingredients: generatedMeal.ingredients || [],
+          instructions: generatedMeal.instructions || [],
+        },
+      });
+
+      if (postCheck.decision === "BLOCK" && postCheck.primaryBlock?.reasonCode === "AVOID_INGREDIENT_FOUND") {
+        console.log(`🚫 [PostGen Avoidance] Blocked meal "${generatedMeal.name}" — contains "${postCheck.primaryBlock.blockingIngredient}"`);
+        return res.status(400).json({
+          error: "AVOID_INGREDIENT_FOUND",
+          message: postCheck.primaryBlock.message,
+          blockedIngredient: postCheck.primaryBlock.blockingIngredient,
+          suggestion: postCheck.primaryBlock.suggestedSubstitute,
+          retryable: true,
+        });
+      }
     }
 
     // Add servings info to the meal response
