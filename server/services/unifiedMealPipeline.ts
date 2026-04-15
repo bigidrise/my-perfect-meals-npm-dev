@@ -12,7 +12,7 @@
  */
 
 import { generateImage } from './imageService';
-import { loadUserProtocolEnvelope, enforceBeforeGenerate } from './protocolEnvelope';
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope } from './protocolEnvelope';
 import { buildVegetableStrategyPrompt, NutritionStrategyContext, buildStrictModeBlock } from './promptBuilder';
 import { getDeterministicFallback, findMatchingTemplates, templateToMeal } from './templateMatcher';
 import { STARCHY_KEYWORDS } from '../../shared/starchKeywords';
@@ -1824,21 +1824,19 @@ export async function generateSnackFromCravingUnified(
       }
     }
     
-    // Fetch dietary restrictions from user profile (vegan/vegetarian/pescatarian)
-    let snackDietRestrictions: string[] = [];
-    let snackDietBlock = '';
-    if (userId) {
-      try {
-        const [snackUser] = await db.select({ dietaryRestrictions: users.dietaryRestrictions })
-          .from(users).where(eq(users.id, userId)).limit(1);
-        snackDietRestrictions = (snackUser?.dietaryRestrictions as string[]) || [];
-        snackDietBlock = buildDietPromptBlock(snackDietRestrictions) || '';
-        if (snackDietBlock) {
-          console.log(`🥗 [SNACK] Dietary constraint enforced in prompt: ${snackDietRestrictions.join('|')}`);
-        }
-      } catch (err) {
-        console.warn('[SNACK] Could not fetch dietary restrictions:', err);
-      }
+    // ── Load protocol envelope (drives all dietary enforcement) ───────────────
+    const snackEnvelope = userId
+      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+      : buildGuestEnvelope();
+
+    const snackProtocolBlock = enforceBeforeGenerate(snackEnvelope, {
+      generatorName: 'snack_creator',
+    }).combined;
+
+    // Use envelope's dietaryIdentity for vegan/vegetarian/pescatarian compliance loop
+    const snackDietRestrictions: string[] = snackEnvelope.dietaryIdentity;
+    if (snackProtocolBlock) {
+      console.log(`🥗 [SNACK] Protocol enforcement active: ${snackDietRestrictions.join('|') || 'guest'}`);
     }
 
     const OpenAI = (await import('openai')).default;
@@ -1868,7 +1866,7 @@ REQUIREMENTS:
 CARBOHYDRATE BREAKDOWN (CRITICAL):
 - starchyCarbs: Carbs from rice, pasta, bread, potatoes, grains, beans, corn, oats, crackers
 - fibrousCarbs: Carbs from vegetables, leafy greens, fruits, berries
-${snackDietBlock}${snackHubCoupling?.promptFragment?.userPromptAddition || ''}
+${snackProtocolBlock ? `${snackProtocolBlock}\n` : ''}${snackHubCoupling?.promptFragment?.userPromptAddition || ''}
 🚨 U.S. MEASUREMENT RULES (CRITICAL - NO GRAMS ALLOWED):
 - Use ONLY these units: oz, lb, cup, tbsp, tsp, each, fl oz
 - NEVER use grams (g), milliliters (ml), or metric units for ANY ingredient
@@ -2048,6 +2046,24 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
           console.log(`✅ [DIET GUARD] Snack ${snackPrimaryDiet} compliance confirmed — confidence: ${snackDietValidation.confidence}`);
           snackDietaryComplianceVerified = true;
         }
+      }
+
+      // ── Post-gen protocol scan ────────────────────────────────────────────
+      const snackScan = scanGeneratedOutput(tempSnack, snackEnvelope, {
+        generatorName: 'snack_creator',
+      });
+      if (!snackScan.passed) {
+        console.log(`🚫 [SNACK] Post-gen protocol violation (attempt ${snackAttemptCount}): ${snackScan.message}`);
+        if (snackAttemptCount < SNACK_MAX_REGENERATION_ATTEMPTS) {
+          snackLastFixHint = `PROTOCOL VIOLATION: ${snackScan.message}. Regenerate a fully compliant snack.`;
+          continue;
+        }
+        // Exhausted retries — surface the violation
+        return {
+          success: false,
+          source: 'error',
+          error: snackScan.message,
+        };
       }
 
       finalSnackData = { ...snackData, snackStarchyCarbs, snackFibrousCarbs, snackTotalCarbs, tempSnackIngredients: tempSnack.ingredients };
