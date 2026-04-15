@@ -10,12 +10,19 @@
  * a UserProtocolEnvelope before doing anything with AI.
  *
  * Priority order (outer → inner):
- *   1. dietaryIdentity  — the outer wall. Nothing is generated outside it.
- *   2. allergies        — absolute hard stops within the identity container.
+ *   1. dietaryIdentity   — the outer wall. Nothing is generated outside it.
+ *   2. allergies         — absolute hard stops within the identity container.
  *   3. medicalHardLimits — carb/sodium/etc. limits that cannot be violated.
  *   4. medicalOptimization — optimization layers applied inside hard limits.
- *   5. avoidances       — foods the user has marked as unwanted.
- *   6. preferences      — flavor, convenience, style — applied last.
+ *   5. avoidances        — foods the user has marked as unwanted.
+ *   6. preferences       — flavor, convenience, style — applied last.
+ *
+ * Procedural layer (cross-cutting — applies to ALL tiers):
+ *   - preparationRules    — how food must/must not be prepared
+ *   - storageRules        — separation and refrigeration requirements
+ *   - equipmentRules      — cookware, utensil, and contact constraints
+ *   - instructionConstraints — what must/must not appear in cooking instructions
+ *   - crossContaminationRules — contact and contamination prevention
  *
  * Non-negotiable rules:
  *   - No medical optimization may violate the dietaryIdentity container.
@@ -23,6 +30,7 @@
  *   - No preference can override anything above it.
  *   - No generator may produce AI output without calling enforceBeforeGenerate().
  *   - No generator may return AI output without calling scanGeneratedOutput().
+ *   - Instruction-level compliance is required, not just ingredient-level.
  */
 
 import { db } from "../db";
@@ -34,6 +42,334 @@ import {
   scanForHiddenDietaryViolations,
   type HiddenViolation,
 } from "./allergyGuardrails";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROCEDURAL RULES — The third enforcement dimension
+// Ingredient-level compliance is necessary but not sufficient.
+// A meal can be ingredient-correct and still be protocol-wrong if the
+// preparation, storage, equipment, or instructions violate the protocol.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ProtocolProcedureRules {
+  /** How food must/must not be prepared.
+   * Examples: "use kosher-salted meat", "no blood remaining", "no deglaze with wine" */
+  preparationRules: string[];
+
+  /** Separation and refrigeration requirements.
+   * Examples: "meat and dairy must be stored separately" */
+  storageRules: string[];
+
+  /** Cookware, utensil, and surface constraints.
+   * Examples: "separate pans/utensils for meat and dairy",
+   *           "never use a pan previously used for pork without kashering" */
+  equipmentRules: string[];
+
+  /** Phrases or instructions that must NEVER appear in generated cooking steps.
+   * Examples: "deglaze with wine", "add butter to the meat pan", "top with cheese" */
+  forbiddenInstructions: string[];
+
+  /** What must be noted or explicitly required in generated instructions.
+   * Examples: "note: use kosher-certified ingredients",
+   *           "use separate utensils for meat and dairy" */
+  requiredInstructionNotes: string[];
+
+  /** Contact and cross-contamination prevention rules.
+   * Examples: "meat and dairy must never share surfaces or utensils",
+   *           "no contact with pork products" */
+  crossContaminationRules: string[];
+}
+
+/**
+ * Protocol-to-procedure rule map.
+ * Defines the procedural requirements for each dietary identity.
+ * This is the authoritative source for instruction-level enforcement.
+ */
+const PROTOCOL_PROCEDURE_MAP: Record<string, ProtocolProcedureRules> = {
+
+  kosher: {
+    preparationRules: [
+      "Use kosher-certified or pre-salted kosher meat — no blood should remain in the meat",
+      "Fruits and vegetables should be inspected for insects before use",
+      "Do not cook meat and dairy in the same dish, pot, or pan",
+      "Do not use non-kosher wine in cooking — use kosher wine or grape juice if wine is needed",
+      "Do not include gelatin unless it is kosher-certified",
+      "Do not include lard, suet, or non-kosher animal fats",
+      "Shellfish and pork are absolutely forbidden in all forms",
+    ],
+    storageRules: [
+      "Meat and dairy must be stored in completely separate containers",
+      "Meat and dairy must never be placed in the same serving dish or on the same plate",
+    ],
+    equipmentRules: [
+      "Use separate pots, pans, utensils, and cutting boards for meat dishes and dairy dishes",
+      "A pan used for meat cannot be used for dairy without specific kashering — use dedicated cookware",
+      "Never use the same serving spoon or spatula for meat and dairy dishes",
+    ],
+    forbiddenInstructions: [
+      "deglaze with wine",
+      "add butter to the pan after adding meat",
+      "top with cheese",
+      "finish with cream",
+      "serve with a cream sauce",
+      "melt butter over the chicken",
+      "add parmesan",
+      "use the same pan for",
+      "add milk to the meat",
+      "stir in cream",
+    ],
+    requiredInstructionNotes: [
+      "Use kosher-certified ingredients throughout",
+      "Use a dedicated meat pan and utensils — do not mix with dairy equipment",
+      "If a sauce or marinade is called for, ensure all components are kosher-certified",
+    ],
+    crossContaminationRules: [
+      "Meat and dairy must never share surfaces, utensils, pans, or storage",
+      "Fish should not be cooked in the same pan immediately after meat without washing",
+      "No contact between pork products and any other ingredients in this meal",
+    ],
+  },
+
+  halal: {
+    preparationRules: [
+      "Meat should be halal-certified (hand-slaughtered with proper blessing) — note this in sourcing",
+      "No alcohol may be used at any step of preparation — no wine, beer, sake, rum, bourbon, or spirits",
+      "No pork or pork derivatives (lard, gelatin, L-cysteine) in any form",
+      "Do not use vanilla extract — use vanilla bean or halal-certified vanilla flavoring instead",
+      "Do not use mirin — substitute with a non-alcoholic sweetener if needed",
+      "Oyster sauce must be halal-certified or omitted",
+    ],
+    storageRules: [
+      "No storage in contact with pork products",
+      "No alcohol-containing sauces or marinades in the same storage area",
+    ],
+    equipmentRules: [
+      "Utensils or cookware previously used for pork or alcohol must be thoroughly cleaned before use",
+      "Use dedicated halal-compliant equipment when possible",
+    ],
+    forbiddenInstructions: [
+      "deglaze with wine",
+      "add wine",
+      "add beer",
+      "add sake",
+      "add rum",
+      "add bourbon",
+      "add brandy",
+      "add cognac",
+      "add mirin",
+      "marinate in wine",
+      "add vanilla extract",
+      "splash of alcohol",
+      "add lard",
+      "use pork fat",
+    ],
+    requiredInstructionNotes: [
+      "Use halal-certified meat — confirm sourcing with a halal-certified butcher",
+      "All preparation steps must be alcohol-free",
+      "Use vanilla bean or halal-certified vanilla flavoring in place of vanilla extract",
+    ],
+    crossContaminationRules: [
+      "No contact with pork products or alcohol at any point in preparation",
+      "Ensure all shared equipment has been properly cleaned of pork or alcohol residue",
+    ],
+  },
+
+  "kosher-halal": {
+    preparationRules: [
+      "Use kosher-certified and halal-certified ingredients throughout — both sets of rules apply simultaneously",
+      "No pork, shellfish, blood, or non-certified meat in any form",
+      "No alcohol in any step",
+      "No meat and dairy in the same dish",
+      "No lard, gelatin (unless certified), L-cysteine, or non-certified animal fats",
+    ],
+    storageRules: [
+      "Meat and dairy stored separately (kosher)",
+      "No storage in contact with pork or alcohol products (halal)",
+    ],
+    equipmentRules: [
+      "Separate pans and utensils for meat vs. dairy (kosher)",
+      "Equipment must be free of pork/alcohol residue (halal)",
+    ],
+    forbiddenInstructions: [
+      "deglaze with wine", "add wine", "add beer", "add alcohol",
+      "add butter to meat", "top with cheese", "finish with cream", "melt butter over",
+      "add lard", "use pork fat", "add vanilla extract",
+    ],
+    requiredInstructionNotes: [
+      "Ingredients must be both kosher-certified and halal-certified",
+      "No alcohol at any step",
+      "Use separate meat and dairy equipment",
+    ],
+    crossContaminationRules: [
+      "Meat/dairy separation required (kosher)",
+      "No contact with pork or alcohol (halal)",
+    ],
+  },
+
+  vegan: {
+    preparationRules: [
+      "No animal products at any step — no butter, cream, eggs, honey, or dairy of any kind",
+      "Do not grease pans with butter — use olive oil, coconut oil, or cooking spray",
+      "Do not use egg wash — use plant milk wash or aquafaba",
+      "Do not use gelatin — use agar-agar or cornstarch as a setting agent",
+      "Do not use honey — use maple syrup, agave, or date syrup",
+    ],
+    storageRules: [],
+    equipmentRules: [
+      "Avoid cast iron seasoned with lard or animal fat — use well-seasoned plant-oil cast iron or stainless steel",
+    ],
+    forbiddenInstructions: [
+      "brush with egg wash",
+      "add butter",
+      "stir in cream",
+      "add honey",
+      "top with parmesan",
+      "add milk",
+      "whisk in egg",
+      "add cheese",
+    ],
+    requiredInstructionNotes: [
+      "All ingredients must be entirely plant-based",
+      "Use plant-based alternatives for any greasing, binding, or finishing steps",
+    ],
+    crossContaminationRules: [],
+  },
+
+  vegetarian: {
+    preparationRules: [
+      "No meat, poultry, or seafood at any step",
+      "Do not use chicken broth, beef broth, or bone broth — use vegetable broth",
+      "Do not use gelatin — use agar-agar or cornstarch",
+      "Do not use anchovies, fish sauce, or Worcestershire sauce unless certified vegetarian",
+      "Lard and animal fats are not allowed",
+    ],
+    storageRules: [],
+    equipmentRules: [],
+    forbiddenInstructions: [
+      "add chicken broth",
+      "add beef broth",
+      "add bone broth",
+      "use fish sauce",
+      "add anchovies",
+      "add lard",
+    ],
+    requiredInstructionNotes: [
+      "Use vegetable broth in place of any meat-based broth",
+      "Ensure sauces and condiments are vegetarian-certified",
+    ],
+    crossContaminationRules: [],
+  },
+
+  pescatarian: {
+    preparationRules: [
+      "No meat or poultry at any step",
+      "Do not use chicken broth or beef broth — use seafood broth or vegetable broth",
+      "Do not use lard or animal fats from land animals",
+    ],
+    storageRules: [],
+    equipmentRules: [],
+    forbiddenInstructions: [
+      "add chicken broth",
+      "add beef broth",
+      "add bone broth",
+      "add lard",
+      "add bacon",
+    ],
+    requiredInstructionNotes: [
+      "Use seafood broth or vegetable broth in place of meat-based broth",
+    ],
+    crossContaminationRules: [],
+  },
+
+  "gluten-free": {
+    preparationRules: [
+      "Use only certified gluten-free ingredients throughout",
+      "Do not use wheat flour — use almond flour, rice flour, tapioca, or certified GF blends",
+      "Do not use soy sauce — use tamari (gluten-free) or coconut aminos",
+      "Do not use barley, rye, spelt, or any wheat-derived ingredient",
+      "Check all sauces, seasonings, and condiments for hidden gluten",
+    ],
+    storageRules: [
+      "Store gluten-free ingredients away from wheat products to prevent cross-contamination",
+    ],
+    equipmentRules: [
+      "Use dedicated gluten-free cookware and utensils if possible, or thoroughly clean shared equipment",
+      "Do not use the same toaster, baking sheets, or pasta water as wheat products",
+    ],
+    forbiddenInstructions: [
+      "use flour",
+      "add wheat flour",
+      "use soy sauce",
+      "dust with flour",
+      "add bread crumbs",
+      "use pasta water",
+    ],
+    requiredInstructionNotes: [
+      "Use certified gluten-free alternatives for all flour, thickener, and sauce ingredients",
+      "Use tamari or coconut aminos in place of soy sauce",
+      "Verify all packaged ingredients are labeled gluten-free",
+    ],
+    crossContaminationRules: [
+      "Gluten-free dishes must never share surfaces, utensils, or cookware with wheat-containing products without thorough cleaning",
+    ],
+  },
+
+  keto: {
+    preparationRules: [
+      "Keep net carbs minimal — prioritize fats and proteins in every step",
+      "Do not use sugar, honey, maple syrup, or other high-carb sweeteners",
+      "Do not use wheat flour, cornstarch, potato starch, or any high-carb thickener",
+      "Use almond flour, coconut flour, or xanthan gum for any thickening or binding",
+      "Do not use bread, rice, pasta, or any grain-based component",
+    ],
+    storageRules: [],
+    equipmentRules: [],
+    forbiddenInstructions: [
+      "add sugar",
+      "add flour",
+      "serve with rice",
+      "serve with pasta",
+      "add honey",
+      "add bread crumbs",
+      "thicken with cornstarch",
+    ],
+    requiredInstructionNotes: [
+      "Keep all additions low-carb — check net carbs of any sauces or seasonings",
+      "Use keto-friendly thickeners (xanthan gum, almond flour) if needed",
+    ],
+    crossContaminationRules: [],
+  },
+};
+
+/**
+ * Derive procedure rules for a given set of dietary identities.
+ * Merges rules from all matching protocols (e.g. kosher + vegan stacks).
+ */
+function deriveProcedureRules(dietaryIdentity: string[]): ProtocolProcedureRules {
+  const merged: ProtocolProcedureRules = {
+    preparationRules: [],
+    storageRules: [],
+    equipmentRules: [],
+    forbiddenInstructions: [],
+    requiredInstructionNotes: [],
+    crossContaminationRules: [],
+  };
+
+  for (const identity of dietaryIdentity) {
+    const key = identity.trim().toLowerCase();
+    const rules = PROTOCOL_PROCEDURE_MAP[key];
+    if (!rules) continue;
+
+    for (const field of Object.keys(merged) as (keyof ProtocolProcedureRules)[]) {
+      for (const rule of rules[field]) {
+        if (!merged[field].includes(rule)) {
+          (merged[field] as string[]).push(rule);
+        }
+      }
+    }
+  }
+
+  return merged;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPE DEFINITIONS
@@ -75,6 +411,15 @@ export interface UserProtocolEnvelope {
   /** Tier 6 — Preferences: flavor, style, convenience.
    * Examples: Mediterranean flavors, simple prep, no raw onion, low spice. */
   preferences: string[];
+
+  /**
+   * Procedural layer — derived from dietaryIdentity.
+   * Covers preparation, storage, equipment, instruction constraints,
+   * and cross-contamination rules. Applied to ALL tiers.
+   * A meal can be ingredient-correct and still be protocol-wrong
+   * if the instructions violate these rules.
+   */
+  procedural: ProtocolProcedureRules;
 }
 
 /**
@@ -91,6 +436,7 @@ export interface ProtocolPromptBlock {
     allergies: string;
     medicalHardLimits: string;
     avoidances: string;
+    procedural: string;
     preferences: string;
   };
 
@@ -104,6 +450,8 @@ export interface ProtocolPromptBlock {
 export interface ProtocolScanResult {
   passed: boolean;
   violations: HiddenViolation[];
+  /** Instruction-level violations found in the cooking steps */
+  instructionViolations: string[];
   primaryViolation?: HiddenViolation;
   /** Human-readable message suitable for logging or error responses */
   message: string;
@@ -150,7 +498,6 @@ function classifyHealthConditions(conditions: string[]): {
     } else if (MEDICAL_OPTIMIZATION_CONDITIONS.has(key)) {
       optimization.push(key);
     } else {
-      // Unknown conditions default to optimization (not hard limits)
       optimization.push(key);
     }
   }
@@ -165,7 +512,8 @@ function classifyHealthConditions(conditions: string[]): {
 
 /**
  * Load the UserProtocolEnvelope for a given user ID.
- * Makes a single DB query and returns the fully-structured rule stack.
+ * Makes a single DB query and returns the fully-structured rule stack,
+ * including the derived procedural layer.
  * Returns null if the user is not found.
  */
 export async function loadUserProtocolEnvelope(
@@ -201,12 +549,9 @@ export async function loadUserProtocolEnvelope(
     const preferredSweeteners: string[] = (user.preferredSweeteners as string[]) || [];
 
     const { hardLimits, optimization } = classifyHealthConditions(healthConditions);
-
-    // Merge dislikedFoods + avoidedFoods — both represent "do not serve this"
     const avoidances = [...new Set([...dislikedFoods, ...avoidedFoods])];
-
-    // Preferences = liked foods + sweetener preferences
     const preferences = [...new Set([...likedFoods, ...preferredSweeteners])];
+    const procedural = deriveProcedureRules(dietaryRestrictions);
 
     return {
       userId,
@@ -216,6 +561,7 @@ export async function loadUserProtocolEnvelope(
       medicalOptimization: optimization,
       avoidances,
       preferences,
+      procedural,
     };
   } catch (error) {
     console.error("[ProtocolEnvelope] Failed to load envelope:", error);
@@ -236,6 +582,7 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     medicalOptimization: [],
     avoidances: [],
     preferences: [],
+    procedural: deriveProcedureRules([]),
   };
 }
 
@@ -245,10 +592,6 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
 // Returns a structured prompt block to inject into the generator.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Build the full expanded avoidance term list from an envelope's avoidances.
- * Expands categories (e.g. "seafood" → lobster, shrimp, crab, fish, etc.)
- */
 function expandAvoidances(avoidances: string[]): string[] {
   const expanded = new Set<string>();
   for (const item of avoidances) {
@@ -260,10 +603,6 @@ function expandAvoidances(avoidances: string[]): string[] {
   return Array.from(expanded);
 }
 
-/**
- * Build the full expanded forbidden ingredient list from an envelope's dietary identity.
- * Expands protocols (e.g. "vegan" → full forbidden list, "kosher" → pork/shellfish/etc.)
- */
 function expandDietaryIdentity(dietaryIdentity: string[]): string[] {
   const expanded = new Set<string>();
   for (const identity of dietaryIdentity) {
@@ -280,15 +619,13 @@ function expandDietaryIdentity(dietaryIdentity: string[]): string[] {
  * Call this at the start of every generator, before constructing the AI prompt.
  * The returned ProtocolPromptBlock must be injected into the prompt.
  *
- * Priority order is enforced in the output text:
- *   Dietary Identity → Allergies → Medical Hard Limits → Avoidances → Preferences
+ * Priority order enforced in the output text:
+ *   Dietary Identity → Allergies → Medical Hard Limits → Procedural → Avoidances → Preferences
  */
 export function enforceBeforeGenerate(
   envelope: UserProtocolEnvelope,
   context?: {
-    /** What the user is asking for (e.g. "lobster bisque") — used for substitution hints */
     userInput?: string;
-    /** Generator name for logging (e.g. "create_dish", "fridge_rescue") */
     generatorName?: string;
   }
 ): ProtocolPromptBlock {
@@ -298,6 +635,7 @@ export function enforceBeforeGenerate(
     allergies: "",
     medicalHardLimits: "",
     avoidances: "",
+    procedural: "",
     preferences: "",
   };
 
@@ -332,8 +670,38 @@ Respect the medical constraints for these conditions while staying inside the di
 Example: if diabetic + vegan, optimize carbs WITHIN vegan-safe foods only — never add animal products.`;
   }
 
+  // ── PROCEDURAL LAYER ──────────────────────────────────────────────────────
+  // Instruction-level compliance: applies to how the food is prepared,
+  // stored, handled, and presented — not just what ingredients are used.
+  const p = envelope.procedural;
+  const proceduralParts: string[] = [];
+
+  if (p.preparationRules.length > 0) {
+    proceduralParts.push(`PREPARATION RULES:\n${p.preparationRules.map(r => `   - ${r}`).join("\n")}`);
+  }
+  if (p.storageRules.length > 0) {
+    proceduralParts.push(`STORAGE AND SEPARATION RULES:\n${p.storageRules.map(r => `   - ${r}`).join("\n")}`);
+  }
+  if (p.equipmentRules.length > 0) {
+    proceduralParts.push(`EQUIPMENT AND UTENSIL RULES:\n${p.equipmentRules.map(r => `   - ${r}`).join("\n")}`);
+  }
+  if (p.forbiddenInstructions.length > 0) {
+    proceduralParts.push(`FORBIDDEN INSTRUCTION PHRASES (must NEVER appear in cooking steps):\n${p.forbiddenInstructions.map(r => `   - "${r}"`).join("\n")}`);
+  }
+  if (p.requiredInstructionNotes.length > 0) {
+    proceduralParts.push(`REQUIRED INSTRUCTION NOTES (must appear in cooking steps):\n${p.requiredInstructionNotes.map(r => `   - ${r}`).join("\n")}`);
+  }
+  if (p.crossContaminationRules.length > 0) {
+    proceduralParts.push(`CROSS-CONTAMINATION RULES:\n${p.crossContaminationRules.map(r => `   - ${r}`).join("\n")}`);
+  }
+
+  if (proceduralParts.length > 0) {
+    layers.procedural = `\n📋 PROCEDURAL COMPLIANCE — INSTRUCTION-LEVEL RULES (applies to how the food is made, not just what is in it):
+A meal can be ingredient-correct and still be protocol-wrong if the instructions violate these rules.
+${proceduralParts.join("\n")}`;
+  }
+
   // ── TIER 5: Avoidances ────────────────────────────────────────────────────
-  // (Tier 4 = medical optimization — handled at prompt-build time per generator)
   if (envelope.avoidances.length > 0) {
     const expandedAvoidances = expandAvoidances(envelope.avoidances);
     const avoidList = expandedAvoidances.join(", ");
@@ -357,6 +725,7 @@ When possible, incorporate: ${prefList}.`;
     layers.dietaryIdentity,
     layers.allergies,
     layers.medicalHardLimits,
+    layers.procedural,
     layers.avoidances,
     layers.preferences,
   ]
@@ -371,7 +740,7 @@ When possible, incorporate: ${prefList}.`;
 
   if (hasRestrictions) {
     console.log(
-      `[ProtocolEnvelope:${generatorName}] Enforcement active — identity: [${envelope.dietaryIdentity.join(",")}] allergies: [${envelope.allergies.join(",")}] medical: [${envelope.medicalHardLimits.join(",")}] avoid: [${envelope.avoidances.join(",")}]`
+      `[ProtocolEnvelope:${generatorName}] Enforcement active — identity: [${envelope.dietaryIdentity.join(",")}] allergies: [${envelope.allergies.join(",")}] medical: [${envelope.medicalHardLimits.join(",")}] avoid: [${envelope.avoidances.join(",")}] procedural: ${proceduralParts.length} rule groups`
     );
   }
 
@@ -379,8 +748,32 @@ When possible, incorporate: ${prefList}.`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// INSTRUCTION-LEVEL VIOLATION SCAN
+// Scans cooking instructions for forbidden phrases defined in procedural rules.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Scan cooking instructions for forbidden instruction phrases from the procedural layer.
+ * Returns all forbidden phrases found in the instruction text.
+ */
+function scanInstructionsForViolations(
+  instructionsText: string,
+  procedural: ProtocolProcedureRules
+): string[] {
+  const lower = instructionsText.toLowerCase();
+  const found: string[] = [];
+  for (const phrase of procedural.forbiddenInstructions) {
+    if (lower.includes(phrase.toLowerCase())) {
+      found.push(phrase);
+    }
+  }
+  return found;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // POST-GENERATION VALIDATION
 // Call this before returning any AI-generated meal to the user.
+// Scans BOTH ingredients AND instructions.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -416,13 +809,23 @@ export function extractMealTextForScan(meal: {
   return parts.join(" ");
 }
 
+function extractInstructionsText(meal: {
+  instructions?: string | string[];
+}): string {
+  if (!meal.instructions) return "";
+  return Array.isArray(meal.instructions)
+    ? meal.instructions.join(" ")
+    : String(meal.instructions);
+}
+
 /**
  * Scan a generated meal against the user's full protocol envelope.
  *
- * Call this after every AI generation, before returning the result to the user.
- * Uses the hidden ingredient scan for kosher/halal/religious rules AND
- * checks all expanded avoidances.
+ * Checks BOTH:
+ *   1. Ingredient-level violations (hidden ingredients, avoidances, kosher/halal hidden terms)
+ *   2. Instruction-level violations (forbidden preparation phrases from the procedural layer)
  *
+ * Call this after every AI generation, before returning the result to the user.
  * Returns a ProtocolScanResult — check `.passed` before serving the meal.
  */
 export function scanGeneratedOutput(
@@ -437,37 +840,67 @@ export function scanGeneratedOutput(
 ): ProtocolScanResult {
   const generatorName = context?.generatorName || "unknown_generator";
   const mealText = extractMealTextForScan(meal);
+  const instructionsText = extractInstructionsText(meal);
 
-  const violations = scanForHiddenDietaryViolations(
+  // ── Ingredient-level scan ─────────────────────────────────────────────────
+  const ingredientViolations = scanForHiddenDietaryViolations(
     mealText,
     envelope.dietaryIdentity,
     envelope.avoidances
   );
 
-  if (violations.length === 0) {
+  // ── Instruction-level scan ────────────────────────────────────────────────
+  const instructionViolations = scanInstructionsForViolations(
+    instructionsText,
+    envelope.procedural
+  );
+
+  const totalPassed = ingredientViolations.length === 0 && instructionViolations.length === 0;
+
+  if (totalPassed) {
     return {
       passed: true,
       violations: [],
-      message: `[ProtocolEnvelope:${generatorName}] "${meal.name}" passed post-generation scan.`,
+      instructionViolations: [],
+      message: `[ProtocolEnvelope:${generatorName}] "${meal.name}" passed full protocol scan (ingredients + instructions).`,
     };
   }
 
-  const primary = violations[0];
-  console.log(
-    `🚫 [ProtocolEnvelope:${generatorName}] "${meal.name}" FAILED — violations: ${violations.map(v => v.term).join(", ")}`
-  );
+  if (ingredientViolations.length > 0) {
+    const primary = ingredientViolations[0];
+    console.log(
+      `🚫 [ProtocolEnvelope:${generatorName}] "${meal.name}" INGREDIENT violation — ${ingredientViolations.map(v => v.term).join(", ")}`
+    );
+    if (instructionViolations.length > 0) {
+      console.log(
+        `🚫 [ProtocolEnvelope:${generatorName}] "${meal.name}" INSTRUCTION violation — ${instructionViolations.join(", ")}`
+      );
+    }
+    return {
+      passed: false,
+      violations: ingredientViolations,
+      instructionViolations,
+      primaryViolation: primary,
+      message: `This meal contains "${primary.term}" which conflicts with your ${primary.category} rules. ${primary.reason}`,
+    };
+  }
 
+  // Instruction-only violation
+  const primaryInstruction = instructionViolations[0];
+  console.log(
+    `🚫 [ProtocolEnvelope:${generatorName}] "${meal.name}" INSTRUCTION violation — found forbidden phrase: "${primaryInstruction}"`
+  );
   return {
     passed: false,
-    violations,
-    primaryViolation: primary,
-    message: `This meal contains "${primary.term}" which conflicts with your ${primary.category} rules. ${primary.reason}`,
+    violations: [],
+    instructionViolations,
+    message: `The cooking instructions for this meal contain a step that violates your dietary protocol: "${primaryInstruction}". Regenerating with compliant instructions.`,
   };
 }
 
 /**
  * Filter an array of generated meals — remove any that fail the protocol scan.
- * Returns only the meals that passed.
+ * Returns only the meals that passed both ingredient and instruction checks.
  *
  * If all meals fail, returns an empty array (caller must handle regeneration or error).
  */
