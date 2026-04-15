@@ -16,7 +16,7 @@ export const SPECIALTY_DIET_SCRIPTS: Record<string, SpecialtyDietScript> = {
     id: "how_it_works",
     title: "How the Protocol System Works",
     spokenText:
-      "My Perfect Meals enforces your dietary identity at three levels. First, ingredient level — forbidden ingredients are blocked before anything is generated. Second, combination level — foods that cannot be combined under your protocol, like meat and dairy for kosher users, are detected and prevented. Third, preparation level — cooking steps are scanned for phrases that would violate your protocol, such as deglazing with wine for halal users or finishing a meat dish with butter for kosher users. Your dietary identity is always the outermost rule. Nothing — no craving, no health goal, no flavor preference — can override it.",
+      "My Perfect Meals enforces your dietary identity at three levels. First, ingredient level, forbidden ingredients are blocked before anything is generated. Second, combination level, foods that cannot be combined under your protocol, like meat and dairy for kosher users, are detected and prevented. Third, preparation level, cooking steps are scanned for phrases that would violate your protocol, such as deglazing with wine for halal users or finishing a meat dish with butter for kosher users. Your dietary identity is always the outermost rule. Nothing, no craving, no health goal, no flavor preference, can override it.",
   },
 
   sources_note: {
