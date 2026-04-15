@@ -2,7 +2,7 @@
 // Uses the same 11L voice system as Chef's Kitchen and ProTip
 
 export const MACRO_CALC_ENTRY =
-  " I see we have a new user, nice to meet you. If your looking for the perfect meal your in the right place. I’m Chef Copilot and Welcome to the Macro Calculator. Together we're going to set up your macro numbers to acheive your nutrition goals. Begin by tapping the start button below.";
+  "Hey, nice to meet you. If you're looking for the perfect meal, you're in the right place. I'm Chef Copilot, and I'm going to walk you through the Macro Calculator. Together we'll set up your numbers so everything in this app is built around your goals. Tap Start when you're ready.";
 
 export const MACRO_CALC_GOAL =
   "What's your goal? Are you wanting to cut, maintain, or build?";
@@ -11,7 +11,7 @@ export const MACRO_CALC_COMMITMENT_LEVEL =
   "Next, tell me your commitment level. General means you're an everyday eater looking for realistic, sustainable targets. Committed means you're a consistent gym-goer or dieter and want more structured numbers. Athlete means performance is your priority, we'll push protein to its maximum regardless of your goal. Pick the one that best describes where you are right now.";
 
 export const MACRO_CALC_BODY_TYPE =
-  "Are you an ectomorph, mesomorph, or an endomorph? If your not sure tap the body type guide button below to see which category you fit in.";
+  "Are you an ectomorph, mesomorph, or an endomorph? If you're not sure, tap the body type guide button below to see which category you fit in.";
 
 export const MACRO_CALC_UNITS =
   "Do you use imperial system, the (U.S) or metric system?";
@@ -34,10 +34,10 @@ export const MACRO_CALC_SYNC_WEIGHT =
   "Sync weight to biometrics to keep an accurate log of your progress.";
 
 export const MACRO_CALC_METABOLIC =
-  "Before we lock these macros in, take a second to check Metabolic & Hormonal Considerations below. If things like menopause, thyroid conditions, or GLP-1 meds apply to you, tap that section to open it. You can make optional adjustments there, and I’ll fine-tune your macros automatically.";
+  "Before we lock these macros in, take a second to check Metabolic & Hormonal Considerations below. If things like menopause, thyroid conditions, or GLP-1 meds apply to you, tap that section to open it. You can make optional adjustments there, and I'll fine-tune your macros automatically.";
 
 export const MACRO_CALC_RESULTS =
-  "These are your current macros and your baseline going forward. They stay in place as long as your goal and progress stay the same. If progress stalls or your goal changes—loss, gain, or maintenance—rerun the Macro Calculator to reset your targets.";
+  "These are your current macros and your baseline going forward. They stay in place as long as your goal and progress stay the same. If progress stalls or your goal shifts, whether that's loss, gain, or maintenance, just rerun the Macro Calculator to reset your targets.";
 
 export const MACRO_CALC_STARCH =
   "Starchy carbs are the biggest lever for controlling body weight, so we place them intentionally. Here is why timing matters. Think of your body like a business. During the day it is open, running operations, and can put those carbs to work. At night it shifts into clean, repair, and reset mode. Sending starchy carbs in late can interfere with that recovery process. That is why we concentrate starchy carbs earlier in the day when possible, not as a restriction, but as a strategy you can adjust based on your training schedule and lifestyle. Tap one of the buttons below to choose your approach. One Starch Meal puts all your carbs in one meal for appetite control. Flex Split divides them across two meals for more flexibility. Tap the one that fits your lifestyle, then we'll lock it in.";
