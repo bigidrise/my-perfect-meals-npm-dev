@@ -118,9 +118,9 @@ const PROTOCOL_PROCEDURE_MAP: Record<string, ProtocolProcedureRules> = {
       "stir in cream",
     ],
     requiredInstructionNotes: [
-      "Use kosher-certified ingredients throughout",
+      "Use only kosher-compliant ingredients, avoiding any forbidden substances",
       "Use a dedicated meat pan and utensils — do not mix with dairy equipment",
-      "If a sauce or marinade is called for, ensure all components are kosher-certified",
+      "If a sauce or marinade is called for, ensure all components comply with kosher preparation rules",
     ],
     crossContaminationRules: [
       "Meat and dairy must never share surfaces, utensils, pans, or storage",
@@ -163,9 +163,9 @@ const PROTOCOL_PROCEDURE_MAP: Record<string, ProtocolProcedureRules> = {
       "use pork fat",
     ],
     requiredInstructionNotes: [
-      "Use halal-certified meat — confirm sourcing with a halal-certified butcher",
-      "All preparation steps must be alcohol-free",
-      "Use vanilla bean or halal-certified vanilla flavoring in place of vanilla extract",
+      "Use halal-appropriate meat prepared according to halal standards",
+      "All preparation steps must be completely alcohol-free",
+      "Use vanilla bean or halal-compliant vanilla flavoring in place of vanilla extract",
     ],
     crossContaminationRules: [
       "No contact with pork products or alcohol at any point in preparation",

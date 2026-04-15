@@ -51,21 +51,31 @@ export function getDietBadges(
   userRestrictions: string[] = [],
   userDietType: string = "",
 ): DietBadgeEntry[] {
-  let keys: string[];
+  // Dietary identity (Tier 0) always comes from the user profile.
+  // The server's medicalBadges track health/safety annotations,
+  // not the user's dietary identity — so identity is always sourced here.
+  const identityKeys = [
+    ...userRestrictions,
+    ...(userDietType ? [userDietType] : []),
+  ]
+    .map((r) => r.toLowerCase().trim())
+    .filter((r) => !SKIP.has(r) && IDENTITY_TIER_0.has(r) && IDENTITY_BADGE_CONFIG[r]);
 
+  let nonIdentityKeys: string[];
   if (serverBadges != null) {
-    keys = serverBadges
+    nonIdentityKeys = serverBadges
       .map((b) => b.toLowerCase().trim())
-      .filter((b) => !SKIP.has(b) && IDENTITY_BADGE_CONFIG[b]);
+      .filter((b) => !SKIP.has(b) && IDENTITY_BADGE_CONFIG[b] && !IDENTITY_TIER_0.has(b));
   } else {
-    const combined = [
+    nonIdentityKeys = [
       ...userRestrictions,
       ...(userDietType ? [userDietType] : []),
     ]
       .map((r) => r.toLowerCase().trim())
-      .filter((r) => !SKIP.has(r) && IDENTITY_BADGE_CONFIG[r]);
-    keys = [...new Set(combined)];
+      .filter((r) => !SKIP.has(r) && IDENTITY_BADGE_CONFIG[r] && !IDENTITY_TIER_0.has(r));
   }
+
+  const keys = [...new Set([...identityKeys, ...nonIdentityKeys])];
 
   const entries: DietBadgeEntry[] = keys.map((key) => {
     const config = IDENTITY_BADGE_CONFIG[key];
