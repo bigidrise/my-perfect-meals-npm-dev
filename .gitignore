@@ -63,3 +63,7 @@ client/public/images/toddlers/
 client/public/images/cravings/*
 !client/public/images/cravings/satisfy-cravings.jpg
 !client/public/images/cravings/satisfy-cravings.png
+
+# Auto-generated build files — do not track
+client/src/buildVersion.ts
+client/public/release-manifest.json

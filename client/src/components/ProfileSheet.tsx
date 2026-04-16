@@ -425,8 +425,8 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
           <div className="mt-3 flex items-center justify-between gap-2">
             <span className="text-[11px] text-white/40 font-medium">App version</span>
             {isNative ? (
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-white/10 border border-white/15 text-white/60">
-                {currentVersionLabel}
+              <span className="text-red-500 text-2xl font-bold">
+                TEST VERSION LIVE
               </span>
             ) : hasUpdate ? (
               <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-500/20 border border-amber-500/40 text-amber-300">
