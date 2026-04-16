@@ -899,9 +899,7 @@ export default function CreateDishPage() {
                       )}
 
                       <div className="mb-3">
-                        <DietStyleBadge
-                          mealCompliant={meal.dietaryComplianceVerified}
-                        />
+                        <DietStyleBadge />
                       </div>
 
                       <p className="text-white/90 mb-4">{meal.description}</p>

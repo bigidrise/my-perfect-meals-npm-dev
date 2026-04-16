@@ -186,7 +186,7 @@ export default function GeneratedMealCard({
         </button>
       </div>
 
-      <DietStyleBadge mealCompliant={generatedMeal.dietaryComplianceVerified} />
+      <DietStyleBadge />
 
       {mealToShow.description && (
         <p className="text-white/90">{mealToShow.description}</p>

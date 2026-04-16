@@ -1272,7 +1272,7 @@ export default function CravingCreator() {
                       )}
 
                       <div className="mb-3">
-                        <DietStyleBadge badges={meal.medicalBadges} />
+                        <DietStyleBadge />
                       </div>
 
                       <p className="text-white/90 mb-4">{meal.description}</p>

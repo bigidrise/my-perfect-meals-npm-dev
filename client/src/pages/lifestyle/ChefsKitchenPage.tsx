@@ -898,7 +898,7 @@ export default function ChefsKitchenPage() {
                   </div>
 
                   <div className="mb-3">
-                    <DietStyleBadge mealCompliant={mealToShow.dietaryComplianceVerified} />
+                    <DietStyleBadge />
                   </div>
 
                   {mealToShow.description && (
