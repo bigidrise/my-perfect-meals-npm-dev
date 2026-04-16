@@ -617,27 +617,29 @@ export default function BeverageCreator() {
             <div className="space-y-6">
               <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl">
                 <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <Wine className="h-6 w-6 text-blue-400" />
-                      <h3 className="text-xl font-bold text-white">
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Wine className="h-5 w-5 text-blue-400 shrink-0" />
+                      <h3 className="text-xl font-bold text-white truncate leading-tight">
                         {generatedBeverage.name}
                       </h3>
+                    </div>
+                    <div className="flex items-center justify-between">
                       <FavoriteButton
                         title={generatedBeverage.name}
                         sourceType="beverage-creator"
                         mealData={generatedBeverage}
                       />
+                      <button
+                        onClick={() => {
+                          setGeneratedBeverage(null);
+                          localStorage.removeItem("mpm_beverage_creator_result");
+                        }}
+                        className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
+                      >
+                        Create New
+                      </button>
                     </div>
-                    <button
-                      onClick={() => {
-                        setGeneratedBeverage(null);
-                        localStorage.removeItem("mpm_beverage_creator_result");
-                      }}
-                      className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
-                    >
-                      Create New
-                    </button>
                   </div>
 
                   <div className="mb-3">
