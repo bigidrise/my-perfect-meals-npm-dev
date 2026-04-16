@@ -11,7 +11,7 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
 import { buildPalateSection, PalatePreferences, buildStrictModeBlock } from "../services/promptBuilder";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope } from "../services/protocolEnvelope";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope, buildComplianceSection } from "../services/protocolEnvelope";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -417,6 +417,7 @@ INCORRECT (NEVER DO THIS):
       imageUrl,
       medicalBadges,
       ...(dietAdapted && { dietAdapted: true, dietNotice }),
+      complianceSection: buildComplianceSection(meal, dessertEnvelope, { isChefAdapted: dietAdapted }),
       meta: {
         userId: userId ?? "1",
         dessertCategory,

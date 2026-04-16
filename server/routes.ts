@@ -28,7 +28,7 @@ import { generateCravingMealWithProfile } from "./services/generators/cravingCre
 import { enforceSafetyProfile } from "./services/safetyProfileService";
 import { runEnforcement, toRouteResponse } from "./services/enforcementGateway";
 import { scanForHiddenDietaryViolations, AVOIDANCE_EXPANSION } from "./services/allergyGuardrails";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol, buildGuestEnvelope, scanGeneratedOutput } from "./services/protocolEnvelope";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol, buildGuestEnvelope, scanGeneratedOutput, buildComplianceSection } from "./services/protocolEnvelope";
 import { 
   hasUserSetPin, 
   setUserPin, 
@@ -939,8 +939,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       recordGeneration('/api/meals/fridge-rescue', 'ai', durationMs);
 
       console.log("[FRIDGE] ok returning", cleanFridgeMeals.length, "meals");
+      const fridgeMealsWithCompliance = cleanFridgeMeals.map(meal => ({
+        ...meal,
+        complianceSection: buildComplianceSection(meal, fridgeProtocolEnvelope, {}),
+      }));
       res.json({
-        meals: cleanFridgeMeals,
+        meals: fridgeMealsWithCompliance,
         quota: {
           remaining: quotaCheck.remaining,
           limit: quotaCheck.limit,
@@ -3432,7 +3436,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
           medicalBadges: meal.medicalBadges || [],
           imageUrl: meal.imageUrl,
-          servingSize: validatedServings > 1 ? `${validatedServings} servings` : "1 serving"
+          servingSize: validatedServings > 1 ? `${validatedServings} servings` : "1 serving",
+          complianceSection: buildComplianceSection(meal, protocolEnvelope, { isChefAdapted: dietAdapted }),
         };
         if (validatedServings > 1) {
           formatted.nutrition.calories *= validatedServings;
