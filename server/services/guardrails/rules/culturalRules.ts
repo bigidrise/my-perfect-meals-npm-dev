@@ -142,12 +142,6 @@ export const CULTURAL_RULES: RelationshipRule[] = [
         // Cream/butter-based pasta with meat — classic kosher meat+dairy conflict
         "beef alfredo", "chicken alfredo with cream", "steak alfredo",
         "meat in cream sauce", "beef in cream sauce",
-        // Creamy meat dishes — dairy + meat combination
-        "creamy beef", "creamy chicken", "creamy lamb", "creamy turkey",
-        "creamy steak", "creamy brisket", "creamy veal", "creamy meat",
-        "beef stroganoff", "chicken stroganoff", "beef with cream",
-        "chicken with cream", "meat with cream sauce", "beef in cream",
-        "creamy pot roast", "creamy beef stew", "creamy chicken stew",
       ],
     },
     effect: {
@@ -298,15 +292,32 @@ function textContainsAny(text: string, terms: string[]): string | null {
 }
 
 function extractMeatDairyPresence(ingredients: string[]): { hasMeat: boolean; hasDairy: boolean } {
+  // Comprehensive meat category — catches "beefy", "buttery steak", etc. via substring match
   const meatTerms = [
+    // Common meats
     "beef", "chicken", "turkey", "lamb", "veal", "duck", "pork", "ham",
-    "steak", "ground beef", "ground turkey", "ground chicken", "brisket",
-    "sirloin", "ribeye", "roast", "meat", "poultry",
+    "goat", "mutton", "venison", "bison", "elk", "rabbit",
+    // Cuts & forms
+    "steak", "brisket", "sirloin", "ribeye", "rib eye", "tenderloin",
+    "filet", "flank", "skirt", "chuck", "short rib", "osso buco",
+    "roast", "ground beef", "ground turkey", "ground chicken",
+    "cutlet", "schnitzel", "corned beef", "pastrami",
+    // Category words
+    "meat", "poultry", "fowl",
   ];
+  // Comprehensive dairy category — catches "creamy", "buttery", etc. via substring match
   const dairyTerms = [
-    "cheese", "milk", "butter", "cream", "yogurt", "whey", "casein",
-    "sour cream", "cream cheese", "cheddar", "mozzarella", "parmesan",
-    "ricotta", "brie", "gouda", "feta", "dairy",
+    // Liquid / fat dairy
+    "milk", "cream", "butter", "ghee", "half and half",
+    "heavy cream", "light cream", "double cream", "clotted cream",
+    "creme fraiche", "crème fraîche",
+    // Cultured / fermented
+    "cheese", "yogurt", "kefir", "quark", "fromage",
+    "sour cream", "cream cheese", "mascarpone", "ricotta",
+    "cheddar", "mozzarella", "parmesan", "brie", "gouda",
+    "feta", "gruyere", "emmental", "queso", "halloumi",
+    // Proteins / derivatives
+    "whey", "casein", "lactose", "dairy",
   ];
 
   const combinedText = ingredients.join(" ").toLowerCase();
