@@ -57,6 +57,25 @@ export function maskNutButters(text: string): string {
   return text.replace(NUT_BUTTER_PATTERN, "__NUT_BUTTER__");
 }
 
+/**
+ * CENTRALIZED NORMALIZATION LAYER — single entry point for all dietary scanning.
+ *
+ * Every post-generation scan MUST pass text through this function before
+ * running any term matching. Adding new safe-compound rules belongs here only —
+ * never inline masking calls inside individual scan functions.
+ *
+ * Current normalizations:
+ *   1. Lowercase
+ *   2. Mask plant milks (oat milk, almond milk, etc.) → prevents false dairy flags
+ *   3. Mask nut butters (peanut butter, almond butter, etc.) → prevents false butter flags
+ */
+export function normalizeForDietaryScan(text: string): string {
+  const lowered = text.toLowerCase();
+  const milkMasked = maskPlantMilks(lowered);
+  const butterMasked = maskNutButters(milkMasked);
+  return butterMasked;
+}
+
 
 /**
  * FOOD AVOIDANCE EXPANSION MAP
@@ -1369,7 +1388,7 @@ export function scanForHiddenDietaryViolations(
   avoidList: string[] = []
 ): HiddenViolation[] {
   const violations: HiddenViolation[] = [];
-  const lower = mealText.toLowerCase();
+  const lower = normalizeForDietaryScan(mealText);
 
   const normalizedDiets = dietTypes.map(d => d.trim().toLowerCase());
   const isKosher      = normalizedDiets.some(d => d === "kosher" || d === "kosher-halal");
