@@ -1365,7 +1365,12 @@ const KOSHER_DAIRY_TERMS = [
 export type KosherCategory = "meat" | "dairy" | "pareve";
 
 export function classifyKosherMealCategory(mealText: string): KosherCategory {
-  const lower = mealText.toLowerCase();
+  // CRITICAL: normalize BEFORE term matching.
+  // "oat milk", "almond milk", "cashew milk" etc. contain the bare word "milk"
+  // which would falsely trigger a dairy match. Masking them to __PLANT_MILK__
+  // first prevents pareve dishes from being mis-classified as dairy.
+  const normalized = normalizeForDietaryScan(mealText);
+  const lower = normalized.toLowerCase();
 
   const hasMeat = KOSHER_MEAT_TERMS.some(t => {
     const esc = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
