@@ -220,7 +220,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
         case "coffee":
           return `\n☕ COFFEE DRINK-SPECIFIC RULES:
 - Specify coffee type (espresso, cold brew, drip, etc.)
-- Include milk/cream options
+- Use ONLY plant-based milk/cream (oat milk, almond milk, soy milk, coconut milk) — NEVER dairy milk or cream
 - Include sweetener amounts if applicable`;
         case "tea":
           return `\n🍵 TEA DRINK-SPECIFIC RULES:
@@ -303,44 +303,54 @@ CORRECT INGREDIENT EXAMPLES:
 - {"name": "fresh lime juice", "amount": "1", "unit": "oz"}
 - {"name": "simple syrup", "amount": "0.5", "unit": "oz"}
 - {"name": "mint leaves", "amount": "6", "unit": "each"}
-- {"name": "whole milk", "amount": "1", "unit": "cup"}
+- {"name": "oat milk", "amount": "1", "unit": "cup"}
 
 INCORRECT (NEVER DO THIS):
 - {"name": "vodka", "amount": "60", "unit": "ml"} ❌ (use oz)
 - {"name": "sugar", "amount": "15", "unit": "g"} ❌ (use tsp/tbsp)
 `;
 
-    if (isDev) console.log("[BEVERAGE] Calling OpenAI GPT-4o...");
-    const completion = await getOpenAI().chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      response_format: { type: "json_object" },
-    });
-    if (isDev) console.log("[BEVERAGE] OpenAI response received");
-
+    const MAX_BEVERAGE_ATTEMPTS = 2;
     let meal: any;
-    try {
-      const rawText = completion.choices[0]?.message?.content || "{}";
-      meal = JSON.parse(rawText);
-      if (isDev) console.log("[BEVERAGE] Parsed beverage:", meal.name);
-    } catch (parseErr) {
-      console.error("Beverage Creator JSON parse error:", parseErr);
-      return res
-        .status(500)
-        .json({ error: "AI returned invalid JSON for beverage" });
-    }
+    let beverageScan: ReturnType<typeof scanGeneratedOutput> | null = null;
 
-    // ── Post-gen protocol scan ──────────────────────────────────────────────
-    const beverageScan = scanGeneratedOutput(meal, beverageEnvelope, {
-      generatorName: 'beverage_creator',
-    });
-    if (!beverageScan.passed) {
-      console.log(`🚫 [BEVERAGE] Post-gen protocol violation: ${beverageScan.message}`);
-      return res.status(400).json({
-        error: "PROTOCOL_VIOLATION",
-        message: beverageScan.message,
-        retryable: true,
+    for (let attempt = 1; attempt <= MAX_BEVERAGE_ATTEMPTS; attempt++) {
+      const retryHint = attempt > 1 && beverageScan
+        ? `\n\nPREVIOUS ATTEMPT VIOLATION — fix this before generating:\n${beverageScan.message}\nEnsure every ingredient and the drink name are fully compliant with the dietary rules above.`
+        : "";
+
+      if (isDev) console.log(`[BEVERAGE] Calling OpenAI GPT-4o (attempt ${attempt})...`);
+      const completion = await getOpenAI().chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: prompt + retryHint }],
+        response_format: { type: "json_object" },
       });
+      if (isDev) console.log("[BEVERAGE] OpenAI response received");
+
+      try {
+        const rawText = completion.choices[0]?.message?.content || "{}";
+        meal = JSON.parse(rawText);
+        if (isDev) console.log("[BEVERAGE] Parsed beverage:", meal.name);
+      } catch (parseErr) {
+        console.error("Beverage Creator JSON parse error:", parseErr);
+        return res.status(500).json({ error: "AI returned invalid JSON for beverage" });
+      }
+
+      // ── Post-gen protocol scan ────────────────────────────────────────────
+      beverageScan = scanGeneratedOutput(meal, beverageEnvelope, {
+        generatorName: 'beverage_creator',
+      });
+
+      if (beverageScan.passed) break;
+
+      console.log(`🚫 [BEVERAGE] Post-gen protocol violation (attempt ${attempt}): ${beverageScan.message}`);
+      if (attempt >= MAX_BEVERAGE_ATTEMPTS) {
+        return res.status(400).json({
+          error: "PROTOCOL_VIOLATION",
+          message: beverageScan.message,
+          retryable: true,
+        });
+      }
     }
 
     const normalizedIngredients = normalizeIngredients(meal.ingredients || []);
