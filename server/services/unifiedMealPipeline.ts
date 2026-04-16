@@ -475,6 +475,13 @@ export async function generateCravingMealUnified(
     cravingDietRestrictions = Array.from(merged);
   }
   cravingDietBlock = buildDietPromptBlock(cravingDietRestrictions);
+  // Kosher category intent: inject DAIRY/MEAT/PAREVE block so the AI
+  // never auto-converts explicit dairy (butter, milk) to pareve/coconut milk.
+  const cravingKosherIntent = detectKosherCategoryIntent(cravingDietRestrictions, cravingInput);
+  if (cravingKosherIntent) {
+    cravingDietBlock += (cravingDietBlock ? '\n' : '') + buildKosherCategoryBlock(cravingKosherIntent);
+    console.log(`🕍 [CRAVING] Kosher category intent: ${cravingKosherIntent}`);
+  }
   if (cravingDietBlock) {
     console.log(`🥗 [CRAVING] Dietary constraint enforced: ${cravingDietRestrictions.join("|")}`);
   }
@@ -876,6 +883,77 @@ function validateVarietyOption(opt: any, category: string, dishFamily: string, d
   return true;
 }
 
+// ── Kosher category intent detection ─────────────────────────────────────────
+// Reads the user's craving text to determine which kosher category they are
+// implicitly requesting, so the AI never auto-converts dairy to pareve when
+// the user explicitly mentions butter, milk, cream, etc.
+
+const DAIRY_INTENT_TERMS = [
+  'milk', 'butter', 'cream', 'cheese', 'yogurt', 'dairy',
+  'mozzarella', 'cheddar', 'parmesan', 'brie', 'camembert',
+  'ricotta', 'sour cream', 'heavy cream', 'half and half',
+  'whipped cream', 'ice cream', 'milchig', 'milchige', 'queso',
+];
+
+const MEAT_INTENT_TERMS = [
+  'chicken', 'beef', 'lamb', 'turkey', 'veal', 'duck', 'goose',
+  'brisket', 'steak', 'burger', 'meatball', 'liver', 'pastrami',
+  'corned beef', 'schnitzel', 'flanken', 'ribs', 'fleishig',
+  'ground beef', 'ground turkey', 'ground chicken',
+];
+
+/**
+ * Detect which kosher category the craving implies.
+ * Returns null when the user is not on a kosher diet.
+ * Returns 'pareve' when no specific dairy/meat terms are found, OR when both
+ * are present (meat-dairy mix is a conflict — safe fallback is pareve).
+ */
+function detectKosherCategoryIntent(
+  restrictions: string[],
+  craving: string,
+): 'dairy' | 'meat' | 'pareve' | null {
+  const primary = getPrimaryDiet(restrictions);
+  if (primary !== 'kosher' && primary !== 'kosher-halal') return null;
+  const lower = craving.toLowerCase();
+  const hasDairy = DAIRY_INTENT_TERMS.some(t => lower.includes(t));
+  const hasMeat = MEAT_INTENT_TERMS.some(t => lower.includes(t));
+  if (hasDairy && !hasMeat) return 'dairy';
+  if (hasMeat && !hasDairy) return 'meat';
+  return 'pareve'; // conflict (both) or neutral (neither) → safe pareve
+}
+
+/**
+ * Build a kosher category enforcement block to inject into the AI prompt.
+ * This tells the AI exactly which category to generate and what's forbidden.
+ */
+function buildKosherCategoryBlock(category: 'dairy' | 'meat' | 'pareve'): string {
+  if (category === 'dairy') {
+    return [
+      `KOSHER CATEGORY — DAIRY (Milchig):`,
+      `The user explicitly requested dairy ingredients. Generate a DAIRY kosher dish.`,
+      `✅ USE FREELY: milk, butter, cream, cream cheese, sour cream, yogurt, and all cheeses.`,
+      `❌ FORBIDDEN: ALL meat and poultry — no chicken, beef, lamb, turkey, veal, or meat products of any kind.`,
+      `⛔ DO NOT substitute dairy with non-dairy alternatives (no coconut milk, oat milk, cashew cream, vegan butter).`,
+      `The dairy ingredients ARE the dish. Honor the user's explicit request and use them as written.`,
+    ].join('\n');
+  }
+  if (category === 'meat') {
+    return [
+      `KOSHER CATEGORY — MEAT (Fleishig):`,
+      `The user requested a meat-based dish. Generate a MEAT kosher dish.`,
+      `✅ USE FREELY: chicken, beef, lamb, turkey, veal, and all kosher meats.`,
+      `❌ FORBIDDEN: ALL dairy — no milk, butter, cream, cheese, yogurt, or any dairy products.`,
+      `For richness and creaminess, use: olive oil, meat broths, reduced stock sauces, or vegetable-based foundations.`,
+    ].join('\n');
+  }
+  return [
+    `KOSHER CATEGORY — PAREVE:`,
+    `Generate a PAREVE kosher dish (neither meat nor dairy).`,
+    `✅ USE FREELY: fish, eggs, vegetables, fruits, grains, legumes, olive oil, vegetable broths.`,
+    `❌ FORBIDDEN: ALL meat AND ALL dairy — absolutely no mixing of the two.`,
+  ].join('\n');
+}
+
 /** Build the hierarchy-enforcing prompt for the variety engine */
 function buildVarietyPrompt(
   cravingInput: string,
@@ -1174,7 +1252,14 @@ export async function generateCravingMealOptions(
     const merged = new Set([...dietRestrictions, ...dietaryRestrictionsOverride]);
     dietRestrictions = Array.from(merged);
   }
-  const dietBlock = buildDietPromptBlock(dietRestrictions);
+  let dietBlock = buildDietPromptBlock(dietRestrictions);
+  // Kosher category intent: inject DAIRY/MEAT/PAREVE block so the AI
+  // never auto-converts explicit dairy (butter, milk) to pareve/coconut milk.
+  const varietyKosherIntent = detectKosherCategoryIntent(dietRestrictions, cravingInput);
+  if (varietyKosherIntent) {
+    dietBlock += (dietBlock ? '\n' : '') + buildKosherCategoryBlock(varietyKosherIntent);
+    console.log(`🕍 [VARIETY ENGINE] Kosher category intent: ${varietyKosherIntent}`);
+  }
 
   const excludeClause = excludeMeals && excludeMeals.length > 0
     ? `ANTI-REPETITION: Do NOT generate anything resembling these recently seen options — vary the primary ingredient, preparation, and concept: ${excludeMeals.join(", ")}`
