@@ -60,6 +60,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet, filterMealsByDiet } from "@/utils/dietaryFilter";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import MealClassificationPill from "@/components/MealClassificationPill";
+import KosherProTip from "@/components/KosherProTip";
 import {
   DietGuardIntercept,
   DietAdaptedNotice,
@@ -1032,6 +1033,9 @@ const FridgeRescuePage = () => {
                       <div className="flex flex-wrap items-center gap-2 mt-1">
                         <DietStyleBadge />
                         <MealClassificationPill dietClassification={meal.dietClassification} />
+                        <KosherProTip
+                          dietClassification={meal.dietClassification}
+                        />
                       </div>
                       <CardDescription className="text-sm text-white/80 mt-2">
                         {meal.description}

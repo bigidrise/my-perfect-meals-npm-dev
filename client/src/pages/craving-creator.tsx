@@ -63,6 +63,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import MealClassificationPill from "@/components/MealClassificationPill";
+import KosherProTip from "@/components/KosherProTip";
 import ThinkingDots from "@/components/ThinkingDots";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
@@ -1265,18 +1266,18 @@ export default function CravingCreator() {
                         />
                       )}
 
-                      {/* Diet Adapted Notice (soft chip when AI adapted for dietary preference) */}
-                      {dietAdaptedNotice && (
-                        <DietAdaptedNotice
-                          diet={normalizeDiet(user?.dietaryRestrictions)}
-                          notice={dietAdaptedNotice}
-                          className="mb-4"
-                        />
-                      )}
-
                       <div className="flex flex-wrap items-center gap-2 mb-3">
                         <DietStyleBadge />
                         <MealClassificationPill dietClassification={meal.dietClassification} />
+                        {dietAdaptedNotice && (
+                          <DietAdaptedNotice
+                            diet={normalizeDiet(user?.dietaryRestrictions)}
+                          />
+                        )}
+                        <KosherProTip
+                          dietClassification={meal.dietClassification}
+                          isAdapted={!!dietAdaptedNotice}
+                        />
                       </div>
 
                       <p className="text-white/90 mb-4">{meal.description}</p>

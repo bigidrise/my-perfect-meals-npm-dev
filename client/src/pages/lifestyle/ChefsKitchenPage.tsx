@@ -10,6 +10,7 @@ import {
 import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import MealClassificationPill from "@/components/MealClassificationPill";
+import KosherProTip from "@/components/KosherProTip";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
@@ -858,15 +859,6 @@ export default function ChefsKitchenPage() {
             {generatedMeal && mealToShow && !isGeneratingMeal && (
               <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
                 <CardContent className="p-4 space-y-4">
-                  {/* Diet Adapted Notice */}
-                  {dietAdaptedNotice && (
-                    <DietAdaptedNotice
-                      diet={normalizeDiet(user?.dietaryRestrictions)}
-                      notice={dietAdaptedNotice}
-                      className="mb-2"
-                    />
-                  )}
-
                   {/* DietGuard Intercept */}
                   <DietGuardIntercept
                     alert={dietAlert}
@@ -905,6 +897,15 @@ export default function ChefsKitchenPage() {
                   <div className="flex flex-wrap items-center gap-2 mb-3">
                     <DietStyleBadge />
                     <MealClassificationPill dietClassification={mealToShow.dietClassification} />
+                    {dietAdaptedNotice && (
+                      <DietAdaptedNotice
+                        diet={normalizeDiet(user?.dietaryRestrictions)}
+                      />
+                    )}
+                    <KosherProTip
+                      dietClassification={mealToShow.dietClassification}
+                      isAdapted={!!dietAdaptedNotice}
+                    />
                   </div>
 
                   {mealToShow.description && (
