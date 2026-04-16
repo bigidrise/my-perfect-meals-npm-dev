@@ -44,8 +44,9 @@ export function DietGuardIntercept({
   const protocolColor = getProtocolColor(alert.diet);
   const iconBgClass = getIconBgClass(alert.diet);
 
-  // For cultural protocols, only show "Let Chef Adapt It" when the conflict is adaptable
-  const showAdaptButton = !isCultural || alert.isAdaptable === true;
+  // Show "Let Chef Adapt It" unless the rule explicitly forbids adaptation.
+  // undefined means adaptable — only isAdaptable: false (hard-blocked rules) hides the button.
+  const showAdaptButton = alert.isAdaptable !== false;
 
   const headingText = isCultural
     ? "Protocol Conflict"
