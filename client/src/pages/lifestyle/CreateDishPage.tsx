@@ -53,6 +53,7 @@ import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import PhaseGate from "@/components/PhaseGate";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import DietStyleBadge from "@/components/DietStyleBadge";
+import MealClassificationPill from "@/components/MealClassificationPill";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 
 interface StructuredIngredient {
@@ -92,6 +93,7 @@ interface MealData {
   }>;
   imageUrl?: string;
   dietaryComplianceVerified?: boolean;
+  dietClassification?: import("@/components/MealClassificationPill").DietClassification | null;
 }
 
 // ============================================================
@@ -899,8 +901,9 @@ export default function CreateDishPage() {
                         />
                       )}
 
-                      <div className="mb-3">
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
                         <DietStyleBadge />
+                        <MealClassificationPill dietClassification={meal.dietClassification} />
                       </div>
 
                       <p className="text-white/90 mb-4">{meal.description}</p>
