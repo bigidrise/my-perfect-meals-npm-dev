@@ -35,6 +35,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import MealClassificationPill from "@/components/MealClassificationPill";
+import KosherProTip from "@/components/KosherProTip";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
@@ -608,13 +609,6 @@ export default function BeverageCreator() {
             }}
           />
 
-          {dietAdaptedNotice && (
-            <DietAdaptedNotice
-              message={dietAdaptedNotice}
-              onDismiss={() => setDietAdaptedNotice(null)}
-            />
-          )}
-
           {generatedBeverage && (
             <div className="space-y-6">
               <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl">
@@ -647,6 +641,15 @@ export default function BeverageCreator() {
                   <div className="flex flex-wrap items-center gap-2 mb-3">
                     <DietStyleBadge />
                     <MealClassificationPill dietClassification={generatedBeverage.dietClassification} />
+                    {dietAdaptedNotice && (
+                      <DietAdaptedNotice
+                        diet={normalizeDiet(user?.dietaryRestrictions)}
+                      />
+                    )}
+                    <KosherProTip
+                      dietClassification={generatedBeverage.dietClassification}
+                      isAdapted={!!dietAdaptedNotice}
+                    />
                   </div>
 
                   <p className="text-white/90 mb-4">
