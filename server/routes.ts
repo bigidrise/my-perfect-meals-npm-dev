@@ -807,7 +807,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("🥕 Fridge Rescue route hit - generating 3 meals");
 
       const userId = getAuthUserId(req);
-      const { fridgeItems, servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken, skipPalate, strictMode } = req.body;
+      const { fridgeItems, servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken, skipPalate, strictMode, dietAdaptOverride } = req.body;
 
       if (!fridgeItems || !Array.isArray(fridgeItems) || fridgeItems.length === 0) {
         console.error("[FRIDGE] validation error: invalid fridgeItems", fridgeItems);
@@ -918,6 +918,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // ── Post-generation protocol scan (ingredient + instruction level) ──────
       const cleanFridgeMeals = filterMealsByProtocol(meals, fridgeProtocolEnvelope, {
         generatorName: "fridge_rescue",
+        skipAdaptableConflicts: dietAdaptOverride === true,
       });
 
       if (cleanFridgeMeals.length === 0 && meals.length > 0) {
@@ -3287,7 +3288,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/meals/craving-creator", async (req, res) => {
     try {
-      const { targetMealType, cravingInput, dietaryRestrictions, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode } = req.body;
+      const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode, dietAdaptOverride } = req.body;
+
+      // When the user chose "Let Chef Adapt", inject a pareve/adaptation instruction
+      // so the AI knows to substitute restricted elements with compliant alternatives.
+      const cravingInput = dietAdaptOverride === true
+        ? `${rawCravingInput} [CHEF ADAPTATION MODE: The user has explicitly requested this dish be adapted for their dietary law. Preserve the intent and texture. Replace any dairy elements (cream, butter, milk, cheese) with certified pareve or non-dairy alternatives ONLY: coconut cream, cashew cream, oat-based cream, or pareve margarine. The final dish MUST contain zero dairy. Use non-dairy alternatives throughout.]`
+        : rawCravingInput;
 
       // Fix A: Resolve authenticated user from session/token (server-authoritative).
       // Never rely solely on client-sent userId — client may not send it at all.
@@ -3391,6 +3398,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // combination violations, AND forbidden instruction phrases.
       const cleanOptions = filterMealsByProtocol(mealOptions, protocolEnvelope, {
         generatorName: "craving_creator",
+        skipAdaptableConflicts: dietAdaptOverride === true,
       });
 
       if (cleanOptions.length === 0 && mealOptions.length > 0) {

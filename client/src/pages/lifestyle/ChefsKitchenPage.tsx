@@ -395,6 +395,7 @@ export default function ChefsKitchenPage() {
           excludeMeals: getRecentMealsChef(),
           safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: overrideToken || undefined,
+          dietAdaptOverride: dietDecision === "let_chef_adapt",
         }),
       });
 

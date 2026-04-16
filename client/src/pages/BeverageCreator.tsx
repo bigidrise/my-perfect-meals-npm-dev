@@ -308,6 +308,7 @@ export default function BeverageCreator() {
             !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: !safetyEnabled ? overrideToken : undefined,
           skipPalate: !flavorPersonal,
+          dietAdaptOverride: dietDecision === "let_chef_adapt",
         }),
       });
 

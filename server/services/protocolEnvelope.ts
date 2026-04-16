@@ -836,7 +836,7 @@ export function scanGeneratedOutput(
     instructions?: string | string[];
   },
   envelope: UserProtocolEnvelope,
-  context?: { generatorName?: string }
+  context?: { generatorName?: string; skipAdaptableConflicts?: boolean }
 ): ProtocolScanResult {
   const generatorName = context?.generatorName || "unknown_generator";
   const mealText = extractMealTextForScan(meal);
@@ -846,7 +846,8 @@ export function scanGeneratedOutput(
   const ingredientViolations = scanForHiddenDietaryViolations(
     mealText,
     envelope.dietaryIdentity,
-    envelope.avoidances
+    envelope.avoidances,
+    { skipMeatDairyCombinationCheck: context?.skipAdaptableConflicts === true }
   );
 
   // ── Instruction-level scan ────────────────────────────────────────────────
@@ -912,7 +913,7 @@ export function filterMealsByProtocol<T extends {
 }>(
   meals: T[],
   envelope: UserProtocolEnvelope,
-  context?: { generatorName?: string }
+  context?: { generatorName?: string; skipAdaptableConflicts?: boolean }
 ): T[] {
   return meals.filter(meal => {
     const result = scanGeneratedOutput(meal, envelope, context);

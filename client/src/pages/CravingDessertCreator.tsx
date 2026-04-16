@@ -369,6 +369,7 @@ export default function DessertCreator() {
           skipPalate: !flavorPersonal,
           strictMode: keepItSimple,
           customDessertDescription: customDessertDescription.trim() || undefined,
+          dietAdaptOverride: dietDecision === "let_chef_adapt",
         }),
       });
 

@@ -578,6 +578,7 @@ export default function CravingCreator() {
           excludeMeals: getRecentMeals(),
           strictMode: keepItSimple,
           generationMode,
+          dietAdaptOverride: dietDecision === "let_chef_adapt",
         }),
       });
 

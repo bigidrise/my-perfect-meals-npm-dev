@@ -427,6 +427,7 @@ const FridgeRescuePage = () => {
           overrideToken: hasActiveOverride ? overrideToken : undefined,
           skipPalate: !flavorPersonal,
           strictMode: keepItSimple,
+          dietAdaptOverride: dietDecision === "let_chef_adapt",
         }),
       });
 
