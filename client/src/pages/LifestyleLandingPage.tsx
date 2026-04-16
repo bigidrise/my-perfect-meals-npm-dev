@@ -9,6 +9,7 @@ import {
   ChefHat,
   Wine,
   Lock,
+  Star,
 } from "lucide-react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useFreeLock } from "@/hooks/useFreeLock";
@@ -132,6 +133,61 @@ export default function LifestyleLandingPage() {
                 AI-powered guidance.
               </p>
             </div>
+          </div>
+
+          {/* ── Ultimate Experiences premium card ── */}
+          <div className="relative">
+            <div
+              className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-60"
+              style={{
+                background:
+                  "radial-gradient(120% 120% at 50% 0%, rgba(251,191,36,0.6), rgba(234,88,12,0.3), rgba(0,0,0,0))",
+              }}
+            />
+            <Card
+              className="relative rounded-xl shadow-md overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 hover:scale-[1.02] bg-gradient-to-r from-black via-amber-950/40 to-black backdrop-blur-lg border border-amber-400/30 hover:shadow-[0_0_30px_rgba(251,191,36,0.4)] hover:border-amber-500/50"
+              onClick={() => {
+                if (isFree) {
+                  guardAction(
+                    "Ultimate Experiences unlocks with Premium.",
+                    () => {},
+                  );
+                  return;
+                }
+                handleCardClick("/lifestyle/ultimate-experiences");
+              }}
+              data-testid="card-ultimate-experiences"
+            >
+              <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-amber-700 to-black rounded-full border border-amber-400/30 shadow-lg z-10">
+                <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" />
+                <span className="text-white font-semibold text-[8px] tracking-wide">
+                  Premium
+                </span>
+              </div>
+              <CardContent className="p-3">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <Star
+                      className={`h-4 w-4 flex-shrink-0 ${isFree ? "text-amber-500/50" : "text-amber-400"}`}
+                    />
+                    <h3
+                      className={`text-sm font-semibold ${isFree ? "text-white/50" : "text-white"}`}
+                    >
+                      Ultimate Experiences
+                    </h3>
+                    {isFree && (
+                      <Lock className="h-3 w-3 text-amber-400/70 ml-auto" />
+                    )}
+                  </div>
+                  <p
+                    className={`text-xs ml-6 ${isFree ? "text-white/40" : "text-white/80"}`}
+                  >
+                    Plan full meals for holidays, camping, tailgating &amp;
+                    special occasions
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Cards */}
