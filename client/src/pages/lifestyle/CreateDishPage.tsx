@@ -814,9 +814,13 @@ export default function CreateDishPage() {
                         <h4 className="text-white font-bold text-base mb-1 truncate">
                           {option.name}
                         </h4>
-                        <p className="text-white/70 text-sm mb-3 line-clamp-2">
+                        <p className="text-white/70 text-sm mb-2 line-clamp-2">
                           {option.description}
                         </p>
+                        <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                          <MealClassificationPill dietClassification={option.dietClassification ?? null} />
+                          <KosherProTip dietClassification={option.dietClassification ?? null} isAdapted={false} />
+                        </div>
                         <div className="flex gap-4 text-xs text-white/60 flex-wrap">
                           <span>
                             {option.nutrition?.calories ??
