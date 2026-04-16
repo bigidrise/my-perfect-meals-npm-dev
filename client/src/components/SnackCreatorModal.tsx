@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,8 +17,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsage } from "@/lib/guestMode";
 import { SafetyGuardBanner, EMPTY_SAFETY_ALERT } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
-import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
-import { DietGuardIntercept } from "@/components/DietGuardIntercept";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { StarchOverrideToggle } from "@/components/StarchOverrideToggle";
@@ -49,24 +47,13 @@ export function SnackCreatorModal({
   const [strictMode, setStrictMode] = useState(false);
   
   const { user } = useAuth();
-
-  // Ref lets "Let Chef Adapt It" skip all guards on the next call without state timing issues
-  const dietAdaptModeRef = useRef(false);
-
+  
   const isGuest = isGuestMode();
   const guestSession = isGuest ? getGuestSession() : null;
   const userId = user?.id?.toString() || guestSession?.sessionId || "";
   
   const { generating, progress, error, generateSnack, cancel } = useSnackCreatorRequest(userId);
   const { toast } = useToast();
-
-  const {
-    alert: dietAlert,
-    checkDiet,
-    clearAlert: clearDietAlert,
-    shouldShowIntercept: showDietIntercept,
-    setDecision: setDietDecision,
-  } = useDietGuardPrecheck();
   
   const {
     checking,
@@ -114,11 +101,9 @@ export function SnackCreatorModal({
       setStarchOverride(false);
       setStrictMode(false);
       clearAlert();
-      clearDietAlert();
-      dietAdaptModeRef.current = false;
       cancel();
     }
-  }, [open, cancel, clearAlert, clearDietAlert]);
+  }, [open, cancel, clearAlert]);
 
   const executeGeneration = async () => {
     const snack = await generateSnack(description.trim(), dietType, dietPhase, overrideToken || undefined, starchOverride || undefined, strictMode === true);
@@ -179,19 +164,6 @@ export function SnackCreatorModal({
       return;
     }
 
-    // DIET GUARD — Tier 0: dietary identity runs before safety check
-    if (!dietAdaptModeRef.current) {
-      const dietOk = checkDiet(description.trim());
-      if (!dietOk) return; // DietGuardIntercept now showing
-    }
-
-    // If user chose "Let Chef Adapt", skip ALL remaining guards — no second block allowed
-    if (dietAdaptModeRef.current) {
-      dietAdaptModeRef.current = false;
-      await executeGeneration();
-      return;
-    }
-
     if (hasActiveOverride || !safetyEnabled) {
       await executeGeneration();
       return;
@@ -202,19 +174,6 @@ export function SnackCreatorModal({
     if (isSafe) {
       await executeGeneration();
     }
-  };
-
-  const handleDietDecision = async (decision: "pick_something_else" | "let_chef_adapt") => {
-    if (decision === "pick_something_else") {
-      setDietDecision("pick_something_else");
-      clearDietAlert();
-      return;
-    }
-    // "let_chef_adapt" — bypass all guards and generate
-    setDietDecision("let_chef_adapt");
-    dietAdaptModeRef.current = true;
-    clearDietAlert();
-    await handleGenerate();
   };
 
   const isProcessing = generating || checking;
@@ -251,16 +210,7 @@ export function SnackCreatorModal({
             </p>
           </div>
 
-          {/* Diet Guard — Tier 0 protocol intercept */}
-          {showDietIntercept && (
-            <DietGuardIntercept
-              alert={dietAlert}
-              onDecision={handleDietDecision}
-            />
-          )}
-
-          {/* Safety Guard banner — only when no diet intercept showing */}
-          {!showDietIntercept && alert.show && (
+          {alert.show && (
             <SafetyGuardBanner
               alert={alert}
               mealRequest={description}
@@ -306,7 +256,7 @@ export function SnackCreatorModal({
           </div>
 
           <div className="flex gap-3 pt-2">
-            {!isProcessing && !showDietIntercept && (
+            {!isProcessing && (
               <Button
                 className="flex-1 bg-lime-600 hover:bg-lime-500 text-white"
                 onClick={handleGenerate}

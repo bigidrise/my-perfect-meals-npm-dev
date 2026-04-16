@@ -97,7 +97,7 @@ export function useDietGuardPrecheck(): UseDietGuardPrecheckResult {
   const triggerAlert = useCallback(
     (matchedTerms: string[], message: string) => {
       if (!activeDiet) return;
-      setAlert({ show: true, matchedTerms, message, diet: activeDiet, isAdaptable: true });
+      setAlert({ show: true, matchedTerms, message, diet: activeDiet });
       setDecisionState("pending");
     },
     [activeDiet],

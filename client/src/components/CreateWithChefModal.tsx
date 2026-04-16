@@ -219,13 +219,7 @@ export function CreateWithChefModal({
       const dietOk = checkDiet(description.trim());
       if (!dietOk) return; // DietGuardIntercept now showing
     }
-
-    // If user chose "Let Chef Adapt", skip ALL remaining guards — no second block allowed
-    if (dietAdaptModeRef.current) {
-      dietAdaptModeRef.current = false;
-      await executeGeneration(description.trim());
-      return;
-    }
+    dietAdaptModeRef.current = false;
 
     // STARCH GUARD — Option C: intent-aware, not a hard blocker
     // If starch slots are exhausted and the user hasn't already overridden:

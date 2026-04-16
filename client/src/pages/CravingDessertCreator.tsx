@@ -38,8 +38,6 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import DietStyleBadge from "@/components/DietStyleBadge";
-import MealClassificationPill from "@/components/MealClassificationPill";
-import KosherProTip from "@/components/KosherProTip";
 import {
   DietGuardIntercept,
   DietAdaptedNotice,
@@ -290,7 +288,7 @@ export default function DessertCreator() {
     setProgress(100);
   };
 
-  async function handleGenerateDessert(skipPreflight = false, overrideToken?: string, dietAdaptOverride = false) {
+  async function handleGenerateDessert(skipPreflight = false, overrideToken?: string) {
     setDietAdaptedNotice(null);
     const hasCustomDescription = customDessertDescription.trim().length > 0;
 
@@ -371,7 +369,6 @@ export default function DessertCreator() {
           skipPalate: !flavorPersonal,
           strictMode: keepItSimple,
           customDessertDescription: customDessertDescription.trim() || undefined,
-          dietAdaptOverride,
         }),
       });
 
@@ -733,7 +730,7 @@ export default function DessertCreator() {
                     setGeneratedDessert(null);
                   } else if (decision === "let_chef_adapt") {
                     setDietDecision("let_chef_adapt");
-                    handleGenerateDessert(true, undefined, true);
+                    handleGenerateDessert(true);
                   }
                 }}
                 className="mt-3"
@@ -828,18 +825,17 @@ export default function DessertCreator() {
                     </button>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2 mb-3">
-                    <DietStyleBadge />
-                    <MealClassificationPill dietClassification={generatedDessert.dietClassification} />
-                    {dietAdaptedNotice && (
-                      <DietAdaptedNotice
-                        diet={normalizeDiet(user?.dietaryRestrictions)}
-                      />
-                    )}
-                    <KosherProTip
-                      dietClassification={generatedDessert.dietClassification}
-                      isAdapted={!!dietAdaptedNotice}
+                  {/* Diet Adapted Notice (soft chip when AI adapted for dietary preference) */}
+                  {dietAdaptedNotice && (
+                    <DietAdaptedNotice
+                      diet={normalizeDiet(user?.dietaryRestrictions)}
+                      notice={dietAdaptedNotice}
+                      className="mb-4"
                     />
+                  )}
+
+                  <div className="mb-3">
+                    <DietStyleBadge mealCompliant={generatedDessert.dietaryComplianceVerified} />
                   </div>
 
                   <p className="text-white/90 mb-4">

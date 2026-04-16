@@ -178,7 +178,6 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
         },
         medicalBadges: generatedMeal.medicalBadges || [],
         substitutionNotes: generatedMeal.substitutionNotes || undefined,
-        dietClassification: generatedMeal.dietClassification || null,
       };
 
       stopProgressTicker();

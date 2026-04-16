@@ -9,8 +9,6 @@ import {
 } from "@/components/DietGuardIntercept";
 import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 import DietStyleBadge from "@/components/DietStyleBadge";
-import MealClassificationPill from "@/components/MealClassificationPill";
-import KosherProTip from "@/components/KosherProTip";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
@@ -111,7 +109,6 @@ interface GeneratedMeal {
   servings?: number;
   reasoning?: string;
   dietaryComplianceVerified?: boolean;
-  dietClassification?: import("@/components/MealClassificationPill").DietClassification | null;
 }
 
 const COOK_METHODS = [
@@ -367,7 +364,7 @@ export default function ChefsKitchenPage() {
 
   // Unified execution function — reads live state, same contract as CreateWithChefModal.
   // Called from startOpenKitchen on first attempt, and from the retry useEffect after override.
-  const executeGeneration = async (dietAdaptOverride = false) => {
+  const executeGeneration = async () => {
     const chefPromptParts = [`Create with Chef: ${dishIdea}`];
     if (cookMethod) chefPromptParts.push(`Cooking method: ${cookMethod}`);
     if (ingredientNotes) chefPromptParts.push(`Preferences: ${ingredientNotes}`);
@@ -398,7 +395,6 @@ export default function ChefsKitchenPage() {
           excludeMeals: getRecentMealsChef(),
           safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: overrideToken || undefined,
-          dietAdaptOverride,
         }),
       });
 
@@ -461,7 +457,7 @@ export default function ChefsKitchenPage() {
       if (data.dietAdapted) {
         setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet2} diet.`);
         clearDietAlert();
-      } else if (!overrideToken && activeDiet && dietDecision !== "let_chef_adapt" && !mealMatchesDiet(userDiet2, meal)) {
+      } else if (!overrideToken && activeDiet && !mealMatchesDiet(userDiet2, meal)) {
         setGenerationProgress(0);
         setIsGeneratingMeal(false);
         triggerDietAlert([], `This meal may not fully match your ${userDiet2} diet.`);
@@ -503,7 +499,6 @@ export default function ChefsKitchenPage() {
         servingSize: meal.servingSize || `${servings} ${servings === 1 ? "serving" : "servings"}`,
         servings: meal.servings || servings,
         reasoning: meal.reasoning,
-        dietClassification: meal.dietClassification ?? null,
       };
 
       setGenerationProgress(100);
@@ -523,7 +518,7 @@ export default function ChefsKitchenPage() {
   };
 
   // Entry point from UI — runs preflights then executes generation.
-  const startOpenKitchen = async (skipDietCheck = false, dietAdaptOverride = false) => {
+  const startOpenKitchen = async () => {
     if (!dishIdea.trim()) {
       toast({
         title: "Tell us what you want to make",
@@ -541,13 +536,13 @@ export default function ChefsKitchenPage() {
       if (!isSafe) return;
     }
 
-    if (activeDiet && !skipDietCheck) {
+    if (activeDiet && dietDecision !== "let_chef_adapt") {
       const requestText = `${dishIdea} ${cookMethod} ${ingredientNotes}`.trim();
       const dietOk = checkDiet(requestText);
       if (!dietOk) return;
     }
 
-    await executeGeneration(dietAdaptOverride);
+    await executeGeneration();
   };
 
   return (
@@ -713,7 +708,7 @@ export default function ChefsKitchenPage() {
                         clearDietAlert();
                       } else if (decision === "let_chef_adapt") {
                         setDietDecision("let_chef_adapt");
-                        startOpenKitchen(true, true);
+                        startOpenKitchen(true);
                       }
                     }}
                   />
@@ -838,7 +833,6 @@ export default function ChefsKitchenPage() {
                             servingSize: finalMeal.servingSize || `${servings} ${servings === 1 ? "serving" : "servings"}`,
                             servings: finalMeal.servings || servings,
                             reasoning: finalMeal.reasoning,
-                            dietClassification: finalMeal.dietClassification ?? null,
                           };
                           setMealOptions([]);
                           setGeneratedMeal(normalizedOption);
@@ -859,6 +853,15 @@ export default function ChefsKitchenPage() {
             {generatedMeal && mealToShow && !isGeneratingMeal && (
               <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
                 <CardContent className="p-4 space-y-4">
+                  {/* Diet Adapted Notice */}
+                  {dietAdaptedNotice && (
+                    <DietAdaptedNotice
+                      diet={normalizeDiet(user?.dietaryRestrictions)}
+                      notice={dietAdaptedNotice}
+                      className="mb-2"
+                    />
+                  )}
+
                   {/* DietGuard Intercept */}
                   <DietGuardIntercept
                     alert={dietAlert}
@@ -869,7 +872,7 @@ export default function ChefsKitchenPage() {
                         setMealOptions([]);
                       } else if (decision === "let_chef_adapt") {
                         setDietDecision("let_chef_adapt");
-                        startOpenKitchen(true, true);
+                        startOpenKitchen(true);
                       }
                     }}
                     className="mt-3"
@@ -894,18 +897,8 @@ export default function ChefsKitchenPage() {
                     </button>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2 mb-3">
-                    <DietStyleBadge />
-                    <MealClassificationPill dietClassification={mealToShow.dietClassification} />
-                    {dietAdaptedNotice && (
-                      <DietAdaptedNotice
-                        diet={normalizeDiet(user?.dietaryRestrictions)}
-                      />
-                    )}
-                    <KosherProTip
-                      dietClassification={mealToShow.dietClassification}
-                      isAdapted={!!dietAdaptedNotice}
-                    />
+                  <div className="mb-3">
+                    <DietStyleBadge mealCompliant={mealToShow.dietaryComplianceVerified} />
                   </div>
 
                   {mealToShow.description && (

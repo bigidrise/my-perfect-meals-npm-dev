@@ -884,7 +884,6 @@ export default function BeachBodyMealBoard() {
         },
         starchyCarbs: generatedMeal.starchyCarbs || 0,
         fibrousCarbs: generatedMeal.fibrousCarbs || 0,
-        dietClassification: generatedMeal.dietClassification || null,
       };
 
       const newMeals = [transformedMeal];
