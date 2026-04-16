@@ -2,7 +2,7 @@ import {
   evaluateRelationshipRules,
 } from "../../../server/services/guardrails/rules/culturalRules";
 
-export type SupportedDiet = "vegan" | "vegetarian" | "keto" | "pescatarian" | "kosher" | "halal";
+export type SupportedDiet = "vegan" | "vegetarian" | "keto" | "pescatarian" | "kosher" | "halal" | "paleo" | "gluten-free";
 
 /**
  * CLIENT-SIDE NORMALIZATION LAYER
@@ -57,9 +57,12 @@ const VEGAN_EXCLUSIONS: string[] = [
   "condensed milk", "evaporated milk", "buttermilk",
   // Eggs
   "egg", "eggs", "omelette", "omelet", "frittata", "quiche", "deviled egg",
+  "egg wash", "mayonnaise", "mayo",
   // Other animal products
-  "honey", "gelatin", "lard", "tallow", "bone broth", "anchovies",
-  "worcestershire", "caesar dressing",
+  "honey", "gelatin", "lard", "suet", "tallow", "schmaltz",
+  "bone broth", "anchovies", "anchovy paste",
+  "worcestershire", "oyster sauce",
+  "caesar dressing", "caesar salad",
 ];
 
 const VEGETARIAN_EXCLUSIONS: string[] = [
@@ -78,6 +81,7 @@ const VEGETARIAN_EXCLUSIONS: string[] = [
   "calamari", "squid", "octopus",
   // Other non-vegetarian
   "gelatin", "lard", "tallow", "bone broth",
+  "fish sauce", "oyster sauce", "anchovy paste", "worcestershire",
 ];
 
 const KETO_EXCLUSIONS: string[] = [
@@ -119,6 +123,43 @@ const PESCATARIAN_EXCLUSIONS: string[] = [
   "lard", "tallow",
 ];
 
+const PALEO_EXCLUSIONS: string[] = [
+  // All grains
+  "wheat", "oats", "barley", "rye", "corn", "rice", "quinoa",
+  "bread", "pasta", "noodles", "cereal", "crackers", "tortilla", "pita",
+  "oatmeal", "granola", "couscous", "bulgur", "farro",
+  // All dairy
+  "milk", "cheese", "butter", "cream", "yogurt", "ice cream", "whey",
+  "casein", "dairy", "mozzarella", "parmesan", "cheddar", "ricotta",
+  "brie", "feta", "gouda", "sour cream", "cream cheese",
+  // Legumes
+  "beans", "black beans", "kidney beans", "pinto beans", "chickpeas",
+  "lentils", "peanuts", "soy", "tofu", "tempeh", "edamame", "hummus",
+  // Processed & refined sweeteners
+  "refined sugar", "sugar", "cane sugar", "corn syrup", "agave", "honey",
+  "canola oil", "vegetable oil", "soybean oil", "margarine",
+  // White potatoes (sweet potatoes are paleo-allowed)
+  "white potato", "french fries", "mashed potatoes",
+];
+
+const GLUTEN_FREE_EXCLUSIONS: string[] = [
+  // Wheat and wheat derivatives
+  "wheat", "wheat flour", "all-purpose flour", "bread flour", "whole wheat",
+  "semolina", "durum", "farina", "bulgur", "couscous", "farro",
+  "spelt", "kamut", "einkorn", "triticale",
+  // Other gluten grains
+  "barley", "rye", "malt", "malt extract",
+  // Gluten protein forms
+  "seitan", "vital wheat gluten",
+  // Bread and baked goods
+  "bread", "sourdough", "baguette", "pita", "naan", "flatbread",
+  "pasta", "noodles", "macaroni", "spaghetti", "fettuccine", "lasagna",
+  "crackers", "breadcrumbs", "panko", "croutons",
+  "flour tortilla",
+  // Soy sauce (usually contains wheat — tamari is the gluten-free substitute)
+  "soy sauce",
+];
+
 export function normalizeDietPreference(raw: string | string[] | undefined | null): SupportedDiet | null {
   if (!raw || (Array.isArray(raw) && raw.length === 0)) return null;
   const lower = Array.isArray(raw)
@@ -130,6 +171,8 @@ export function normalizeDietPreference(raw: string | string[] | undefined | nul
   if (lower.includes("pescatarian") || lower.includes("pesco")) return "pescatarian";
   if (lower.includes("kosher")) return "kosher";
   if (lower.includes("halal")) return "halal";
+  if (lower.includes("paleo")) return "paleo";
+  if (lower.includes("gluten-free") || lower.includes("gluten free") || lower.includes("celiac")) return "gluten-free";
   return null;
 }
 
@@ -144,6 +187,8 @@ function buildExclusionList(diet: SupportedDiet): string[] | null {
     case "vegetarian": return VEGETARIAN_EXCLUSIONS;
     case "keto": return KETO_EXCLUSIONS;
     case "pescatarian": return PESCATARIAN_EXCLUSIONS;
+    case "paleo": return PALEO_EXCLUSIONS;
+    case "gluten-free": return GLUTEN_FREE_EXCLUSIONS;
     case "kosher":
     case "halal":
       return null;
@@ -193,7 +238,7 @@ export function detectDietConflicts(
     };
   }
 
-  // Standard dietary exclusion list path (vegan, vegetarian, keto, pescatarian)
+  // Standard dietary exclusion list path (vegan, vegetarian, keto, pescatarian, paleo, gluten-free)
   if (hasIntentOverride(text)) {
     return { hasConflict: false, matchedTerms: [] };
   }

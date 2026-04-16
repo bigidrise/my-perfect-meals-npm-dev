@@ -191,9 +191,10 @@ export const CULTURAL_RULES: RelationshipRule[] = [
     when: {
       anyIngredient: [
         "wine", "red wine", "white wine", "beer", "ale", "lager", "stout",
-        "vodka", "rum", "whiskey", "bourbon", "brandy", "sake", "mirin",
+        "vodka", "rum", "whiskey", "bourbon", "brandy", "cognac", "sake", "mirin",
         "wine sauce", "beer batter", "marsala", "champagne", "prosecco",
         "cooking wine", "white wine sauce", "red wine reduction",
+        "vanilla extract",
       ],
     },
     effect: {
@@ -292,15 +293,32 @@ function textContainsAny(text: string, terms: string[]): string | null {
 }
 
 function extractMeatDairyPresence(ingredients: string[]): { hasMeat: boolean; hasDairy: boolean } {
+  // Comprehensive meat category — catches "beefy", "buttery steak", etc. via substring match
   const meatTerms = [
+    // Common meats
     "beef", "chicken", "turkey", "lamb", "veal", "duck", "pork", "ham",
-    "steak", "ground beef", "ground turkey", "ground chicken", "brisket",
-    "sirloin", "ribeye", "roast", "meat", "poultry",
+    "goat", "mutton", "venison", "bison", "elk", "rabbit",
+    // Cuts & forms
+    "steak", "brisket", "sirloin", "ribeye", "rib eye", "tenderloin",
+    "filet", "flank", "skirt", "chuck", "short rib", "osso buco",
+    "roast", "ground beef", "ground turkey", "ground chicken",
+    "cutlet", "schnitzel", "corned beef", "pastrami",
+    // Category words
+    "meat", "poultry", "fowl",
   ];
+  // Comprehensive dairy category — catches "creamy", "buttery", etc. via substring match
   const dairyTerms = [
-    "cheese", "milk", "butter", "cream", "yogurt", "whey", "casein",
-    "sour cream", "cream cheese", "cheddar", "mozzarella", "parmesan",
-    "ricotta", "brie", "gouda", "feta", "dairy",
+    // Liquid / fat dairy
+    "milk", "cream", "butter", "ghee", "half and half",
+    "heavy cream", "light cream", "double cream", "clotted cream",
+    "creme fraiche", "crème fraîche",
+    // Cultured / fermented
+    "cheese", "yogurt", "kefir", "quark", "fromage",
+    "sour cream", "cream cheese", "mascarpone", "ricotta",
+    "cheddar", "mozzarella", "parmesan", "brie", "gouda",
+    "feta", "gruyere", "emmental", "queso", "halloumi",
+    // Proteins / derivatives
+    "whey", "casein", "lactose", "dairy",
   ];
 
   const combinedText = ingredients.join(" ").toLowerCase();
@@ -325,7 +343,13 @@ export function evaluateRelationshipRules(
     if (rule.kind === "ingredient_pair_conflict") {
       const groups = rule.when.allIngredients || [];
       if (groups.includes("meat") && groups.includes("dairy")) {
-        const { hasMeat, hasDairy } = extractMeatDairyPresence(ingredients);
+        // At pre-flight time ingredients[] is empty — fall back to scanning
+        // the raw input text and dish name so the conflict is caught immediately
+        // rather than after 30+ seconds of generation.
+        const textSources = ingredients.length > 0
+          ? ingredients
+          : [inputText, dishName].filter(Boolean);
+        const { hasMeat, hasDairy } = extractMeatDairyPresence(textSources);
         if (hasMeat && hasDairy) {
           matched = "meat + dairy combination";
         }

@@ -48,7 +48,7 @@ export default function ServingInstructionsBlock({
       {showWeightOption && (
         <p className="text-white/50 text-xs">
           For best macro accuracy: weigh the finished dish and divide into{" "}
-          {servings} equal portions (~{100 / servings}% each).
+          {servings} equal portions (~{Math.round((100 / servings) / 10) * 10}% each).
         </p>
       )}
 

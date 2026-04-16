@@ -53,6 +53,8 @@ import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import PhaseGate from "@/components/PhaseGate";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import DietStyleBadge from "@/components/DietStyleBadge";
+import MealClassificationPill from "@/components/MealClassificationPill";
+import KosherProTip from "@/components/KosherProTip";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 
 interface StructuredIngredient {
@@ -92,6 +94,7 @@ interface MealData {
   }>;
   imageUrl?: string;
   dietaryComplianceVerified?: boolean;
+  dietClassification?: import("@/components/MealClassificationPill").DietClassification | null;
 }
 
 // ============================================================
@@ -396,7 +399,7 @@ export default function CreateDishPage() {
     }
   }, [pendingGeneration, overrideToken, isGenerating]);
 
-  const handleGenerateDish = async (skipPreflight = false) => {
+  const handleGenerateDish = async (skipPreflight = false, dietAdaptOverride = false) => {
     setDietAdaptedNotice(null);
 
     if (!dishInput.trim()) {
@@ -410,7 +413,18 @@ export default function CreateDishPage() {
 
     const prompt = buildPrompt();
 
-    // 🔐 SafetyGuard pre-flight — blocks allergic ingredients before any API call
+    // 🥗 DietGuard pre-flight — cultural/dietary identity gets highest priority.
+    // Must run BEFORE SafetyGuard so protocol conflicts (halal/kosher/vegan)
+    // show the Protocol Conflict modal instead of the generic safety banner.
+    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
+      const dietOk = checkDiet(prompt);
+      if (!dietOk) {
+        return;
+      }
+    }
+
+    // 🔐 SafetyGuard pre-flight — allergy/intolerance check (runs after diet so
+    // cultural protocol conflicts are never shadowed by the safety banner).
     if (!skipPreflight && !hasActiveOverride) {
       const isSafe = await checkSafety(prompt, "create-dish");
       if (!isSafe) {
@@ -421,13 +435,6 @@ export default function CreateDishPage() {
     if (!skipPreflight && starchDecision !== "let_chef_pick") {
       const starchOk = checkStarch(prompt);
       if (!starchOk) {
-        return;
-      }
-    }
-
-    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
-      const dietOk = checkDiet(prompt);
-      if (!dietOk) {
         return;
       }
     }
@@ -458,6 +465,7 @@ export default function CreateDishPage() {
           skipPalate: !flavorPersonal,
           excludeMeals: getRecentMeals(),
           strictMode: keepItSimple,
+          dietAdaptOverride,
         }),
       });
 
@@ -715,7 +723,7 @@ export default function CreateDishPage() {
                         setDishInput("");
                       } else if (decision === "let_chef_adapt") {
                         setDietDecision("let_chef_adapt");
-                        handleGenerateDish(true);
+                        handleGenerateDish(true, true);
                       }
                     }}
                     className="mt-3"
@@ -806,9 +814,13 @@ export default function CreateDishPage() {
                         <h4 className="text-white font-bold text-base mb-1 truncate">
                           {option.name}
                         </h4>
-                        <p className="text-white/70 text-sm mb-3 line-clamp-2">
+                        <p className="text-white/70 text-sm mb-2 line-clamp-2">
                           {option.description}
                         </p>
+                        <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                          <MealClassificationPill dietClassification={option.dietClassification ?? null} />
+                          <KosherProTip dietClassification={option.dietClassification ?? null} isAdapted={false} />
+                        </div>
                         <div className="flex gap-4 text-xs text-white/60 flex-wrap">
                           <span>
                             {option.nutrition?.calories ??
@@ -890,17 +902,17 @@ export default function CreateDishPage() {
                         />
                       )}
 
-                      {dietAdaptedNotice && (
-                        <DietAdaptedNotice
-                          diet={normalizeDiet(user?.dietaryRestrictions)}
-                          notice={dietAdaptedNotice}
-                          className="mb-4"
-                        />
-                      )}
-
-                      <div className="mb-3">
-                        <DietStyleBadge
-                          mealCompliant={meal.dietaryComplianceVerified}
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                        <DietStyleBadge />
+                        <MealClassificationPill dietClassification={meal.dietClassification} />
+                        {dietAdaptedNotice && (
+                          <DietAdaptedNotice
+                            diet={normalizeDiet(user?.dietaryRestrictions)}
+                          />
+                        )}
+                        <KosherProTip
+                          dietClassification={meal.dietClassification}
+                          isAdapted={!!dietAdaptedNotice}
                         />
                       </div>
 

@@ -8,7 +8,7 @@ import { eq } from "drizzle-orm";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
 import { buildPalateSection, PalatePreferences } from "../services/promptBuilder";
 import { resolveDietCategoryStrategy, type DietCategoryStrategy } from "../services/allergyGuardrails";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope } from "../services/protocolEnvelope";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope, buildMealComplianceBundle } from "../services/protocolEnvelope";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -69,6 +69,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
       safetyMode,
       overrideToken,
       skipPalate,
+      dietAdaptOverride,
     } = req.body ?? {};
 
     if (isDev) console.log("[BEVERAGE] Request params:", { beverageCategory, flavorFamily, servingSize });
@@ -339,6 +340,7 @@ INCORRECT (NEVER DO THIS):
       // ── Post-gen protocol scan ────────────────────────────────────────────
       beverageScan = scanGeneratedOutput(meal, beverageEnvelope, {
         generatorName: 'beverage_creator',
+        skipAdaptableConflicts: dietAdaptOverride === true,
       });
 
       if (beverageScan.passed) break;
@@ -401,11 +403,15 @@ INCORRECT (NEVER DO THIS):
     }
 
     if (isDev) console.log("[BEVERAGE] Sending response...");
+    const { complianceSection: bevCompliance, dietClassification: bevDietClass } =
+      buildMealComplianceBundle(meal, beverageEnvelope, { isChefAdapted: dietAdapted });
     return res.json({
       ...meal,
       imageUrl,
       medicalBadges,
       ...(dietAdapted && { dietAdapted: true, dietNotice }),
+      complianceSection: bevCompliance,
+      dietClassification: bevDietClass,
       ...(dietCategoryStrategy.conflictLevel !== 'none' && {
         dietCategoryConflict: dietCategoryStrategy.conflictLevel,
         requestedCategory: dietCategoryStrategy.requestedCategory,

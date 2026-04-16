@@ -28,7 +28,7 @@ import { generateCravingMealWithProfile } from "./services/generators/cravingCre
 import { enforceSafetyProfile } from "./services/safetyProfileService";
 import { runEnforcement, toRouteResponse } from "./services/enforcementGateway";
 import { scanForHiddenDietaryViolations, AVOIDANCE_EXPANSION } from "./services/allergyGuardrails";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol, buildGuestEnvelope, scanGeneratedOutput } from "./services/protocolEnvelope";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol, buildGuestEnvelope, scanGeneratedOutput, buildComplianceSection, buildMealComplianceBundle } from "./services/protocolEnvelope";
 import { 
   hasUserSetPin, 
   setUserPin, 
@@ -765,6 +765,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`✅ Unified generation complete: source=${result.source}, success=${result.success}`);
 
+      // ── Compliance bundle: attach complianceSection + dietClassification ──
+      // Every meal leaving the server MUST pass through buildMealComplianceBundle.
+      // This matches the exact pattern used in craving-creator and fridge-rescue routes.
+      // NOTE: pipeline returns BOTH result.meal and result.meals[0] — patch both so all
+      // consumers (hook reads meals[0], other readers use meal) get the classification.
+      if (result.success && (result.meal || result.meals?.length)) {
+        const envelope = userId
+          ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+          : buildGuestEnvelope();
+        if (result.meal) {
+          const { complianceSection, dietClassification } = buildMealComplianceBundle(result.meal, envelope);
+          result.meal = { ...result.meal, complianceSection, dietClassification };
+        }
+        if (result.meals?.length) {
+          result.meals = result.meals.map((m: any) => {
+            const { complianceSection, dietClassification } = buildMealComplianceBundle(m, envelope);
+            return { ...m, complianceSection, dietClassification };
+          });
+        }
+      }
+
       res.json(result);
 
     } catch (error: any) {
@@ -807,7 +828,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("🥕 Fridge Rescue route hit - generating 3 meals");
 
       const userId = getAuthUserId(req);
-      const { fridgeItems, servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken, skipPalate, strictMode } = req.body;
+      const { fridgeItems, servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken, skipPalate, strictMode, dietAdaptOverride } = req.body;
 
       if (!fridgeItems || !Array.isArray(fridgeItems) || fridgeItems.length === 0) {
         console.error("[FRIDGE] validation error: invalid fridgeItems", fridgeItems);
@@ -918,6 +939,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // ── Post-generation protocol scan (ingredient + instruction level) ──────
       const cleanFridgeMeals = filterMealsByProtocol(meals, fridgeProtocolEnvelope, {
         generatorName: "fridge_rescue",
+        skipAdaptableConflicts: dietAdaptOverride === true,
       });
 
       if (cleanFridgeMeals.length === 0 && meals.length > 0) {
@@ -938,8 +960,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       recordGeneration('/api/meals/fridge-rescue', 'ai', durationMs);
 
       console.log("[FRIDGE] ok returning", cleanFridgeMeals.length, "meals");
+      const fridgeMealsWithCompliance = cleanFridgeMeals.map(meal => {
+        const { complianceSection, dietClassification } = buildMealComplianceBundle(
+          meal, fridgeProtocolEnvelope
+        );
+        return { ...meal, complianceSection, dietClassification };
+      });
       res.json({
-        meals: cleanFridgeMeals,
+        meals: fridgeMealsWithCompliance,
         quota: {
           remaining: quotaCheck.remaining,
           limit: quotaCheck.limit,
@@ -3287,7 +3315,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/meals/craving-creator", async (req, res) => {
     try {
-      const { targetMealType, cravingInput, dietaryRestrictions, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode } = req.body;
+      const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode, dietAdaptOverride } = req.body;
+
+      // When the user chose "Let Chef Adapt", inject a pareve/adaptation instruction
+      // so the AI knows to substitute restricted elements with compliant alternatives.
+      const cravingInput = dietAdaptOverride === true
+        ? `${rawCravingInput} [CHEF ADAPTATION MODE: The user has explicitly requested this dish be adapted for their dietary law. Preserve the intent and texture. Replace any dairy elements (cream, butter, milk, cheese) with certified pareve or non-dairy alternatives ONLY: coconut cream, cashew cream, oat-based cream, or pareve margarine. The final dish MUST contain zero dairy. Use non-dairy alternatives throughout.]`
+        : rawCravingInput;
 
       // Fix A: Resolve authenticated user from session/token (server-authoritative).
       // Never rely solely on client-sent userId — client may not send it at all.
@@ -3361,7 +3395,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // 🎲 VARIETY ENGINE: Always generate 3 distinct options (Layers 1-4)
-      const { generateCravingMealOptions } = await import("./services/unifiedMealPipeline");
+      const { generateCravingMealOptions, generateSingleCompliantFallback } = await import("./services/unifiedMealPipeline");
 
       const bodyDietRestrictions = dietaryRestrictions
         ? (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean)
@@ -3391,15 +3425,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // combination violations, AND forbidden instruction phrases.
       const cleanOptions = filterMealsByProtocol(mealOptions, protocolEnvelope, {
         generatorName: "craving_creator",
+        skipAdaptableConflicts: dietAdaptOverride === true,
       });
 
       if (cleanOptions.length === 0 && mealOptions.length > 0) {
-        console.log(`⚠️ [ProtocolEnvelope] ALL options violated protocol — returning enforcement error`);
-        return res.status(400).json({
-          error: "AVOIDANCE_VIOLATION_ALL_OPTIONS",
-          message: "All generated options contained ingredients or instructions that conflict with your dietary protocol. Please try a different dish or adjust your craving description.",
-          retryable: true,
-        });
+        console.warn(`⚠️ [ProtocolEnvelope] ALL options violated protocol — attempting emergency compliant fallback`);
+        const fallbackMeal = await generateSingleCompliantFallback(
+          cravingInput || "something delicious",
+          targetMealType || "lunch",
+          protocolEnvelope.dietaryIdentity,
+        );
+        if (fallbackMeal) {
+          console.log(`✅ [ProtocolEnvelope] Emergency fallback succeeded: "${fallbackMeal.name}"`);
+          cleanOptions.push(fallbackMeal);
+        } else {
+          console.error(`❌ [ProtocolEnvelope] Emergency fallback also failed — returning enforcement error`);
+          return res.status(400).json({
+            error: "AVOIDANCE_VIOLATION_ALL_OPTIONS",
+            message: "All generated options contained ingredients or instructions that conflict with your dietary protocol. Please try a different dish or adjust your craving description.",
+            retryable: true,
+          });
+        }
       }
 
       if (cleanOptions.length < mealOptions.length) {
@@ -3410,6 +3456,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Format and optionally scale each option
       const formattedOptions = scannedOptions.map(meal => {
+        const { complianceSection, dietClassification } = buildMealComplianceBundle(
+          meal, protocolEnvelope, { isChefAdapted: dietAdapted }
+        );
         const formatted: any = {
           id: meal.id,
           name: meal.name,
@@ -3424,7 +3473,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
           medicalBadges: meal.medicalBadges || [],
           imageUrl: meal.imageUrl,
-          servingSize: validatedServings > 1 ? `${validatedServings} servings` : "1 serving"
+          servingSize: validatedServings > 1 ? `${validatedServings} servings` : "1 serving",
+          complianceSection,
+          dietClassification,
         };
         if (validatedServings > 1) {
           formatted.nutrition.calories *= validatedServings;

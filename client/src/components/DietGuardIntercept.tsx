@@ -44,8 +44,9 @@ export function DietGuardIntercept({
   const protocolColor = getProtocolColor(alert.diet);
   const iconBgClass = getIconBgClass(alert.diet);
 
-  // For cultural protocols, only show "Let Chef Adapt It" when the conflict is adaptable
-  const showAdaptButton = !isCultural || alert.isAdaptable === true;
+  // Show "Let Chef Adapt It" unless the rule explicitly forbids adaptation.
+  // undefined means adaptable — only isAdaptable: false (hard-blocked rules) hides the button.
+  const showAdaptButton = alert.isAdaptable !== false;
 
   const headingText = isCultural
     ? "Protocol Conflict"
@@ -127,39 +128,33 @@ export function DietGuardIntercept({
 
 interface DietAdaptedNoticeProps {
   diet: string;
+  // Legacy props — accepted for backward compat but no longer used in display
   notice?: string;
   swapDetail?: string;
+  message?: string;
+  onDismiss?: () => void;
   className?: string;
 }
 
 export function DietAdaptedNotice({
   diet,
-  notice,
-  swapDetail,
   className = "",
 }: DietAdaptedNoticeProps) {
   const isCultural = diet === "kosher" || diet === "halal";
-  const iconColor = diet === "kosher" ? "text-blue-400" : diet === "halal" ? "text-teal-400" : "text-green-400";
-
-  const defaultNotice = isCultural
-    ? swapDetail
-      ? `Adapted for your ${diet} protocol — ${swapDetail}`
-      : `Adapted for your ${diet} protocol — ingredients adjusted to comply.`
-    : `Adapted for your ${diet} diet.`;
+  const iconColor = diet === "kosher" ? "text-amber-400" : diet === "halal" ? "text-teal-400" : "text-green-400";
+  const borderColor = diet === "kosher" ? "border-amber-500/30" : diet === "halal" ? "border-teal-500/30" : "border-green-500/30";
 
   return (
-    <div
-      className={`rounded-lg px-3 py-2 bg-neutral-800/60 border border-neutral-700/50 flex items-center gap-2 ${className}`}
+    <span
+      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-neutral-800/70 border ${borderColor} text-xs font-medium whitespace-nowrap ${className}`}
     >
       {isCultural ? (
-        <ShieldAlert className={`h-3.5 w-3.5 ${iconColor} shrink-0`} />
+        <ShieldAlert className={`h-3 w-3 ${iconColor} shrink-0`} />
       ) : (
-        <Leaf className={`h-3.5 w-3.5 ${iconColor} shrink-0`} />
+        <Leaf className={`h-3 w-3 ${iconColor} shrink-0`} />
       )}
-      <p className="text-neutral-400 text-xs">
-        {notice ?? defaultNotice}
-      </p>
-    </div>
+      <span className={iconColor}>Chef Adapted</span>
+    </span>
   );
 }
 
