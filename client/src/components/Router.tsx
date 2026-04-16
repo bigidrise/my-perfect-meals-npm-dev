@@ -147,6 +147,7 @@ import AntiInflammatoryMenuBuilder from "@/pages/physician/AntiInflammatoryMenuB
 // Craving pages
 import ChefsKitchenPage from "@/pages/lifestyle/ChefsKitchenPage";
 import CreateDishPage from "@/pages/lifestyle/CreateDishPage";
+import UltimateExperiencesPage from "@/pages/lifestyle/UltimateExperiencesPage";
 import CravingCreatorLanding from "@/pages/CravingCreatorLanding";
 import CravingDessertCreator from "@/pages/CravingDessertCreator";
 import BeverageCreator from "@/pages/BeverageCreator";
@@ -410,6 +411,7 @@ export default function Router() {
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
         <Route path="/lifestyle/chefs-kitchen" component={withGate(ChefsKitchenPage, 'chefsKitchen')} />
         <Route path="/lifestyle/create-a-dish" component={withGate(CreateDishPage, 'chefsKitchen')} />
+        <Route path="/lifestyle/ultimate-experiences" component={UltimateExperiencesPage} />
         <Route path="/lifestyle/beverage-creator" component={BeverageCreator} />
         <Route path="/lifestyle/chef-pairings" component={ChefPairings} />
         <Route path="/lifestyle/pairings-hub" component={PairingsHub} />
