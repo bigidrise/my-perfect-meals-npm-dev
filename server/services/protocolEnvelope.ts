@@ -1377,9 +1377,11 @@ export function buildMealComplianceBundle(
   });
 
   let dietClassification = buildDietClassification(meal, envelope, { kosherCategory });
+  console.log(`[buildMealComplianceBundle] meal="${meal.name}" primaryIdentity="${primaryIdentity}" kosherCategory="${kosherCategory ?? 'n/a'}" dietClassification=${JSON.stringify(dietClassification)}`);
 
   // ── Validation gate — suppress pill if inconsistency detected ────────────
   if (!validateDietConsistency(meal, dietClassification)) {
+    console.warn(`[buildMealComplianceBundle] SUPPRESSED dietClassification for "${meal.name}" — consistency check failed`);
     dietClassification = null;
   }
 

@@ -912,8 +912,12 @@ function detectKosherCategoryIntent(
   restrictions: string[],
   craving: string,
 ): 'dairy' | 'meat' | 'pareve' | null {
-  const primary = getPrimaryDiet(restrictions);
-  if (primary !== 'kosher' && primary !== 'kosher-halal') return null;
+  // getPrimaryDiet only covers strict diet modes (vegan/keto/paleo/etc) — not religious diets.
+  // Check for kosher directly so "Kosher" (capital K from DB) is not missed.
+  const normalizedRestrictions = (restrictions || []).map(r => r.trim().toLowerCase());
+  const isKosher = normalizedRestrictions.includes('kosher') || normalizedRestrictions.includes('kosher-halal');
+  console.log(`🕍 [detectKosherCategoryIntent] restrictions=${JSON.stringify(restrictions)} isKosher=${isKosher}`);
+  if (!isKosher) return null;
   const lower = craving.toLowerCase();
   const hasDairy = DAIRY_INTENT_TERMS.some(t => lower.includes(t));
   const hasMeat = MEAT_INTENT_TERMS.some(t => lower.includes(t));
