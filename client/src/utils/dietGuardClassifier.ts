@@ -4,6 +4,28 @@ import {
 
 export type SupportedDiet = "vegan" | "vegetarian" | "keto" | "pescatarian" | "kosher" | "halal";
 
+/**
+ * CLIENT-SIDE NORMALIZATION LAYER
+ *
+ * Mirrors server-side normalizeForDietaryScan() in allergyGuardrails.ts.
+ * Must be kept in sync with the server equivalent — any new masking rules
+ * added on the server must also be added here.
+ *
+ * Applied to ALL user input before detectDietConflicts() runs any term matching.
+ * This prevents false positives for vegan-safe compound phrases like:
+ *   - "oat milk", "almond milk", "soy milk", etc.  → masked to __PLANT_MILK__
+ *   - "almond butter", "peanut butter", etc.        → masked to __NUT_BUTTER__
+ */
+const PLANT_MILK_PATTERN = /\b(almond|soy|oat|coconut|cashew|rice|hemp|pea|flax|macadamia|hazelnut|pistachio|walnut|banana|quinoa|sesame|sunflower|tiger nut)[\s-]+milk\b/gi;
+const NUT_BUTTER_PATTERN  = /\b(peanut|almond|cashew|sunflower|apple|pumpkin)[\s-]*butter\b/gi;
+
+function normalizeForDietaryScanClient(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(PLANT_MILK_PATTERN, "__PLANT_MILK__")
+    .replace(NUT_BUTTER_PATTERN,  "__NUT_BUTTER__");
+}
+
 // If user input already signals dietary intent, skip conflict detection
 const INTENT_OVERRIDES = [
   "vegan", "plant-based", "plant based", "vegetarian", "dairy-free", "dairy free",
@@ -179,12 +201,16 @@ export function detectDietConflicts(
   const exclusions = buildExclusionList(diet);
   if (!exclusions) return { hasConflict: false, matchedTerms: [] };
 
+  // Normalize BEFORE any term matching — masks plant milks and nut butters
+  // so compound vegan-safe phrases never trigger bare-term false positives.
+  const normalizedText = normalizeForDietaryScanClient(text);
+
   const matched: string[] = [];
 
   for (const term of exclusions) {
     const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const regex = new RegExp(`\\b${escaped}\\b`, "i");
-    if (regex.test(text)) {
+    if (regex.test(normalizedText)) {
       matched.push(term);
     }
   }
