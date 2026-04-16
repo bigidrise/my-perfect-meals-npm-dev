@@ -457,7 +457,7 @@ export default function ChefsKitchenPage() {
       if (data.dietAdapted) {
         setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet2} diet.`);
         clearDietAlert();
-      } else if (!overrideToken && activeDiet && !mealMatchesDiet(userDiet2, meal)) {
+      } else if (!overrideToken && activeDiet && dietDecision !== "let_chef_adapt" && !mealMatchesDiet(userDiet2, meal)) {
         setGenerationProgress(0);
         setIsGeneratingMeal(false);
         triggerDietAlert([], `This meal may not fully match your ${userDiet2} diet.`);
