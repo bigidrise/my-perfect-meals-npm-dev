@@ -765,6 +765,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`✅ Unified generation complete: source=${result.source}, success=${result.success}`);
 
+      // ── Compliance bundle: attach complianceSection + dietClassification ──
+      // Every meal leaving the server MUST pass through buildMealComplianceBundle.
+      // This matches the exact pattern used in craving-creator and fridge-rescue routes.
+      if (result.success && result.meal) {
+        const envelope = userId
+          ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+          : buildGuestEnvelope();
+        const { complianceSection, dietClassification } = buildMealComplianceBundle(result.meal, envelope);
+        result.meal = { ...result.meal, complianceSection, dietClassification };
+      }
+
       res.json(result);
 
     } catch (error: any) {
