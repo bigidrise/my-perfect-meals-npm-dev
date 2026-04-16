@@ -412,7 +412,18 @@ export default function CreateDishPage() {
 
     const prompt = buildPrompt();
 
-    // 🔐 SafetyGuard pre-flight — blocks allergic ingredients before any API call
+    // 🥗 DietGuard pre-flight — cultural/dietary identity gets highest priority.
+    // Must run BEFORE SafetyGuard so protocol conflicts (halal/kosher/vegan)
+    // show the Protocol Conflict modal instead of the generic safety banner.
+    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
+      const dietOk = checkDiet(prompt);
+      if (!dietOk) {
+        return;
+      }
+    }
+
+    // 🔐 SafetyGuard pre-flight — allergy/intolerance check (runs after diet so
+    // cultural protocol conflicts are never shadowed by the safety banner).
     if (!skipPreflight && !hasActiveOverride) {
       const isSafe = await checkSafety(prompt, "create-dish");
       if (!isSafe) {
@@ -423,13 +434,6 @@ export default function CreateDishPage() {
     if (!skipPreflight && starchDecision !== "let_chef_pick") {
       const starchOk = checkStarch(prompt);
       if (!starchOk) {
-        return;
-      }
-    }
-
-    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
-      const dietOk = checkDiet(prompt);
-      if (!dietOk) {
         return;
       }
     }
