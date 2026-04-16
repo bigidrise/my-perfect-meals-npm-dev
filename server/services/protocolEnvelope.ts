@@ -40,7 +40,9 @@ import {
   AVOIDANCE_EXPANSION,
   RESTRICTION_EXPANSION,
   scanForHiddenDietaryViolations,
+  classifyKosherMealCategory,
   type HiddenViolation,
+  type KosherCategory,
 } from "./allergyGuardrails";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -919,4 +921,206 @@ export function filterMealsByProtocol<T extends {
     const result = scanGeneratedOutput(meal, envelope, context);
     return result.passed;
   });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPLIANCE SECTION BUILDER — Phase 3
+// Generates the user-facing compliance surface for every meal card.
+// Called AFTER scanGeneratedOutput passes. No AI calls — pure rule logic.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface MealComplianceSection {
+  /** Short label shown at the top of the compliance panel.
+   * Examples: "Kosher ✓ (Meat)", "Vegan ✓", "Halal ✓", "Keto ✓ (~12g net carbs)" */
+  statusLabel: string;
+
+  /** One dish-specific sentence explaining WHY this meal complies. */
+  whyThisComplies: string;
+
+  /** Actionable preparation checklist sourced from PROTOCOL_PROCEDURE_MAP. */
+  prepRules: string[];
+
+  /** What to pair (and what NOT to pair) with this meal based on its protocol. */
+  pairingGuidance: string[];
+}
+
+/** Pairing guidance per protocol + kosher sub-category */
+const PAIRING_GUIDANCE_MAP: Record<string, string[]> = {
+  "kosher-meat": [
+    "Serve with pareve or meat-designated sides only",
+    "Avoid dairy desserts — choose pareve desserts or fresh fruit",
+    "Do not serve dairy beverages with or immediately after this meal",
+    "Wait the halachically required time before eating dairy after this meat dish",
+  ],
+  "kosher-dairy": [
+    "Serve with dairy-compatible sides only",
+    "Do not serve meat dishes at the same meal",
+    "Choose dairy or pareve desserts to follow this dish",
+  ],
+  "kosher-pareve": [
+    "This pareve dish can be served with either meat or dairy meals",
+    "Use pareve utensils to maintain full flexibility",
+    "Avoid adding meat or dairy to this dish to preserve its pareve status",
+  ],
+  halal: [
+    "Avoid alcohol-based beverages — serve water, juice, or halal-certified drinks",
+    "Pair only with halal-certified meat dishes for additional protein",
+    "Avoid pork-based side dishes, condiments, or sauces",
+  ],
+  vegan: [
+    "All pairings must remain entirely plant-based",
+    "Use plant-based sauces, dressings, and condiments only",
+    "Avoid honey-based dressings or animal-derived garnishes",
+  ],
+  vegetarian: [
+    "Avoid meat-based sides, sauces, and broths",
+    "Use vegetable broth in any additional dishes",
+    "Dairy and egg-based sides are permitted",
+  ],
+  pescatarian: [
+    "Pair with seafood-based or plant-based sides",
+    "Avoid meat or poultry-based accompaniments",
+    "Vegetable broths and seafood stocks are appropriate",
+  ],
+  keto: [
+    "Keep all side dishes low-carb (under 5g net carbs per serving)",
+    "Avoid starchy sides, bread, or grain-based accompaniments",
+    "Maintain the stated serving size to stay within daily carb targets",
+  ],
+  paleo: [
+    "Pair with vegetables, fruits, nuts, and seeds",
+    "Avoid grains, dairy, and legume-based sides",
+    "Use olive oil, avocado oil, or coconut oil for any additional cooking",
+  ],
+  "gluten-free": [
+    "Ensure all paired items are certified gluten-free",
+    "Use gluten-free sauces, soy sauce alternatives (tamari or coconut aminos), and condiments",
+    "Avoid shared cooking surfaces with gluten-containing products",
+  ],
+};
+
+/** Build a dish-specific "why this complies" sentence */
+function buildWhyThisComplies(
+  mealName: string,
+  primaryIdentity: string,
+  kosherCategory?: KosherCategory,
+): string {
+  const name = mealName || "This dish";
+
+  switch (primaryIdentity) {
+    case "kosher":
+      if (kosherCategory === "meat") {
+        return `${name} is a fleishig (meat) dish. No dairy ingredients are present. Any cream or creamy elements use pareve alternatives (cashew cream, coconut cream, or olive oil).`;
+      }
+      if (kosherCategory === "dairy") {
+        return `${name} is a milchig (dairy) dish. No meat or poultry ingredients are present. Dairy components are used throughout.`;
+      }
+      return `${name} is pareve — it contains neither meat nor dairy, making it compatible with both meat and dairy meals when prepared with appropriate utensils.`;
+
+    case "halal":
+      return `${name} contains no pork, alcohol, or blood products. All meat components should be sourced from halal-certified suppliers. No alcohol-based sauces, extracts, or marinades are used.`;
+
+    case "vegan":
+      return `${name} is entirely plant-based. No animal products, derivatives, or hidden animal-based ingredients (broth, gelatin, honey) are present.`;
+
+    case "vegetarian":
+      return `${name} contains no meat, poultry, or seafood. Any broths or stocks used are vegetable-based. Dairy and eggs may be present.`;
+
+    case "pescatarian":
+      return `${name} contains no land meat or poultry. Seafood and plant-based ingredients are used. Vegetable or seafood broths replace meat stocks.`;
+
+    case "keto":
+      return `${name} is low-carbohydrate and fits standard keto targets. It prioritizes protein and healthy fats. Avoid adding any high-carb sauces, thickeners, or accompaniments.`;
+
+    case "paleo":
+      return `${name} uses only whole-food ingredients in line with paleo principles — no grains, dairy, legumes, or refined sweeteners. Fats come from whole-food sources.`;
+
+    case "gluten-free":
+      return `${name} contains no gluten-bearing grains (wheat, barley, rye, spelt). All thickeners and sauces are gluten-free. Use certified gluten-free ingredients when preparing this dish.`;
+
+    default:
+      return `${name} has been generated in compliance with your dietary protocol. All ingredients and preparation steps meet your protocol requirements.`;
+  }
+}
+
+/**
+ * Build the compliance section for a generated meal.
+ *
+ * Call this AFTER scanGeneratedOutput passes (meal is clean).
+ * Attach the result to the meal object before returning it to the client.
+ *
+ * Returns null if no dietary identity is active (open generation).
+ */
+export function buildComplianceSection(
+  meal: {
+    name?: string;
+    description?: string;
+    ingredients?: Array<{ name?: string; item?: string } | string>;
+    instructions?: string | string[];
+  },
+  envelope: UserProtocolEnvelope,
+  options?: { isChefAdapted?: boolean },
+): MealComplianceSection | null {
+  if (envelope.dietaryIdentity.length === 0) return null;
+
+  const primaryIdentity = envelope.dietaryIdentity[0].trim().toLowerCase();
+  const mealText = extractMealTextForScan(meal);
+  const mealName = meal.name || "This dish";
+
+  // ── Kosher category classification ───────────────────────────────────────
+  let kosherCategory: KosherCategory | undefined;
+  if (primaryIdentity === "kosher" || primaryIdentity === "kosher-halal") {
+    kosherCategory = classifyKosherMealCategory(mealText);
+  }
+
+  // ── Status label ─────────────────────────────────────────────────────────
+  let statusLabel: string;
+  if (primaryIdentity === "kosher") {
+    const cat = kosherCategory === "meat" ? "Meat" : kosherCategory === "dairy" ? "Dairy" : "Pareve";
+    statusLabel = `Kosher ✓ (${cat})`;
+  } else if (primaryIdentity === "kosher-halal") {
+    const cat = kosherCategory === "meat" ? "Meat" : kosherCategory === "dairy" ? "Dairy" : "Pareve";
+    statusLabel = `Kosher-Halal ✓ (${cat})`;
+  } else if (primaryIdentity === "halal") {
+    statusLabel = "Halal ✓";
+  } else if (primaryIdentity === "vegan") {
+    statusLabel = "Vegan ✓";
+  } else if (primaryIdentity === "vegetarian") {
+    statusLabel = "Vegetarian ✓";
+  } else if (primaryIdentity === "pescatarian") {
+    statusLabel = "Pescatarian ✓";
+  } else if (primaryIdentity === "keto") {
+    statusLabel = "Keto ✓";
+  } else if (primaryIdentity === "paleo") {
+    statusLabel = "Paleo ✓";
+  } else if (primaryIdentity === "gluten-free") {
+    statusLabel = "Gluten-Free ✓";
+  } else {
+    statusLabel = `${envelope.dietaryIdentity[0]} ✓`;
+  }
+
+  if (options?.isChefAdapted) {
+    statusLabel += " (Chef Adapted)";
+  }
+
+  // ── Why this complies ─────────────────────────────────────────────────────
+  const whyThisComplies = buildWhyThisComplies(mealName, primaryIdentity, kosherCategory);
+
+  // ── Prep rules from PROTOCOL_PROCEDURE_MAP ────────────────────────────────
+  const procedural = envelope.procedural;
+  const prepRules = procedural.preparationRules.slice(0, 6);
+
+  // ── Pairing guidance ──────────────────────────────────────────────────────
+  let pairingKey = primaryIdentity;
+  if (primaryIdentity === "kosher" || primaryIdentity === "kosher-halal") {
+    pairingKey = `kosher-${kosherCategory ?? "pareve"}`;
+  }
+  const pairingGuidance = PAIRING_GUIDANCE_MAP[pairingKey] || [];
+
+  return {
+    statusLabel,
+    whyThisComplies,
+    prepRules,
+    pairingGuidance,
+  };
 }

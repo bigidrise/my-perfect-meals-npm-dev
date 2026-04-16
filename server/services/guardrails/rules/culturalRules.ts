@@ -191,9 +191,10 @@ export const CULTURAL_RULES: RelationshipRule[] = [
     when: {
       anyIngredient: [
         "wine", "red wine", "white wine", "beer", "ale", "lager", "stout",
-        "vodka", "rum", "whiskey", "bourbon", "brandy", "sake", "mirin",
+        "vodka", "rum", "whiskey", "bourbon", "brandy", "cognac", "sake", "mirin",
         "wine sauce", "beer batter", "marsala", "champagne", "prosecco",
         "cooking wine", "white wine sauce", "red wine reduction",
+        "vanilla extract",
       ],
     },
     effect: {

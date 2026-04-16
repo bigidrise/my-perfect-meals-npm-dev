@@ -8,7 +8,7 @@ import { eq } from "drizzle-orm";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
 import { buildPalateSection, PalatePreferences } from "../services/promptBuilder";
 import { resolveDietCategoryStrategy, type DietCategoryStrategy } from "../services/allergyGuardrails";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope } from "../services/protocolEnvelope";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope, buildComplianceSection } from "../services/protocolEnvelope";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -408,6 +408,7 @@ INCORRECT (NEVER DO THIS):
       imageUrl,
       medicalBadges,
       ...(dietAdapted && { dietAdapted: true, dietNotice }),
+      complianceSection: buildComplianceSection(meal, beverageEnvelope, { isChefAdapted: dietAdapted }),
       ...(dietCategoryStrategy.conflictLevel !== 'none' && {
         dietCategoryConflict: dietCategoryStrategy.conflictLevel,
         requestedCategory: dietCategoryStrategy.requestedCategory,
