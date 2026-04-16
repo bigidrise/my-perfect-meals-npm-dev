@@ -1225,31 +1225,33 @@ export default function CravingCreator() {
                     className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl rounded 2xl"
                   >
                     <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <Sparkles className="h-6 w-6 text-yellow-600" />
-                          <h3 className="text-xl font-bold text-white">
+                      <div className="mb-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Sparkles className="h-5 w-5 text-yellow-600 shrink-0" />
+                          <h3 className="text-xl font-bold text-white truncate leading-tight">
                             {meal.name}
                           </h3>
+                        </div>
+                        <div className="flex items-center justify-between">
                           <FavoriteButton
                             title={meal.name}
                             sourceType="craving-creator"
                             mealData={meal}
                           />
+                          <button
+                            onClick={() => {
+                              setGeneratedMeals([]);
+                              clearCravingCache();
+                              setCravingInput("");
+                              setSubstitutedStarchTerms([]);
+                              clearStarchAlert();
+                            }}
+                            className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
+                            data-testid="button-create-new"
+                          >
+                            Create New
+                          </button>
                         </div>
-                        <button
-                          onClick={() => {
-                            setGeneratedMeals([]);
-                            clearCravingCache();
-                            setCravingInput("");
-                            setSubstitutedStarchTerms([]);
-                            clearStarchAlert();
-                          }}
-                          className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
-                          data-testid="button-create-new"
-                        >
-                          Create New
-                        </button>
                       </div>
 
                       {/* Starch Substitution Notice (when Chef picked alternatives) */}
