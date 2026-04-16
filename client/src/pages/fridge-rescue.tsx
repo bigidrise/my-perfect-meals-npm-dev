@@ -376,7 +376,7 @@ const FridgeRescuePage = () => {
     setProgress(100); // Complete progress
   };
 
-  const handleGenerateMeals = async (skipPreflight = false) => {
+  const handleGenerateMeals = async (skipPreflight = false, dietAdaptOverride = false) => {
     setDietAdaptedNotice(null);
     // Dispatch "interacted" event
     const interactedEvent = new CustomEvent("walkthrough:event", {
@@ -427,7 +427,7 @@ const FridgeRescuePage = () => {
           overrideToken: hasActiveOverride ? overrideToken : undefined,
           skipPalate: !flavorPersonal,
           strictMode: keepItSimple,
-          dietAdaptOverride: dietDecision === "let_chef_adapt",
+          dietAdaptOverride,
         }),
       });
 
@@ -849,7 +849,7 @@ const FridgeRescuePage = () => {
                       setShowResults(false);
                     } else if (decision === "let_chef_adapt") {
                       setDietDecision("let_chef_adapt");
-                      handleGenerateMeals(true);
+                      handleGenerateMeals(true, true);
                     }
                   }}
                   className="mt-3"

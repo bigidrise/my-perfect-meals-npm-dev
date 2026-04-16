@@ -364,7 +364,7 @@ export default function ChefsKitchenPage() {
 
   // Unified execution function — reads live state, same contract as CreateWithChefModal.
   // Called from startOpenKitchen on first attempt, and from the retry useEffect after override.
-  const executeGeneration = async () => {
+  const executeGeneration = async (dietAdaptOverride = false) => {
     const chefPromptParts = [`Create with Chef: ${dishIdea}`];
     if (cookMethod) chefPromptParts.push(`Cooking method: ${cookMethod}`);
     if (ingredientNotes) chefPromptParts.push(`Preferences: ${ingredientNotes}`);
@@ -395,7 +395,7 @@ export default function ChefsKitchenPage() {
           excludeMeals: getRecentMealsChef(),
           safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: overrideToken || undefined,
-          dietAdaptOverride: dietDecision === "let_chef_adapt",
+          dietAdaptOverride,
         }),
       });
 
@@ -519,7 +519,7 @@ export default function ChefsKitchenPage() {
   };
 
   // Entry point from UI — runs preflights then executes generation.
-  const startOpenKitchen = async () => {
+  const startOpenKitchen = async (skipDietCheck = false, dietAdaptOverride = false) => {
     if (!dishIdea.trim()) {
       toast({
         title: "Tell us what you want to make",
@@ -537,13 +537,13 @@ export default function ChefsKitchenPage() {
       if (!isSafe) return;
     }
 
-    if (activeDiet && dietDecision !== "let_chef_adapt") {
+    if (activeDiet && !skipDietCheck) {
       const requestText = `${dishIdea} ${cookMethod} ${ingredientNotes}`.trim();
       const dietOk = checkDiet(requestText);
       if (!dietOk) return;
     }
 
-    await executeGeneration();
+    await executeGeneration(dietAdaptOverride);
   };
 
   return (
@@ -709,7 +709,7 @@ export default function ChefsKitchenPage() {
                         clearDietAlert();
                       } else if (decision === "let_chef_adapt") {
                         setDietDecision("let_chef_adapt");
-                        startOpenKitchen(true);
+                        startOpenKitchen(true, true);
                       }
                     }}
                   />
@@ -873,7 +873,7 @@ export default function ChefsKitchenPage() {
                         setMealOptions([]);
                       } else if (decision === "let_chef_adapt") {
                         setDietDecision("let_chef_adapt");
-                        startOpenKitchen(true);
+                        startOpenKitchen(true, true);
                       }
                     }}
                     className="mt-3"
