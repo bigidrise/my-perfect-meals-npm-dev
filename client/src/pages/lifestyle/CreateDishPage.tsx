@@ -54,6 +54,7 @@ import PhaseGate from "@/components/PhaseGate";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import MealClassificationPill from "@/components/MealClassificationPill";
+import KosherProTip from "@/components/KosherProTip";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 
 interface StructuredIngredient {
@@ -905,6 +906,10 @@ export default function CreateDishPage() {
                             diet={normalizeDiet(user?.dietaryRestrictions)}
                           />
                         )}
+                        <KosherProTip
+                          dietClassification={meal.dietClassification}
+                          isAdapted={!!dietAdaptedNotice}
+                        />
                       </div>
 
                       <p className="text-white/90 mb-4">{meal.description}</p>

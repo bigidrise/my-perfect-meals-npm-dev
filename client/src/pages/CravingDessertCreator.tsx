@@ -39,6 +39,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import MealClassificationPill from "@/components/MealClassificationPill";
+import KosherProTip from "@/components/KosherProTip";
 import {
   DietGuardIntercept,
   DietAdaptedNotice,
@@ -827,18 +828,18 @@ export default function DessertCreator() {
                     </button>
                   </div>
 
-                  {/* Diet Adapted Notice (soft chip when AI adapted for dietary preference) */}
-                  {dietAdaptedNotice && (
-                    <DietAdaptedNotice
-                      diet={normalizeDiet(user?.dietaryRestrictions)}
-                      notice={dietAdaptedNotice}
-                      className="mb-4"
-                    />
-                  )}
-
                   <div className="flex flex-wrap items-center gap-2 mb-3">
                     <DietStyleBadge />
                     <MealClassificationPill dietClassification={generatedDessert.dietClassification} />
+                    {dietAdaptedNotice && (
+                      <DietAdaptedNotice
+                        diet={normalizeDiet(user?.dietaryRestrictions)}
+                      />
+                    )}
+                    <KosherProTip
+                      dietClassification={generatedDessert.dietClassification}
+                      isAdapted={!!dietAdaptedNotice}
+                    />
                   </div>
 
                   <p className="text-white/90 mb-4">
