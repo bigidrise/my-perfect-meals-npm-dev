@@ -142,6 +142,12 @@ export const CULTURAL_RULES: RelationshipRule[] = [
         // Cream/butter-based pasta with meat — classic kosher meat+dairy conflict
         "beef alfredo", "chicken alfredo with cream", "steak alfredo",
         "meat in cream sauce", "beef in cream sauce",
+        // Creamy meat dishes — dairy + meat combination
+        "creamy beef", "creamy chicken", "creamy lamb", "creamy turkey",
+        "creamy steak", "creamy brisket", "creamy veal", "creamy meat",
+        "beef stroganoff", "chicken stroganoff", "beef with cream",
+        "chicken with cream", "meat with cream sauce", "beef in cream",
+        "creamy pot roast", "creamy beef stew", "creamy chicken stew",
       ],
     },
     effect: {
@@ -325,7 +331,13 @@ export function evaluateRelationshipRules(
     if (rule.kind === "ingredient_pair_conflict") {
       const groups = rule.when.allIngredients || [];
       if (groups.includes("meat") && groups.includes("dairy")) {
-        const { hasMeat, hasDairy } = extractMeatDairyPresence(ingredients);
+        // At pre-flight time ingredients[] is empty — fall back to scanning
+        // the raw input text and dish name so the conflict is caught immediately
+        // rather than after 30+ seconds of generation.
+        const textSources = ingredients.length > 0
+          ? ingredients
+          : [inputText, dishName].filter(Boolean);
+        const { hasMeat, hasDairy } = extractMeatDairyPresence(textSources);
         if (hasMeat && hasDairy) {
           matched = "meat + dairy combination";
         }
