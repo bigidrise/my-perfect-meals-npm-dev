@@ -8,7 +8,7 @@ import { eq } from "drizzle-orm";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
 import { buildPalateSection, PalatePreferences } from "../services/promptBuilder";
 import { resolveDietCategoryStrategy, type DietCategoryStrategy } from "../services/allergyGuardrails";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope, buildComplianceSection } from "../services/protocolEnvelope";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope, buildMealComplianceBundle } from "../services/protocolEnvelope";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -403,12 +403,15 @@ INCORRECT (NEVER DO THIS):
     }
 
     if (isDev) console.log("[BEVERAGE] Sending response...");
+    const { complianceSection: bevCompliance, dietClassification: bevDietClass } =
+      buildMealComplianceBundle(meal, beverageEnvelope, { isChefAdapted: dietAdapted });
     return res.json({
       ...meal,
       imageUrl,
       medicalBadges,
       ...(dietAdapted && { dietAdapted: true, dietNotice }),
-      complianceSection: buildComplianceSection(meal, beverageEnvelope, { isChefAdapted: dietAdapted }),
+      complianceSection: bevCompliance,
+      dietClassification: bevDietClass,
       ...(dietCategoryStrategy.conflictLevel !== 'none' && {
         dietCategoryConflict: dietCategoryStrategy.conflictLevel,
         requestedCategory: dietCategoryStrategy.requestedCategory,

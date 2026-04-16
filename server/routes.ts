@@ -28,7 +28,7 @@ import { generateCravingMealWithProfile } from "./services/generators/cravingCre
 import { enforceSafetyProfile } from "./services/safetyProfileService";
 import { runEnforcement, toRouteResponse } from "./services/enforcementGateway";
 import { scanForHiddenDietaryViolations, AVOIDANCE_EXPANSION } from "./services/allergyGuardrails";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol, buildGuestEnvelope, scanGeneratedOutput, buildComplianceSection } from "./services/protocolEnvelope";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol, buildGuestEnvelope, scanGeneratedOutput, buildComplianceSection, buildMealComplianceBundle } from "./services/protocolEnvelope";
 import { 
   hasUserSetPin, 
   setUserPin, 
@@ -939,10 +939,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       recordGeneration('/api/meals/fridge-rescue', 'ai', durationMs);
 
       console.log("[FRIDGE] ok returning", cleanFridgeMeals.length, "meals");
-      const fridgeMealsWithCompliance = cleanFridgeMeals.map(meal => ({
-        ...meal,
-        complianceSection: buildComplianceSection(meal, fridgeProtocolEnvelope, {}),
-      }));
+      const fridgeMealsWithCompliance = cleanFridgeMeals.map(meal => {
+        const { complianceSection, dietClassification } = buildMealComplianceBundle(
+          meal, fridgeProtocolEnvelope
+        );
+        return { ...meal, complianceSection, dietClassification };
+      });
       res.json({
         meals: fridgeMealsWithCompliance,
         quota: {
@@ -3422,6 +3424,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Format and optionally scale each option
       const formattedOptions = scannedOptions.map(meal => {
+        const { complianceSection, dietClassification } = buildMealComplianceBundle(
+          meal, protocolEnvelope, { isChefAdapted: dietAdapted }
+        );
         const formatted: any = {
           id: meal.id,
           name: meal.name,
@@ -3437,7 +3442,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           medicalBadges: meal.medicalBadges || [],
           imageUrl: meal.imageUrl,
           servingSize: validatedServings > 1 ? `${validatedServings} servings` : "1 serving",
-          complianceSection: buildComplianceSection(meal, protocolEnvelope, { isChefAdapted: dietAdapted }),
+          complianceSection,
+          dietClassification,
         };
         if (validatedServings > 1) {
           formatted.nutrition.calories *= validatedServings;

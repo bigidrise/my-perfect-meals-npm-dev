@@ -11,7 +11,7 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
 import { buildPalateSection, PalatePreferences, buildStrictModeBlock } from "../services/promptBuilder";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope, buildComplianceSection } from "../services/protocolEnvelope";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope, buildMealComplianceBundle } from "../services/protocolEnvelope";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -412,12 +412,15 @@ INCORRECT (NEVER DO THIS):
     }
 
     if (isDev) console.log("[DESSERT] Sending response...");
+    const { complianceSection: dessertCompliance, dietClassification: dessertDietClass } =
+      buildMealComplianceBundle(meal, dessertEnvelope, { isChefAdapted: dietAdapted });
     return res.json({
       ...meal,
       imageUrl,
       medicalBadges,
       ...(dietAdapted && { dietAdapted: true, dietNotice }),
-      complianceSection: buildComplianceSection(meal, dessertEnvelope, { isChefAdapted: dietAdapted }),
+      complianceSection: dessertCompliance,
+      dietClassification: dessertDietClass,
       meta: {
         userId: userId ?? "1",
         dessertCategory,
