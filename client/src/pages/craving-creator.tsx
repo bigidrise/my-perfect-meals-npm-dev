@@ -62,6 +62,7 @@ import PhaseGate from "@/components/PhaseGate";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import DietStyleBadge from "@/components/DietStyleBadge";
+import MealClassificationPill from "@/components/MealClassificationPill";
 import ThinkingDots from "@/components/ThinkingDots";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
@@ -117,6 +118,7 @@ interface MealData {
   }>;
   imageUrl?: string;
   dietaryComplianceVerified?: boolean;
+  dietClassification?: import("@/components/MealClassificationPill").DietClassification | null;
 }
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { setQuickView } from "@/lib/macrosQuickView";
@@ -1272,8 +1274,9 @@ export default function CravingCreator() {
                         />
                       )}
 
-                      <div className="mb-3">
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
                         <DietStyleBadge />
+                        <MealClassificationPill dietClassification={meal.dietClassification} />
                       </div>
 
                       <p className="text-white/90 mb-4">{meal.description}</p>
