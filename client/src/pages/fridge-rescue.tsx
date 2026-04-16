@@ -980,10 +980,6 @@ const FridgeRescuePage = () => {
                 />
               )}
 
-              <div className="mb-4">
-                <DietStyleBadge />
-              </div>
-
               <div className="grid grid-cols-1 gap-6 mb-8 max-w-2xl mx-auto">
                 {meals.map((meal, index) => (
                   <Card
@@ -1033,10 +1029,13 @@ const FridgeRescuePage = () => {
                           mealData={meal}
                         />
                       </div>
-                      <CardDescription className="text-sm text-white/80">
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <DietStyleBadge />
+                        <MealClassificationPill dietClassification={meal.dietClassification} />
+                      </div>
+                      <CardDescription className="text-sm text-white/80 mt-2">
                         {meal.description}
                       </CardDescription>
-                      <MealClassificationPill dietClassification={meal.dietClassification} />
                     </CardHeader>
 
                     <CardContent className="space-y-4 flex-1 flex flex-col">
