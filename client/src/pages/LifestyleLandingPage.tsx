@@ -36,6 +36,14 @@ export default function LifestyleLandingPage() {
 
   const lifestyleFeatures: AIFeature[] = [
     {
+      title: "Ultimate Experiences 🔒",
+      description: "Plan full holiday feasts, camping meals, and cookouts — fully coordinated, multi-course, diet-aware.",
+      icon: Sparkles,
+      route: "/lifestyle/ultimate-experiences",
+      gradient: "from-amber-500/20 to-yellow-600/20",
+      testId: "card-ultimate-experiences",
+    },
+    {
       title: "Create a Dish",
       description:
         "Tell Chef what you want to cook. Get a complete recipe with macros, ingredients, and instructions.",
@@ -138,6 +146,8 @@ export default function LifestyleLandingPage() {
           <div className="flex flex-col gap-3">
             {lifestyleFeatures.map((feature) => {
               const Icon = feature.icon;
+              const isUltimateExperiences =
+                feature.route === "/lifestyle/ultimate-experiences";
               const isCreateDish =
                 feature.route === "/lifestyle/create-a-dish";
               const isCravingCreator =
@@ -146,6 +156,15 @@ export default function LifestyleLandingPage() {
               return (
                 <div key={feature.testId} className="relative">
                   {/* Glow effects */}
+                  {isUltimateExperiences && (
+                    <div
+                      className="pointer-events-none absolute -inset-1 rounded-xl blur-lg opacity-90"
+                      style={{
+                        background:
+                          "radial-gradient(130% 130% at 50% 0%, rgba(245,158,11,0.9), rgba(234,179,8,0.5), rgba(0,0,0,0))",
+                      }}
+                    />
+                  )}
                   {isCreateDish && (
                     <div
                       className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-80"
@@ -167,7 +186,9 @@ export default function LifestyleLandingPage() {
 
                   <Card
                     className={`relative rounded-xl shadow-md overflow-hidden transition cursor-pointer active:scale-95 hover:scale-[1.02] ${
-                      isCreateDish
+                      isUltimateExperiences
+                        ? "bg-gradient-to-r from-black via-amber-950/50 to-black backdrop-blur-lg border border-amber-400/50 hover:shadow-[0_0_40px_rgba(245,158,11,0.5)] hover:border-amber-400/70"
+                        : isCreateDish
                         ? "bg-gradient-to-r from-black via-orange-950/40 to-black backdrop-blur-lg border border-orange-400/30 hover:shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:border-orange-500/50"
                         : isCravingCreator
                           ? "bg-black/30 backdrop-blur-lg border border-pink-400/30"
@@ -183,6 +204,12 @@ export default function LifestyleLandingPage() {
                     data-testid={feature.testId}
                   >
                     {/* Badges */}
+                    {isUltimateExperiences && (
+                      <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-amber-600 to-black rounded-full border border-amber-400/40 shadow-lg z-10">
+                        <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" />
+                        <span className="text-amber-200 font-semibold text-[8px] tracking-wide">✨ Premium Feature</span>
+                      </div>
+                    )}
                     {isCreateDish && (
                       <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-orange-600 to-black rounded-full border border-orange-400/30 shadow-lg z-10">
                         <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse" />
@@ -204,8 +231,8 @@ export default function LifestyleLandingPage() {
                     <CardContent className="p-3">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
-                          <Icon className={`h-4 w-4 ${isFree && !feature.freeAccess ? "text-orange-500/50" : "text-orange-500"}`} />
-                          <h3 className={`text-sm font-semibold ${isFree && !feature.freeAccess ? "text-white/50" : "text-white"}`}>
+                          <Icon className={`h-4 w-4 ${isUltimateExperiences ? "text-amber-400" : isFree && !feature.freeAccess ? "text-orange-500/50" : "text-orange-500"}`} />
+                          <h3 className={`text-sm font-semibold ${isUltimateExperiences ? "text-amber-200" : isFree && !feature.freeAccess ? "text-white/50" : "text-white"}`}>
                             {feature.title}
                           </h3>
                           {isFree && !feature.freeAccess && (

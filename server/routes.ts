@@ -6286,5 +6286,99 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     }
   }
 
+  // ── Ultimate Experiences: multi-course situational meal generation ──────────
+  app.post("/api/experiences/generate", async (req, res) => {
+    const startTime = Date.now();
+    try {
+      const { situation, eventType, courseCount, servingSize, userId } = req.body;
+
+      if (!situation || !courseCount) {
+        return res.status(400).json({ success: false, error: "situation and courseCount are required" });
+      }
+
+      const courseMap: Record<number, string[]> = {
+        3: ["appetizer", "main", "dessert"],
+        4: ["appetizer", "main", "side", "dessert"],
+        5: ["appetizer", "soup", "main", "side", "dessert"],
+      };
+      const coursePositions: string[] = courseMap[courseCount] ?? courseMap[3];
+
+      const envelope = userId
+        ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+        : buildGuestEnvelope();
+
+      const { generateMealUnified } = await import("./services/unifiedMealPipeline");
+
+      const situationGuardrails: Record<string, string> = {
+        holidays: "Dishes must be celebratory, multi-serving, traditional, and culturally appropriate for the event. Rich, festive flavor profiles.",
+        camping: "Dishes must require minimal equipment, be portable, require low refrigeration, and be easy to prepare outdoors over a fire or single burner.",
+        tailgating: "Dishes must be shareable, easy to serve in a group setting, finger-food friendly where possible, bold and simple flavors.",
+      };
+
+      const courseToMealType: Record<string, string> = {
+        appetizer: "lunch", soup: "lunch", main: "dinner", side: "lunch", dessert: "snack",
+      };
+
+      const eventLabel = eventType ? ` (${eventType})` : "";
+      const situationLabel = situation.charAt(0).toUpperCase() + situation.slice(1);
+      const guardrail = situationGuardrails[situation.toLowerCase()] ?? "";
+
+      const generatedCourses: Array<{ position: string; meal: any }> = [];
+
+      for (const position of coursePositions) {
+        const posLabel = position.charAt(0).toUpperCase() + position.slice(1);
+        const input = `You are generating a cohesive multi-course meal experience.
+
+Situation: ${situationLabel}${eventLabel}
+Course: ${posLabel} (${coursePositions.indexOf(position) + 1} of ${coursePositions.length})
+Serving size: ${servingSize} people
+
+Requirements:
+- This is the ${posLabel} course of a full ${situationLabel}${eventLabel} meal experience
+- All dishes in this meal share the same theme and flavor profile — this ${posLabel} must feel like part of the same table
+- Portions and quantities must be sized for ${servingSize} people
+- Do NOT generate a random standalone meal — it must fit the ${situationLabel} experience
+- ${guardrail}
+
+Generate a ${posLabel} dish for ${servingSize} people that fits this experience.`;
+
+        const result = await generateMealUnified({
+          type: "create-with-chef",
+          mealType: courseToMealType[position] ?? "lunch",
+          input,
+          userId,
+          count: 1,
+          safetyAlreadyChecked: false,
+        });
+
+        if (result.success) {
+          const sourceMeal = result.meal ?? result.meals?.[0];
+          if (sourceMeal) {
+            const { complianceSection, dietClassification } = buildMealComplianceBundle(sourceMeal, envelope);
+            generatedCourses.push({
+              position,
+              meal: { ...sourceMeal, complianceSection, dietClassification },
+            });
+          }
+        } else {
+          console.warn(`[Ultimate Experiences] Course "${position}" failed: ${result.error}`);
+        }
+      }
+
+      console.log(`✅ [Ultimate Experiences] Generated ${generatedCourses.length}/${coursePositions.length} courses in ${Date.now() - startTime}ms`);
+
+      return res.json({
+        success: true,
+        situation,
+        eventType: eventType ?? null,
+        servingSize,
+        courses: generatedCourses,
+      });
+    } catch (error: any) {
+      console.error("[Ultimate Experiences] Error:", error);
+      return res.status(500).json({ success: false, error: "Failed to generate experience" });
+    }
+  });
+
   return httpServer;
 }
