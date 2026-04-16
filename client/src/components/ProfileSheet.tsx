@@ -423,10 +423,10 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
           {/* App Version — web shows update awareness, native shows quiet date only */}
           <div className="mt-3 flex items-center justify-between gap-2">
-            <span className="text-[11px] text-white/40 font-medium">App version</span>
+            <span className="text-[11px] text-green-400 font-semibold">App version</span>
             {isNative ? (
-              <span className="text-red-500 text-2xl font-bold">
-                TEST VERSION LIVE
+              <span className="text-[10px] text-white/40">
+                Updated {currentVersionLabel}
               </span>
             ) : hasUpdate ? (
               <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-500/20 border border-amber-500/40 text-amber-300">
