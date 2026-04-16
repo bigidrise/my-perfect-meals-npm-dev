@@ -768,12 +768,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // ── Compliance bundle: attach complianceSection + dietClassification ──
       // Every meal leaving the server MUST pass through buildMealComplianceBundle.
       // This matches the exact pattern used in craving-creator and fridge-rescue routes.
-      if (result.success && result.meal) {
+      // NOTE: pipeline returns BOTH result.meal and result.meals[0] — patch both so all
+      // consumers (hook reads meals[0], other readers use meal) get the classification.
+      if (result.success && (result.meal || result.meals?.length)) {
         const envelope = userId
           ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
           : buildGuestEnvelope();
-        const { complianceSection, dietClassification } = buildMealComplianceBundle(result.meal, envelope);
-        result.meal = { ...result.meal, complianceSection, dietClassification };
+        if (result.meal) {
+          const { complianceSection, dietClassification } = buildMealComplianceBundle(result.meal, envelope);
+          result.meal = { ...result.meal, complianceSection, dietClassification };
+        }
+        if (result.meals?.length) {
+          result.meals = result.meals.map((m: any) => {
+            const { complianceSection, dietClassification } = buildMealComplianceBundle(m, envelope);
+            return { ...m, complianceSection, dietClassification };
+          });
+        }
       }
 
       res.json(result);
