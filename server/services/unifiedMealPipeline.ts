@@ -957,6 +957,55 @@ function buildKosherCategoryBlock(category: 'dairy' | 'meat' | 'pareve'): string
   ].join('\n');
 }
 
+/**
+ * Detect if the previous generation attempt violated kosher meat/dairy separation
+ * and return a targeted correction block to append to the retry prompt.
+ * Returns undefined when no targeted correction is needed (non-kosher, non-meat, or no dairy found).
+ */
+function buildKosherViolationHint(
+  rawOptions: any[],
+  dietRestrictions: string[],
+  kosherIntent: 'dairy' | 'meat' | 'pareve' | null,
+): string | undefined {
+  if (kosherIntent !== 'meat') return undefined;
+  const normalized = (dietRestrictions || []).map(r => r.trim().toLowerCase());
+  const isKosher = normalized.includes('kosher') || normalized.includes('kosher-halal');
+  if (!isKosher) return undefined;
+
+  const DAIRY_DETECTION = [
+    'butter', 'ghee', 'cream', 'heavy cream', 'light cream', 'half-and-half', 'half and half',
+    'cheese', 'feta', 'parmesan', 'mozzarella', 'cheddar', 'brie', 'goat cheese', 'ricotta',
+    'milk', 'yogurt', 'sour cream', 'crème fraîche', 'creme fraiche', 'tzatziki',
+  ];
+
+  const hasDairy = rawOptions.some(opt => {
+    const text = [
+      opt.name || '',
+      opt.description || '',
+      ...(opt.ingredients || []).map((i: any) => i.name || ''),
+    ].join(' ').toLowerCase();
+    return DAIRY_DETECTION.some(t => text.includes(t));
+  });
+
+  if (!hasDairy) return undefined;
+
+  return [
+    `DIETARY VIOLATION FIX — URGENT CORRECTION:`,
+    `Your previous response included dairy in a KOSHER MEAT dish (butter, cream, feta, cheese, or similar).`,
+    `This is a strict kosher law violation (basar b'chalav). Correct this immediately.`,
+    ``,
+    `MANDATORY FOR THIS RETRY:`,
+    `❌ ZERO dairy: no butter, ghee, cream, heavy cream, half-and-half, cheese, feta,`,
+    `   parmesan, mozzarella, cheddar, goat cheese, ricotta, milk, yogurt, sour cream`,
+    `✅ COOKING FAT: olive oil, avocado oil, grapeseed oil, or rendered meat drippings ONLY`,
+    `✅ RICHNESS/CREAMINESS: use pureed vegetables, reduced meat stock, tahini, or hummus — never cream`,
+    `✅ MEDITERRANEAN DISHES: replace feta entirely with olives, capers, lemon zest, or sun-dried tomatoes`,
+    `✅ HERB SAUCES: chimichurri, salsa verde, lemon-herb vinaigrette — all dairy-free`,
+    ``,
+    `Generate 3 options that are 100% dairy-free. Check every ingredient before including it.`,
+  ].join('\n');
+}
+
 /** Build the hierarchy-enforcing prompt for the variety engine */
 function buildVarietyPrompt(
   cravingInput: string,
@@ -1276,16 +1325,17 @@ export async function generateCravingMealOptions(
   }
 
   /** One attempt at calling AI and parsing result */
-  const attempt = async (stricterMode: boolean): Promise<any[]> => {
+  const attempt = async (stricterMode: boolean, violationHint?: string): Promise<any[]> => {
     const prompt = isRecipeMode
       ? buildRecipeVarietyPrompt(cravingInput, validMealType, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock)
       : buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock);
     const stricter = stricterMode
       ? `\n\nSECOND ATTEMPT — STRICT MODE: The previous response drifted from the dish family. You MUST generate 3 options that are clearly recognizable variations of "${dishFamily}". No exceptions.`
       : "";
+    const hintAddendum = violationHint ? `\n\n${violationHint}` : "";
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
-      messages: [{ role: "user", content: (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter }],
+      messages: [{ role: "user", content: (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter + hintAddendum }],
       temperature: stricterMode ? 0.6 : 0.85,
       max_tokens: 2500,
     });
@@ -1320,8 +1370,13 @@ export async function generateCravingMealOptions(
   // If majority fail validation, regenerate once with stricter prompt
   if (valid.length < 2) {
     console.warn(`[VARIETY ENGINE] Only ${valid.length}/3 options passed validation — regenerating with strict prompt`);
+    // Detect WHY options failed and build a targeted correction for the retry
+    const violationHint = buildKosherViolationHint(rawOptions, dietRestrictions, varietyKosherIntent);
+    if (violationHint) {
+      console.warn(`[VARIETY ENGINE] Kosher dairy violation detected — injecting targeted dietary correction into retry`);
+    }
     try {
-      rawOptions = await attempt(true);
+      rawOptions = await attempt(true, violationHint);
       const strictValid = rawOptions.slice(0, 3).filter(opt =>
         validateVarietyOption(opt, category, dishFamily, dietRestrictions)
       );
@@ -1337,6 +1392,63 @@ export async function generateCravingMealOptions(
   const finalOptions = rawOptions.slice(0, 3);
   console.log(`✅ [VARIETY ENGINE] ${finalOptions.length} options: ${finalOptions.map((o: any) => o?.name).join(" | ")}`);
   return finalOptions.map((opt, idx) => mapToUnifiedMeal(opt, idx, cravingInput, validMealType));
+}
+
+/**
+ * Emergency fallback: generate a single guaranteed-compliant meal when the
+ * variety engine AND its retry both produce options that fail protocol scanning.
+ * Uses a maximum-constraint single-option prompt at temperature 0.3.
+ */
+export async function generateSingleCompliantFallback(
+  cravingInput: string,
+  mealType: string,
+  dietaryIdentity: string[],
+): Promise<UnifiedMeal | null> {
+  const validMealType = normalizeMealType(mealType);
+  const kosherIntent = detectKosherCategoryIntent(dietaryIdentity, cravingInput);
+  const dietBlock = buildDietPromptBlock(dietaryIdentity);
+  const kosherBlock = kosherIntent ? buildKosherCategoryBlock(kosherIntent) : '';
+
+  const meatDairyGuard = kosherIntent === 'meat' ? [
+    `ABSOLUTE KOSHER MEAT REQUIREMENT:`,
+    `❌ ZERO dairy: no butter, ghee, cream, heavy cream, half-and-half, cheese, feta,`,
+    `   parmesan, mozzarella, cheddar, goat cheese, ricotta, milk, yogurt, or sour cream`,
+    `✅ COOKING FAT: olive oil or avocado oil ONLY`,
+    `✅ CREAMINESS: use reduced meat stock, pureed vegetables, or tahini — never cream`,
+    `✅ Every single ingredient must be dairy-free. No exceptions.`,
+  ].join('\n') : '';
+
+  const prompt = [
+    `You are a precision dietary chef. Generate exactly ONE meal that strictly complies with all dietary rules below.`,
+    dietBlock,
+    kosherBlock,
+    meatDairyGuard,
+    `The meal must be: ${cravingInput}`,
+    `Keep it simple, compliant, and delicious.`,
+    ``,
+    `OUTPUT FORMAT — ONLY valid JSON, no markdown fences:`,
+    `{"name":"...","description":"One appetizing sentence.","ingredients":[{"name":"...","quantity":"...","unit":"..."}],"instructions":"Full cooking steps as one paragraph.","calories":400,"protein":30,"starchyCarbs":20,"fibrousCarbs":10,"fat":15,"cookingTime":"25 minutes"}`,
+  ].filter(Boolean).join('\n');
+
+  try {
+    const openai = getOpenAI();
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.3,
+      max_tokens: 1200,
+    });
+    const content = response.choices[0]?.message?.content;
+    if (!content) return null;
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    const opt = JSON.parse(jsonMatch[0]);
+    console.log(`🛟 [FALLBACK] Generated compliant fallback: "${opt.name}"`);
+    return mapToUnifiedMeal(opt, 0, cravingInput, validMealType);
+  } catch (err) {
+    console.error('[FALLBACK GENERATION] Failed:', err);
+    return null;
+  }
 }
 
 /**
