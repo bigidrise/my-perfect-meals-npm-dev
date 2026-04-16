@@ -9,6 +9,7 @@ import {
 } from "@/components/DietGuardIntercept";
 import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 import DietStyleBadge from "@/components/DietStyleBadge";
+import MealClassificationPill from "@/components/MealClassificationPill";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
@@ -109,6 +110,7 @@ interface GeneratedMeal {
   servings?: number;
   reasoning?: string;
   dietaryComplianceVerified?: boolean;
+  dietClassification?: import("@/components/MealClassificationPill").DietClassification | null;
 }
 
 const COOK_METHODS = [
@@ -500,6 +502,7 @@ export default function ChefsKitchenPage() {
         servingSize: meal.servingSize || `${servings} ${servings === 1 ? "serving" : "servings"}`,
         servings: meal.servings || servings,
         reasoning: meal.reasoning,
+        dietClassification: meal.dietClassification ?? null,
       };
 
       setGenerationProgress(100);
@@ -834,6 +837,7 @@ export default function ChefsKitchenPage() {
                             servingSize: finalMeal.servingSize || `${servings} ${servings === 1 ? "serving" : "servings"}`,
                             servings: finalMeal.servings || servings,
                             reasoning: finalMeal.reasoning,
+                            dietClassification: finalMeal.dietClassification ?? null,
                           };
                           setMealOptions([]);
                           setGeneratedMeal(normalizedOption);
@@ -898,8 +902,9 @@ export default function ChefsKitchenPage() {
                     </button>
                   </div>
 
-                  <div className="mb-3">
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
                     <DietStyleBadge />
+                    <MealClassificationPill dietClassification={mealToShow.dietClassification} />
                   </div>
 
                   {mealToShow.description && (
