@@ -458,6 +458,7 @@ export default function CreateDishPage() {
           skipPalate: !flavorPersonal,
           excludeMeals: getRecentMeals(),
           strictMode: keepItSimple,
+          dietAdaptOverride: dietDecision === "let_chef_adapt",
         }),
       });
 

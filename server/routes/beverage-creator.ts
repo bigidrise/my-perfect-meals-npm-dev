@@ -69,6 +69,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
       safetyMode,
       overrideToken,
       skipPalate,
+      dietAdaptOverride,
     } = req.body ?? {};
 
     if (isDev) console.log("[BEVERAGE] Request params:", { beverageCategory, flavorFamily, servingSize });
@@ -339,6 +340,7 @@ INCORRECT (NEVER DO THIS):
       // ── Post-gen protocol scan ────────────────────────────────────────────
       beverageScan = scanGeneratedOutput(meal, beverageEnvelope, {
         generatorName: 'beverage_creator',
+        skipAdaptableConflicts: dietAdaptOverride === true,
       });
 
       if (beverageScan.passed) break;

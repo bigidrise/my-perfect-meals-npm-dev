@@ -1385,7 +1385,8 @@ function detectMeatDairyMixing(mealText: string): boolean {
 export function scanForHiddenDietaryViolations(
   mealText: string,
   dietTypes: string[],
-  avoidList: string[] = []
+  avoidList: string[] = [],
+  options?: { skipMeatDairyCombinationCheck?: boolean }
 ): HiddenViolation[] {
   const violations: HiddenViolation[] = [];
   const lower = normalizeForDietaryScan(mealText);
@@ -1426,8 +1427,9 @@ export function scanForHiddenDietaryViolations(
         violations.push({ term, category: "kosher", reason });
       }
     }
-    // Meat/dairy mixing check
-    if (detectMeatDairyMixing(lower)) {
+    // Meat/dairy mixing check — skipped when the user explicitly chose "Let Chef Adapt"
+    // (dietAdaptOverride=true), which means they accepted a pareve substitution
+    if (!options?.skipMeatDairyCombinationCheck && detectMeatDairyMixing(lower)) {
       violations.push({
         term: "meat + dairy combination",
         category: "kosher",
