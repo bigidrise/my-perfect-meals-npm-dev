@@ -11,6 +11,7 @@ import type { MacroSourceSlug } from "@/lib/macroSourcesConfig";
 import { isFeatureEnabled } from "@/lib/productionGates";
 import FavoriteButton from "@/components/FavoriteButton";
 import DietStyleBadge from "@/components/DietStyleBadge";
+import MealClassificationPill, { type DietClassification } from "@/components/MealClassificationPill";
 
 export interface GeneratedMealData {
   id: string;
@@ -53,6 +54,15 @@ export interface GeneratedMealData {
    * undefined → legacy / non-vegan diet, badge shows per user preference
    */
   dietaryComplianceVerified?: boolean;
+  /** Meal-level diet classification from the server (drives secondary pill). */
+  dietClassification?: DietClassification | null;
+  /** Full compliance section — prep rules, pairing guidance, why-this-complies. */
+  complianceSection?: {
+    statusLabel: string;
+    whyThisComplies: string;
+    prepRules: string[];
+    pairingGuidance: string[];
+  } | null;
 }
 
 interface GeneratedMealCardProps {
@@ -186,7 +196,10 @@ export default function GeneratedMealCard({
         </button>
       </div>
 
-      <DietStyleBadge />
+      <div className="flex flex-wrap items-center gap-2">
+        <DietStyleBadge />
+        <MealClassificationPill dietClassification={mealToShow.dietClassification} />
+      </div>
 
       {mealToShow.description && (
         <p className="text-white/90">{mealToShow.description}</p>
