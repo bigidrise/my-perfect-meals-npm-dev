@@ -38,6 +38,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import DietStyleBadge from "@/components/DietStyleBadge";
+import MealClassificationPill from "@/components/MealClassificationPill";
 import {
   DietGuardIntercept,
   DietAdaptedNotice,
@@ -835,8 +836,9 @@ export default function DessertCreator() {
                     />
                   )}
 
-                  <div className="mb-3">
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
                     <DietStyleBadge />
+                    <MealClassificationPill dietClassification={generatedDessert.dietClassification} />
                   </div>
 
                   <p className="text-white/90 mb-4">

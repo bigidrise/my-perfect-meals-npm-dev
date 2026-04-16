@@ -59,6 +59,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet, filterMealsByDiet } from "@/utils/dietaryFilter";
 import DietStyleBadge from "@/components/DietStyleBadge";
+import MealClassificationPill from "@/components/MealClassificationPill";
 import {
   DietGuardIntercept,
   DietAdaptedNotice,
@@ -111,6 +112,7 @@ interface MealData {
   cookingTime: string;
   difficulty: "Easy" | "Medium";
   imageUrl?: string;
+  dietClassification?: import("@/components/MealClassificationPill").DietClassification | null;
   medicalBadges: Array<{
     id: string;
     label: string;
@@ -1034,6 +1036,7 @@ const FridgeRescuePage = () => {
                       <CardDescription className="text-sm text-white/80">
                         {meal.description}
                       </CardDescription>
+                      <MealClassificationPill dietClassification={meal.dietClassification} />
                     </CardHeader>
 
                     <CardContent className="space-y-4 flex-1 flex flex-col">
