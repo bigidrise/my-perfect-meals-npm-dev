@@ -3374,7 +3374,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // 🎲 VARIETY ENGINE: Always generate 3 distinct options (Layers 1-4)
-      const { generateCravingMealOptions } = await import("./services/unifiedMealPipeline");
+      const { generateCravingMealOptions, generateSingleCompliantFallback } = await import("./services/unifiedMealPipeline");
 
       const bodyDietRestrictions = dietaryRestrictions
         ? (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean)
@@ -3408,12 +3408,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (cleanOptions.length === 0 && mealOptions.length > 0) {
-        console.log(`⚠️ [ProtocolEnvelope] ALL options violated protocol — returning enforcement error`);
-        return res.status(400).json({
-          error: "AVOIDANCE_VIOLATION_ALL_OPTIONS",
-          message: "All generated options contained ingredients or instructions that conflict with your dietary protocol. Please try a different dish or adjust your craving description.",
-          retryable: true,
-        });
+        console.warn(`⚠️ [ProtocolEnvelope] ALL options violated protocol — attempting emergency compliant fallback`);
+        const fallbackMeal = await generateSingleCompliantFallback(
+          cravingInput || "something delicious",
+          targetMealType || "lunch",
+          protocolEnvelope.dietaryIdentity,
+        );
+        if (fallbackMeal) {
+          console.log(`✅ [ProtocolEnvelope] Emergency fallback succeeded: "${fallbackMeal.name}"`);
+          cleanOptions.push(fallbackMeal);
+        } else {
+          console.error(`❌ [ProtocolEnvelope] Emergency fallback also failed — returning enforcement error`);
+          return res.status(400).json({
+            error: "AVOIDANCE_VIOLATION_ALL_OPTIONS",
+            message: "All generated options contained ingredients or instructions that conflict with your dietary protocol. Please try a different dish or adjust your craving description.",
+            retryable: true,
+          });
+        }
       }
 
       if (cleanOptions.length < mealOptions.length) {
