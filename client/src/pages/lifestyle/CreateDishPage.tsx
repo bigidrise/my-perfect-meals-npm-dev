@@ -897,17 +897,14 @@ export default function CreateDishPage() {
                         />
                       )}
 
-                      {dietAdaptedNotice && (
-                        <DietAdaptedNotice
-                          diet={normalizeDiet(user?.dietaryRestrictions)}
-                          notice={dietAdaptedNotice}
-                          className="mb-4"
-                        />
-                      )}
-
                       <div className="flex flex-wrap items-center gap-2 mb-3">
                         <DietStyleBadge />
                         <MealClassificationPill dietClassification={meal.dietClassification} />
+                        {dietAdaptedNotice && (
+                          <DietAdaptedNotice
+                            diet={normalizeDiet(user?.dietaryRestrictions)}
+                          />
+                        )}
                       </div>
 
                       <p className="text-white/90 mb-4">{meal.description}</p>
