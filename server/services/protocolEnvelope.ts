@@ -1106,9 +1106,50 @@ export function buildComplianceSection(
   // ── Why this complies ─────────────────────────────────────────────────────
   const whyThisComplies = buildWhyThisComplies(mealName, primaryIdentity, kosherCategory);
 
-  // ── Prep rules from PROTOCOL_PROCEDURE_MAP ────────────────────────────────
-  const procedural = envelope.procedural;
-  const prepRules = procedural.preparationRules.slice(0, 6);
+  // ── Prep rules — category-aware for kosher ──────────────────────────────
+  //
+  // Kosher prep rules in PROTOCOL_PROCEDURE_MAP are written generically and
+  // include meat-specific language (e.g. "dedicated meat pan", "salted kosher
+  // meat") that is INCORRECT for pareve or dairy dishes.
+  //
+  // We build a category-specific set here instead of blindly pulling from the
+  // envelope's combinedPreparationRules.
+  let prepRules: string[];
+
+  if ((primaryIdentity === "kosher" || primaryIdentity === "kosher-halal") && kosherCategory) {
+    if (kosherCategory === "meat") {
+      prepRules = [
+        "Use kosher-certified or pre-salted kosher meat — no blood should remain",
+        "Fruits and vegetables should be inspected for insects before use",
+        "Do not cook meat and dairy in the same dish, pot, or pan",
+        "Do not use non-kosher wine in cooking — use kosher wine or grape juice",
+        "Do not include gelatin unless it is kosher-certified",
+        "Shellfish and pork are absolutely forbidden in all forms",
+      ];
+    } else if (kosherCategory === "dairy") {
+      prepRules = [
+        "Use dairy-designated cookware only — do not use pots or pans previously used for meat",
+        "Fruits and vegetables should be inspected for insects before use",
+        "Do not cook this dish in the same pot used for meat without proper kashering",
+        "Do not use non-kosher wine — use kosher wine or grape juice if wine is needed",
+        "Do not include gelatin unless it is kosher-certified (pareve)",
+        "Shellfish and pork are absolutely forbidden in all forms",
+      ];
+    } else {
+      // pareve
+      prepRules = [
+        "Use neutral (pareve) cookware — pots and utensils not designated for meat or dairy",
+        "Fruits and vegetables should be inspected for insects before use",
+        "Non-dairy milk (cashew, oat, almond, coconut) is acceptable — this dish contains no actual dairy",
+        "Do not use non-kosher wine — use kosher wine or grape juice if wine is needed",
+        "Do not include gelatin unless it is kosher-certified (pareve)",
+        "Shellfish and pork are absolutely forbidden in all forms",
+      ];
+    }
+  } else {
+    const procedural = envelope.procedural;
+    prepRules = procedural.preparationRules.slice(0, 6);
+  }
 
   // ── Pairing guidance ──────────────────────────────────────────────────────
   let pairingKey = primaryIdentity;
