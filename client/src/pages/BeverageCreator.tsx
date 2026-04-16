@@ -240,7 +240,7 @@ export default function BeverageCreator() {
     setProgress(100);
   };
 
-  async function handleGenerateBeverage(skipDietPreflight = false, overrideToken?: string) {
+  async function handleGenerateBeverage(skipDietPreflight = false, overrideToken?: string, dietAdaptOverride = false) {
     if (!beverageCategory) {
       toast({
         title: "Missing Information",
@@ -308,7 +308,7 @@ export default function BeverageCreator() {
             !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: !safetyEnabled ? overrideToken : undefined,
           skipPalate: !flavorPersonal,
-          dietAdaptOverride: dietDecision === "let_chef_adapt",
+          dietAdaptOverride,
         }),
       });
 
@@ -602,7 +602,7 @@ export default function BeverageCreator() {
                 clearDietAlert();
               } else if (decision === "let_chef_adapt") {
                 setDietDecision("let_chef_adapt");
-                handleGenerateBeverage(true);
+                handleGenerateBeverage(true, undefined, true);
               }
             }}
           />

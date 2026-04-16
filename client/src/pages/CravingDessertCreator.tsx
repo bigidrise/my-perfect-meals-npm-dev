@@ -288,7 +288,7 @@ export default function DessertCreator() {
     setProgress(100);
   };
 
-  async function handleGenerateDessert(skipPreflight = false, overrideToken?: string) {
+  async function handleGenerateDessert(skipPreflight = false, overrideToken?: string, dietAdaptOverride = false) {
     setDietAdaptedNotice(null);
     const hasCustomDescription = customDessertDescription.trim().length > 0;
 
@@ -369,7 +369,7 @@ export default function DessertCreator() {
           skipPalate: !flavorPersonal,
           strictMode: keepItSimple,
           customDessertDescription: customDessertDescription.trim() || undefined,
-          dietAdaptOverride: dietDecision === "let_chef_adapt",
+          dietAdaptOverride,
         }),
       });
 
@@ -731,7 +731,7 @@ export default function DessertCreator() {
                     setGeneratedDessert(null);
                   } else if (decision === "let_chef_adapt") {
                     setDietDecision("let_chef_adapt");
-                    handleGenerateDessert(true);
+                    handleGenerateDessert(true, undefined, true);
                   }
                 }}
                 className="mt-3"

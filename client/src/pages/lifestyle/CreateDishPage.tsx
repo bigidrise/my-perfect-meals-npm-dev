@@ -396,7 +396,7 @@ export default function CreateDishPage() {
     }
   }, [pendingGeneration, overrideToken, isGenerating]);
 
-  const handleGenerateDish = async (skipPreflight = false) => {
+  const handleGenerateDish = async (skipPreflight = false, dietAdaptOverride = false) => {
     setDietAdaptedNotice(null);
 
     if (!dishInput.trim()) {
@@ -458,7 +458,7 @@ export default function CreateDishPage() {
           skipPalate: !flavorPersonal,
           excludeMeals: getRecentMeals(),
           strictMode: keepItSimple,
-          dietAdaptOverride: dietDecision === "let_chef_adapt",
+          dietAdaptOverride,
         }),
       });
 
@@ -716,7 +716,7 @@ export default function CreateDishPage() {
                         setDishInput("");
                       } else if (decision === "let_chef_adapt") {
                         setDietDecision("let_chef_adapt");
-                        handleGenerateDish(true);
+                        handleGenerateDish(true, true);
                       }
                     }}
                     className="mt-3"

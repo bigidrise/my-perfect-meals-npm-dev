@@ -499,7 +499,7 @@ export default function CravingCreator() {
     }
   }, [cravingInput, starchDecision, checkStarch]);
 
-  const handleGenerateMeal = async (skipPreflight = false) => {
+  const handleGenerateMeal = async (skipPreflight = false, dietAdaptOverride = false) => {
     console.log("🔥 handleGenerateMeal called - craving:", cravingInput);
     setDietAdaptedNotice(null);
 
@@ -532,7 +532,7 @@ export default function CravingCreator() {
     }
 
     // 🥗 Diet Guard preflight check — advisory, fires at generate time (not on keystroke)
-    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
+    if (!skipPreflight && activeDiet && !dietAdaptOverride) {
       const dietOk = checkDiet(cravingInput);
       if (!dietOk) {
         // DietGuardIntercept will show inline — user chooses path
@@ -578,7 +578,7 @@ export default function CravingCreator() {
           excludeMeals: getRecentMeals(),
           strictMode: keepItSimple,
           generationMode,
-          dietAdaptOverride: dietDecision === "let_chef_adapt",
+          dietAdaptOverride,
         }),
       });
 
@@ -1056,7 +1056,7 @@ export default function CravingCreator() {
                         setCravingInput("");
                       } else if (decision === "let_chef_adapt") {
                         setDietDecision("let_chef_adapt");
-                        handleGenerateMeal(true);
+                        handleGenerateMeal(true, true);
                       }
                     }}
                     className="mt-3"
