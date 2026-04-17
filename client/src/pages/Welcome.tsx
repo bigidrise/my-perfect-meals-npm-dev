@@ -394,7 +394,7 @@ export default function Welcome() {
         </h1>
 
         <p className="text-md md:text-xl text-white/80 text-center mb-6 max-w-md">
-          Healthy Meal Planning
+          AI Coach In Your Pocket
         </p>
 
         <div className="mb-12 flex justify-center">
