@@ -599,30 +599,14 @@ router.post("/generate-image", async (req: Request, res: Response) => {
   const { mealName, mealType = "dinner" } = req.body || {};
   if (!mealName) return res.status(400).json({ imageUrl: null, error: "mealName required" });
 
-  const { getOpenAI } = await import("../lib/openai");
-
-  const attemptImage = async (prompt: string): Promise<string | null> => {
-    try {
-      const result = await getOpenAI().images.generate({
-        model: "dall-e-3",
-        prompt,
-        n: 1,
-        size: "1024x1024",
-        quality: "standard",
-      });
-      return result.data?.[0]?.url || null;
-    } catch {
-      return null;
-    }
-  };
+  const { genImage } = await import("../utils/openaiSafe");
 
   const fullPrompt = `${mealName}, healthy ${mealType}, professional food photography, overhead view, clean plate presentation, natural lighting`;
-  let imageUrl = await attemptImage(fullPrompt);
+  let imageUrl: string | null = (await genImage(fullPrompt)) ?? null;
 
   if (!imageUrl) {
-    // 1 retry with simplified prompt
     console.log(`🔄 [ExperienceImage] Retrying image for "${mealName}" with simplified prompt`);
-    imageUrl = await attemptImage(`${mealName}, professional food photography, clean background`);
+    imageUrl = (await genImage(`${mealName}, professional food photography, clean background`)) ?? null;
   }
 
   if (!imageUrl) {
