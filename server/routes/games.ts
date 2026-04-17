@@ -3,7 +3,7 @@ import { and, eq, desc, asc, sql, count } from "drizzle-orm";
 import { db } from "../db";
 import { gameScores, gameLeader } from "../../shared/schema";
 import dayjs from "dayjs";
-import isoWeek from "dayjs/plugin/isoWeek";
+import isoWeek from "dayjs/plugin/isoWeek.js";
 
 dayjs.extend(isoWeek);
 
