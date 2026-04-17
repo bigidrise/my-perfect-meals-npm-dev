@@ -331,7 +331,7 @@ export default function RestaurantGuidePage() {
     () => generatedMeals.map((m) => ({ id: m.id, name: m.name || m.meal, imageUrl: m.imageUrl })),
     [generatedMeals],
   );
-  const chefFlowImages = useChefFlowImages(chefFlowMeals, "restaurant");
+  const { imageMap: chefFlowImages } = useChefFlowImages(chefFlowMeals, "restaurant");
 
   const { toast } = useToast();
   const { user } = useAuth();
