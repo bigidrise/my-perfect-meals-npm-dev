@@ -157,7 +157,7 @@ export default function DesktopLayout({ children }: Props) {
               My Perfect Meals
             </div>
             <div className="text-[11px] text-white/40 mt-0.5 text-center">
-              Coach in Your Pocket
+              AI Coach in Your Pocket
             </div>
           </div>
 
