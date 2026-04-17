@@ -196,26 +196,34 @@ const SECTION_START_HERE: LibraryTopic[] = [
   {
     id: "why-different",
     title: "Why This App Is Different",
-    subtitle: "Not a tracker — a decision system",
+    subtitle: "A coaching app that leads you — not another log-and-hope tracker",
     icon: Zap,
     content: {
       sections: [
         {
-          heading: "Not Another Calorie Counter",
-          text: "Most nutrition apps track what you ate. My Perfect Meals tells you what to eat—before you eat it.",
+          heading: "Every Other App Says Good Luck",
+          text: "Most nutrition apps hand you a log and walk away. You check boxes. You track entries. When motivation runs out — and it always does — there is nothing there to guide you. That is not coaching. That is bookkeeping.",
         },
         {
-          heading: "Key Differences",
+          heading: "This App Actually Leads You",
+          text: "My Perfect Meals tells you what to eat before you eat it. It builds your week. It adjusts when things change. It guides every decision — breakfast to dinner — so you are never left wondering what to do next. Other apps react after the fact. This one responds before your next decision.",
+        },
+        {
+          heading: "Powered by Behavior AI",
+          text: "The app does not just generate meals. It learns how you eat. It notices what you choose, what you skip, and what you come back to. Over time it adapts — not just to your numbers, but to your actual behavior. That is the part most apps cannot do.",
+        },
+        {
+          heading: "What Makes It Different",
           list: [
-            "Proactive meal planning, not reactive tracking",
-            "AI-generated meals tailored to your exact needs",
-            "Behavioral guardrails that prevent diet failures",
-            "Coach voice guidance when you need support",
+            "Other apps track what you already ate — this one guides what you eat next",
+            "Other apps show data and leave you to figure it out — this one makes the decision for you",
+            "Other apps are passive — this one leads",
+            "Follow the plan and results are guaranteed — not magic, just the math and structure working",
           ],
         },
         {
-          heading: "The Philosophy",
-          text: "Information alone doesn't change behavior. Structure does. That's what this app provides.",
+          heading: "A Coach in Your Pocket — Not a Replacement for One",
+          text: "This is not a theory. Clients have gotten results for years following the same principles this app runs on — eat the right things at the right amounts for your body, stay consistent. The app brings that structure to people who do not have a trainer or coach beside them every day. But nothing replaces the nuance, judgment, and relationship of working with a real professional. That is why the app is built to support coaches and clinicians — not compete with them. When a coach is in the picture, the app follows their lead.",
         },
       ],
     },
@@ -270,6 +278,38 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
         {
           heading: "Quality Control",
           text: "Generated meals go through validation to ensure nutritional accuracy. If something doesn't add up, it gets regenerated.",
+        },
+        {
+          heading: "How the Diabetic Hub Changes Meal Generation",
+          text: "When the Diabetic Hub is active, meal generation does not just adjust macros — it enforces a clinical layer on top of every decision the AI makes.",
+          list: [
+            "A per-meal carb ceiling replaces the default starchy carb baseline — the AI cannot exceed it",
+            "High-spike ingredients (white rice, white bread, sugary sauces, high-GI starches) are blocked entirely — not just reduced",
+            "Ingredient validation runs before any meal is accepted — blocked items trigger a full regeneration",
+            "Glycemic index caps are enforced: no ingredient above your set GI ceiling passes validation",
+            "Fiber minimums are enforced per meal to slow glucose absorption",
+            "Meal frequency is locked to your hub setting — the system won't suggest more meals than your protocol allows",
+          ],
+        },
+        {
+          heading: "What This Means in Practice",
+          text: "A meal that looks healthy — like a banana smoothie or honey-glazed chicken — will be blocked if its ingredients spike blood sugar above your safe range. The system checks ingredients, not just meal names. You will never receive a meal that violates your diabetic guardrails, even if it sounds clean on the surface.",
+        },
+        {
+          heading: "How the GLP-1 Hub Changes Meal Generation",
+          text: "When the GLP-1 Hub is active, the AI generates meals built for a reduced-appetite environment — not just smaller portions, but a fundamentally different composition.",
+          list: [
+            "Maximum meal volume is enforced — meals are designed to be completable, not just nutritious",
+            "Protein minimum per meal is enforced — muscle support is prioritized when appetite is suppressed",
+            "Fat ceiling limits heavy, slow-digesting meals that cause discomfort during the active medication phase",
+            "Carbonated ingredients and alcohol are flagged and removed when those settings are active",
+            "Slow-digesting foods are prioritized when that setting is on — helping sustain fullness between meals",
+            "Meal count is locked to your GLP-1 profile setting — the system adapts to how many meals you can realistically eat per day",
+          ],
+        },
+        {
+          heading: "When Both Hubs Are Active",
+          text: "If you have both the Diabetic Hub and GLP-1 Hub active at the same time, every generated meal must satisfy both protocols simultaneously. Carb ceilings, GI caps, and blocked ingredients apply from the diabetic layer. Portion limits, protein floors, and volume constraints apply from the GLP-1 layer. The strictest rule from either hub always wins.",
         },
       ],
     },

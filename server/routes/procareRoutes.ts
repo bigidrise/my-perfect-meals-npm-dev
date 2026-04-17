@@ -2,8 +2,9 @@ import { Router } from "express";
 import express from "express";
 import { db } from "../db";
 import { proAccounts, clientLinks, subscriptions, payouts } from "../db/schema/procare";
-import { users } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import { users, userGlycemicSettings, glp1Shots } from "@shared/schema";
+import { eq, and, gte, desc } from "drizzle-orm";
+import { diabetesProfile, glucoseLogs } from "../../shared/diabetes-schema";
 import {
   createConnectAccount,
   createAccountLink,
@@ -582,6 +583,180 @@ router.post("/disconnect-self", async (req, res) => {
   } catch (error) {
     console.error("❌ [disconnect-self] Error:", error);
     res.status(500).json({ error: "Failed to disconnect" });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/pro/clients/:clientId/nutrition-strategy
+// Returns active hub configuration, guardrails, and glucose trend for a client.
+// Role-gated: physicians see insulin + GLP-1 dose + medications; coaches do not.
+// ─────────────────────────────────────────────────────────────────────────────
+router.get("/clients/:clientId/nutrition-strategy", async (req: any, res) => {
+  try {
+    const callerId = getUserId(req);
+    const { clientId } = req.params;
+
+    if (!clientId) {
+      return res.status(400).json({ error: "clientId required" });
+    }
+
+    // Verify caller is a professional linked to this client (or an admin)
+    const [callerUser] = await db
+      .select({ role: users.role, professionalRole: users.professionalRole })
+      .from(users)
+      .where(eq(users.id, callerId))
+      .limit(1);
+
+    const isAdmin = callerUser?.role === "admin";
+    const isPhysician = callerUser?.professionalRole === "physician";
+
+    if (!isAdmin) {
+      // Must be a coach/trainer/physician with an active link to this client
+      const [link] = await db
+        .select()
+        .from(clientLinks)
+        .where(and(eq(clientLinks.proUserId, callerId), eq(clientLinks.clientUserId, clientId), eq(clientLinks.active, true)))
+        .limit(1);
+
+      if (!link) {
+        return res.status(403).json({ error: "No active ProCare link to this client" });
+      }
+    }
+
+    // ── Parallel data fetch ────────────────────────────────────────────────
+    const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+
+    const [diabeticProfile, glycemicRow, recentGlucose, lastShot] = await Promise.all([
+      db.select().from(diabetesProfile).where(eq(diabetesProfile.userId, clientId)).limit(1).then(r => r[0] ?? null),
+      db.select({ preferredCarbs: userGlycemicSettings.preferredCarbs })
+        .from(userGlycemicSettings)
+        .where(eq(userGlycemicSettings.userId, clientId))
+        .limit(1)
+        .then(r => r[0] ?? null),
+      db.select()
+        .from(glucoseLogs)
+        .where(and(eq(glucoseLogs.userId, clientId), gte(glucoseLogs.recordedAt, fourteenDaysAgo)))
+        .orderBy(desc(glucoseLogs.recordedAt))
+        .limit(20),
+      db.select()
+        .from(glp1Shots)
+        .where(eq(glp1Shots.userId, clientId))
+        .orderBy(desc(glp1Shots.dateUtc))
+        .limit(1)
+        .then(rows => rows[0] ?? null)
+    ]);
+
+    // ── Determine active hubs ──────────────────────────────────────────────
+    const hasDiabeticHub = diabeticProfile && diabeticProfile.type !== "NONE";
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const hasGlp1Hub = lastShot && new Date(lastShot.dateUtc) > thirtyDaysAgo;
+
+    if (!hasDiabeticHub && !hasGlp1Hub) {
+      return res.json({ hasData: false });
+    }
+
+    // ── Guardrails (from diabetes profile) ────────────────────────────────
+    const guardrails = diabeticProfile?.guardrails as any;
+    const dailyCarbLimit = guardrails?.carbLimit ?? null;
+    const mealFrequency = Math.max(1, guardrails?.mealFrequency ?? 3);
+    const perMealCarbCeiling = dailyCarbLimit ? Math.round(dailyCarbLimit / mealFrequency) : null;
+    const preferredCarbs: string[] = (glycemicRow?.preferredCarbs as string[]) ?? [];
+
+    // ── Glucose trend analysis ─────────────────────────────────────────────
+    const glucoseValues = recentGlucose.map(g => g.valueMgdl);
+    const avgGlucose = glucoseValues.length
+      ? Math.round(glucoseValues.reduce((s, v) => s + v, 0) / glucoseValues.length)
+      : null;
+
+    let trendLabel: "Stable" | "Elevated" | "High variability" | null = null;
+    if (glucoseValues.length >= 3) {
+      const mean = avgGlucose!;
+      const variance = glucoseValues.reduce((s, v) => s + (v - mean) ** 2, 0) / glucoseValues.length;
+      const stdDev = Math.sqrt(variance);
+      if (stdDev > 45) trendLabel = "High variability";
+      else if (mean > 180) trendLabel = "Elevated";
+      else trendLabel = "Stable";
+    }
+
+    // Sparkline — last 14 readings, oldest first for chart direction
+    const sparkline = recentGlucose
+      .slice(0, 14)
+      .reverse()
+      .map(g => ({
+        value: g.valueMgdl,
+        date: new Date(g.recordedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+        context: g.context,
+      }));
+
+    // Physician-only: insulin pattern
+    let insulinPattern: { avgUnits: number | null; readings: number } | null = null;
+    if (isPhysician) {
+      const insulinLogs = recentGlucose.filter(g => g.insulinUnits !== null && g.insulinUnits !== undefined);
+      if (insulinLogs.length > 0) {
+        const total = insulinLogs.reduce((s, g) => s + parseFloat(String(g.insulinUnits ?? 0)), 0);
+        insulinPattern = { avgUnits: Math.round((total / insulinLogs.length) * 10) / 10, readings: insulinLogs.length };
+      } else {
+        insulinPattern = { avgUnits: null, readings: 0 };
+      }
+    }
+
+    // ── Strategy summary line ──────────────────────────────────────────────
+    const parts: string[] = [];
+    if (hasDiabeticHub && hasGlp1Hub) {
+      parts.push("Dual protocol — GLP-1 phase management with diabetic carb control");
+    } else if (hasDiabeticHub) {
+      if (trendLabel === "High variability") parts.push("Active glucose management — tightened carb protocol");
+      else if (trendLabel === "Elevated") parts.push("Elevated glucose — reduced carb focus");
+      else parts.push("Stable diabetic management — moderate carb control");
+    } else if (hasGlp1Hub) {
+      parts.push("GLP-1 phase management — small portions, high protein priority");
+    }
+    if (diabeticProfile?.hypoHistory) parts.push("with hypoglycemia precautions");
+    const strategySummary = parts.join(" ");
+
+    // ── Build response ─────────────────────────────────────────────────────
+    const payload: Record<string, unknown> = {
+      hasData: true,
+      activeHubs: [
+        ...(hasDiabeticHub ? ["diabetic"] : []),
+        ...(hasGlp1Hub ? ["glp1"] : []),
+      ],
+      diabetic: hasDiabeticHub ? {
+        type: diabeticProfile!.type,
+        a1cPercent: diabeticProfile?.a1cPercent ?? null,
+        hypoRisk: diabeticProfile?.hypoHistory ?? false,
+        perMealCarbCeiling,
+        mealFrequency,
+        preferredCarbs,
+      } : null,
+      glp1: hasGlp1Hub ? {
+        lastShotDate: lastShot!.dateUtc,
+        daysSinceShot: Math.floor((Date.now() - new Date(lastShot!.dateUtc).getTime()) / (1000 * 60 * 60 * 24)),
+        ...(isPhysician ? { doseMg: lastShot!.doseMg, injectionSite: lastShot!.location } : {}),
+      } : null,
+      glucose: {
+        sparkline,
+        avgMgdl: avgGlucose,
+        trendLabel,
+        readingCount: recentGlucose.length,
+      },
+      strategySummary,
+    };
+
+    // Physician-only additions
+    if (isPhysician) {
+      payload.physicianOnly = {
+        insulinPattern,
+        medications: diabeticProfile?.medications ?? [],
+      };
+    }
+
+    console.log(`📊 [nutrition-strategy] Returned data for client ${clientId.substring(0, 8)}... | caller=${isPhysician ? "physician" : "coach"} | hubs=${(payload.activeHubs as string[]).join(",")}`);
+    return res.json(payload);
+
+  } catch (error) {
+    console.error("❌ [nutrition-strategy] Error:", error);
+    return res.status(500).json({ error: "Failed to fetch nutrition strategy" });
   }
 });
 

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
-import { X } from "lucide-react"
+import { Trash2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -44,8 +44,8 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-        <X className="h-4 w-4 text-white" />
+      <DialogPrimitive.Close className="absolute right-4 top-4 inline-flex items-center justify-center h-8 w-8 rounded-xl border border-red-500/60 bg-red-600 text-white shadow-sm active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-red-400/40 disabled:pointer-events-none">
+        <Trash2 className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>

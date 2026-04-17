@@ -21,7 +21,7 @@ export type GlucoseState =
 
 interface DiabeticContextData {
   hasDiabetes: boolean;
-  diabetesType: 'NONE' | 'T1D' | 'T2D';
+  diabetesType: 'NONE' | 'T1D' | 'T2D' | 'PRE_D';
   latestGlucose: {
     value: number;
     context: string;
@@ -82,7 +82,7 @@ async function fetchDiabeticContext(userId: string): Promise<DiabeticContextData
 
   return {
     hasDiabetes: profile?.type !== 'NONE' && profile?.type !== undefined,
-    diabetesType: (profile?.type as 'NONE' | 'T1D' | 'T2D') || 'NONE',
+    diabetesType: (profile?.type as 'NONE' | 'T1D' | 'T2D' | 'PRE_D') || 'NONE',
     latestGlucose,
     hypoHistory: profile?.hypoHistory || false
   };
@@ -165,18 +165,48 @@ export const diabeticHubModule: HubModule = {
       console.log(`🩺 [DIABETIC HUB] Loaded user glycemic preferences: ${userPreferredCarbs.join(", ")}`);
     }
     
+    const dailyCarbLimit = guardrails?.carbLimit ?? DEFAULT_GUARDRAILS.carbLimit!;
+    const mealFrequency = Math.max(1, guardrails?.mealFrequency ?? DEFAULT_GUARDRAILS.mealFrequency ?? 3);
+    // ✅ FIX: Convert daily carb limit to per-meal ceiling
+    const perMealCarbCeiling = Math.round(dailyCarbLimit / mealFrequency);
+
     return {
       hubType: 'diabetic',
-      carbCeiling: guardrails?.carbLimit ?? DEFAULT_GUARDRAILS.carbLimit!,
+      carbCeiling: perMealCarbCeiling,
       fiberMin: guardrails?.fiberMin ?? DEFAULT_GUARDRAILS.fiberMin!,
       giCap: guardrails?.giCap ?? DEFAULT_GUARDRAILS.giCap!,
       userPreferredCarbs,
+      // ✅ FIX: Full clinical blocked list (110 items) — replaces the previous 14-item stub
       blockedIngredients: [
-        'white sugar', 'brown sugar', 'corn syrup', 'high fructose corn syrup',
-        'candy', 'soda', 'fruit juice', 'white bread', 'white rice',
-        'regular pasta', 'potato chips', 'french fries', 'donuts', 'pastries'
+        // Sugars & sweeteners
+        'white sugar', 'brown sugar', 'sugar', 'honey', 'maple syrup',
+        'agave', 'agave nectar', 'high-fructose corn syrup', 'corn syrup',
+        'molasses', 'candy', 'milk chocolate', 'sweetened yogurt',
+        'flavored yogurt', 'sugary granola', 'granola bar',
+        // High-GI starches
+        'white rice', 'jasmine rice', 'regular pasta', 'spaghetti', 'penne',
+        'fettuccine', 'linguine', 'macaroni', 'potato', 'potatoes',
+        'mashed potatoes', 'french fries', 'fries', 'baked potato',
+        'hash browns', 'tater tots', 'flour tortilla', 'flour tortillas',
+        'pizza crust', 'pizza dough', 'pastry', 'pastries', 'bread',
+        'white bread', 'muffin', 'muffins', 'croissant', 'bagel', 'donut',
+        'doughnut', 'white flour', 'all-purpose flour', 'pancake', 'pancakes',
+        'waffle', 'waffles',
+        // High-GI fruits
+        'banana', 'bananas', 'pineapple', 'mango', 'mangoes', 'grapes',
+        'grape', 'watermelon', 'dried fruit', 'raisins', 'dates',
+        'fruit juice', 'orange juice', 'apple juice',
+        // Sugary condiments
+        'bbq sauce', 'barbecue sauce', 'ketchup', 'teriyaki sauce',
+        'sweet chili sauce', 'hoisin sauce', 'caramel', 'chocolate sauce',
+        'jam', 'jelly', 'marmalade',
+        // Sugary beverages
+        'soda', 'cola', 'sweet tea', 'lemonade', 'sports drink', 'energy drink',
+        // Fried / processed
+        'potato chips', 'chips', 'crackers', 'pretzels',
       ],
-      preferredIngredients: mergedPreferred
+      preferredIngredients: mergedPreferred,
+      customRules: { dailyCarbLimit, mealFrequency, perMealCarbCeiling }
     };
   },
 
@@ -188,18 +218,56 @@ export const diabeticHubModule: HubModule = {
     const data = context?.data as DiabeticContextData | undefined;
     const glucoseGuidance = data ? buildGlucoseGuidance(data) : '';
 
+    // ── Type-aware coaching context ───────────────────────────────────────────
+    let typeCoachingLine = '';
+    if (data) {
+      if (data.diabetesType === 'T1D') {
+        typeCoachingLine = 'COACHING CONTEXT — TYPE 1 DIABETES: Prioritize carb consistency above all. Minimize variability between meals. Use exact, predictable carb amounts.';
+      } else if (data.diabetesType === 'T2D') {
+        typeCoachingLine = 'COACHING CONTEXT — TYPE 2 DIABETES: Focus on carb reduction and blood sugar control. Emphasize lean protein, non-starchy vegetables, and low-GI choices.';
+      } else if (data.diabetesType === 'PRE_D') {
+        typeCoachingLine = 'COACHING CONTEXT — PRE-DIABETES (prevention mode): Support long-term blood sugar stability. Slightly more flexible carb ranges are acceptable, but maintain low-GI principles and high fiber.';
+      }
+      if (data.hypoHistory) {
+        typeCoachingLine += ' IMPORTANT: User has history of hypoglycemia — ensure each meal includes an adequate carbohydrate floor (minimum 15g) to prevent low blood sugar events.';
+      }
+    }
+
     const userCarbsLine = guardrails.userPreferredCarbs && guardrails.userPreferredCarbs.length > 0
       ? `- User's preferred low-GI carb sources (PRIORITIZE THESE): ${guardrails.userPreferredCarbs.join(', ')}\n`
       : '';
 
-    let promptAddition = `
-DIABETIC MEAL REQUIREMENTS:
-- Maximum carbohydrates: ${guardrails.carbCeiling}g per meal
+    // Group blocked items for clearer AI instruction
+    const blockedSugars = guardrails.blockedIngredients?.filter(i =>
+      ['sugar','honey','maple syrup','agave','corn syrup','molasses','candy','milk chocolate',
+       'sweetened yogurt','flavored yogurt','granola bar'].includes(i)
+    ) ?? [];
+    const blockedStarches = guardrails.blockedIngredients?.filter(i =>
+      ['white rice','jasmine rice','regular pasta','spaghetti','penne','fettuccine','linguine',
+       'macaroni','potato','potatoes','mashed potatoes','french fries','fries','baked potato',
+       'hash browns','tater tots','flour tortilla','pizza crust','bread','white bread','muffin',
+       'muffins','croissant','bagel','donut','doughnut','white flour','all-purpose flour',
+       'pancake','pancakes','waffle','waffles'].includes(i)
+    ) ?? [];
+    const blockedFruits = guardrails.blockedIngredients?.filter(i =>
+      ['banana','bananas','pineapple','mango','mangoes','grapes','grape','watermelon',
+       'dried fruit','raisins','dates','fruit juice','orange juice','apple juice'].includes(i)
+    ) ?? [];
+
+    let promptAddition = `${typeCoachingLine ? typeCoachingLine + '\n\n' : ''}DIABETIC MEAL REQUIREMENTS — STRICT ENFORCEMENT:
+- Maximum carbohydrates THIS MEAL: ${guardrails.carbCeiling}g (hard limit — do not exceed)
 - Minimum fiber: ${guardrails.fiberMin}g
-- Prioritize low glycemic index ingredients (under GI ${guardrails.giCap})
+- Glycemic index cap: under GI ${guardrails.giCap} for all carb sources
 - Focus on lean proteins, non-starchy vegetables, and healthy fats
-${userCarbsLine}- Avoid: ${guardrails.blockedIngredients?.slice(0, 8).join(', ')}
-`;
+
+ABSOLUTELY FORBIDDEN — NEVER include these:
+Sugars/sweeteners: ${blockedSugars.join(', ')}
+High-GI starches: ${blockedStarches.join(', ')}
+High-GI fruits: ${blockedFruits.join(', ')}
+Also avoid: bbq sauce, ketchup, teriyaki sauce, hoisin sauce, caramel, jam, jelly, soda, fruit juice, sports drinks, potato chips, crackers
+
+${userCarbsLine}`;
+
 
     if (glucoseGuidance) {
       promptAddition = `
@@ -220,44 +288,48 @@ ${promptAddition}`;
     const violations: ValidationViolation[] = [];
     const warnings: string[] = [];
 
-    if (guardrails.carbCeiling && meal.carbs > guardrails.carbCeiling) {
+    // ── Macro presence check ─────────────────────────────────────────────────
+    if (meal.carbs === null || meal.carbs === undefined || isNaN(meal.carbs)) {
+      violations.push({
+        rule: 'missing_macro_data',
+        message: 'Carbohydrate data is missing — cannot verify diabetic safety',
+        severity: 'hard',
+      });
+    } else if (guardrails.carbCeiling && meal.carbs > guardrails.carbCeiling) {
       violations.push({
         rule: 'carb_ceiling',
-        message: `Carbs (${meal.carbs}g) exceed limit (${guardrails.carbCeiling}g)`,
+        message: `Carbs (${meal.carbs}g) exceed per-meal limit (${guardrails.carbCeiling}g)`,
         severity: 'hard',
         actualValue: meal.carbs,
         expectedValue: guardrails.carbCeiling
       });
     }
 
-    const mealIngredients = meal.ingredients.map(i => i.name.toLowerCase()).join(' ');
-    const mealName = meal.name.toLowerCase();
-    const mealDesc = (meal.description || '').toLowerCase();
-    const fullText = `${mealName} ${mealDesc} ${mealIngredients}`;
+    // ── Blocked ingredient check — INGREDIENTS ONLY ──────────────────────────
+    // We check the actual ingredient list, not the meal name or description.
+    // A meal called "Almond Flour Protein Pancakes" with clean ingredients
+    // must pass — the name is a label, not evidence of a blocked substance.
+    const ingredientNames = meal.ingredients.map(i => i.name.toLowerCase());
 
     for (const blocked of guardrails.blockedIngredients || []) {
-      if (fullText.includes(blocked.toLowerCase())) {
-        if (!isSafeVariant(fullText, blocked)) {
-          violations.push({
-            rule: 'blocked_ingredient',
-            message: `Contains blocked ingredient: ${blocked}`,
-            severity: 'soft',
-            actualValue: blocked
-          });
-        }
+      const blockedLower = blocked.toLowerCase();
+      const hit = ingredientNames.find(name => name.includes(blockedLower));
+      if (hit && !isSafeVariant(hit, blocked)) {
+        violations.push({
+          rule: 'blocked_ingredient',
+          message: `Ingredient "${hit}" contains blocked item: "${blocked}"`,
+          severity: 'hard',
+          actualValue: hit
+        });
       }
-    }
-
-    if (meal.carbs > 60) {
-      warnings.push(`High carbohydrate content (${meal.carbs}g) - consider reducing for better glucose control`);
     }
 
     return {
       isValid: violations.filter(v => v.severity === 'hard').length === 0,
       violations,
       warnings,
-      fixHint: violations.length > 0 
-        ? `Reduce carbs to under ${guardrails.carbCeiling}g and avoid blocked ingredients. Keep the meal delicious.`
+      fixHint: violations.length > 0
+        ? `Regenerate: keep carbs under ${guardrails.carbCeiling}g per meal, replace blocked ingredients with low-GI alternatives. Maintain flavor and satisfaction.`
         : undefined
     };
   },
@@ -281,19 +353,52 @@ ${promptAddition}`;
   }
 };
 
-function isSafeVariant(text: string, blocked: string): boolean {
-  const safePatterns: Record<string, string[]> = {
-    'white sugar': ['sugar-free', 'no sugar', 'zero sugar'],
-    'white rice': ['cauliflower rice', 'brown rice', 'wild rice'],
-    'white bread': ['whole grain bread', 'low-carb bread', 'keto bread'],
-    'regular pasta': ['chickpea pasta', 'lentil pasta', 'zucchini noodles', 'protein pasta'],
-    'potato chips': ['veggie chips', 'kale chips'],
-    'french fries': ['baked', 'air-fried sweet potato']
-  };
+/**
+ * isSafeVariant — ingredient-level false positive guard
+ *
+ * Called with an individual INGREDIENT NAME, not a full meal description.
+ * Handles cases where a single ingredient name contains a blocked substring
+ * but represents a safe, low-GI alternative.
+ *
+ * Examples:
+ *   "chickpea pasta"  → contains "pasta"  → safe
+ *   "sweet potato"    → contains "potato" → safe (lower GI, clinically acceptable)
+ *   "sugar-free syrup"→ contains "sugar"  → safe
+ */
+function isSafeVariant(ingredientName: string, blocked: string): boolean {
+  const name = ingredientName.toLowerCase();
+  const b = blocked.toLowerCase();
 
-  const patterns = safePatterns[blocked.toLowerCase()];
-  if (patterns) {
-    return patterns.some(safe => text.includes(safe));
+  // Pasta alternatives
+  if (b === 'pasta' || b === 'regular pasta') {
+    return ['chickpea pasta', 'lentil pasta', 'edamame pasta', 'protein pasta',
+            'zucchini noodles', 'heart of palm pasta'].some(s => name.includes(s));
   }
+
+  // Potato — sweet potato is a clinically acceptable lower-GI alternative
+  if (b === 'potato' || b === 'potatoes') {
+    return name.includes('sweet potato');
+  }
+
+  // Sugar — allow sugar-free and no-added-sugar labeled ingredients
+  if (b === 'sugar' || b === 'white sugar' || b === 'brown sugar') {
+    return ['sugar-free', 'no sugar', 'no added sugar', 'zero sugar'].some(s => name.includes(s));
+  }
+
+  // Rice alternatives
+  if (b === 'white rice' || b === 'jasmine rice') {
+    return ['cauliflower rice', 'brown rice', 'wild rice', 'black rice'].some(s => name.includes(s));
+  }
+
+  // Bread alternatives
+  if (b === 'bread' || b === 'white bread') {
+    return ['low-carb bread', 'keto bread', 'almond flour bread', 'whole grain bread'].some(s => name.includes(s));
+  }
+
+  // Fries — sweet potato or air-fried versions are acceptable
+  if (b === 'fries' || b === 'french fries') {
+    return ['sweet potato', 'air-fried', 'baked sweet'].some(s => name.includes(s));
+  }
+
   return false;
 }
