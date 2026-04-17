@@ -54,13 +54,26 @@ export async function chatJson(opts: {
   throw lastErr ?? new Error("LLM failed");
 }
 
+const IMAGE_TIMEOUT_MS = Number(process.env.IMAGE_TIMEOUT_MS ?? 30000);
+
 export async function genImage(prompt: string, size: "1024x1024" | "1024x1536" | "1536x1024" = "1024x1024"): Promise<string | undefined> {
   if (process.env.DISABLE_IMAGE_GEN === "true") return undefined;
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort("image-timeout"), IMAGE_TIMEOUT_MS);
   try {
-    const res = await openai.images.generate({ model: "dall-e-3", prompt, size, n: 1 });
+    const res = await openai.images.generate(
+      { model: "dall-e-3", prompt, size, n: 1 },
+      { signal: ac.signal }
+    );
+    clearTimeout(t);
     return res.data?.[0]?.url ?? undefined;
-  } catch (e) {
-    console.error("image gen failed:", e);
+  } catch (e: any) {
+    clearTimeout(t);
+    if (e?.name === "AbortError" || String(e).includes("image-timeout")) {
+      console.warn(`[genImage] timed out after ${IMAGE_TIMEOUT_MS}ms for: "${prompt.slice(0, 60)}"`);
+    } else {
+      console.error("image gen failed:", e);
+    }
     return undefined;
   }
 }
