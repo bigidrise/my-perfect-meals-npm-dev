@@ -50,6 +50,7 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import TrashButton from "@/components/ui/TrashButton";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { PillButton } from "@/components/ui/pill-button";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import PhaseGate from "@/components/PhaseGate";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
@@ -571,26 +572,27 @@ export default function UltimateExperiencesPage() {
 
                   {/* ── LAYER 1: Situation ── */}
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-white">
+                    <label className="block text-sm font-medium mb-3 text-white">
                       What's the occasion?
                     </label>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex gap-6">
                       {SITUATIONS.map((s) => (
-                        <button
-                          key={s.id}
-                          onClick={() => {
-                            setSituation(s.id);
-                            setSelectedEvent(null);
-                            setSelectedDishes([]);
-                          }}
-                          className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${
-                            situation === s.id
-                              ? "bg-orange-500 border-orange-400 text-white shadow-lg"
-                              : "bg-black/40 border-white/20 text-white/70 hover:border-orange-400/50 hover:text-white"
-                          }`}
-                        >
-                          {s.emoji} {s.label}
-                        </button>
+                        <div key={s.id} className="flex flex-col items-center gap-1.5">
+                          <PillButton
+                            active={situation === s.id}
+                            variant="amber"
+                            onClick={() => {
+                              setSituation(s.id);
+                              setSelectedEvent(null);
+                              setSelectedDishes([]);
+                            }}
+                            disabled={isGenerating}
+                            className="w-16"
+                          >
+                            &nbsp;
+                          </PillButton>
+                          <span className="text-xs text-white/80 font-medium">{s.label}</span>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -616,7 +618,7 @@ export default function UltimateExperiencesPage() {
                                 : "bg-black/40 border-white/20 text-white/70 hover:border-amber-400/50 hover:text-white"
                             }`}
                           >
-                            {h.emoji} {h.label}
+                            {h.label}
                           </button>
                         ))}
                       </div>
@@ -826,22 +828,23 @@ export default function UltimateExperiencesPage() {
                   {/* ── LAYER 4: Course Count ── */}
                   {situation && (
                     <div>
-                      <label className="block text-sm font-medium mb-2 text-white">
+                      <label className="block text-sm font-medium mb-3 text-white">
                         How many courses?
                       </label>
-                      <div className="flex gap-2">
+                      <div className="flex gap-6">
                         {COURSE_COUNTS.map((n) => (
-                          <button
-                            key={n}
-                            onClick={() => setTotalCourses(n)}
-                            className={`flex-1 py-2 rounded-full text-sm font-medium border transition-all ${
-                              totalCourses === n
-                                ? "bg-orange-500 border-orange-400 text-white shadow-lg"
-                                : "bg-black/40 border-white/20 text-white/70 hover:border-orange-400/50 hover:text-white"
-                            }`}
-                          >
-                            {n} courses
-                          </button>
+                          <div key={n} className="flex flex-col items-center gap-1.5">
+                            <PillButton
+                              active={totalCourses === n}
+                              variant="amber"
+                              onClick={() => setTotalCourses(n)}
+                              disabled={isGenerating}
+                              className="w-12"
+                            >
+                              {n}
+                            </PillButton>
+                            <span className="text-xs text-white/70">courses</span>
+                          </div>
                         ))}
                       </div>
                       <p className="text-xs text-white/40 mt-1">
@@ -857,25 +860,25 @@ export default function UltimateExperiencesPage() {
                   {/* ── Servings Stepper ── */}
                   {situation && (
                     <div>
-                      <label className="block text-sm font-medium mb-2 text-white">
+                      <label className="block text-sm font-medium mb-3 text-white">
                         Serving size
                       </label>
                       <div className="flex items-center gap-4">
-                        <button
+                        <PillButton
                           onClick={() => setServings((s) => Math.max(1, s - 1))}
-                          className="w-9 h-9 rounded-full bg-black/40 border border-white/20 text-white flex items-center justify-center hover:border-orange-400/50 transition-all active:scale-95"
+                          disabled={isGenerating || servings <= 1}
                         >
-                          <Minus className="h-4 w-4" />
-                        </button>
-                        <span className="text-white font-bold text-lg w-8 text-center">
+                          <Minus className="h-3 w-3" />
+                        </PillButton>
+                        <span className="text-white font-bold text-lg w-10 text-center">
                           {servings}
                         </span>
-                        <button
+                        <PillButton
                           onClick={() => setServings((s) => Math.min(50, s + 1))}
-                          className="w-9 h-9 rounded-full bg-black/40 border border-white/20 text-white flex items-center justify-center hover:border-orange-400/50 transition-all active:scale-95"
+                          disabled={isGenerating || servings >= 50}
                         >
-                          <Plus className="h-4 w-4" />
-                        </button>
+                          <Plus className="h-3 w-3" />
+                        </PillButton>
                         <span className="text-white/60 text-sm">
                           {servings === 1 ? "person" : "people"}
                         </span>
@@ -959,31 +962,28 @@ export default function UltimateExperiencesPage() {
                         <GlucoseGuardToggle disabled={isGenerating} />
                       </div>
 
-                      <div className="mt-2 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
-                        <span className="text-xs text-white/60 block mb-2">
-                          Flavor Profile
-                        </span>
-                        <FlavorToggle
-                          flavorPersonal={flavorPersonal}
-                          onFlavorChange={setFlavorPersonal}
-                          disabled={isGenerating}
-                        />
-                      </div>
-
-                      <div className="mt-2 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
-                        <span className="text-xs text-white/60 block mb-2">
-                          Ingredient Control
-                        </span>
-                        <KeepItSimpleToggle
-                          keepItSimple={keepItSimple}
-                          onToggle={setKeepItSimple}
-                          disabled={isGenerating}
-                        />
-                        <p className="text-xs text-white/40 mt-1">
-                          {keepItSimple
-                            ? "AI will use only traditional ingredients — nothing added"
-                            : "AI may add complementary ingredients"}
-                        </p>
+                      <div className="mt-2 flex gap-6">
+                        <div className="flex flex-col items-center gap-1.5">
+                          <PillButton
+                            active={flavorPersonal}
+                            variant="amber"
+                            onClick={() => !isGenerating && setFlavorPersonal(!flavorPersonal)}
+                            disabled={isGenerating}
+                          >
+                            {flavorPersonal ? "Personal" : "Neutral"}
+                          </PillButton>
+                          <span className="text-xs text-white/70">Flavor</span>
+                        </div>
+                        <div className="flex flex-col items-center gap-1.5">
+                          <PillButton
+                            active={keepItSimple}
+                            onClick={() => !isGenerating && setKeepItSimple(!keepItSimple)}
+                            disabled={isGenerating}
+                          >
+                            {keepItSimple ? "Simple" : "Full"}
+                          </PillButton>
+                          <span className="text-xs text-white/70">Ingredients</span>
+                        </div>
                       </div>
                     </>
                   )}
