@@ -15,6 +15,8 @@ import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { isFeatureEnabled } from "@/lib/productionGates";
+import { useMealImages } from "@/hooks/useMealImages";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import {
   Card,
   CardContent,
@@ -208,6 +210,7 @@ export default function CravingCreator() {
   const [generatedMeals, setGeneratedMeals] = useState<MealData[]>([]);
   const [mealOptions, setMealOptions] = useState<any[]>([]);
   const [isPlatingMeal, setIsPlatingMeal] = useState(false);
+  const { loadingImages, hydrateImages } = useMealImages(setGeneratedMeals, { mealType: "snacks", concurrency: 1 });
 
   const getRecentMeals = (): string[] => {
     try { return JSON.parse(sessionStorage.getItem('cc_recent_meals') || '[]'); } catch { return []; }
@@ -314,46 +317,20 @@ export default function CravingCreator() {
     }
   }, [generatedMeals, cravingInput, servings]);
 
-  const handleSelectMeal = async (meal: any) => {
+  const handleSelectMeal = (meal: any) => {
     setMealOptions([]);
     addRecentMeal(meal.name);
-    setIsPlatingMeal(true);
-
-    let finalMeal = { ...meal };
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 20000); // 20s hard timeout
-      const imgRes = await fetch(apiUrl("/api/meal-images/generate"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({
-          mealName: meal.name,
-          ingredients: (meal.ingredients || []).map((i: any) => i.name || i),
-          style: "overhead",
-          mealType: "snacks",
-        }),
-      });
-      clearTimeout(timeout);
-      if (imgRes.ok) {
-        const imgData = await imgRes.json();
-        if (imgData.success && imgData.image?.url) {
-          finalMeal = { ...finalMeal, imageUrl: imgData.image.url };
-        }
-      }
-    } catch (imgErr) {
-      console.warn("[CRAVING CREATOR] Image generation failed, using fallback:", imgErr);
-    }
-
-    setGeneratedMeals([finalMeal]);
+    // Show card immediately — image hydrates in parallel
+    setGeneratedMeals([meal]);
     setIsPlatingMeal(false);
     saveCravingCache({
-      generatedMeal: finalMeal,
+      generatedMeal: meal,
       craving: cravingInput,
       servings: servings,
       mealType: "snacks",
       generatedAtISO: new Date().toISOString(),
     });
+    hydrateImages([meal]);
   };
 
   useEffect(() => {
@@ -643,6 +620,7 @@ export default function CravingCreator() {
 
       stopProgressTicker();
       setGeneratedMeals([meal]);
+      hydrateImages([meal]);
 
       // Immediately cache the new meal so it survives navigation/refresh
       saveCravingCache({
@@ -1286,21 +1264,11 @@ export default function CravingCreator() {
 
                       <p className="text-white/90 mb-4">{meal.description}</p>
 
-                      {/* Meal Image - Show if available */}
-                      {meal.imageUrl && (
-                        <div className="mb-6 rounded-lg overflow-hidden">
-                          <img
-                            key={meal.imageUrl}
-                            src={meal.imageUrl}
-                            alt={meal.name}
-                            className="w-full h-64 object-cover"
-                            onError={(e) => {
-                              console.log("Image load error:", e);
-                              e.currentTarget.style.display = "none";
-                            }}
-                          />
-                        </div>
-                      )}
+                      <MealImageSlot
+                        imageUrl={meal.imageUrl}
+                        mealName={meal.name}
+                        isLoading={!!loadingImages[meal.id]}
+                      />
 
                       {/* Serving Size Display - ALWAYS SHOW */}
                       <div className="mb-4 p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-lg">

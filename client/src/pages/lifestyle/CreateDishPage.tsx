@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { useMealImages } from "@/hooks/useMealImages";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import ThinkingDots from "@/components/ThinkingDots";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -170,6 +172,7 @@ export default function CreateDishPage() {
   const [cookMethod, setCookMethod] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [generatedMeals, setGeneratedMeals] = useState<MealData[]>([]);
+  const { loadingImages, hydrateImages } = useMealImages(setGeneratedMeals, { mealType: "dinner", concurrency: 1 });
   // ============================================================
   // GUARD: generatedInSession controls ShoppingAggregateBar visibility.
   // It MUST start false and remain false during auto-restore on mount.
@@ -288,40 +291,16 @@ export default function CreateDishPage() {
     addRecentMeal(meal.name);
     setIsPlatingMeal(true);
 
-    let finalMeal = { ...meal };
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 20000);
-      const imgRes = await fetch(apiUrl("/api/meal-images/generate"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({
-          mealName: meal.name,
-          ingredients: (meal.ingredients || []).map((i: any) => i.name || i),
-          style: "overhead",
-          mealType: "dinner",
-        }),
-      });
-      clearTimeout(timeout);
-      if (imgRes.ok) {
-        const imgData = await imgRes.json();
-        if (imgData.success && imgData.image?.url) {
-          finalMeal = { ...finalMeal, imageUrl: imgData.image.url };
-        }
-      }
-    } catch (imgErr) {
-      console.warn("[CREATE DISH] Image generation failed:", imgErr);
-    }
-
-    setGeneratedMeals([finalMeal]);
+    // Show card immediately — image hydrates in parallel
+    setGeneratedMeals([meal]);
     setGeneratedInSession(true);
     setIsPlatingMeal(false);
     saveDishCache({
-      generatedMeal: finalMeal,
+      generatedMeal: meal,
       servings,
       generatedAtISO: new Date().toISOString(),
     });
+    hydrateImages([meal]);
   };
 
   const startProgressTicker = () => {
@@ -918,19 +897,11 @@ export default function CreateDishPage() {
 
                       <p className="text-white/90 mb-4">{meal.description}</p>
 
-                      {meal.imageUrl && (
-                        <div className="mb-6 rounded-lg overflow-hidden">
-                          <img
-                            key={meal.imageUrl}
-                            src={meal.imageUrl}
-                            alt={meal.name}
-                            className="w-full h-64 object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none";
-                            }}
-                          />
-                        </div>
-                      )}
+                      <MealImageSlot
+                        imageUrl={meal.imageUrl}
+                        mealName={meal.name}
+                        isLoading={!!loadingImages[meal.id]}
+                      />
 
                       <div className="mb-4 p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-lg">
                         <div className="flex items-center gap-2 text-sm text-white">

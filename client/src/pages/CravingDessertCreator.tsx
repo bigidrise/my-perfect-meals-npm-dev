@@ -1,6 +1,7 @@
 // 🔒 DESSERT CREATOR - RESTRUCTURED (December 9, 2025)
 // New 5-field structure: Category, Flavor Family, Specific Dessert, Serving Size, Dietary
 import { useState, useEffect, useRef } from "react";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import ThinkingDots from "@/components/ThinkingDots";
 import { motion } from "framer-motion";
@@ -187,6 +188,7 @@ export default function DessertCreator() {
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [dessertImageLoading, setDessertImageLoading] = useState(false);
   // 🥗 Diet guard — hook-based precheck (mirrors StarchGuard)
   const {
     alert: dietAlert,
@@ -425,6 +427,19 @@ export default function DessertCreator() {
 
       stopProgressTicker();
       setGeneratedDessert(meal);
+      // Fire image async — non-blocking
+      setDessertImageLoading(true);
+      fetch(apiUrl("/api/meals/generate-image"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mealId: meal.id, mealName: meal.name, mealType: "desserts", ingredients: meal.ingredients }),
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.imageUrl) setGeneratedDessert((prev: any) => prev ? { ...prev, imageUrl: d.imageUrl } : prev);
+        })
+        .catch(() => {})
+        .finally(() => setDessertImageLoading(false));
 
       toast({
         title: "✨ Dessert Created!",
@@ -846,15 +861,11 @@ export default function DessertCreator() {
                     {generatedDessert.description}
                   </p>
 
-                  {generatedDessert.imageUrl && (
-                    <div className="mb-6 rounded-lg overflow-hidden">
-                      <img
-                        src={generatedDessert.imageUrl}
-                        alt={generatedDessert.name}
-                        className="w-full h-64 object-cover"
-                      />
-                    </div>
-                  )}
+                  <MealImageSlot
+                    imageUrl={generatedDessert.imageUrl}
+                    mealName={generatedDessert.name}
+                    isLoading={dessertImageLoading}
+                  />
 
                   <div className="mb-4 p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-lg">
                     <div className="flex items-center gap-2 text-sm text-white">
