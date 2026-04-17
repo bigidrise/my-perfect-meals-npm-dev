@@ -219,6 +219,7 @@ export default function UltimateExperiencesPage() {
   const [chefNotes, setChefNotes] = useState("");
   const [generatedCourses, setGeneratedCourses] = useState<CourseMeal[]>([]);
   const [generatedInSession, setGeneratedInSession] = useState(false);
+  const [loadingImages, setLoadingImages] = useState<Record<string, boolean>>({});
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -485,16 +486,45 @@ export default function UltimateExperiencesPage() {
 
       stopProgressTicker();
       setIsGenerating(false);
-      setGeneratedCourses(data.courses || []);
+      const courses: CourseMeal[] = data.courses || [];
+      setGeneratedCourses(courses);
       setGeneratedInSession(true);
 
       saveExperienceCache({
-        courses: data.courses || [],
+        courses,
         servings,
         situation,
         eventType: selectedEvent,
         generatedAtISO: new Date().toISOString(),
       });
+
+      // Fire image generation for all courses in parallel — non-blocking
+      if (courses.length > 0) {
+        const loadingMap: Record<string, boolean> = {};
+        courses.forEach((c) => { loadingMap[c.id] = true; });
+        setLoadingImages(loadingMap);
+
+        courses.forEach(async (course) => {
+          try {
+            const imgRes = await fetch(apiUrl("/api/experiences/generate-image"), {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+              body: JSON.stringify({ mealName: course.name, mealType: "dinner" }),
+            });
+            const imgData = await imgRes.json();
+            if (imgData.imageUrl) {
+              setGeneratedCourses((prev) =>
+                prev.map((c) => c.id === course.id ? { ...c, imageUrl: imgData.imageUrl } : c)
+              );
+            }
+          } catch {
+            // Silent — no image is fine, card still shows
+          } finally {
+            setLoadingImages((prev) => ({ ...prev, [course.id]: false }));
+          }
+        });
+      }
 
       toast({
         title: "Your experience is ready!",
@@ -1169,7 +1199,14 @@ export default function UltimateExperiencesPage() {
 
                       <p className="text-white/90 mb-4">{course.description}</p>
 
-                      {course.imageUrl && (
+                      {/* Image: shimmer while generating in parallel, real image when ready */}
+                      {loadingImages[course.id] ? (
+                        <div className="mb-6 rounded-lg overflow-hidden">
+                          <div className="w-full h-64 bg-white/8 rounded-lg animate-pulse flex items-center justify-center">
+                            <p className="text-white/30 text-xs tracking-wide">Generating image…</p>
+                          </div>
+                        </div>
+                      ) : course.imageUrl ? (
                         <div className="mb-6 rounded-lg overflow-hidden">
                           <img
                             src={course.imageUrl}
@@ -1180,7 +1217,7 @@ export default function UltimateExperiencesPage() {
                             }}
                           />
                         </div>
-                      )}
+                      ) : null}
 
                       <div className="mb-4 p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-lg">
                         <div className="flex items-center gap-2 text-sm text-white">

@@ -101,7 +101,7 @@ async function generateImageFromDalle(prompt: string): Promise<string | null> {
 }
 
 // 🔁 Universal AI Meal Generator for any craving
-export async function generateMealFromPrompt(prompt: string, mealType: MealType, userPrefs?: Partial<WeeklyMealReq>): Promise<FinalMeal> {
+export async function generateMealFromPrompt(prompt: string, mealType: MealType, userPrefs?: Partial<WeeklyMealReq> & { skipImage?: boolean }): Promise<FinalMeal> {
   console.log("🌟 GPT-4 universal meal creation triggered with prompt:", prompt);
   
   const sessionId = telemetry.createSession("universalMealGenerator");
@@ -282,12 +282,14 @@ Fat: 12g`
     telemetry.tagFallback(sessionId, "instruction_fallback", "No instructions parsed from AI response");
   }
 
-  // Generate DALL-E image
-  const imagePrompt = `${name}, healthy ${mealType}, professional food photography, overhead view, clean plate presentation`;
-  const imageUrl = await generateImageFromDalle(imagePrompt);
-  
-  if (!imageUrl) {
-    telemetry.tagFallback(sessionId, "image_generation_failed", "DALL-E returned null");
+  // Generate DALL-E image — skip if caller handles images separately (e.g. experiences pipeline)
+  let imageUrl: string | null = null;
+  if (!userPrefs?.skipImage) {
+    const imagePrompt = `${name}, healthy ${mealType}, professional food photography, overhead view, clean plate presentation`;
+    imageUrl = await generateImageFromDalle(imagePrompt);
+    if (!imageUrl) {
+      telemetry.tagFallback(sessionId, "image_generation_failed", "DALL-E returned null");
+    }
   }
   
   // POST-GENERATION DIETARY HARD SCAN
