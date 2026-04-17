@@ -38,6 +38,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/lifestyle/pairings-ai": "Drink Pairings",
   "/lifestyle/wine-list-helper": "Wine List Helper",
   "/lifestyle/reduce-drinking-plan": "Reduce Drinking Plan",
+  "/lifestyle/ultimate-experiences": "Ultimate Experience",
   "/craving-creator-landing": "Craving Creator Hub",
   "/craving-creator": "Craving Creator",
   "/craving-desserts": "Dessert Creator",

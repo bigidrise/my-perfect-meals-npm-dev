@@ -16,6 +16,7 @@ const HOLIDAY_FLAVOR_SEEDS: Record<string, string> = {
   eid: "aromatic spices, celebratory, bold herbs, festive",
   passover: "traditional, Passover-appropriate, hearty, meaningful",
   "new-years": "celebratory, elegant, sophisticated, fresh start",
+  "fourth-of-july": "smoky BBQ, bold, summery, backyard celebration, patriotic",
 };
 
 // ─────────────────────────────────────────────
@@ -24,11 +25,24 @@ const HOLIDAY_FLAVOR_SEEDS: Record<string, string> = {
 const ExperienceRequest = z.object({
   situation: z.enum(["holiday", "camping", "tailgating"]),
   eventType: z.string().optional(),
+  selectedDishes: z
+    .array(
+      z.object({
+        name: z.string(),
+        category: z.enum(["appetizer", "main", "side", "dessert"]),
+      }),
+    )
+    .optional()
+    .default([]),
+  familySpecialty: z.string().max(300).optional(),
+  notes: z.string().max(500).optional(),
   totalCourses: z.union([z.literal(3), z.literal(4), z.literal(5)]),
   servingSize: z.number().int().min(1).max(50),
   userId: z.string().optional(),
   dietaryRestrictions: z.array(z.string()).optional().default([]),
   allergies: z.array(z.string()).optional().default([]),
+  sweetenerPreferences: z.array(z.string()).optional().default([]),
+  dietAdaptOverride: z.boolean().optional().default(false),
 });
 
 // ─────────────────────────────────────────────
@@ -45,7 +59,7 @@ function deriveCourses(totalCourses: 3 | 4 | 5): CourseType[] {
 // ─────────────────────────────────────────────
 function getFlavorSeed(situation: Situation, eventType?: string): string {
   if (situation === "holiday" && eventType) {
-    const key = eventType.toLowerCase().replace(/\s+/g, "-");
+    const key = eventType.toLowerCase().replace(/[''\s]+/g, "-").replace(/[^a-z0-9-]/g, "");
     return HOLIDAY_FLAVOR_SEEDS[key] || "celebratory, festive, traditional";
   }
   if (situation === "camping")
@@ -56,7 +70,46 @@ function getFlavorSeed(situation: Situation, eventType?: string): string {
 }
 
 // ─────────────────────────────────────────────
-// Situation-specific constraint blocks
+// Dish assignment — maps selected dishes to course slots BEFORE AI
+// Model never guesses which dish goes where
+// ─────────────────────────────────────────────
+interface SelectedDish {
+  name: string;
+  category: "appetizer" | "main" | "side" | "dessert";
+}
+
+function assignDishToCourse(
+  courseType: CourseType,
+  courseIndex: number,
+  courses: CourseType[],
+  selectedDishes: SelectedDish[],
+  familySpecialty: string | undefined,
+): { assignedDish?: string; isFamilySpecialty?: boolean } {
+  // Count how many of this courseType appear before this index
+  const sameTypesBefore = courses
+    .slice(0, courseIndex)
+    .filter((c) => c === courseType).length;
+
+  const dishesOfType = selectedDishes.filter((d) => d.category === courseType);
+
+  if (dishesOfType[sameTypesBefore]) {
+    return { assignedDish: dishesOfType[sameTypesBefore].name };
+  }
+
+  // Family specialty goes to main course if no main dish selected
+  if (
+    courseType === "main" &&
+    familySpecialty &&
+    dishesOfType.length === 0
+  ) {
+    return { assignedDish: familySpecialty, isFamilySpecialty: true };
+  }
+
+  return {};
+}
+
+// ─────────────────────────────────────────────
+// Situation-specific constraint blocks (hard inject)
 // ─────────────────────────────────────────────
 function getSituationConstraints(
   situation: Situation,
@@ -73,17 +126,20 @@ function getSituationConstraints(
   }
   if (situation === "camping") {
     return [
-      "- Must be practical for camping — minimal equipment required",
-      "- Avoid dishes requiring sustained refrigeration during prep",
-      "- Cooking methods: campfire, portable grill, or no-cook only",
+      "- CAMPING REQUIREMENT: Minimal equipment — maximum two cooking tools",
+      "- No refrigeration required during preparation",
+      "- Cooking methods: campfire, portable grill, or no-cook ONLY",
       "- Portable and easy to transport and serve outdoors",
+      "- Avoid dishes that require sustained temperature control",
     ].join("\n");
   }
+  // tailgating
   return [
-    `- Must be shareable and easy to serve to a group of ${servingSize}`,
-    "- Bold, simple flavors that appeal to a crowd",
-    "- Finger food or easy individual portions preferred",
-    "- Minimal plating complexity required",
+    `- TAILGATING REQUIREMENT: Shareable and easy to serve to ${servingSize} people`,
+    "- Finger food or individual portions — minimal plating complexity",
+    "- Bold, crowd-pleasing flavors that work for a diverse group",
+    "- Grill-friendly or no-cook preferred — fast prep required",
+    "- Must hold up at room temperature for at least 30 minutes",
   ].join("\n");
 }
 
@@ -107,6 +163,10 @@ function buildCoursePrompt(
   servingSize: number,
   flavorSeed: string,
   strict: boolean,
+  assignedDish: string | undefined,
+  isFamilySpecialty: boolean | undefined,
+  familySpecialty: string | undefined,
+  notes: string | undefined,
 ): string {
   const lines = [
     `You are generating the ${COURSE_LABELS[courseType]} for a multi-course meal.`,
@@ -134,6 +194,40 @@ function buildCoursePrompt(
   lines.push(`SITUATION CONSTRAINTS:`);
   lines.push(getSituationConstraints(situation, eventType, servingSize));
 
+  // Dish assignment — injected BEFORE AI call so model knows exactly what to cook
+  if (assignedDish) {
+    lines.push(``);
+    if (isFamilySpecialty) {
+      lines.push(`FAMILY SPECIALTY — MANDATORY (HIGHEST PRIORITY):`);
+      lines.push(`User has provided a custom family dish: "${assignedDish}"`);
+      lines.push(`You MUST prepare this exact dish. DO NOT replace it with something else.`);
+      lines.push(`You may ONLY adapt it to meet dietary restrictions while preserving its essential character, ingredients, and cooking method.`);
+    } else {
+      lines.push(`SPECIFIC DISH REQUESTED:`);
+      lines.push(`You MUST prepare: ${assignedDish}`);
+      lines.push(
+        `Adapt it to meet dietary restrictions while preserving its traditional ${eventType || situation} character and authentic flavor.`,
+      );
+    }
+  } else if (!assignedDish && situation === "holiday" && eventType) {
+    lines.push(``);
+    lines.push(`DISH SELECTION:`);
+    lines.push(
+      `No specific dish was selected for this course. Generate a traditional ${eventType} ${courseType} that authentically represents this holiday and complements the rest of the meal.`,
+    );
+  }
+
+  // Family specialty note on non-main courses
+  if (familySpecialty && !isFamilySpecialty && courseType !== "main") {
+    lines.push(``);
+    lines.push(`FAMILY CONTEXT: This meal features a family specialty: "${familySpecialty}". Design this ${courseType} to complement it.`);
+  }
+
+  if (notes) {
+    lines.push(``);
+    lines.push(`USER NOTES: ${notes}`);
+  }
+
   return lines.join("\n");
 }
 
@@ -146,6 +240,42 @@ const COURSE_TO_MEAL_TYPE = {
   side: "dinner",
   dessert: "snack",
 } as const;
+
+// ─────────────────────────────────────────────
+// Ingredient deduplication — combines same-named ingredients across courses
+// ─────────────────────────────────────────────
+function deduplicateIngredients(
+  allIngredients: Array<{ name: string; quantity?: number | string; unit?: string }>,
+): Array<{ name: string; quantity?: number | string; unit?: string }> {
+  const map = new Map<
+    string,
+    { name: string; quantity: number; unit: string }
+  >();
+
+  for (const ing of allIngredients) {
+    const key = ing.name.toLowerCase().trim();
+    const qty =
+      typeof ing.quantity === "number"
+        ? ing.quantity
+        : parseFloat(String(ing.quantity ?? "0")) || 0;
+    const unit = (ing.unit || "").toLowerCase().trim();
+
+    if (map.has(key)) {
+      const existing = map.get(key)!;
+      if (existing.unit === unit && qty > 0) {
+        existing.quantity += qty;
+      }
+    } else {
+      map.set(key, { name: ing.name, quantity: qty, unit });
+    }
+  }
+
+  return Array.from(map.values()).map((i) => ({
+    name: i.name,
+    quantity: i.quantity > 0 ? i.quantity : undefined,
+    unit: i.unit || undefined,
+  }));
+}
 
 // ─────────────────────────────────────────────
 // Route: POST /api/experiences/generate
@@ -162,6 +292,9 @@ router.post("/generate", async (req: Request, res: Response) => {
   const {
     situation,
     eventType,
+    selectedDishes,
+    familySpecialty,
+    notes,
     totalCourses,
     servingSize,
     userId,
@@ -184,7 +317,7 @@ router.post("/generate", async (req: Request, res: Response) => {
   };
 
   console.log(
-    `🎪 [UltimateExperience] id=${experienceContext.id} | courses=[${courses.join(",")}] | ${situation}${eventType ? `/${eventType}` : ""} | serving=${servingSize}`,
+    `🎪 [UltimateExperience] id=${experienceContext.id} | courses=[${courses.join(",")}] | ${situation}${eventType ? `/${eventType}` : ""} | serving=${servingSize} | selectedDishes=${selectedDishes.length} | familySpecialty=${!!familySpecialty}`,
   );
 
   // Merge user dietary profile from DB if userId provided
@@ -232,6 +365,15 @@ router.post("/generate", async (req: Request, res: Response) => {
 
       try {
         // GUARDRAIL #3: Explicit course label in every prompt — model cannot guess
+        // Dish assignment happens BEFORE the AI call — model is told exactly what to cook
+        const { assignedDish, isFamilySpecialty } = assignDishToCourse(
+          courseType,
+          i,
+          courses,
+          selectedDishes,
+          familySpecialty,
+        );
+
         const coursePrompt = buildCoursePrompt(
           courseType,
           i,
@@ -241,6 +383,10 @@ router.post("/generate", async (req: Request, res: Response) => {
           servingSize,
           experienceContext.flavorProfileSeed,
           strict,
+          assignedDish,
+          isFamilySpecialty,
+          familySpecialty,
+          notes,
         );
 
         const meal = await generateMealFromPrompt(
@@ -252,7 +398,7 @@ router.post("/generate", async (req: Request, res: Response) => {
             allergies: userAllergies,
             mealTypes: ["dinner"],
             medicalFlags: [],
-            skipPalate: true, // shared meal — neutral seasoning, not personalized
+            skipPalate: true,
           },
         );
 
@@ -260,12 +406,16 @@ router.post("/generate", async (req: Request, res: Response) => {
           ...meal,
           courseType,
           courseLabel:
-            courseType.charAt(0).toUpperCase() + courseType.slice(1),
+            courseType === "side"
+              ? `Side Dish`
+              : courseType.charAt(0).toUpperCase() + courseType.slice(1),
+          assignedDish: assignedDish || null,
+          isFamilySpecialty: isFamilySpecialty || false,
           servings: servingSize,
         };
 
         console.log(
-          `✅ [UltimateExperience] ${courseType} (${i + 1}/${courses.length}): "${meal.name}"`,
+          `✅ [UltimateExperience] ${courseType} (${i + 1}/${courses.length}): "${meal.name}"${assignedDish ? ` [requested: ${assignedDish}]` : ""}`,
         );
         break; // success — exit retry loop
       } catch (err) {
@@ -288,10 +438,14 @@ router.post("/generate", async (req: Request, res: Response) => {
         mealType: "dinner",
         courseType,
         courseLabel:
-          courseType.charAt(0).toUpperCase() + courseType.slice(1),
+          courseType === "side"
+            ? "Side Dish"
+            : courseType.charAt(0).toUpperCase() + courseType.slice(1),
+        assignedDish: null,
+        isFamilySpecialty: false,
         ingredients: [],
         instructions: [
-          "This course encountered an issue during generation. Please tap the regenerate button to retry just this course.",
+          "This course encountered an issue during generation. Please try again.",
         ],
         nutrition: { calories: 0, protein: 0, carbs: 0, fat: 0 },
         servings: servingSize,
@@ -304,6 +458,16 @@ router.post("/generate", async (req: Request, res: Response) => {
     generatedCourses.push(courseMeal);
   }
 
+  // Aggregate all ingredients across courses for shopping list
+  const allIngredients = generatedCourses.flatMap((c) =>
+    (c.ingredients || []).map((ing: any) => ({
+      name: ing.name || ing.item,
+      quantity: ing.quantity || ing.amount,
+      unit: ing.unit,
+    })),
+  );
+  const aggregatedIngredients = deduplicateIngredients(allIngredients);
+
   return res.json({
     experienceId: experienceContext.id,
     situation,
@@ -312,6 +476,7 @@ router.post("/generate", async (req: Request, res: Response) => {
     servingSize,
     flavorProfileSeed,
     courses: generatedCourses,
+    aggregatedIngredients,
   });
 });
 
