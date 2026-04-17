@@ -639,7 +639,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         nutritionStrategy: bodyNutritionStrategy,
         safetyMode,
         overrideToken,
-        strictMode
+        strictMode,
+        skipImage,
       } = req.body;
 
       // 🚨 ENFORCEMENT GATEWAY: Pre-generation — Tier 1 (allergy) + Tier 2 (religious)
@@ -757,6 +758,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         starchContext,
         nutritionStrategy: nutritionStrategy ?? undefined,
         strictMode: strictMode === true,
+        skipImage: skipImage === true,
         safetyAlreadyChecked: true
       });
 

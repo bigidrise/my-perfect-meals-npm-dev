@@ -204,6 +204,13 @@ const MealCardDynamic: React.FC<MealCardDynamicProps> = ({
         />
       )}
 
+      {/* Coaching line */}
+      <div className="px-1 pt-2 pb-0">
+        <p className="text-xs text-slate-500 dark:text-white/55 leading-relaxed border-l-2 border-slate-200 dark:border-white/20 pl-2.5">
+          Built for your current plan and targets.
+        </p>
+      </div>
+
       {/* Nutrition & Meta */}
       <div className="grid grid-cols-2 gap-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
         <div className="space-y-2">

@@ -502,6 +502,7 @@ router.post("/generate", async (req: Request, res: Response) => {
             medicalFlags: [],
             skipPalate: !flavorPersonal,
             strictMode: keepItSimple,
+            skipImage: true, // Images fetched in parallel by client after text is returned
           },
         );
 
@@ -588,6 +589,31 @@ router.post("/generate", async (req: Request, res: Response) => {
     courses: generatedCourses,
     aggregatedIngredients,
   });
+});
+
+// ─────────────────────────────────────────────
+// Image generation endpoint — called in parallel by client for each course
+// 1 retry with simplified prompt, then graceful fallback
+// ─────────────────────────────────────────────
+router.post("/generate-image", async (req: Request, res: Response) => {
+  const { mealName, mealType = "dinner" } = req.body || {};
+  if (!mealName) return res.status(400).json({ imageUrl: null, error: "mealName required" });
+
+  const { genImage } = await import("../utils/openaiSafe");
+
+  const fullPrompt = `${mealName}, healthy ${mealType}, professional food photography, overhead view, clean plate presentation, natural lighting`;
+  let imageUrl: string | null = (await genImage(fullPrompt)) ?? null;
+
+  if (!imageUrl) {
+    console.log(`🔄 [ExperienceImage] Retrying image for "${mealName}" with simplified prompt`);
+    imageUrl = (await genImage(`${mealName}, professional food photography, clean background`)) ?? null;
+  }
+
+  if (!imageUrl) {
+    console.warn(`⚠️ [ExperienceImage] Both attempts failed for "${mealName}" — returning null`);
+  }
+
+  return res.json({ imageUrl });
 });
 
 export default router;

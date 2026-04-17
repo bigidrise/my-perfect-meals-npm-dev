@@ -25,7 +25,9 @@ import {
   getDayLists,
   setDayLists,
   cloneDayLists,
+  updateMealImageInBoard,
 } from "@/lib/boardApi";
+import { useChefMealImage } from "@/hooks/useChefMealImage";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { MealPickerDrawer } from "@/components/pickers/MealPickerDrawer";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
@@ -151,6 +153,7 @@ export default function GLP1MealBuilder() {
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
+  const { fetchImageForMeal } = useChefMealImage();
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
@@ -773,6 +776,9 @@ export default function GLP1MealBuilder() {
         const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
         setBoard(updatedBoard);
+        fetchImageForMeal(transformedMeal, slot, (mealId, imageUrl) => {
+          setBoard(prev => prev ? updateMealImageInBoard(prev, mealId, imageUrl) : prev);
+        });
         
         // Persist to database (was missing - caused meals to not persist!)
         await saveBoard(updatedBoard);
@@ -1287,6 +1293,7 @@ export default function GLP1MealBuilder() {
                             slot={key}
                             meal={meal}
                             showStarchBadge={true}
+                                coachingLine="Built for your GLP-1 phase — small portion, protein-first, easy to digest."
                             data-wt="wmb-meal-card"
                             onUpdated={(m) => {
                               if (m === null) {
@@ -1380,6 +1387,7 @@ export default function GLP1MealBuilder() {
                                 slot="snacks"
                                 meal={meal}
                                 showStarchBadge={true}
+                                coachingLine="Built for your GLP-1 phase — small portion, protein-first, easy to digest."
                                 onUpdated={(m) => {
                                   if (m === null) {
                                     const updatedDayLists = { ...dayLists, snacks: dayLists.snacks.filter((e) => e.id !== meal.id) };
@@ -1445,6 +1453,7 @@ export default function GLP1MealBuilder() {
                             slot="snacks"
                             meal={meal}
                             showStarchBadge={true}
+                                coachingLine="Built for your GLP-1 phase — small portion, protein-first, easy to digest."
                             onUpdated={(m) => {
                               if (m === null) {
                                 const updatedDayLists = { ...dayLists, snacks: dayLists.snacks.filter((e) => e.id !== meal.id) };
@@ -1501,6 +1510,7 @@ export default function GLP1MealBuilder() {
                       slot={key}
                       meal={meal}
                       showStarchBadge={true}
+                                coachingLine="Built for your GLP-1 phase — small portion, protein-first, easy to digest."
                       onUpdated={(m) => {
                         if (m === null) {
                           if (!board) return;

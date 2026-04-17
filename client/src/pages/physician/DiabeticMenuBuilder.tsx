@@ -25,7 +25,9 @@ import {
   getDayLists,
   setDayLists,
   cloneDayLists,
+  updateMealImageInBoard,
 } from "@/lib/boardApi";
+import { useChefMealImage } from "@/hooks/useChefMealImage";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { MealPickerDrawer } from "@/components/pickers/MealPickerDrawer";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
@@ -195,6 +197,7 @@ export default function DiabeticMenuBuilder() {
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
+  const { fetchImageForMeal } = useChefMealImage();
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
@@ -885,6 +888,9 @@ export default function DiabeticMenuBuilder() {
         const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
         setBoard(updatedBoard);
+        fetchImageForMeal(transformedMeal, slot, (mealId, imageUrl) => {
+          setBoard(prev => prev ? updateMealImageInBoard(prev, mealId, imageUrl) : prev);
+        });
 
         try {
           await saveBoard(updatedBoard);
@@ -1397,6 +1403,7 @@ export default function DiabeticMenuBuilder() {
                             slot={key}
                             meal={meal}
                             showStarchBadge={true}
+                                coachingLine="Built to keep you within your glucose target range."
                             data-wt="wmb-meal-card"
                             onUpdated={(m) => {
                               if (m === null) {
@@ -1459,6 +1466,7 @@ export default function DiabeticMenuBuilder() {
                         <div className="space-y-3">
                           {dayLists.snacks.filter((m: Meal) => m.id.startsWith(slotPrefix)).map((meal: Meal) => (
                             <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true}
+                                coachingLine="Built to keep you within your glucose target range."
                               onUpdated={(m) => {
                                 if (m === null) {
                                   const updatedDayLists = { ...dayLists, snacks: dayLists.snacks.filter((e) => e.id !== meal.id) };
@@ -1507,6 +1515,7 @@ export default function DiabeticMenuBuilder() {
                     <div className="space-y-3">
                       {dayLists.snacks.filter((m: Meal) => !m.id.startsWith("dyn-")).map((meal: Meal) => (
                         <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true}
+                                coachingLine="Built to keep you within your glucose target range."
                           onUpdated={(m) => {
                             if (m === null) {
                               const updatedDayLists = { ...dayLists, snacks: dayLists.snacks.filter((e) => e.id !== meal.id) };
@@ -1558,6 +1567,7 @@ export default function DiabeticMenuBuilder() {
                       slot={key}
                       meal={meal}
                       showStarchBadge={true}
+                                coachingLine="Built to keep you within your glucose target range."
                       onUpdated={(m) => {
                         if (m === null) {
                           if (!board) return;

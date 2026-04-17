@@ -140,7 +140,7 @@ export default function GeneratedMealCard({
   const coachingLine = (() => {
     const src = (source || "").toLowerCase();
     const flagsList = (generatedMeal.flags || []).join(" ").toLowerCase();
-    if (src.includes("glp1") || flagsList.includes("glp1")) {
+    if (src.includes("glp1") || src.includes("glp-1") || flagsList.includes("glp1") || flagsList.includes("glp-1")) {
       return "Built for your GLP-1 phase — small portion, protein-first, easy to digest.";
     }
     if (src.includes("diabet") || flagsList.includes("diabet")) {

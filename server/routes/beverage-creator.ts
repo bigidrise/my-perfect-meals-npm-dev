@@ -382,27 +382,10 @@ INCORRECT (NEVER DO THIS):
 
     const medicalBadges = computeMedicalBadges(constraints, ingredientNames);
 
-    if (isDev) console.log("[BEVERAGE] Starting image generation...");
-    let imageUrl = null;
-    try {
-      const { generateImage } = await import("../services/imageService");
-      imageUrl = await generateImage({
-        name: meal.name,
-        description: meal.description || `A delicious ${flavorLabel} ${categoryLabel}`,
-        type: 'meal',
-        style: 'homemade',
-        ingredients: ingredientNames,
-        calories: meal.nutrition?.calories || 0,
-        protein: meal.nutrition?.protein || 0,
-        carbs: meal.nutrition?.carbs || 0,
-        fat: meal.nutrition?.fat || 0,
-      });
-      if (isDev) console.log(`[BEVERAGE] 📸 Image generated for ${meal.name}`);
-    } catch (error) {
-      if (isDev) console.log(`[BEVERAGE] ❌ Image generation failed for ${meal.name}:`, error);
-    }
+    // Image is generated client-side in parallel via /api/meals/generate-image
+    const imageUrl = null;
 
-    if (isDev) console.log("[BEVERAGE] Sending response...");
+    if (isDev) console.log("[BEVERAGE] Sending response (image handled client-side)...");
     const { complianceSection: bevCompliance, dietClassification: bevDietClass } =
       buildMealComplianceBundle(meal, beverageEnvelope, { isChefAdapted: dietAdapted });
     return res.json({

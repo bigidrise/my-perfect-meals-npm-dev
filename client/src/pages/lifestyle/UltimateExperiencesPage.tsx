@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { useMealImages } from "@/hooks/useMealImages";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import ThinkingDots from "@/components/ThinkingDots";
 import { useLocation } from "wouter";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
@@ -80,6 +82,7 @@ interface StructuredIngredient {
 interface CourseMeal {
   id: string;
   name: string;
+  imageUrl?: string;
   description: string;
   ingredients: StructuredIngredient[];
   calories: number;
@@ -219,6 +222,7 @@ export default function UltimateExperiencesPage() {
   const [chefNotes, setChefNotes] = useState("");
   const [generatedCourses, setGeneratedCourses] = useState<CourseMeal[]>([]);
   const [generatedInSession, setGeneratedInSession] = useState(false);
+  const { loadingImages, hydrateImages } = useMealImages(setGeneratedCourses, { mealType: "dinner" });
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -485,16 +489,22 @@ export default function UltimateExperiencesPage() {
 
       stopProgressTicker();
       setIsGenerating(false);
-      setGeneratedCourses(data.courses || []);
+      const courses: CourseMeal[] = data.courses || [];
+      setGeneratedCourses(courses);
       setGeneratedInSession(true);
 
       saveExperienceCache({
-        courses: data.courses || [],
+        courses,
         servings,
         situation,
         eventType: selectedEvent,
         generatedAtISO: new Date().toISOString(),
       });
+
+      // Fire image generation for all courses in parallel — non-blocking
+      if (courses.length > 0) {
+        hydrateImages(courses);
+      }
 
       toast({
         title: "Your experience is ready!",
@@ -1169,18 +1179,11 @@ export default function UltimateExperiencesPage() {
 
                       <p className="text-white/90 mb-4">{course.description}</p>
 
-                      {course.imageUrl && (
-                        <div className="mb-6 rounded-lg overflow-hidden">
-                          <img
-                            src={course.imageUrl}
-                            alt={course.name}
-                            className="w-full h-64 object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none";
-                            }}
-                          />
-                        </div>
-                      )}
+                      <MealImageSlot
+                        imageUrl={course.imageUrl}
+                        mealName={course.name}
+                        isLoading={!!loadingImages[course.id]}
+                      />
 
                       <div className="mb-4 p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-lg">
                         <div className="flex items-center gap-2 text-sm text-white">

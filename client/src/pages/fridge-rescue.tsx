@@ -2,6 +2,8 @@
 // BACKUP: backups/fridge-rescue-stable-version.tsx
 // FEATURES: Perfect fridge ingredient rescue, AI meal generation, ingredient optimization, medical personalization
 import { useState, useRef, useEffect } from "react";
+import { useMealImages } from "@/hooks/useMealImages";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import ThinkingDots from "@/components/ThinkingDots";
 import { motion } from "framer-motion";
@@ -184,6 +186,7 @@ const FridgeRescuePage = () => {
   }
   const [ingredients, setIngredients] = useState("");
   const [meals, setMeals] = useState<MealData[]>([]);
+  const { loadingImages, hydrateImages } = useMealImages(setMeals, { mealType: "dinner" });
   const [isLoading, setIsLoading] = useState(false);
   const [servings, setServings] = useState(2);
   const [quotaInfo, setQuotaInfo] = useState<{ remaining: number; limit: number; used: number; resetAt: string } | null>(null);
@@ -501,6 +504,7 @@ const FridgeRescuePage = () => {
       console.log("✅ Setting meals:", mealsArray.length);
       stopProgressTicker();
       setMeals(mealsArray);
+      hydrateImages(mealsArray);
       setShowResults(true);
 
       if (data.quota) {
@@ -989,16 +993,11 @@ const FridgeRescuePage = () => {
                     className="overflow-hidden bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl flex flex-col h-full"
                   >
                     <div className="relative">
-                      <img
-                        src={
-                          meal.imageUrl ||
-                          `https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400&h=300&fit=crop&auto=format`
-                        }
-                        alt={meal.name}
-                        className="w-full h-48 object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = `https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400&h=300&fit=crop&auto=format`;
-                        }}
+                      <MealImageSlot
+                        imageUrl={meal.imageUrl}
+                        mealName={meal.name}
+                        isLoading={!!loadingImages[meal.id]}
+                        height="h-48"
                       />
                       <div className="absolute top-3 left-3">
                         <Badge

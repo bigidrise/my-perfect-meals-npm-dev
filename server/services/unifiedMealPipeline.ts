@@ -200,6 +200,7 @@ export interface MealGenerationRequest {
   nutritionStrategy?: NutritionStrategyContext; // Vegetable system + cut intensity guardrails
   safetyAlreadyChecked?: boolean; // Skip internal safety check if route already verified with override token
   strictMode?: boolean; // "Keep It Simple" — AI uses ONLY user-listed ingredients, no additions
+  skipImage?: boolean; // Skip DALL-E generation — client handles image async via /api/meals/generate-image
 }
 
 export interface MealGenerationResponse {
@@ -1599,7 +1600,8 @@ export async function generateFromDescriptionUnified(
   dietType?: DietType,
   starchContext?: StarchContext,
   nutritionStrategy?: NutritionStrategyContext,
-  strictMode: boolean = false
+  strictMode: boolean = false,
+  skipImage: boolean = false
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
   
@@ -1902,26 +1904,30 @@ Create the recipe for: "${description}"`;
       throw new Error("Failed to generate valid meal after regeneration attempts");
     }
 
-    let imageUrl = getFallbackImage(validMealType);
-    try {
-      const generatedImage = await generateImage({
-        name: finalMealData.name,
-        description: finalMealData.description,
-        type: 'meal',
-        style: 'homemade',
-        ingredients: finalMealData.ingredients?.map((ing: any) => ing.name) || [],
-        calories: finalMealData.calories,
-        protein: finalMealData.protein,
-        carbs: finalMealData.totalCarbs,
-        fat: finalMealData.fat,
-      });
-      
-      if (generatedImage) {
-        imageUrl = generatedImage;
-        console.log(`🖼️ Generated DALL-E image for Create With Chef: ${finalMealData.name}`);
+    // Image generation — skipped when client handles it async (skipImage: true)
+    let imageUrl: string | null = skipImage ? null : getFallbackImage(validMealType);
+    if (!skipImage) {
+      try {
+        const generatedImage = await generateImage({
+          name: finalMealData.name,
+          description: finalMealData.description,
+          type: 'meal',
+          style: 'homemade',
+          ingredients: finalMealData.ingredients?.map((ing: any) => ing.name) || [],
+          calories: finalMealData.calories,
+          protein: finalMealData.protein,
+          carbs: finalMealData.totalCarbs,
+          fat: finalMealData.fat,
+        });
+        if (generatedImage) {
+          imageUrl = generatedImage;
+          console.log(`🖼️ Generated DALL-E image for Create With Chef: ${finalMealData.name}`);
+        }
+      } catch (imgError) {
+        console.warn('⚠️ DALL-E image generation failed, using fallback:', imgError);
       }
-    } catch (imgError) {
-      console.warn('⚠️ DALL-E image generation failed, using fallback:', imgError);
+    } else {
+      console.log(`⚡ [create-with-chef] skipImage=true — returning text immediately, client handles image`);
     }
     
     const unifiedMeal: UnifiedMeal = {
@@ -2444,7 +2450,7 @@ export async function generateMealUnified(
       const chefDescription = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType, request.starchContext, request.nutritionStrategy, request.strictMode === true);
+      result = await generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType, request.starchContext, request.nutritionStrategy, request.strictMode === true, request.skipImage === true);
       break;
 
     case 'snack-creator':
