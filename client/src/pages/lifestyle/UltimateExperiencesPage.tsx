@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { Brain, Sparkles, ArrowLeft, ChefHat, Users, Star, Minus, Plus } from "lucide-react";
+import { Brain, Sparkles, ArrowLeft, ChefHat, Users, Star, Minus, Plus, Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   isAllergyRelatedError,
@@ -57,6 +57,7 @@ import MealClassificationPill from "@/components/MealClassificationPill";
 import KosherProTip from "@/components/KosherProTip";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 import {
+  type DishCategory,
   type TraditionalDish,
   getHolidayDishes,
   getPopularDishes,
@@ -202,6 +203,8 @@ export default function UltimateExperiencesPage() {
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
   const [selectedDishes, setSelectedDishes] = useState<TraditionalDish[]>([]);
   const [familySpecialty, setFamilySpecialty] = useState("");
+  const [customDishOpen, setCustomDishOpen] = useState<Record<string, boolean>>({});
+  const [customDishText, setCustomDishText] = useState<Record<string, string>>({});
   const [totalCourses, setTotalCourses] = useState<3 | 4 | 5>(4);
   const [servings, setServings] = useState<number>(6);
 
@@ -445,6 +448,8 @@ export default function UltimateExperiencesPage() {
           dietaryRestrictions: normalizeDiet(user?.dietaryRestrictions),
           sweetenerPreferences,
           dietAdaptOverride,
+          flavorPersonal,
+          keepItSimple,
         }),
       });
 
@@ -620,6 +625,12 @@ export default function UltimateExperiencesPage() {
                   {situation === "holiday" && selectedEvent && (() => {
                     const holidayData = getHolidayDishes(selectedEvent);
                     if (!holidayData) return null;
+                    const SECTION_CATEGORIES: Record<string, DishCategory> = {
+                      Starters: "appetizer",
+                      Mains: "main",
+                      Sides: "side",
+                      Desserts: "dessert",
+                    };
                     const sections: Array<{
                       label: string;
                       dishes: TraditionalDish[];
@@ -645,8 +656,23 @@ export default function UltimateExperiencesPage() {
                         <p className="text-xs text-white/50">
                           Popular dishes are pre-selected — tap to add or remove
                         </p>
-                        {sections.map((section) =>
-                          section.dishes.length === 0 ? null : (
+                        {sections.map((section) => {
+                          const category = SECTION_CATEGORIES[section.label] as DishCategory;
+                          const isOpen = !!customDishOpen[section.label];
+                          const inputVal = customDishText[section.label] || "";
+
+                          const confirmCustom = () => {
+                            const trimmed = inputVal.trim();
+                            if (!trimmed) return;
+                            const customDish: TraditionalDish = { name: trimmed, category };
+                            if (!isDishSelected(customDish)) {
+                              setSelectedDishes((prev) => [...prev, customDish]);
+                            }
+                            setCustomDishText((prev) => ({ ...prev, [section.label]: "" }));
+                            setCustomDishOpen((prev) => ({ ...prev, [section.label]: false }));
+                          };
+
+                          return (
                             <div key={section.label}>
                               <p className="text-xs text-white/40 font-semibold uppercase tracking-wider mb-1.5">
                                 {section.label}
@@ -669,10 +695,88 @@ export default function UltimateExperiencesPage() {
                                     </button>
                                   );
                                 })}
+
+                                {/* Custom selected dishes for this category */}
+                                {selectedDishes
+                                  .filter(
+                                    (d) =>
+                                      d.category === category &&
+                                      !section.dishes.some((sd) => sd.name === d.name),
+                                  )
+                                  .map((d) => (
+                                    <button
+                                      key={d.name}
+                                      onClick={() => toggleDish(d)}
+                                      className="px-3 py-1 rounded-full text-xs font-medium border bg-amber-500/30 border-amber-400 text-amber-200 transition-all"
+                                    >
+                                      ✓ {d.name}
+                                    </button>
+                                  ))}
+
+                                {/* + Custom button */}
+                                {!isOpen && (
+                                  <button
+                                    onClick={() =>
+                                      setCustomDishOpen((prev) => ({
+                                        ...prev,
+                                        [section.label]: true,
+                                      }))
+                                    }
+                                    className="px-3 py-1 rounded-full text-xs font-medium border border-dashed border-white/30 text-white/50 bg-transparent hover:border-amber-400/50 hover:text-amber-300 transition-all"
+                                  >
+                                    + Custom
+                                  </button>
+                                )}
                               </div>
+
+                              {/* Inline custom input */}
+                              {isOpen && (
+                                <div className="flex items-center gap-1.5 mt-2">
+                                  <input
+                                    autoFocus
+                                    type="text"
+                                    value={inputVal}
+                                    onChange={(e) =>
+                                      setCustomDishText((prev) => ({
+                                        ...prev,
+                                        [section.label]: e.target.value,
+                                      }))
+                                    }
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") confirmCustom();
+                                      if (e.key === "Escape")
+                                        setCustomDishOpen((prev) => ({
+                                          ...prev,
+                                          [section.label]: false,
+                                        }));
+                                    }}
+                                    placeholder={`Your custom ${section.label.toLowerCase().replace(/s$/, "")}…`}
+                                    className="flex-1 px-3 py-1.5 bg-black text-white placeholder:text-white/30 border border-amber-400/40 rounded-full text-xs focus:outline-none focus:border-amber-400"
+                                    maxLength={100}
+                                  />
+                                  <button
+                                    onClick={confirmCustom}
+                                    disabled={!inputVal.trim()}
+                                    className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center disabled:opacity-40 transition-all active:scale-95"
+                                  >
+                                    <Check className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      setCustomDishOpen((prev) => ({
+                                        ...prev,
+                                        [section.label]: false,
+                                      }))
+                                    }
+                                    className="w-7 h-7 rounded-full bg-white/10 text-white/60 flex items-center justify-center transition-all active:scale-95"
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              )}
                             </div>
-                          ),
-                        )}
+                          );
+                        })}
 
                         {/* Family Specialty */}
                         <div className="mt-2">

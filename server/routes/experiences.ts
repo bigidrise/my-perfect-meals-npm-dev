@@ -43,6 +43,8 @@ const ExperienceRequest = z.object({
   allergies: z.array(z.string()).optional().default([]),
   sweetenerPreferences: z.array(z.string()).optional().default([]),
   dietAdaptOverride: z.boolean().optional().default(false),
+  flavorPersonal: z.boolean().optional().default(true),
+  keepItSimple: z.boolean().optional().default(false),
 });
 
 // ─────────────────────────────────────────────
@@ -300,6 +302,8 @@ router.post("/generate", async (req: Request, res: Response) => {
     userId,
     dietaryRestrictions: reqDiet,
     allergies: reqAllergies,
+    flavorPersonal,
+    keepItSimple,
   } = parsed.data;
 
   // GUARDRAIL #1: Route enforces course structure
@@ -398,7 +402,8 @@ router.post("/generate", async (req: Request, res: Response) => {
             allergies: userAllergies,
             mealTypes: ["dinner"],
             medicalFlags: [],
-            skipPalate: true,
+            skipPalate: !flavorPersonal,
+            strictMode: keepItSimple,
           },
         );
 
