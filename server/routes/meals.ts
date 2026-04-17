@@ -18,14 +18,14 @@ router.post("/generate-image", async (req: any, res) => {
   const { mealName, mealType = "dinner" } = req.body || {};
   if (!mealName) return res.status(400).json({ imageUrl: null });
 
-  const { genImage } = await import("../utils/openaiSafe");
+  const { genImageFast } = await import("../utils/openaiSafe");
 
   const fullPrompt = `${mealName}, healthy ${mealType}, professional food photography, overhead shot, clean plate presentation, natural lighting`;
-  let imageUrl: string | null = (await genImage(fullPrompt)) ?? null;
+  let imageUrl: string | null = (await genImageFast(fullPrompt)) ?? null;
 
   if (!imageUrl) {
     console.log(`🔄 [generate-image] Retry for "${mealName}"`);
-    imageUrl = (await genImage(`${mealName}, professional food photography, clean background`)) ?? null;
+    imageUrl = (await genImageFast(`${mealName}, professional food photography, clean background`)) ?? null;
   }
 
   return res.json({ imageUrl });
