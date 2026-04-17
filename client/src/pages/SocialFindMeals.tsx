@@ -141,6 +141,8 @@ interface MealResult {
   cuisine: string;
   address: string;
   rating?: number;
+  priceLevel?: number;
+  matchLabel?: 'Exact match' | 'Matches your diet' | 'Limited match';
   photoUrl?: string;
   meal: {
     name: string;
@@ -161,6 +163,28 @@ interface MealResult {
     color: string;
   }>;
 }
+
+type PriceFilter = 'any' | 'budget' | 'mid' | 'upscale';
+
+const PRICE_FILTER_OPTIONS: { key: PriceFilter; label: string; range: number[] }[] = [
+  { key: 'any',    label: 'Any',     range: [] },
+  { key: 'budget', label: '$ Budget', range: [0, 1] },
+  { key: 'mid',    label: '$$ Mid-Range', range: [2] },
+  { key: 'upscale',label: '$$$ Upscale',  range: [3, 4] },
+];
+
+function priceLevelBadge(level?: number): string | null {
+  if (level === undefined || level === null) return null;
+  if (level <= 1) return '$';
+  if (level === 2) return '$$';
+  return '$$$';
+}
+
+const MATCH_LABEL_CONFIG: Record<string, { color: string }> = {
+  'Exact match':     { color: 'bg-green-500/20 border-green-400/40 text-green-300' },
+  'Matches your diet': { color: 'bg-blue-500/20 border-blue-400/40 text-blue-300' },
+  'Limited match':   { color: 'bg-amber-500/20 border-amber-400/40 text-amber-300' },
+};
 
 export default function MealFinder() {
   const [, setLocation] = useLocation();
@@ -211,6 +235,7 @@ export default function MealFinder() {
   const [mealQuery, setMealQuery] = useState("");
   const [zipCode, setZipCode] = useState("");
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [priceFilter, setPriceFilter] = useState<PriceFilter>('any');
   const [results, setResults] = useState<MealResult[]>([]);
 
   const chefFlowMeals = useMemo(
@@ -261,11 +286,13 @@ export default function MealFinder() {
       }, 800);
 
       try {
+        const selectedPrice = PRICE_FILTER_OPTIONS.find((p) => p.key === priceFilter);
         const response = await apiRequest("/api/meal-finder", {
           method: "POST",
           body: JSON.stringify({
             ...data,
             dietaryRestrictions: normalizeDiet(user?.dietaryRestrictions),
+            priceRange: selectedPrice && selectedPrice.range.length > 0 ? selectedPrice.range : undefined,
           }),
           headers: { "Content-Type": "application/json" },
         });
