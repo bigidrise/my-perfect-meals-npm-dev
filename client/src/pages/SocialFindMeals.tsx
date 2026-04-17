@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useChefFlowImages, chefFlowMealId } from "@/hooks/useChefFlowImages";
+import { ChefFlowImage } from "@/components/ChefFlowImage";
 import { motion } from "framer-motion";
 import CometBar from "@/components/CometBar";
 import {
@@ -210,6 +212,22 @@ export default function MealFinder() {
   const [zipCode, setZipCode] = useState("");
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [results, setResults] = useState<MealResult[]>([]);
+
+  const chefFlowMeals = useMemo(
+    () =>
+      results.map((r) => ({
+        id: `findmeals-${r.restaurantName}-${r.meal.name}`
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .slice(0, 60),
+        name: r.meal.name,
+        imageUrl: r.meal.imageUrl,
+        photoUrl: r.photoUrl,
+      })),
+    [results],
+  );
+  const chefFlowImages = useChefFlowImages(chefFlowMeals, "restaurant");
+
   const [progress, setProgress] = useState(0);
   const hasRestoredRef = useRef(false);
   const hasSpokenEntryRef = useRef(false);
@@ -662,18 +680,12 @@ export default function MealFinder() {
                     data-testid={`card-result-${index}`}
                   >
                     <div className="grid md:grid-cols-3 gap-4">
+                      {/* Meal Image — ChefFlow Render System (hybrid: Google photo takes priority) */}
                       <div className="relative h-48 md:h-auto">
-                        {result.meal.imageUrl || result.photoUrl ? (
-                          <img
-                            src={result.meal.imageUrl || result.photoUrl}
-                            alt={result.meal.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-orange-200 to-orange-300 flex items-center justify-center">
-                            <div className="text-4xl">🍽️</div>
-                          </div>
-                        )}
+                        <ChefFlowImage
+                          src={chefFlowImages[chefFlowMealId(chefFlowMeals[index], "restaurant")]}
+                          alt={result.meal.name}
+                        />
                       </div>
 
                       <div className="md:col-span-2 p-4">
