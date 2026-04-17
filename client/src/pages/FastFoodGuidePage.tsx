@@ -363,7 +363,7 @@ export default function FastFoodGuidePage() {
     () => generatedMeals.map((m) => ({ id: m.id, name: m.name || m.meal, imageUrl: m.imageUrl })),
     [generatedMeals],
   );
-  const chefFlowImages = useChefFlowImages(chefFlowMeals, "fast-food");
+  const { imageMap: chefFlowImages } = useChefFlowImages(chefFlowMeals, "fast-food");
 
   const { toast } = useToast();
   const { user } = useAuth();

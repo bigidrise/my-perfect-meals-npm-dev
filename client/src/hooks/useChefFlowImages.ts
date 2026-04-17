@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 
@@ -7,7 +7,6 @@ export interface ChefFlowMeal {
   name?: string;
   meal?: string;
   imageUrl?: string;
-  photoUrl?: string;
 }
 
 // Module-level cache: persists for the full browser session across navigation
@@ -22,11 +21,17 @@ export function chefFlowMealId(meal: ChefFlowMeal, mealType: string): string {
   return `cfm-${mealType}-${name}`;
 }
 
+export interface ChefFlowImagesResult {
+  imageMap: Record<string, string>;
+  failedSet: Set<string>;
+}
+
 export function useChefFlowImages(
   meals: ChefFlowMeal[],
   mealType: string,
-): Record<string, string> {
+): ChefFlowImagesResult {
   const [imageMap, setImageMap] = useState<Record<string, string>>({});
+  const [failedSet, setFailedSet] = useState<Set<string>>(new Set());
   const inFlightRef = useRef<Set<string>>(new Set());
   const failedRef = useRef<Set<string>>(new Set());
   const mountedRef = useRef(true);
@@ -46,16 +51,7 @@ export function useChefFlowImages(
       const mealName = meal.name || meal.meal || "";
       if (!mealName) return;
 
-      // Priority 1: external photo (Google Places etc.) — cache immediately, skip AI generation
-      if (meal.photoUrl) {
-        sessionCache.set(id, meal.photoUrl);
-        setImageMap((prev) =>
-          prev[id] === meal.photoUrl ? prev : { ...prev, [id]: meal.photoUrl! },
-        );
-        return;
-      }
-
-      // Priority 2: imageUrl already provided by API response
+      // Priority 1: imageUrl already provided by API response
       if (meal.imageUrl) {
         sessionCache.set(id, meal.imageUrl);
         setImageMap((prev) =>
@@ -64,7 +60,7 @@ export function useChefFlowImages(
         return;
       }
 
-      // Priority 3: session cache hit — no new request needed
+      // Priority 2: session cache hit — no new request needed
       if (sessionCache.has(id)) {
         const cached = sessionCache.get(id)!;
         setImageMap((prev) =>
@@ -73,13 +69,13 @@ export function useChefFlowImages(
         return;
       }
 
-      // Priority 4: already failed — do not retry
+      // Priority 3: already failed — do not retry
       if (failedRef.current.has(id)) return;
 
-      // Priority 5: request already in-flight — do not duplicate
+      // Priority 4: request already in-flight — do not duplicate
       if (inFlightRef.current.has(id)) return;
 
-      // Priority 6: fire a new generation request
+      // Priority 5: fire a new generation request
       inFlightRef.current.add(id);
 
       const controller = new AbortController();
@@ -103,15 +99,21 @@ export function useChefFlowImages(
             }
           } else {
             failedRef.current.add(id);
+            if (mountedRef.current) {
+              setFailedSet((prev) => new Set([...prev, id]));
+            }
           }
         })
         .catch(() => {
           clearTimeout(timeoutId);
           inFlightRef.current.delete(id);
           failedRef.current.add(id);
+          if (mountedRef.current) {
+            setFailedSet((prev) => new Set([...prev, id]));
+          }
         });
     });
   }, [meals, mealType]);
 
-  return imageMap;
+  return { imageMap, failedSet };
 }
