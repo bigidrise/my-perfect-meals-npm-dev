@@ -237,6 +237,26 @@ export default function DiabeticHub() {
           className="max-w-6xl mx-auto px-4 space-y-8 pb-24"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          {/* ── Copilot Banner ── */}
+          <div className="rounded-xl border-l-[3px] border-teal-500/60 bg-teal-500/5 px-4 py-3 space-y-1.5">
+            <p className="text-sm text-white/80 leading-relaxed">
+              This hub controls how your meals are built — carb limits, glucose patterns, and safe ranges guide every decision.
+            </p>
+            <p className="text-sm text-white/50 leading-relaxed">
+              Stay consistent with your logs. The system adjusts your meals to keep your blood sugar stable.
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {["Carb Guardrails", "Glucose Trends", "Meal Decisions"].map(chip => (
+                <span key={chip} className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-300">
+                  {chip}
+                </span>
+              ))}
+            </div>
+            <p className="text-[11px] text-white/30 pt-0.5">
+              Your meal builders automatically use these settings.
+            </p>
+          </div>
+
           {/* Doctor / Coach Guardrail Card */}
           <section className="bg-black/30 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8 mb-2 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/3 pointer-events-none" />

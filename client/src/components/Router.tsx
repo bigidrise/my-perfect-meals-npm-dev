@@ -126,6 +126,7 @@ import PhysicianCareTeam from "@/pages/care-team/PhysicianCareTeam";
 import TrainerCareTeam from "@/pages/care-team/TrainerCareTeam";
 import PhysicianPortal from "@/pages/pro/PhysicianPortal";
 import MorePage from "@/pages/More";
+import AppLibrary from "@/pages/AppLibrary";
 import ProPortal from "@/pages/ProPortal";
 import ProClients from "@/pages/pro/ProClients";
 import ProClientsPhysician from "@/pages/pro/ProClientsPhysician";
@@ -491,6 +492,7 @@ export default function Router() {
         <Route path="/shopping-list" component={SafeShoppingList} />
         {/* ProCare Feature Routes (ProCare Cover → Care Team → Pro Portal → Client Dashboard → Performance & Competition Builder) */}
         <Route path="/more" component={SafeMore} />
+        <Route path="/app-library" component={AppLibrary} />
         <Route path="/pro/physician" component={PhysicianPortal} />
         <Route path="/care-team" component={SafeCareTeam} />
         <Route path="/care-team/physician" component={SafePhysicianCareTeam} />

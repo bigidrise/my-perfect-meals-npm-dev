@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
-import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X, Link2Off, ShieldCheck } from "lucide-react";
+import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X, Link2Off, ShieldCheck, BookOpen } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import { getAuthHeaders } from "@/lib/auth";
@@ -286,6 +286,25 @@ export default function MorePage() {
               </CardContent>
             </Card>
           )}
+
+          {/* How It Works / App Library */}
+          <Card
+            className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-teal-500/20 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
+            onClick={() => setLocation("/app-library")}
+            data-testid="card-app-library"
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-teal-500/15">
+                  <BookOpen className="h-5 w-5 text-teal-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-white">How It Works</h3>
+                  <p className="text-xs text-white/60">Understand your nutrition strategy and how every meal is built</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Saved Meals / Favorites */}
           <Card
