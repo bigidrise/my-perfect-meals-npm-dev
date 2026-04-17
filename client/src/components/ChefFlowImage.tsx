@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface ChefFlowImageProps {
@@ -8,7 +8,15 @@ interface ChefFlowImageProps {
 }
 
 export function ChefFlowImage({ src, alt, className }: ChefFlowImageProps) {
-  const [loadedSrc, setLoadedSrc] = useState<string | undefined>(undefined);
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+
+  const isLoading = !loadedSrc;
+
+  // Reset loading state whenever src changes — guarantees shimmer restarts
+  // on new results, re-runs, or navigation between pages
+  useEffect(() => {
+    setLoadedSrc(null);
+  }, [src]);
 
   return (
     <div
@@ -17,32 +25,24 @@ export function ChefFlowImage({ src, alt, className }: ChefFlowImageProps) {
         className,
       )}
     >
-      {/* Shimmer — visible whenever the current src hasn't finished loading */}
-      {loadedSrc !== src && (
+      {/* Shimmer — state-driven, shows until image is confirmed loaded */}
+      {isLoading && (
         <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-white/5 via-white/10 to-white/5" />
       )}
 
-      {/* key={src} forces a fresh img element each time the URL changes,
-          so it always starts at opacity-0 and fades in — no pop-in flash */}
+      {/* Image — starts hidden, fades in on load */}
       {src && (
         <img
           key={src}
           src={src}
           alt={alt}
           onLoad={() => setLoadedSrc(src)}
-          onError={() => setLoadedSrc(src)}
+          onError={() => setLoadedSrc(null)}
           className={cn(
             "w-full h-full object-cover transition-opacity duration-700",
             loadedSrc === src ? "opacity-100" : "opacity-0",
           )}
         />
-      )}
-
-      {/* Placeholder icon when no src is available yet */}
-      {!src && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-4xl opacity-30">🍽️</span>
-        </div>
       )}
     </div>
   );
