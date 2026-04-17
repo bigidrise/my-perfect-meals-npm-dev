@@ -20,12 +20,16 @@ export function useMealImages<T extends HasMealImage>(
     async (meals: T[]) => {
       if (!meals.length) return;
 
+      // Only hydrate meals that don't already have an image
+      const mealsNeedingImages = meals.filter((m) => !m.imageUrl);
+      if (!mealsNeedingImages.length) return;
+
       const loadingState: Record<string, boolean> = {};
-      meals.forEach((m) => { loadingState[m.id] = true; });
+      mealsNeedingImages.forEach((m) => { loadingState[m.id] = true; });
       setLoadingImages((prev) => ({ ...prev, ...loadingState }));
 
-      for (let i = 0; i < meals.length; i += concurrency) {
-        const batch = meals.slice(i, i + concurrency);
+      for (let i = 0; i < mealsNeedingImages.length; i += concurrency) {
+        const batch = mealsNeedingImages.slice(i, i + concurrency);
         await Promise.all(
           batch.map(async (meal) => {
             try {

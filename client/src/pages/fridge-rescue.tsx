@@ -997,7 +997,7 @@ const FridgeRescuePage = () => {
                         imageUrl={meal.imageUrl}
                         mealName={meal.name}
                         isLoading={!!loadingImages[meal.id]}
-                        height={192}
+                        height="h-48"
                       />
                       <div className="absolute top-3 left-3">
                         <Badge

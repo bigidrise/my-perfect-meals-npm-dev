@@ -1,5 +1,4 @@
 import OpenAI from 'openai';
-import { generateImage } from './imageService';
 import { deriveCarbSplit } from './generators/macros/carbSplit';
 import { convertStructuredIngredients } from '../utils/unitConverter';
 import { enforceCarbs } from '../utils/carbClassifier';
@@ -472,38 +471,8 @@ Remember: Only use ingredients from this list: ${fridgeItems.join(', ')}`;
       processedMeals.push(processedMeal);
     }
 
-    // Generate all images in parallel with a 25-second hard cap.
-    // If images are still pending after the cap, meals are returned without them
-    // rather than making iOS / slow connections time out.
-    const IMAGE_TIMEOUT_MS = 25_000;
-    const imageTimeout = new Promise<void>((resolve) =>
-      setTimeout(() => { console.warn("⚠️ [FRIDGE] Image generation timed out — returning meals without images"); resolve(); }, IMAGE_TIMEOUT_MS)
-    );
-
-    const imageGenerations = Promise.allSettled(
-      processedMeals.map(async (processedMeal) => {
-        try {
-          const imageUrl = await generateImage({
-            name: processedMeal.name,
-            description: processedMeal.description,
-            type: 'meal',
-            style: 'homemade',
-            ingredients: processedMeal.ingredients?.map(ing => ing.name) || [],
-            calories: processedMeal.calories,
-            protein: processedMeal.protein,
-            carbs: processedMeal.carbs,
-            fat: processedMeal.fat,
-          });
-          if (imageUrl) processedMeal.imageUrl = imageUrl;
-        } catch (error) {
-          console.error(`Failed to generate image for ${processedMeal.name}:`, error);
-        }
-      })
-    );
-
-    await Promise.race([imageGenerations, imageTimeout]);
-
-    console.log("✅ Fridge rescue meals generated successfully with images");
+    // Images are generated client-side in parallel — return meals immediately
+    console.log("✅ Fridge rescue meals generated — images will hydrate client-side");
     // ENFORCE CARBS: Final safety net - ensure all meals have valid starchy/fibrous values
     return processedMeals.map(meal => enforceCarbs(meal));
 
