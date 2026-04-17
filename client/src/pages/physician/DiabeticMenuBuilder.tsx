@@ -1397,6 +1397,7 @@ export default function DiabeticMenuBuilder() {
                             slot={key}
                             meal={meal}
                             showStarchBadge={true}
+                                coachingLine="Built to keep you within your glucose target range."
                             data-wt="wmb-meal-card"
                             onUpdated={(m) => {
                               if (m === null) {
@@ -1459,6 +1460,7 @@ export default function DiabeticMenuBuilder() {
                         <div className="space-y-3">
                           {dayLists.snacks.filter((m: Meal) => m.id.startsWith(slotPrefix)).map((meal: Meal) => (
                             <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true}
+                                coachingLine="Built to keep you within your glucose target range."
                               onUpdated={(m) => {
                                 if (m === null) {
                                   const updatedDayLists = { ...dayLists, snacks: dayLists.snacks.filter((e) => e.id !== meal.id) };
@@ -1507,6 +1509,7 @@ export default function DiabeticMenuBuilder() {
                     <div className="space-y-3">
                       {dayLists.snacks.filter((m: Meal) => !m.id.startsWith("dyn-")).map((meal: Meal) => (
                         <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true}
+                                coachingLine="Built to keep you within your glucose target range."
                           onUpdated={(m) => {
                             if (m === null) {
                               const updatedDayLists = { ...dayLists, snacks: dayLists.snacks.filter((e) => e.id !== meal.id) };
@@ -1558,6 +1561,7 @@ export default function DiabeticMenuBuilder() {
                       slot={key}
                       meal={meal}
                       showStarchBadge={true}
+                                coachingLine="Built to keep you within your glucose target range."
                       onUpdated={(m) => {
                         if (m === null) {
                           if (!board) return;

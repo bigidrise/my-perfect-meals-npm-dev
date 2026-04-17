@@ -165,6 +165,13 @@ export default function WeeklyMealCard({ dateISO, slot, meal, time, onRegenerate
         </div>
       </div>
 
+      {/* Coaching line */}
+      <div className="px-4 pt-3 pb-0">
+        <p className="text-xs text-white/55 leading-relaxed border-l-2 border-white/20 pl-2.5">
+          Built for your current plan and targets.
+        </p>
+      </div>
+
       <CardHeader className="pb-3">
         <CardTitle className="text-lg text-white">{title}</CardTitle>
         <DietStyleBadge className="mt-1" />
