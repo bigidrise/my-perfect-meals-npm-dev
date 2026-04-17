@@ -166,11 +166,11 @@ interface MealResult {
 
 type PriceFilter = 'any' | 'budget' | 'mid' | 'upscale';
 
-const PRICE_FILTER_OPTIONS: { key: PriceFilter; label: string; range: number[] }[] = [
-  { key: 'any',    label: 'Any',     range: [] },
-  { key: 'budget', label: '$ Budget', range: [0, 1] },
-  { key: 'mid',    label: '$$ Mid-Range', range: [2] },
-  { key: 'upscale',label: '$$$ Upscale',  range: [3, 4] },
+const PRICE_FILTER_OPTIONS: { key: PriceFilter; label: string; hint: string; range: number[] }[] = [
+  { key: 'any',    label: 'Any Price',     hint: 'Show all restaurants',       range: [] },
+  { key: 'budget', label: '$ Budget',      hint: 'Fast food & casual (~$15)',  range: [0, 1] },
+  { key: 'mid',    label: '$$ Mid-Range',  hint: 'Sit-down spots (~$15–$40)',  range: [2] },
+  { key: 'upscale',label: '$$$ Upscale',   hint: 'Fine dining ($40+)',         range: [3, 4] },
 ];
 
 function priceLevelBadge(level?: number): string | null {
@@ -677,11 +677,8 @@ export default function MealFinder() {
                           }
                         `}
                       >
-                        {opt.key === 'any' ? (
-                          <span>Any Price</span>
-                        ) : (
-                          <span>{opt.label}</span>
-                        )}
+                        <span className="block font-bold">{opt.label}</span>
+                        <span className="block text-xs font-normal opacity-70 mt-0.5">{opt.hint}</span>
                       </button>
                     ))}
                   </div>
