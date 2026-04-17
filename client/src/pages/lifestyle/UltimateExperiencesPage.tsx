@@ -600,26 +600,25 @@ export default function UltimateExperiencesPage() {
                   {/* ── LAYER 2: Holiday Event ── */}
                   {situation === "holiday" && (
                     <div>
-                      <label className="block text-sm font-medium mb-2 text-white">
+                      <label className="block text-sm font-medium mb-3 text-white">
                         Which holiday?
                       </label>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-x-4 gap-y-3">
                         {HOLIDAY_EVENTS.map((h) => (
-                          <button
-                            key={h.id}
-                            onClick={() =>
-                              setSelectedEvent(
-                                selectedEvent === h.id ? null : h.id,
-                              )
-                            }
-                            className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
-                              selectedEvent === h.id
-                                ? "bg-amber-500 border-amber-400 text-white shadow-lg"
-                                : "bg-black/40 border-white/20 text-white/70 hover:border-amber-400/50 hover:text-white"
-                            }`}
-                          >
-                            {h.label}
-                          </button>
+                          <div key={h.id} className="flex flex-col items-center gap-1.5">
+                            <PillButton
+                              active={selectedEvent === h.id}
+                              variant="amber"
+                              onClick={() =>
+                                setSelectedEvent(selectedEvent === h.id ? null : h.id)
+                              }
+                              disabled={isGenerating}
+                              className="w-16"
+                            >
+                              &nbsp;
+                            </PillButton>
+                            <span className="text-xs text-white/80 font-medium text-center leading-tight">{h.label}</span>
+                          </div>
                         ))}
                       </div>
                     </div>
