@@ -52,13 +52,14 @@ function MacroPill({ label, value, suffix = "" }: { label: string; value: number
 }
 
 export function MealCard({
-  date, slot, meal, onUpdated, showStarchBadge = false,
+  date, slot, meal, onUpdated, showStarchBadge = false, coachingLine,
 }: {
   date: string; // "board" or "YYYY-MM-DD"
   slot: Slot;
   meal: Meal;
   onUpdated: (m: Meal | null) => void; // null = delete
   showStarchBadge?: boolean; // Show starch/fiber classification badge on meal boards
+  coachingLine?: string; // Optional coaching confirmation line shown below the meal image
 }) {
   const { toast } = useToast();
   const [macrosLogged, setMacrosLogged] = React.useState(false);
@@ -145,6 +146,13 @@ export function MealCard({
           />
         </div>
       )}
+
+      {/* Coaching confirmation line — specific line from builder, or universal fallback */}
+      <div className="px-4 pt-3 pb-0">
+        <p className="text-xs text-white/55 leading-relaxed border-l-2 border-white/20 pl-2.5">
+          {coachingLine || "Built for your current plan and targets."}
+        </p>
+      </div>
 
       <div className="p-4">
         <div>
