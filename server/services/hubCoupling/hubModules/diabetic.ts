@@ -274,42 +274,39 @@ ${promptAddition}`;
     const violations: ValidationViolation[] = [];
     const warnings: string[] = [];
 
-    // ✅ Phase 2: Macro presence check — missing carb data = invalid
+    // ── Macro presence check ─────────────────────────────────────────────────
     if (meal.carbs === null || meal.carbs === undefined || isNaN(meal.carbs)) {
       violations.push({
         rule: 'missing_macro_data',
         message: 'Carbohydrate data is missing — cannot verify diabetic safety',
         severity: 'hard',
       });
-    } else {
-      // Carb ceiling check (carbCeiling is already per-meal after Phase 1 fix)
-      if (guardrails.carbCeiling && meal.carbs > guardrails.carbCeiling) {
-        violations.push({
-          rule: 'carb_ceiling',
-          message: `Carbs (${meal.carbs}g) exceed per-meal limit (${guardrails.carbCeiling}g)`,
-          severity: 'hard',
-          actualValue: meal.carbs,
-          expectedValue: guardrails.carbCeiling
-        });
-      }
+    } else if (guardrails.carbCeiling && meal.carbs > guardrails.carbCeiling) {
+      violations.push({
+        rule: 'carb_ceiling',
+        message: `Carbs (${meal.carbs}g) exceed per-meal limit (${guardrails.carbCeiling}g)`,
+        severity: 'hard',
+        actualValue: meal.carbs,
+        expectedValue: guardrails.carbCeiling
+      });
     }
 
-    const mealIngredients = meal.ingredients.map(i => i.name.toLowerCase()).join(' ');
-    const mealName = meal.name.toLowerCase();
-    const mealDesc = (meal.description || '').toLowerCase();
-    const fullText = `${mealName} ${mealDesc} ${mealIngredients}`;
+    // ── Blocked ingredient check — INGREDIENTS ONLY ──────────────────────────
+    // We check the actual ingredient list, not the meal name or description.
+    // A meal called "Almond Flour Protein Pancakes" with clean ingredients
+    // must pass — the name is a label, not evidence of a blocked substance.
+    const ingredientNames = meal.ingredients.map(i => i.name.toLowerCase());
 
-    // ✅ Phase 2: Blocked ingredients are now HARD failures — no soft passes
     for (const blocked of guardrails.blockedIngredients || []) {
-      if (fullText.includes(blocked.toLowerCase())) {
-        if (!isSafeVariant(fullText, blocked)) {
-          violations.push({
-            rule: 'blocked_ingredient',
-            message: `Contains blocked ingredient: "${blocked}" — not safe for diabetic meal`,
-            severity: 'hard',
-            actualValue: blocked
-          });
-        }
+      const blockedLower = blocked.toLowerCase();
+      const hit = ingredientNames.find(name => name.includes(blockedLower));
+      if (hit && !isSafeVariant(hit, blocked)) {
+        violations.push({
+          rule: 'blocked_ingredient',
+          message: `Ingredient "${hit}" contains blocked item: "${blocked}"`,
+          severity: 'hard',
+          actualValue: hit
+        });
       }
     }
 
@@ -318,7 +315,7 @@ ${promptAddition}`;
       violations,
       warnings,
       fixHint: violations.length > 0
-        ? `Regenerate: keep carbs under ${guardrails.carbCeiling}g per meal, remove blocked ingredients, and use low-GI alternatives. Maintain flavor.`
+        ? `Regenerate: keep carbs under ${guardrails.carbCeiling}g per meal, replace blocked ingredients with low-GI alternatives. Maintain flavor and satisfaction.`
         : undefined
     };
   },
@@ -342,19 +339,52 @@ ${promptAddition}`;
   }
 };
 
-function isSafeVariant(text: string, blocked: string): boolean {
-  const safePatterns: Record<string, string[]> = {
-    'white sugar': ['sugar-free', 'no sugar', 'zero sugar'],
-    'white rice': ['cauliflower rice', 'brown rice', 'wild rice'],
-    'white bread': ['whole grain bread', 'low-carb bread', 'keto bread'],
-    'regular pasta': ['chickpea pasta', 'lentil pasta', 'zucchini noodles', 'protein pasta'],
-    'potato chips': ['veggie chips', 'kale chips'],
-    'french fries': ['baked', 'air-fried sweet potato']
-  };
+/**
+ * isSafeVariant — ingredient-level false positive guard
+ *
+ * Called with an individual INGREDIENT NAME, not a full meal description.
+ * Handles cases where a single ingredient name contains a blocked substring
+ * but represents a safe, low-GI alternative.
+ *
+ * Examples:
+ *   "chickpea pasta"  → contains "pasta"  → safe
+ *   "sweet potato"    → contains "potato" → safe (lower GI, clinically acceptable)
+ *   "sugar-free syrup"→ contains "sugar"  → safe
+ */
+function isSafeVariant(ingredientName: string, blocked: string): boolean {
+  const name = ingredientName.toLowerCase();
+  const b = blocked.toLowerCase();
 
-  const patterns = safePatterns[blocked.toLowerCase()];
-  if (patterns) {
-    return patterns.some(safe => text.includes(safe));
+  // Pasta alternatives
+  if (b === 'pasta' || b === 'regular pasta') {
+    return ['chickpea pasta', 'lentil pasta', 'edamame pasta', 'protein pasta',
+            'zucchini noodles', 'heart of palm pasta'].some(s => name.includes(s));
   }
+
+  // Potato — sweet potato is a clinically acceptable lower-GI alternative
+  if (b === 'potato' || b === 'potatoes') {
+    return name.includes('sweet potato');
+  }
+
+  // Sugar — allow sugar-free and no-added-sugar labeled ingredients
+  if (b === 'sugar' || b === 'white sugar' || b === 'brown sugar') {
+    return ['sugar-free', 'no sugar', 'no added sugar', 'zero sugar'].some(s => name.includes(s));
+  }
+
+  // Rice alternatives
+  if (b === 'white rice' || b === 'jasmine rice') {
+    return ['cauliflower rice', 'brown rice', 'wild rice', 'black rice'].some(s => name.includes(s));
+  }
+
+  // Bread alternatives
+  if (b === 'bread' || b === 'white bread') {
+    return ['low-carb bread', 'keto bread', 'almond flour bread', 'whole grain bread'].some(s => name.includes(s));
+  }
+
+  // Fries — sweet potato or air-fried versions are acceptable
+  if (b === 'fries' || b === 'french fries') {
+    return ['sweet potato', 'air-fried', 'baked sweet'].some(s => name.includes(s));
+  }
+
   return false;
 }
