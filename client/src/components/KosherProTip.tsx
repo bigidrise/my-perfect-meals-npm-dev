@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback } from "react";
-import { ShieldAlert } from "lucide-react";
+import { Volume2, Square } from "lucide-react";
 import { ttsService } from "@/lib/tts";
 import type { DietClassification } from "@/components/MealClassificationPill";
+import { PillButton } from "@/components/ui/pill-button";
 
 interface KosherProTipProps {
   dietClassification?: DietClassification | null;
@@ -76,16 +77,17 @@ export default function KosherProTip({
   }, [isPlaying, category, isAdapted]);
 
   return (
-    <button
+    <PillButton
       onClick={handleToggle}
-      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-medium whitespace-nowrap transition-all active:scale-[0.97] ${
-        isPlaying
-          ? "bg-amber-500/25 border-amber-400/60 text-amber-300"
-          : "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20"
-      }`}
+      active={isPlaying}
+      variant="amber"
     >
-      <ShieldAlert className="h-3 w-3 shrink-0" />
+      {isPlaying ? (
+        <Square className="h-2.5 w-2.5 shrink-0 mr-1 fill-current" />
+      ) : (
+        <Volume2 className="h-2.5 w-2.5 shrink-0 mr-1" />
+      )}
       {isPlaying ? "Stop" : "Kosher Tip"}
-    </button>
+    </PillButton>
   );
 }
