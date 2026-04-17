@@ -161,6 +161,51 @@ export function setDayLists(board: WeekBoard, dateISO: string, lists: WeekLists)
   };
 }
 
+/** Update a specific meal's imageUrl anywhere in the board (days or lists structure).
+ *  Used by page-level image loaders so image fetches survive modal close. */
+export function updateMealImageInBoard(board: WeekBoard, mealId: string, imageUrl: string): WeekBoard {
+  const slots = ['breakfast', 'lunch', 'dinner', 'snacks'] as const;
+
+  let daysUpdated = false;
+  let newDays = board.days;
+  if (board.days) {
+    newDays = { ...board.days };
+    for (const day of Object.keys(board.days)) {
+      const dayLists = board.days[day];
+      const newDayLists = { ...dayLists };
+      let dayChanged = false;
+      for (const slot of slots) {
+        if (newDayLists[slot]?.some(m => m.id === mealId)) {
+          newDayLists[slot] = newDayLists[slot].map(m =>
+            m.id === mealId ? { ...m, imageUrl } : m
+          );
+          dayChanged = true;
+          daysUpdated = true;
+        }
+      }
+      if (dayChanged) newDays![day] = newDayLists;
+    }
+  }
+
+  let listsUpdated = false;
+  let newLists = board.lists;
+  for (const slot of slots) {
+    if (board.lists[slot]?.some(m => m.id === mealId)) {
+      newLists = {
+        ...newLists,
+        [slot]: newLists[slot].map(m =>
+          m.id === mealId ? { ...m, imageUrl } : m
+        ),
+      };
+      listsUpdated = true;
+    }
+  }
+
+  if (!daysUpdated && !listsUpdated) return board;
+
+  return { ...board, days: newDays, lists: newLists };
+}
+
 /** Safe deep-clone for environments without structuredClone */
 export function structuredCloneSafe<T>(obj: T): T {
   if (typeof globalThis.structuredClone === 'function') {

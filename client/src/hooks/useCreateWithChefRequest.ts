@@ -60,22 +60,16 @@ interface UseCreateWithChefRequestResult {
   generating: boolean;
   progress: number;
   error: string | null;
-  mealImages: Record<string, string>;
-  loadingImages: Record<string, boolean>;
   generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner", dietType?: DietType, dietPhase?: BeachBodyPhase, starchContext?: StarchContext, safetyOptions?: SafetyOptions, strictMode?: boolean) => Promise<Meal | null>;
   cancel: () => void;
 }
 
-export function useCreateWithChefRequest(userId?: string, onImageReady?: (mealId: string, imageUrl: string) => void): UseCreateWithChefRequestResult {
+export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequestResult {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [mealImages, setMealImages] = useState<Record<string, string>>({});
-  const [loadingImages, setLoadingImages] = useState<Record<string, boolean>>({});
   const abortControllerRef = useRef<AbortController | null>(null);
   const tickerRef = useRef<number | null>(null);
-  const onImageReadyRef = useRef(onImageReady);
-  onImageReadyRef.current = onImageReady;
 
   const startProgressTicker = () => {
     setProgress(0);
@@ -103,27 +97,6 @@ export function useCreateWithChefRequest(userId?: string, onImageReady?: (mealId
     }
     setProgress(100);
     setGenerating(false);
-  }, []);
-
-  const fetchImageAsync = useCallback(async (mealId: string, mealName: string, mealType: string) => {
-    setLoadingImages((prev) => ({ ...prev, [mealId]: true }));
-    try {
-      const res = await fetch(apiUrl("/api/meals/generate-image"), {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ mealName, mealType }),
-      });
-      const data = await res.json();
-      if (data.imageUrl) {
-        setMealImages((prev) => ({ ...prev, [mealId]: data.imageUrl }));
-        onImageReadyRef.current?.(mealId, data.imageUrl);
-      }
-    } catch {
-      // silent — card renders without image
-    } finally {
-      setLoadingImages((prev) => ({ ...prev, [mealId]: false }));
-    }
   }, []);
 
   const generateMeal = async (
@@ -185,7 +158,7 @@ export function useCreateWithChefRequest(userId?: string, onImageReady?: (mealId
         description: generatedMeal.description,
         ingredients: generatedMeal.ingredients || [],
         instructions: generatedMeal.instructions,
-        imageUrl: generatedMeal.imageUrl ?? null,
+        imageUrl: null,
         calories: generatedMeal.calories,
         protein: generatedMeal.protein,
         carbs: generatedMeal.carbs,
@@ -208,9 +181,6 @@ export function useCreateWithChefRequest(userId?: string, onImageReady?: (mealId
       stopProgressTicker();
       setGenerating(false);
 
-      // Fire image generation in background — non-blocking
-      fetchImageAsync(mealId, meal.name, mealType);
-
       return meal;
     } catch (err: any) {
       if (err.name === "AbortError") {
@@ -229,8 +199,6 @@ export function useCreateWithChefRequest(userId?: string, onImageReady?: (mealId
     generating,
     progress,
     error,
-    mealImages,
-    loadingImages,
     generateMeal,
     cancel,
   };
