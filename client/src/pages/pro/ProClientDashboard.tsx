@@ -26,6 +26,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import WeeklyWeightTrendCard from "@/components/pro/WeeklyWeightTrendCard";
+import ProNutritionStrategyCard from "@/components/pro/ProNutritionStrategyCard";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { Percent } from "lucide-react";
 
@@ -303,6 +304,13 @@ export default function ProClientDashboard() {
         </div>
 
         <WeeklyWeightTrendCard clientId={client?.clientUserId || client?.userId || clientId} />
+
+        {(client?.clientUserId || client?.userId || clientId) && (
+          <ProNutritionStrategyCard
+            clientId={client?.clientUserId || client?.userId || clientId || ""}
+            isPhysician={isClinician}
+          />
+        )}
 
         {clientBodyComp && (clientBodyComp.currentBodyFatPct || clientBodyComp.goalBodyFatPct) && (
           <div className="bg-white/5 border border-white/15 rounded-xl p-4">
