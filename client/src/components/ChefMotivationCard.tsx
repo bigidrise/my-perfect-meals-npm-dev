@@ -76,23 +76,23 @@ const ChefMotivationCard: React.FC = () => {
   return (
     <div className="bg-gradient-to-r from-black via-cyan-800 to-black rounded-xl shadow-2xl shadow-black/80 p-6 text-white relative overflow-hidden hover:shadow-2xl hover:shadow-black/90 transform transition-all duration-200">
       {/* Decorative animated stars */}
-      <div className="absolute top-2 left-4 text-yellow-200 text-xl animate-pulse">
+      <div className="absolute top-2 left-4 text-yellow-200 text-xl animate-pulse chef-decoration-pulse">
         ✨
       </div>
       <div
-        className="absolute top-3 right-6 text-yellow-200 text-xl animate-pulse"
+        className="absolute top-3 right-6 text-yellow-200 text-xl animate-pulse chef-decoration-pulse"
         style={{ animationDelay: "0.5s" }}
       >
         ✨
       </div>
       <div
-        className="absolute bottom-2 left-6 text-yellow-200 text-xl animate-pulse"
+        className="absolute bottom-2 left-6 text-yellow-200 text-xl animate-pulse chef-decoration-pulse"
         style={{ animationDelay: "1s" }}
       >
         ✨
       </div>
       <div
-        className="absolute bottom-3 right-4 text-yellow-200 text-xl animate-pulse"
+        className="absolute bottom-3 right-4 text-yellow-200 text-xl animate-pulse chef-decoration-pulse"
         style={{ animationDelay: "1.5s" }}
       >
         ✨

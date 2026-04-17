@@ -31,8 +31,10 @@ export function MealImageSlot({
           style={{ background: "linear-gradient(135deg, #1c1c1e 0%, #2c2c2e 100%)" }}
         >
           <div
-            className="absolute inset-0"
+            className="mpm-shimmer-bar"
             style={{
+              position: "absolute",
+              inset: 0,
               background:
                 "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%)",
               animation: "mpm-shimmer 1.8s ease-in-out infinite",
