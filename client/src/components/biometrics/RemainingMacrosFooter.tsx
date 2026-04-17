@@ -8,7 +8,7 @@ import {
   MPM_MACRO_COLORS,
   getMacroProgressColor,
 } from "@/components/glass/mpmGlassStandard";
-import { Flame, Info } from "lucide-react";
+import { Flame } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -16,6 +16,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { PillButton } from "@/components/ui/pill-button";
 
 export interface ConsumedMacros {
   protein: number;
@@ -243,12 +244,7 @@ function MacroCoachSheet() {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <button
-          aria-label="What do these numbers mean?"
-          className="flex items-center justify-center w-5 h-5 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-        >
-          <Info className="w-3 h-3 text-white/60" />
-        </button>
+        <PillButton aria-label="What do these numbers mean?">Info</PillButton>
       </SheetTrigger>
       <SheetContent
         side="bottom"
