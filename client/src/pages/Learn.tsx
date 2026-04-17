@@ -196,26 +196,34 @@ const SECTION_START_HERE: LibraryTopic[] = [
   {
     id: "why-different",
     title: "Why This App Is Different",
-    subtitle: "Not a tracker — a decision system",
+    subtitle: "A coaching app that leads you — not another log-and-hope tracker",
     icon: Zap,
     content: {
       sections: [
         {
-          heading: "Not Another Calorie Counter",
-          text: "Most nutrition apps track what you ate. My Perfect Meals tells you what to eat—before you eat it.",
+          heading: "Every Other App Says Good Luck",
+          text: "Most nutrition apps hand you a log and walk away. You check boxes. You track entries. When motivation runs out — and it always does — there is nothing there to guide you. That is not coaching. That is bookkeeping.",
         },
         {
-          heading: "Key Differences",
+          heading: "This App Actually Leads You",
+          text: "My Perfect Meals tells you what to eat before you eat it. It builds your week. It adjusts when things change. It guides every decision — breakfast to dinner — so you are never left wondering what to do next. Other apps react after the fact. This one responds before your next decision.",
+        },
+        {
+          heading: "Powered by Behavior AI",
+          text: "The app does not just generate meals. It learns how you eat. It notices what you choose, what you skip, and what you come back to. Over time it adapts — not just to your numbers, but to your actual behavior. That is the part most apps cannot do.",
+        },
+        {
+          heading: "What Makes It Different",
           list: [
-            "Proactive meal planning, not reactive tracking",
-            "AI-generated meals tailored to your exact needs",
-            "Behavioral guardrails that prevent diet failures",
-            "Coach voice guidance when you need support",
+            "Other apps track what you already ate — this one guides what you eat next",
+            "Other apps show data and leave you to figure it out — this one makes the decision for you",
+            "Other apps are passive — this one leads",
+            "Follow the plan and results are guaranteed — not magic, just the math and structure working",
           ],
         },
         {
-          heading: "The Philosophy",
-          text: "Information alone doesn't change behavior. Structure does. That's what this app provides.",
+          heading: "A Coach in Your Pocket",
+          text: "This is not a theory. Clients have gotten results for years following the same principles this app runs on — eat the right things at the right amounts for your body, stay consistent. The app makes it possible to do that without a trainer standing next to you every day.",
         },
       ],
     },
