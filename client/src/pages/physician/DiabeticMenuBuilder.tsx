@@ -25,7 +25,9 @@ import {
   getDayLists,
   setDayLists,
   cloneDayLists,
+  updateMealImageInBoard,
 } from "@/lib/boardApi";
+import { useChefMealImage } from "@/hooks/useChefMealImage";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { MealPickerDrawer } from "@/components/pickers/MealPickerDrawer";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
@@ -195,6 +197,7 @@ export default function DiabeticMenuBuilder() {
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
+  const { fetchImageForMeal } = useChefMealImage();
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
@@ -885,6 +888,9 @@ export default function DiabeticMenuBuilder() {
         const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
         setBoard(updatedBoard);
+        fetchImageForMeal(transformedMeal, slot, (mealId, imageUrl) => {
+          setBoard(prev => prev ? updateMealImageInBoard(prev, mealId, imageUrl) : prev);
+        });
 
         try {
           await saveBoard(updatedBoard);

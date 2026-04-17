@@ -23,7 +23,9 @@ import {
   cloneDayLists,
   putWeekBoard,
   getWeekBoardByDate,
+  updateMealImageInBoard,
 } from "@/lib/boardApi";
+import { useChefMealImage } from "@/hooks/useChefMealImage";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
 import { CompetitionMealPickerDrawer } from "@/components/pickers/CompetitionMealPickerDrawer";
@@ -235,6 +237,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
+  const { fetchImageForMeal } = useChefMealImage();
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
@@ -743,6 +746,9 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
 
         setBoard(updatedBoard);
+        fetchImageForMeal(transformedMeal, slot, (mealId, imageUrl) => {
+          setBoard(prev => prev ? updateMealImageInBoard(prev, mealId, imageUrl) : prev);
+        });
         toast({
           title: "AI Meal Added!",
           description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === slot)?.[1]}`,

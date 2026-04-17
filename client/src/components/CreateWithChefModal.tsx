@@ -39,7 +39,6 @@ interface CreateWithChefModalProps {
     meal: any,
     slot: "breakfast" | "lunch" | "dinner" | "snacks",
   ) => void;
-  onImageReady?: (mealId: string, imageUrl: string) => void;
   dietType?: DietType;
   dietPhase?: BeachBodyPhase;
   starchContext?: StarchContext;
@@ -50,7 +49,6 @@ export function CreateWithChefModal({
   onOpenChange,
   mealType,
   onMealGenerated,
-  onImageReady,
   dietType,
   dietPhase,
   starchContext,
@@ -84,7 +82,7 @@ export function CreateWithChefModal({
   const userId = user?.id?.toString() || guestSession?.sessionId || "";
   
   const { generating, progress, error, generateMeal, cancel } =
-    useCreateWithChefRequest(userId, onImageReady);
+    useCreateWithChefRequest(userId);
   const { toast } = useToast();
   
   const {

@@ -15,7 +15,8 @@ import {
 import { useLocation, useRoute } from "wouter";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { MealCard, Meal } from "@/components/MealCard";
-import { getWeekBoard, saveWeekBoard, removeMealFromCurrentWeek, getCurrentWeekBoard, getWeekBoardByDate, putWeekBoard, type WeekBoard, getDayLists, setDayLists, cloneDayLists } from "@/lib/boardApi";
+import { getWeekBoard, saveWeekBoard, removeMealFromCurrentWeek, getCurrentWeekBoard, getWeekBoardByDate, putWeekBoard, type WeekBoard, getDayLists, setDayLists, cloneDayLists, updateMealImageInBoard } from "@/lib/boardApi";
+import { useChefMealImage } from "@/hooks/useChefMealImage";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { MealPickerDrawer } from "@/components/pickers/MealPickerDrawer";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
@@ -119,6 +120,7 @@ export default function WeeklyMealBoard() {
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
+  const { fetchImageForMeal } = useChefMealImage();
   const boardRef = React.useRef<WeekBoard | null>(null);
 
   // Register this builder's board namespace so cross-context features (Add to Plan, etc.) write to the correct board
@@ -261,6 +263,10 @@ export default function WeeklyMealBoard() {
         setBoard(updatedBoard);
         await saveBoard(updatedBoard);
       }
+
+      fetchImageForMeal(meal, slot, (mealId, imageUrl) => {
+        setBoard(prev => prev ? updateMealImageInBoard(prev, mealId, imageUrl) : prev);
+      });
 
       window.dispatchEvent(new Event("macros:updated"));
       
