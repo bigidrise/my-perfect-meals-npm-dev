@@ -130,20 +130,46 @@ export function MealCard({
 
   // Detect Create With Chef meals for special styling
   const isChefMeal = meal.id?.startsWith("chef-");
-  
+  const isAIMeal = isChefMeal || meal.id?.startsWith("ai-meal-");
+  const imageUrl = (meal as any).imageUrl as string | null | undefined;
+  const [imageRevealed, setImageRevealed] = React.useState(false);
+
   return (
     <div className={`relative rounded-2xl border bg-white/5 backdrop-blur-xl overflow-hidden hover:bg-white/10 transition-colors ${isChefMeal ? "flash-border" : "border-white/20"}`}>
-      {/* Image at top if available (EXACT COPY FROM FRIDGE RESCUE) */}
-      {(meal as any).imageUrl && (
-        <div className="relative">
-          <img
-            src={(meal as any).imageUrl}
-            alt={title}
-            className="w-full h-48 object-cover"
-            onError={(e) => {
-              e.currentTarget.src = `https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400&h=300&fit=crop&auto=format`;
-            }}
-          />
+      {/* Image slot — always rendered for AI/chef meals so shimmer shows while loading */}
+      {(isAIMeal || imageUrl) && (
+        <div
+          className="relative w-full h-48 overflow-hidden"
+          style={{ background: "linear-gradient(135deg, #1c1c1e 0%, #2c2c2e 100%)" }}
+        >
+          {/* Shimmer — visible while imageUrl is absent */}
+          {!imageUrl && (
+            <div
+              className="mpm-shimmer-bar absolute inset-0"
+              style={{
+                background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%)",
+                animation: "mpm-shimmer 1.8s ease-in-out infinite",
+              }}
+            />
+          )}
+          {/* Image — fades in once loaded */}
+          {imageUrl && (
+            <>
+              {!imageRevealed && (
+                <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, #1c1c1e 0%, #2c2c2e 100%)" }} />
+              )}
+              <img
+                src={imageUrl}
+                alt={title}
+                className={`w-full h-48 object-cover transition-opacity duration-300 ${imageRevealed ? "opacity-100" : "opacity-0"}`}
+                onLoad={() => setImageRevealed(true)}
+                onError={(e) => {
+                  e.currentTarget.src = `https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400&h=300&fit=crop&auto=format`;
+                  setImageRevealed(true);
+                }}
+              />
+            </>
+          )}
         </div>
       )}
 
