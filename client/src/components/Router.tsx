@@ -169,6 +169,7 @@ import WeaningOffTool from "@/pages/weaning-off-tool";
 import SocializingHub from "@/pages/SocializingHub";
 import SocialFindMeals from "@/pages/SocialFindMeals";
 import SocialRestaurantGuide from "@/pages/SocialRestaurantGuide";
+import FastFoodGuidePage from "@/pages/FastFoodGuidePage";
 import RestaurantFinderPage from "@/pages/RestaurantFinderPage";
 
 // Founders page
@@ -426,6 +427,7 @@ export default function Router() {
         <Route path="/social-hub" component={SocializingHub} />
         <Route path="/social-hub/find" component={SocialFindMeals} />
         <Route path="/social-hub/restaurant-guide" component={SocialRestaurantGuide} />
+        <Route path="/social-hub/fast-food" component={FastFoodGuidePage} />
         <Route path="/social-hub/restaurant-finder" component={RestaurantFinderPage} />
         {/* DELETED: SmartWeekBuilder, AdultBeverageHubPage routes */}
         <Route path="/macro-counter" component={SafeMacroCounter} />

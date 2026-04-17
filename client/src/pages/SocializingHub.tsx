@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Utensils, MapPin } from "lucide-react";
+import { ArrowLeft, Utensils, MapPin, Zap } from "lucide-react";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 interface SocialFeature {
@@ -39,6 +39,14 @@ export default function SocializingHub() {
       route: "/social-hub/restaurant-guide",
       gradient: "from-orange-500/20 to-orange-600/20",
       testId: "socialhub-guide", // Phase C.7 hub anchor
+    },
+    {
+      title: "Fast Food",
+      description: "Smart fast food choices that match your diet",
+      icon: Zap,
+      route: "/social-hub/fast-food",
+      gradient: "from-orange-500/20 to-orange-600/20",
+      testId: "socialhub-fast-food",
     },
     {
       title: "Find Meals Near Me",
