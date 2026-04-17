@@ -87,7 +87,7 @@ const SECTIONS = [
 
 const COPILOT_SCRIPT = `Welcome to My Perfect Meals for Professionals.
 
-Before you create your account, we want you to clearly understand what this platform is, how it works, and most importantly — how it respects your role.
+I'm Chef copilot, your AI coach in your pocket, and before you create your account, we want you to clearly understand what this platform is, how it works, and most importantly — how it respects your role.
 
 You set the plan. You define the strategy. You decide what's right for each client. My Perfect Meals will never override your professional judgment. Your expertise drives every decision.
 
@@ -107,7 +107,11 @@ export default function ProCareWelcome() {
   const [location, setLocation] = useLocation();
   const isTrainerWelcome = location === "/trainer-welcome";
   const isPhysicianWelcome = location === "/physician-welcome";
-  const role: "trainer" | "physician" | null = isTrainerWelcome ? "trainer" : isPhysicianWelcome ? "physician" : null;
+  const role: "trainer" | "physician" | null = isTrainerWelcome
+    ? "trainer"
+    : isPhysicianWelcome
+      ? "physician"
+      : null;
   const [expandedSection, setExpandedSection] = useState<string | null>(
     "respect",
   );
@@ -172,10 +176,16 @@ export default function ProCareWelcome() {
             className="w-[26rem] h-auto -mb-3"
           />
           <h1 className="text-2xl font-bold italic mt-0">
-            {role === "trainer" ? "Welcome, Trainer" : role === "physician" ? "Welcome, Physician" : "Welcome, Professional"}
+            {role === "trainer"
+              ? "Welcome, Trainer"
+              : role === "physician"
+                ? "Welcome, Physician"
+                : "Welcome, Professional"}
           </h1>
           <p className="text-white/60 text-sm leading-relaxed text-center mt-1 max-w-xs">
-            {role ? "Your account is ready. Here's how My Perfect Meals works" : "Before you create an account, understand how My Perfect Meals works"}{" "}
+            {role
+              ? "Your account is ready. Here's how My Perfect Meals works"
+              : "Before you create an account, understand how My Perfect Meals works"}{" "}
             <span className="italic">with</span> you, not instead of you.
           </p>
           <p className="text-green-400/80 text-xs mt-2 font-medium">
