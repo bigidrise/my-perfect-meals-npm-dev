@@ -242,6 +242,7 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
           cuisine: restaurant.cuisine,
           user: aiUser,
           cravingContext: mealQuery,
+          skipImages: true,
         });
         if (aiMeals && aiMeals.length > 0) {
           return aiMeals.slice(0, 2).map((meal) => ({
@@ -305,6 +306,7 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
         cuisine: restaurant.cuisine,
         user: aiUser,
         cravingContext: mealQuery,
+        skipImages: true,
       });
 
       if (aiMeals && aiMeals.length > 0) {
