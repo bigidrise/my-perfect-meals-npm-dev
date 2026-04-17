@@ -830,15 +830,15 @@ export default function UltimateExperiencesPage() {
                       <label className="block text-sm font-medium mb-3 text-white">
                         How many courses?
                       </label>
-                      <div className="flex gap-6">
+                      <div className="flex w-full gap-3">
                         {COURSE_COUNTS.map((n) => (
-                          <div key={n} className="flex flex-col items-center gap-1.5">
+                          <div key={n} className="flex flex-col items-center gap-1.5 flex-1">
                             <PillButton
                               active={totalCourses === n}
                               variant="amber"
                               onClick={() => setTotalCourses(n)}
                               disabled={isGenerating}
-                              className="w-12"
+                              className="w-full py-3 text-base font-semibold"
                             >
                               {n}
                             </PillButton>
@@ -862,25 +862,29 @@ export default function UltimateExperiencesPage() {
                       <label className="block text-sm font-medium mb-3 text-white">
                         Serving size
                       </label>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center justify-center gap-6">
                         <PillButton
                           onClick={() => setServings((s) => Math.max(1, s - 1))}
                           disabled={isGenerating || servings <= 1}
+                          className="w-16 py-3"
                         >
-                          <Minus className="h-3 w-3" />
+                          <Minus className="h-5 w-5" />
                         </PillButton>
-                        <span className="text-white font-bold text-lg w-10 text-center">
-                          {servings}
-                        </span>
+                        <div className="flex flex-col items-center">
+                          <span className="text-white font-bold text-3xl w-14 text-center tabular-nums">
+                            {servings}
+                          </span>
+                          <span className="text-white/50 text-xs mt-0.5">
+                            {servings === 1 ? "person" : "people"}
+                          </span>
+                        </div>
                         <PillButton
                           onClick={() => setServings((s) => Math.min(50, s + 1))}
                           disabled={isGenerating || servings >= 50}
+                          className="w-16 py-3"
                         >
-                          <Plus className="h-3 w-3" />
+                          <Plus className="h-5 w-5" />
                         </PillButton>
-                        <span className="text-white/60 text-sm">
-                          {servings === 1 ? "person" : "people"}
-                        </span>
                       </div>
                     </div>
                   )}
@@ -961,23 +965,25 @@ export default function UltimateExperiencesPage() {
                         <GlucoseGuardToggle disabled={isGenerating} />
                       </div>
 
-                      <div className="mt-2 flex gap-6">
-                        <div className="flex flex-col items-center gap-1.5">
+                      <div className="mt-2 flex w-full gap-3">
+                        <div className="flex flex-col items-center gap-1.5 flex-1">
                           <PillButton
                             active={flavorPersonal}
                             variant="amber"
                             onClick={() => !isGenerating && setFlavorPersonal(!flavorPersonal)}
                             disabled={isGenerating}
+                            className="w-full py-3 text-base font-semibold"
                           >
                             {flavorPersonal ? "Personal" : "Neutral"}
                           </PillButton>
                           <span className="text-xs text-white/70">Flavor</span>
                         </div>
-                        <div className="flex flex-col items-center gap-1.5">
+                        <div className="flex flex-col items-center gap-1.5 flex-1">
                           <PillButton
                             active={keepItSimple}
                             onClick={() => !isGenerating && setKeepItSimple(!keepItSimple)}
                             disabled={isGenerating}
+                            className="w-full py-3 text-base font-semibold"
                           >
                             {keepItSimple ? "Simple" : "Full"}
                           </PillButton>
