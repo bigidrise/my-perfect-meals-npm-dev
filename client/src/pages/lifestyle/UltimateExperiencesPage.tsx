@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import ThinkingDots from "@/components/ThinkingDots";
 import { useLocation } from "wouter";
+import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

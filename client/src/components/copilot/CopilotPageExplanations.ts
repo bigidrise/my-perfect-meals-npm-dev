@@ -186,6 +186,26 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
+  "/social-hub/fast-food": {
+    pageId: "social-hub/fast-food",
+    title: "Fast Food Guide",
+    description:
+      "Find the smartest meal choices at fast food restaurants. Tell me where you're going and what you want, and I'll return three goal-friendly options with full nutrition details.",
+    spokenText:
+      "Welcome to the Fast Food Guide. Look, fast food happens. Road trips, busy schedules, kids, late nights — sometimes the drive-through is just the reality. That does not mean you have to blow your plan. Tell me which fast food restaurant you're heading to and what you're in the mood for, and I'll find three meal options that actually make sense for your goals. Every recommendation is filtered through your dietary preferences and SafetyGuard, so your allergies and restrictions are always respected. You'll see estimated macros, a smart ordering tip, and enough detail to feel confident at the counter. When you find something that works, log it to your Biometrics with one tap. Fast food is not the enemy. Ordering without a plan is. I've got you covered.",
+    autoClose: true,
+  },
+
+  "/lifestyle/ultimate-experiences": {
+    pageId: "lifestyle/ultimate-experiences",
+    title: "Ultimate Experiences",
+    description:
+      "Design intentional multi-course meals for any occasion — holidays, camping, date nights, family dinners, and more — with AI-generated courses that feel chef-designed, not random.",
+    spokenText:
+      "Welcome to Ultimate Experiences. This is where meal planning becomes something more than just nutrition. Think of it as a personal chef who designs the entire experience around what you're actually doing and who you're doing it with. You pick the situation, a holiday like Thanksgiving or Hanukkah, a camping trip, a date night, a family gathering, or something more personal, and then set the details: how many people you're feeding, how many courses you want, and the flavor direction you're going for. From there, I build each course individually — appetizer, main, sides, dessert — so every dish feels intentional, balanced, and connected to the same experience. Nothing random, nothing repeated. Each course knows what the others are. You can even pin specific dishes to a course, paste in a family recipe, or let me build the entire meal from scratch. When it's ready, every course appears as a full meal card with ingredients, instructions, and nutrition. You can log any course to your plan, save favorites, or share the full experience. This is not a meal generator. This is how you eat when it matters.",
+    autoClose: true,
+  },
+
 
 
   "/wine-pairing": {

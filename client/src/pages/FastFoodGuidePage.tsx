@@ -18,7 +18,11 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import CometBar from "@/components/CometBar";
-import { normalizeDiet, filterMealsByDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
+import {
+  normalizeDiet,
+  filterMealsByDiet,
+  mealMatchesDiet,
+} from "@/utils/dietaryFilter";
 import DietBadge from "@/components/meal/DietBadge";
 import { motion } from "framer-motion";
 import {
@@ -73,6 +77,7 @@ import {
 import { ChefHat } from "lucide-react";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 
 // Guided flow step type - step-by-step wizard
 // entry → step1 (craving) → step2 (restaurant) → step3 (location) → generating → results
@@ -143,28 +148,55 @@ function clearRestaurantCache() {
 }
 
 const DIET_PILL_CONFIG: Record<string, { label: string; color: string }> = {
-  kosher:        { label: "Kosher (Verify Certification)", color: "bg-amber-500/20 border-amber-400/40 text-amber-300" },
-  halal:         { label: "Halal (Verify Certification)",  color: "bg-teal-500/20 border-teal-400/40 text-teal-300" },
-  keto:          { label: "Keto (Verify Prep)",            color: "bg-purple-500/20 border-purple-400/40 text-purple-300" },
-  vegan:         { label: "Vegan (Verify Prep)",           color: "bg-green-500/20 border-green-400/40 text-green-300" },
-  vegetarian:    { label: "Vegetarian Friendly (Verify Prep)", color: "bg-emerald-500/20 border-emerald-400/40 text-emerald-300" },
-  pescatarian:   { label: "Pescatarian (Verify Prep)",     color: "bg-blue-500/20 border-blue-400/40 text-blue-300" },
-  mediterranean: { label: "Mediterranean (Verify Prep)",   color: "bg-amber-500/20 border-amber-400/40 text-amber-300" },
-  paleo:         { label: "Paleo (Verify Prep)",           color: "bg-orange-500/20 border-orange-400/40 text-orange-300" },
-  custom:        { label: "Custom Diet (Verify Prep)",     color: "bg-pink-500/20 border-pink-400/40 text-pink-300" },
+  kosher: {
+    label: "Kosher (Verify Certification)",
+    color: "bg-amber-500/20 border-amber-400/40 text-amber-300",
+  },
+  halal: {
+    label: "Halal (Verify Certification)",
+    color: "bg-teal-500/20 border-teal-400/40 text-teal-300",
+  },
+  keto: {
+    label: "Keto (Verify Prep)",
+    color: "bg-purple-500/20 border-purple-400/40 text-purple-300",
+  },
+  vegan: {
+    label: "Vegan (Verify Prep)",
+    color: "bg-green-500/20 border-green-400/40 text-green-300",
+  },
+  vegetarian: {
+    label: "Vegetarian Friendly (Verify Prep)",
+    color: "bg-emerald-500/20 border-emerald-400/40 text-emerald-300",
+  },
+  pescatarian: {
+    label: "Pescatarian (Verify Prep)",
+    color: "bg-blue-500/20 border-blue-400/40 text-blue-300",
+  },
+  mediterranean: {
+    label: "Mediterranean (Verify Prep)",
+    color: "bg-amber-500/20 border-amber-400/40 text-amber-300",
+  },
+  paleo: {
+    label: "Paleo (Verify Prep)",
+    color: "bg-orange-500/20 border-orange-400/40 text-orange-300",
+  },
+  custom: {
+    label: "Custom Diet (Verify Prep)",
+    color: "bg-pink-500/20 border-pink-400/40 text-pink-300",
+  },
 };
 
 const DIET_QUALIFIER_MAP: Record<string, string> = {
-  kosher:        "Confirm kosher certification with the restaurant",
-  halal:         "Confirm halal certification with the restaurant",
-  keto:          "Low-carb, high-fat options available",
-  vegan:         "Plant-forward options",
-  vegetarian:    "Meat-free options available",
-  pescatarian:   "Fish-based menu",
+  kosher: "Confirm kosher certification with the restaurant",
+  halal: "Confirm halal certification with the restaurant",
+  keto: "Low-carb, high-fat options available",
+  vegan: "Plant-forward options",
+  vegetarian: "Meat-free options available",
+  pescatarian: "Fish-based menu",
   mediterranean: "Olive oil, lean proteins & vegetables",
-  paleo:         "Whole-food, grain-free options",
+  paleo: "Whole-food, grain-free options",
   "gluten-free": "Gluten-free friendly",
-  custom:        "Filtered to your dietary preferences",
+  custom: "Filtered to your dietary preferences",
 };
 
 const DIET_SKIP = new Set(["no-restriction", "no_restriction", "none", ""]);
@@ -274,6 +306,7 @@ const cuisineKeywords: Record<string, string> = {
 };
 
 export default function FastFoodGuidePage() {
+  useCopilotPageExplanation();
   const [, setLocation] = useLocation();
   const quickTour = useQuickTour("restaurant-guide");
   const { speak, stop } = useChefVoice();
@@ -337,7 +370,6 @@ export default function FastFoodGuidePage() {
   const [guidedStep, setGuidedStep] = useState<GuidedStep>(
     hasCachedResults ? "results" : "entry",
   );
-
 
   // Auto-mark info as seen since Copilot provides guidance now
   useEffect(() => {
@@ -437,13 +469,20 @@ export default function FastFoodGuidePage() {
       const rawRecs = data.recommendations || [];
       const compliantRecs = filterMealsByDiet(userDiet, rawRecs, (r) => r);
       if (compliantRecs.length === 0) {
-        const identityDiets = new Set(["kosher", "halal", "vegan", "vegetarian", "pescatarian"]);
+        const identityDiets = new Set([
+          "kosher",
+          "halal",
+          "vegan",
+          "vegetarian",
+          "pescatarian",
+        ]);
         const isIdentityDiet = identityDiets.has(userDiet);
-        const emptyDesc = rawRecs.length > 0
-          ? isIdentityDiet
-            ? `No ${userDiet}-compliant options were found at this restaurant. Try a different location or search for ${userDiet}-friendly cuisine nearby.`
-            : `No recommendations matched your ${userDiet} diet. Try a different restaurant or craving.`
-          : "No recommendations were generated. Please try again.";
+        const emptyDesc =
+          rawRecs.length > 0
+            ? isIdentityDiet
+              ? `No ${userDiet}-compliant options were found at this restaurant. Try a different location or search for ${userDiet}-friendly cuisine nearby.`
+              : `No recommendations matched your ${userDiet} diet. Try a different restaurant or craving.`
+            : "No recommendations were generated. Please try again.";
         toast({
           title: "No matching meals found",
           description: emptyDesc,
@@ -551,7 +590,8 @@ export default function FastFoodGuidePage() {
     } catch {
       toast({
         title: "Location Access Denied",
-        description: "Please enable location access in your browser settings, or enter your ZIP manually.",
+        description:
+          "Please enable location access in your browser settings, or enter your ZIP manually.",
         variant: "destructive",
       });
       setIsGettingLocation(false);
@@ -578,7 +618,8 @@ export default function FastFoodGuidePage() {
     } catch {
       toast({
         title: "Could Not Detect ZIP Code",
-        description: "Location was found but we couldn't determine your ZIP. Please enter it manually.",
+        description:
+          "Location was found but we couldn't determine your ZIP. Please enter it manually.",
         variant: "destructive",
       });
     } finally {
@@ -600,32 +641,32 @@ export default function FastFoodGuidePage() {
       >
         {/* Universal Safe-Area Header */}
         <MobileHeaderGuard>
-        <div
-          className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-        >
-          <div className="px-4 pb-3 flex items-center gap-2 flex-nowrap overflow-hidden">
-            {/* Back Button */}
-            <button
-              onClick={() => setLocation("/social-hub")}
-              className="flex items-center gap-1 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span className="text-sm font-medium">Back</span>
-            </button>
+          <div
+            className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+            style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+          >
+            <div className="px-4 pb-3 flex items-center gap-2 flex-nowrap overflow-hidden">
+              {/* Back Button */}
+              <button
+                onClick={() => setLocation("/social-hub")}
+                className="flex items-center gap-1 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                <span className="text-sm font-medium">Back</span>
+              </button>
 
-            {/* Title */}
-            <h1 className="text-lg font-bold text-white truncate min-w-0">
-              Fast Food
-            </h1>
+              {/* Title */}
+              <h1 className="text-lg font-bold text-white truncate min-w-0">
+                Fast Food
+              </h1>
 
-            <div className="flex-grow" />
-            <QuickTourButton
-              onClick={quickTour.openTour}
-              className="flex-shrink-0"
-            />
+              <div className="flex-grow" />
+              <QuickTourButton
+                onClick={quickTour.openTour}
+                className="flex-shrink-0"
+              />
+            </div>
           </div>
-        </div>
         </MobileHeaderGuard>
 
         {/* Main Content */}
@@ -646,14 +687,15 @@ export default function FastFoodGuidePage() {
                   Fast Food
                 </h2>
                 <p className="text-white/70 mb-6">
-                  Tell me what fast food you're craving and where you're ordering from,
-                  and I'll show you the best options that match your diet.
+                  Tell me what fast food you're craving and where you're
+                  ordering from, and I'll show you the best options that match
+                  your diet.
                 </p>
                 <Button
                   onClick={() => advanceGuided("step1")}
                   className="bg-lime-600 text-white px-8 py-3 text-lg font-semibold"
                 >
-                  Let's Find Dishes
+                  Get Your Grub On
                 </Button>
               </CardContent>
             </Card>
@@ -1039,17 +1081,24 @@ export default function FastFoodGuidePage() {
                                 })()}
                                 {/* Diet Style Pills */}
                                 {(() => {
-                                  const restrictions: string[] = (user as any)?.dietaryRestrictions ?? [];
+                                  const restrictions: string[] =
+                                    (user as any)?.dietaryRestrictions ?? [];
                                   const active = restrictions
                                     .map((r) => r.toLowerCase().trim())
-                                    .filter((r) => !DIET_SKIP.has(r) && DIET_PILL_CONFIG[r]);
+                                    .filter(
+                                      (r) =>
+                                        !DIET_SKIP.has(r) &&
+                                        DIET_PILL_CONFIG[r],
+                                    );
                                   if (active.length === 0) return null;
-                                  const qualifierText = DIET_QUALIFIER_MAP[active[0]];
+                                  const qualifierText =
+                                    DIET_QUALIFIER_MAP[active[0]];
                                   return (
                                     <div className="flex flex-col gap-1 mt-0.5">
                                       <div className="flex flex-wrap gap-1">
                                         {active.map((key) => {
-                                          const { label, color } = DIET_PILL_CONFIG[key];
+                                          const { label, color } =
+                                            DIET_PILL_CONFIG[key];
                                           return (
                                             <span
                                               key={key}
@@ -1164,12 +1213,16 @@ export default function FastFoodGuidePage() {
 
                             {/* Order It Right */}
                             {(() => {
-                              const restrictions: string[] = (user as any)?.dietaryRestrictions ?? [];
+                              const restrictions: string[] =
+                                (user as any)?.dietaryRestrictions ?? [];
                               const primaryDiet = restrictions
                                 .map((r) => r.toLowerCase().trim())
                                 .find((r) => !DIET_SKIP.has(r));
                               if (!primaryDiet) return null;
-                              const orderInstructions = getOrderInstructions(primaryDiet, meal.name || meal.meal || "");
+                              const orderInstructions = getOrderInstructions(
+                                primaryDiet,
+                                meal.name || meal.meal || "",
+                              );
                               if (orderInstructions.length === 0) return null;
                               return (
                                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 backdrop-blur-sm mb-3">
@@ -1178,8 +1231,13 @@ export default function FastFoodGuidePage() {
                                   </h4>
                                   <ul className="space-y-1">
                                     {orderInstructions.map((item, i) => (
-                                      <li key={i} className="text-blue-200 text-sm flex items-start gap-1.5">
-                                        <span className="mt-0.5 flex-shrink-0">•</span>
+                                      <li
+                                        key={i}
+                                        className="text-blue-200 text-sm flex items-start gap-1.5"
+                                      >
+                                        <span className="mt-0.5 flex-shrink-0">
+                                          •
+                                        </span>
                                         <span>{item}</span>
                                       </li>
                                     ))}

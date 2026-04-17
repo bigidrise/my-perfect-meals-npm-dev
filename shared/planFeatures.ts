@@ -76,6 +76,8 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "Spirits & Wine Pairing Hub",
       "Restaurant Guide",
       "Find Meals Near Me",
+      "Fast Food Guide (smart ordering at McDonald's, Chick-fil-A, and more)",
+      "Ultimate Experiences (AI-designed multi-course meals for holidays, camping, date nights, and more)",
     ],
     entitlements: [
       "smart_menu_builder",
@@ -144,6 +146,8 @@ export const IOS_DISPLAY_FEATURES: Record<string, string[]> = {
     "Spirits & Wine Pairing Hub",
     "Restaurant Guide",
     "Find Meals Near Me",
+    "Fast Food Guide",
+    "Ultimate Experiences",
     "Kids & Toddler Meals",
   ],
   ultimate: [
