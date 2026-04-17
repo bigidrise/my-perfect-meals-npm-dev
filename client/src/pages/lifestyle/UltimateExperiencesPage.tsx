@@ -458,7 +458,9 @@ export default function UltimateExperiencesPage() {
           totalCourses,
           servingSize: servings,
           userId,
-          dietaryRestrictions: normalizeDiet(user?.dietaryRestrictions),
+          dietaryRestrictions: Array.isArray(user?.dietaryRestrictions)
+            ? user.dietaryRestrictions
+            : [],
           sweetenerPreferences,
           dietAdaptOverride,
           flavorPersonal,
@@ -1062,7 +1064,7 @@ export default function UltimateExperiencesPage() {
                         !situation ||
                         (situation === "holiday" && !selectedEvent)
                       }
-                      className="w-full bg-amber-600 hover:bg-amber-500 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
+                      className="w-full bg-lime-600 hover:bg-lime-500 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
                     >
                       <Star className="h-4 w-4" />
                       {generatedCourses.length > 0
