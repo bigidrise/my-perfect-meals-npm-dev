@@ -296,8 +296,8 @@ export default function FastFoodGuidePage() {
     (nextStep: GuidedStep) => {
       stop(); // Stop any currently playing voice first
       setGuidedStep(nextStep);
-      // Speak the script for this step (skip entry since it's handled by mount effect)
-      if (nextStep !== "entry") {
+      // Only speak during meal generation — all other steps are silent
+      if (nextStep === "generating") {
         const script = stepScripts[nextStep];
         if (script) {
           speak(script);
