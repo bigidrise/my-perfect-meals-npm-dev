@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useChefFlowImages, chefFlowMealId } from "@/hooks/useChefFlowImages";
+import { ChefFlowImage } from "@/components/ChefFlowImage";
 import { motion } from "framer-motion";
 import CometBar from "@/components/CometBar";
 import {
@@ -82,8 +84,8 @@ const DIET_QUALIFIER_MAP: Record<string, string> = {
 const DIET_SKIP = new Set(["no-restriction", "no_restriction", "none", ""]);
 
 // Guided flow step type - step-by-step wizard
-// entry → step1 (craving) → step2 (location) → generating → results
-type GuidedStep = "entry" | "step1" | "step2" | "generating" | "results";
+// entry → step1 (craving) → step2 (location) → step3 (budget) → generating → results
+type GuidedStep = "entry" | "step1" | "step2" | "step3" | "generating" | "results";
 
 const FIND_MEALS_TOUR_STEPS: TourStep[] = [
   {
@@ -139,6 +141,8 @@ interface MealResult {
   cuisine: string;
   address: string;
   rating?: number;
+  priceLevel?: number;
+  matchLabel?: 'Exact match' | 'Matches your diet' | 'Limited match';
   photoUrl?: string;
   meal: {
     name: string;
@@ -159,6 +163,28 @@ interface MealResult {
     color: string;
   }>;
 }
+
+type PriceFilter = 'any' | 'budget' | 'mid' | 'upscale';
+
+const PRICE_FILTER_OPTIONS: { key: PriceFilter; label: string; hint: string; range: number[] }[] = [
+  { key: 'any',    label: 'Any Price',     hint: 'Show all restaurants',       range: [] },
+  { key: 'budget', label: '$ Budget',      hint: 'Fast food & casual (~$15)',  range: [0, 1] },
+  { key: 'mid',    label: '$$ Mid-Range',  hint: 'Sit-down spots (~$15–$40)',  range: [2] },
+  { key: 'upscale',label: '$$$ Upscale',   hint: 'Fine dining ($40+)',         range: [3, 4] },
+];
+
+function priceLevelBadge(level?: number): string | null {
+  if (level === undefined || level === null) return null;
+  if (level <= 1) return '$';
+  if (level === 2) return '$$';
+  return '$$$';
+}
+
+const MATCH_LABEL_CONFIG: Record<string, { color: string }> = {
+  'Exact match':     { color: 'bg-green-500/20 border-green-400/40 text-green-300' },
+  'Matches your diet': { color: 'bg-blue-500/20 border-blue-400/40 text-blue-300' },
+  'Limited match':   { color: 'bg-amber-500/20 border-amber-400/40 text-amber-300' },
+};
 
 export default function MealFinder() {
   const [, setLocation] = useLocation();
@@ -209,7 +235,23 @@ export default function MealFinder() {
   const [mealQuery, setMealQuery] = useState("");
   const [zipCode, setZipCode] = useState("");
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [priceFilter, setPriceFilter] = useState<PriceFilter>('any');
   const [results, setResults] = useState<MealResult[]>([]);
+
+  const chefFlowMeals = useMemo(
+    () =>
+      results.map((r) => ({
+        id: `findmeals-${r.restaurantName}-${r.meal.name}`
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .slice(0, 60),
+        name: r.meal.name,
+        imageUrl: r.meal.imageUrl,
+      })),
+    [results],
+  );
+  const { imageMap: chefFlowImages, failedSet: chefFlowFailed } = useChefFlowImages(chefFlowMeals, "restaurant");
+
   const [progress, setProgress] = useState(0);
   const hasRestoredRef = useRef(false);
   const hasSpokenEntryRef = useRef(false);
@@ -243,11 +285,13 @@ export default function MealFinder() {
       }, 800);
 
       try {
+        const selectedPrice = PRICE_FILTER_OPTIONS.find((p) => p.key === priceFilter);
         const response = await apiRequest("/api/meal-finder", {
           method: "POST",
           body: JSON.stringify({
             ...data,
             dietaryRestrictions: normalizeDiet(user?.dietaryRestrictions),
+            priceRange: selectedPrice && selectedPrice.range.length > 0 ? selectedPrice.range : undefined,
           }),
           headers: { "Content-Type": "application/json" },
         });
@@ -585,8 +629,78 @@ export default function MealFinder() {
                       Back
                     </Button>
                     <Button
-                      onClick={handleSearch}
+                      onClick={() => advanceGuided("step3")}
                       disabled={zipCode.length !== 5}
+                      className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* STEP 3 - Budget / Price Range */}
+          {guidedStep === "step3" && (
+            <motion.div
+              key="guided-step3"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                <CardContent className="p-6 space-y-5">
+                  <div>
+                    <p className="text-white/60 text-sm uppercase tracking-wide font-medium mb-1">
+                      Step 3 of 3
+                    </p>
+                    <h2 className="text-xl font-bold text-white">
+                      What's your budget?
+                    </h2>
+                    <p className="text-white/60 text-sm mt-1">
+                      I'll only show restaurants that match your price range.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {PRICE_FILTER_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        onClick={() => setPriceFilter(opt.key)}
+                        className={`
+                          py-4 px-4 rounded-xl border text-sm font-semibold transition-all
+                          ${
+                            priceFilter === opt.key
+                              ? "bg-lime-600/30 border-lime-400 text-lime-300"
+                              : "bg-black/30 border-white/20 text-white/70 hover:border-white/40 hover:text-white"
+                          }
+                        `}
+                      >
+                        <span className="block font-bold">{opt.label}</span>
+                        <span className="block text-xs font-normal opacity-70 mt-0.5">{opt.hint}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-3 pt-1">
+                    <Button
+                      onClick={() => advanceGuided("step2")}
+                      className="
+                        flex-1
+                        bg-black/60
+                        text-white
+                        border
+                        border-white/20
+                        backdrop-blur-lg
+                        font-medium
+                        rounded-xl
+                        transition-none
+                      "
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      onClick={handleSearch}
                       className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold"
                       data-testid="button-find-meals"
                     >
@@ -662,24 +776,35 @@ export default function MealFinder() {
                     data-testid={`card-result-${index}`}
                   >
                     <div className="grid md:grid-cols-3 gap-4">
+                      {/* Meal Image — ChefFlow Render System (AI food image primary, Google photo last resort) */}
                       <div className="relative h-48 md:h-auto">
-                        {result.meal.imageUrl || result.photoUrl ? (
-                          <img
-                            src={result.meal.imageUrl || result.photoUrl}
-                            alt={result.meal.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-orange-200 to-orange-300 flex items-center justify-center">
-                            <div className="text-4xl">🍽️</div>
-                          </div>
-                        )}
+                        <ChefFlowImage
+                          src={
+                            chefFlowImages[chefFlowMealId(chefFlowMeals[index], "restaurant")] ||
+                            (chefFlowFailed.has(chefFlowMealId(chefFlowMeals[index], "restaurant"))
+                              ? result.photoUrl
+                              : undefined)
+                          }
+                          alt={result.meal.name}
+                        />
                       </div>
 
                       <div className="md:col-span-2 p-4">
                         <div className="mb-3">
                           <div className="flex items-start justify-between">
                             <div>
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                {result.matchLabel && (
+                                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${MATCH_LABEL_CONFIG[result.matchLabel]?.color ?? 'bg-white/10 border-white/20 text-white/60'}`}>
+                                    {result.matchLabel}
+                                  </span>
+                                )}
+                                {priceLevelBadge(result.priceLevel) && (
+                                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/10 border border-white/20 text-white/70">
+                                    {priceLevelBadge(result.priceLevel)}
+                                  </span>
+                                )}
+                              </div>
                               <h3 className="text-lg font-bold text-white">
                                 {result.restaurantName}
                               </h3>

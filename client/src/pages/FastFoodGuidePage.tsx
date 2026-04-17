@@ -16,6 +16,8 @@
 // - Real-time progress ticker (0-90% with visual feedback)
 // - Medical personalization with user health data integration
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useChefFlowImages, chefFlowMealId } from "@/hooks/useChefFlowImages";
+import { ChefFlowImage } from "@/components/ChefFlowImage";
 import { useAuth } from "@/contexts/AuthContext";
 import CometBar from "@/components/CometBar";
 import {
@@ -356,6 +358,13 @@ export default function FastFoodGuidePage() {
     rating?: number;
     photoUrl?: string;
   } | null>(null);
+
+  const chefFlowMeals = useMemo(
+    () => generatedMeals.map((m) => ({ id: m.id, name: m.name || m.meal, imageUrl: m.imageUrl })),
+    [generatedMeals],
+  );
+  const { imageMap: chefFlowImages } = useChefFlowImages(chefFlowMeals, "fast-food");
+
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -1030,19 +1039,12 @@ export default function FastFoodGuidePage() {
                         className="overflow-hidden shadow-lg hover:shadow-orange-500/50 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-black/40 backdrop-blur-lg border border-white/20"
                       >
                         <div className="grid md:grid-cols-3 gap-4">
-                          {/* Meal Image */}
+                          {/* Meal Image — ChefFlow Render System */}
                           <div className="relative h-48 md:h-auto">
-                            {meal.imageUrl ? (
-                              <img
-                                src={meal.imageUrl}
-                                alt={meal.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-black/20 backdrop-blur-lg flex items-center justify-center">
-                                <div className="text-4xl">🍽️</div>
-                              </div>
-                            )}
+                            <ChefFlowImage
+                              src={chefFlowImages[chefFlowMealId(meal, "fast-food")]}
+                              alt={meal.name || meal.meal || "Meal"}
+                            />
                           </div>
 
                           {/* Meal Details */}
