@@ -432,6 +432,7 @@ export default function UltimateExperiencesPage() {
     try {
       const response = await fetch(apiUrl("/api/experiences/generate"), {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           situation,
