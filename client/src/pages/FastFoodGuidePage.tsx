@@ -695,7 +695,7 @@ export default function FastFoodGuidePage() {
                   onClick={() => advanceGuided("step1")}
                   className="bg-lime-600 text-white px-8 py-3 text-lg font-semibold"
                 >
-                  Get Your Grub On
+                  Fast & Healthy Meals
                 </Button>
               </CardContent>
             </Card>
@@ -716,8 +716,7 @@ export default function FastFoodGuidePage() {
                     <h3 className="text-lg font-semibold text-white">Step 1</h3>
                   </div>
                   <p className="text-white text-base">
-                    What dish or type of food are you craving?
-                  </p>
+                  “What are you in the mood for?”                  </p>
                   <div className="relative">
                     <Input
                       data-wt="rg-craving-input"
@@ -938,7 +937,7 @@ export default function FastFoodGuidePage() {
                     </div>
                   </div>
                   <h3 className="text-xl font-semibold text-white text-center">
-                    Finding Your Perfect Dishes...
+                    “Finding your options…”
                   </h3>
                   <p className="text-white/70 text-center">
                     Searching {restaurantInput} for {cravingInput} options
