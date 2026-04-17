@@ -6304,6 +6304,166 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     }
   });
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // UNIFIED ROUTE BLOCK — all routes from index.ts that were missing from
+  // registerRoutes. Adding them here ensures dev AND prod are always in sync.
+  // ─────────────────────────────────────────────────────────────────────────
+  const { default: mealsRouterShared } = await import("./routes/meals");
+  app.use("/api/meals", mealsRouterShared);
+
+  const { default: experiencesRouterShared } = await import("./routes/experiences");
+  app.use("/api/experiences", requireAuth, requireActiveAccess, experiencesRouterShared);
+
+  const { default: cravingCreatorRouterShared } = await import("./routes/craving-creator");
+  app.use("/api/craving-creator", requireAuth, requireActiveAccess, cravingCreatorRouterShared);
+
+  const { default: breakfastRouterShared } = await import("./routes/breakfast");
+  app.use("/api/breakfast", breakfastRouterShared);
+
+  const { default: lunchRouterShared } = await import("./routes/lunch");
+  app.use("/api/lunch", lunchRouterShared);
+
+  const { default: dinnerRouterShared } = await import("./routes/dinner");
+  app.use("/api/dinner", dinnerRouterShared);
+
+  const { default: snacksRouterShared } = await import("./routes/snacks");
+  app.use("/api/snacks", snacksRouterShared);
+
+  const { default: gamesRouterShared } = await import("./routes/games");
+  app.use("/api/games", gamesRouterShared);
+
+  const { testimonialsRouter: testimonialsRouterShared } = await import("./routes/testimonials");
+  app.use("/api/testimonials", testimonialsRouterShared);
+
+  const { default: fitlifeRouterShared } = await import("./routes/fitlife");
+  app.use("/api/fitlife", fitlifeRouterShared);
+
+  const { default: mybestlifeRouterShared } = await import("./routes/mybestlife");
+  app.use("/api/my-best-life", mybestlifeRouterShared);
+
+  const { constraintsRouter: constraintsRouterShared } = await import("./routes/mealEngineConstraints");
+  app.use("/api/meal-engine", constraintsRouterShared);
+
+  const { generationRouter: generationRouterShared } = await import("./routes/generation");
+  app.use("/api/generation", generationRouterShared);
+
+  const { default: triviaRouterShared } = await import("./routes/trivia");
+  app.use("/api/trivia", triviaRouterShared);
+
+  const { default: challengeRoutesShared } = await import("./routes/challenges");
+  app.use("/api/challenges", challengeRoutesShared);
+
+  const { templateRouter: templateRouterShared } = await import("./routes/mealTemplates");
+  app.use("/api/meal-templates", templateRouterShared);
+
+  const { default: chefPairingsRouterShared } = await import("./routes/chef-pairings");
+  app.use("/api/ai/chef-pairings", requireAuth, requireActiveAccess, chefPairingsRouterShared);
+
+  const { default: studioGeneratorRouterShared } = await import("./routes/studioGenerator");
+  app.use("/api/studio", requireAuth, requireActiveAccess, studioGeneratorRouterShared);
+
+  const { default: dessertCreatorRouterShared } = await import("./routes/dessert-creator");
+  app.use("/api/meals/dessert-creator", requireAuth, requireActiveAccess, dessertCreatorRouterShared);
+
+  const { default: beverageCreatorRouterShared } = await import("./routes/beverage-creator");
+  app.use("/api/meals/beverage-creator", requireAuth, requireActiveAccess, beverageCreatorRouterShared);
+
+  const { default: foodLogsRouterShared } = await import("./routes/foodLogs");
+  app.use("/api", foodLogsRouterShared);
+
+  const { default: alcoholRouterShared } = await import("./routes/alcohol");
+  app.use("/api", alcoholRouterShared);
+
+  const { default: glycemicRouterShared } = await import("./routes/glycemic");
+  app.use("/api", glycemicRouterShared);
+
+  const { default: mealSummarizeRouterShared } = await import("./routes/mealSummarize");
+  app.use("/api", mealSummarizeRouterShared);
+
+  const { default: shoppingListRouterShared } = await import("./routes/shoppingList");
+  app.use("/api", shoppingListRouterShared);
+
+  const { shoppingPreviewRouter: shoppingPreviewRouterShared, shoppingRouter: shoppingRouterShared } = await import("./routes/shoppingListV2");
+  app.use("/api/shopping-list-v2", shoppingPreviewRouterShared);
+  app.use("/api/shopping-list-v2", shoppingRouterShared);
+
+  const { default: waterLogsRouterShared } = await import("./routes/waterLogs");
+  app.use("/api", waterLogsRouterShared);
+
+  const { default: wmc2LogRouterShared } = await import("./routes/wmc2Log");
+  app.use("/api", wmc2LogRouterShared);
+
+  const { default: wmc2TelemetryRouterShared } = await import("./routes/wmc2Telemetry");
+  app.use("/api", wmc2TelemetryRouterShared);
+
+  const { default: wmc2EnhancedRouterShared } = await import("./routes/wmc2Enhanced");
+  app.use("/api", wmc2EnhancedRouterShared);
+
+  const { default: mealEngineRouterShared } = await import("./routes/mealEngine.routes");
+  app.use("/api", mealEngineRouterShared);
+
+  const { default: weeklyPlanRoutesShared } = await import("./routes/weeklyPlan.routes");
+  app.use("/api", weeklyPlanRoutesShared);
+
+  const { default: mealScheduleRouterShared } = await import("./routes/mealSchedule");
+  app.use("/api", mealScheduleRouterShared);
+
+  const { default: notifyRouterShared } = await import("./routes/notify");
+  app.use("/api", notifyRouterShared);
+
+  const { default: notifyAckRouterShared } = await import("./routes/notifyAck");
+  app.use("/api", notifyAckRouterShared);
+
+  const { default: timePresetsRouterShared } = await import("./routes/timePresets");
+  app.use("/api", timePresetsRouterShared);
+
+  const { default: notifyRegisterRouterShared } = await import("./routes/notify.register");
+  app.use("/api", notifyRegisterRouterShared);
+
+  const { default: notifyTestRouterShared } = await import("./routes/notify.test");
+  app.use("/api", notifyTestRouterShared);
+
+  const { default: quickTestRouterShared } = await import("./routes/notify.quicktest");
+  app.use("/api", quickTestRouterShared);
+
+  const { default: quickTestEnhancedRouterShared } = await import("./routes/notify.quicktest.enhanced");
+  app.use("/api", quickTestEnhancedRouterShared);
+
+  const { default: adherenceRouterShared } = await import("./routes/adherence");
+  app.use("/api", adherenceRouterShared);
+
+  const { default: notifyExtrasRouterShared } = await import("./routes/notifyExtras");
+  app.use("/api", notifyExtrasRouterShared);
+
+  const { default: cookingTutorialsRouterShared } = await import("./routes/cookingTutorials.routes");
+  app.use("/api", cookingTutorialsRouterShared);
+
+  const { default: preferencesRouterShared } = await import("./routes/preferences");
+  app.use("/api", preferencesRouterShared);
+
+  const { userMealPrefsRouter: userMealPrefsRouterShared } = await import("./routes/userMealPrefs");
+  app.use("/api/user-prefs/meals", userMealPrefsRouterShared);
+
+  const { default: manualMacrosRouterShared } = await import("./routes/manualMacros");
+  app.use("/api", manualMacrosRouterShared);
+
+  const { default: clinicalLabsRouterShared } = await import("./routes/clinicalLabs");
+  app.use("/api/biometrics/labs", clinicalLabsRouterShared);
+
+  const { default: translateRouterShared } = await import("./routes/translate");
+  app.use("/api/translate", requireAuth, requireActiveAccess, translateRouterShared);
+
+  const { default: restaurantRoutesShared } = await import("./routes/restaurants");
+  const { resolveCuisineMiddleware: resolveCuisineShared } = await import("./middleware/resolveCuisineMiddleware");
+  app.use("/api/restaurants", requireAuth, requireActiveAccess, resolveCuisineShared, restaurantRoutesShared);
+
+  const { default: mealPlanRoutesV1Shared } = await import("./routes/mealPlans.routes");
+  app.use("/api/meal-plan", mealPlanRoutesV1Shared);
+  app.use("/api/meal-plans", mealPlanRoutesV1Shared);
+
+  const { default: abTestingMealPlansRouterShared } = await import("./routes/mealPlans");
+  app.use(abTestingMealPlansRouterShared);
+
   const CRITICAL_ROUTES = [
     "/api/biometrics",
     "/api/ai-quota",
