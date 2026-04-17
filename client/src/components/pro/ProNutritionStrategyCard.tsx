@@ -98,6 +98,15 @@ export default function ProNutritionStrategyCard({ clientId, isPhysician }: Prop
   const [data, setData] = useState<NutritionStrategyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showPhysician, setShowPhysician] = useState(false);
+  const contextKey = `pro-protocol-context-dismissed-${clientId}`;
+  const [contextDismissed, setContextDismissed] = useState(() =>
+    typeof window !== "undefined" && !!localStorage.getItem(contextKey)
+  );
+
+  function dismissContext() {
+    localStorage.setItem(contextKey, "1");
+    setContextDismissed(true);
+  }
 
   useEffect(() => {
     if (!clientId) return;
@@ -155,6 +164,25 @@ export default function ProNutritionStrategyCard({ clientId, isPhysician }: Prop
         <p className="text-xs text-white/50 mt-2 leading-relaxed italic">
           {strategySummary}
         </p>
+
+        {/* Coach context line — dismissible per client */}
+        {!contextDismissed && (
+          <div className="mt-2.5 flex items-start justify-between gap-2 rounded-lg bg-white/4 border border-white/8 px-3 py-2">
+            <p className="text-[11px] text-white/45 leading-snug">
+              This shows how the app is guiding this client's meals right now.
+              All meals generated reflect these guardrails and glucose trends.
+            </p>
+            <button
+              onClick={dismissContext}
+              className="text-white/25 hover:text-white/50 transition-colors shrink-0 mt-0.5"
+              aria-label="Dismiss"
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+                <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="px-4 py-3 space-y-4">
