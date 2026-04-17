@@ -156,6 +156,52 @@ const COURSE_LABELS: Record<CourseType, string> = {
   dessert: "DESSERT (sweet final course)",
 };
 
+// ─────────────────────────────────────────────
+// Dish type classifier — used for balance rules
+// ─────────────────────────────────────────────
+function classifyDishType(name: string): string {
+  const n = name.toLowerCase();
+  if (/\b(potato|latke|kugel|rice|bread|pasta|corn|yam|noodle|dumpling|roll|biscuit|tortilla|stuffing|dressing|grits|couscous|quinoa|barley|lentil)\b/.test(n)) return "starch";
+  if (/\b(chicken|turkey|beef|brisket|salmon|fish|shrimp|lamb|pork|steak|rib|sausage|ham|duck|crab|lobster|tuna|venison|tofu|tempeh)\b/.test(n)) return "protein";
+  if (/\b(salad|slaw|greens|kale|spinach|carrot|broccoli|cauliflower|asparagus|bean|pea|cabbage|cucumber|tomato|pepper|mushroom|zucchini|squash|brussels|beet|artichoke)\b/.test(n)) return "vegetable";
+  if (/\b(cake|pie|cookie|brownie|doughnut|sufganiyot|pudding|tart|mousse|ice cream|sorbet|candy|fudge|cheesecake|cobbler|crisp|custard|crepe|macaron|baklava|halva)\b/.test(n)) return "dessert";
+  if (/\b(soup|stew|chowder|bisque|broth|chili)\b/.test(n)) return "soup";
+  return "other";
+}
+
+// ─────────────────────────────────────────────
+// Cooking method extractor — for camping diversity
+// ─────────────────────────────────────────────
+function extractCookingMethod(name: string): string {
+  const n = name.toLowerCase();
+  if (/campfire/.test(n)) return "campfire";
+  if (/\b(grilled|grill)\b/.test(n)) return "grilled";
+  if (/foil/.test(n)) return "foil-packet";
+  if (/skillet/.test(n)) return "skillet";
+  if (/\b(raw|no.cook|fresh)\b/.test(n)) return "no-cook";
+  if (/\b(boil|boiled|simmered)\b/.test(n)) return "boiled";
+  if (/\bsmoked\b/.test(n)) return "smoked";
+  if (/\bfried\b/.test(n)) return "fried";
+  if (/\bbaked\b/.test(n)) return "baked";
+  return "other";
+}
+
+// ─────────────────────────────────────────────
+// Server-side duplicate detector
+// ─────────────────────────────────────────────
+function isDuplicateDish(newName: string, previousNames: string[]): boolean {
+  if (!newName || previousNames.length === 0) return false;
+  const normalize = (s: string) => s.toLowerCase().replace(/[^a-z\s]/g, "").trim();
+  const newWords = normalize(newName).split(/\s+/).filter(w => w.length > 3);
+  for (const prev of previousNames) {
+    const prevWords = normalize(prev).split(/\s+/).filter(w => w.length > 3);
+    const shared = newWords.filter(w => prevWords.includes(w));
+    if (shared.length >= 2) return true; // 2+ meaningful shared words = duplicate
+    if (normalize(newName) === normalize(prev)) return true;
+  }
+  return false;
+}
+
 function buildCoursePrompt(
   courseType: CourseType,
   courseIndex: number,
@@ -170,6 +216,8 @@ function buildCoursePrompt(
   familySpecialty: string | undefined,
   notes: string | undefined,
   alreadyGeneratedNames: string[] = [],
+  alreadyGeneratedTypes: string[] = [],
+  alreadyGeneratedMethods: string[] = [],
 ): string {
   const lines = [
     `You are generating the ${COURSE_LABELS[courseType]} for a multi-course meal.`,
@@ -179,28 +227,59 @@ function buildCoursePrompt(
     `SERVING SIZE: ${servingSize} people`,
     `FLAVOR PROFILE SEED: ${flavorSeed}`,
     ``,
-    `REQUIREMENTS:`,
-    `- Generate ONLY the ${COURSE_LABELS[courseType].split(" (")[0]} — nothing else`,
-    `- All dishes in this experience share the same flavor profile: ${flavorSeed}`,
-    `- This dish MUST feel like part of the SAME cohesive meal, not a standalone random meal`,
-    `- Portions must be sized for ${servingSize} people`,
-    `- Do NOT generate an unrelated meal — this is course ${courseIndex + 1} of a ${courses.length}-course ${situation} experience`,
+    `COURSE ROLE — MUST BE ENFORCED:`,
   ];
+
+  if (courseType === "appetizer") lines.push(`- This is the APPETIZER: small, light, and designed to open the meal — NOT a main dish`);
+  if (courseType === "main")      lines.push(`- This is the MAIN COURSE: protein-centered, substantial, the centerpiece of the entire meal`);
+  if (courseType === "side")      lines.push(`- This is a SIDE DISH: complements the main course without duplicating it — NOT a standalone meal`);
+  if (courseType === "dessert")   lines.push(`- This is the DESSERT: clearly sweet, the final course — NOT a savory dish`);
+
+  lines.push(``);
+  lines.push(`REQUIREMENTS:`);
+  lines.push(`- Generate ONLY the ${COURSE_LABELS[courseType].split(" (")[0]} — nothing else`);
+  lines.push(`- All dishes in this experience share the same flavor profile: ${flavorSeed}`);
+  lines.push(`- This dish MUST feel like part of the SAME cohesive meal, not a standalone random meal`);
+  lines.push(`- Portions must be sized for ${servingSize} people`);
+  lines.push(`- Do NOT generate an unrelated meal — this is course ${courseIndex + 1} of a ${courses.length}-course ${situation} experience`);
+
+  lines.push(``);
+  lines.push(`MEAL BALANCE RULES (mandatory):`);
+  lines.push(`- The overall meal may only have ONE heavy starch dish — if a starch already appears below, choose something else`);
+  lines.push(`- At least one course in the entire meal must be vegetable-based`);
+  lines.push(`- The main course MUST be protein-centered`);
+  lines.push(`- Do NOT stack similar textures, flavors, or ingredients across courses`);
 
   if (alreadyGeneratedNames.length > 0) {
     lines.push(``);
-    lines.push(`DIVERSITY RULES (CRITICAL — do NOT violate):`);
-    lines.push(`- These dishes have already been generated for this experience: ${alreadyGeneratedNames.map(n => `"${n}"`).join(", ")}`);
-    lines.push(`- You MUST NOT repeat any of these dish names or their primary ingredient`);
-    lines.push(`- You MUST NOT give every dish the same cooking-method prefix (e.g. "campfire X", "grilled X", "holiday X")`);
-    lines.push(`- Each course must feature a DIFFERENT primary protein, vegetable, or starch from the others`);
-    lines.push(`- Choose a completely different dish — variety is the goal`);
+    lines.push(`STRICT DUPLICATION RULES (CRITICAL — violation is not allowed):`);
+    lines.push(`Previously generated dishes for this experience: ${alreadyGeneratedNames.map(n => `"${n}"`).join(", ")}`);
+    lines.push(`Already-used dish types: ${alreadyGeneratedTypes.join(", ") || "none"}`);
+    lines.push(`- Do NOT generate the same dish as any listed above`);
+    lines.push(`- Do NOT generate a renamed version of any listed dish (e.g. if "Potato Latkes" is listed, do NOT generate "Potato Pancakes" or "Fried Potato Cakes")`);
+    lines.push(`- Do NOT reuse the same base ingredient in the same form as any listed dish`);
+    if (alreadyGeneratedTypes.filter(t => t === "starch").length >= 1) {
+      lines.push(`- A starch dish is already included — do NOT generate another starch-based dish`);
+    }
+    if (alreadyGeneratedTypes.filter(t => t === "protein").length >= 1 && courseType !== "main") {
+      lines.push(`- A protein dish is already included — if this is not the main course, choose a non-protein focus`);
+    }
+    lines.push(`- You MUST generate something clearly and obviously different from every listed dish above`);
+  }
+
+  if (situation === "camping" && alreadyGeneratedMethods.length > 0) {
+    lines.push(``);
+    lines.push(`COOKING METHOD DIVERSITY (camping rule):`);
+    lines.push(`Already-used cooking methods: ${alreadyGeneratedMethods.join(", ")}`);
+    lines.push(`- Each course MUST use a DIFFERENT cooking method`);
+    lines.push(`- Available methods: campfire, grilled, foil packet, skillet, no-cook`);
+    lines.push(`- Do NOT repeat any cooking method already used above`);
+    lines.push(`- Do NOT prefix every dish name with the same word (e.g. "Campfire X" every time)`);
   }
 
   if (strict) {
-    lines.push(
-      `- STRICT RETRY MODE: Keep the dish simple, familiar, and reliable — avoid unusual ingredients or complex techniques`,
-    );
+    lines.push(``);
+    lines.push(`STRICT RETRY MODE: Keep the dish simple, familiar, and reliable — avoid unusual ingredients or complex techniques`);
   }
 
   lines.push(``);
@@ -369,13 +448,14 @@ router.post("/generate", async (req: Request, res: Response) => {
     const courseType = courses[i];
     let courseMeal: any = null;
 
-    // GUARDRAIL #4: Retry once per course; never lose the whole experience
-    for (let attempt = 0; attempt < 2; attempt++) {
+    // GUARDRAIL #4: Up to 3 attempts per course — first duplicate triggers strict retry
+    for (let attempt = 0; attempt < 3; attempt++) {
       const strict = attempt > 0;
-      if (strict) {
-        console.log(
-          `🔄 [UltimateExperience] Retrying ${courseType} (strict mode)`,
-        );
+      if (attempt === 1) {
+        console.log(`🔄 [UltimateExperience] Retrying ${courseType} (strict mode)`);
+      }
+      if (attempt === 2) {
+        console.log(`🔄 [UltimateExperience] Retrying ${courseType} (duplicate detected — final attempt)`);
       }
 
       try {
@@ -389,9 +469,9 @@ router.post("/generate", async (req: Request, res: Response) => {
           familySpecialty,
         );
 
-        const alreadyGeneratedNames = generatedCourses
-          .map((c: any) => c.name)
-          .filter(Boolean);
+        const alreadyGeneratedNames = generatedCourses.map((c: any) => c.name).filter(Boolean);
+        const alreadyGeneratedTypes = generatedCourses.map((c: any) => classifyDishType(c.name || "")).filter(Boolean);
+        const alreadyGeneratedMethods = generatedCourses.map((c: any) => extractCookingMethod(c.name || "")).filter(Boolean);
 
         const coursePrompt = buildCoursePrompt(
           courseType,
@@ -407,6 +487,8 @@ router.post("/generate", async (req: Request, res: Response) => {
           familySpecialty,
           notes,
           alreadyGeneratedNames,
+          alreadyGeneratedTypes,
+          alreadyGeneratedMethods,
         );
 
         const meal = await generateMealFromPrompt(
@@ -422,6 +504,13 @@ router.post("/generate", async (req: Request, res: Response) => {
             strictMode: keepItSimple,
           },
         );
+
+        // Server-side duplicate detection — if AI still produced a duplicate, force another attempt
+        const existingNames = generatedCourses.map((c: any) => c.name).filter(Boolean);
+        if (!assignedDish && isDuplicateDish(meal.name, existingNames)) {
+          console.warn(`⚠️ [UltimateExperience] Duplicate detected: "${meal.name}" matches previous courses — retrying`);
+          continue; // trigger next attempt with stricter prompt
+        }
 
         courseMeal = {
           ...meal,
