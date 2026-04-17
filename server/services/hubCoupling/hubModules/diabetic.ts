@@ -21,7 +21,7 @@ export type GlucoseState =
 
 interface DiabeticContextData {
   hasDiabetes: boolean;
-  diabetesType: 'NONE' | 'T1D' | 'T2D';
+  diabetesType: 'NONE' | 'T1D' | 'T2D' | 'PRE_D';
   latestGlucose: {
     value: number;
     context: string;
@@ -82,7 +82,7 @@ async function fetchDiabeticContext(userId: string): Promise<DiabeticContextData
 
   return {
     hasDiabetes: profile?.type !== 'NONE' && profile?.type !== undefined,
-    diabetesType: (profile?.type as 'NONE' | 'T1D' | 'T2D') || 'NONE',
+    diabetesType: (profile?.type as 'NONE' | 'T1D' | 'T2D' | 'PRE_D') || 'NONE',
     latestGlucose,
     hypoHistory: profile?.hypoHistory || false
   };
@@ -218,6 +218,21 @@ export const diabeticHubModule: HubModule = {
     const data = context?.data as DiabeticContextData | undefined;
     const glucoseGuidance = data ? buildGlucoseGuidance(data) : '';
 
+    // ── Type-aware coaching context ───────────────────────────────────────────
+    let typeCoachingLine = '';
+    if (data) {
+      if (data.diabetesType === 'T1D') {
+        typeCoachingLine = 'COACHING CONTEXT — TYPE 1 DIABETES: Prioritize carb consistency above all. Minimize variability between meals. Use exact, predictable carb amounts.';
+      } else if (data.diabetesType === 'T2D') {
+        typeCoachingLine = 'COACHING CONTEXT — TYPE 2 DIABETES: Focus on carb reduction and blood sugar control. Emphasize lean protein, non-starchy vegetables, and low-GI choices.';
+      } else if (data.diabetesType === 'PRE_D') {
+        typeCoachingLine = 'COACHING CONTEXT — PRE-DIABETES (prevention mode): Support long-term blood sugar stability. Slightly more flexible carb ranges are acceptable, but maintain low-GI principles and high fiber.';
+      }
+      if (data.hypoHistory) {
+        typeCoachingLine += ' IMPORTANT: User has history of hypoglycemia — ensure each meal includes an adequate carbohydrate floor (minimum 15g) to prevent low blood sugar events.';
+      }
+    }
+
     const userCarbsLine = guardrails.userPreferredCarbs && guardrails.userPreferredCarbs.length > 0
       ? `- User's preferred low-GI carb sources (PRIORITIZE THESE): ${guardrails.userPreferredCarbs.join(', ')}\n`
       : '';
@@ -239,8 +254,7 @@ export const diabeticHubModule: HubModule = {
        'dried fruit','raisins','dates','fruit juice','orange juice','apple juice'].includes(i)
     ) ?? [];
 
-    let promptAddition = `
-DIABETIC MEAL REQUIREMENTS — STRICT ENFORCEMENT:
+    let promptAddition = `${typeCoachingLine ? typeCoachingLine + '\n\n' : ''}DIABETIC MEAL REQUIREMENTS — STRICT ENFORCEMENT:
 - Maximum carbohydrates THIS MEAL: ${guardrails.carbCeiling}g (hard limit — do not exceed)
 - Minimum fiber: ${guardrails.fiberMin}g
 - Glycemic index cap: under GI ${guardrails.giCap} for all carb sources
