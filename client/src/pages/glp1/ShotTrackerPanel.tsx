@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PillButton } from "@/components/ui/pill-button";
 import TrashButton from "@/components/ui/TrashButton";
 import {
   useGlp1Shots,
@@ -157,14 +158,11 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-white font-bold text-lg">Shot Tracker</h3>
-        <div className="flex flex-col items-center gap-0.5">
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center shadow-[0_0_8px_rgba(255,255,255,0.12)] hover:shadow-[0_0_12px_rgba(255,255,255,0.25)] active:scale-95 transition-all"
-          >
-            <X className="w-3.5 h-3.5 text-white/60" />
-          </button>
-          <span className="text-[10px] text-white/30">Close</span>
+        <div className="flex flex-col items-center gap-1">
+          <PillButton onClick={onClose}>
+            <X className="w-3 h-3" />
+          </PillButton>
+          <span className="text-[11px] text-white font-medium">Close</span>
         </div>
       </div>
 
@@ -211,15 +209,16 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
         </div>
       </div>
       <div className="mt-3 flex items-center gap-4">
-        <div className="flex flex-col items-center gap-0.5">
-          <button
+        <div className="flex flex-col items-center gap-1">
+          <PillButton
             onClick={addShot}
             disabled={createM.isPending}
-            className="w-9 h-9 rounded-full bg-lime-500/20 border border-lime-400/30 flex items-center justify-center shadow-[0_0_10px_rgba(132,204,22,0.35)] hover:shadow-[0_0_16px_rgba(132,204,22,0.55)] disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all"
+            active
+            variant="emerald"
           >
-            <Check className="w-4 h-4 text-lime-300" />
-          </button>
-          <span className="text-[10px] text-white/35">
+            <Check className="w-3 h-3" />
+          </PillButton>
+          <span className="text-[11px] text-white font-medium">
             {createM.isPending ? "Saving…" : "Save Shot"}
           </span>
         </div>

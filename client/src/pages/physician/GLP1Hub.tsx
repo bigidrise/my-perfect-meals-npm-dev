@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { PillButton } from "@/components/ui/pill-button";
 import {
   Select,
   SelectContent,
@@ -249,21 +250,21 @@ export default function GLP1Hub() {
         {/* Shot Tracker - Database-backed */}
         <section className="bg-black/60 border border-purple-300/20 rounded-xl p-4 backdrop-blur">
           <div className="flex items-center justify-between mb-3">
-            <div>
-              <h2 className="text-lg text-white font-bold">GLP-1 Shot Tracker</h2>
-              <p className="text-[11px] text-white/35 mt-0.5">
-                {shotTrackerOpen ? "Tap to hide your shot log" : "Tap to open your shot log"}
-              </p>
+            <h2 className="text-lg text-white font-bold">GLP-1 Shot Tracker</h2>
+            <div className="flex flex-col items-center gap-1">
+              <PillButton
+                onClick={() => setShotTrackerOpen(!shotTrackerOpen)}
+                active={shotTrackerOpen}
+                data-testid="button-toggle-shot-tracker"
+              >
+                {shotTrackerOpen
+                  ? <ChevronUp className="w-3 h-3" />
+                  : <ChevronDown className="w-3 h-3" />}
+              </PillButton>
+              <span className="text-[11px] text-white font-medium">
+                {shotTrackerOpen ? "Close Tracker" : "Open Tracker"}
+              </span>
             </div>
-            <button
-              onClick={() => setShotTrackerOpen(!shotTrackerOpen)}
-              data-testid="button-toggle-shot-tracker"
-              className="w-9 h-9 rounded-full bg-purple-500/20 border border-purple-400/30 flex items-center justify-center shadow-[0_0_10px_rgba(168,85,247,0.35)] hover:shadow-[0_0_16px_rgba(168,85,247,0.55)] active:scale-95 transition-all"
-            >
-              {shotTrackerOpen
-                ? <ChevronUp className="w-4 h-4 text-purple-300" />
-                : <ChevronDown className="w-4 h-4 text-purple-300" />}
-            </button>
           </div>
           {shotTrackerOpen && (
             <div className="mt-4">
