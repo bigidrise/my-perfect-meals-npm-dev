@@ -165,18 +165,48 @@ export const diabeticHubModule: HubModule = {
       console.log(`🩺 [DIABETIC HUB] Loaded user glycemic preferences: ${userPreferredCarbs.join(", ")}`);
     }
     
+    const dailyCarbLimit = guardrails?.carbLimit ?? DEFAULT_GUARDRAILS.carbLimit!;
+    const mealFrequency = Math.max(1, guardrails?.mealFrequency ?? DEFAULT_GUARDRAILS.mealFrequency ?? 3);
+    // ✅ FIX: Convert daily carb limit to per-meal ceiling
+    const perMealCarbCeiling = Math.round(dailyCarbLimit / mealFrequency);
+
     return {
       hubType: 'diabetic',
-      carbCeiling: guardrails?.carbLimit ?? DEFAULT_GUARDRAILS.carbLimit!,
+      carbCeiling: perMealCarbCeiling,
       fiberMin: guardrails?.fiberMin ?? DEFAULT_GUARDRAILS.fiberMin!,
       giCap: guardrails?.giCap ?? DEFAULT_GUARDRAILS.giCap!,
       userPreferredCarbs,
+      // ✅ FIX: Full clinical blocked list (110 items) — replaces the previous 14-item stub
       blockedIngredients: [
-        'white sugar', 'brown sugar', 'corn syrup', 'high fructose corn syrup',
-        'candy', 'soda', 'fruit juice', 'white bread', 'white rice',
-        'regular pasta', 'potato chips', 'french fries', 'donuts', 'pastries'
+        // Sugars & sweeteners
+        'white sugar', 'brown sugar', 'sugar', 'honey', 'maple syrup',
+        'agave', 'agave nectar', 'high-fructose corn syrup', 'corn syrup',
+        'molasses', 'candy', 'milk chocolate', 'sweetened yogurt',
+        'flavored yogurt', 'sugary granola', 'granola bar',
+        // High-GI starches
+        'white rice', 'jasmine rice', 'regular pasta', 'spaghetti', 'penne',
+        'fettuccine', 'linguine', 'macaroni', 'potato', 'potatoes',
+        'mashed potatoes', 'french fries', 'fries', 'baked potato',
+        'hash browns', 'tater tots', 'flour tortilla', 'flour tortillas',
+        'pizza crust', 'pizza dough', 'pastry', 'pastries', 'bread',
+        'white bread', 'muffin', 'muffins', 'croissant', 'bagel', 'donut',
+        'doughnut', 'white flour', 'all-purpose flour', 'pancake', 'pancakes',
+        'waffle', 'waffles',
+        // High-GI fruits
+        'banana', 'bananas', 'pineapple', 'mango', 'mangoes', 'grapes',
+        'grape', 'watermelon', 'dried fruit', 'raisins', 'dates',
+        'fruit juice', 'orange juice', 'apple juice',
+        // Sugary condiments
+        'bbq sauce', 'barbecue sauce', 'ketchup', 'teriyaki sauce',
+        'sweet chili sauce', 'hoisin sauce', 'caramel', 'chocolate sauce',
+        'jam', 'jelly', 'marmalade',
+        // Sugary beverages
+        'soda', 'cola', 'sweet tea', 'lemonade', 'sports drink', 'energy drink',
+        // Fried / processed
+        'potato chips', 'chips', 'crackers', 'pretzels',
       ],
-      preferredIngredients: mergedPreferred
+      preferredIngredients: mergedPreferred,
+      customRules: { dailyCarbLimit, mealFrequency, perMealCarbCeiling }
     };
   },
 
@@ -192,14 +222,38 @@ export const diabeticHubModule: HubModule = {
       ? `- User's preferred low-GI carb sources (PRIORITIZE THESE): ${guardrails.userPreferredCarbs.join(', ')}\n`
       : '';
 
+    // Group blocked items for clearer AI instruction
+    const blockedSugars = guardrails.blockedIngredients?.filter(i =>
+      ['sugar','honey','maple syrup','agave','corn syrup','molasses','candy','milk chocolate',
+       'sweetened yogurt','flavored yogurt','granola bar'].includes(i)
+    ) ?? [];
+    const blockedStarches = guardrails.blockedIngredients?.filter(i =>
+      ['white rice','jasmine rice','regular pasta','spaghetti','penne','fettuccine','linguine',
+       'macaroni','potato','potatoes','mashed potatoes','french fries','fries','baked potato',
+       'hash browns','tater tots','flour tortilla','pizza crust','bread','white bread','muffin',
+       'muffins','croissant','bagel','donut','doughnut','white flour','all-purpose flour',
+       'pancake','pancakes','waffle','waffles'].includes(i)
+    ) ?? [];
+    const blockedFruits = guardrails.blockedIngredients?.filter(i =>
+      ['banana','bananas','pineapple','mango','mangoes','grapes','grape','watermelon',
+       'dried fruit','raisins','dates','fruit juice','orange juice','apple juice'].includes(i)
+    ) ?? [];
+
     let promptAddition = `
-DIABETIC MEAL REQUIREMENTS:
-- Maximum carbohydrates: ${guardrails.carbCeiling}g per meal
+DIABETIC MEAL REQUIREMENTS — STRICT ENFORCEMENT:
+- Maximum carbohydrates THIS MEAL: ${guardrails.carbCeiling}g (hard limit — do not exceed)
 - Minimum fiber: ${guardrails.fiberMin}g
-- Prioritize low glycemic index ingredients (under GI ${guardrails.giCap})
+- Glycemic index cap: under GI ${guardrails.giCap} for all carb sources
 - Focus on lean proteins, non-starchy vegetables, and healthy fats
-${userCarbsLine}- Avoid: ${guardrails.blockedIngredients?.slice(0, 8).join(', ')}
-`;
+
+ABSOLUTELY FORBIDDEN — NEVER include these:
+Sugars/sweeteners: ${blockedSugars.join(', ')}
+High-GI starches: ${blockedStarches.join(', ')}
+High-GI fruits: ${blockedFruits.join(', ')}
+Also avoid: bbq sauce, ketchup, teriyaki sauce, hoisin sauce, caramel, jam, jelly, soda, fruit juice, sports drinks, potato chips, crackers
+
+${userCarbsLine}`;
+
 
     if (glucoseGuidance) {
       promptAddition = `
@@ -220,14 +274,24 @@ ${promptAddition}`;
     const violations: ValidationViolation[] = [];
     const warnings: string[] = [];
 
-    if (guardrails.carbCeiling && meal.carbs > guardrails.carbCeiling) {
+    // ✅ Phase 2: Macro presence check — missing carb data = invalid
+    if (meal.carbs === null || meal.carbs === undefined || isNaN(meal.carbs)) {
       violations.push({
-        rule: 'carb_ceiling',
-        message: `Carbs (${meal.carbs}g) exceed limit (${guardrails.carbCeiling}g)`,
+        rule: 'missing_macro_data',
+        message: 'Carbohydrate data is missing — cannot verify diabetic safety',
         severity: 'hard',
-        actualValue: meal.carbs,
-        expectedValue: guardrails.carbCeiling
       });
+    } else {
+      // Carb ceiling check (carbCeiling is already per-meal after Phase 1 fix)
+      if (guardrails.carbCeiling && meal.carbs > guardrails.carbCeiling) {
+        violations.push({
+          rule: 'carb_ceiling',
+          message: `Carbs (${meal.carbs}g) exceed per-meal limit (${guardrails.carbCeiling}g)`,
+          severity: 'hard',
+          actualValue: meal.carbs,
+          expectedValue: guardrails.carbCeiling
+        });
+      }
     }
 
     const mealIngredients = meal.ingredients.map(i => i.name.toLowerCase()).join(' ');
@@ -235,29 +299,26 @@ ${promptAddition}`;
     const mealDesc = (meal.description || '').toLowerCase();
     const fullText = `${mealName} ${mealDesc} ${mealIngredients}`;
 
+    // ✅ Phase 2: Blocked ingredients are now HARD failures — no soft passes
     for (const blocked of guardrails.blockedIngredients || []) {
       if (fullText.includes(blocked.toLowerCase())) {
         if (!isSafeVariant(fullText, blocked)) {
           violations.push({
             rule: 'blocked_ingredient',
-            message: `Contains blocked ingredient: ${blocked}`,
-            severity: 'soft',
+            message: `Contains blocked ingredient: "${blocked}" — not safe for diabetic meal`,
+            severity: 'hard',
             actualValue: blocked
           });
         }
       }
     }
 
-    if (meal.carbs > 60) {
-      warnings.push(`High carbohydrate content (${meal.carbs}g) - consider reducing for better glucose control`);
-    }
-
     return {
       isValid: violations.filter(v => v.severity === 'hard').length === 0,
       violations,
       warnings,
-      fixHint: violations.length > 0 
-        ? `Reduce carbs to under ${guardrails.carbCeiling}g and avoid blocked ingredients. Keep the meal delicious.`
+      fixHint: violations.length > 0
+        ? `Regenerate: keep carbs under ${guardrails.carbCeiling}g per meal, remove blocked ingredients, and use low-GI alternatives. Maintain flavor.`
         : undefined
     };
   },
