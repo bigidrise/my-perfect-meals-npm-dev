@@ -169,6 +169,7 @@ function buildCoursePrompt(
   isFamilySpecialty: boolean | undefined,
   familySpecialty: string | undefined,
   notes: string | undefined,
+  alreadyGeneratedNames: string[] = [],
 ): string {
   const lines = [
     `You are generating the ${COURSE_LABELS[courseType]} for a multi-course meal.`,
@@ -185,6 +186,16 @@ function buildCoursePrompt(
     `- Portions must be sized for ${servingSize} people`,
     `- Do NOT generate an unrelated meal — this is course ${courseIndex + 1} of a ${courses.length}-course ${situation} experience`,
   ];
+
+  if (alreadyGeneratedNames.length > 0) {
+    lines.push(``);
+    lines.push(`DIVERSITY RULES (CRITICAL — do NOT violate):`);
+    lines.push(`- These dishes have already been generated for this experience: ${alreadyGeneratedNames.map(n => `"${n}"`).join(", ")}`);
+    lines.push(`- You MUST NOT repeat any of these dish names or their primary ingredient`);
+    lines.push(`- You MUST NOT give every dish the same cooking-method prefix (e.g. "campfire X", "grilled X", "holiday X")`);
+    lines.push(`- Each course must feature a DIFFERENT primary protein, vegetable, or starch from the others`);
+    lines.push(`- Choose a completely different dish — variety is the goal`);
+  }
 
   if (strict) {
     lines.push(
@@ -378,6 +389,10 @@ router.post("/generate", async (req: Request, res: Response) => {
           familySpecialty,
         );
 
+        const alreadyGeneratedNames = generatedCourses
+          .map((c: any) => c.name)
+          .filter(Boolean);
+
         const coursePrompt = buildCoursePrompt(
           courseType,
           i,
@@ -391,6 +406,7 @@ router.post("/generate", async (req: Request, res: Response) => {
           isFamilySpecialty,
           familySpecialty,
           notes,
+          alreadyGeneratedNames,
         );
 
         const meal = await generateMealFromPrompt(

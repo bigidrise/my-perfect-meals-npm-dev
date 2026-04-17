@@ -1048,7 +1048,6 @@ export default function UltimateExperiencesPage() {
                       <ThinkingDots
                         label={`Chef is crafting your ${totalCourses}-course experience…`}
                       />
-                      <Progress value={progress} className="w-full h-1.5" />
                       <p className="text-xs text-white/40">
                         This takes a moment — each course is crafted individually
                       </p>
