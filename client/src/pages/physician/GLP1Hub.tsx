@@ -191,7 +191,7 @@ export default function GLP1Hub() {
         {/* ── Copilot Banner ── */}
         <div className="rounded-xl border-l-[3px] border-purple-500/60 bg-purple-500/5 px-4 py-3 space-y-1.5">
           <p className="text-sm text-white/80 leading-relaxed">
-            This hub adjusts your meals around your GLP-1 cycle — portion size, protein focus, and timing.
+            This hub makes sure every meal you get works with your GLP-1 medication — portion size, protein focus, and timing enforced automatically.
           </p>
           <p className="text-sm text-white/50 leading-relaxed">
             Expect smaller meals and steadier intake while your medication is active.

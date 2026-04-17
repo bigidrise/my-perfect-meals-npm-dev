@@ -169,7 +169,7 @@ export default function ProNutritionStrategyCard({ clientId, isPhysician }: Prop
         {!contextDismissed && (
           <div className="mt-2.5 flex items-start justify-between gap-2 rounded-lg bg-white/4 border border-white/8 px-3 py-2">
             <p className="text-[11px] text-white/45 leading-snug">
-              This shows how the app is guiding this client's meals right now.
+              This is the coaching plan the app is actively executing for this client.
               All meals generated reflect these guardrails and glucose trends.
             </p>
             <button
