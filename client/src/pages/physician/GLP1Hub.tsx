@@ -188,6 +188,26 @@ export default function GLP1Hub() {
         className="max-w-2xl mx-auto px-4 space-y-6 pb-16"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        {/* ── Copilot Banner ── */}
+        <div className="rounded-xl border-l-[3px] border-purple-500/60 bg-purple-500/5 px-4 py-3 space-y-1.5">
+          <p className="text-sm text-white/80 leading-relaxed">
+            This hub adjusts your meals around your GLP-1 cycle — portion size, protein focus, and timing.
+          </p>
+          <p className="text-sm text-white/50 leading-relaxed">
+            Expect smaller meals and steadier intake while your medication is active.
+          </p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {["Portion Control", "Shot Tracking", "Appetite Support"].map(chip => (
+              <span key={chip} className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300">
+                {chip}
+              </span>
+            ))}
+          </div>
+          <p className="text-[11px] text-white/30 pt-0.5">
+            Your meal builders automatically use these settings.
+          </p>
+        </div>
+
         {/* Important Medical Note Dropdown */}
         <section className="bg-black/40 backdrop-blur-lg border border-purple-300/30 rounded-2xl overflow-hidden shadow-lg">
           <button
