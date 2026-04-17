@@ -222,8 +222,8 @@ const SECTION_START_HERE: LibraryTopic[] = [
           ],
         },
         {
-          heading: "A Coach in Your Pocket",
-          text: "This is not a theory. Clients have gotten results for years following the same principles this app runs on — eat the right things at the right amounts for your body, stay consistent. The app makes it possible to do that without a trainer standing next to you every day.",
+          heading: "A Coach in Your Pocket — Not a Replacement for One",
+          text: "This is not a theory. Clients have gotten results for years following the same principles this app runs on — eat the right things at the right amounts for your body, stay consistent. The app brings that structure to people who do not have a trainer or coach beside them every day. But nothing replaces the nuance, judgment, and relationship of working with a real professional. That is why the app is built to support coaches and clinicians — not compete with them. When a coach is in the picture, the app follows their lead.",
         },
       ],
     },
