@@ -249,14 +249,21 @@ export default function GLP1Hub() {
         {/* Shot Tracker - Database-backed */}
         <section className="bg-black/60 border border-purple-300/20 rounded-xl p-4 backdrop-blur">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg text-white font-bold">GLP-1 Shot Tracker</h2>
-            <Button
+            <div>
+              <h2 className="text-lg text-white font-bold">GLP-1 Shot Tracker</h2>
+              <p className="text-[11px] text-white/35 mt-0.5">
+                {shotTrackerOpen ? "Tap to hide your shot log" : "Tap to open your shot log"}
+              </p>
+            </div>
+            <button
               onClick={() => setShotTrackerOpen(!shotTrackerOpen)}
-              className="bg-lime-600 text-md font-bold text-white rounded-xl px-4 py-2"
               data-testid="button-toggle-shot-tracker"
+              className="w-9 h-9 rounded-full bg-purple-500/20 border border-purple-400/30 flex items-center justify-center shadow-[0_0_10px_rgba(168,85,247,0.35)] hover:shadow-[0_0_16px_rgba(168,85,247,0.55)] active:scale-95 transition-all"
             >
-              {shotTrackerOpen ? "Hide Tracker" : "Open Tracker"}
-            </Button>
+              {shotTrackerOpen
+                ? <ChevronUp className="w-4 h-4 text-purple-300" />
+                : <ChevronDown className="w-4 h-4 text-purple-300" />}
+            </button>
           </div>
           {shotTrackerOpen && (
             <div className="mt-4">
