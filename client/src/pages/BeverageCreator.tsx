@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import ThinkingDots from "@/components/ThinkingDots";
 import { motion } from "framer-motion";
@@ -152,6 +153,7 @@ export default function BeverageCreator() {
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [beverageImageLoading, setBeverageImageLoading] = useState(false);
 
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [pendingGeneration, setPendingGeneration] = useState(false);
@@ -364,6 +366,19 @@ export default function BeverageCreator() {
 
       stopProgressTicker();
       setGeneratedBeverage(meal);
+      // Fire image async — non-blocking
+      setBeverageImageLoading(true);
+      fetch(apiUrl("/api/meals/generate-image"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mealId: meal.id, mealName: meal.name, mealType: "beverages", ingredients: meal.ingredients }),
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.imageUrl) setGeneratedBeverage((prev: any) => prev ? { ...prev, imageUrl: d.imageUrl } : prev);
+        })
+        .catch(() => {})
+        .finally(() => setBeverageImageLoading(false));
 
       toast({
         title: "✨ Drink Created!",
@@ -656,15 +671,11 @@ export default function BeverageCreator() {
                     {generatedBeverage.description}
                   </p>
 
-                  {generatedBeverage.imageUrl && (
-                    <div className="mb-6 rounded-lg overflow-hidden">
-                      <img
-                        src={generatedBeverage.imageUrl}
-                        alt={generatedBeverage.name}
-                        className="w-full h-64 object-cover"
-                      />
-                    </div>
-                  )}
+                  <MealImageSlot
+                    imageUrl={generatedBeverage.imageUrl}
+                    mealName={generatedBeverage.name}
+                    isLoading={beverageImageLoading}
+                  />
 
                   <div className="mb-4 p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-lg">
                     <div className="flex items-center gap-2 text-sm text-white">

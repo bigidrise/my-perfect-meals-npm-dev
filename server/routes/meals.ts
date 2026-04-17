@@ -9,6 +9,28 @@ import { getAuthUserId } from "../utils/getAuthUserId";
 
 const router = express.Router();
 
+// ─────────────────────────────────────────────
+// Shared image generation endpoint (non-blocking, called in parallel by client)
+// Used by ALL AI meal generators after text is returned
+// 1 retry with simplified prompt on failure — never crashes the card
+// ─────────────────────────────────────────────
+router.post("/generate-image", async (req: any, res) => {
+  const { mealName, mealType = "dinner" } = req.body || {};
+  if (!mealName) return res.status(400).json({ imageUrl: null });
+
+  const { genImage } = await import("../utils/openaiSafe");
+
+  const fullPrompt = `${mealName}, healthy ${mealType}, professional food photography, overhead shot, clean plate presentation, natural lighting`;
+  let imageUrl: string | null = (await genImage(fullPrompt)) ?? null;
+
+  if (!imageUrl) {
+    console.log(`🔄 [generate-image] Retry for "${mealName}"`);
+    imageUrl = (await genImage(`${mealName}, professional food photography, clean background`)) ?? null;
+  }
+
+  return res.json({ imageUrl });
+});
+
 // Utility to recalculate daily nutrition (mock implementation)
 const recalcDailyNutrition = async (userId: string, date?: Date) => {
   // TODO: Implement actual nutrition calculation

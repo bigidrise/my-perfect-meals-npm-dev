@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { useMealImages } from "@/hooks/useMealImages";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import ThinkingDots from "@/components/ThinkingDots";
 import { useLocation } from "wouter";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
@@ -80,6 +82,7 @@ interface StructuredIngredient {
 interface CourseMeal {
   id: string;
   name: string;
+  imageUrl?: string;
   description: string;
   ingredients: StructuredIngredient[];
   calories: number;
@@ -219,7 +222,7 @@ export default function UltimateExperiencesPage() {
   const [chefNotes, setChefNotes] = useState("");
   const [generatedCourses, setGeneratedCourses] = useState<CourseMeal[]>([]);
   const [generatedInSession, setGeneratedInSession] = useState(false);
-  const [loadingImages, setLoadingImages] = useState<Record<string, boolean>>({});
+  const { loadingImages, hydrateImages } = useMealImages(setGeneratedCourses, { mealType: "dinner" });
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -500,30 +503,7 @@ export default function UltimateExperiencesPage() {
 
       // Fire image generation for all courses in parallel — non-blocking
       if (courses.length > 0) {
-        const loadingMap: Record<string, boolean> = {};
-        courses.forEach((c) => { loadingMap[c.id] = true; });
-        setLoadingImages(loadingMap);
-
-        courses.forEach(async (course) => {
-          try {
-            const imgRes = await fetch(apiUrl("/api/experiences/generate-image"), {
-              method: "POST",
-              credentials: "include",
-              headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-              body: JSON.stringify({ mealName: course.name, mealType: "dinner" }),
-            });
-            const imgData = await imgRes.json();
-            if (imgData.imageUrl) {
-              setGeneratedCourses((prev) =>
-                prev.map((c) => c.id === course.id ? { ...c, imageUrl: imgData.imageUrl } : c)
-              );
-            }
-          } catch {
-            // Silent — no image is fine, card still shows
-          } finally {
-            setLoadingImages((prev) => ({ ...prev, [course.id]: false }));
-          }
-        });
+        hydrateImages(courses);
       }
 
       toast({
@@ -1199,25 +1179,11 @@ export default function UltimateExperiencesPage() {
 
                       <p className="text-white/90 mb-4">{course.description}</p>
 
-                      {/* Image: shimmer while generating in parallel, real image when ready */}
-                      {loadingImages[course.id] ? (
-                        <div className="mb-6 rounded-lg overflow-hidden">
-                          <div className="w-full h-64 bg-white/8 rounded-lg animate-pulse flex items-center justify-center">
-                            <p className="text-white/30 text-xs tracking-wide">Generating image…</p>
-                          </div>
-                        </div>
-                      ) : course.imageUrl ? (
-                        <div className="mb-6 rounded-lg overflow-hidden">
-                          <img
-                            src={course.imageUrl}
-                            alt={course.name}
-                            className="w-full h-64 object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none";
-                            }}
-                          />
-                        </div>
-                      ) : null}
+                      <MealImageSlot
+                        imageUrl={course.imageUrl}
+                        mealName={course.name}
+                        isLoading={!!loadingImages[course.id]}
+                      />
 
                       <div className="mb-4 p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-lg">
                         <div className="flex items-center gap-2 text-sm text-white">
