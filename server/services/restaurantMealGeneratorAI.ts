@@ -49,7 +49,8 @@ interface RestaurantMealRequest {
   restaurantName: string;
   cuisine: string;
   user?: User;
-  cravingContext?: string; // NEW: For Meal Finder - what food the user is craving
+  cravingContext?: string; // For Meal Finder - what food the user is craving
+  skipImages?: boolean;    // Skip server-side image generation (client ChefFlow handles it)
   protocolBlock?: string;           // Pre-built protocol enforcement block from caller
   protocolEnvelope?: UserProtocolEnvelope; // Envelope for post-gen scan
 }
@@ -131,7 +132,7 @@ function getMedicalBadges(meal: any, userConditions: string[] = []): Array<{
  * Falls back to locked generator if AI fails
  */
 export async function generateRestaurantMealsAI(request: RestaurantMealRequest): Promise<RestaurantMeal[]> {
-  const { restaurantName, cuisine, user, cravingContext, protocolBlock, protocolEnvelope } = request;
+  const { restaurantName, cuisine, user, cravingContext, skipImages, protocolBlock, protocolEnvelope } = request;
   const userConditions = user?.healthConditions || [];
 
   console.log(`🤖 AI Generator: Creating restaurant-specific meals for ${restaurantName} (${cuisine} cuisine)${cravingContext ? ` featuring ${cravingContext}` : ''}`);
@@ -500,34 +501,37 @@ Return ONLY a single JSON object (not an array) with this exact structure:
     }
     // ─────────────────────────────────────────────────────────────────────────
 
-    // Generate images in parallel for ALL meals at once (10x faster!)
-    console.log(`🖼️ Generating images for all ${enforcedMeals.length} meals in parallel...`);
-    const imagePromises = enforcedMeals.map(async (meal) => {
-      try {
-        const imageUrl = await generateImage({
-          name: meal.name,
-          description: meal.description,
-          type: 'meal',
-          style: cuisine,
-          ingredients: meal.ingredients,
-          calories: meal.calories,
-          protein: meal.protein,
-          carbs: meal.carbs,
-          fat: meal.fat,
-        });
+    // Image generation — skipped when caller has client-side image rendering (ChefFlow)
+    if (skipImages) {
+      console.log(`⚡ Skipping server-side image generation — ChefFlow will render images client-side`);
+    } else {
+      console.log(`🖼️ Generating images for all ${enforcedMeals.length} meals in parallel...`);
+      const imagePromises = enforcedMeals.map(async (meal) => {
+        try {
+          const imageUrl = await generateImage({
+            name: meal.name,
+            description: meal.description,
+            type: 'meal',
+            style: cuisine,
+            ingredients: meal.ingredients,
+            calories: meal.calories,
+            protein: meal.protein,
+            carbs: meal.carbs,
+            fat: meal.fat,
+          });
 
-        if (imageUrl) {
-          meal.imageUrl = imageUrl;
-          console.log(`✅ Image generated for ${meal.name}`);
+          if (imageUrl) {
+            meal.imageUrl = imageUrl;
+            console.log(`✅ Image generated for ${meal.name}`);
+          }
+        } catch (error) {
+          console.error(`❌ Failed to generate image for ${meal.name}:`, error);
         }
-      } catch (error) {
-        console.error(`❌ Failed to generate image for ${meal.name}:`, error);
-      }
-    });
+      });
 
-    // Wait for all images to complete
-    await Promise.all(imagePromises);
-    console.log(`🎉 All ${enforcedMeals.length} images generated!`);
+      await Promise.all(imagePromises);
+      console.log(`🎉 All ${enforcedMeals.length} images generated!`);
+    }
 
     return enforcedMeals;
 
