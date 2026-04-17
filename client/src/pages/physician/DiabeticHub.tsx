@@ -301,7 +301,7 @@ export default function DiabeticHub() {
           {/* ── Copilot Banner — adapts to diabetes type ── */}
           <div className="rounded-xl border-l-[3px] border-teal-500/60 bg-teal-500/5 px-4 py-3 space-y-1.5">
             <p className="text-sm text-white/80 leading-relaxed">
-              This hub controls how your meals are built — carb limits, glucose patterns, and safe ranges guide every decision.
+              This hub makes sure every meal you get is safe for your goals — carb limits, glucose patterns, and safe ranges applied automatically.
             </p>
             <p className="text-sm text-white/50 leading-relaxed">
               {diabetesType === "T1D"
