@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import ThinkingDots from "@/components/ThinkingDots";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassButton } from "@/components/glass";
 import {
@@ -433,7 +434,7 @@ export default function UltimateExperiencesPage() {
       const response = await fetch(apiUrl("/api/experiences/generate"), {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({
           situation,
           eventType: selectedEvent || undefined,
