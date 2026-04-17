@@ -332,6 +332,45 @@ Set `MACRO_AUDIT=true` in env to enable debug logging at:
 4. `api_payload` — logs final payload to client
 5. `cache` — logs cache hit/miss/write decisions
 
+## Ultimate Experiences — Multi-Course Meal Generator (April 2026)
+
+### Architecture
+The feature generates a complete multi-course holiday (or camping/tailgating) meal experience using the existing `universalMealGenerator` engine. No new AI service — it layers context on top.
+
+**Route:** `/lifestyle/ultimate-experiences`
+**API:** `POST /api/experiences/generate`
+**Server route file:** `server/routes/experiences.ts`
+
+### 4 Hard Guardrails (all server-enforced)
+1. **Course structure is route-enforced**: 3→App/Main/Dessert, 4→App/Main/Side/Dessert, 5→App/Main/2Sides/Dessert. AI never decides course count.
+2. **Shared flavor context**: One `experienceContext` object created once, injected into every course prompt so all courses taste like the same meal.
+3. **Explicit course labels**: Every course prompt tells the AI exactly which course it is generating — no guessing.
+4. **Retry logic**: Each course retries once in strict mode if it fails; never exposes "something went wrong" to the user (graceful fallback card).
+
+### Client Data
+`client/src/data/holidayTraditionalDishes.ts` — Curated traditional dishes for 8 holidays (Thanksgiving, Christmas, Kwanzaa, Hanukkah, Eid, Passover, New Year's, Fourth of July) organized by appetizer/main/side/dessert with popular pre-selections.
+
+### UX Flow
+1. Situation pill (Holiday / Camping / Tailgating)
+2. Holiday event pill (8 options)
+3. Traditional dish picker — popular dishes pre-selected, user can tap to add/remove, organized by category
+4. Family specialty text input — injected with mandatory preservation rule
+5. Course count pills (3 / 4 / 5)
+6. Servings stepper (− +, 1–50)
+7. Chef notes (optional)
+8. All guardrails: GlucoseGuard, FlavorToggle, KeepItSimple, DietGuard, SafetyGuard, StarchGuard
+
+### Results Display
+Multi-card layout — one card per course, each with gold course label badge showing course type + requested dish name. Full card parity with CreateDishPage: nutrition grid, ingredient list, step-by-step instructions, medical badges, Add to Macros, Add to Meal Plan, Prepare with Chef, Share Recipe, Translate, Favorite.
+
+ShoppingAggregateBar aggregates all ingredients across all courses with deduplication.
+
+### Pricing Note
+Ultimate Experiences is a $14.99/mo add-on (not a tier). Stripe billing deferred — gate to be added when payment work resumes.
+
+### Fast Food Feature (queued for next session)
+Fast Food = Restaurant Guide engine + `mode: "fast_food"` flag. No brand grid, no hardcoded restaurants, no new API. Works globally — user in US gets McDonald's suggestions, user in UK gets Greggs/Nando's. Entry point: SocializingHub button next to Guide/Find Meals. Banner at top: "Fast Food Mode — Smart fast food choices that match your diet."
+
 ## External Dependencies
 -   **PostgreSQL**: Primary database.
 -   **OpenAI API**: AI-powered features.

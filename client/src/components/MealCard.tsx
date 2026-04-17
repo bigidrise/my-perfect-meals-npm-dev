@@ -11,6 +11,8 @@ import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import MealCardActions from "@/components/MealCardActions";
 import { StarchMealBadge } from "@/components/StarchMealBadge";
 import DietStyleBadge from "@/components/DietStyleBadge";
+import MealClassificationPill, { type DietClassification } from "@/components/MealClassificationPill";
+import KosherProTip from "@/components/KosherProTip";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 
 // Keep your Meal type colocated here (WeeklyMealBoard imports from this file)
@@ -35,6 +37,7 @@ export type Meal = {
   medicalBadges?: any[];
   starchyCarbs?: number;
   fibrousCarbs?: number;
+  dietClassification?: DietClassification | null;
 };
 
 type Slot = "breakfast" | "lunch" | "dinner" | "snacks";
@@ -161,8 +164,12 @@ export function MealCard({
               <StarchMealBadge meal={{ name: displayTitle, ingredients: displayIngredients }} />
             )}
           </div>
-          <DietStyleBadge className="mt-1" badges={meal.medicalBadges || []} />
-          
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            <DietStyleBadge />
+            <MealClassificationPill dietClassification={meal.dietClassification} />
+            <KosherProTip dietClassification={meal.dietClassification} />
+          </div>
+
           {/* Description */}
           {displayDescription && (
             <p className="text-sm text-white/80 mt-1">{displayDescription}</p>

@@ -59,6 +59,8 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet, filterMealsByDiet } from "@/utils/dietaryFilter";
 import DietStyleBadge from "@/components/DietStyleBadge";
+import MealClassificationPill from "@/components/MealClassificationPill";
+import KosherProTip from "@/components/KosherProTip";
 import {
   DietGuardIntercept,
   DietAdaptedNotice,
@@ -111,6 +113,7 @@ interface MealData {
   cookingTime: string;
   difficulty: "Easy" | "Medium";
   imageUrl?: string;
+  dietClassification?: import("@/components/MealClassificationPill").DietClassification | null;
   medicalBadges: Array<{
     id: string;
     label: string;
@@ -376,7 +379,7 @@ const FridgeRescuePage = () => {
     setProgress(100); // Complete progress
   };
 
-  const handleGenerateMeals = async (skipPreflight = false) => {
+  const handleGenerateMeals = async (skipPreflight = false, dietAdaptOverride = false) => {
     setDietAdaptedNotice(null);
     // Dispatch "interacted" event
     const interactedEvent = new CustomEvent("walkthrough:event", {
@@ -427,6 +430,7 @@ const FridgeRescuePage = () => {
           overrideToken: hasActiveOverride ? overrideToken : undefined,
           skipPalate: !flavorPersonal,
           strictMode: keepItSimple,
+          dietAdaptOverride,
         }),
       });
 
@@ -848,7 +852,7 @@ const FridgeRescuePage = () => {
                       setShowResults(false);
                     } else if (decision === "let_chef_adapt") {
                       setDietDecision("let_chef_adapt");
-                      handleGenerateMeals(true);
+                      handleGenerateMeals(true, true);
                     }
                   }}
                   className="mt-3"
@@ -977,10 +981,6 @@ const FridgeRescuePage = () => {
                 />
               )}
 
-              <div className="mb-4">
-                <DietStyleBadge />
-              </div>
-
               <div className="grid grid-cols-1 gap-6 mb-8 max-w-2xl mx-auto">
                 {meals.map((meal, index) => (
                   <Card
@@ -1030,7 +1030,14 @@ const FridgeRescuePage = () => {
                           mealData={meal}
                         />
                       </div>
-                      <CardDescription className="text-sm text-white/80">
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <DietStyleBadge />
+                        <MealClassificationPill dietClassification={meal.dietClassification} />
+                        <KosherProTip
+                          dietClassification={meal.dietClassification}
+                        />
+                      </div>
+                      <CardDescription className="text-sm text-white/80 mt-2">
                         {meal.description}
                       </CardDescription>
                     </CardHeader>

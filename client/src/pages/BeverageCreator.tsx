@@ -34,6 +34,8 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import DietStyleBadge from "@/components/DietStyleBadge";
+import MealClassificationPill from "@/components/MealClassificationPill";
+import KosherProTip from "@/components/KosherProTip";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
@@ -240,7 +242,7 @@ export default function BeverageCreator() {
     setProgress(100);
   };
 
-  async function handleGenerateBeverage(skipDietPreflight = false, overrideToken?: string) {
+  async function handleGenerateBeverage(skipDietPreflight = false, overrideToken?: string, dietAdaptOverride = false) {
     if (!beverageCategory) {
       toast({
         title: "Missing Information",
@@ -308,6 +310,7 @@ export default function BeverageCreator() {
             !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: !safetyEnabled ? overrideToken : undefined,
           skipPalate: !flavorPersonal,
+          dietAdaptOverride,
         }),
       });
 
@@ -601,47 +604,52 @@ export default function BeverageCreator() {
                 clearDietAlert();
               } else if (decision === "let_chef_adapt") {
                 setDietDecision("let_chef_adapt");
-                handleGenerateBeverage(true);
+                handleGenerateBeverage(true, undefined, true);
               }
             }}
           />
-
-          {dietAdaptedNotice && (
-            <DietAdaptedNotice
-              message={dietAdaptedNotice}
-              onDismiss={() => setDietAdaptedNotice(null)}
-            />
-          )}
 
           {generatedBeverage && (
             <div className="space-y-6">
               <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl">
                 <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <Wine className="h-6 w-6 text-blue-400" />
-                      <h3 className="text-xl font-bold text-white">
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Wine className="h-5 w-5 text-blue-400 shrink-0" />
+                      <h3 className="text-xl font-bold text-white truncate leading-tight">
                         {generatedBeverage.name}
                       </h3>
+                    </div>
+                    <div className="flex items-center justify-between">
                       <FavoriteButton
                         title={generatedBeverage.name}
                         sourceType="beverage-creator"
                         mealData={generatedBeverage}
                       />
+                      <button
+                        onClick={() => {
+                          setGeneratedBeverage(null);
+                          localStorage.removeItem("mpm_beverage_creator_result");
+                        }}
+                        className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
+                      >
+                        Create New
+                      </button>
                     </div>
-                    <button
-                      onClick={() => {
-                        setGeneratedBeverage(null);
-                        localStorage.removeItem("mpm_beverage_creator_result");
-                      }}
-                      className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
-                    >
-                      Create New
-                    </button>
                   </div>
 
-                  <div className="mb-3">
-                    <DietStyleBadge mealCompliant={generatedBeverage.dietaryComplianceVerified} />
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <DietStyleBadge />
+                    <MealClassificationPill dietClassification={generatedBeverage.dietClassification} />
+                    {dietAdaptedNotice && (
+                      <DietAdaptedNotice
+                        diet={normalizeDiet(user?.dietaryRestrictions)}
+                      />
+                    )}
+                    <KosherProTip
+                      dietClassification={generatedBeverage.dietClassification}
+                      isAdapted={!!dietAdaptedNotice}
+                    />
                   </div>
 
                   <p className="text-white/90 mb-4">

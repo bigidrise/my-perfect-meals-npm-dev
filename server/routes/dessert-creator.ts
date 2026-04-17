@@ -11,7 +11,7 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
 import { buildPalateSection, PalatePreferences, buildStrictModeBlock } from "../services/promptBuilder";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope } from "../services/protocolEnvelope";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope, buildMealComplianceBundle } from "../services/protocolEnvelope";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -99,6 +99,7 @@ dessertCreatorRouter.post("/", async (req, res) => {
       skipPalate,
       strictMode,
       customDessertDescription,
+      dietAdaptOverride,
     } = req.body ?? {};
 
     const hasCustomDescription = !!(customDessertDescription && typeof customDessertDescription === 'string' && customDessertDescription.trim().length > 0);
@@ -246,10 +247,14 @@ CELEBRATION CAKE REQUIREMENTS:
       ? customDessertDescription.trim()
       : (specificDessert || `${flavorFamily} ${dessertCategory}`);
 
+    const chefAdaptBlock = dietAdaptOverride === true
+      ? `\n[CHEF ADAPTATION MODE: The user has explicitly requested this dessert be adapted for their dietary law. Replace any dairy elements (cream, butter, milk, cheese, cream cheese) with ONLY certified pareve or non-dairy alternatives: coconut cream, cashew cream, oat milk, vegan butter, or pareve margarine. The final dessert MUST contain zero dairy. Preserve the intended flavor and texture using compliant alternatives only.]\n`
+      : "";
+
     const prompt = `
 You are a master pastry chef + nutrition expert inside the My Perfect Meals system.
 Generate a FULL structured dessert recipe.
-${dessertProtocolBlock ? `\n${dessertProtocolBlock}\n` : ""}${strictMode === true ? `\n${buildStrictModeBlock(dessertIdentifier)}\n` : ""}
+${dessertProtocolBlock ? `\n${dessertProtocolBlock}\n` : ""}${chefAdaptBlock}${strictMode === true ? `\n${buildStrictModeBlock(dessertIdentifier)}\n` : ""}
 
 Return JSON ONLY, following this exact schema:
 
@@ -346,6 +351,7 @@ INCORRECT (NEVER DO THIS):
     // ── Post-gen protocol scan ──────────────────────────────────────────────
     const dessertScan = scanGeneratedOutput(meal, dessertEnvelope, {
       generatorName: 'dessert_creator',
+      skipAdaptableConflicts: dietAdaptOverride === true,
     });
     if (!dessertScan.passed) {
       console.log(`🚫 [DESSERT] Post-gen protocol violation: ${dessertScan.message}`);
@@ -406,11 +412,15 @@ INCORRECT (NEVER DO THIS):
     }
 
     if (isDev) console.log("[DESSERT] Sending response...");
+    const { complianceSection: dessertCompliance, dietClassification: dessertDietClass } =
+      buildMealComplianceBundle(meal, dessertEnvelope, { isChefAdapted: dietAdapted });
     return res.json({
       ...meal,
       imageUrl,
       medicalBadges,
       ...(dietAdapted && { dietAdapted: true, dietNotice }),
+      complianceSection: dessertCompliance,
+      dietClassification: dessertDietClass,
       meta: {
         userId: userId ?? "1",
         dessertCategory,

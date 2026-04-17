@@ -62,6 +62,8 @@ import PhaseGate from "@/components/PhaseGate";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import DietStyleBadge from "@/components/DietStyleBadge";
+import MealClassificationPill from "@/components/MealClassificationPill";
+import KosherProTip from "@/components/KosherProTip";
 import ThinkingDots from "@/components/ThinkingDots";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
@@ -117,6 +119,7 @@ interface MealData {
   }>;
   imageUrl?: string;
   dietaryComplianceVerified?: boolean;
+  dietClassification?: import("@/components/MealClassificationPill").DietClassification | null;
 }
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { setQuickView } from "@/lib/macrosQuickView";
@@ -499,7 +502,7 @@ export default function CravingCreator() {
     }
   }, [cravingInput, starchDecision, checkStarch]);
 
-  const handleGenerateMeal = async (skipPreflight = false) => {
+  const handleGenerateMeal = async (skipPreflight = false, dietAdaptOverride = false) => {
     console.log("🔥 handleGenerateMeal called - craving:", cravingInput);
     setDietAdaptedNotice(null);
 
@@ -532,7 +535,7 @@ export default function CravingCreator() {
     }
 
     // 🥗 Diet Guard preflight check — advisory, fires at generate time (not on keystroke)
-    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
+    if (!skipPreflight && activeDiet && !dietAdaptOverride) {
       const dietOk = checkDiet(cravingInput);
       if (!dietOk) {
         // DietGuardIntercept will show inline — user chooses path
@@ -578,6 +581,7 @@ export default function CravingCreator() {
           excludeMeals: getRecentMeals(),
           strictMode: keepItSimple,
           generationMode,
+          dietAdaptOverride,
         }),
       });
 
@@ -1055,7 +1059,7 @@ export default function CravingCreator() {
                         setCravingInput("");
                       } else if (decision === "let_chef_adapt") {
                         setDietDecision("let_chef_adapt");
-                        handleGenerateMeal(true);
+                        handleGenerateMeal(true, true);
                       }
                     }}
                     className="mt-3"
@@ -1188,7 +1192,11 @@ export default function CravingCreator() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <h4 className="text-white font-bold text-base mb-1 truncate">{option.name}</h4>
-                        <p className="text-white/70 text-sm mb-3 line-clamp-2">{option.description}</p>
+                        <p className="text-white/70 text-sm mb-2 line-clamp-2">{option.description}</p>
+                        <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                          <MealClassificationPill dietClassification={option.dietClassification ?? null} />
+                          <KosherProTip dietClassification={option.dietClassification ?? null} isAdapted={false} />
+                        </div>
                         <div className="flex gap-4 text-xs text-white/60 flex-wrap">
                           <span>{option.nutrition?.calories ?? option.calories ?? "—"} cal</span>
                           <span>{option.nutrition?.protein ?? option.protein ?? "—"}g protein</span>
@@ -1225,31 +1233,33 @@ export default function CravingCreator() {
                     className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl rounded 2xl"
                   >
                     <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <Sparkles className="h-6 w-6 text-yellow-600" />
-                          <h3 className="text-xl font-bold text-white">
+                      <div className="mb-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Sparkles className="h-5 w-5 text-yellow-600 shrink-0" />
+                          <h3 className="text-xl font-bold text-white truncate leading-tight">
                             {meal.name}
                           </h3>
+                        </div>
+                        <div className="flex items-center justify-between">
                           <FavoriteButton
                             title={meal.name}
                             sourceType="craving-creator"
                             mealData={meal}
                           />
+                          <button
+                            onClick={() => {
+                              setGeneratedMeals([]);
+                              clearCravingCache();
+                              setCravingInput("");
+                              setSubstitutedStarchTerms([]);
+                              clearStarchAlert();
+                            }}
+                            className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
+                            data-testid="button-create-new"
+                          >
+                            Create New
+                          </button>
                         </div>
-                        <button
-                          onClick={() => {
-                            setGeneratedMeals([]);
-                            clearCravingCache();
-                            setCravingInput("");
-                            setSubstitutedStarchTerms([]);
-                            clearStarchAlert();
-                          }}
-                          className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
-                          data-testid="button-create-new"
-                        >
-                          Create New
-                        </button>
                       </div>
 
                       {/* Starch Substitution Notice (when Chef picked alternatives) */}
@@ -1260,17 +1270,18 @@ export default function CravingCreator() {
                         />
                       )}
 
-                      {/* Diet Adapted Notice (soft chip when AI adapted for dietary preference) */}
-                      {dietAdaptedNotice && (
-                        <DietAdaptedNotice
-                          diet={normalizeDiet(user?.dietaryRestrictions)}
-                          notice={dietAdaptedNotice}
-                          className="mb-4"
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                        <DietStyleBadge />
+                        <MealClassificationPill dietClassification={meal.dietClassification} />
+                        {dietAdaptedNotice && (
+                          <DietAdaptedNotice
+                            diet={normalizeDiet(user?.dietaryRestrictions)}
+                          />
+                        )}
+                        <KosherProTip
+                          dietClassification={meal.dietClassification}
+                          isAdapted={!!dietAdaptedNotice}
                         />
-                      )}
-
-                      <div className="mb-3">
-                        <DietStyleBadge badges={meal.medicalBadges || []} />
                       </div>
 
                       <p className="text-white/90 mb-4">{meal.description}</p>

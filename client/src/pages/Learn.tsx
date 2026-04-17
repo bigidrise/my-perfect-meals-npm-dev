@@ -784,6 +784,99 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
     },
   },
   {
+    id: "ultimate-experiences",
+    title: "Ultimate Experiences",
+    subtitle: "Multi-course AI meal planning for any occasion",
+    icon: Sparkles,
+    content: {
+      sections: [
+        {
+          heading: "What Is Ultimate Experiences?",
+          text: "Ultimate Experiences is a multi-course meal planner built for intentional eating. Instead of generating a single meal, it designs a complete dining experience — appetizer, main course, side dishes, and dessert — all connected to the same situation, flavor profile, and occasion.",
+        },
+        {
+          heading: "How It Works",
+          list: [
+            "Choose your situation: holiday, camping, date night, family dinner, or more",
+            "Set the number of people and courses you want",
+            "Pick a flavor direction or let Chef choose for you",
+            "Optionally pin specific dishes to any course or paste in a family recipe",
+            "Chef generates every course as part of a single cohesive meal — not a random collection",
+          ],
+        },
+        {
+          heading: "What Makes It Different",
+          text: "Every course is built with awareness of the others. The system enforces course roles, cooking method diversity, ingredient balance, and strict duplication rules — so you never get three potato dishes in the same meal. The result feels like a chef designed it, not an algorithm.",
+        },
+        {
+          heading: "Supported Situations",
+          list: [
+            "Holidays: Thanksgiving, Christmas, Hanukkah, Easter, Passover, Eid, and more",
+            "Camping: fire-cooked, foil packet, skillet, and no-cook courses",
+            "Date Night: elegant multi-course dining at home",
+            "Family Dinner: comfort food designed for a crowd",
+            "Game Day, Potluck, Backyard BBQ, and more",
+          ],
+        },
+        {
+          heading: "Family Recipes",
+          text: "You can paste in a family recipe during the holiday experience. Chef will use it as the anchor for that course and build the rest of the meal around it — so tradition stays intact while the full experience is elevated.",
+        },
+        {
+          heading: "Where to Find It",
+          list: [
+            "Lifestyle Hub — Ultimate Experiences card",
+            "Included with Premium and Ultimate subscriptions",
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "fast-food-guide",
+    title: "Fast Food Guide",
+    subtitle: "Smart ordering at fast food restaurants",
+    icon: Zap,
+    content: {
+      sections: [
+        {
+          heading: "What Is the Fast Food Guide?",
+          text: "The Fast Food Guide gives you three smart, goal-aligned meal choices at any fast food restaurant. It uses the same AI engine as the Restaurant Guide, but focused specifically on fast food chains — McDonald's, Chick-fil-A, Taco Bell, and any other chain you're heading to.",
+        },
+        {
+          heading: "How It Works",
+          list: [
+            "Tell the app which fast food restaurant you're going to",
+            "Describe what you're in the mood for — or leave it open",
+            "Enter your location so the app confirms the restaurant exists nearby",
+            "Receive three smart meal options with estimated macros and an ordering tip",
+            "Log any option to your Biometrics with one tap",
+          ],
+        },
+        {
+          heading: "Why It Exists",
+          text: "Fast food is a real part of life — road trips, kids, late nights, busy weeks. The Fast Food Guide exists because ignoring that reality does not help anyone. Knowing how to order smarter at the drive-through does.",
+        },
+        {
+          heading: "What It Respects",
+          list: [
+            "Your dietary preferences from onboarding",
+            "SafetyGuard allergy protections",
+            "Your active macro targets from the Macro Calculator",
+            "Specialty diets like vegan, vegetarian, gluten-free, and others",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: [
+            "Social Hub — Fast Food Guide card",
+            "Included with Premium and Ultimate subscriptions",
+          ],
+        },
+      ],
+    },
+  },
+  {
     id: "procare",
     title: "ProCare",
     subtitle: "Professional coaching & medical oversight",

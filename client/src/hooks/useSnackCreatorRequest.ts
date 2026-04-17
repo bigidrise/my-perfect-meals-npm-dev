@@ -151,6 +151,7 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
           fibrousCarbs: generatedSnack.fibrousCarbs || 0,
         },
         medicalBadges: generatedSnack.medicalBadges || [],
+        dietClassification: generatedSnack.dietClassification || null,
       };
 
       stopProgressTicker();
