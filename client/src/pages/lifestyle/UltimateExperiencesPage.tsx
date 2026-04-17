@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { Brain, Sparkles, ArrowLeft, ChefHat, Users, Star, Minus, Plus, Check, X } from "lucide-react";
+import { Brain, Sparkles, ArrowLeft, ChefHat, Users, Star, Minus, Plus, Check, X, Mic, MicOff, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   isAllergyRelatedError,
@@ -207,6 +207,10 @@ export default function UltimateExperiencesPage() {
   const [familySpecialty, setFamilySpecialty] = useState("");
   const [customDishOpen, setCustomDishOpen] = useState<Record<string, boolean>>({});
   const [customDishText, setCustomDishText] = useState<Record<string, string>>({});
+  const [familyRecipes, setFamilyRecipes] = useState("");
+  const [dishAccordionOpen, setDishAccordionOpen] = useState(false);
+  const [dishTabFilter, setDishTabFilter] = useState<"all" | "appetizer" | "main" | "side" | "dessert">("all");
+  const [isListening, setIsListening] = useState(false);
   const [totalCourses, setTotalCourses] = useState<3 | 4 | 5>(4);
   const [servings, setServings] = useState<number>(6);
 
@@ -264,6 +268,12 @@ export default function UltimateExperiencesPage() {
     document.title = "Ultimate Experiences | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
+
+  useEffect(() => {
+    setDishAccordionOpen(false);
+    setDishTabFilter("all");
+    setFamilyRecipes("");
+  }, [selectedEvent]);
 
   // Safe cache restore — generatedInSession stays false (no ShoppingBar cold-mount)
   useEffect(() => {
@@ -624,182 +634,220 @@ export default function UltimateExperiencesPage() {
                     </div>
                   )}
 
-                  {/* ── LAYER 3: Traditional Dish Picker ── */}
+                  {/* ── LAYER 3a: Family Recipes (NEW — above dish picker) ── */}
+                  {situation === "holiday" && selectedEvent && (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-medium text-white">
+                          Family Recipes
+                          <span className="ml-1.5 text-white/40 font-normal text-xs">(optional)</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+                            if (!SR) {
+                              toast({ title: "Voice not supported", description: "Try typing instead.", duration: 3000 });
+                              return;
+                            }
+                            if (isListening) { setIsListening(false); return; }
+                            const rec = new SR();
+                            rec.lang = "en-US";
+                            rec.interimResults = false;
+                            rec.onstart = () => setIsListening(true);
+                            rec.onend = () => setIsListening(false);
+                            rec.onerror = () => setIsListening(false);
+                            rec.onresult = (e: any) => {
+                              const transcript = e.results[0][0].transcript;
+                              setFamilyRecipes((prev) => (prev ? prev + " " + transcript : transcript));
+                            };
+                            rec.start();
+                          }}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                            isListening
+                              ? "bg-orange-500/30 border-orange-400 text-orange-300 animate-pulse"
+                              : "bg-black/40 border-white/20 text-white/60 hover:border-orange-400/50 hover:text-white"
+                          }`}
+                        >
+                          {isListening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+                          {isListening ? "Listening…" : "Voice"}
+                        </button>
+                      </div>
+                      <textarea
+                        value={familyRecipes}
+                        onChange={(e) => setFamilyRecipes(e.target.value)}
+                        placeholder={`Paste or describe a recipe:\n"Grandma's mac and cheese — sharp cheddar, evaporated milk, baked crust"\n"Aunt Carol's collard greens with smoked turkey neck"`}
+                        className="w-full px-3 py-2.5 bg-black text-white placeholder:text-white/30 border border-orange-400/20 rounded-lg h-28 resize-none text-sm leading-relaxed focus:outline-none focus:border-orange-400/50"
+                        maxLength={1000}
+                        disabled={isGenerating}
+                      />
+                      <p className="text-xs text-white/30 mt-1 text-right">{familyRecipes.length}/1000</p>
+                      {familyRecipes.trim() && (
+                        <p className="text-xs text-orange-400/80 mt-0.5">
+                          Your family recipes will be preserved and adapted to your dietary needs
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ── LAYER 3b: Traditional Dish Picker (collapsible + tabbed) ── */}
                   {situation === "holiday" && selectedEvent && (() => {
                     const holidayData = getHolidayDishes(selectedEvent);
                     if (!holidayData) return null;
-                    const SECTION_CATEGORIES: Record<string, DishCategory> = {
-                      Starters: "appetizer",
-                      Mains: "main",
-                      Sides: "side",
-                      Desserts: "dessert",
-                    };
-                    const sections: Array<{
-                      label: string;
-                      dishes: TraditionalDish[];
-                    }> = [
-                      { label: "Starters", dishes: holidayData.appetizers },
-                      { label: "Mains", dishes: holidayData.mains },
-                      { label: "Sides", dishes: holidayData.sides },
-                      { label: "Desserts", dishes: holidayData.desserts },
+
+                    const allSections: Array<{ label: string; category: DishCategory; dishes: TraditionalDish[] }> = [
+                      { label: "Starters", category: "appetizer", dishes: holidayData.appetizers },
+                      { label: "Mains",    category: "main",      dishes: holidayData.mains },
+                      { label: "Sides",    category: "side",      dishes: holidayData.sides },
+                      { label: "Desserts", category: "dessert",   dishes: holidayData.desserts },
                     ];
+
+                    const TABS: Array<{ id: "all" | DishCategory; label: string }> = [
+                      { id: "all",       label: "All" },
+                      { id: "appetizer", label: "Starters" },
+                      { id: "main",      label: "Mains" },
+                      { id: "side",      label: "Sides" },
+                      { id: "dessert",   label: "Desserts" },
+                    ];
+
+                    const visibleSections = dishTabFilter === "all"
+                      ? allSections
+                      : allSections.filter((s) => s.category === dishTabFilter);
+
                     return (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <label className="block text-sm font-medium text-white">
-                            Traditional{" "}
-                            {HOLIDAY_EVENTS.find((h) => h.id === selectedEvent)
-                              ?.label}{" "}
-                            dishes
-                          </label>
-                          <span className="text-xs text-amber-400">
-                            {selectedDishes.length} selected
-                          </span>
-                        </div>
-                        <p className="text-xs text-white/50">
-                          Popular dishes are pre-selected — tap to add or remove
-                        </p>
-                        {sections.map((section) => {
-                          const category = SECTION_CATEGORIES[section.label] as DishCategory;
-                          const isOpen = !!customDishOpen[section.label];
-                          const inputVal = customDishText[section.label] || "";
+                      <div>
+                        {/* Accordion toggle */}
+                        <button
+                          onClick={() => setDishAccordionOpen((o) => !o)}
+                          className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-black/40 border border-white/10 hover:border-orange-400/30 transition-all"
+                          disabled={isGenerating}
+                        >
+                          <div className="flex flex-col items-start">
+                            <span className="text-sm font-medium text-white">Traditional Dishes</span>
+                            <span className="text-xs text-white/50 mt-0.5">
+                              {selectedDishes.length > 0
+                                ? `${selectedDishes.length} selected · tap to customize`
+                                : "Tap to choose dishes (optional)"}
+                            </span>
+                          </div>
+                          {dishAccordionOpen
+                            ? <ChevronUp className="h-4 w-4 text-white/40" />
+                            : <ChevronDown className="h-4 w-4 text-white/40" />}
+                        </button>
 
-                          const confirmCustom = () => {
-                            const trimmed = inputVal.trim();
-                            if (!trimmed) return;
-                            const customDish: TraditionalDish = { name: trimmed, category };
-                            if (!isDishSelected(customDish)) {
-                              setSelectedDishes((prev) => [...prev, customDish]);
-                            }
-                            setCustomDishText((prev) => ({ ...prev, [section.label]: "" }));
-                            setCustomDishOpen((prev) => ({ ...prev, [section.label]: false }));
-                          };
-
-                          return (
-                            <div key={section.label}>
-                              <p className="text-xs text-white/40 font-semibold uppercase tracking-wider mb-1.5">
-                                {section.label}
-                              </p>
-                              <div className="flex flex-wrap gap-1.5">
-                                {section.dishes.map((dish) => {
-                                  const selected = isDishSelected(dish);
-                                  return (
-                                    <button
-                                      key={dish.name}
-                                      onClick={() => toggleDish(dish)}
-                                      className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
-                                        selected
-                                          ? "bg-amber-500/30 border-amber-400 text-amber-200"
-                                          : "bg-black/30 border-white/15 text-white/60 hover:border-white/40 hover:text-white/90"
-                                      }`}
-                                    >
-                                      {selected && "✓ "}
-                                      {dish.name}
-                                    </button>
-                                  );
-                                })}
-
-                                {/* Custom selected dishes for this category */}
-                                {selectedDishes
-                                  .filter(
-                                    (d) =>
-                                      d.category === category &&
-                                      !section.dishes.some((sd) => sd.name === d.name),
-                                  )
-                                  .map((d) => (
-                                    <button
-                                      key={d.name}
-                                      onClick={() => toggleDish(d)}
-                                      className="px-3 py-1 rounded-full text-xs font-medium border bg-amber-500/30 border-amber-400 text-amber-200 transition-all"
-                                    >
-                                      ✓ {d.name}
-                                    </button>
-                                  ))}
-
-                                {/* + Custom button */}
-                                {!isOpen && (
-                                  <button
-                                    onClick={() =>
-                                      setCustomDishOpen((prev) => ({
-                                        ...prev,
-                                        [section.label]: true,
-                                      }))
-                                    }
-                                    className="px-3 py-1 rounded-full text-xs font-medium border border-dashed border-white/30 text-white/50 bg-transparent hover:border-amber-400/50 hover:text-amber-300 transition-all"
-                                  >
-                                    + Custom
-                                  </button>
-                                )}
-                              </div>
-
-                              {/* Inline custom input */}
-                              {isOpen && (
-                                <div className="flex items-center gap-1.5 mt-2">
-                                  <input
-                                    autoFocus
-                                    type="text"
-                                    value={inputVal}
-                                    onChange={(e) =>
-                                      setCustomDishText((prev) => ({
-                                        ...prev,
-                                        [section.label]: e.target.value,
-                                      }))
-                                    }
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") confirmCustom();
-                                      if (e.key === "Escape")
-                                        setCustomDishOpen((prev) => ({
-                                          ...prev,
-                                          [section.label]: false,
-                                        }));
-                                    }}
-                                    placeholder={`Your custom ${section.label.toLowerCase().replace(/s$/, "")}…`}
-                                    className="flex-1 px-3 py-1.5 bg-black text-white placeholder:text-white/30 border border-amber-400/40 rounded-full text-xs focus:outline-none focus:border-amber-400"
-                                    maxLength={100}
-                                  />
-                                  <button
-                                    onClick={confirmCustom}
-                                    disabled={!inputVal.trim()}
-                                    className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center disabled:opacity-40 transition-all active:scale-95"
-                                  >
-                                    <Check className="h-3.5 w-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      setCustomDishOpen((prev) => ({
-                                        ...prev,
-                                        [section.label]: false,
-                                      }))
-                                    }
-                                    className="w-7 h-7 rounded-full bg-white/10 text-white/60 flex items-center justify-center transition-all active:scale-95"
-                                  >
-                                    <X className="h-3.5 w-3.5" />
-                                  </button>
-                                </div>
-                              )}
+                        {/* Expanded content */}
+                        {dishAccordionOpen && (
+                          <div className="mt-3 space-y-3">
+                            {/* Category tabs */}
+                            <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                              {TABS.map((tab) => (
+                                <PillButton
+                                  key={tab.id}
+                                  active={dishTabFilter === tab.id}
+                                  variant="amber"
+                                  onClick={() => setDishTabFilter(tab.id as any)}
+                                  disabled={isGenerating}
+                                  className="whitespace-nowrap shrink-0 px-4 py-1.5 text-xs"
+                                >
+                                  {tab.label}
+                                </PillButton>
+                              ))}
                             </div>
-                          );
-                        })}
 
-                        {/* Family Specialty */}
-                        <div className="mt-2">
-                          <label className="block text-xs font-medium mb-1 text-white/70">
-                            Add a family specialty (optional)
-                          </label>
-                          <input
-                            type="text"
-                            value={familySpecialty}
-                            onChange={(e) => setFamilySpecialty(e.target.value)}
-                            placeholder="e.g., Grandma's sweet potato pudding, Uncle Ray's smoked ribs..."
-                            className="w-full px-3 py-2 bg-black text-white placeholder:text-white/30 border border-amber-400/20 rounded-lg text-sm"
-                            maxLength={200}
-                          />
-                          {familySpecialty && (
-                            <p className="text-xs text-amber-400/80 mt-1">
-                              ★ Your family recipe will be preserved and adapted to your diet
-                            </p>
-                          )}
-                        </div>
+                            {/* Dish pills for active tab */}
+                            {visibleSections.map((section) => {
+                              const isOpen = !!customDishOpen[section.label];
+                              const inputVal = customDishText[section.label] || "";
+                              const confirmCustom = () => {
+                                const trimmed = inputVal.trim();
+                                if (!trimmed) return;
+                                const customDish: TraditionalDish = { name: trimmed, category: section.category };
+                                if (!isDishSelected(customDish)) setSelectedDishes((prev) => [...prev, customDish]);
+                                setCustomDishText((prev) => ({ ...prev, [section.label]: "" }));
+                                setCustomDishOpen((prev) => ({ ...prev, [section.label]: false }));
+                              };
+
+                              return (
+                                <div key={section.label}>
+                                  {dishTabFilter === "all" && (
+                                    <p className="text-xs text-white/40 font-semibold uppercase tracking-wider mb-1.5">
+                                      {section.label}
+                                    </p>
+                                  )}
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {section.dishes.map((dish) => {
+                                      const selected = isDishSelected(dish);
+                                      return (
+                                        <PillButton
+                                          key={dish.name}
+                                          active={selected}
+                                          variant="amber"
+                                          onClick={() => toggleDish(dish)}
+                                          disabled={isGenerating}
+                                          className="text-xs px-3 py-1"
+                                        >
+                                          {selected && <Check className="h-3 w-3 mr-1" />}
+                                          {dish.name}
+                                        </PillButton>
+                                      );
+                                    })}
+
+                                    {/* Custom dishes already added in this category */}
+                                    {selectedDishes
+                                      .filter((d) => d.category === section.category && !section.dishes.some((sd) => sd.name === d.name))
+                                      .map((d) => (
+                                        <PillButton
+                                          key={d.name}
+                                          active={true}
+                                          variant="amber"
+                                          onClick={() => toggleDish(d)}
+                                          disabled={isGenerating}
+                                          className="text-xs px-3 py-1"
+                                        >
+                                          <Check className="h-3 w-3 mr-1" />
+                                          {d.name}
+                                        </PillButton>
+                                      ))}
+
+                                    {/* + Custom */}
+                                    {!isOpen && (
+                                      <button
+                                        onClick={() => setCustomDishOpen((prev) => ({ ...prev, [section.label]: true }))}
+                                        className="px-3 py-1 rounded-full text-xs font-medium border border-dashed border-white/30 text-white/50 bg-transparent hover:border-orange-400/50 hover:text-orange-300 transition-all"
+                                      >
+                                        + Add yours
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {isOpen && (
+                                    <div className="flex items-center gap-1.5 mt-2">
+                                      <input
+                                        autoFocus
+                                        type="text"
+                                        value={inputVal}
+                                        onChange={(e) => setCustomDishText((prev) => ({ ...prev, [section.label]: e.target.value }))}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter") confirmCustom();
+                                          if (e.key === "Escape") setCustomDishOpen((prev) => ({ ...prev, [section.label]: false }));
+                                        }}
+                                        placeholder={`Your ${section.label.toLowerCase().replace(/s$/, "")}…`}
+                                        className="flex-1 px-3 py-1.5 bg-black text-white placeholder:text-white/30 border border-orange-400/40 rounded-full text-xs focus:outline-none focus:border-orange-400"
+                                        maxLength={100}
+                                      />
+                                      <button onClick={confirmCustom} disabled={!inputVal.trim()} className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center disabled:opacity-40 transition-all active:scale-95">
+                                        <Check className="h-3.5 w-3.5" />
+                                      </button>
+                                      <button onClick={() => setCustomDishOpen((prev) => ({ ...prev, [section.label]: false }))} className="w-7 h-7 rounded-full bg-white/10 text-white/60 flex items-center justify-center transition-all active:scale-95">
+                                        <X className="h-3.5 w-3.5" />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     );
                   })()}
