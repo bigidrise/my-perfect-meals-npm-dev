@@ -122,44 +122,53 @@ async function resolveWithFallback(
   let coords: { lat: number; lng: number } | undefined;
 
   if (isIdentity && primaryDiet) {
-    // Pass 1: strict diet query
-    const pass1 = await resolveRestaurantsByZip({
-      query: mealQuery,
-      zipCode,
-      radiusMiles: 5,
-      limit: 15,
-      overrideQuery: getStrictDietQuery(primaryDiet, mealQuery),
-    });
-    coords = pass1.coordinates;
-
-    if (pass1.success) {
-      labeled = pass1.restaurants.map((r) => ({ restaurant: r, matchLabel: 'Exact match' as const }));
-    }
-
-    if (labeled.length < MIN_RESULTS_TARGET) {
-      console.log(`⚠️ Pass 1 returned ${labeled.length} results — trying fallback query`);
-      const pass2 = await resolveRestaurantsByZip({
+    // Pass 1 (strict) + Pass 2 (flexible) fire simultaneously — saves 0.5–2s
+    console.log(`⚡ Running passes 1+2 in parallel for diet: ${primaryDiet}`);
+    const [pass1, pass2] = await Promise.all([
+      resolveRestaurantsByZip({
+        query: mealQuery,
+        zipCode,
+        radiusMiles: 5,
+        limit: 15,
+        overrideQuery: getStrictDietQuery(primaryDiet, mealQuery),
+      }),
+      resolveRestaurantsByZip({
         query: mealQuery,
         zipCode,
         radiusMiles: 8,
         limit: 15,
         overrideQuery: getFallbackDietQuery(primaryDiet, mealQuery),
-      });
-      coords = coords ?? pass2.coordinates;
+      }),
+    ]);
 
-      if (pass2.success) {
-        const existing = new Set(labeled.map((l) => l.restaurant.placeId ?? l.restaurant.name));
-        for (const r of pass2.restaurants) {
-          if (!existing.has(r.placeId ?? r.name)) {
-            labeled.push({ restaurant: r, matchLabel: 'Matches your diet' });
-            existing.add(r.placeId ?? r.name);
-          }
+    coords = pass1.coordinates ?? pass2.coordinates;
+
+    // Merge and deduplicate by place_id, with match label priority
+    const seen = new Set<string>();
+    if (pass1.success) {
+      for (const r of pass1.restaurants) {
+        const key = r.placeId ?? r.name;
+        if (!seen.has(key)) {
+          labeled.push({ restaurant: r, matchLabel: 'Exact match' });
+          seen.add(key);
+        }
+      }
+    }
+    if (pass2.success) {
+      for (const r of pass2.restaurants) {
+        const key = r.placeId ?? r.name;
+        if (!seen.has(key)) {
+          labeled.push({ restaurant: r, matchLabel: 'Matches your diet' });
+          seen.add(key);
         }
       }
     }
 
+    console.log(`📍 Passes 1+2 combined: ${labeled.length} unique restaurants`);
+
+    // Early return if we already have enough — skip pass 3 entirely
     if (labeled.length < MIN_RESULTS_TARGET) {
-      console.log(`⚠️ Pass 2 returned ${labeled.length} total — using general fallback (Limited match)`);
+      console.log(`⚠️ Passes 1+2 returned ${labeled.length} total — running general fallback (Pass 3)`);
       const pass3 = await resolveRestaurantsByZip({
         query: mealQuery,
         zipCode,
@@ -170,14 +179,16 @@ async function resolveWithFallback(
       coords = coords ?? pass3.coordinates;
 
       if (pass3.success) {
-        const existing = new Set(labeled.map((l) => l.restaurant.placeId ?? l.restaurant.name));
         for (const r of pass3.restaurants) {
-          if (!existing.has(r.placeId ?? r.name)) {
+          const key = r.placeId ?? r.name;
+          if (!seen.has(key)) {
             labeled.push({ restaurant: r, matchLabel: 'Limited match' });
-            existing.add(r.placeId ?? r.name);
+            seen.add(key);
           }
         }
       }
+    } else {
+      console.log(`✅ Early return — skipping pass 3 (${labeled.length} results sufficient)`);
     }
   } else {
     // No identity diet — single generic query, labeled as "Exact match"

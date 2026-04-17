@@ -9,8 +9,34 @@ export interface ChefFlowMeal {
   imageUrl?: string;
 }
 
-// Module-level cache: persists for the full browser session across navigation
+// Module-level session cache — survives navigation
 const sessionCache = new Map<string, string>();
+
+// Module-level concurrency control — max 3 image requests at once globally
+// so the first visible cards get images before below-the-fold ones even start
+const MAX_CONCURRENT = 3;
+let globalInFlight = 0;
+const globalQueue: Array<() => void> = [];
+
+function acquireSlot(): Promise<void> {
+  return new Promise((resolve) => {
+    if (globalInFlight < MAX_CONCURRENT) {
+      globalInFlight++;
+      resolve();
+    } else {
+      globalQueue.push(() => {
+        globalInFlight++;
+        resolve();
+      });
+    }
+  });
+}
+
+function releaseSlot(): void {
+  globalInFlight--;
+  const next = globalQueue.shift();
+  if (next) next();
+}
 
 export function chefFlowMealId(meal: ChefFlowMeal, mealType: string): string {
   if (meal.id) return meal.id;
@@ -51,7 +77,7 @@ export function useChefFlowImages(
       const mealName = meal.name || meal.meal || "";
       if (!mealName) return;
 
-      // Priority 1: imageUrl already provided by API response
+      // Priority 1: imageUrl already provided by API response — use immediately
       if (meal.imageUrl) {
         sessionCache.set(id, meal.imageUrl);
         setImageMap((prev) =>
@@ -60,7 +86,7 @@ export function useChefFlowImages(
         return;
       }
 
-      // Priority 2: session cache hit — no new request needed
+      // Priority 2: session cache hit — no network request needed
       if (sessionCache.has(id)) {
         const cached = sessionCache.get(id)!;
         setImageMap((prev) =>
@@ -72,26 +98,33 @@ export function useChefFlowImages(
       // Priority 3: already failed — do not retry
       if (failedRef.current.has(id)) return;
 
-      // Priority 4: request already in-flight — do not duplicate
+      // Priority 4: already queued or in-flight — do not duplicate
       if (inFlightRef.current.has(id)) return;
 
-      // Priority 5: fire a new generation request
+      // Mark in-flight immediately to prevent duplicate queuing
       inFlightRef.current.add(id);
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      // Waits for a concurrency slot before firing the network request.
+      // Meals earlier in the array (top of screen) acquire slots first.
+      const fire = async () => {
+        await acquireSlot();
 
-      fetch(apiUrl("/api/meals/generate-image"), {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ mealName, mealType }),
-        signal: controller.signal,
-      })
-        .then((res) => res.json())
-        .then((data) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+        try {
+          const res = await fetch(apiUrl("/api/meals/generate-image"), {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify({ mealName, mealType }),
+            signal: controller.signal,
+          });
           clearTimeout(timeoutId);
+          const data = await res.json();
           inFlightRef.current.delete(id);
+          releaseSlot();
+
           if (data.imageUrl) {
             sessionCache.set(id, data.imageUrl);
             if (mountedRef.current) {
@@ -103,15 +136,18 @@ export function useChefFlowImages(
               setFailedSet((prev) => new Set([...prev, id]));
             }
           }
-        })
-        .catch(() => {
+        } catch {
           clearTimeout(timeoutId);
           inFlightRef.current.delete(id);
+          releaseSlot();
           failedRef.current.add(id);
           if (mountedRef.current) {
             setFailedSet((prev) => new Set([...prev, id]));
           }
-        });
+        }
+      };
+
+      fire();
     });
   }, [meals, mealType]);
 
