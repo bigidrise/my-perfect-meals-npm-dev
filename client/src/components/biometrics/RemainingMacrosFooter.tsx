@@ -8,8 +8,14 @@ import {
   MPM_MACRO_COLORS,
   getMacroProgressColor,
 } from "@/components/glass/mpmGlassStandard";
-import { Flame } from "lucide-react";
-import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
+import { Flame, Info } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 export interface ConsumedMacros {
   protein: number;
@@ -151,7 +157,7 @@ export function RemainingMacrosFooter({
             <span className="text-white/70 text-xs font-medium uppercase tracking-wide">
               Remaining Today
             </span>
-            <MedicalSourcesInfo asIconButton />
+            <MacroCoachSheet />
           </div>
 
           {/* 4-column layout: Protein, Starchy, Fibrous, Fat - NO CALORIES per product doctrine */}
@@ -230,5 +236,78 @@ function MacroCell({
         />
       </div>
     </div>
+  );
+}
+
+function MacroCoachSheet() {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <button
+          aria-label="What do these numbers mean?"
+          className="flex items-center justify-center w-5 h-5 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+        >
+          <Info className="w-3 h-3 text-white/60" />
+        </button>
+      </SheetTrigger>
+      <SheetContent
+        side="bottom"
+        className="bg-zinc-950 border-t border-white/10 text-white max-h-[80vh] overflow-y-auto rounded-t-3xl px-6 pb-10"
+      >
+        <SheetHeader className="text-left pt-6 pb-5 border-b border-white/10">
+          <SheetTitle className="text-white text-lg font-bold">
+            Your Daily Targets, Simplified
+          </SheetTitle>
+          <p className="text-white/60 text-sm leading-relaxed mt-1">
+            Remaining Today shows what you have left to hit your daily targets — by nutrient, not just total carbs.
+          </p>
+        </SheetHeader>
+
+        <div className="pt-5 space-y-5">
+          <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-lg">🟡</span>
+              <span className="text-amber-400 font-semibold text-sm">Starchy Carbs — Your Main Target</span>
+            </div>
+            <ul className="text-white/75 text-sm space-y-1 leading-relaxed pl-1">
+              <li>Stay at or under your daily cap.</li>
+              <li>Going over slows your progress — this one matters.</li>
+              <li>Being under is completely fine. Don't force it.</li>
+            </ul>
+          </div>
+
+          <div className="bg-emerald-500/10 border border-emerald-500/25 rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-lg">🟢</span>
+              <span className="text-emerald-400 font-semibold text-sm">Protein & Fiber — Stay Flexible</span>
+            </div>
+            <ul className="text-white/75 text-sm space-y-1 leading-relaxed pl-1">
+              <li>A little high or low doesn't break anything.</li>
+              <li>Don't chase perfection on these two.</li>
+            </ul>
+          </div>
+
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-lg">⚪</span>
+              <span className="text-white/80 font-semibold text-sm">Fat — Background Player</span>
+            </div>
+            <ul className="text-white/75 text-sm space-y-1 leading-relaxed pl-1">
+              <li>Fat rises naturally with your food choices.</li>
+              <li>Dietary fat is not the driver of fat gain — don't fixate on it.</li>
+            </ul>
+          </div>
+
+          <div className="bg-zinc-900 rounded-2xl p-4 text-center space-y-2">
+            <p className="text-white/90 text-sm font-medium leading-relaxed">
+              Focus on staying within your starch target and let the rest fall into place.
+            </p>
+            <p className="text-white/40 text-xs">
+              You don't need to be perfect. You need to be consistent.
+            </p>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
