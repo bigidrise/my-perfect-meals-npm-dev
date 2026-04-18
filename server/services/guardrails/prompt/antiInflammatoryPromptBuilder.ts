@@ -21,8 +21,9 @@ CRITICAL RESTRICTIONS:
 - Do NOT include any of these blocked ingredients: ${antiInflammatoryRules.blockedIngredients.slice(0, 20).join(', ')}
 - PREFER these anti-inflammatory ingredients: ${antiInflammatoryRules.preferredIngredients.slice(0, 15).join(', ')}
 - All cooking oils MUST be olive oil or avocado oil
-- No red meat, no processed meats, no fried foods
-- No refined sugars or white flour products`;
+- Limit red meat by default — if the user explicitly asked for beef, steak, lamb, or pork, honor it using a lean cut (sirloin, tenderloin) with anti-inflammatory preparation and sides
+- NEVER use processed meats: bacon, sausage, hot dogs, salami, pepperoni
+- No fried foods, no refined sugars, no white flour products`;
 }
 
 /**
@@ -56,11 +57,13 @@ KEY PRINCIPLES:
 3. Anti-inflammatory spices (turmeric, ginger, garlic)
 4. Healthy fats (olive oil, avocado)
 5. Whole grains over refined
-6. No processed foods, seed oils, or red meat
+6. No processed foods or seed oils
+7. Limit red meat by default — but if explicitly requested, optimize it (lean cut, grilled, anti-inflammatory sides) rather than substituting it
 
 Every meal you create must be:
 - Delicious and satisfying
-- Inflammation-reducing
+- Inflammation-reducing where possible
 - Free of seed oils and processed ingredients
-- Rich in anti-inflammatory compounds`;
+- Rich in anti-inflammatory compounds
+- Respectful of what the user actually asked for`;
 }
