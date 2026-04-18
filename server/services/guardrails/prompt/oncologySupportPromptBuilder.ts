@@ -98,13 +98,10 @@ export function buildOncologySupportPrompt(context: OncologySupportContext): str
   lines.push("- Gentle, nutrient-dense, appetite-friendly meal design");
   lines.push("- Practical and easy to tolerate");
   lines.push("");
-  lines.push("RED MEAT RULE — MANDATORY FOR CANCER SUPPORT PROTOCOL:");
-  lines.push("When the user requests beef, steak, lamb, or pork:");
-  lines.push("  You MUST use a lean cut: sirloin, tenderloin, eye of round, or filet mignon.");
-  lines.push("  Do NOT use ribeye, T-bone, porterhouse, or brisket regardless of the request — high-fat cuts are not appropriate for this protocol.");
-  lines.push("  EXCEPTION: If the user explicitly names a specific cut (e.g., 'ribeye'), honor it but enforce 6–8 oz portion and use grilled or broiled preparation only.");
-  lines.push("  Portion MUST be 6–8 oz. Default to 6 oz unless the user explicitly requests more.");
-  lines.push("  If any requested ingredient conflicts with this protocol, include it — but optimize preparation method, portion, and pairing to minimize impact.");
+  lines.push("RED MEAT DEFAULT RULE:");
+  lines.push("When beef, steak, lamb, or pork is included and the user has not named a specific cut, default to a lean cut: sirloin, tenderloin, eye of round, or filet mignon. Default portion is 6–8 oz.");
+  lines.push("If the user explicitly requests a specific cut or item (e.g., 'ribeye', 'T-bone'), honor that request exactly — do not substitute. You may optimize the preparation method (grilled or broiled preferred) and pair with appropriate sides, but never block or replace what the user asked for.");
+  lines.push("If any requested ingredient conflicts with this protocol, include it — but optimize preparation method, portion, and pairing to reduce impact where possible.");
   lines.push("");
 
   if (context.emphasis.highProteinNutrientDensity) {

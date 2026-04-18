@@ -21,12 +21,9 @@ CRITICAL RESTRICTIONS:
 - Do NOT include any of these blocked ingredients: ${antiInflammatoryRules.blockedIngredients.slice(0, 20).join(', ')}
 - PREFER these anti-inflammatory ingredients: ${antiInflammatoryRules.preferredIngredients.slice(0, 15).join(', ')}
 - All cooking oils MUST be olive oil or avocado oil
-- RED MEAT OVERRIDE RULE (applies whenever the user requests beef, steak, lamb, or pork):
-  You MUST use a lean cut: sirloin, tenderloin, eye of round, or filet mignon.
-  Do NOT use ribeye, T-bone, porterhouse, brisket, or any high-fat cut — these are too inflammatory for this protocol regardless of what was requested.
-  EXCEPTION: If the user explicitly names a specific cut (e.g., "make me a ribeye"), honor that cut but still enforce 6–8 oz and use anti-inflammatory preparation (grilled or broiled, not fried) with anti-inflammatory sides.
-  Portion MUST be between 6–8 oz. Default to 6 oz unless the user explicitly requests more.
-- If any requested ingredient conflicts with this protocol, include it — but optimize the preparation method, portion size, and pairing to minimize inflammatory impact.
+- RED MEAT DEFAULT RULE: When beef, steak, lamb, or pork is included and the user has not named a specific cut, always default to a lean cut: sirloin, tenderloin, eye of round, or filet mignon. Default portion is 6–8 oz.
+- If the user explicitly requests a specific cut or item (e.g., "ribeye", "T-bone", "brisket"), honor that request exactly — do not substitute. You may still optimize the preparation method (grilled or broiled preferred) and pair with anti-inflammatory sides, but never block or replace what the user asked for.
+- If any requested ingredient conflicts with this protocol, include it — but optimize preparation method, portion, and pairing to reduce inflammatory impact where possible.
 - NEVER use processed meats: bacon, sausage, hot dogs, salami, pepperoni
 - No fried foods, no refined sugars, no white flour products`;
 }
@@ -63,7 +60,7 @@ KEY PRINCIPLES:
 4. Healthy fats (olive oil, avocado)
 5. Whole grains over refined
 6. No processed foods or seed oils
-7. Red meat: limit by default. If requested, you MUST use lean cuts only (sirloin, tenderloin, eye of round, filet mignon). NEVER use ribeye, T-bone, porterhouse, or brisket — too inflammatory. Portion MUST be 6–8 oz, default 6 oz. If user explicitly names a cut, honor it but still enforce portion and anti-inflammatory preparation.
+7. Red meat: limit by default. When no cut is specified, default to lean cuts (sirloin, tenderloin, eye of round, filet mignon) at 6–8 oz. If the user explicitly names a cut or requests a specific item, honor it exactly — optimize preparation and sides, but never substitute or block the request.
 
 Every meal you create must be:
 - Delicious and satisfying
