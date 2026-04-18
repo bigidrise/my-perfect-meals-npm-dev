@@ -99,8 +99,8 @@ export function buildOncologySupportPrompt(context: OncologySupportContext): str
   lines.push("- Practical and easy to tolerate");
   lines.push("");
   lines.push("RED MEAT DEFAULT RULE:");
-  lines.push("When beef, steak, lamb, or pork is included and the user has not named a specific cut, default to a lean cut: sirloin, tenderloin, eye of round, or filet mignon. Default portion is 6–8 oz.");
-  lines.push("If the user explicitly requests a specific cut or item (e.g., 'ribeye', 'T-bone'), honor that request exactly — do not substitute. You may optimize the preparation method (grilled or broiled preferred) and pair with appropriate sides, but never block or replace what the user asked for.");
+  lines.push("When beef, steak, lamb, or pork is included and the user has not named a specific cut, default to a lean cut: sirloin, tenderloin, eye of round, or filet mignon.");
+  lines.push("If the user explicitly names a cut (e.g., 'ribeye', 'T-bone'), use that cut — do not substitute it. Naming a cut only overrides the cut choice, NOT the portion. Portion still defaults to 6–8 oz regardless of the cut, unless the user also specifies a different amount (e.g., '12 oz ribeye'). Optimize preparation method (grilled or broiled preferred) and pair with appropriate sides.");
   lines.push("If any requested ingredient conflicts with this protocol, include it — but optimize preparation method, portion, and pairing to reduce impact where possible.");
   lines.push("");
 
