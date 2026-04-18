@@ -15,6 +15,8 @@ import MealClassificationPill, { type DietClassification } from "@/components/Me
 import KosherProTip from "@/components/KosherProTip";
 import BuilderSourcePill from "@/components/BuilderSourcePill";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
+import FavoriteButton from "@/components/FavoriteButton";
+import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 
 // Keep your Meal type colocated here (WeeklyMealBoard imports from this file)
 export type Meal = {
@@ -197,11 +199,17 @@ export function MealCard({
                 displayTitle
               )}
             </h3>
+            <FavoriteButton
+              title={title}
+              sourceType={builderType ?? meal.builderType ?? "meal-builder"}
+              mealData={{ ...meal, builderType: builderType ?? meal.builderType }}
+              size={20}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
             {showStarchBadge && (
               <StarchMealBadge meal={{ name: displayTitle, ingredients: displayIngredients }} />
             )}
-          </div>
-          <div className="flex flex-wrap items-center gap-2 mt-1">
             <DietStyleBadge />
             <BuilderSourcePill source={builderType ?? meal.builderType} />
             <MealClassificationPill dietClassification={meal.dietClassification} />
@@ -376,6 +384,9 @@ export function MealCard({
               label="Add to Macros"
             />
           )}
+          <AddToMealPlanButton
+            meal={{ ...meal, builderType: builderType ?? meal.builderType }}
+          />
           <MealCardActions
             meal={{
               name: displayTitle,
