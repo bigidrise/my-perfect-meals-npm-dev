@@ -112,7 +112,8 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
     starchContext?: StarchContext,
     safetyOptions?: SafetyOptions,
     strictMode?: boolean,
-    explicitOverride?: ExplicitOverride
+    explicitOverride?: ExplicitOverride,
+    userDietOverride?: boolean
   ): Promise<Meal | null> => {
     setGenerating(true);
     setError(null);
@@ -138,6 +139,7 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
           strictMode: strictMode === true,
           skipImage: true,
           explicitOverride: explicitOverride || null,
+          userDietOverride: userDietOverride === true,
         }),
         signal: abortControllerRef.current.signal,
       });

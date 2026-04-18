@@ -48,7 +48,7 @@ interface UseSnackCreatorRequestResult {
   generating: boolean;
   progress: number;
   error: string | null;
-  generateSnack: (description: string, dietType?: DietType, dietPhase?: BeachBodyPhase, overrideToken?: string, forceStarch?: boolean, strictMode?: boolean, explicitOverride?: ExplicitOverride) => Promise<Snack | null>;
+  generateSnack: (description: string, dietType?: DietType, dietPhase?: BeachBodyPhase, overrideToken?: string, forceStarch?: boolean, strictMode?: boolean, explicitOverride?: ExplicitOverride, userDietOverride?: boolean) => Promise<Snack | null>;
   cancel: () => void;
 }
 
@@ -90,7 +90,8 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
     overrideToken?: string,
     forceStarch?: boolean,
     strictMode?: boolean,
-    explicitOverride?: ExplicitOverride
+    explicitOverride?: ExplicitOverride,
+    userDietOverride?: boolean
   ): Promise<Snack | null> => {
     setGenerating(true);
     setError(null);
@@ -115,6 +116,7 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
           forceStarch: forceStarch || false,
           strictMode: strictMode === true,
           explicitOverride: explicitOverride || null,
+          userDietOverride: userDietOverride === true,
         }),
         signal: abortControllerRef.current.signal,
       });

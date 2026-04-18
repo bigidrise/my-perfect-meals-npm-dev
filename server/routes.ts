@@ -642,7 +642,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         strictMode,
         skipImage,
         explicitOverride,
+        userDietOverride,
       } = req.body;
+
+      // When user chose "Continue Anyway" on the diet guard, inject a soft coaching override
+      // so the AI includes the requested ingredient while keeping everything else diet-aligned
+      const effectiveInput = userDietOverride === true && input && typeof input === 'string'
+        ? `${input} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`
+        : input;
 
       // 🚨 ENFORCEMENT GATEWAY: Pre-generation — Tier 1 (allergy) + Tier 2 (religious)
       if (userId && input) {
@@ -751,7 +758,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await generateMealUnified({
         type,
         mealType,
-        input,
+        input: effectiveInput,
         userId,
         macroTargets,
         count,
