@@ -81,11 +81,28 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
 
         <div className="p-4 space-y-5">
 
-          {/* Explainer */}
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-white text-sm font-semibold mb-1">Choose the carbs or fruits you prefer for different glucose ranges.</p>
-            <p className="text-white/60 text-sm">
-              MPM uses these choices to coach meal generation based on your current blood sugar state, so your meals respond differently when your glucose is low, in range, or elevated.
+          {/* How It Works Explainer */}
+          <div className="rounded-xl border border-orange-500/30 bg-orange-950/20 p-4 space-y-3">
+            <p className="text-orange-300 text-sm font-bold">How Glucose-Based Food Choices Work</p>
+            <p className="text-white/80 text-sm leading-relaxed">
+              Your body needs different types of carbs depending on your blood sugar level. My Perfect Meals uses your glucose reading and your selected foods to adjust how meals are built for you.
+            </p>
+            <div className="space-y-2">
+              <div className="flex items-start gap-2">
+                <span className="text-blue-400 text-xs mt-0.5 shrink-0">🔵</span>
+                <p className="text-white/70 text-xs">When your glucose is <span className="text-blue-300 font-semibold">low</span>, the system allows faster-acting carbs — like fruit and simple carbs — to help bring your levels back up quickly.</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-green-400 text-xs mt-0.5 shrink-0">🟢</span>
+                <p className="text-white/70 text-xs">When your glucose is <span className="text-green-300 font-semibold">in range</span>, meals stay balanced with steady, low-glycemic carbs to keep you there.</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-orange-400 text-xs mt-0.5 shrink-0">🟠</span>
+                <p className="text-white/70 text-xs">When your glucose is <span className="text-orange-300 font-semibold">elevated</span>, meals shift toward lower-impact carbs, more protein, and lighter options.</p>
+              </div>
+            </div>
+            <p className="text-white/50 text-xs pt-1 border-t border-white/10">
+              You choose the foods you prefer for each range below. The system uses those choices to guide your meals automatically when you generate food.
             </p>
           </div>
 
