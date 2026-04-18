@@ -279,7 +279,7 @@ export const diabeticHubModule: HubModule = {
     let userCarbsLine = '';
     if (activeCarbs.length > 0) {
       if (isLowState) {
-        userCarbsLine = `YOU MUST include at least one of these fast-acting carb sources in this meal: ${activeCarbs.join(', ')}. This is a medical requirement for low blood sugar — do NOT substitute berries or low-GI alternatives.\n`;
+        userCarbsLine = `Blood sugar is low — encourage fast-acting carbs to support recovery. Include options such as: ${activeCarbs.join(', ')}. These are appropriate right now. Berries and low-GI-only fruits are less ideal in this state.\n`;
       } else if (isHighState) {
         userCarbsLine = `LIMIT carb choices to these approved low-impact options only: ${activeCarbs.join(', ')}.\n`;
       } else {
