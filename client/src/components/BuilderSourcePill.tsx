@@ -26,16 +26,14 @@ const BUILDER_CONFIG: Record<string, Config> = {
 };
 
 function resolveBuilderKey(source: string): string | null {
-  const s = source.toLowerCase();
-  if (s.includes("glp-1") || s.includes("glp1"))                           return "glp1";
-  if (s.includes("anti") && s.includes("inflam"))                          return "anti_inflammatory";
-  if (s.includes("anti-inflammatory") || s.includes("anti_inflammatory"))   return "anti_inflammatory";
+  const s = source.toLowerCase().replace(/-/g, " ");
+  if (s.includes("glp 1") || s.includes("glp1"))                            return "glp1";
+  if (s.includes("anti") && s.includes("inflam"))                           return "anti_inflammatory";
+  if (s.includes("oncol") || s.includes("cancer") || s.includes("oncology support")) return "oncology";
   if (s.includes("cardiac") || s.includes("heart health"))                  return "cardiac";
   if (s.includes("renal") || s.includes("kidney"))                          return "renal";
-  if (s.includes("liver support") || s.includes("liver_support"))           return "liver_support";
-  if (s.includes("liver disease") || s.includes("liver_disease"))           return "liver_disease";
-  if (s.includes("liver"))                                                   return "liver_support";
-  if (s.includes("oncol") || s.includes("cancer"))                          return "oncology";
+  if (s.includes("liver disease"))                                           return "liver_disease";
+  if (s.includes("liver support") || s.includes("liver"))                   return "liver_support";
   if (s.includes("diabet"))                                                  return "diabetic";
   return null;
 }

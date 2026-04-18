@@ -1403,6 +1403,7 @@ export default function DiabeticMenuBuilder() {
                             slot={key}
                             meal={meal}
                             showStarchBadge={true}
+                            builderType="diabetic"
                                 coachingLine="Built to keep you within your glucose target range."
                             data-wt="wmb-meal-card"
                             onUpdated={(m) => {
@@ -1465,7 +1466,7 @@ export default function DiabeticMenuBuilder() {
                         </div>
                         <div className="space-y-3">
                           {dayLists.snacks.filter((m: Meal) => m.id.startsWith(slotPrefix)).map((meal: Meal) => (
-                            <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true}
+                            <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true} builderType="diabetic"
                                 coachingLine="Built to keep you within your glucose target range."
                               onUpdated={(m) => {
                                 if (m === null) {
@@ -1514,7 +1515,7 @@ export default function DiabeticMenuBuilder() {
                     </div>
                     <div className="space-y-3">
                       {dayLists.snacks.filter((m: Meal) => !m.id.startsWith("dyn-")).map((meal: Meal) => (
-                        <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true}
+                        <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true} builderType="diabetic"
                                 coachingLine="Built to keep you within your glucose target range."
                           onUpdated={(m) => {
                             if (m === null) {
@@ -1567,6 +1568,7 @@ export default function DiabeticMenuBuilder() {
                       slot={key}
                       meal={meal}
                       showStarchBadge={true}
+                      builderType="diabetic"
                                 coachingLine="Built to keep you within your glucose target range."
                       onUpdated={(m) => {
                         if (m === null) {
