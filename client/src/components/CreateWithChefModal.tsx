@@ -324,16 +324,17 @@ export function CreateWithChefModal({
     }
   };
 
-  // Handle diet guard decision — "Pick Something Else" clears the alert,
-  // "Let Chef Adapt It" skips the diet check and proceeds to generation
-  const handleDietDecision = async (decision: "pick_something_else" | "let_chef_adapt") => {
+  // Handle diet guard decision:
+  // "continue_anyway" — user proceeds with their original request, no substitution
+  // "let_chef_adapt" — bypass diet check and generate with protocol-aware adaptation
+  const handleDietDecision = async (decision: "pick_something_else" | "let_chef_adapt" | "continue_anyway") => {
     if (decision === "pick_something_else") {
       setDietDecision("pick_something_else");
       clearDietAlert();
       return;
     }
-    // "let_chef_adapt" — bypass diet check and generate with protocol-aware adaptation
-    setDietDecision("let_chef_adapt");
+    // Both "continue_anyway" and "let_chef_adapt" bypass the diet guard and proceed
+    setDietDecision(decision);
     dietAdaptModeRef.current = true;
     clearDietAlert();
     await handleGenerate();

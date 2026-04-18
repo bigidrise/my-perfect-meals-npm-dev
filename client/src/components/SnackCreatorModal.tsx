@@ -244,13 +244,14 @@ export function SnackCreatorModal({
     }
   };
 
-  const handleDietDecision = async (decision: "pick_something_else" | "let_chef_adapt") => {
+  const handleDietDecision = async (decision: "pick_something_else" | "let_chef_adapt" | "continue_anyway") => {
     if (decision === "pick_something_else") {
       setDietDecision("pick_something_else");
       clearDietAlert();
       return;
     }
-    setDietDecision("let_chef_adapt");
+    // Both "continue_anyway" and "let_chef_adapt" bypass the diet guard and proceed
+    setDietDecision(decision);
     dietAdaptModeRef.current = true;
     clearDietAlert();
     await handleGenerate();

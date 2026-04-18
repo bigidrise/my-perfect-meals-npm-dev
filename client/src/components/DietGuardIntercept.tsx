@@ -1,4 +1,4 @@
-import { Leaf, ChefHat, ArrowLeft, ShieldAlert } from "lucide-react";
+import { Leaf, ChefHat, ArrowLeft, ArrowRight, ShieldAlert } from "lucide-react";
 import { DietGuardAlertState, DietGuardDecision } from "@/hooks/useDietGuardPrecheck";
 
 interface DietGuardInterceptProps {
@@ -56,7 +56,7 @@ export function DietGuardIntercept({
     ? alert.isAdaptable
       ? `Chef can fix this for you — would you like to pick something else, or let the chef adapt it to your ${alert.diet} protocol?`
       : `This ingredient requires certification certainty the app cannot provide. Please pick something else.`
-    : `Would you like to pick something else, or let the chef create a diet-friendly version for you?`;
+    : `You can continue anyway with your request, or let the chef create a diet-friendly version for you.`;
 
   return (
     <div
@@ -103,13 +103,23 @@ export function DietGuardIntercept({
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          <button
-            onClick={() => onDecision("pick_something_else")}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-neutral-800/80 border border-neutral-600/50 text-neutral-200 text-sm font-medium transition-all active:scale-[0.98]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Pick Something Else
-          </button>
+          {isCultural ? (
+            <button
+              onClick={() => onDecision("pick_something_else")}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-neutral-800/80 border border-neutral-600/50 text-neutral-200 text-sm font-medium transition-all active:scale-[0.98]"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Pick Something Else
+            </button>
+          ) : (
+            <button
+              onClick={() => onDecision("continue_anyway")}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-neutral-800/80 border border-neutral-600/50 text-neutral-200 text-sm font-medium transition-all active:scale-[0.98]"
+            >
+              <ArrowRight className="h-4 w-4" />
+              Continue Anyway
+            </button>
+          )}
 
           {showAdaptButton && (
             <button
