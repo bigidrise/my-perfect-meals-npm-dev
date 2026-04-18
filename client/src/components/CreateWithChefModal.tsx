@@ -75,6 +75,8 @@ export function CreateWithChefModal({
 
   // Ref lets "Let Chef Adapt It" skip the diet check on the next call without state timing issues
   const dietAdaptModeRef = useRef(false);
+  // Ref tracks "Continue Anyway" — user explicitly overrides diet preference for this generation
+  const continueAnywayRef = useRef(false);
 
   const {
     alert: dietAlert,
@@ -153,6 +155,9 @@ export function CreateWithChefModal({
       ? { ...starchContext, forceStarch: true }
       : starchContext;
 
+    const userDietOverride = continueAnywayRef.current;
+    continueAnywayRef.current = false;
+
     const meal = await generateMeal(
       mealDescription,
       mealType,
@@ -164,7 +169,8 @@ export function CreateWithChefModal({
         overrideToken: !safetyEnabled ? overrideToken || undefined : undefined,
       },
       strictMode,
-      explicitOverride
+      explicitOverride,
+      userDietOverride
     );
 
     if (meal) {
@@ -325,7 +331,7 @@ export function CreateWithChefModal({
   };
 
   // Handle diet guard decision:
-  // "continue_anyway" — user proceeds with their original request, no substitution
+  // "continue_anyway" — user proceeds with their original request, soft override active
   // "let_chef_adapt" — bypass diet check and generate with protocol-aware adaptation
   const handleDietDecision = async (decision: "pick_something_else" | "let_chef_adapt" | "continue_anyway") => {
     if (decision === "pick_something_else") {
@@ -333,7 +339,9 @@ export function CreateWithChefModal({
       clearDietAlert();
       return;
     }
-    // Both "continue_anyway" and "let_chef_adapt" bypass the diet guard and proceed
+    if (decision === "continue_anyway") {
+      continueAnywayRef.current = true;
+    }
     setDietDecision(decision);
     dietAdaptModeRef.current = true;
     clearDietAlert();

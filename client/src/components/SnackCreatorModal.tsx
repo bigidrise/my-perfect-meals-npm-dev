@@ -57,6 +57,7 @@ export function SnackCreatorModal({
   const { user } = useAuth();
 
   const dietAdaptModeRef = useRef(false);
+  const continueAnywayRef = useRef(false);
 
   const isGuest = isGuestMode();
   const guestSession = isGuest ? getGuestSession() : null;
@@ -128,7 +129,9 @@ export function SnackCreatorModal({
   }, [open, cancel, clearAlert, clearDietAlert]);
 
   const executeGeneration = async (explicitOverride?: ExplicitOverride) => {
-    const snack = await generateSnack(description.trim(), dietType, dietPhase, overrideToken || undefined, starchOverride || undefined, strictMode === true, explicitOverride);
+    const userDietOverride = continueAnywayRef.current;
+    continueAnywayRef.current = false;
+    const snack = await generateSnack(description.trim(), dietType, dietPhase, overrideToken || undefined, starchOverride || undefined, strictMode === true, explicitOverride, userDietOverride);
 
     if (snack) {
       if (isGuest) {
@@ -250,7 +253,9 @@ export function SnackCreatorModal({
       clearDietAlert();
       return;
     }
-    // Both "continue_anyway" and "let_chef_adapt" bypass the diet guard and proceed
+    if (decision === "continue_anyway") {
+      continueAnywayRef.current = true;
+    }
     setDietDecision(decision);
     dietAdaptModeRef.current = true;
     clearDietAlert();
