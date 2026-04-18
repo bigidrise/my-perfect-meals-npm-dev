@@ -7,7 +7,7 @@ import { SafetyPinSettings } from "@/components/SafetyPinSettings";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGlycemicSettings } from "@/hooks/useGlycemicSettings";
-import { LOW_GI, MID_GI, HIGH_GI } from "@/types/glycemic";
+import { LOW_RANGE_OPTIONS, MID_RANGE_OPTIONS, HIGH_RANGE_OPTIONS } from "@/types/glycemic";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthToken } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
@@ -267,13 +267,15 @@ export default function EditProfilePage() {
     isSaving: glycemicSaving,
   } = useGlycemicSettings();
 
-  const [preferredCarbs, setPreferredCarbs] = useState<string[]>(
-    glycemicData.preferredCarbs || []
-  );
+  const [lowRangeCarbs, setLowRangeCarbs] = useState<string[]>(glycemicData.lowRangeCarbs ?? []);
+  const [midRangeCarbs, setMidRangeCarbs] = useState<string[]>(glycemicData.midRangeCarbs ?? []);
+  const [highRangeCarbs, setHighRangeCarbs] = useState<string[]>(glycemicData.highRangeCarbs ?? []);
 
   useEffect(() => {
-    if (glycemicData?.preferredCarbs) {
-      setPreferredCarbs(glycemicData.preferredCarbs);
+    if (glycemicData) {
+      setLowRangeCarbs(glycemicData.lowRangeCarbs ?? []);
+      setMidRangeCarbs(glycemicData.midRangeCarbs ?? []);
+      setHighRangeCarbs(glycemicData.highRangeCarbs ?? []);
     }
   }, [glycemicData]);
 
@@ -1074,36 +1076,82 @@ export default function EditProfilePage() {
 
         {step === 4 && (
           <StepShell
-            title="Glycemic Preferences"
-            subtitle="Select which carbs you prefer — this personalizes your meal recommendations."
+            title="Glucose-Based Carb Choices"
+            subtitle="Your glucose-based carb choices help MPM decide which fruits and carb sources to prioritize when building meals for diabetic support."
           >
             <div className="space-y-4">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <p className="text-white/70 text-xs">Choose what you prefer to eat when your blood sugar is low, in range, or elevated. MPM will use these choices automatically during meal generation.</p>
+              </div>
+
+              <div className="rounded-xl border border-blue-500/30 bg-blue-950/20 p-3">
+                <div className="flex items-center justify-between mb-1">
+                  <div>
+                    <p className="text-blue-300 text-sm font-semibold flex items-center gap-2">
+                      <span className="text-lg">🔵</span> Low Glucose Range
+                    </p>
+                    <p className="text-blue-200/50 text-xs">What helps you recover when blood sugar is low</p>
+                  </div>
+                  <PillButton
+                    active={LOW_RANGE_OPTIONS.every((f) => lowRangeCarbs.includes(f))}
+                    onClick={() => {
+                      const allSelected = LOW_RANGE_OPTIONS.every((f) => lowRangeCarbs.includes(f));
+                      setLowRangeCarbs((prev) =>
+                        allSelected
+                          ? prev.filter((f) => !LOW_RANGE_OPTIONS.includes(f))
+                          : [...new Set([...prev, ...LOW_RANGE_OPTIONS])]
+                      );
+                    }}
+                  >
+                    {LOW_RANGE_OPTIONS.every((f) => lowRangeCarbs.includes(f)) ? "Clear All" : "Select All"}
+                  </PillButton>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {LOW_RANGE_OPTIONS.map((food) => (
+                    <PillButton
+                      key={food}
+                      active={lowRangeCarbs.includes(food)}
+                      onClick={() =>
+                        setLowRangeCarbs((prev) =>
+                          prev.includes(food) ? prev.filter((f) => f !== food) : [...prev, food]
+                        )
+                      }
+                    >
+                      {food}
+                    </PillButton>
+                  ))}
+                </div>
+              </div>
+
               <div className="rounded-xl border border-green-500/30 bg-green-950/20 p-3">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-green-300 text-sm font-semibold flex items-center gap-2">
-                    <span className="text-lg">🟢</span> Low Glycemic (Best for stable blood sugar)
-                  </p>
+                  <div>
+                    <p className="text-green-300 text-sm font-semibold flex items-center gap-2">
+                      <span className="text-lg">🟢</span> In-Range Glucose
+                    </p>
+                    <p className="text-green-200/50 text-xs">Balanced carbs for stable blood sugar</p>
+                  </div>
                   <PillButton
-                    active={LOW_GI.every((f) => preferredCarbs.includes(f))}
+                    active={MID_RANGE_OPTIONS.every((f) => midRangeCarbs.includes(f))}
                     onClick={() => {
-                      const allSelected = LOW_GI.every((f) => preferredCarbs.includes(f));
-                      setPreferredCarbs((prev) =>
+                      const allSelected = MID_RANGE_OPTIONS.every((f) => midRangeCarbs.includes(f));
+                      setMidRangeCarbs((prev) =>
                         allSelected
-                          ? prev.filter((f) => !LOW_GI.includes(f))
-                          : [...new Set([...prev, ...LOW_GI])]
+                          ? prev.filter((f) => !MID_RANGE_OPTIONS.includes(f))
+                          : [...new Set([...prev, ...MID_RANGE_OPTIONS])]
                       );
                     }}
                   >
-                    {LOW_GI.every((f) => preferredCarbs.includes(f)) ? "Clear All" : "Select All"}
+                    {MID_RANGE_OPTIONS.every((f) => midRangeCarbs.includes(f)) ? "Clear All" : "Select All"}
                   </PillButton>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {LOW_GI.map((food) => (
+                  {MID_RANGE_OPTIONS.map((food) => (
                     <PillButton
                       key={food}
-                      active={preferredCarbs.includes(food)}
+                      active={midRangeCarbs.includes(food)}
                       onClick={() =>
-                        setPreferredCarbs((prev) =>
+                        setMidRangeCarbs((prev) =>
                           prev.includes(food)
                             ? prev.filter((f) => f !== food)
                             : [...prev, food]
@@ -1116,70 +1164,35 @@ export default function EditProfilePage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-yellow-500/30 bg-yellow-950/20 p-3">
+              <div className="rounded-xl border border-orange-500/30 bg-orange-950/20 p-3">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-yellow-300 text-sm font-semibold flex items-center gap-2">
-                    <span className="text-lg">🟡</span> Mid Glycemic (Moderate energy release)
-                  </p>
+                  <div>
+                    <p className="text-orange-300 text-sm font-semibold flex items-center gap-2">
+                      <span className="text-lg">🟠</span> High Glucose Range
+                    </p>
+                    <p className="text-orange-200/50 text-xs">Lower-carb choices when blood sugar is elevated</p>
+                  </div>
                   <PillButton
-                    active={MID_GI.every((f) => preferredCarbs.includes(f))}
+                    active={HIGH_RANGE_OPTIONS.every((f) => highRangeCarbs.includes(f))}
                     onClick={() => {
-                      const allSelected = MID_GI.every((f) => preferredCarbs.includes(f));
-                      setPreferredCarbs((prev) =>
+                      const allSelected = HIGH_RANGE_OPTIONS.every((f) => highRangeCarbs.includes(f));
+                      setHighRangeCarbs((prev) =>
                         allSelected
-                          ? prev.filter((f) => !MID_GI.includes(f))
-                          : [...new Set([...prev, ...MID_GI])]
+                          ? prev.filter((f) => !HIGH_RANGE_OPTIONS.includes(f))
+                          : [...new Set([...prev, ...HIGH_RANGE_OPTIONS])]
                       );
                     }}
                   >
-                    {MID_GI.every((f) => preferredCarbs.includes(f)) ? "Clear All" : "Select All"}
+                    {HIGH_RANGE_OPTIONS.every((f) => highRangeCarbs.includes(f)) ? "Clear All" : "Select All"}
                   </PillButton>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {MID_GI.map((food) => (
+                  {HIGH_RANGE_OPTIONS.map((food) => (
                     <PillButton
                       key={food}
-                      active={preferredCarbs.includes(food)}
+                      active={highRangeCarbs.includes(food)}
                       onClick={() =>
-                        setPreferredCarbs((prev) =>
-                          prev.includes(food)
-                            ? prev.filter((f) => f !== food)
-                            : [...prev, food]
-                        )
-                      }
-                    >
-                      {food}
-                    </PillButton>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-red-500/30 bg-red-950/20 p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-red-300 text-sm font-semibold flex items-center gap-2">
-                    <span className="text-lg">🔴</span> High Glycemic (Quick energy, use sparingly)
-                  </p>
-                  <PillButton
-                    active={HIGH_GI.every((f) => preferredCarbs.includes(f))}
-                    onClick={() => {
-                      const allSelected = HIGH_GI.every((f) => preferredCarbs.includes(f));
-                      setPreferredCarbs((prev) =>
-                        allSelected
-                          ? prev.filter((f) => !HIGH_GI.includes(f))
-                          : [...new Set([...prev, ...HIGH_GI])]
-                      );
-                    }}
-                  >
-                    {HIGH_GI.every((f) => preferredCarbs.includes(f)) ? "Clear All" : "Select All"}
-                  </PillButton>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {HIGH_GI.map((food) => (
-                    <PillButton
-                      key={food}
-                      active={preferredCarbs.includes(food)}
-                      onClick={() =>
-                        setPreferredCarbs((prev) =>
+                        setHighRangeCarbs((prev) =>
                           prev.includes(food)
                             ? prev.filter((f) => f !== food)
                             : [...prev, food]
@@ -1206,7 +1219,9 @@ export default function EditProfilePage() {
                   onClick={async () => {
                     await saveGlycemic({
                       ...glycemicData,
-                      preferredCarbs,
+                      lowRangeCarbs,
+                      midRangeCarbs,
+                      highRangeCarbs,
                     });
                     setStep(5);
                   }}

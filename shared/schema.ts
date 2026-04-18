@@ -507,6 +507,10 @@ export const userGlycemicSettings = pgTable("user_glycemic_settings", {
   userId: varchar("user_id").references(() => users.id).notNull(),
   bloodGlucose: integer("blood_glucose"),
   preferredCarbs: text("preferred_carbs").array().default(sql`ARRAY[]::text[]`),
+  // Per-glucose-range carb preferences — what to eat when blood sugar is low/in-range/high
+  lowRangeCarbs: text("low_range_carbs").array().default(sql`ARRAY[]::text[]`),
+  midRangeCarbs: text("mid_range_carbs").array().default(sql`ARRAY[]::text[]`),
+  highRangeCarbs: text("high_range_carbs").array().default(sql`ARRAY[]::text[]`),
   defaultPortion: integer("default_portion").default(100), // stored as integer (100 = 1.0 cups)
   updatedAt: timestamp("updated_at").defaultNow(),
 });

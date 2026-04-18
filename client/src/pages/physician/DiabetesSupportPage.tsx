@@ -185,6 +185,34 @@ export default function DiabetesSupportPage() {
           </div>
         </section>
 
+        {/* How MPM Diabetic Support Works — App Library Explainer */}
+        <section className="bg-black/30 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8 mb-8 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/3 pointer-events-none" />
+          <div className="relative z-10">
+            <h2 className="text-xl font-medium text-white mb-3">How MPM Diabetic Support Works</h2>
+            <p className="text-white/80 text-sm leading-relaxed mb-4">
+              If you are using diabetic support, MPM does more than just label meals diabetic-friendly. It uses your glucose level and your preferred carb choices to build meals differently depending on whether your blood sugar is low, in range, or elevated. That means the app is not just following a static food list — it is coaching your meal decisions based on what your body may need in that moment.
+            </p>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="rounded-xl bg-blue-900/30 border border-blue-500/30 p-4">
+                <div className="text-blue-300 font-semibold text-sm mb-1">🔵 Low Glucose Range</div>
+                <p className="text-white/70 text-xs">When blood sugar is low, MPM prioritizes the carbs and fruits you selected for recovery — including faster-acting options that help stabilize your levels quickly.</p>
+              </div>
+              <div className="rounded-xl bg-green-900/30 border border-green-500/30 p-4">
+                <div className="text-green-300 font-semibold text-sm mb-1">🟢 In-Range Glucose</div>
+                <p className="text-white/70 text-xs">When blood sugar is stable, MPM uses your in-range carb preferences to build balanced, low-glycemic meals that help you maintain that control.</p>
+              </div>
+              <div className="rounded-xl bg-red-900/30 border border-red-500/30 p-4">
+                <div className="text-red-300 font-semibold text-sm mb-1">🔴 High Glucose Range</div>
+                <p className="text-white/70 text-xs">When blood sugar is elevated, MPM switches to the low-glycemic options you chose for high-range — minimizing carbs and focusing on protein and fiber.</p>
+              </div>
+            </div>
+            <p className="text-white/50 text-xs mt-4">
+              Set your glucose-based carb preferences in the Diabetic Hub under Glycemic Settings. Your choices are remembered and applied automatically when meals are generated.
+            </p>
+          </div>
+        </section>
+
         {/* Enhanced Glass Meal Recommendations */}
         <section className="bg-black/30 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/3 pointer-events-none" />
