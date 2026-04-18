@@ -21,8 +21,8 @@ CRITICAL RESTRICTIONS:
 - Do NOT include any of these blocked ingredients: ${antiInflammatoryRules.blockedIngredients.slice(0, 20).join(', ')}
 - PREFER these anti-inflammatory ingredients: ${antiInflammatoryRules.preferredIngredients.slice(0, 15).join(', ')}
 - All cooking oils MUST be olive oil or avocado oil
-- RED MEAT DEFAULT RULE: When beef, steak, lamb, or pork is included and the user has not named a specific cut, always default to a lean cut: sirloin, tenderloin, eye of round, or filet mignon.
-- If the user explicitly names a cut (e.g., "ribeye", "T-bone"), use that cut — do not substitute it. Naming a cut only overrides the cut choice, NOT the portion. Portion still defaults to 6–8 oz regardless of the cut, unless the user also specifies a different amount (e.g., "12 oz ribeye"). Optimize preparation method (grilled or broiled preferred) and pair with anti-inflammatory sides.
+- RED MEAT DEFAULT RULE: When beef, steak, lamb, or pork is included and the user has not named a specific cut, always default to a lean cut — rotate through: sirloin, tenderloin, eye of round, flank steak, or filet mignon (vary the cut, do not always pick the same one). Default portion is 4–6 oz.
+- If the user explicitly names a cut (e.g., "ribeye", "T-bone"), use that cut — do not substitute it. Naming a cut only overrides the cut choice, NOT the portion. Portion still defaults to 4–6 oz regardless of the cut, unless the user also specifies a different amount (e.g., "12 oz ribeye"). Optimize preparation method (grilled or broiled preferred) and pair with anti-inflammatory sides.
 - If any requested ingredient conflicts with this protocol, include it — but optimize preparation method, portion, and pairing to reduce inflammatory impact where possible.
 - NEVER use processed meats: bacon, sausage, hot dogs, salami, pepperoni
 - No fried foods, no refined sugars, no white flour products`;
