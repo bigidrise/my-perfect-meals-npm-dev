@@ -1288,7 +1288,7 @@ export default function EditProfilePage() {
                   Sweeteners: {sweetenerPreferences.length > 0 ? sweetenerPreferences.join(", ") : "None selected"}
                 </p>
                 <p className="text-white/80 text-xs">
-                  Glycemic Carbs: {preferredCarbs.length > 0 ? preferredCarbs.join(", ") : "None selected"}
+                  Glucose Carb Choices: {[...new Set([...lowRangeCarbs, ...midRangeCarbs, ...highRangeCarbs])].length > 0 ? `${[...new Set([...lowRangeCarbs, ...midRangeCarbs, ...highRangeCarbs])].length} foods selected across ranges` : "None selected"}
                 </p>
               </div>
 
