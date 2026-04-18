@@ -30,6 +30,9 @@ export interface HubGuardrails {
   blockedCookingMethods?: string[];
   preferredIngredients?: string[];
   userPreferredCarbs?: string[];
+  lowRangeCarbs?: string[];
+  midRangeCarbs?: string[];
+  highRangeCarbs?: string[];
   customRules?: Record<string, unknown>;
 }
 

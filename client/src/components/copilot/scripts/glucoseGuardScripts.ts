@@ -16,6 +16,8 @@ If your blood sugar is low, below 70 milligrams per deciliter, we generate a mea
 
 This is why logging your blood sugar before every meal matters. The reading you enter is the reading we build your next meal around. It directly changes what types of carbohydrates go into your food, how much, and how fast they act.
 
+Here is something most people don't realize. When your blood sugar changes, your food needs change too. I use your glucose level and your selected foods together to build meals that match what your body needs in that moment. You set your preferred carbs for each range in the Diabetic Hub under Glycemic Settings. When your blood sugar is low, I can include faster-acting fruits and carbs you would normally avoid on a diabetic plan, because getting your levels back up is the priority. When you are in range, I use your balanced options. When you are elevated, I pull from your low-impact list. The system is always reading your current state.
+
 If you haven't logged a new reading, we use your last one, and we tell you we're doing so. We never assume. We never guess. We always show you what reading your meal is based on.
 
 This is not medical advice. This is a nutrition tool that responds to the data you provide. Always follow your healthcare provider's guidance for medication, insulin, and treatment decisions.
