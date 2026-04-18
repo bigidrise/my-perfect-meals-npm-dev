@@ -140,7 +140,12 @@ export const diabeticHubModule: HubModule = {
       db.query.diabetesProfile.findFirst({
         where: (p, { eq }) => eq(p.userId, userId)
       }),
-      db.select({ preferredCarbs: userGlycemicSettings.preferredCarbs })
+      db.select({
+        preferredCarbs: userGlycemicSettings.preferredCarbs,
+        lowRangeCarbs: userGlycemicSettings.lowRangeCarbs,
+        midRangeCarbs: userGlycemicSettings.midRangeCarbs,
+        highRangeCarbs: userGlycemicSettings.highRangeCarbs,
+      })
         .from(userGlycemicSettings)
         .where(eq(userGlycemicSettings.userId, userId))
         .limit(1)
@@ -149,8 +154,14 @@ export const diabeticHubModule: HubModule = {
 
     const guardrails = profile?.guardrails as Guardrails | null;
 
+    // Per-range carb preferences (new system — falls back to legacy preferredCarbs)
+    const lowRangeCarbs: string[] = (glycemicRow?.lowRangeCarbs as string[]) || [];
+    const midRangeCarbs: string[] = (glycemicRow?.midRangeCarbs as string[]) || [];
+    const highRangeCarbs: string[] = (glycemicRow?.highRangeCarbs as string[]) || [];
+    // Legacy fallback: if no per-range data, use old flat array
+    const legacyCarbs: string[] = (glycemicRow?.preferredCarbs as string[]) || [];
     // User's personally selected low-GI carbs from Glycemic Settings screen
-    const userPreferredCarbs: string[] = (glycemicRow?.preferredCarbs as string[]) || [];
+    const userPreferredCarbs: string[] = midRangeCarbs.length > 0 ? midRangeCarbs : legacyCarbs;
     
     const basePreferred = [
       'leafy greens', 'broccoli', 'cauliflower', 'zucchini', 'asparagus',
@@ -176,6 +187,9 @@ export const diabeticHubModule: HubModule = {
       fiberMin: guardrails?.fiberMin ?? DEFAULT_GUARDRAILS.fiberMin!,
       giCap: guardrails?.giCap ?? DEFAULT_GUARDRAILS.giCap!,
       userPreferredCarbs,
+      lowRangeCarbs,
+      midRangeCarbs,
+      highRangeCarbs,
       // ✅ FIX: Full clinical blocked list (110 items) — replaces the previous 14-item stub
       blockedIngredients: [
         // Sugars & sweeteners
@@ -233,9 +247,26 @@ export const diabeticHubModule: HubModule = {
       }
     }
 
-    const userCarbsLine = guardrails.userPreferredCarbs && guardrails.userPreferredCarbs.length > 0
-      ? `- User's preferred low-GI carb sources (PRIORITIZE THESE): ${guardrails.userPreferredCarbs.join(', ')}\n`
-      : '';
+    // Select carbs appropriate for the user's current glucose state
+    const glucoseState = data?.latestGlucose?.state;
+    let activeCarbs: string[] = [];
+    let carbRangeLabel = '';
+    if (glucoseState === 'low' || glucoseState === 'low-normal') {
+      activeCarbs = guardrails.lowRangeCarbs?.length ? guardrails.lowRangeCarbs : (guardrails.userPreferredCarbs || []);
+      carbRangeLabel = 'recovery carb sources (blood sugar is low)';
+    } else if (glucoseState === 'elevated' || glucoseState === 'high-risk') {
+      activeCarbs = guardrails.highRangeCarbs?.length ? guardrails.highRangeCarbs : (guardrails.userPreferredCarbs || []);
+      carbRangeLabel = 'low-impact carb sources (blood sugar is elevated)';
+    } else {
+      activeCarbs = guardrails.midRangeCarbs?.length ? guardrails.midRangeCarbs : (guardrails.userPreferredCarbs || []);
+      carbRangeLabel = 'balanced carb sources (blood sugar in range)';
+    }
+
+    const userCarbsLine = activeCarbs.length > 0
+      ? `- User's preferred ${carbRangeLabel} (PRIORITIZE THESE): ${activeCarbs.join(', ')}\n`
+      : guardrails.userPreferredCarbs && guardrails.userPreferredCarbs.length > 0
+        ? `- User's preferred low-GI carb sources (PRIORITIZE THESE): ${guardrails.userPreferredCarbs.join(', ')}\n`
+        : '';
 
     // Group blocked items for clearer AI instruction
     const blockedSugars = guardrails.blockedIngredients?.filter(i =>

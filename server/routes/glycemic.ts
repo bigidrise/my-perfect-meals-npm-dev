@@ -23,15 +23,21 @@ router.get("/glycemic-settings", async (req, res) => {
 // POST save glycemic settings
 router.post("/glycemic-settings", async (req, res) => {
   try {
-    const { userId = "1", bloodGlucose, preferredCarbs, defaultPortion } = req.body;
-    
+    const {
+      userId = "1", bloodGlucose, preferredCarbs, defaultPortion,
+      lowRangeCarbs, midRangeCarbs, highRangeCarbs,
+    } = req.body;
+
     const settings = {
       userId,
       bloodGlucose,
-      preferredCarbs,
-      defaultPortion
+      preferredCarbs: preferredCarbs ?? [],
+      lowRangeCarbs: lowRangeCarbs ?? [],
+      midRangeCarbs: midRangeCarbs ?? [],
+      highRangeCarbs: highRangeCarbs ?? [],
+      defaultPortion: defaultPortion ?? 1,
     };
-    
+
     await saveGlycemicSettings(settings);
     res.json({ success: true, settings });
   } catch (error) {
