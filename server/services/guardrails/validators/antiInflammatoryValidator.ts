@@ -29,9 +29,9 @@ export function validateAntiInflammatoryMeal(meal: MealToValidate): ValidationRe
     }
   }
   
-  // Check meal name for red flags
+  // Check meal name for hard-blocked terms only (processed meats, not unprocessed red meat)
   const mealNameLower = meal.name.toLowerCase();
-  const redFlagTerms = ['fried', 'bacon', 'sausage', 'beef', 'pork', 'ham'];
+  const redFlagTerms = ['fried', 'bacon', 'sausage', 'ham', 'hot dog', 'salami', 'pepperoni'];
   for (const term of redFlagTerms) {
     if (mealNameLower.includes(term)) {
       violations.push(`Meal name contains blocked term: ${term}`);
@@ -71,22 +71,25 @@ export function validateAntiInflammatoryMeal(meal: MealToValidate): ValidationRe
  */
 export function suggestSubstitutions(blockedIngredient: string): string | null {
   const substitutions: Record<string, string> = {
+    // Seed oil swaps — always apply
     'canola oil': 'olive oil',
     'vegetable oil': 'olive oil',
     'corn oil': 'avocado oil',
     'soybean oil': 'olive oil',
     'butter': 'olive oil',
-    'beef': 'salmon',
-    'ground beef': 'ground turkey',
+    // Processed meat swaps — always apply (hard-blocked)
     'bacon': 'turkey bacon or omit',
     'sausage': 'chicken sausage',
-    'pork': 'chicken breast',
+    'ham': 'grilled chicken or omit',
+    // Refined carb swaps — always apply
     'white rice': 'brown rice',
     'white bread': 'whole grain bread',
     'white pasta': 'whole grain pasta',
+    // Dairy swaps — always apply
     'cream cheese': 'hummus',
     'heavy cream': 'coconut cream',
     'white sugar': 'honey or maple syrup (small amount)',
+    // Unprocessed red meat: no hard swap — the prompt handles optimization via preparation guidance
   };
   
   const normalized = blockedIngredient.toLowerCase().trim();
