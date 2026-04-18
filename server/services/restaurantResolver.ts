@@ -13,6 +13,7 @@
 
 import axios from 'axios';
 import { zipToCoordinates } from './zipToCoordsService';
+import { classifyRestaurantArchetype } from './restaurantCuisineArchetype';
 
 export interface ResolvedRestaurant {
   name: string;
@@ -46,30 +47,8 @@ export interface RestaurantResolverResult {
 }
 
 function detectCuisine(name: string, types: string[] = []): string {
-  const nameLower = name.toLowerCase();
-  const typesStr = types.join(' ').toLowerCase();
-  
-  if (typesStr.includes('mexican')) return 'Mexican';
-  if (typesStr.includes('italian')) return 'Italian';
-  if (typesStr.includes('chinese')) return 'Chinese';
-  if (typesStr.includes('japanese')) return 'Japanese';
-  if (typesStr.includes('indian')) return 'Indian';
-  if (typesStr.includes('thai')) return 'Thai';
-  if (typesStr.includes('mediterranean')) return 'Mediterranean';
-  if (typesStr.includes('greek')) return 'Greek';
-  if (typesStr.includes('french')) return 'French';
-  if (typesStr.includes('korean')) return 'Korean';
-  if (typesStr.includes('vietnamese')) return 'Vietnamese';
-  
-  if (nameLower.includes('taco') || nameLower.includes('burrito')) return 'Mexican';
-  if (nameLower.includes('pizza') || nameLower.includes('pasta')) return 'Italian';
-  if (nameLower.includes('sushi') || nameLower.includes('ramen')) return 'Japanese';
-  if (nameLower.includes('curry') || nameLower.includes('tandoor')) return 'Indian';
-  if (nameLower.includes('pita') || nameLower.includes('gyro')) return 'Mediterranean';
-  if (nameLower.includes('pho') || nameLower.includes('banh')) return 'Vietnamese';
-  if (nameLower.includes('bbq') || nameLower.includes('barbecue')) return 'BBQ';
-  
-  return 'American';
+  const result = classifyRestaurantArchetype(name, types);
+  return result.archetype.label;
 }
 
 function getPhotoUrl(photoReference?: string): string | undefined {

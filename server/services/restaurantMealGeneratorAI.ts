@@ -9,6 +9,7 @@ import { enforceCarbs } from '../utils/carbClassifier';
 import { buildDietPromptBlock, violatesDietaryConstraints, getPrimaryDiet } from './allergyGuardrails';
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope, scanGeneratedOutput, UserProtocolEnvelope } from './protocolEnvelope';
 import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
+import { classifyRestaurantArchetype } from './restaurantCuisineArchetype';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -75,6 +76,12 @@ interface RestaurantMeal {
     color: string;
   }>;
   imageUrl?: string;
+  menuAnchorItem?: string;
+  howToOrder?: {
+    askFor: string;
+    modify: string[];
+    swap: string[];
+  };
 }
 
 // Medical condition compatibility checker
@@ -166,6 +173,29 @@ export async function generateRestaurantMealsAI(request: RestaurantMealRequest):
     ? `\n\nCRITICAL: The user is specifically craving "${cravingContext}". ALL meals MUST prominently feature ${cravingContext} as the main ingredient or protein. Focus on ${cravingContext}-based dishes that this restaurant would realistically serve.`
     : '';
 
+  // ── Cuisine archetype classification ────────────────────────────────────────
+  const archetypeResult = classifyRestaurantArchetype(restaurantName, [], cravingContext);
+  const archetype = archetypeResult.archetype;
+  const anchorPool = archetypeResult.chainPatterns ?? archetype.anchorItems;
+  const chainNote = archetypeResult.chainName
+    ? `This is a ${archetypeResult.chainName} location.`
+    : `This restaurant is classified as: ${archetype.label}.`;
+
+  const archetypeRealism = `
+RESTAURANT REALISM RULES (CRITICAL — do NOT violate these):
+${chainNote}
+${archetype.menuRealism}
+
+MENU ANCHOR — Every generated meal MUST be based on a recognizable real-world item from this restaurant type.
+Anchor item pool (choose or adapt from these): ${anchorPool.join(", ")}.
+For each meal, set the "menuAnchorItem" field to the anchor it is based on (e.g., "Grilled Chicken Sandwich", "Burrito Bowl").
+
+GUARDRAIL REALISM RULE — When dietary or health adjustments are needed, PRESERVE the restaurant's menu language.
+WRONG: "Healthy protein bowl" (at a burger restaurant)
+RIGHT: "Grilled Chicken Sandwich, no mayo, lettuce wrap"
+Adjustments go in "howToOrder.modify" and "howToOrder.swap" — NOT in the meal name.`;
+  // ────────────────────────────────────────────────────────────────────────────
+
   try {
     // Add timestamp for variety on each request
     const varietyTimestamp = Date.now();
@@ -233,9 +263,10 @@ export async function generateRestaurantMealsAI(request: RestaurantMealRequest):
     }
 
     // Use OpenAI to generate restaurant-specific meals
-    const prompt = `You are a nutrition expert helping someone choose healthy meals at "${restaurantName}", a ${cuisine} restaurant.
+    const prompt = `You are a nutrition expert helping someone order healthy meals at "${restaurantName}", a ${cuisine} restaurant.
 ${protocolBlock ? `\n${protocolBlock}\n` : ""}
 ${medicalContext}${allergyContext}${dietaryContext}${avoidContext}${cravingInstructions}${dietBehaviorBlock}
+${archetypeRealism}
 
 TONE AND LANGUAGE RULES:
 - For the "reason" field: use system-based language focused on energy balance, satiety, and macro alignment — explain how the meal supports the user's goals. Avoid generic textbook phrases like "good source of calcium", "rich in vitamins", "provides essential nutrients", or "provides carbohydrates for energy." Instead say things like "supports steady energy", "balances protein and carbs for consistency", or "keeps you full without a spike."
@@ -244,22 +275,23 @@ TONE AND LANGUAGE RULES:
 IMPORTANT: Generate 3 UNIQUE and DIFFERENT meal recommendations. Each time this request is made, create completely different meals from previous suggestions. ${randomVarietyHint}
 
 MEAL STRUCTURE — return exactly 3 meals filling these 3 different slots. Do not put the same meal type in more than one slot:
-1. One hearty main entrée (a filling baked entrée, a protein-forward plate, or a grilled dish)
-2. One lighter or lower-calorie option (a salad, a broth-based soup, or a smaller plate)
-3. One alternative format (a bowl, a wrap, a flatbread, or a non-traditional variation of the cuisine)
+1. One hearty main entrée (a filling protein-forward or grilled dish)
+2. One lighter or lower-calorie option (a salad, soup, or smaller plate)
+3. One alternative format appropriate for this restaurant type
 
 CUISINE VARIETY RULES:
 - Italian: return one pasta dish, one vegetable-forward entrée (eggplant, mushroom, zucchini, etc.), and one salad or lighter option. Never return 3 pasta dishes.
 - Mexican: return one taco or burrito, one bowl or plate, and one salad or lighter option. Never return 3 tacos.
+- Fast food: all 3 items must sound like real fast food menu items (burger, sandwich, nuggets, etc.) — not generic bowls.
 - All other cuisines: ensure the 3 meals cover clearly different meal structures and preparation styles — never repeat the same base format.
 
-Generate 3 specific meal recommendations that would realistically be available at this restaurant. Each meal should:
-1. Have a realistic name that sounds like an actual menu item from this type of restaurant
+Generate 3 specific meal recommendations that a person could walk into this restaurant and order TODAY. Each meal should:
+1. Have a realistic name matching this restaurant type's menu language (see RESTAURANT REALISM RULES above)
 2. Be a healthier choice (grilled, baked, or steamed options preferred)
 3. Include accurate macro estimates (calories, protein, carbs, fat)
-4. Provide specific ordering modifications to make it healthier
+4. Include structured ordering instructions (howToOrder)
 5. List the main ingredients
-6. Fill a different slot from the 3 structure categories above
+6. Be anchored to a real-world recognizable item (menuAnchorItem)
 
 Request ID: ${varietyTimestamp}
 
@@ -272,7 +304,7 @@ CARB CLASSIFICATION RULES (CRITICAL):
 Return ONLY a JSON array of 3 meals with this exact structure:
 [
   {
-    "name": "Specific menu item name",
+    "name": "Specific menu item name matching this restaurant's language",
     "description": "Brief description of the dish",
     "calories": 450,
     "protein": 35,
@@ -280,12 +312,18 @@ Return ONLY a JSON array of 3 meals with this exact structure:
     "fibrousCarbs": 10,
     "fat": 15,
     "reason": "How this meal supports the user's energy, satiety, and macro goals",
-    "modifications": "Specific ordering instructions focused on preparation method and diet compliance",
-    "ingredients": ["ingredient1", "ingredient2", "ingredient3"]
+    "modifications": "Brief summary of key ordering modifications",
+    "ingredients": ["ingredient1", "ingredient2", "ingredient3"],
+    "menuAnchorItem": "The recognizable real-world menu item this is based on",
+    "howToOrder": {
+      "askFor": "Exact item name to say at the counter or to the server",
+      "modify": ["no mayo", "add avocado", "grilled not fried"],
+      "swap": ["fries → side salad", "white rice → brown rice"]
+    }
   }
 ]
 
-Make the meals sound authentic to ${restaurantName}. Vary the protein sources and preparation methods across the 3 meals.`;
+Make the meals sound like something you would genuinely see on the menu at ${restaurantName}. A person should be able to walk in and order this out loud.`;
 
     const completion = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini", // 10x faster than gpt-4
@@ -342,6 +380,15 @@ Make the meals sound authentic to ${restaurantName}. Vary the protein sources an
       const fibrousCarbs = meal.fibrousCarbs ?? 0;
       const totalCarbs = resolveAICarbsStrict(meal);
       
+      const rawHowToOrder = meal.howToOrder;
+      const howToOrder = rawHowToOrder && typeof rawHowToOrder === 'object'
+        ? {
+            askFor: rawHowToOrder.askFor || meal.name || `${cuisine} Specialty`,
+            modify: Array.isArray(rawHowToOrder.modify) ? rawHowToOrder.modify : [],
+            swap: Array.isArray(rawHowToOrder.swap) ? rawHowToOrder.swap : [],
+          }
+        : undefined;
+
       return {
         id: mealId,
         name: meal.name || `${cuisine} Specialty ${index + 1}`,
@@ -355,7 +402,9 @@ Make the meals sound authentic to ${restaurantName}. Vary the protein sources an
         reason: meal.reason || "Balanced nutrition with quality ingredients",
         modifications: meal.modifications || "Request healthy preparation",
         ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : ["protein", "vegetables", "whole grains"],
-        medicalBadges: getMedicalBadges(meal, userConditions)
+        medicalBadges: getMedicalBadges(meal, userConditions),
+        menuAnchorItem: meal.menuAnchorItem || undefined,
+        howToOrder,
       };
     });
 
