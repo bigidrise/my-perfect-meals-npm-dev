@@ -318,7 +318,7 @@ OUTPUT FORMAT: a single JSON object with keys:
 - NEVER use grams (g), milliliters (ml), or metric units
 - NEVER use "piece" or "pieces" for meats/proteins - always use oz or lb
 - Proteins (chicken, beef, fish, pork) MUST be measured in oz (4-8 oz typical serving)
-- DEFAULT LEAN CUT RULE: When beef, steak, lamb, or pork is included and no specific cut is named, always default to a lean cut: sirloin, tenderloin, eye of round, or flank steak. Only use fatty cuts (ribeye, T-bone, porterhouse, brisket) if the user explicitly requests that cut by name.
+- DEFAULT LEAN CUT RULE: When beef, steak, lamb, or pork is included and no specific cut is named, always default to a lean cut: sirloin, tenderloin, eye of round, or flank steak. Only use a fatty cut (ribeye, T-bone, porterhouse, brisket) if the user explicitly names it. Naming a cut overrides the cut choice only — portion still defaults to the standard 4–8 oz range unless the user also specifies a different amount.
 - Dairy (yogurt, cheese, milk) use oz or cups
 - Liquids use cup, tbsp, tsp, or fl oz
 - ALWAYS provide EXACT numeric measurements - never use "a pinch", "dash", "to taste"
