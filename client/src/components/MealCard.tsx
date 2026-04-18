@@ -1,5 +1,6 @@
 // client/src/components/MealCard.tsx
 import * as React from "react";
+import { getMealFallbackImage } from "@/lib/mealFallbackImage";
 import { BarChart3 } from "lucide-react";
 import { generateMedicalBadges, getUserMedicalProfile, type MedicalBadge } from "@/utils/medicalBadges";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
@@ -169,7 +170,7 @@ export function MealCard({
                 className={`w-full h-48 object-cover transition-opacity duration-300 ${imageRevealed ? "opacity-100" : "opacity-0"}`}
                 onLoad={() => setImageRevealed(true)}
                 onError={(e) => {
-                  e.currentTarget.src = `https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400&h=300&fit=crop&auto=format`;
+                  e.currentTarget.src = getMealFallbackImage(title);
                   setImageRevealed(true);
                 }}
               />
