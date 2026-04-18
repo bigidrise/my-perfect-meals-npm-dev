@@ -1293,6 +1293,7 @@ export default function GLP1MealBuilder() {
                             slot={key}
                             meal={meal}
                             showStarchBadge={true}
+                            builderType="glp1"
                                 coachingLine="Built for your GLP-1 phase — small portion, protein-first, easy to digest."
                             data-wt="wmb-meal-card"
                             onUpdated={(m) => {
@@ -1387,6 +1388,7 @@ export default function GLP1MealBuilder() {
                                 slot="snacks"
                                 meal={meal}
                                 showStarchBadge={true}
+                            builderType="glp1"
                                 coachingLine="Built for your GLP-1 phase — small portion, protein-first, easy to digest."
                                 onUpdated={(m) => {
                                   if (m === null) {
@@ -1453,6 +1455,7 @@ export default function GLP1MealBuilder() {
                             slot="snacks"
                             meal={meal}
                             showStarchBadge={true}
+                            builderType="glp1"
                                 coachingLine="Built for your GLP-1 phase — small portion, protein-first, easy to digest."
                             onUpdated={(m) => {
                               if (m === null) {
@@ -1510,6 +1513,7 @@ export default function GLP1MealBuilder() {
                       slot={key}
                       meal={meal}
                       showStarchBadge={true}
+                      builderType="glp1"
                                 coachingLine="Built for your GLP-1 phase — small portion, protein-first, easy to digest."
                       onUpdated={(m) => {
                         if (m === null) {

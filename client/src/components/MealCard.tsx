@@ -54,7 +54,7 @@ function MacroPill({ label, value, suffix = "" }: { label: string; value: number
 }
 
 export function MealCard({
-  date, slot, meal, onUpdated, showStarchBadge = false, coachingLine,
+  date, slot, meal, onUpdated, showStarchBadge = false, coachingLine, builderType,
 }: {
   date: string; // "board" or "YYYY-MM-DD"
   slot: Slot;
@@ -62,6 +62,7 @@ export function MealCard({
   onUpdated: (m: Meal | null) => void; // null = delete
   showStarchBadge?: boolean; // Show starch/fiber classification badge on meal boards
   coachingLine?: string; // Optional coaching confirmation line shown below the meal image
+  builderType?: string; // Builder identity override — used by medical builders (e.g. "oncology-support")
 }) {
   const { toast } = useToast();
   const [macrosLogged, setMacrosLogged] = React.useState(false);
@@ -202,7 +203,7 @@ export function MealCard({
           </div>
           <div className="flex flex-wrap items-center gap-2 mt-1">
             <DietStyleBadge />
-            <BuilderSourcePill source={meal.builderType} />
+            <BuilderSourcePill source={builderType ?? meal.builderType} />
             <MealClassificationPill dietClassification={meal.dietClassification} />
             <KosherProTip dietClassification={meal.dietClassification} />
           </div>
