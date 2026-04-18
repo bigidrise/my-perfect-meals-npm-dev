@@ -13,6 +13,7 @@ import { StarchMealBadge } from "@/components/StarchMealBadge";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import MealClassificationPill, { type DietClassification } from "@/components/MealClassificationPill";
 import KosherProTip from "@/components/KosherProTip";
+import BuilderSourcePill from "@/components/BuilderSourcePill";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 
 // Keep your Meal type colocated here (WeeklyMealBoard imports from this file)
@@ -38,6 +39,7 @@ export type Meal = {
   starchyCarbs?: number;
   fibrousCarbs?: number;
   dietClassification?: DietClassification | null;
+  builderType?: string;
 };
 
 type Slot = "breakfast" | "lunch" | "dinner" | "snacks";
@@ -200,6 +202,7 @@ export function MealCard({
           </div>
           <div className="flex flex-wrap items-center gap-2 mt-1">
             <DietStyleBadge />
+            <BuilderSourcePill source={meal.builderType} />
             <MealClassificationPill dietClassification={meal.dietClassification} />
             <KosherProTip dietClassification={meal.dietClassification} />
           </div>
