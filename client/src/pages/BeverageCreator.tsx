@@ -617,8 +617,8 @@ export default function BeverageCreator() {
             onDecision={(decision) => {
               if (decision === "pick_something_else") {
                 clearDietAlert();
-              } else if (decision === "let_chef_adapt") {
-                setDietDecision("let_chef_adapt");
+              } else if (decision === "let_chef_adapt" || decision === "continue_anyway") {
+                setDietDecision(decision);
                 handleGenerateBeverage(true, undefined, true);
               }
             }}

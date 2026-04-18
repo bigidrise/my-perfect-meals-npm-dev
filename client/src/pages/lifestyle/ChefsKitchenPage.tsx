@@ -711,8 +711,8 @@ export default function ChefsKitchenPage() {
                     onDecision={(decision) => {
                       if (decision === "pick_something_else") {
                         clearDietAlert();
-                      } else if (decision === "let_chef_adapt") {
-                        setDietDecision("let_chef_adapt");
+                      } else if (decision === "let_chef_adapt" || decision === "continue_anyway") {
+                        setDietDecision(decision);
                         startOpenKitchen(true, true);
                       }
                     }}
@@ -867,8 +867,8 @@ export default function ChefsKitchenPage() {
                         clearDietAlert();
                         setGeneratedMeal(null);
                         setMealOptions([]);
-                      } else if (decision === "let_chef_adapt") {
-                        setDietDecision("let_chef_adapt");
+                      } else if (decision === "let_chef_adapt" || decision === "continue_anyway") {
+                        setDietDecision(decision);
                         startOpenKitchen(true, true);
                       }
                     }}
