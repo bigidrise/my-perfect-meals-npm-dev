@@ -12,6 +12,7 @@ import { isFeatureEnabled } from "@/lib/productionGates";
 import FavoriteButton from "@/components/FavoriteButton";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import MealClassificationPill, { type DietClassification } from "@/components/MealClassificationPill";
+import BuilderSourcePill from "@/components/BuilderSourcePill";
 
 export interface GeneratedMealData {
   id: string;
@@ -214,6 +215,7 @@ export default function GeneratedMealCard({
 
       <div className="flex flex-wrap items-center gap-2">
         <DietStyleBadge />
+        <BuilderSourcePill source={source} />
         <MealClassificationPill dietClassification={mealToShow.dietClassification} />
       </div>
 

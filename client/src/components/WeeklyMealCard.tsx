@@ -8,6 +8,7 @@ import { useState } from "react";
 import HealthBadgesPopover from "./badges/HealthBadgesPopover";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import DietStyleBadge from "@/components/DietStyleBadge";
+import BuilderSourcePill from "@/components/BuilderSourcePill";
 
 interface WeeklyMealCardProps {
   dateISO: string;
@@ -15,6 +16,7 @@ interface WeeklyMealCardProps {
   meal: any;
   time?: string;
   onRegenerate?: (slot: string, mealType: string) => Promise<void>;
+  builderType?: string;
 }
 
 function convertToAmericanUnits(
@@ -87,7 +89,7 @@ function convertToAmericanUnits(
   return { quantity: String(quantity), unit };
 }
 
-export default function WeeklyMealCard({ dateISO, slot, meal, time, onRegenerate }: WeeklyMealCardProps) {
+export default function WeeklyMealCard({ dateISO, slot, meal, time, onRegenerate, builderType }: WeeklyMealCardProps) {
   const [regenerating, setRegenerating] = useState(false);
   const [instructionsExpanded, setInstructionsExpanded] = useState(false);
   
@@ -174,7 +176,10 @@ export default function WeeklyMealCard({ dateISO, slot, meal, time, onRegenerate
 
       <CardHeader className="pb-3">
         <CardTitle className="text-lg text-white">{title}</CardTitle>
-        <DietStyleBadge className="mt-1" />
+        <div className="flex flex-wrap items-center gap-1 mt-1">
+          <DietStyleBadge />
+          <BuilderSourcePill source={builderType || meal?.builderType} />
+        </div>
         {description && (
           <CardDescription className="text-sm text-white/80">
             {description}
