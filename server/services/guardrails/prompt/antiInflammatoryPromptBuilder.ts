@@ -21,7 +21,7 @@ CRITICAL RESTRICTIONS:
 - Do NOT include any of these blocked ingredients: ${antiInflammatoryRules.blockedIngredients.slice(0, 20).join(', ')}
 - PREFER these anti-inflammatory ingredients: ${antiInflammatoryRules.preferredIngredients.slice(0, 15).join(', ')}
 - All cooking oils MUST be olive oil or avocado oil
-- Limit red meat by default — if the user explicitly asked for beef, steak, lamb, or pork, honor it using a lean cut (sirloin, tenderloin) with anti-inflammatory preparation and sides
+- When the user requests beef, steak, lamb, or pork: ALWAYS use a lean cut — sirloin, tenderloin, eye of round, or flank steak. NEVER use ribeye, T-bone, porterhouse, or other high-fat cuts regardless of the request — these are too inflammatory for this protocol. Keep red meat portions to 6–8 oz maximum. Use a leaner cut of the requested protein to better align with the user's plan.
 - NEVER use processed meats: bacon, sausage, hot dogs, salami, pepperoni
 - No fried foods, no refined sugars, no white flour products`;
 }
@@ -58,7 +58,7 @@ KEY PRINCIPLES:
 4. Healthy fats (olive oil, avocado)
 5. Whole grains over refined
 6. No processed foods or seed oils
-7. Limit red meat by default — but if explicitly requested, optimize it (lean cut, grilled, anti-inflammatory sides) rather than substituting it
+7. Limit red meat by default — if explicitly requested, use only lean cuts (sirloin, tenderloin, eye of round, flank). Never use ribeye, T-bone, or porterhouse — too inflammatory. Cap at 6–8 oz.
 
 Every meal you create must be:
 - Delicious and satisfying
