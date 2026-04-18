@@ -254,26 +254,40 @@ export const diabeticHubModule: HubModule = {
       }
     }
 
-    // Select carbs appropriate for the user's current glucose state
-    const glucoseState = data?.latestGlucose?.state;
+    // FIX 1: Single source of glucose truth.
+    // customRules.glucoseState (from userGlycemicSettings.bloodGlucose) is the primary source.
+    // Fall back to latestGlucose.state (from glucoseLogs) if settings value not present.
+    const glucoseState = (
+      (guardrails.customRules?.glucoseState as GlucoseState | null | undefined) ??
+      data?.latestGlucose?.state ??
+      'in-range'
+    ) as GlucoseState;
+
+    const isLowState = glucoseState === 'low' || glucoseState === 'low-normal';
+    const isHighState = glucoseState === 'elevated' || glucoseState === 'high-risk';
+
     let activeCarbs: string[] = [];
-    let carbRangeLabel = '';
-    if (glucoseState === 'low' || glucoseState === 'low-normal') {
+    if (isLowState) {
       activeCarbs = guardrails.lowRangeCarbs?.length ? guardrails.lowRangeCarbs : (guardrails.userPreferredCarbs || []);
-      carbRangeLabel = 'recovery carb sources (blood sugar is low)';
-    } else if (glucoseState === 'elevated' || glucoseState === 'high-risk') {
+    } else if (isHighState) {
       activeCarbs = guardrails.highRangeCarbs?.length ? guardrails.highRangeCarbs : (guardrails.userPreferredCarbs || []);
-      carbRangeLabel = 'low-impact carb sources (blood sugar is elevated)';
     } else {
       activeCarbs = guardrails.midRangeCarbs?.length ? guardrails.midRangeCarbs : (guardrails.userPreferredCarbs || []);
-      carbRangeLabel = 'balanced carb sources (blood sugar in range)';
     }
 
-    const userCarbsLine = activeCarbs.length > 0
-      ? `- User's preferred ${carbRangeLabel} (PRIORITIZE THESE): ${activeCarbs.join(', ')}\n`
-      : guardrails.userPreferredCarbs && guardrails.userPreferredCarbs.length > 0
-        ? `- User's preferred low-GI carb sources (PRIORITIZE THESE): ${guardrails.userPreferredCarbs.join(', ')}\n`
-        : '';
+    // FIX 4: Force-priority carb instruction — language scales with urgency per state.
+    let userCarbsLine = '';
+    if (activeCarbs.length > 0) {
+      if (isLowState) {
+        userCarbsLine = `YOU MUST include at least one of these fast-acting carb sources in this meal: ${activeCarbs.join(', ')}. This is a medical requirement for low blood sugar — do NOT substitute berries or low-GI alternatives.\n`;
+      } else if (isHighState) {
+        userCarbsLine = `LIMIT carb choices to these approved low-impact options only: ${activeCarbs.join(', ')}.\n`;
+      } else {
+        userCarbsLine = `PRIORITIZE these carb sources for this meal: ${activeCarbs.join(', ')}. Use these instead of generic diabetic defaults.\n`;
+      }
+    } else if (guardrails.userPreferredCarbs && guardrails.userPreferredCarbs.length > 0) {
+      userCarbsLine = `PRIORITIZE these user-selected carb sources: ${guardrails.userPreferredCarbs.join(', ')}.\n`;
+    }
 
     // Group blocked items for clearer AI instruction
     const blockedSugars = guardrails.blockedIngredients?.filter(i =>
@@ -287,10 +301,27 @@ export const diabeticHubModule: HubModule = {
        'muffins','croissant','bagel','donut','doughnut','white flour','all-purpose flour',
        'pancake','pancakes','waffle','waffles'].includes(i)
     ) ?? [];
-    const blockedFruits = guardrails.blockedIngredients?.filter(i =>
-      ['banana','bananas','pineapple','mango','mangoes','grapes','grape','watermelon',
-       'dried fruit','raisins','dates','fruit juice','orange juice','apple juice'].includes(i)
-    ) ?? [];
+
+    // FIX 2: Blocked fruits are state-aware — low glucose removes fruit blocks entirely
+    // so fast-acting carbs (banana, juice) are never contradicted in the same prompt.
+    let blockedFruits: string[] = [];
+    if (isLowState) {
+      blockedFruits = [];
+    } else if (isHighState) {
+      blockedFruits = ['banana','bananas','pineapple','mango','mangoes','grapes','grape',
+        'watermelon','dried fruit','raisins','dates','fruit juice','orange juice','apple juice'];
+    } else {
+      blockedFruits = ['pineapple','mango','mangoes','grapes','grape','watermelon',
+        'dried fruit','raisins','dates'];
+    }
+
+    const fruitsBlockLine = blockedFruits.length > 0
+      ? `High-GI fruits: ${blockedFruits.join(', ')}\n`
+      : '';
+
+    const alsoAvoidLine = isLowState
+      ? `Also avoid: bbq sauce, ketchup, teriyaki sauce, hoisin sauce, caramel, jam, jelly, soda, sports drinks, potato chips, crackers\n`
+      : `Also avoid: bbq sauce, ketchup, teriyaki sauce, hoisin sauce, caramel, jam, jelly, soda, fruit juice, sports drinks, potato chips, crackers\n`;
 
     let promptAddition = `${typeCoachingLine ? typeCoachingLine + '\n\n' : ''}DIABETIC MEAL REQUIREMENTS — STRICT ENFORCEMENT:
 - Maximum carbohydrates THIS MEAL: ${guardrails.carbCeiling}g (hard limit — do not exceed)
@@ -301,9 +332,7 @@ export const diabeticHubModule: HubModule = {
 ABSOLUTELY FORBIDDEN — NEVER include these:
 Sugars/sweeteners: ${blockedSugars.join(', ')}
 High-GI starches: ${blockedStarches.join(', ')}
-High-GI fruits: ${blockedFruits.join(', ')}
-Also avoid: bbq sauce, ketchup, teriyaki sauce, hoisin sauce, caramel, jam, jelly, soda, fruit juice, sports drinks, potato chips, crackers
-
+${fruitsBlockLine}${alsoAvoidLine}
 ${userCarbsLine}`;
 
 
