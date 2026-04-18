@@ -15,7 +15,7 @@ import {
 import { useLocation, useRoute } from "wouter";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { MealCard, Meal } from "@/components/MealCard";
-import { getWeekBoard, saveWeekBoard, removeMealFromCurrentWeek, getCurrentWeekBoard, getWeekBoardByDate, putWeekBoard, type WeekBoard, getDayLists, setDayLists, cloneDayLists, updateMealImageInBoard } from "@/lib/boardApi";
+import { getWeekBoard, saveWeekBoard, removeMealFromCurrentWeek, getCurrentWeekBoard, getWeekBoardByDate, putWeekBoard, type WeekBoard, getDayLists, setDayLists, cloneDayLists, updateMealImageInBoard, getMealImageUrl } from "@/lib/boardApi";
 import { useChefMealImage } from "@/hooks/useChefMealImage";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { MealPickerDrawer } from "@/components/pickers/MealPickerDrawer";
@@ -265,7 +265,13 @@ export default function WeeklyMealBoard() {
       }
 
       fetchImageForMeal(meal, slot, (mealId, imageUrl) => {
-        setBoard(prev => prev ? updateMealImageInBoard(prev, mealId, imageUrl) : prev);
+        setBoard(prev => {
+          if (!prev) return prev;
+          if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
+          const updated = updateMealImageInBoard(prev, mealId, imageUrl);
+          saveBoard(updated).catch(() => {});
+          return updated;
+        });
       });
 
       window.dispatchEvent(new Event("macros:updated"));

@@ -23,6 +23,7 @@ import {
   putWeekBoard,
   getWeekBoardByDate,
   updateMealImageInBoard,
+  getMealImageUrl,
 } from "@/lib/boardApi";
 import { useChefMealImage } from "@/hooks/useChefMealImage";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
@@ -904,7 +905,13 @@ export default function BeachBodyMealBoard() {
 
         setBoard(updatedBoard);
         fetchImageForMeal(transformedMeal, slot, (mealId, imageUrl) => {
-          setBoard(prev => prev ? updateMealImageInBoard(prev, mealId, imageUrl) : prev);
+          setBoard(prev => {
+            if (!prev) return prev;
+            if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
+            const updated = updateMealImageInBoard(prev, mealId, imageUrl);
+            saveBoard(updated).catch(() => {});
+            return updated;
+          });
         });
         toast({
           title: "AI Meal Added!",
