@@ -105,9 +105,8 @@ MANDATORY SUBSTITUTIONS:
 - Low-carb tortillas instead of flour tortillas
 - Cauliflower mash instead of potatoes
 - Sugar-free sauces and sweeteners
-- Berries instead of high-sugar fruits
 
-${preferredCarbs && preferredCarbs.length > 0 ? `USER'S PREFERRED IN-RANGE CARBS (prioritize these): ${preferredList}` : `PREFERRED INGREDIENTS: ${diabeticRules.preferredIngredients.slice(0, 20).join(", ")}`}
+${preferredCarbs && preferredCarbs.length > 0 ? `PRIORITIZE these carb sources for this meal: ${preferredList}. Use these instead of generic low-GI defaults like berries.` : `PREFERRED INGREDIENTS: ${diabeticRules.preferredIngredients.slice(0, 20).join(", ")}`}
 
 MACRO BALANCE FOR DIABETICS:
 - Moderate protein (lean meats, fish, eggs)
