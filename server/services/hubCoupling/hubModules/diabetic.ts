@@ -145,6 +145,7 @@ export const diabeticHubModule: HubModule = {
         lowRangeCarbs: userGlycemicSettings.lowRangeCarbs,
         midRangeCarbs: userGlycemicSettings.midRangeCarbs,
         highRangeCarbs: userGlycemicSettings.highRangeCarbs,
+        bloodGlucose: userGlycemicSettings.bloodGlucose,
       })
         .from(userGlycemicSettings)
         .where(eq(userGlycemicSettings.userId, userId))
@@ -162,6 +163,12 @@ export const diabeticHubModule: HubModule = {
     const legacyCarbs: string[] = (glycemicRow?.preferredCarbs as string[]) || [];
     // User's personally selected low-GI carbs from Glycemic Settings screen
     const userPreferredCarbs: string[] = midRangeCarbs.length > 0 ? midRangeCarbs : legacyCarbs;
+
+    // Determine glucose state from user's entered blood glucose (for validation bypass)
+    const bloodGlucose = glycemicRow?.bloodGlucose ?? null;
+    const glucoseState: GlucoseState | null = bloodGlucose !== null
+      ? classifyGlucose(bloodGlucose, 'PRE_MEAL')
+      : null;
     
     const basePreferred = [
       'leafy greens', 'broccoli', 'cauliflower', 'zucchini', 'asparagus',
@@ -220,7 +227,7 @@ export const diabeticHubModule: HubModule = {
         'potato chips', 'chips', 'crackers', 'pretzels',
       ],
       preferredIngredients: mergedPreferred,
-      customRules: { dailyCarbLimit, mealFrequency, perMealCarbCeiling }
+      customRules: { dailyCarbLimit, mealFrequency, perMealCarbCeiling, glucoseState }
     };
   },
 
@@ -319,6 +326,9 @@ ${promptAddition}`;
     const violations: ValidationViolation[] = [];
     const warnings: string[] = [];
 
+    const glucoseState = (guardrails.customRules?.glucoseState ?? null) as GlucoseState | null;
+    const isLowGlucose = glucoseState === 'low' || glucoseState === 'low-normal';
+
     // ── Macro presence check ─────────────────────────────────────────────────
     if (meal.carbs === null || meal.carbs === undefined || isNaN(meal.carbs)) {
       violations.push({
@@ -326,7 +336,8 @@ ${promptAddition}`;
         message: 'Carbohydrate data is missing — cannot verify diabetic safety',
         severity: 'hard',
       });
-    } else if (guardrails.carbCeiling && meal.carbs > guardrails.carbCeiling) {
+    } else if (!isLowGlucose && guardrails.carbCeiling && meal.carbs > guardrails.carbCeiling) {
+      // Carb ceiling is relaxed during low glucose — recovery takes priority
       violations.push({
         rule: 'carb_ceiling',
         message: `Carbs (${meal.carbs}g) exceed per-meal limit (${guardrails.carbCeiling}g)`,
@@ -340,9 +351,12 @@ ${promptAddition}`;
     // We check the actual ingredient list, not the meal name or description.
     // A meal called "Almond Flour Protein Pancakes" with clean ingredients
     // must pass — the name is a label, not evidence of a blocked substance.
+    // During low glucose, ALL normally-blocked carbs/fruits are permitted —
+    // recovery speed takes priority over dietary restriction.
     const ingredientNames = meal.ingredients.map(i => i.name.toLowerCase());
 
     for (const blocked of guardrails.blockedIngredients || []) {
+      if (isLowGlucose) continue; // Full bypass during low glucose — recovery mode
       const blockedLower = blocked.toLowerCase();
       const hit = ingredientNames.find(name => name.includes(blockedLower));
       if (hit && !isSafeVariant(hit, blocked)) {

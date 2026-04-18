@@ -15,12 +15,20 @@ export interface DiabeticValidationContext {
   glucoseState?: GlucoseState;
 }
 
-// Ingredients allowed ONLY during hypoglycemia (low glucose state)
-// These are blocked by the static rules but clinically required for glucose recovery
+// Ingredients allowed during hypoglycemia (low glucose state) or low-normal range.
+// Covers all items in LOW_RANGE_OPTIONS that could be on the static block list,
+// plus other fast-acting carbs clinically appropriate for glucose recovery.
+// Rule: recovery speed > dietary purity when glucose is low.
 const HYPO_TREATMENT_INGREDIENTS = [
-  "banana", "bananas", "fruit juice", "orange juice", "apple juice",
-  "pineapple", "grapes", "grape", "dates", "watermelon",
-  "white rice", "white bread",
+  // Fast-acting fruits (all LOW_RANGE_OPTIONS fruit items + common hypo treats)
+  "banana", "bananas", "pineapple", "grapes", "grape", "watermelon", "melon",
+  "mango", "mangoes", "oranges", "orange", "raisins", "dried fruit",
+  // Juices
+  "fruit juice", "orange juice", "apple juice", "grape juice",
+  // Fast-acting carbs appropriate for recovery
+  "dates", "corn", "white rice", "white bread",
+  // Moderate-GI carbs in LOW_RANGE_OPTIONS
+  "oatmeal", "brown rice", "whole grain bread", "sweet potato",
 ];
 
 export function validateDiabeticMeal(

@@ -24,7 +24,7 @@ export const MID_RANGE_OPTIONS: string[] = [
   "Berries", "Cherries", "Apples", "Pears", "Grapefruit",
   "Leafy Greens", "Broccoli", "Cauliflower", "Zucchini", "Green Beans",
   "Lentils", "Chickpeas", "Black Beans", "Quinoa", "Steel-cut Oats",
-  "Sweet Potato (small)", "Carrots", "Tomatoes", "Cucumber", "Peppers",
+  "Sweet Potato", "Carrots", "Tomatoes", "Cucumber", "Peppers",
   "Brown Rice", "Whole Wheat Pasta", "Whole Grain Bread",
 ];
 
@@ -44,12 +44,12 @@ export const LOW_GI: string[] = [
   "Berries", "Cherries", "Apples", "Pears", "Grapefruit",
   "Leafy Greens", "Broccoli", "Cauliflower", "Zucchini", "Green Beans",
   "Lentils", "Chickpeas", "Black Beans", "Quinoa", "Steel-cut Oats",
-  "Sweet Potato (small)", "Carrots", "Tomatoes", "Cucumber", "Peppers",
+  "Sweet Potato", "Carrots", "Tomatoes", "Cucumber", "Peppers",
 ];
 
 export const MID_GI: string[] = [
   "Brown Rice", "Whole Wheat Pasta", "Whole Grain Bread", "Couscous",
-  "Pineapple", "Bananas", "Corn", "Sweet Potato (medium)", "Basmati Rice",
+  "Pineapple", "Bananas", "Corn", "Sweet Potato", "Basmati Rice",
 ];
 
 export const HIGH_GI: string[] = [
