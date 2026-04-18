@@ -1155,17 +1155,48 @@ export default function RestaurantGuidePage() {
                               </p>
                             </div>
 
-                            {/* Modifications */}
-                            <div className="bg-black/20 border border-white/10 rounded-lg p-3 backdrop-blur-sm mb-3">
-                              <h4 className="font-medium text-orange-300 text-sm mb-1">
-                                Ask For:
-                              </h4>
-                              <p className="text-orange-200 text-sm">
-                                {meal.modifications || meal.orderInstructions}
-                              </p>
-                            </div>
+                            {/* How to Order — structured block */}
+                            {meal.howToOrder ? (
+                              <div className="bg-black/20 border border-white/10 rounded-lg p-3 backdrop-blur-sm mb-3 space-y-2">
+                                <h4 className="font-medium text-orange-300 text-sm">
+                                  How to Order:
+                                </h4>
+                                {meal.menuAnchorItem && (
+                                  <p className="text-white/40 text-xs italic">
+                                    Based on: {meal.menuAnchorItem}
+                                  </p>
+                                )}
+                                <div className="space-y-1.5">
+                                  <div className="flex items-start gap-2">
+                                    <span className="text-orange-400 text-xs font-semibold mt-0.5 shrink-0 w-16">Ask for:</span>
+                                    <span className="text-orange-200 text-sm">{meal.howToOrder.askFor}</span>
+                                  </div>
+                                  {meal.howToOrder.modify.length > 0 && (
+                                    <div className="flex items-start gap-2">
+                                      <span className="text-orange-400 text-xs font-semibold mt-0.5 shrink-0 w-16">Modify:</span>
+                                      <span className="text-orange-200 text-sm">{meal.howToOrder.modify.join(", ")}</span>
+                                    </div>
+                                  )}
+                                  {meal.howToOrder.swap.length > 0 && (
+                                    <div className="flex items-start gap-2">
+                                      <span className="text-orange-400 text-xs font-semibold mt-0.5 shrink-0 w-16">Swap:</span>
+                                      <span className="text-orange-200 text-sm">{meal.howToOrder.swap.join(", ")}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="bg-black/20 border border-white/10 rounded-lg p-3 backdrop-blur-sm mb-3">
+                                <h4 className="font-medium text-orange-300 text-sm mb-1">
+                                  Ask For:
+                                </h4>
+                                <p className="text-orange-200 text-sm">
+                                  {meal.modifications || meal.orderInstructions}
+                                </p>
+                              </div>
+                            )}
 
-                            {/* Order It Right */}
+                            {/* Diet-specific order tips */}
                             {(() => {
                               const restrictions: string[] = (user as any)?.dietaryRestrictions ?? [];
                               const primaryDiet = restrictions
@@ -1177,7 +1208,7 @@ export default function RestaurantGuidePage() {
                               return (
                                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 backdrop-blur-sm mb-3">
                                   <h4 className="font-medium text-blue-300 text-sm mb-1">
-                                    Order It Right:
+                                    Diet Tips:
                                   </h4>
                                   <ul className="space-y-1">
                                     {orderInstructions.map((item, i) => (
