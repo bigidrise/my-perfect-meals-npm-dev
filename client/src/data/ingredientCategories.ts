@@ -84,10 +84,13 @@ export const PANTRY_KEYWORDS: string[] = [
   'noodle', 'ramen', 'udon', 'rice noodle', 'egg noodle',
   'quinoa', 'couscous', 'bulgur', 'farro', 'barley', 'oat', 'oatmeal', 'grain',
   'flour', 'all-purpose flour', 'bread flour', 'whole wheat flour', 'almond flour',
-  'bean', 'black bean', 'kidney bean', 'pinto bean', 'cannellini', 'chickpea',
-  'lentil', 'split pea',
+  'bean', 'black bean', 'kidney bean', 'pinto bean', 'cannellini',
+  'chickpea', 'chickpeas', 'garbanzo', 'garbanzo bean', 'garbanzo beans',
+  'lentil', 'lentils', 'split pea',
   'nut', 'almond', 'walnut', 'pecan', 'cashew', 'peanut', 'pistachio', 'hazelnut',
-  'seed', 'sunflower seed', 'pumpkin seed', 'chia seed', 'flax seed', 'sesame seed',
+  'seed', 'sunflower seed', 'sunflower seeds', 'pumpkin seed', 'pumpkin seeds',
+  'chia seed', 'chia seeds', 'flax seed', 'flax seeds',
+  'sesame seed', 'sesame seeds', 'hemp seed', 'hemp seeds',
   'peanut butter', 'almond butter', 'tahini', 'nut butter',
   'canned', 'diced tomato', 'tomato paste', 'tomato sauce', 'crushed tomato',
   'broth', 'stock', 'chicken broth', 'beef broth', 'vegetable broth', 'bone broth',
@@ -95,6 +98,22 @@ export const PANTRY_KEYWORDS: string[] = [
   'vanilla', 'cocoa', 'chocolate chip', 'chocolate', 'coffee', 'tea',
   'cereal', 'granola', 'dried fruit', 'raisin', 'cranberry dried', 'date',
   'coconut milk', 'almond milk', 'oat milk', 'soy milk', 'plant milk'
+];
+
+/**
+ * Items that must always classify as Pantry even when their name contains
+ * a word that also appears in PRODUCE_KEYWORDS (e.g. "garlic" in "garlic powder").
+ * Checked BEFORE the PRODUCE keyword match in classifyIngredient.
+ */
+export const PANTRY_SPICE_OVERRIDES: string[] = [
+  'garlic powder', 'garlic salt',
+  'onion powder', 'onion salt',
+  'celery powder', 'celery salt',
+  'mushroom powder',
+  'tomato powder',
+  'lemon pepper',
+  'garlic pepper',
+  'chili powder',
 ];
 
 // Re-export the shared list as PANTRY_STAPLES for backward compatibility
