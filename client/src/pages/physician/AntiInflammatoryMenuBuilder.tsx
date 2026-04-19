@@ -94,7 +94,8 @@ import { CreateWithChefButton } from "@/components/CreateWithChefButton";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
-import { getResolvedTargets } from "@/lib/macroResolver";
+import { getResolvedTargets, clearResolvedTargetsCache } from "@/lib/macroResolver";
+import { proStore } from "@/lib/proData";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import DailyMealProgressBar from "@/components/guided/DailyMealProgressBar";
@@ -202,7 +203,15 @@ export default function AntiInflammatoryMenuBuilder() {
   // -----------------------------------------------------------------------
   useEffect(() => {
     if (!effectiveUserId) return;
-    if (resolvedProtocol.primaryBadge) return; // physician flag wins — skip fetch
+    // Skip the server fetch only when a physician badge is set AND it is NOT oncology.
+    // Oncology ALWAYS requires server validation because the flag can originate from a
+    // stale localStorage entry left over after a physician disconnected — the DB is the
+    // authoritative source for whether oncology support is currently enabled.
+    const hasNonOncologyPhysicianBadge =
+      resolvedProtocol.primaryBadge !== null &&
+      resolvedProtocol.mode !== 'oncology-support';
+    if (hasNonOncologyPhysicianBadge) return;
+
     let cancelled = false;
     fetch(apiUrl(`/api/biometrics/labs/${effectiveUserId}`), {
       headers: { ...getAuthHeaders() },
@@ -212,12 +221,34 @@ export default function AntiInflammatoryMenuBuilder() {
       .then((data) => {
         console.log("[AntiInflamBuilder] labs fetch →", JSON.stringify(data?.protocolSignal ?? null));
         if (cancelled) return;
+
         // Physician-assigned oncology takes precedence over lab-derived protocol signal
         if (data?.oncologySupportEnabled) {
           console.log("[AntiInflamBuilder] oncology support active → setting mode to oncology-support");
           setClinicalModeState('oncology-support');
           return;
         }
+
+        // Protocol Ownership Model: server says oncology is OFF, but proStore may have a stale flag.
+        // Strip it so future renders don't re-activate the protocol.
+        if (!data?.oncologySupportEnabled && resolvedProtocol.mode === 'oncology-support') {
+          try {
+            const clientMap: Record<string, string> = JSON.parse(
+              localStorage.getItem("mpm_user_client_map") || "{}"
+            );
+            const clientId = clientMap[effectiveUserId];
+            if (clientId) {
+              const stripped = proStore.stripMedicalFlags(clientId);
+              if (stripped) {
+                clearResolvedTargetsCache();
+                console.log("[AntiInflamBuilder] Stripped stale oncologySupport flag — DB says it is off.");
+              }
+            }
+          } catch {/* localStorage may be unavailable */}
+          setClinicalModeState('anti-inflammatory');
+          return;
+        }
+
         // User self-selected specialty condition — higher priority than lab-derived signal
         if (data?.specialtyCondition) {
           const conditionModeMap: Record<string, ClinicalMode> = {

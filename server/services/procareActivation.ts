@@ -291,7 +291,13 @@ export async function deactivateProCareClient(
       .where(and(eq(clientLinks.clientUserId, clientUserId), eq(clientLinks.active, true)));
 
     if (remainingActiveLinks.length === 0) {
-      await tx.update(users).set({ isProCare: false }).where(eq(users.id, clientUserId));
+      // Protocol Ownership Model: oncology is high-risk → auto-clear when ProCare ends.
+      // The physician's authority over the user's medical protocol ends with the connection.
+      await tx.update(users).set({
+        isProCare: false,
+        oncologySupportContext: null,
+      } as any).where(eq(users.id, clientUserId));
+      console.log(`🔌 [ProCareDeactivation] Cleared oncologySupportContext for ${clientUserId} — ProCare ended, physician authority removed.`);
     }
   });
 
