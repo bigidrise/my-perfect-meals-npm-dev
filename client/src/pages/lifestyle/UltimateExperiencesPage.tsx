@@ -122,8 +122,8 @@ type Situation = "holiday" | "camping" | "tailgating";
 // Constants
 // ─────────────────────────────────────────────
 const SITUATIONS: Array<{ id: Situation; label: string; emoji: string }> = [
-  { id: "holiday", label: "Holiday", emoji: "🎄" },
-  { id: "camping", label: "Camping", emoji: "⛺" },
+  { id: "holiday", label: "Holiday", emoji: "🎉" },
+  { id: "camping", label: "Camping", emoji: "🏕️" },
   { id: "tailgating", label: "Tailgating", emoji: "🏈" },
 ];
 
@@ -270,7 +270,7 @@ export default function UltimateExperiencesPage() {
   // ── Effects ──────────────────────────────────
 
   useEffect(() => {
-    document.title = "Ultimate Experiences | My Perfect Meals";
+    document.title = "Perfect Gatherings | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
@@ -568,7 +568,7 @@ export default function UltimateExperiencesPage() {
               <div className="flex items-center gap-2 min-w-0">
                 <Star className="h-4 w-4 text-amber-400 flex-shrink-0" />
                 <h1 className="text-lg font-bold text-white truncate">
-                  Ultimate Experience
+                  Perfect Gatherings
                 </h1>
               </div>
               <div className="flex-grow" />
@@ -585,10 +585,10 @@ export default function UltimateExperiencesPage() {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-xl text-white">
                     <Star className="h-5 w-5 text-amber-400" />
-                    Build Your Experience
+                    Plan Your Gathering
                   </CardTitle>
                   <p className="text-sm text-white/60 mt-1">
-                    Traditional recipes adapted to your diet — all guardrails active
+                    Full multi-course meals for holidays, camping, tailgates &amp; group events
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-5">
@@ -610,9 +610,9 @@ export default function UltimateExperiencesPage() {
                               setSelectedDishes([]);
                             }}
                             disabled={isGenerating}
-                            className="w-16"
+                            className="w-16 text-lg leading-none py-2"
                           >
-                            &nbsp;
+                            {s.emoji}
                           </PillButton>
                           <span className="text-xs text-white/80 font-medium">{s.label}</span>
                         </div>
@@ -636,9 +636,9 @@ export default function UltimateExperiencesPage() {
                                 setSelectedEvent(selectedEvent === h.id ? null : h.id)
                               }
                               disabled={isGenerating}
-                              className="w-16"
+                              className="w-16 text-lg leading-none py-2"
                             >
-                              &nbsp;
+                              {h.emoji}
                             </PillButton>
                             <span className="text-xs text-white/80 font-medium text-center leading-tight">{h.label}</span>
                           </div>
@@ -716,11 +716,11 @@ export default function UltimateExperiencesPage() {
                     ];
 
                     const TABS: Array<{ id: "all" | DishCategory; label: string }> = [
-                      { id: "all",       label: "All" },
-                      { id: "appetizer", label: "Starters" },
-                      { id: "main",      label: "Mains" },
-                      { id: "side",      label: "Sides" },
-                      { id: "dessert",   label: "Desserts" },
+                      { id: "all",       label: "✨ All" },
+                      { id: "appetizer", label: "🥗 Starters" },
+                      { id: "main",      label: "🍽 Mains" },
+                      { id: "side",      label: "🌿 Sides" },
+                      { id: "dessert",   label: "🍰 Desserts" },
                     ];
 
                     const visibleSections = dishTabFilter === "all"
@@ -1551,7 +1551,7 @@ export default function UltimateExperiencesPage() {
         {generatedCourses.length > 0 && generatedInSession && (
           <ShoppingAggregateBar
             ingredients={allIngredients}
-            source="Ultimate Experience"
+            source="Perfect Gatherings"
             hideShareButton={true}
             aboveBottomNav={true}
           />
