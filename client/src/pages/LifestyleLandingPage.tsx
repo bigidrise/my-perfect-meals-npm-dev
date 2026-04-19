@@ -149,7 +149,7 @@ export default function LifestyleLandingPage() {
               onClick={() => {
                 if (isFree) {
                   guardAction(
-                    "Ultimate Experiences unlocks with Premium.",
+                    "Perfect Gatherings unlocks with Premium.",
                     () => {},
                   );
                   return;
@@ -173,7 +173,7 @@ export default function LifestyleLandingPage() {
                     <h3
                       className={`text-sm font-semibold ${isFree ? "text-white/50" : "text-white"}`}
                     >
-                      Ultimate Experiences
+                      Perfect Gatherings
                     </h3>
                     {isFree && (
                       <Lock className="h-3 w-3 text-amber-400/70 ml-auto" />
