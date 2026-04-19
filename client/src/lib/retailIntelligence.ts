@@ -178,6 +178,88 @@ function getBreadDisplay(n: string, unit: string): string | null {
   return null;
 }
 
+// ── Container items: seeds, tahini, nut butters in small amounts ───────────────
+// Converts recipe-sized measures (tbsp, tsp) to what you actually purchase
+const CONTAINER_DISPLAY: Array<{ keywords: string[]; display: string }> = [
+  { keywords: ['tahini'],                           display: '1 container' },
+  { keywords: ['pumpkin seed', 'pepita'],           display: '1 bag' },
+  { keywords: ['sesame seed'],                      display: '1 container' },
+  { keywords: ['hemp seed'],                        display: '1 bag' },
+  { keywords: ['sunflower seed'],                   display: '1 bag' },
+  { keywords: ['flax seed', 'flaxseed'],            display: '1 bag' },
+  { keywords: ['chia seed', 'chia'],                display: '1 bag' },
+];
+
+function getContainerDisplay(n: string, unit: string): string | null {
+  // Apply when recipe-measured in small cooking amounts or unitless
+  const u = unit.toLowerCase().trim();
+  const isSmall = !u || u === 'tbsp' || u === 'tablespoon' || u === 'tablespoons'
+    || u === 'tsp' || u === 'teaspoon' || u === 'teaspoons' || u === 'cup' || u === 'cups';
+  if (!isSmall) return null;
+  for (const { keywords, display } of CONTAINER_DISPLAY) {
+    if (keywords.some(k => n.includes(k))) return display;
+  }
+  return null;
+}
+
+// ── Leafy greens → retail bag / bunch ─────────────────────────────────────────
+const LEAFY_GREEN_MAP: Array<{ keywords: string[]; display: string }> = [
+  { keywords: ['baby spinach', 'spinach'],           display: '1 bag' },
+  { keywords: ['baby kale', 'kale'],                 display: '1 bunch' },
+  { keywords: ['arugula', 'rocket'],                 display: '1 bag' },
+  { keywords: ['mixed greens', 'spring mix', 'salad greens', 'mesclun'], display: '1 bag' },
+  { keywords: ['romaine'],                           display: '1 head' },
+  { keywords: ['bok choy'],                          display: '1 head' },
+  { keywords: ['swiss chard', 'chard', 'rainbow chard'], display: '1 bunch' },
+  { keywords: ['collard greens', 'collard'],         display: '1 bunch' },
+  { keywords: ['watercress'],                        display: '1 bag' },
+];
+
+function getLeafyGreenDisplay(n: string, unit: string): string | null {
+  // Only convert cup-measured amounts — if already whole (e.g. "1 head romaine"), pass through
+  if (!isVolumeUnit(unit)) return null;
+  for (const { keywords, display } of LEAFY_GREEN_MAP) {
+    if (keywords.some(k => n === k || n.startsWith(k) || n.endsWith(k))) return display;
+  }
+  return null;
+}
+
+// ── Produce vegetables → retail units ─────────────────────────────────────────
+const BAG_VEGETABLES = [
+  'carrot', 'sugar snap pea', 'snap pea', 'snow pea',
+  'green bean', 'string bean', 'haricot vert',
+];
+
+const HEAD_VEGETABLES = ['broccoli', 'cauliflower'];
+
+function getProduceDisplay(n: string, qty: number, unit: string): string | null {
+  // Bag vegetables: any cup-measured amount → 1 bag
+  if (isVolumeUnit(unit)) {
+    for (const v of BAG_VEGETABLES) {
+      if (n === v || n.includes(v)) return '1 bag';
+    }
+    // Head vegetables: scale by cup amount
+    for (const v of HEAD_VEGETABLES) {
+      if (n === v || n.includes(v)) {
+        const cups = toCups(qty, unit) ?? 0;
+        return cups <= 2 ? '1 head' : '1–2 heads';
+      }
+    }
+    // Edamame (shelled or in pod)
+    if (n.includes('edamame') && !n.includes('tofu')) return '1 bag';
+  }
+  // Bell peppers: unitless count
+  if (isUnitless(unit) && qty > 0) {
+    if (n.includes('pepper') && (
+      n.includes('bell') || n.includes('red') || n.includes('green') ||
+      n.includes('yellow') || n.includes('orange')
+    )) {
+      return String(Math.ceil(qty));
+    }
+  }
+  return null;
+}
+
 // ── Fresh herbs → 1 bunch ──────────────────────────────────────────────────────
 const FRESH_HERB_NAMES = [
   'cilantro', 'parsley', 'basil', 'mint', 'dill', 'chive', 'chives',
@@ -395,13 +477,25 @@ export function getRetailQuantity(item: ShoppingListItem): string | null {
     }
   }
 
+  // ── Container items: seeds, tahini in cooking amounts → retail container ──
+  const containerDisplay = getContainerDisplay(n, unit);
+  if (containerDisplay) return containerDisplay;
+
   // ── Fresh herbs → 1 bunch ─────────────────────────────────────────────────
   const herbDisplay = getFreshHerbDisplay(n, unit);
   if (herbDisplay) return herbDisplay;
 
+  // ── Leafy greens (cup-measured) → retail bag / bunch ─────────────────────
+  const leafyDisplay = getLeafyGreenDisplay(n, unit);
+  if (leafyDisplay) return leafyDisplay;
+
   // ── Citrus → whole fruit count ────────────────────────────────────────────
   const citrusDisplay = getCitrusDisplay(n, qty, unit);
   if (citrusDisplay) return citrusDisplay;
+
+  // ── Produce vegetables → retail counts / bags / heads ────────────────────
+  const produceDisplay = getProduceDisplay(n, qty, unit);
+  if (produceDisplay) return produceDisplay;
 
   // ── Avocado → whole count ─────────────────────────────────────────────────
   const avocadoDisplay = getAvocadoDisplay(n, qty, unit);

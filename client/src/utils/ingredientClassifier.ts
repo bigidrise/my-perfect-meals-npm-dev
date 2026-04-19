@@ -7,7 +7,8 @@ import {
   FROZEN_KEYWORDS,
   BAKERY_KEYWORDS,
   PANTRY_KEYWORDS,
-  PANTRY_STAPLES
+  PANTRY_STAPLES,
+  PANTRY_SPICE_OVERRIDES,
 } from '@/data/ingredientCategories';
 
 import { STARCHY_KEYWORDS, EXPLICIT_STARCH_KEYWORDS } from '../../../shared/starchKeywords';
@@ -26,8 +27,13 @@ export function normalizeIngredientName(name: string): string {
   return name
     .toLowerCase()
     .trim()
+    // Strip comma-separated descriptors: "quinoa, cooked" → "quinoa"
     .replace(/,.*$/, '')
+    // Strip parenthetical notes: "olive oil (extra virgin)" → "olive oil"
     .replace(/\s*\([^)]*\)\s*/g, '')
+    // Strip cooking-state prefix/suffix that don't affect what to buy
+    // "cooked quinoa" → "quinoa", "raw almonds" → "almonds"
+    .replace(/\b(cooked|raw)\b/g, '')
     .replace(/\s+/g, ' ')
     .replace(/[^\w\s-]/g, '')
     .trim();
@@ -63,6 +69,10 @@ export function classifyIngredient(name: string): ClassifiedIngredient {
     category = 'Meat';
   } else if (matchesKeywords(normalizedName, DAIRY_KEYWORDS)) {
     category = 'Dairy & Eggs';
+  } else if (matchesKeywords(normalizedName, PANTRY_SPICE_OVERRIDES)) {
+    // Spice/powder overrides come BEFORE produce so "garlic powder" → Pantry
+    // instead of being grabbed by the "garlic" produce keyword
+    category = 'Pantry';
   } else if (matchesKeywords(normalizedName, PRODUCE_KEYWORDS)) {
     category = 'Produce';
   } else if (matchesKeywords(normalizedName, BAKERY_KEYWORDS)) {
