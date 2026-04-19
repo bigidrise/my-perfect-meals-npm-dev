@@ -449,18 +449,22 @@ export default function WeeklyMealBoard() {
   // Build DiversityContext for Create With Chef modal
   // Tracks which bases (quinoa, tofu…) and meal formats (bowl, salad…) are already on the board
   // so the AI avoids generating a repetitive week of meals
+  // NOTE: Uses direct board.days access (not getDayLists) to avoid mutating board state
   const diversityContext: DiversityContext | undefined = useMemo(() => {
-    if (!board || !activeDayISO) return undefined;
-    const dayLists = getDayLists(board, activeDayISO);
-    const allMeals: Array<{ name?: string; title?: string; ingredients?: Array<{ name: string }> }> = [];
-    for (const slot of ["breakfast", "lunch", "dinner"] as const) {
-      const meals = dayLists[slot] || [];
-      for (const meal of meals) {
-        allMeals.push(meal);
-      }
+    try {
+      if (!board || !activeDayISO) return undefined;
+      const dayData = board.days?.[activeDayISO];
+      if (!dayData) return undefined;
+      const allMeals = [
+        ...(dayData.breakfast || []),
+        ...(dayData.lunch || []),
+        ...(dayData.dinner || []),
+      ];
+      if (allMeals.length < 2) return undefined;
+      return buildDiversityContext(allMeals);
+    } catch {
+      return undefined;
     }
-    if (allMeals.length < 2) return undefined;
-    return buildDiversityContext(allMeals);
   }, [board, activeDayISO]);
 
   // Guard function: checks if current day is locked before allowing edits
