@@ -1,5 +1,5 @@
 // server/routes/experiences.ts
-// Ultimate Experiences — multi-course meal generation with 4 hard guardrails
+// My Perfect Gatherings — multi-course meal generation with 4 hard guardrails
 import express, { Request, Response } from "express";
 import { z } from "zod";
 
