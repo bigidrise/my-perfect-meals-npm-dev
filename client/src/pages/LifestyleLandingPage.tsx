@@ -135,7 +135,7 @@ export default function LifestyleLandingPage() {
             </div>
           </div>
 
-          {/* ── Ultimate Experiences premium card ── */}
+          {/* ── My Perfect Gatherings premium card ── */}
           <div className="relative">
             <div
               className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-60"
@@ -154,9 +154,9 @@ export default function LifestyleLandingPage() {
                   );
                   return;
                 }
-                handleCardClick("/lifestyle/ultimate-experiences");
+                handleCardClick("/lifestyle/my-perfect-gatherings");
               }}
-              data-testid="card-ultimate-experiences"
+              data-testid="card-my-perfect-gatherings"
             >
               <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-amber-700 to-black rounded-full border border-amber-400/30 shadow-lg z-10">
                 <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" />
