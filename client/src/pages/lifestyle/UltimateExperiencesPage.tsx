@@ -10,6 +10,8 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import MealClassificationPill from "@/components/MealClassificationPill";
+import KosherProTip from "@/components/KosherProTip";
 import DietStyleBadge from "@/components/DietStyleBadge";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -414,8 +416,11 @@ export default function UltimateExperiencesPage() {
                         <h3 className="text-white font-bold text-base mb-1">{course.meal.name}</h3>
                         <p className="text-white/60 text-sm mb-3 line-clamp-2">{course.meal.description}</p>
 
-                        <div className="mb-3">
+                        {/* Diet pills */}
+                        <div className="flex flex-wrap items-center gap-1.5 mb-3">
                           <DietStyleBadge />
+                          <MealClassificationPill dietClassification={course.meal.dietClassification ?? null} />
+                          <KosherProTip dietClassification={course.meal.dietClassification ?? null} isAdapted={false} />
                         </div>
 
                         {/* Nutrition row */}
