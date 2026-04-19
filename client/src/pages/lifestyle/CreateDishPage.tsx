@@ -237,6 +237,7 @@ export default function CreateDishPage() {
   const userId = user?.id || "";
 
   const mealOptionsRef = useRef<HTMLDivElement | null>(null);
+  const continueAnywayRef = useRef(false);
 
   useEffect(() => {
     if (mealOptions.length > 0 && mealOptionsRef.current) {
@@ -378,7 +379,10 @@ export default function CreateDishPage() {
     }
   }, [pendingGeneration, overrideToken, isGenerating]);
 
-  const handleGenerateDish = async (skipPreflight = false, dietAdaptOverride = false) => {
+  const handleGenerateDish = async (skipPreflight = false, dietAdaptOverride = false, userDietOverride = false) => {
+    const effectiveUserDietOverride = userDietOverride || continueAnywayRef.current;
+    continueAnywayRef.current = false;
+    userDietOverride = effectiveUserDietOverride;
     setDietAdaptedNotice(null);
 
     if (!dishInput.trim()) {
@@ -395,7 +399,7 @@ export default function CreateDishPage() {
     // 🥗 DietGuard pre-flight — cultural/dietary identity gets highest priority.
     // Must run BEFORE SafetyGuard so protocol conflicts (halal/kosher/vegan)
     // show the Protocol Conflict modal instead of the generic safety banner.
-    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
+    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt" && !continueAnywayRef.current) {
       const dietOk = checkDiet(prompt);
       if (!dietOk) {
         return;
@@ -445,6 +449,7 @@ export default function CreateDishPage() {
           excludeMeals: getRecentMeals(),
           strictMode: keepItSimple,
           dietAdaptOverride,
+          userDietOverride,
         }),
       });
 
@@ -702,7 +707,12 @@ export default function CreateDishPage() {
                         setDishInput("");
                       } else if (decision === "let_chef_adapt") {
                         setDietDecision("let_chef_adapt");
-                        handleGenerateDish(true, true);
+                        clearDietAlert();
+                        handleGenerateDish(true, true, false);
+                      } else if (decision === "continue_anyway") {
+                        continueAnywayRef.current = true;
+                        clearDietAlert();
+                        handleGenerateDish(true, false, true);
                       }
                     }}
                     className="mt-3"
