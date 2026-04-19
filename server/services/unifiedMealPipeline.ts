@@ -183,6 +183,11 @@ export interface StarchContext {
   forceFiberBased?: boolean; // User explicitly requested no starch
 }
 
+export interface ExplicitOverride {
+  item: string;
+  confirmed: boolean;
+}
+
 export interface MealGenerationRequest {
   type: 'craving' | 'fridge-rescue' | 'premade' | 'create-with-chef' | 'snack-creator';
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -201,6 +206,7 @@ export interface MealGenerationRequest {
   safetyAlreadyChecked?: boolean; // Skip internal safety check if route already verified with override token
   strictMode?: boolean; // "Keep It Simple" — AI uses ONLY user-listed ingredients, no additions
   skipImage?: boolean; // Skip DALL-E generation — client handles image async via /api/meals/generate-image
+  explicitOverride?: ExplicitOverride | null; // User confirmed override for a builder guardrail conflict
 }
 
 export interface MealGenerationResponse {
@@ -1601,7 +1607,8 @@ export async function generateFromDescriptionUnified(
   starchContext?: StarchContext,
   nutritionStrategy?: NutritionStrategyContext,
   strictMode: boolean = false,
-  skipImage: boolean = false
+  skipImage: boolean = false,
+  explicitOverride?: ExplicitOverride | null
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
   
@@ -1731,6 +1738,14 @@ Create the recipe for: "${description}"`;
       if (guardrailResult.appliedRules.length > 0) {
         console.log(`🛡️ Applied guardrails: ${guardrailResult.appliedRules.join(', ')}`);
       }
+    }
+
+    // EXPLICIT OVERRIDE INJECTION: user confirmed a builder guardrail conflict
+    // Must be appended AFTER guardrails so it takes final precedence in the prompt
+    if (explicitOverride?.confirmed && explicitOverride.item) {
+      const overrideInstruction = `\n\nEXPLICIT USER REQUEST — MANDATORY: The user has explicitly requested "${explicitOverride.item}". You MUST include it in this meal. Do NOT substitute or remove it. You may only adjust the portion size, cooking method, or sides to best fit the plan. Never say it is "not allowed" or omit it.`;
+      prompt = prompt + overrideInstruction;
+      console.log(`✅ [ExplicitOverride] Injected override for "${explicitOverride.item}"`);
     }
 
     const messages: Array<{ role: 'system' | 'user'; content: string }> = [];
@@ -2015,7 +2030,8 @@ export async function generateSnackFromCravingUnified(
   cravingDescription: string,
   userId?: string,
   dietType?: DietType,
-  strictMode: boolean = false
+  strictMode: boolean = false,
+  explicitOverride?: ExplicitOverride | null
 ): Promise<MealGenerationResponse> {
   console.log(`🍪 Snack Creator: Generating healthy snack from craving: "${cravingDescription}"${dietType ? ` (diet: ${dietType})` : ''}`);
   
@@ -2119,10 +2135,17 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
 
     // Apply diet-specific guardrails to the prompt
     const guardrailResult = applyGuardrails(basePrompt, dietType || null, 'snack');
-    const guardrailedPrompt = guardrailResult.modifiedPrompt;
+    let guardrailedPrompt = guardrailResult.modifiedPrompt;
     
     if (guardrailResult.appliedRules.length > 0) {
       console.log(`🛡️ Applied snack guardrails: ${guardrailResult.appliedRules.join(', ')}`);
+    }
+
+    // EXPLICIT OVERRIDE INJECTION: user confirmed a builder guardrail conflict for snack
+    if (explicitOverride?.confirmed && explicitOverride.item) {
+      const overrideInstruction = `\n\nEXPLICIT USER REQUEST — MANDATORY: The user has explicitly requested "${explicitOverride.item}". You MUST include it in this snack. Do NOT substitute or remove it. You may only adjust the portion size, cooking method, or accompaniments to best fit the plan.`;
+      guardrailedPrompt = guardrailedPrompt + overrideInstruction;
+      console.log(`✅ [ExplicitOverride] Injected snack override for "${explicitOverride.item}"`);
     }
 
     // Apply Keep It Simple — same block as Create with Chef, no variation
@@ -2450,14 +2473,14 @@ export async function generateMealUnified(
       const chefDescription = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType, request.starchContext, request.nutritionStrategy, request.strictMode === true, request.skipImage === true);
+      result = await generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType, request.starchContext, request.nutritionStrategy, request.strictMode === true, request.skipImage === true, request.explicitOverride);
       break;
 
     case 'snack-creator':
       const snackCraving = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateSnackFromCravingUnified(snackCraving, request.userId, request.dietType, request.strictMode === true);
+      result = await generateSnackFromCravingUnified(snackCraving, request.userId, request.dietType, request.strictMode === true, request.explicitOverride);
       break;
 
     case 'fridge-rescue':

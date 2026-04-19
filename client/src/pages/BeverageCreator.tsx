@@ -136,6 +136,7 @@ export default function BeverageCreator() {
   const [beverageCategory, setBeverageCategory] = useState("");
   const [flavorFamily, setFlavorFamily] = useState("");
   const [specificDrink, setSpecificDrink] = useState("");
+  const [customBeverageDescription, setCustomBeverageDescription] = useState("");
   const [servingSize, setServingSize] = useState("single");
   const [dietaryPreference, setDietaryPreference] = useState("");
   const [customDietary, setCustomDietary] = useState("");
@@ -244,20 +245,22 @@ export default function BeverageCreator() {
     setProgress(100);
   };
 
-  async function handleGenerateBeverage(skipDietPreflight = false, overrideToken?: string, dietAdaptOverride = false) {
-    if (!beverageCategory) {
+  async function handleGenerateBeverage(skipDietPreflight = false, overrideToken?: string, dietAdaptOverride = false, userDietOverride = false) {
+    const hasCustomDesc = customBeverageDescription.trim().length > 0;
+
+    if (!hasCustomDesc && !beverageCategory) {
       toast({
         title: "Missing Information",
-        description: "Please select a beverage category.",
+        description: "Select a drink type or describe your own idea above.",
         variant: "destructive",
       });
       return;
     }
 
-    if (!flavorFamily) {
+    if (!hasCustomDesc && !flavorFamily) {
       toast({
         title: "Missing Information",
-        description: "Please select a flavor family.",
+        description: "Select a flavor family or describe your idea above.",
         variant: "destructive",
       });
       return;
@@ -274,7 +277,7 @@ export default function BeverageCreator() {
 
     // 🥗 DietGuard preflight — advisory, skipped on "Let Chef Adapt" retry
     if (!skipDietPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
-      const dietInput = `${beverageCategory} ${flavorFamily} ${specificDrink}`.trim();
+      const dietInput = customBeverageDescription.trim() || `${beverageCategory} ${flavorFamily} ${specificDrink}`.trim();
       const dietOk = checkDiet(dietInput);
       if (!dietOk) return;
     }
@@ -300,6 +303,7 @@ export default function BeverageCreator() {
           beverageCategory,
           flavorFamily,
           specificDrink,
+          customBeverageDescription: customBeverageDescription.trim() || undefined,
           servingSize,
           dietaryPreferences: [
             ...(dietaryPreference && dietaryPreference !== "none"
@@ -313,6 +317,7 @@ export default function BeverageCreator() {
           overrideToken: !safetyEnabled ? overrideToken : undefined,
           skipPalate: !flavorPersonal,
           dietAdaptOverride,
+          userDietOverride,
         }),
       });
 
@@ -465,9 +470,38 @@ export default function BeverageCreator() {
             </CardHeader>
 
             <CardContent className="space-y-4">
+              {/* Free-text idea input — fills in dropdowns when used */}
               <div>
                 <label className="block text-md font-medium text-white mb-1">
-                  Beverage Category <span className="text-blue-400">*</span>
+                  What do you want to drink?
+                  <span className="ml-2 text-xs text-blue-300 font-normal">
+                    (optional — fills in the rest)
+                  </span>
+                </label>
+                <textarea
+                  value={customBeverageDescription}
+                  onChange={(e) => setCustomBeverageDescription(e.target.value)}
+                  placeholder='e.g. "A frozen mango margarita with tajin rim" or "Iced lavender oat milk latte"'
+                  rows={3}
+                  className="w-full rounded-lg bg-black/60 border border-blue-400/40 text-white placeholder-white/30 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400/60 resize-none"
+                />
+                {customBeverageDescription.trim().length > 0 && (
+                  <p className="text-xs text-blue-300 mt-1">
+                    Category and flavor selections below are optional — your description takes priority.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 text-white/30">
+                <div className="flex-1 h-px bg-white/10" />
+                <span className="text-xs">or choose from options below</span>
+                <div className="flex-1 h-px bg-white/10" />
+              </div>
+
+              <div>
+                <label className="block text-md font-medium text-white mb-1">
+                  Beverage Category{" "}
+                  {!customBeverageDescription.trim() && <span className="text-blue-400">*</span>}
                 </label>
                 <Select
                   value={beverageCategory}
@@ -476,7 +510,7 @@ export default function BeverageCreator() {
                   <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
                     <SelectValue placeholder="Select drink type" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" side="bottom" sideOffset={4} className="max-h-60 overflow-y-auto">
                     {BEVERAGE_CATEGORIES.map((cat) => (
                       <SelectItem key={cat.value} value={cat.value}>
                         {cat.label}
@@ -488,13 +522,14 @@ export default function BeverageCreator() {
 
               <div>
                 <label className="block text-md font-medium text-white mb-1">
-                  Flavor Family <span className="text-blue-400">*</span>
+                  Flavor Family{" "}
+                  {!customBeverageDescription.trim() && <span className="text-blue-400">*</span>}
                 </label>
                 <Select value={flavorFamily} onValueChange={setFlavorFamily}>
                   <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
                     <SelectValue placeholder="Select flavor" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" side="bottom" sideOffset={4} className="max-h-60 overflow-y-auto">
                     {FLAVOR_FAMILIES.map((flavor) => (
                       <SelectItem key={flavor.value} value={flavor.value}>
                         {flavor.label}
@@ -528,7 +563,7 @@ export default function BeverageCreator() {
                   <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" side="bottom" sideOffset={4} className="max-h-60 overflow-y-auto">
                     {SERVING_SIZES.map((size) => (
                       <SelectItem key={size.value} value={size.value}>
                         {size.label}
@@ -549,7 +584,7 @@ export default function BeverageCreator() {
                   <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
                     <SelectValue placeholder="Select dietary requirement" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" side="bottom" sideOffset={4} className="max-h-60 overflow-y-auto">
                     <SelectItem value="none">None</SelectItem>
                     {DIETARY_OPTIONS.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
@@ -619,7 +654,11 @@ export default function BeverageCreator() {
                 clearDietAlert();
               } else if (decision === "let_chef_adapt") {
                 setDietDecision("let_chef_adapt");
-                handleGenerateBeverage(true, undefined, true);
+                clearDietAlert();
+                handleGenerateBeverage(true, undefined, true, false);
+              } else if (decision === "continue_anyway") {
+                clearDietAlert();
+                handleGenerateBeverage(true, undefined, false, true);
               }
             }}
           />

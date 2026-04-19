@@ -169,6 +169,7 @@ export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanBu
             cookingTime: meal.cookingTime,
             difficulty: meal.difficulty,
             medicalBadges: meal.medicalBadges || [],
+            builderType: meal.builderType,
           },
         }),
       });

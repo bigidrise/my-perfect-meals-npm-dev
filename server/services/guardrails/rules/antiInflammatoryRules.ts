@@ -30,18 +30,7 @@ export const antiInflammatoryRules: GuardrailRules = {
     'cheese whiz',
     'velveeta',
     
-    // Red meat
-    'beef',
-    'steak',
-    'ground beef',
-    'ribeye',
-    'sirloin',
-    'brisket',
-    'lamb',
-    'lamb chops',
-    'pork',
-    'pork chops',
-    'pork belly',
+    // Processed meats — always hard-blocked (genuinely inflammatory)
     'bacon',
     'ham',
     'sausage',
@@ -173,8 +162,9 @@ export const antiInflammatoryRules: GuardrailRules = {
 ANTI-INFLAMMATORY DIET REQUIREMENTS:
 - Use ONLY anti-inflammatory cooking oils (olive oil, avocado oil)
 - NEVER use seed oils (canola, soybean, corn, vegetable oil)
-- Focus on fatty fish (salmon, tuna, sardines) as primary protein
-- Use chicken or turkey as alternative protein (no red meat)
+- Default protein: fatty fish (salmon, tuna, sardines), chicken, or turkey
+- Limit red meat (beef, steak, lamb, pork) — if the user explicitly requests it, use lean cuts (sirloin, tenderloin), grill or roast it, and pair with anti-inflammatory sides
+- NEVER use processed meats: bacon, sausage, hot dogs, salami, pepperoni, bologna, prosciutto, pancetta
 - Include colorful vegetables and berries
 - Use anti-inflammatory spices (turmeric, ginger, garlic)
 - Choose whole grains over refined (quinoa, brown rice, oats)

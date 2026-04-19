@@ -206,6 +206,25 @@ export function updateMealImageInBoard(board: WeekBoard, mealId: string, imageUr
   return { ...board, days: newDays, lists: newLists };
 }
 
+/** Get the current imageUrl for a meal anywhere in the board.
+ *  Used as a guard before persisting an image update — avoids redundant saveBoard calls. */
+export function getMealImageUrl(board: WeekBoard, mealId: string): string | null | undefined {
+  const slots = ['breakfast', 'lunch', 'dinner', 'snacks'] as const;
+  if (board.days) {
+    for (const dayLists of Object.values(board.days)) {
+      for (const slot of slots) {
+        const meal = dayLists[slot]?.find(m => m.id === mealId);
+        if (meal) return meal.imageUrl;
+      }
+    }
+  }
+  for (const slot of slots) {
+    const meal = board.lists[slot]?.find(m => m.id === mealId);
+    if (meal) return meal.imageUrl;
+  }
+  return undefined;
+}
+
 /** Safe deep-clone for environments without structuredClone */
 export function structuredCloneSafe<T>(obj: T): T {
   if (typeof globalThis.structuredClone === 'function') {

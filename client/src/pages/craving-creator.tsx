@@ -231,6 +231,7 @@ export default function CravingCreator() {
   // 🔋 Progress bar state (real-time ticker like Restaurant Guide)
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
+  const continueAnywayRef = useRef(false);
   // 🥗 Diet guard — hook-based precheck (mirrors StarchGuard)
   const {
     alert: dietAlert,
@@ -480,6 +481,8 @@ export default function CravingCreator() {
   }, [cravingInput, starchDecision, checkStarch]);
 
   const handleGenerateMeal = async (skipPreflight = false, dietAdaptOverride = false) => {
+    const userDietOverride = continueAnywayRef.current;
+    continueAnywayRef.current = false;
     console.log("🔥 handleGenerateMeal called - craving:", cravingInput);
     setDietAdaptedNotice(null);
 
@@ -559,6 +562,7 @@ export default function CravingCreator() {
           strictMode: keepItSimple,
           generationMode,
           dietAdaptOverride,
+          userDietOverride,
         }),
       });
 
@@ -1037,7 +1041,12 @@ export default function CravingCreator() {
                         setCravingInput("");
                       } else if (decision === "let_chef_adapt") {
                         setDietDecision("let_chef_adapt");
+                        clearDietAlert();
                         handleGenerateMeal(true, true);
+                      } else if (decision === "continue_anyway") {
+                        continueAnywayRef.current = true;
+                        clearDietAlert();
+                        handleGenerateMeal(true);
                       }
                     }}
                     className="mt-3"

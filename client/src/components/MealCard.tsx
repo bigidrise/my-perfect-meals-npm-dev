@@ -1,5 +1,6 @@
 // client/src/components/MealCard.tsx
 import * as React from "react";
+import { getMealFallbackImage } from "@/lib/mealFallbackImage";
 import { BarChart3 } from "lucide-react";
 import { generateMedicalBadges, getUserMedicalProfile, type MedicalBadge } from "@/utils/medicalBadges";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
@@ -15,6 +16,8 @@ import MealClassificationPill, { type DietClassification } from "@/components/Me
 import KosherProTip from "@/components/KosherProTip";
 import BuilderSourcePill from "@/components/BuilderSourcePill";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
+import FavoriteButton from "@/components/FavoriteButton";
+import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 
 // Keep your Meal type colocated here (WeeklyMealBoard imports from this file)
 export type Meal = {
@@ -167,7 +170,7 @@ export function MealCard({
                 className={`w-full h-48 object-cover transition-opacity duration-300 ${imageRevealed ? "opacity-100" : "opacity-0"}`}
                 onLoad={() => setImageRevealed(true)}
                 onError={(e) => {
-                  e.currentTarget.src = `https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400&h=300&fit=crop&auto=format`;
+                  e.currentTarget.src = getMealFallbackImage(title);
                   setImageRevealed(true);
                 }}
               />
@@ -197,11 +200,17 @@ export function MealCard({
                 displayTitle
               )}
             </h3>
+            <FavoriteButton
+              title={title}
+              sourceType={builderType ?? meal.builderType ?? "meal-builder"}
+              mealData={{ ...meal, builderType: builderType ?? meal.builderType }}
+              size={20}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
             {showStarchBadge && (
               <StarchMealBadge meal={{ name: displayTitle, ingredients: displayIngredients }} />
             )}
-          </div>
-          <div className="flex flex-wrap items-center gap-2 mt-1">
             <DietStyleBadge />
             <BuilderSourcePill source={builderType ?? meal.builderType} />
             <MealClassificationPill dietClassification={meal.dietClassification} />
@@ -376,6 +385,9 @@ export function MealCard({
               label="Add to Macros"
             />
           )}
+          <AddToMealPlanButton
+            meal={{ ...meal, builderType: builderType ?? meal.builderType }}
+          />
           <MealCardActions
             meal={{
               name: displayTitle,

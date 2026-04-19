@@ -641,7 +641,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         overrideToken,
         strictMode,
         skipImage,
+        explicitOverride,
+        userDietOverride,
       } = req.body;
+
+      // When user chose "Continue Anyway" on the diet guard, inject a soft coaching override
+      // so the AI includes the requested ingredient while keeping everything else diet-aligned
+      const effectiveInput = userDietOverride === true && input && typeof input === 'string'
+        ? `${input} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`
+        : input;
 
       // 🚨 ENFORCEMENT GATEWAY: Pre-generation — Tier 1 (allergy) + Tier 2 (religious)
       if (userId && input) {
@@ -750,7 +758,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await generateMealUnified({
         type,
         mealType,
-        input,
+        input: effectiveInput,
         userId,
         macroTargets,
         count,
@@ -759,7 +767,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         nutritionStrategy: nutritionStrategy ?? undefined,
         strictMode: strictMode === true,
         skipImage: skipImage === true,
-        safetyAlreadyChecked: true
+        safetyAlreadyChecked: true,
+        explicitOverride: explicitOverride || null,
       });
 
       const durationMs = Date.now() - startTime;
@@ -830,7 +839,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("🥕 Fridge Rescue route hit - generating 3 meals");
 
       const userId = getAuthUserId(req);
-      const { fridgeItems, servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken, skipPalate, strictMode, dietAdaptOverride } = req.body;
+      const { fridgeItems, servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken, skipPalate, strictMode, dietAdaptOverride, userDietOverride } = req.body;
 
       if (!fridgeItems || !Array.isArray(fridgeItems) || fridgeItems.length === 0) {
         console.error("[FRIDGE] validation error: invalid fridgeItems", fridgeItems);
@@ -941,7 +950,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // ── Post-generation protocol scan (ingredient + instruction level) ──────
       const cleanFridgeMeals = filterMealsByProtocol(meals, fridgeProtocolEnvelope, {
         generatorName: "fridge_rescue",
-        skipAdaptableConflicts: dietAdaptOverride === true,
+        skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
       });
 
       if (cleanFridgeMeals.length === 0 && meals.length > 0) {
@@ -3317,12 +3326,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/meals/craving-creator", async (req, res) => {
     try {
-      const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode, dietAdaptOverride } = req.body;
+      const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode, dietAdaptOverride, userDietOverride } = req.body;
 
       // When the user chose "Let Chef Adapt", inject a pareve/adaptation instruction
       // so the AI knows to substitute restricted elements with compliant alternatives.
+      // When the user chose "Continue Anyway", inject a soft override that keeps the
+      // requested ingredient but controls its portion and keeps everything else aligned.
       const cravingInput = dietAdaptOverride === true
         ? `${rawCravingInput} [CHEF ADAPTATION MODE: The user has explicitly requested this dish be adapted for their dietary law. Preserve the intent and texture. Replace any dairy elements (cream, butter, milk, cheese) with certified pareve or non-dairy alternatives ONLY: coconut cream, cashew cream, oat-based cream, or pareve margarine. The final dish MUST contain zero dairy. Use non-dairy alternatives throughout.]`
+        : userDietOverride === true
+        ? `${rawCravingInput} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`
         : rawCravingInput;
 
       // Fix A: Resolve authenticated user from session/token (server-authoritative).
@@ -3427,7 +3440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // combination violations, AND forbidden instruction phrases.
       const cleanOptions = filterMealsByProtocol(mealOptions, protocolEnvelope, {
         generatorName: "craving_creator",
-        skipAdaptableConflicts: dietAdaptOverride === true,
+        skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
       });
 
       if (cleanOptions.length === 0 && mealOptions.length > 0) {

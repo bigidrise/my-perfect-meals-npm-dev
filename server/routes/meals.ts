@@ -20,12 +20,20 @@ router.post("/generate-image", async (req: any, res) => {
 
   const { genImageFast } = await import("../utils/openaiSafe");
 
-  const fullPrompt = `${mealName}, healthy ${mealType}, professional food photography, overhead shot, clean plate presentation, natural lighting`;
+  const promptStyles: Record<string, string> = {
+    breakfast: "warm morning light, rustic wooden table, side-angle shot, vibrant colors",
+    lunch: "bright natural daylight, casual fresh setting, 45-degree angle, colorful",
+    dinner: "warm evening ambiance, elegant plating, soft directional lighting, rich tones",
+    snack: "close-up macro shot, natural light, vibrant fresh ingredients, clean white background",
+    dessert: "soft overhead shot, pastel tones, inviting warm lighting, stylized plating",
+  };
+  const style = promptStyles[mealType as keyof typeof promptStyles] || "professional food photography, overhead shot, clean plate presentation, natural lighting";
+  const fullPrompt = `${mealName}, healthy ${mealType} dish, ${style}, photorealistic, appetizing`;
   let imageUrl: string | null = (await genImageFast(fullPrompt)) ?? null;
 
   if (!imageUrl) {
     console.log(`🔄 [generate-image] Retry for "${mealName}"`);
-    imageUrl = (await genImageFast(`${mealName}, professional food photography, clean background`)) ?? null;
+    imageUrl = (await genImageFast(`${mealName}, food photography, fresh ingredients, appetizing presentation`)) ?? null;
   }
 
   return res.json({ imageUrl });

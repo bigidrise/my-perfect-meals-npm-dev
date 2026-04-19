@@ -63,6 +63,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
       beverageCategory,
       flavorFamily,
       specificDrink,
+      customBeverageDescription,
       servingSize,
       dietaryPreferences,
       userId,
@@ -70,15 +71,18 @@ beverageCreatorRouter.post("/", async (req, res) => {
       overrideToken,
       skipPalate,
       dietAdaptOverride,
+      userDietOverride,
     } = req.body ?? {};
 
     if (isDev) console.log("[BEVERAGE] Request params:", { beverageCategory, flavorFamily, servingSize });
 
-    if (!beverageCategory) {
+    const hasCustomDesc = typeof customBeverageDescription === "string" && customBeverageDescription.trim().length > 0;
+
+    if (!hasCustomDesc && !beverageCategory) {
       return res.status(400).json({ error: "Beverage category is required" });
     }
 
-    if (!flavorFamily) {
+    if (!hasCustomDesc && !flavorFamily) {
       return res.status(400).json({ error: "Flavor family is required" });
     }
 
@@ -243,10 +247,14 @@ beverageCreatorRouter.post("/", async (req, res) => {
       }
     })();
 
+    const softOverrideBlock = userDietOverride === true
+      ? `\n[USER DIET SOFT OVERRIDE: The user has explicitly chosen to make this beverage despite their dietary preference. You MUST create the specifically requested drink. Keep the serving size realistic. Do NOT add additional non-compliant ingredients beyond what is inherent to this beverage type.]\n`
+      : "";
+
     const prompt = `
 You are a professional mixologist, nutritionist, and beverage chef inside the My Perfect Meals system.
 Generate a FULL structured beverage recipe.
-${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}
+${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}${softOverrideBlock}
 The result MUST be a drink. Never generate solid food, meals, or desserts.
 
 Return JSON ONLY, following this exact schema:
@@ -274,9 +282,9 @@ Return JSON ONLY, following this exact schema:
 }
 
 CRITERIA:
-- Beverage CATEGORY: "${categoryLabel}" (this defines the drink type)
+${hasCustomDesc ? `- User's custom beverage idea: "${customBeverageDescription}" (this takes FULL priority — build the entire recipe around this description; infer the drink type and flavor from it)` : `- Beverage CATEGORY: "${categoryLabel}" (this defines the drink type)
 - Flavor FAMILY: "${flavorLabel}" (this defines the main taste direction)
-- Specific drink requested: "${specificDrink || "Create your own unique version"}"
+- Specific drink requested: "${specificDrink || "Create your own unique version"}"`}
 - Dietary requirements: "${dietaryRules}"
 - Number of servings: ${serving.count}
 ${categorySpecificRules}
@@ -340,7 +348,7 @@ INCORRECT (NEVER DO THIS):
       // ── Post-gen protocol scan ────────────────────────────────────────────
       beverageScan = scanGeneratedOutput(meal, beverageEnvelope, {
         generatorName: 'beverage_creator',
-        skipAdaptableConflicts: dietAdaptOverride === true,
+        skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
       });
 
       if (beverageScan.passed) break;

@@ -6,6 +6,7 @@ export interface HasMealImage {
   id: string;
   name: string;
   imageUrl?: string | null;
+  mealType?: string;
 }
 
 export function useMealImages<T extends HasMealImage>(
@@ -37,7 +38,7 @@ export function useMealImages<T extends HasMealImage>(
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-                body: JSON.stringify({ mealName: meal.name, mealType }),
+                body: JSON.stringify({ mealName: meal.name, mealType: meal.mealType || mealType }),
               });
               const data = await res.json();
               if (data.imageUrl) {

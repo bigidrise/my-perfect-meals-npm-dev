@@ -1,6 +1,7 @@
 // client/src/components/WeeklyMealCard.tsx
 // Updated to match Fridge Rescue meal card exactly
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { getMealFallbackImage } from "@/lib/mealFallbackImage";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChefHat, Clock, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
@@ -140,14 +141,11 @@ export default function WeeklyMealCard({ dateISO, slot, meal, time, onRegenerate
       {/* Image with badges - exactly like Fridge Rescue */}
       <div className="relative">
         <img
-          src={
-            imageUrl ||
-            `https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400&h=300&fit=crop&auto=format`
-          }
+          src={imageUrl || getMealFallbackImage(title)}
           alt={title}
           className="w-full h-48 object-cover"
           onError={(e) => {
-            e.currentTarget.src = `https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400&h=300&fit=crop&auto=format`;
+            e.currentTarget.src = getMealFallbackImage(title);
           }}
         />
         <div className="absolute top-3 left-3">
