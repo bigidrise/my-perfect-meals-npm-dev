@@ -238,6 +238,10 @@ export default function Builders() {
                               Current
                             </span>
                           )}
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-cyan-500/10 border border-cyan-400/25 rounded-full text-[8px] font-semibold text-cyan-300 tracking-wide flex-shrink-0">
+                            <span className="w-1 h-1 bg-cyan-400 rounded-full" />
+                            Behavioral AI™
+                          </span>
                         </div>
                         <p className="text-xs ml-6 text-white/70">{feature.description}</p>
                       </div>
