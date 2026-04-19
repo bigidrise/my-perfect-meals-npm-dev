@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MACRO_SOURCES, getMacroSourceBySlug } from "@/lib/macroSourcesConfig";
+import { getRetailQuantity } from "@/lib/retailIntelligence";
 import AddOtherItems from "@/components/AddOtherItems";
 import { readOtherItems } from "@/stores/otherItemsStore";
 import { buildWalmartSearchUrl } from "@/lib/walmartLinkBuilder";
@@ -703,11 +704,15 @@ export default function ShoppingListMasterView() {
                           >
                             {item.name}
                           </div>
-                          {!item.isPantryStaple && (
-                            <div className="text-white/70 text-sm shrink-0">
-                              {formatQuantity(item.quantity, item.unit)}
-                            </div>
-                          )}
+                          {(() => {
+                            const qty = getRetailQuantity(item);
+                            if (!qty) return null;
+                            return (
+                              <div className="text-white/70 text-sm shrink-0">
+                                {qty}
+                              </div>
+                            );
+                          })()}
                           <Button
                             size="sm"
                             variant="ghost"
@@ -779,9 +784,15 @@ export default function ShoppingListMasterView() {
                               <div className="flex-1 text-white line-through">
                                 {item.name}
                               </div>
-                              <div className="text-white/70 text-sm shrink-0">
-                                {formatQuantity(item.quantity, item.unit)}
-                              </div>
+                              {(() => {
+                                const qty = getRetailQuantity(item);
+                                if (!qty) return null;
+                                return (
+                                  <div className="text-white/70 text-sm shrink-0">
+                                    {qty}
+                                  </div>
+                                );
+                              })()}
                               <TrashButton
                                 size="sm"
                                 onClick={() => removeItem(item.id)}
