@@ -337,7 +337,7 @@ export const useShoppingListStore = create<ShoppingListStore>()(
         const grouped: Record<IngredientCategory, ShoppingListItem[]> = {
           Produce: [],
           Meat: [],
-          Dairy: [],
+          'Dairy & Eggs': [],
           Pantry: [],
           Frozen: [],
           Bakery: [],
@@ -364,7 +364,7 @@ export const useShoppingListStore = create<ShoppingListStore>()(
     }),
     {
       name: 'shopping-list-storage',
-      version: 2,
+      version: 3,
       migrate: (persistedState: any, version: number) => {
         if (version < 2) {
           const oldItems = persistedState?.items || [];
@@ -379,6 +379,15 @@ export const useShoppingListStore = create<ShoppingListStore>()(
               isChecked: item.isChecked || false
             };
           });
+          return { ...persistedState, items: migratedItems };
+        }
+        if (version < 3) {
+          // Rename "Dairy" category to "Dairy & Eggs"
+          const oldItems = persistedState?.items || [];
+          const migratedItems = oldItems.map((item: any) => ({
+            ...item,
+            category: item.category === 'Dairy' ? 'Dairy & Eggs' : item.category
+          }));
           return { ...persistedState, items: migratedItems };
         }
         return persistedState as ShoppingListStore;

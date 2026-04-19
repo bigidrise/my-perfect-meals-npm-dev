@@ -5828,7 +5828,7 @@ function getMealIngredientsDatabase() {
 
     if (produce.some(item => lowerIngredient.includes(item))) return 'Produce';
     if (protein.some(item => lowerIngredient.includes(item))) return 'Protein';
-    if (!isNonDairy && (dairy.some(item => lowerIngredient.includes(item)) || halfAndHalfRe.test(lowerIngredient))) return 'Dairy';
+    if (!isNonDairy && (dairy.some(item => lowerIngredient.includes(item)) || halfAndHalfRe.test(lowerIngredient))) return 'Dairy & Eggs';
     if (pantry.some(item => lowerIngredient.includes(item))) return 'Pantry';
 
     return 'Other';

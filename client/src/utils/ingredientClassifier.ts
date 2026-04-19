@@ -59,7 +59,7 @@ export function classifyIngredient(name: string): ClassifiedIngredient {
   } else if (matchesKeywords(normalizedName, MEAT_KEYWORDS)) {
     category = 'Meat';
   } else if (matchesKeywords(normalizedName, DAIRY_KEYWORDS)) {
-    category = 'Dairy';
+    category = 'Dairy & Eggs';
   } else if (matchesKeywords(normalizedName, PRODUCE_KEYWORDS)) {
     category = 'Produce';
   } else if (matchesKeywords(normalizedName, BAKERY_KEYWORDS)) {

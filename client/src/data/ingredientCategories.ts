@@ -1,6 +1,6 @@
 import { SHARED_PANTRY_STAPLES } from '@shared/pantryStaples';
 
-export type IngredientCategory = 'Produce' | 'Meat' | 'Dairy' | 'Pantry' | 'Frozen' | 'Bakery' | 'Other';
+export type IngredientCategory = 'Produce' | 'Meat' | 'Dairy & Eggs' | 'Pantry' | 'Frozen' | 'Bakery' | 'Other';
 
 export const MEAT_KEYWORDS: string[] = [
   'chicken', 'beef', 'pork', 'lamb', 'turkey', 'bacon', 'sausage', 'ham',
