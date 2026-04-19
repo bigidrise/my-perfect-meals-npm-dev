@@ -1995,6 +1995,7 @@ export default function WeeklyMealBoard() {
                   }
                 >
                   <RemainingMacrosFooter
+                    userId={effectiveUserId}
                     consumedOverride={consumed}
                     showSaveButton={Boolean(isDay) && !dayAlreadyLocked}
                     layoutMode={isDay ? "inline" : "sticky"}
