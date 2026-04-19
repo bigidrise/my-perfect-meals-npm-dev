@@ -158,10 +158,10 @@ export default function LifestyleLandingPage() {
               }}
               data-testid="card-my-perfect-gatherings"
             >
-              <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-amber-700 to-black rounded-full border border-amber-400/30 shadow-lg z-10">
-                <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" />
+              <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-blue-700 to-black rounded-full border border-amber-400/30 shadow-lg z-10">
+                <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
                 <span className="text-white font-semibold text-[8px] tracking-wide">
-                  Premium
+                  Powered by Behavioral AI
                 </span>
               </div>
               <CardContent className="p-3">
@@ -240,8 +240,8 @@ export default function LifestyleLandingPage() {
                   >
                     {/* Badges */}
                     {isCreateDish && (
-                      <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-orange-600 to-black rounded-full border border-orange-400/30 shadow-lg z-10">
-                        <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse" />
+                      <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-purple-600 to-black rounded-full border border-orange-400/30 shadow-lg z-10">
+                        <div className="w-1.5 h-1.5 bg-pe-400 rounded-full animate-pulse" />
                         <span className="text-white font-semibold text-[8px] tracking-wide">
                           Powered by Emotion AI™
                         </span>
