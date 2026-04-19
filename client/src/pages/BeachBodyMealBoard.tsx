@@ -1882,6 +1882,7 @@ export default function BeachBodyMealBoard() {
               };
               const dayAlreadyLocked = isDayLocked(activeDayISO, effectiveUserId);
 
+              if (proClientId) return null;
               return (
                 <div className="col-span-full mb-6">
                   <RemainingMacrosFooter

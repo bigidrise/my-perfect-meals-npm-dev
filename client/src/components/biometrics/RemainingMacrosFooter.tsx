@@ -35,6 +35,7 @@ export interface MacroTargets {
 }
 
 interface RemainingMacrosFooterProps {
+  userId?: string;
   onSaveDay?: () => void;
   showSaveButton?: boolean;
   className?: string;
@@ -44,6 +45,7 @@ interface RemainingMacrosFooterProps {
 }
 
 export function RemainingMacrosFooter({
+  userId,
   onSaveDay,
   showSaveButton = true,
   className = "",
@@ -52,7 +54,8 @@ export function RemainingMacrosFooter({
   layoutMode = "sticky",
 }: RemainingMacrosFooterProps) {
   const { user } = useAuth();
-  const todayMacros = useTodayMacros(user?.id || "");
+  const effectiveUserId = userId ?? user?.id ?? "";
+  const todayMacros = useTodayMacros(effectiveUserId);
 
   // Re-compute targets whenever proStore/localStorage gets updated by the sync hook
   const [tick, setTick] = useState(0);
@@ -67,7 +70,7 @@ export function RemainingMacrosFooter({
       const { starchyCarbs_g, fibrousCarbs_g } = resolveDisplayCarbTargets(targetsOverride);
       return { ...targetsOverride, starchyCarbs_g, fibrousCarbs_g };
     }
-    const resolved = getResolvedTargets(user?.id);
+    const resolved = getResolvedTargets(effectiveUserId);
     const { starchyCarbs_g, fibrousCarbs_g } = resolveDisplayCarbTargets(resolved);
     return {
       protein_g: resolved.protein_g,
@@ -76,7 +79,7 @@ export function RemainingMacrosFooter({
       starchyCarbs_g,
       fibrousCarbs_g,
     };
-  }, [user?.id, targetsOverride, tick]);
+  }, [effectiveUserId, targetsOverride, tick]);
 
   const hasTargets = targets.protein_g > 0 || targets.carbs_g > 0 || targets.fat_g > 0;
 
