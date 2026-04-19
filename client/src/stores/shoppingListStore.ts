@@ -339,6 +339,7 @@ export const useShoppingListStore = create<ShoppingListStore>()(
           Meat: [],
           'Plant Proteins': [],
           'Dairy & Eggs': [],
+          'Grains & Packaged': [],
           Pantry: [],
           Frozen: [],
           Bakery: [],

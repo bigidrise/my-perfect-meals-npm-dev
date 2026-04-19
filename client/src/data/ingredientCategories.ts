@@ -1,6 +1,6 @@
 import { SHARED_PANTRY_STAPLES } from '@shared/pantryStaples';
 
-export type IngredientCategory = 'Produce' | 'Meat' | 'Plant Proteins' | 'Dairy & Eggs' | 'Pantry' | 'Frozen' | 'Bakery' | 'Other';
+export type IngredientCategory = 'Produce' | 'Meat' | 'Plant Proteins' | 'Dairy & Eggs' | 'Grains & Packaged' | 'Pantry' | 'Frozen' | 'Bakery' | 'Other';
 
 export const PLANT_PROTEIN_KEYWORDS: string[] = [
   'tofu', 'extra firm tofu', 'firm tofu', 'silken tofu', 'soft tofu',
@@ -76,9 +76,11 @@ export const BAKERY_KEYWORDS: string[] = [
   'cookie', 'brownie', 'cracker'
 ];
 
-export const PANTRY_KEYWORDS: string[] = [
-  ...SHARED_PANTRY_STAPLES,
-  // Packaged goods — go in Pantry category but NOT staples (quantity matters)
+/**
+ * Grains, pasta, beans, legumes — items that have meaningful purchase quantities
+ * (sold by weight or as cans), distinct from pantry spices/oils.
+ */
+export const GRAINS_PACKAGED_KEYWORDS: string[] = [
   'rice', 'white rice', 'brown rice', 'jasmine rice', 'basmati rice', 'wild rice',
   'pasta', 'spaghetti', 'penne', 'fettuccine', 'macaroni', 'linguine', 'orzo',
   'noodle', 'ramen', 'udon', 'rice noodle', 'egg noodle',
@@ -87,6 +89,10 @@ export const PANTRY_KEYWORDS: string[] = [
   'bean', 'black bean', 'kidney bean', 'pinto bean', 'cannellini',
   'chickpea', 'chickpeas', 'garbanzo', 'garbanzo bean', 'garbanzo beans',
   'lentil', 'lentils', 'split pea',
+];
+
+export const PANTRY_KEYWORDS: string[] = [
+  ...SHARED_PANTRY_STAPLES,
   'nut', 'almond', 'walnut', 'pecan', 'cashew', 'peanut', 'pistachio', 'hazelnut',
   'seed', 'sunflower seed', 'sunflower seeds', 'pumpkin seed', 'pumpkin seeds',
   'chia seed', 'chia seeds', 'flax seed', 'flax seeds',
