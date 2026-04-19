@@ -256,6 +256,7 @@ const FridgeRescuePage = () => {
   // 🔋 Progress bar state (real-time ticker like Restaurant Guide)
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
+  const continueAnywayRef = useRef(false);
   // 🥗 Diet guard — hook-based precheck (mirrors StarchGuard)
   const {
     alert: dietAlert,
@@ -383,6 +384,8 @@ const FridgeRescuePage = () => {
   };
 
   const handleGenerateMeals = async (skipPreflight = false, dietAdaptOverride = false) => {
+    const userDietOverride = continueAnywayRef.current;
+    continueAnywayRef.current = false;
     setDietAdaptedNotice(null);
     // Dispatch "interacted" event
     const interactedEvent = new CustomEvent("walkthrough:event", {
@@ -434,6 +437,7 @@ const FridgeRescuePage = () => {
           skipPalate: !flavorPersonal,
           strictMode: keepItSimple,
           dietAdaptOverride,
+          userDietOverride,
         }),
       });
 
@@ -856,7 +860,12 @@ const FridgeRescuePage = () => {
                       setShowResults(false);
                     } else if (decision === "let_chef_adapt") {
                       setDietDecision("let_chef_adapt");
+                      clearDietAlert();
                       handleGenerateMeals(true, true);
+                    } else if (decision === "continue_anyway") {
+                      continueAnywayRef.current = true;
+                      clearDietAlert();
+                      handleGenerateMeals(true);
                     }
                   }}
                   className="mt-3"

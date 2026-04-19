@@ -100,6 +100,7 @@ dessertCreatorRouter.post("/", async (req, res) => {
       strictMode,
       customDessertDescription,
       dietAdaptOverride,
+      userDietOverride,
     } = req.body ?? {};
 
     const hasCustomDescription = !!(customDessertDescription && typeof customDessertDescription === 'string' && customDessertDescription.trim().length > 0);
@@ -251,10 +252,14 @@ CELEBRATION CAKE REQUIREMENTS:
       ? `\n[CHEF ADAPTATION MODE: The user has explicitly requested this dessert be adapted for their dietary law. Replace any dairy elements (cream, butter, milk, cheese, cream cheese) with ONLY certified pareve or non-dairy alternatives: coconut cream, cashew cream, oat milk, vegan butter, or pareve margarine. The final dessert MUST contain zero dairy. Preserve the intended flavor and texture using compliant alternatives only.]\n`
       : "";
 
+    const softOverrideBlock = userDietOverride === true
+      ? `\n[USER DIET SOFT OVERRIDE: The user has explicitly chosen to create this dessert despite their dietary preference. You MUST create the specifically requested dessert. Keep the serving size realistic. Do NOT add additional non-compliant ingredients beyond what is inherent to this dessert type.]\n`
+      : "";
+
     const prompt = `
 You are a master pastry chef + nutrition expert inside the My Perfect Meals system.
 Generate a FULL structured dessert recipe.
-${dessertProtocolBlock ? `\n${dessertProtocolBlock}\n` : ""}${chefAdaptBlock}${strictMode === true ? `\n${buildStrictModeBlock(dessertIdentifier)}\n` : ""}
+${dessertProtocolBlock ? `\n${dessertProtocolBlock}\n` : ""}${chefAdaptBlock}${softOverrideBlock}${strictMode === true ? `\n${buildStrictModeBlock(dessertIdentifier)}\n` : ""}
 
 Return JSON ONLY, following this exact schema:
 
@@ -351,7 +356,7 @@ INCORRECT (NEVER DO THIS):
     // ── Post-gen protocol scan ──────────────────────────────────────────────
     const dessertScan = scanGeneratedOutput(meal, dessertEnvelope, {
       generatorName: 'dessert_creator',
-      skipAdaptableConflicts: dietAdaptOverride === true,
+      skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
     });
     if (!dessertScan.passed) {
       console.log(`🚫 [DESSERT] Post-gen protocol violation: ${dessertScan.message}`);
