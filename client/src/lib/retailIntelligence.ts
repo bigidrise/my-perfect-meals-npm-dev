@@ -224,6 +224,45 @@ function getLeafyGreenDisplay(n: string, unit: string): string | null {
   return null;
 }
 
+// ── Canned beans & legumes → retail can count ─────────────────────────────────
+const CANNED_LEGUME_TERMS = [
+  'chickpea', 'garbanzo', 'black bean', 'kidney bean', 'pinto bean',
+  'cannellini', 'white bean', 'navy bean', 'great northern bean',
+  'lentil', 'split pea',
+];
+
+function getCannedLegumeDisplay(n: string, qty: number, unit: string): string | null {
+  const isLegume = CANNED_LEGUME_TERMS.some(t => n === t || n.includes(t));
+  if (!isLegume) return null;
+  // 1 can ≈ 1.5 cups cooked/drained
+  if (isVolumeUnit(unit)) {
+    const cups = toCups(qty, unit) ?? 0;
+    const cans = Math.max(1, Math.ceil(cups / 1.5));
+    return cans === 1 ? '1 can' : `${cans} cans`;
+  }
+  // Already in cans or unitless
+  if (isUnitless(unit) && qty > 0) return qty <= 1 ? '1 can' : `${Math.ceil(qty)} cans`;
+  return null;
+}
+
+// ── Aromatics: garlic → 1 bulb, ginger → 1 piece ─────────────────────────────
+function getAromaticDisplay(n: string, unit: string): string | null {
+  // Garlic: any cooking unit → buy a bulb
+  // Exclude "garlic powder", "garlic salt" (those are Pantry spices)
+  if ((n === 'garlic' || n === 'garlic clove' || n === 'garlic cloves' ||
+       n === 'minced garlic' || n === 'chopped garlic' || n === 'fresh garlic') &&
+      !n.includes('powder') && !n.includes('salt')) {
+    if (isVolumeUnit(unit) || isUnitless(unit)) return '1 bulb';
+  }
+  // Ginger: any volume unit → buy a small piece/knob
+  if ((n === 'ginger' || n === 'fresh ginger' || n === 'ginger root' ||
+       n === 'minced ginger' || n === 'grated ginger') &&
+      !n.includes('powder') && !n.includes('ground')) {
+    if (isVolumeUnit(unit) || isUnitless(unit)) return '1 piece';
+  }
+  return null;
+}
+
 // ── Produce vegetables → retail units ─────────────────────────────────────────
 const BAG_VEGETABLES = [
   'carrot', 'sugar snap pea', 'snap pea', 'snow pea',
@@ -232,23 +271,47 @@ const BAG_VEGETABLES = [
 
 const HEAD_VEGETABLES = ['broccoli', 'cauliflower'];
 
+// Whole-count vegetables: cup amount → round-up to 1 whole unit
+// (1 cup chopped cucumber ≈ 1 cucumber, 1 cup cherry tomatoes → container)
 function getProduceDisplay(n: string, qty: number, unit: string): string | null {
-  // Bag vegetables: any cup-measured amount → 1 bag
   if (isVolumeUnit(unit)) {
+    const cups = toCups(qty, unit) ?? 0;
+
+    // Cherry / grape tomatoes → containers
+    if (n.includes('cherry tomato') || n.includes('grape tomato')) {
+      return cups <= 2 ? '1 container' : '1–2 containers';
+    }
+
+    // Cucumber: 1 cup chopped ≈ 1 cucumber
+    if (n === 'cucumber' || n.includes('cucumber')) {
+      return String(Math.max(1, Math.ceil(cups)));
+    }
+
+    // Bell peppers: 1 cup chopped ≈ 1 pepper
+    if (n.includes('pepper') && (
+      n.includes('bell') || n.includes('red') || n.includes('green') ||
+      n.includes('yellow') || n.includes('orange')
+    )) {
+      return String(Math.max(1, Math.ceil(cups)));
+    }
+
+    // Bag vegetables: any cup-measured amount → 1 bag
     for (const v of BAG_VEGETABLES) {
       if (n === v || n.includes(v)) return '1 bag';
     }
+
     // Head vegetables: scale by cup amount
     for (const v of HEAD_VEGETABLES) {
       if (n === v || n.includes(v)) {
-        const cups = toCups(qty, unit) ?? 0;
         return cups <= 2 ? '1 head' : '1–2 heads';
       }
     }
+
     // Edamame (shelled or in pod)
     if (n.includes('edamame') && !n.includes('tofu')) return '1 bag';
   }
-  // Bell peppers: unitless count
+
+  // Bell peppers counted unitless
   if (isUnitless(unit) && qty > 0) {
     if (n.includes('pepper') && (
       n.includes('bell') || n.includes('red') || n.includes('green') ||
@@ -256,7 +319,12 @@ function getProduceDisplay(n: string, qty: number, unit: string): string | null 
     )) {
       return String(Math.ceil(qty));
     }
+    // Cherry tomatoes counted unitless
+    if (n.includes('cherry tomato') || n.includes('grape tomato')) {
+      return qty <= 1 ? '1 container' : '1–2 containers';
+    }
   }
+
   return null;
 }
 
@@ -271,7 +339,10 @@ function getFreshHerbDisplay(n: string, unit: string): string | null {
   if (n.startsWith('dried ') || n.startsWith('dry ')) return null;
   const isHerb = FRESH_HERB_NAMES.some(h => n === h || n.startsWith(h) || n.endsWith(h));
   if (!isHerb) return null;
-  // Only apply when measured in volume (recipe amounts, not a whole bunch)
+  // Green onions / scallions are always sold by the bunch regardless of unit
+  const isGreenOnion = n.includes('green onion') || n.includes('scallion');
+  if (isGreenOnion) return '1 bunch';
+  // Other herbs: convert volume recipe amounts to "1 bunch"
   if (isVolumeUnit(unit)) return '1 bunch';
   return null;
 }
@@ -296,6 +367,8 @@ function getCitrusDisplay(n: string, qty: number, unit: string): string | null {
       // round up on both ends, min 1 fruit
       const minFruits = Math.max(1, Math.ceil(tbsp / range.max));
       const maxFruits = Math.max(1, Math.ceil(tbsp / range.min));
+      // Lemon gets a shopping buffer: never show just "1" — always at least "1–2"
+      if (citrus === 'lemon' && minFruits === 1 && maxFruits === 1) return '1–2';
       if (minFruits === maxFruits) return `${minFruits}`;
       return `${minFruits}–${maxFruits}`;
     }
@@ -480,6 +553,14 @@ export function getRetailQuantity(item: ShoppingListItem): string | null {
   // ── Container items: seeds, tahini in cooking amounts → retail container ──
   const containerDisplay = getContainerDisplay(n, unit);
   if (containerDisplay) return containerDisplay;
+
+  // ── Canned legumes: chickpeas, beans, lentils → retail can count ──────────
+  const cannedLegumeDisplay = getCannedLegumeDisplay(n, qty, unit);
+  if (cannedLegumeDisplay) return cannedLegumeDisplay;
+
+  // ── Aromatics: garlic → bulb, ginger → piece ─────────────────────────────
+  const aromaticDisplay = getAromaticDisplay(n, unit);
+  if (aromaticDisplay) return aromaticDisplay;
 
   // ── Fresh herbs → 1 bunch ─────────────────────────────────────────────────
   const herbDisplay = getFreshHerbDisplay(n, unit);

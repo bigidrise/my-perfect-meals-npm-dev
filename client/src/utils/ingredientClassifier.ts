@@ -9,6 +9,7 @@ import {
   PANTRY_KEYWORDS,
   PANTRY_STAPLES,
   PANTRY_SPICE_OVERRIDES,
+  GRAINS_PACKAGED_KEYWORDS,
 } from '@/data/ingredientCategories';
 
 import { STARCHY_KEYWORDS, EXPLICIT_STARCH_KEYWORDS } from '../../../shared/starchKeywords';
@@ -77,6 +78,9 @@ export function classifyIngredient(name: string): ClassifiedIngredient {
     category = 'Produce';
   } else if (matchesKeywords(normalizedName, BAKERY_KEYWORDS)) {
     category = 'Bakery';
+  } else if (matchesKeywords(normalizedName, GRAINS_PACKAGED_KEYWORDS)) {
+    // Grains, pasta, beans — checked BEFORE pantry so quinoa/chickpeas get own section
+    category = 'Grains & Packaged';
   } else if (matchesKeywords(normalizedName, PANTRY_KEYWORDS)) {
     category = 'Pantry';
   }
