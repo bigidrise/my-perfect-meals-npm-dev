@@ -9,7 +9,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/macro-counter": "Macro Calculator",
   "/select-builder": "Meal Builders",
   "/shopping-list": "Shopping List",
-  "/shopping-list-v2": "Shopping List",
+  "/shopping-list-v2": "Smart Grocery List",
   "/fridge-rescue": "Fridge Rescue",
   "/fridge-rescue-studio": "Fridge Rescue Studio",
   "/saved-meals": "Saved Meals",
