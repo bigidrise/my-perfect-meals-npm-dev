@@ -54,6 +54,7 @@ import WeeklyOverviewModal from "@/components/WeeklyOverviewModal";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import BottomNav from "@/components/BottomNav";
 import { normalizeIngredients } from "@/utils/ingredientParser";
+import { buildDiversityContext, type DiversityContext } from "@/lib/diversityContext";
 import { useOnboardingProfile } from "@/hooks/useOnboardingProfile";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { computeTargetsFromOnboarding, sumBoard } from "@/lib/targets";
@@ -444,6 +445,23 @@ export default function WeeklyMealBoard() {
       existingMeals,
     };
   }, [board, activeDayISO, effectiveUserId]);
+
+  // Build DiversityContext for Create With Chef modal
+  // Tracks which bases (quinoa, tofu…) and meal formats (bowl, salad…) are already on the board
+  // so the AI avoids generating a repetitive week of meals
+  const diversityContext: DiversityContext | undefined = useMemo(() => {
+    if (!board || !activeDayISO) return undefined;
+    const dayLists = getDayLists(board, activeDayISO);
+    const allMeals: Array<{ name?: string; title?: string; ingredients?: Array<{ name: string }> }> = [];
+    for (const slot of ["breakfast", "lunch", "dinner"] as const) {
+      const meals = dayLists[slot] || [];
+      for (const meal of meals) {
+        allMeals.push(meal);
+      }
+    }
+    if (allMeals.length < 2) return undefined;
+    return buildDiversityContext(allMeals);
+  }, [board, activeDayISO]);
 
   // Guard function: checks if current day is locked before allowing edits
   // NOTE: Always recompute lock state fresh to avoid stale closure issues
@@ -2287,6 +2305,7 @@ export default function WeeklyMealBoard() {
           mealType={createWithChefSlot}
           onMealGenerated={handleCreateWithChefSelect}
           starchContext={starchContext}
+          diversityContext={diversityContext}
           dietType="general-nutrition"
         />
 
