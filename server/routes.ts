@@ -3326,12 +3326,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/meals/craving-creator", async (req, res) => {
     try {
-      const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode, dietAdaptOverride } = req.body;
+      const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode, dietAdaptOverride, userDietOverride } = req.body;
 
       // When the user chose "Let Chef Adapt", inject a pareve/adaptation instruction
       // so the AI knows to substitute restricted elements with compliant alternatives.
+      // When the user chose "Continue Anyway", inject a soft override that keeps the
+      // requested ingredient but controls its portion and keeps everything else aligned.
       const cravingInput = dietAdaptOverride === true
         ? `${rawCravingInput} [CHEF ADAPTATION MODE: The user has explicitly requested this dish be adapted for their dietary law. Preserve the intent and texture. Replace any dairy elements (cream, butter, milk, cheese) with certified pareve or non-dairy alternatives ONLY: coconut cream, cashew cream, oat-based cream, or pareve margarine. The final dish MUST contain zero dairy. Use non-dairy alternatives throughout.]`
+        : userDietOverride === true
+        ? `${rawCravingInput} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`
         : rawCravingInput;
 
       // Fix A: Resolve authenticated user from session/token (server-authoritative).
@@ -3436,7 +3440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // combination violations, AND forbidden instruction phrases.
       const cleanOptions = filterMealsByProtocol(mealOptions, protocolEnvelope, {
         generatorName: "craving_creator",
-        skipAdaptableConflicts: dietAdaptOverride === true,
+        skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
       });
 
       if (cleanOptions.length === 0 && mealOptions.length > 0) {
