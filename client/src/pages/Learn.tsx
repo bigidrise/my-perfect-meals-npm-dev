@@ -23,6 +23,10 @@ import {
   Flame,
   Stethoscope,
   Dna,
+  MapPin,
+  ChefHat,
+  Wine,
+  Refrigerator,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
@@ -871,6 +875,180 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
     },
   },
   {
+    id: "create-a-dish",
+    title: "Create a Dish",
+    subtitle: "Build any meal you want, on your terms",
+    icon: ChefHat,
+    content: {
+      sections: [
+        {
+          heading: "Why It Exists",
+          text: "Sometimes you're not following a plan — you just want to cook something. Most apps break here because they only work when you already know what you're doing. Create a Dish is built for the moment when you want real food, made your way, without sacrificing your goals.",
+        },
+        {
+          heading: "The Moment",
+          text: "You're in the kitchen thinking: 'I just want to cook something good… but I still want it to fit.' That's exactly what this is for.",
+        },
+        {
+          heading: "How It Works",
+          text: "Tell Chef what you want to make — any cuisine, any style, any craving. The app builds a complete recipe with ingredients, instructions, and full nutrition, automatically aligned with your macros, dietary preferences, and health profile.",
+        },
+        {
+          heading: "What It Respects",
+          list: [
+            "Your dietary preferences and restrictions",
+            "SafetyGuard allergy protections",
+            "Your active macro targets",
+            "Medical and health guardrails",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: ["Lifestyle → Create a Dish"],
+        },
+      ],
+    },
+  },
+  {
+    id: "craving-creator",
+    title: "Craving Creator",
+    subtitle: "Satisfy cravings without going off track",
+    icon: Sparkles,
+    content: {
+      sections: [
+        {
+          heading: "Why It Exists",
+          text: "Cravings are where most people fall off — not because they lack discipline, but because they don't have a better option in the moment. Telling someone to just ignore a craving doesn't work. Giving them a version of it that actually fits does.",
+        },
+        {
+          heading: "The Moment",
+          text: "You're thinking about something you know doesn't fit your plan — but you still want it. That's the exact moment this feature was built for.",
+        },
+        {
+          heading: "How It Works",
+          text: "Tell the app what you're craving. It builds a version of that food — same satisfaction, same flavors — that stays aligned with your goals, macros, and health profile. You don't have to choose between what you want and what works.",
+        },
+        {
+          heading: "What It Respects",
+          list: [
+            "Your dietary preferences and restrictions",
+            "SafetyGuard allergy protections",
+            "Your macro targets",
+            "All medical guardrails",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: ["Lifestyle → Craving Creator Hub"],
+        },
+      ],
+    },
+  },
+  {
+    id: "beverage-creator",
+    title: "Beverage Creator",
+    subtitle: "Drinks that fit your plan, not fight it",
+    icon: Wine,
+    content: {
+      sections: [
+        {
+          heading: "Why It Exists",
+          text: "Drinks quietly derail progress more than most people realize. Smoothies, shakes, coffees, cocktails — they add up fast, and most people never account for them. Beverage Creator solves that by building drinks that are actually built for your goals.",
+        },
+        {
+          heading: "The Moment",
+          text: "You want something to drink besides water, but you don't want to guess whether it's hurting your progress. Or you want to make a great smoothie without the hidden sugar spike.",
+        },
+        {
+          heading: "How It Works",
+          text: "Tell the app what type of drink you want — smoothie, protein shake, coffee, mocktail, cocktail, or anything else. It builds a recipe that fits your macros, dietary preferences, and health conditions. No guesswork, no hidden damage.",
+        },
+        {
+          heading: "What It Respects",
+          list: [
+            "Your macro targets and calorie budget",
+            "Sugar and glycemic considerations",
+            "Your dietary preferences and restrictions",
+            "SafetyGuard allergy protections",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: ["Lifestyle → Beverage Creator"],
+        },
+      ],
+    },
+  },
+  {
+    id: "pairings-hub",
+    title: "Spirit & Wine Pairing Hub",
+    subtitle: "Smarter alcohol choices for real life",
+    icon: Wine,
+    content: {
+      sections: [
+        {
+          heading: "Why It Exists",
+          text: "People are going to drink. Pretending they won't is exactly why most nutrition systems fail the moment real social life begins. This feature exists to help you make smarter choices in those moments — not shame you for having them.",
+        },
+        {
+          heading: "The Moment",
+          text: "You're out, you're relaxing, or you're at a dinner and want to make a better call without overthinking it or feeling like you've already failed.",
+        },
+        {
+          heading: "How It Works",
+          text: "The hub includes AI-driven spirit and wine pairing, a wine list translator for restaurant menus, and a reduce-drinking planning tool. Each feature guides you toward choices that minimize damage and stay aligned with your overall goals.",
+        },
+        {
+          heading: "What It Respects",
+          list: [
+            "Your dietary setup and restrictions",
+            "Your macro and calorie targets",
+            "Your overall health goals",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: ["Lifestyle → Spirit & Wine Pairing Hub"],
+        },
+      ],
+    },
+  },
+  {
+    id: "fridge-rescue",
+    title: "Fridge Rescue",
+    subtitle: "Turn what you have into something worth eating",
+    icon: Refrigerator,
+    content: {
+      sections: [
+        {
+          heading: "Why It Exists",
+          text: "People waste food or eat the same thing on repeat because they don't know what else to do with what's already in the fridge. Fridge Rescue closes that gap — it takes the ingredients you already have and turns them into real meals.",
+        },
+        {
+          heading: "The Moment",
+          text: "You open the fridge and think: 'I've got food… but nothing to eat.' That's the exact problem this solves.",
+        },
+        {
+          heading: "How It Works",
+          text: "Tell the app what ingredients you have. It generates multiple meal options built from those ingredients, complete with recipes, instructions, and full nutrition. No grocery run needed. No excuses needed.",
+        },
+        {
+          heading: "What It Respects",
+          list: [
+            "Your dietary preferences and restrictions",
+            "SafetyGuard allergy protections",
+            "Your macro targets",
+            "Medical guardrails",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: ["Lifestyle → Fridge Rescue", "Free access — available on all plans"],
+        },
+      ],
+    },
+  },
+  {
     id: "my-perfect-gatherings",
     title: "My Perfect Gatherings",
     subtitle: "Multi-course AI meal planning for any occasion",
@@ -920,6 +1098,44 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
     },
   },
   {
+    id: "restaurant-guide",
+    title: "Restaurant Guide",
+    subtitle: "Know how to order before you sit down",
+    icon: Utensils,
+    content: {
+      sections: [
+        {
+          heading: "Why It Exists",
+          text: "Eating out is where most people lose control — not because they want to, but because they don't know how to order. The menu is overwhelming, the portions are wrong, and the healthy options aren't obvious. Restaurant Guide exists so that's never a problem again.",
+        },
+        {
+          heading: "The Moment",
+          text: "You're at a restaurant staring at a menu, guessing what to get, or you already know where you're going and want to have a plan before you walk in the door.",
+        },
+        {
+          heading: "How It Works",
+          text: "Tell the app where you want to eat and what you're in the mood for. It finds that restaurant or similar options nearby and returns three smart meal choices with ordering guidance — so you know exactly what to get and how to order it before you even sit down.",
+        },
+        {
+          heading: "What It Respects",
+          list: [
+            "Your dietary preferences and restrictions",
+            "SafetyGuard allergy protections",
+            "Your macro targets",
+            "Medical and health guardrails",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: [
+            "Lifestyle → Socializing Hub → Restaurant Guide",
+            "Included with Premium and Ultimate subscriptions",
+          ],
+        },
+      ],
+    },
+  },
+  {
     id: "fast-food-guide",
     title: "Fast Food Guide",
     subtitle: "Smart ordering at fast food restaurants",
@@ -957,6 +1173,40 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
           heading: "Where to Find It",
           list: [
             "Social Hub — Fast Food Guide card",
+            "Included with Premium and Ultimate subscriptions",
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "find-meals-near-me",
+    title: "Find Meals Near Me",
+    subtitle: "Real-world dining that fits your diet",
+    icon: MapPin,
+    content: {
+      sections: [
+        {
+          heading: "How It Works",
+          text: "When you use Find Meals Near Me, the app searches for restaurants that match your dietary preferences. This includes both specialized restaurants and locations that offer strong compatible options for your diet. The goal is to give you more real-world choices while still keeping your meals aligned with how you eat.",
+        },
+        {
+          heading: "What That Means",
+          text: "We recommend places where your diet works — not just places labeled for it. Whether you're vegan, keto, pescatarian, gluten-free, or following any other protocol, the app surfaces restaurants and meal options that fit, across both dedicated and general dining spots.",
+        },
+        {
+          heading: "What the App Respects",
+          list: [
+            "Your dietary preferences from onboarding",
+            "SafetyGuard allergy protections",
+            "Your active macro targets",
+            "Stricter filtering for kosher and halal (certification-required diets)",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: [
+            "Social Hub — Find Meals Near Me card",
             "Included with Premium and Ultimate subscriptions",
           ],
         },
