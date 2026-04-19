@@ -423,9 +423,25 @@ router.put("/oncology-support/:clientUserId", async (req, res) => {
 
     const body = oncologySupportSchema.parse(req.body);
 
+    // Look up the physician's display name for the ownership trail
+    const [physician] = await db
+      .select({ firstName: users.firstName, lastName: users.lastName, username: users.username })
+      .from(users)
+      .where(eq(users.id, requesterId as any))
+      .limit(1);
+
+    const ownerName = physician
+      ? (physician.firstName && physician.lastName
+          ? `${physician.firstName} ${physician.lastName}`
+          : physician.firstName || physician.username || "Your Physician")
+      : null;
+
     const context: OncologySupportContext = {
       ...body,
       source: "physician",
+      // locked = true while enabled + physician is active; false when disabling
+      locked: body.enabled,
+      ownerName,
       updatedBy: requesterId,
       updatedAt: new Date().toISOString(),
     };
@@ -435,7 +451,7 @@ router.put("/oncology-support/:clientUserId", async (req, res) => {
       .set({ oncologySupportContext: context as any, updatedAt: new Date() })
       .where(eq(users.id, clientUserId as any));
 
-    console.log(`[oncology-support PUT] Physician ${requesterId} ${body.enabled ? "assigned" : "disabled"} Cancer Support Nutrition for client ${clientUserId}. Symptoms: [${body.symptoms.join(", ")}]`);
+    console.log(`[oncology-support PUT] Physician ${requesterId} (${ownerName ?? "unknown"}) ${body.enabled ? "assigned" : "disabled"} Cancer Support Nutrition for client ${clientUserId}. Symptoms: [${body.symptoms.join(", ")}]`);
 
     res.json({ ok: true, oncologySupportContext: context });
   } catch (error: any) {

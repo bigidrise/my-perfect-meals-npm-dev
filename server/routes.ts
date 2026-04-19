@@ -2065,6 +2065,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         backAt: (user as any).backAt?.toISOString?.() ?? (user as any).backAt ?? null,
         oncologySupportIntent: user.oncologySupportIntent ?? null,
         specialtyCondition: user.specialtyCondition ?? null,
+        // Protocol Ownership Model: expose context to user so UI can show source/lock state
+        oncologySupportContext: user.oncologySupportContext ?? null,
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);
@@ -2090,6 +2092,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("[specialty-condition PATCH]", error);
       res.status(500).json({ error: "Failed to save specialty condition" });
+    }
+  });
+
+  // DELETE /api/user/physician-protocol/oncology
+  // Protocol Ownership Model: allows a user to clear a physician-set oncology context
+  // ONLY when they are no longer connected to a ProCare physician (isProCare = false).
+  // While connected, the physician retains authority → 403.
+  app.delete("/api/user/physician-protocol/oncology", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+
+      const [user] = await db.select({ isProCare: users.isProCare }).from(users).where(eq(users.id, userId)).limit(1);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      if (user.isProCare) {
+        return res.status(403).json({
+          error: "Protocol is managed by your care team. Disconnect from your physician before making changes.",
+          code: "PHYSICIAN_LOCKED",
+        });
+      }
+
+      await db.update(users).set({ oncologySupportContext: null } as any).where(eq(users.id, userId));
+      console.log(`[physician-protocol/oncology DELETE] User ${userId} cleared their physician-set oncology context.`);
+      res.json({ ok: true });
+    } catch (error: any) {
+      console.error("[physician-protocol/oncology DELETE]", error);
+      res.status(500).json({ error: "Failed to clear oncology protocol" });
     }
   });
 

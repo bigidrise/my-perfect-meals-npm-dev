@@ -255,6 +255,12 @@ export default function EditProfilePage() {
     (user as any)?.specialtyCondition ?? null
   );
 
+  // Protocol Ownership Model — physician-set oncology context (read from server)
+  const oncologyCtx = (user as any)?.oncologySupportContext ?? null;
+  const physicianOncologyActive = !!(oncologyCtx?.enabled && oncologyCtx?.source === "physician");
+  const physicianOncologyLocked = physicianOncologyActive && !!(user?.isProCare);
+  const [physicianProtocolClearing, setPhysicianProtocolClearing] = useState(false);
+
   const [allergiesUnlocked, setAllergiesUnlocked] = useState(false);
   const [allergyEditToken, setAllergyEditToken] = useState<string | null>(null);
   const [showPinModal, setShowPinModal] = useState(false);
@@ -885,6 +891,58 @@ export default function EditProfilePage() {
                   <span className="text-base">🩺</span>
                   <span className="text-sky-300 font-semibold text-sm">Specialty Health Protocol</span>
                 </div>
+
+                {/* ── Physician-set oncology protocol banner ─────────────────── */}
+                {physicianOncologyActive && (
+                  <div className={`mb-3 rounded-xl border p-3 ${physicianOncologyLocked ? "border-amber-500/40 bg-amber-950/30" : "border-rose-500/40 bg-rose-950/20"}`}>
+                    <div className="flex items-start gap-2">
+                      <span className="text-base mt-0.5">🎗️</span>
+                      <div className="flex-1">
+                        {physicianOncologyLocked ? (
+                          <>
+                            <p className="text-amber-300 text-xs font-semibold mb-0.5">
+                              Cancer / Oncology Protocol — Managed by Your Care Team
+                            </p>
+                            <p className="text-white/60 text-xs">
+                              {oncologyCtx?.ownerName
+                                ? `Set by ${oncologyCtx.ownerName}.`
+                                : "Set by your physician."}{" "}
+                              This protocol is active and controlled by your care team while you remain connected. To make changes, contact your physician.
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-rose-300 text-xs font-semibold mb-0.5">
+                              Cancer / Oncology Protocol — Previously Set by Your Care Team
+                            </p>
+                            <p className="text-white/60 text-xs mb-2">
+                              {oncologyCtx?.ownerName
+                                ? `Originally set by ${oncologyCtx.ownerName}.`
+                                : "Originally set by a physician."}{" "}
+                              You are no longer connected to this provider. You may keep or remove this protocol.
+                            </p>
+                            <button
+                              onClick={async () => {
+                                setPhysicianProtocolClearing(true);
+                                try {
+                                  await fetch("/api/user/physician-protocol/oncology", { method: "DELETE", credentials: "include" });
+                                  window.location.reload();
+                                } catch {
+                                  setPhysicianProtocolClearing(false);
+                                }
+                              }}
+                              disabled={physicianProtocolClearing}
+                              className="text-xs px-3 py-1.5 rounded-lg bg-rose-600/70 hover:bg-rose-600 text-white border border-rose-500/50 transition-colors disabled:opacity-50"
+                            >
+                              {physicianProtocolClearing ? "Removing…" : "Remove This Protocol"}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <p className="text-white/60 text-xs mb-3">
                   Select if you have one of these conditions. This immediately activates the appropriate nutrition protocol in your Anti-Inflammatory Builder — no lab entry required. You can always add labs later for precision refinement.
                 </p>
@@ -899,14 +957,17 @@ export default function EditProfilePage() {
                     <PillButton
                       key={opt.value}
                       active={specialtyCondition === opt.value}
-                      onClick={() =>
-                        setSpecialtyCondition((prev) => prev === opt.value ? null : opt.value)
-                      }
+                      onClick={() => {
+                        // Physician-locked: block self-select changes while care team is in control
+                        if (physicianOncologyLocked && opt.value === "oncology-support") return;
+                        setSpecialtyCondition((prev) => prev === opt.value ? null : opt.value);
+                      }}
+                      className={physicianOncologyLocked && opt.value === "oncology-support" ? "opacity-50 cursor-not-allowed" : ""}
                     >
                       {opt.label}
                     </PillButton>
                   ))}
-                  {specialtyCondition && (
+                  {specialtyCondition && !physicianOncologyLocked && (
                     <PillButton
                       active={false}
                       onClick={() => setSpecialtyCondition(null)}
@@ -915,7 +976,7 @@ export default function EditProfilePage() {
                     </PillButton>
                   )}
                 </div>
-                {specialtyCondition === "oncology-support" && (
+                {specialtyCondition === "oncology-support" && !physicianOncologyActive && (
                   <div className="mt-3 rounded-xl border border-rose-500/40 bg-rose-950/30 p-3">
                     <div className="flex items-start gap-2">
                       <span className="text-rose-400 text-base mt-0.5">🎗️</span>

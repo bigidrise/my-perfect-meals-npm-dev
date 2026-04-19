@@ -385,7 +385,10 @@ export const users = pgTable("users", {
     enabled: boolean;
     symptoms: Array<"low_appetite" | "nausea" | "mouth_sensitivity" | "fatigue_low_prep" | "gi_sensitivity">;
     emphasis: { highProteinNutrientDensity: boolean };
+    // Ownership fields — part of the Protocol Ownership Model
     source: "physician" | "self";
+    locked: boolean;          // true while physician connection is active
+    ownerName: string | null; // display name of whoever set it
     updatedBy: string | null;
     updatedAt: string | null;
   }>(),
