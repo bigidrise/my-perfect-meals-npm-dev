@@ -151,11 +151,11 @@ function clearRestaurantCache() {
 
 const DIET_PILL_CONFIG: Record<string, { label: string; color: string }> = {
   kosher: {
-    label: "Kosher (Verify Certification)",
+    label: "Kosher Protocol Applied",
     color: "bg-amber-500/20 border-amber-400/40 text-amber-300",
   },
   halal: {
-    label: "Halal (Verify Certification)",
+    label: "Halal Protocol Applied",
     color: "bg-teal-500/20 border-teal-400/40 text-teal-300",
   },
   keto: {
@@ -189,8 +189,8 @@ const DIET_PILL_CONFIG: Record<string, { label: string; color: string }> = {
 };
 
 const DIET_QUALIFIER_MAP: Record<string, string> = {
-  kosher: "Confirm kosher certification with the restaurant",
-  halal: "Confirm halal certification with the restaurant",
+  kosher: "Meals filtered for kosher protocol compliance",
+  halal: "Meals filtered for halal protocol compliance",
   keto: "Low-carb, high-fat options available",
   vegan: "Plant-forward options",
   vegetarian: "Meat-free options available",

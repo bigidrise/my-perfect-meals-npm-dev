@@ -308,10 +308,13 @@ router.post("/find-nearby", async (req, res) => {
       return [];
     }
 
+    const CERT_REQUIRED_DIETS = ["kosher", "halal"];
+    const isCertDiet = CERT_REQUIRED_DIETS.includes(dietStr);
+
     const primaryQuery = buildDietQuery(dietStr, false);
     let places = await searchPlaces(primaryQuery);
 
-    if (places.length < 3) {
+    if (places.length < 3 && !isCertDiet) {
       const fallbackPlaces = await searchPlaces(buildDietQuery(dietStr, true));
       const existing = new Set(places.map((p: any) => p.place_id));
       for (const p of fallbackPlaces) {
@@ -324,11 +327,26 @@ router.post("/find-nearby", async (req, res) => {
 
     const visible = scored.filter((r) => r.tier !== "BLOCKED");
     const highMatch = visible.filter((r) => r.tier === "HIGH_MATCH").sort((a, b) => b.score - a.score);
-    const adaptable = visible.filter((r) => r.tier === "ADAPTABLE").sort((a, b) => b.score - a.score);
+    const adaptable = isCertDiet
+      ? []
+      : visible.filter((r) => r.tier === "ADAPTABLE").sort((a, b) => b.score - a.score);
 
     console.log(
       `✅ [find-nearby] diet=${dietStr} zip=${zipCode} total=${places.length} high=${highMatch.length} adaptable=${adaptable.length} blocked=${scored.length - visible.length}`
     );
+
+    if (isCertDiet && highMatch.length === 0) {
+      const dietLabel = dietStr.charAt(0).toUpperCase() + dietStr.slice(1);
+      return res.json({
+        diet: dietStr,
+        zipCode,
+        highMatch: [],
+        adaptable: [],
+        totalScored: scored.length,
+        noResultsMessage: `No ${dietLabel}-certified restaurants found in your area.`,
+        generatedAt: new Date().toISOString(),
+      });
+    }
 
     return res.json({
       diet: dietStr,

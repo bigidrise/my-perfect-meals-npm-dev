@@ -57,8 +57,8 @@ import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 const DIET_PILL_CONFIG: Record<string, { label: string; color: string }> = {
-  kosher:        { label: "Kosher (Verify Certification)", color: "bg-amber-500/20 border-amber-400/40 text-amber-300" },
-  halal:         { label: "Halal (Verify Certification)",  color: "bg-teal-500/20 border-teal-400/40 text-teal-300" },
+  kosher:        { label: "Kosher Certified", color: "bg-amber-500/20 border-amber-400/40 text-amber-300" },
+  halal:         { label: "Halal Certified",  color: "bg-teal-500/20 border-teal-400/40 text-teal-300" },
   keto:          { label: "Keto (Verify Prep)",            color: "bg-purple-500/20 border-purple-400/40 text-purple-300" },
   vegan:         { label: "Vegan (Verify Prep)",           color: "bg-green-500/20 border-green-400/40 text-green-300" },
   vegetarian:    { label: "Vegetarian (Verify Prep)",      color: "bg-emerald-500/20 border-emerald-400/40 text-emerald-300" },
@@ -69,8 +69,8 @@ const DIET_PILL_CONFIG: Record<string, { label: string; color: string }> = {
 };
 
 const DIET_QUALIFIER_MAP: Record<string, string> = {
-  kosher:        "Confirm kosher certification with the restaurant",
-  halal:         "Confirm halal certification with the restaurant",
+  kosher:        "Kosher-certified location",
+  halal:         "Halal-certified location",
   keto:          "Low-carb, high-fat options available",
   vegan:         "Plant-forward options",
   vegetarian:    "Meat-free options available",
