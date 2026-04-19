@@ -58,6 +58,20 @@ If a regression is found: stop feature work, fix the regression first, ship the 
 #### Rule 5: One ticket at a time
 Fix one bug → verify Golden Path → commit and deploy → then start the next bug. No stacking.
 
+## Page Name Glossary (MANDATORY — never confuse these)
+
+This section exists because page feature names have evolved. Always use these exact names and file paths.
+
+| What to call it | File | What it does |
+|---|---|---|
+| **Create a Dish** | `client/src/pages/lifestyle/CreateDishPage.tsx` | Standalone AI dish creation page. User describes a dish, AI generates it. This was originally "Phase 1" of Chef's Kitchen before the two-part feature was split. |
+| **Chef's Kitchen** | `client/src/pages/lifestyle/ChefsKitchenPage.tsx` | Step-by-step cooking walkthrough/instructions page. This is what survived from the original Chef's Kitchen feature — it guides the user through preparing a meal. No AI generation here. |
+| **Create With Chef (modal)** | `client/src/components/CreateWithChefModal.tsx` | The modal dialog for AI meal generation accessible from the main meal builders. Not a page — a modal. |
+| **Snack Creator (modal)** | `client/src/components/SnackCreatorModal.tsx` | Modal for AI snack generation. |
+| **Beverage Creator (page)** | `client/src/pages/BeverageCreator.tsx` | Standalone page for AI beverage generation. Uses `/api/meals/beverage-creator` endpoint, not `/api/meals/generate`. |
+
+**Key rule**: When the user or a task mentions "Chef's Kitchen," confirm whether they mean the creation page (`CreateDishPage`) or the walkthrough page (`ChefsKitchenPage`) before making any changes.
+
 ## System Architecture
 The application is a full-stack TypeScript project focused on personalized nutrition management.
 
