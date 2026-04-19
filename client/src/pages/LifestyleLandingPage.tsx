@@ -51,7 +51,7 @@ export default function LifestyleLandingPage() {
         "Your craving-focused hub — home of the original Craving Creator that started it all.",
       icon: Sparkles,
       route: "/craving-creator-landing",
-      gradient: "from-purple-500/20 to-pink-500/20",
+      gradient: "from-orange-500/20 to-red-500/20",
       testId: "card-craving-creator",
     },
     {
