@@ -1759,6 +1759,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
               const dayAlreadyLocked = isDayLocked(activeDayISO, clientId);
               const resolved = getResolvedTargets(clientId);
               
+              if (proClientId) return null;
               return (
                 <div className="col-span-full mb-6">
                   <RemainingMacrosFooter
