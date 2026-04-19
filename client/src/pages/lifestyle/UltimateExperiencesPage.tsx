@@ -270,7 +270,7 @@ export default function UltimateExperiencesPage() {
   // ── Effects ──────────────────────────────────
 
   useEffect(() => {
-    document.title = "Perfect Gatherings | My Perfect Meals";
+    document.title = "My Perfect Gatherings | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
@@ -568,7 +568,7 @@ export default function UltimateExperiencesPage() {
               <div className="flex items-center gap-2 min-w-0">
                 <Star className="h-4 w-4 text-amber-400 flex-shrink-0" />
                 <h1 className="text-lg font-bold text-white truncate">
-                  Perfect Gatherings
+                  My Perfect Gatherings
                 </h1>
               </div>
               <div className="flex-grow" />
@@ -1551,7 +1551,7 @@ export default function UltimateExperiencesPage() {
         {generatedCourses.length > 0 && generatedInSession && (
           <ShoppingAggregateBar
             ingredients={allIngredients}
-            source="Perfect Gatherings"
+            source="My Perfect Gatherings"
             hideShareButton={true}
             aboveBottomNav={true}
           />
