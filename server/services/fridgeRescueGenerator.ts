@@ -7,6 +7,7 @@ import { getBaselineMacroPrompt } from './guardrails/promptPolicyGate';
 import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 import { buildDietPromptBlock, violatesDietaryConstraints } from './allergyGuardrails';
 import { enforceBeforeGenerate, UserProtocolEnvelope } from './protocolEnvelope';
+import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from './behavioralMemoryService';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -285,8 +286,23 @@ EXAMPLE: If target is 50g protein + 30g starchy carbs, your meal MUST have 45-55
 This is for athlete meal planning - precision is critical for contest preparation.
 ` : "";
 
+  // ── Behavioral memory: soft preference hints ───────────────────────────────
+  let fridgeBehavioralMemorySection = "";
+  const fridgeUserId = user?.id as string | undefined;
+  if (fridgeUserId) {
+    try {
+      const behavioralProfile = await derivePreferenceProfile(fridgeUserId);
+      if (behavioralProfile) {
+        fridgeBehavioralMemorySection = buildBehavioralMemoryPromptSection(behavioralProfile);
+        console.log(`🧠 [BehavioralMemory/Fridge] Profile loaded — ${behavioralProfile.auditMeta.evidenceCount} signals`);
+      }
+    } catch (err) {
+      console.warn("⚠️ [BehavioralMemory/Fridge] Could not derive preference profile:", err);
+    }
+  }
+
   const prompt = `You are a creative chef helping someone make meals with limited ingredients from their fridge.
-${fridgeEnforcementBlock ? `\n${fridgeEnforcementBlock}\n` : ""}${strictMode ? `\n${buildStrictModeBlock(fridgeItems.join(", "))}\n` : ""}
+${fridgeEnforcementBlock ? `\n${fridgeEnforcementBlock}\n` : ""}${fridgeBehavioralMemorySection ? `\n${fridgeBehavioralMemorySection}\n` : ""}${strictMode ? `\n${buildStrictModeBlock(fridgeItems.join(", "))}\n` : ""}
 TASK: Create 3 different, realistic meals using ONLY these ingredients: ${fridgeItems.join(', ')}
 Each meal should be portioned for ${servings} serving${servings > 1 ? 's' : ''}. Scale all ingredient quantities and nutritional values accordingly.
 ${macroTargetingText}

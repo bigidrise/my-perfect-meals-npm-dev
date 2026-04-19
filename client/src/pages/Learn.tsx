@@ -343,8 +343,11 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
           heading: "Where It Is Applied",
           list: [
             "All six diet builders — Anti-Inflammatory, Diabetic, GLP-1, General Nutrition, Performance, Beach Body",
-            "Craving Creator",
             "Weekly AI Meal Planner",
+            "Craving Creator",
+            "Fridge Rescue",
+            "Beverage Creator",
+            "Dessert Creator",
           ],
         },
         {
