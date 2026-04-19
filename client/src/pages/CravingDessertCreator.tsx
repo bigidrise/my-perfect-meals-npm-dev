@@ -187,6 +187,7 @@ export default function DessertCreator() {
 
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
+  const continueAnywayRef = useRef(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [dessertImageLoading, setDessertImageLoading] = useState(false);
   // 🥗 Diet guard — hook-based precheck (mirrors StarchGuard)
@@ -293,6 +294,8 @@ export default function DessertCreator() {
   };
 
   async function handleGenerateDessert(skipPreflight = false, overrideToken?: string, dietAdaptOverride = false) {
+    const userDietOverride = continueAnywayRef.current;
+    continueAnywayRef.current = false;
     setDietAdaptedNotice(null);
     const hasCustomDescription = customDessertDescription.trim().length > 0;
 
@@ -374,6 +377,7 @@ export default function DessertCreator() {
           strictMode: keepItSimple,
           customDessertDescription: customDessertDescription.trim() || undefined,
           dietAdaptOverride,
+          userDietOverride,
         }),
       });
 
@@ -748,7 +752,12 @@ export default function DessertCreator() {
                     setGeneratedDessert(null);
                   } else if (decision === "let_chef_adapt") {
                     setDietDecision("let_chef_adapt");
+                    clearDietAlert();
                     handleGenerateDessert(true, undefined, true);
+                  } else if (decision === "continue_anyway") {
+                    continueAnywayRef.current = true;
+                    clearDietAlert();
+                    handleGenerateDessert(true);
                   }
                 }}
                 className="mt-3"

@@ -70,6 +70,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
       overrideToken,
       skipPalate,
       dietAdaptOverride,
+      userDietOverride,
     } = req.body ?? {};
 
     if (isDev) console.log("[BEVERAGE] Request params:", { beverageCategory, flavorFamily, servingSize });
@@ -243,10 +244,14 @@ beverageCreatorRouter.post("/", async (req, res) => {
       }
     })();
 
+    const softOverrideBlock = userDietOverride === true
+      ? `\n[USER DIET SOFT OVERRIDE: The user has explicitly chosen to make this beverage despite their dietary preference. You MUST create the specifically requested drink. Keep the serving size realistic. Do NOT add additional non-compliant ingredients beyond what is inherent to this beverage type.]\n`
+      : "";
+
     const prompt = `
 You are a professional mixologist, nutritionist, and beverage chef inside the My Perfect Meals system.
 Generate a FULL structured beverage recipe.
-${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}
+${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}${softOverrideBlock}
 The result MUST be a drink. Never generate solid food, meals, or desserts.
 
 Return JSON ONLY, following this exact schema:
@@ -340,7 +345,7 @@ INCORRECT (NEVER DO THIS):
       // ── Post-gen protocol scan ────────────────────────────────────────────
       beverageScan = scanGeneratedOutput(meal, beverageEnvelope, {
         generatorName: 'beverage_creator',
-        skipAdaptableConflicts: dietAdaptOverride === true,
+        skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
       });
 
       if (beverageScan.passed) break;

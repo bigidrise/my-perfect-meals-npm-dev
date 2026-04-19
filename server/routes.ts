@@ -839,7 +839,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("🥕 Fridge Rescue route hit - generating 3 meals");
 
       const userId = getAuthUserId(req);
-      const { fridgeItems, servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken, skipPalate, strictMode, dietAdaptOverride } = req.body;
+      const { fridgeItems, servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken, skipPalate, strictMode, dietAdaptOverride, userDietOverride } = req.body;
 
       if (!fridgeItems || !Array.isArray(fridgeItems) || fridgeItems.length === 0) {
         console.error("[FRIDGE] validation error: invalid fridgeItems", fridgeItems);
@@ -950,7 +950,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // ── Post-generation protocol scan (ingredient + instruction level) ──────
       const cleanFridgeMeals = filterMealsByProtocol(meals, fridgeProtocolEnvelope, {
         generatorName: "fridge_rescue",
-        skipAdaptableConflicts: dietAdaptOverride === true,
+        skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
       });
 
       if (cleanFridgeMeals.length === 0 && meals.length > 0) {
