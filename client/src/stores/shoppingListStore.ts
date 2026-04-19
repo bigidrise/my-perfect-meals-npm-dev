@@ -337,6 +337,7 @@ export const useShoppingListStore = create<ShoppingListStore>()(
         const grouped: Record<IngredientCategory, ShoppingListItem[]> = {
           Produce: [],
           Meat: [],
+          'Plant Proteins': [],
           'Dairy & Eggs': [],
           Pantry: [],
           Frozen: [],
@@ -364,7 +365,7 @@ export const useShoppingListStore = create<ShoppingListStore>()(
     }),
     {
       name: 'shopping-list-storage',
-      version: 3,
+      version: 4,
       migrate: (persistedState: any, version: number) => {
         if (version < 2) {
           const oldItems = persistedState?.items || [];
@@ -388,6 +389,20 @@ export const useShoppingListStore = create<ShoppingListStore>()(
             ...item,
             category: item.category === 'Dairy' ? 'Dairy & Eggs' : item.category
           }));
+          return { ...persistedState, items: migratedItems };
+        }
+        if (version < 4) {
+          // Re-classify tofu/tempeh/seitan from Meat/Other → Plant Proteins
+          const plantProteinNames = ['tofu', 'tempeh', 'seitan', 'edamame', 'nutritional yeast', 'nooch', 'tvp', 'jackfruit'];
+          const oldItems = persistedState?.items || [];
+          const migratedItems = oldItems.map((item: any) => {
+            const n = (item.name || '').toLowerCase();
+            const isPlant = plantProteinNames.some(p => n.includes(p));
+            return {
+              ...item,
+              category: isPlant ? 'Plant Proteins' : item.category
+            };
+          });
           return { ...persistedState, items: migratedItems };
         }
         return persistedState as ShoppingListStore;

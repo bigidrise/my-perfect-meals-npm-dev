@@ -73,4 +73,7 @@ export const SHARED_PANTRY_STAPLES: string[] = [
   'vanilla', 'vanilla extract', 'pure vanilla extract',
   'almond extract', 'peppermint extract',
   'cocoa powder', 'cocoa', 'unsweetened cocoa', 'dutch process cocoa',
+
+  // ── Nutritional extras ─────────────────────────────────────────────────────
+  'nutritional yeast', 'nooch',
 ];

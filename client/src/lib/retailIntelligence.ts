@@ -48,6 +48,12 @@ function toCups(qty: number, unit: string): number | null {
   return factor !== undefined ? qty * factor : null;
 }
 
+// Volume → tablespoons
+function toTbsp(qty: number, unit: string): number | null {
+  const cups = toCups(qty, unit);
+  return cups !== null ? cups * 16 : null;
+}
+
 // Weight → lbs
 const TO_LBS: Record<string, number> = {
   lb: 1, lbs: 1, pound: 1, pounds: 1,
@@ -63,7 +69,193 @@ function toLbs(qty: number, unit: string): number | null {
 
 function isUnitless(unit: string): boolean {
   const u = (unit || '').toLowerCase().trim();
-  return !u || u === 'unit' || u === 'units' || u === 'piece' || u === 'pieces' || u === 'whole';
+  return !u || u === 'unit' || u === 'units' || u === 'piece' || u === 'pieces'
+    || u === 'whole' || u === 'each' || u === 'count';
+}
+
+function isVolumeUnit(unit: string): boolean {
+  const u = (unit || '').toLowerCase().trim();
+  return u in VOL_TO_CUPS;
+}
+
+// ── Retail rounding helpers ────────────────────────────────────────────────────
+
+// Meat → round to nearest 0.5 lb, min 1 lb, prefix with "~"
+function roundMeatLbs(lbs: number): string {
+  const rounded = Math.max(1, Math.ceil(lbs * 2) / 2);
+  return `~${rounded} lb`;
+}
+
+// Grains → cups to lbs, round UP to nearest 0.5 lb, min 0.5 lb
+function grainCupsToLbs(cups: number, density: number): string {
+  const lbs = cups * density;
+  const rounded = Math.max(0.5, Math.ceil(lbs * 2) / 2);
+  return `${rounded} lb`;
+}
+
+// ── Plant proteins ─────────────────────────────────────────────────────────────
+const PLANT_PROTEIN_DISPLAY: Record<string, string> = {
+  tofu: '1 block',
+  tempeh: '1 package',
+  seitan: '1 package',
+  'textured vegetable protein': '1 package',
+  tvp: '1 package',
+  jackfruit: '1 can',
+};
+
+function getPlantProteinDisplay(n: string): string | null {
+  if (n.includes('tofu')) return '1 block';
+  if (n.includes('tempeh')) return '1 package';
+  if (n.includes('seitan')) return '1 package';
+  for (const [key, val] of Object.entries(PLANT_PROTEIN_DISPLAY)) {
+    if (n === key) return val;
+  }
+  return null;
+}
+
+// ── Eggs → nearest dozen (always round UP) ────────────────────────────────────
+function eggsToDozen(count: number): string {
+  const dozens = Math.ceil(count / 12);
+  return dozens === 1 ? '1 dozen' : `${dozens} dozen`;
+}
+
+// ── Fish fillet weight estimates (lbs per fillet) ──────────────────────────────
+// small→0.25, medium→0.35, large→0.5 (per spec)
+const FISH_LB_PER_FILLET: Array<[string[], number]> = [
+  [['tilapia', 'cod', 'trout', 'bass', 'catfish', 'flounder', 'sole', 'perch', 'sardine'], 0.25],
+  [['salmon', 'halibut', 'mahi', 'tuna', 'snapper', 'grouper', 'swordfish', 'branzino', 'sea bass'], 0.35],
+];
+
+function getFishFilletLbPerUnit(n: string): number | null {
+  for (const [names, lb] of FISH_LB_PER_FILLET) {
+    if (names.some(f => n.includes(f))) return lb;
+  }
+  if (n.includes('fish') || n.includes('fillet')) return 0.35;
+  return null;
+}
+
+// ── Meat keyword check ─────────────────────────────────────────────────────────
+const MEAT_TERMS = [
+  'chicken', 'beef', 'pork', 'lamb', 'turkey', 'bacon', 'sausage', 'ham',
+  'salmon', 'tuna', 'cod', 'tilapia', 'halibut', 'mahi', 'trout', 'bass',
+  'shrimp', 'crab', 'lobster', 'scallop', 'fish', 'steak', 'brisket',
+  'sirloin', 'ribeye', 'tenderloin', 'roast', 'ground beef', 'ground turkey',
+  'ground chicken', 'ground pork', 'snapper', 'grouper', 'branzino', 'catfish',
+];
+
+function isMeatItem(n: string): boolean {
+  return MEAT_TERMS.some(t => n.includes(t));
+}
+
+// ── Grain density table (cups → lbs, category-based averages) ─────────────────
+const GRAIN_LB_PER_CUP: Record<string, number> = {
+  rice: 0.44, 'white rice': 0.44, 'brown rice': 0.45,
+  'jasmine rice': 0.44, 'basmati rice': 0.44, 'wild rice': 0.40,
+  pasta: 0.25, spaghetti: 0.25, penne: 0.25, fettuccine: 0.25,
+  macaroni: 0.25, linguine: 0.25, orzo: 0.30, 'egg noodle': 0.25,
+  noodle: 0.25,
+  quinoa: 0.38, couscous: 0.35, bulgur: 0.38, farro: 0.42,
+  barley: 0.40, 'steel cut oats': 0.27,
+  oat: 0.22, oats: 0.22, oatmeal: 0.22, 'rolled oats': 0.22,
+  flour: 0.28, 'all-purpose flour': 0.28, 'bread flour': 0.28,
+  'whole wheat flour': 0.28, 'almond flour': 0.35,
+};
+
+function getGrainDensity(name: string): number | null {
+  const n = norm(name);
+  if (GRAIN_LB_PER_CUP[n] !== undefined) return GRAIN_LB_PER_CUP[n];
+  const first = n.split(' ')[0];
+  return GRAIN_LB_PER_CUP[first] ?? null;
+}
+
+// ── Bread → loaf ───────────────────────────────────────────────────────────────
+function getBreadDisplay(n: string, unit: string): string | null {
+  const isBread = (n.includes('bread') || n.includes('loaf')) &&
+    !n.includes('breadcrumb') && !n.includes('crouton') && !n.includes('breadstick');
+  if (!isBread) return null;
+  const u = (unit || '').toLowerCase().trim();
+  if (u === 'slice' || u === 'slices' || isUnitless(u)) return '1 loaf';
+  return null;
+}
+
+// ── Fresh herbs → 1 bunch ──────────────────────────────────────────────────────
+const FRESH_HERB_NAMES = [
+  'cilantro', 'parsley', 'basil', 'mint', 'dill', 'chive', 'chives',
+  'tarragon', 'lemongrass', 'green onion', 'scallion',
+];
+
+function getFreshHerbDisplay(n: string, unit: string): string | null {
+  // Skip explicitly dried herbs — they're pantry staples
+  if (n.startsWith('dried ') || n.startsWith('dry ')) return null;
+  const isHerb = FRESH_HERB_NAMES.some(h => n === h || n.startsWith(h) || n.endsWith(h));
+  if (!isHerb) return null;
+  // Only apply when measured in volume (recipe amounts, not a whole bunch)
+  if (isVolumeUnit(unit)) return '1 bunch';
+  return null;
+}
+
+// ── Citrus → whole fruit count ─────────────────────────────────────────────────
+// Range-based: lime = 2–3 tbsp/fruit, lemon = 3–4 tbsp/fruit
+const CITRUS_TBSP_RANGE: Record<string, { min: number; max: number }> = {
+  lime: { min: 2, max: 3 },
+  lemon: { min: 3, max: 4 },
+  orange: { min: 4, max: 6 },
+  grapefruit: { min: 6, max: 8 },
+};
+
+function getCitrusDisplay(n: string, qty: number, unit: string): string | null {
+  // Only apply when measured by volume (juice or zest amount)
+  if (!isVolumeUnit(unit)) return null;
+  const tbsp = toTbsp(qty, unit);
+  if (tbsp === null || tbsp <= 0) return null;
+
+  for (const [citrus, range] of Object.entries(CITRUS_TBSP_RANGE)) {
+    if (n.includes(citrus)) {
+      // round up on both ends, min 1 fruit
+      const minFruits = Math.max(1, Math.ceil(tbsp / range.max));
+      const maxFruits = Math.max(1, Math.ceil(tbsp / range.min));
+      if (minFruits === maxFruits) return `${minFruits}`;
+      return `${minFruits}–${maxFruits}`;
+    }
+  }
+  return null;
+}
+
+// ── Avocado → whole count ──────────────────────────────────────────────────────
+function getAvocadoDisplay(n: string, qty: number, unit: string): string | null {
+  if (!n.includes('avocado')) return null;
+  if (isUnitless(unit)) {
+    const whole = Math.max(1, Math.ceil(qty));
+    return String(whole);
+  }
+  // Volume (e.g. ½ cup mashed) → ~0.5 cup per avocado
+  const cups = toCups(qty, unit);
+  if (cups !== null && cups > 0) {
+    return String(Math.max(1, Math.ceil(cups / 0.5)));
+  }
+  return null;
+}
+
+// ── Coconut milk → cans ────────────────────────────────────────────────────────
+function getCoconutMilkDisplay(n: string, qty: number, unit: string): string | null {
+  if (n !== 'coconut milk' && n !== 'canned coconut milk' && n !== 'full-fat coconut milk') return null;
+  const cups = toCups(qty, unit);
+  if (cups === null || cups <= 0) return null;
+  return cups <= 1.5 ? '1 can' : '2 cans';
+}
+
+// ── Regular milk → tiered purchase sizes ──────────────────────────────────────
+const NON_DAIRY_PREFIXES = ['almond', 'oat', 'soy', 'cashew', 'pea', 'rice', 'hemp', 'flax', 'coconut'];
+
+function getMilkDisplay(n: string, qty: number, unit: string): string | null {
+  if (!n.includes('milk')) return null;
+  if (NON_DAIRY_PREFIXES.some(p => n.includes(p))) return null;
+  const cups = toCups(qty, unit);
+  if (cups === null || cups <= 0) return null;
+  if (cups <= 2) return '1 pint';
+  if (cups <= 4) return '1 quart';
+  if (cups <= 8) return '½ gallon';
+  return '1 gallon';
 }
 
 // ── Tier 1: Always hide quantity ───────────────────────────────────────────────
@@ -91,13 +283,13 @@ const TIER_1_ALWAYS_HIDE = new Set([
   'almond extract', 'peppermint extract',
   'cocoa powder', 'cocoa', 'unsweetened cocoa',
   'cooking spray', 'nonstick spray',
+  'nutritional yeast', 'nooch',
 ]);
 
 // ── Tier 2: Conditional — hide if small, show purchase unit if large ───────────
 type Tier2Config = { thresholdMl: number; purchaseUnit: string };
 
 const TIER_2_CONDITIONAL: Record<string, Tier2Config> = {
-  // Oils — threshold: ¼ cup (59ml)
   'olive oil': { thresholdMl: 59, purchaseUnit: 'bottle' },
   'extra virgin olive oil': { thresholdMl: 59, purchaseUnit: 'bottle' },
   'evoo': { thresholdMl: 59, purchaseUnit: 'bottle' },
@@ -110,7 +302,6 @@ const TIER_2_CONDITIONAL: Record<string, Tier2Config> = {
   'sunflower oil': { thresholdMl: 59, purchaseUnit: 'bottle' },
   'grapeseed oil': { thresholdMl: 59, purchaseUnit: 'bottle' },
   'peanut oil': { thresholdMl: 59, purchaseUnit: 'bottle' },
-  // Vinegars — threshold: 3 tbsp (44ml)
   'vinegar': { thresholdMl: 44, purchaseUnit: 'bottle' },
   'white vinegar': { thresholdMl: 44, purchaseUnit: 'bottle' },
   'distilled vinegar': { thresholdMl: 44, purchaseUnit: 'bottle' },
@@ -121,7 +312,6 @@ const TIER_2_CONDITIONAL: Record<string, Tier2Config> = {
   'white wine vinegar': { thresholdMl: 44, purchaseUnit: 'bottle' },
   'rice vinegar': { thresholdMl: 44, purchaseUnit: 'bottle' },
   'rice wine vinegar': { thresholdMl: 44, purchaseUnit: 'bottle' },
-  // Sauces & condiments — threshold: 2 tbsp (30ml)
   'soy sauce': { thresholdMl: 30, purchaseUnit: 'bottle' },
   'tamari': { thresholdMl: 30, purchaseUnit: 'bottle' },
   'coconut aminos': { thresholdMl: 30, purchaseUnit: 'bottle' },
@@ -142,7 +332,6 @@ const TIER_2_CONDITIONAL: Record<string, Tier2Config> = {
   'mayo': { thresholdMl: 30, purchaseUnit: 'jar' },
   'bbq sauce': { thresholdMl: 44, purchaseUnit: 'bottle' },
   'barbecue sauce': { thresholdMl: 44, purchaseUnit: 'bottle' },
-  // Sweeteners — threshold: ¼ cup (59ml equivalent by volume for liquids)
   'honey': { thresholdMl: 59, purchaseUnit: 'jar' },
   'maple syrup': { thresholdMl: 59, purchaseUnit: 'bottle' },
   'pure maple syrup': { thresholdMl: 59, purchaseUnit: 'bottle' },
@@ -150,75 +339,11 @@ const TIER_2_CONDITIONAL: Record<string, Tier2Config> = {
   'agave nectar': { thresholdMl: 59, purchaseUnit: 'bottle' },
 };
 
-// ── Grain density table (cups → lbs, category-based averages) ─────────────────
-const GRAIN_LB_PER_CUP: Record<string, number> = {
-  // Rice — ~0.44 lb/cup
-  rice: 0.44, 'white rice': 0.44, 'brown rice': 0.45,
-  'jasmine rice': 0.44, 'basmati rice': 0.44, 'wild rice': 0.40,
-  // Pasta — ~0.25 lb/cup
-  pasta: 0.25, spaghetti: 0.25, penne: 0.25, fettuccine: 0.25,
-  macaroni: 0.25, linguine: 0.25, orzo: 0.30, 'egg noodle': 0.25,
-  noodle: 0.25,
-  // Grains — ~0.35–0.45 lb/cup
-  quinoa: 0.38, couscous: 0.35, bulgur: 0.38, farro: 0.42,
-  barley: 0.40, 'steel cut oats': 0.27,
-  // Oats — ~0.22 lb/cup
-  oat: 0.22, oats: 0.22, oatmeal: 0.22, 'rolled oats': 0.22,
-  // Flour — ~0.28–0.30 lb/cup
-  flour: 0.28, 'all-purpose flour': 0.28, 'bread flour': 0.28,
-  'whole wheat flour': 0.28, 'almond flour': 0.35,
-};
-
-function getGrainDensity(name: string): number | null {
-  const n = norm(name);
-  if (GRAIN_LB_PER_CUP[n] !== undefined) return GRAIN_LB_PER_CUP[n];
-  // Try first word (e.g. "rice" from "brown rice")
-  const first = n.split(' ')[0];
-  return GRAIN_LB_PER_CUP[first] ?? null;
-}
-
-// ── Meat keyword check ─────────────────────────────────────────────────────────
-const MEAT_TERMS = [
-  'chicken', 'beef', 'pork', 'lamb', 'turkey', 'bacon', 'sausage', 'ham',
-  'salmon', 'tuna', 'cod', 'tilapia', 'halibut', 'mahi', 'trout', 'bass',
-  'shrimp', 'crab', 'lobster', 'scallop', 'fish', 'steak', 'brisket',
-  'sirloin', 'ribeye', 'tenderloin', 'roast', 'ground beef', 'ground turkey',
-  'ground chicken', 'ground pork',
-];
-
-function isMeatItem(n: string): boolean {
-  return MEAT_TERMS.some(t => n.includes(t));
-}
-
-// ── Retail rounding helpers ────────────────────────────────────────────────────
-
-// Eggs → nearest dozen (always round UP)
-function eggsToDozen(count: number): string {
-  const dozens = Math.ceil(count / 12);
-  return dozens === 1 ? '1 dozen' : `${dozens} dozen`;
-}
-
-// Meat → round to nearest 0.5 lb, min 1 lb, prefix with "~"
-function roundMeatLbs(lbs: number): string {
-  const rounded = Math.max(1, Math.ceil(lbs * 2) / 2);
-  // Show as whole number if it is one
-  const display = rounded % 1 === 0 ? rounded.toString() : rounded.toString();
-  return `~${display} lb`;
-}
-
-// Grains → cups to lbs, round UP to nearest 0.5 lb, min 0.5 lb
-function grainCupsToLbs(cups: number, density: number): string {
-  const lbs = cups * density;
-  const rounded = Math.max(0.5, Math.ceil(lbs * 2) / 2);
-  const display = rounded % 1 === 0 ? rounded.toString() : rounded.toString();
-  return `${display} lb`;
-}
-
 // ── Main export ────────────────────────────────────────────────────────────────
 
 /**
  * Returns the quantity string to display for a shopping list item.
- * - null   → hide the quantity entirely (pantry staple with no notable amount)
+ * - null   → hide the quantity entirely
  * - string → show this string as the quantity
  */
 export function getRetailQuantity(item: ShoppingListItem): string | null {
@@ -226,20 +351,35 @@ export function getRetailQuantity(item: ShoppingListItem): string | null {
   const unit = (item.unit || '').toLowerCase().trim();
   const qty = item.quantity || 0;
 
-  // ── Eggs (check before meat since eggs are in dairy keywords) ─────────────
+  // ── Plant proteins (before meat — tempeh bacon has "bacon" in the name) ───
+  const plantDisplay = getPlantProteinDisplay(n);
+  if (plantDisplay) return plantDisplay;
+
+  // ── Eggs ──────────────────────────────────────────────────────────────────
   const isEgg = (n === 'egg' || n === 'eggs' || n === 'egg white' || n === 'egg yolk')
     && !n.includes('eggplant');
   if (isEgg && isUnitless(unit) && qty > 0) {
     return eggsToDozen(qty);
   }
 
-  // ── Meat & fish (weight-based) ────────────────────────────────────────────
+  // ── Meat & fish (weight-based or count-based for fillets) ─────────────────
   if (isMeatItem(n)) {
     const lbs = toLbs(qty, unit);
     if (lbs !== null && lbs > 0) {
       return roundMeatLbs(lbs);
     }
+    // Fish fillets sold by count → estimate weight from fillet size
+    if (isUnitless(unit) && qty > 0) {
+      const lbPerFillet = getFishFilletLbPerUnit(n);
+      if (lbPerFillet !== null) {
+        return roundMeatLbs(qty * lbPerFillet);
+      }
+    }
   }
+
+  // ── Bread → loaf ──────────────────────────────────────────────────────────
+  const breadDisplay = getBreadDisplay(n, unit);
+  if (breadDisplay) return breadDisplay;
 
   // ── Grains / pasta / oats (volume → lbs) ─────────────────────────────────
   const density = getGrainDensity(n);
@@ -248,13 +388,32 @@ export function getRetailQuantity(item: ShoppingListItem): string | null {
     if (cups !== null && cups > 0) {
       return grainCupsToLbs(cups, density);
     }
-    // If already in weight units, just round to 0.5 lb
     const lbs = toLbs(qty, unit);
     if (lbs !== null && lbs > 0) {
       const rounded = Math.max(0.5, Math.ceil(lbs * 2) / 2);
       return `${rounded} lb`;
     }
   }
+
+  // ── Fresh herbs → 1 bunch ─────────────────────────────────────────────────
+  const herbDisplay = getFreshHerbDisplay(n, unit);
+  if (herbDisplay) return herbDisplay;
+
+  // ── Citrus → whole fruit count ────────────────────────────────────────────
+  const citrusDisplay = getCitrusDisplay(n, qty, unit);
+  if (citrusDisplay) return citrusDisplay;
+
+  // ── Avocado → whole count ─────────────────────────────────────────────────
+  const avocadoDisplay = getAvocadoDisplay(n, qty, unit);
+  if (avocadoDisplay) return avocadoDisplay;
+
+  // ── Coconut milk → cans ───────────────────────────────────────────────────
+  const coconutMilkDisplay = getCoconutMilkDisplay(n, qty, unit);
+  if (coconutMilkDisplay) return coconutMilkDisplay;
+
+  // ── Regular milk → tiered purchase size ───────────────────────────────────
+  const milkDisplay = getMilkDisplay(n, qty, unit);
+  if (milkDisplay) return milkDisplay;
 
   // ── Tier 1: Always hidden spices/herbs/baking staples ────────────────────
   if (TIER_1_ALWAYS_HIDE.has(n)) {
@@ -270,7 +429,6 @@ export function getRetailQuantity(item: ShoppingListItem): string | null {
         return `1 ${tier2.purchaseUnit}`;
       }
     }
-    // All other pantry staples: hide quantity
     return null;
   }
 
