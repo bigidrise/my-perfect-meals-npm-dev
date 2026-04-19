@@ -1,3 +1,5 @@
+import { SHARED_PANTRY_STAPLES } from '@shared/pantryStaples';
+
 export type IngredientCategory = 'Produce' | 'Meat' | 'Dairy' | 'Pantry' | 'Frozen' | 'Bakery' | 'Other';
 
 export const MEAT_KEYWORDS: string[] = [
@@ -22,13 +24,14 @@ export const PRODUCE_KEYWORDS: string[] = [
   'collard', 'mustard green', 'bok choy', 'watercress',
   'broccoli', 'cauliflower', 'brussels sprout', 'asparagus', 'artichoke',
   'carrot', 'celery', 'cucumber', 'zucchini', 'squash', 'eggplant',
-  'bell pepper', 'pepper', 'jalapeno', 'habanero', 'serrano', 'poblano',
+  'bell pepper', 'jalapeno', 'habanero', 'serrano', 'poblano',
   'onion', 'garlic', 'shallot', 'leek', 'scallion', 'green onion', 'chive',
   'potato', 'sweet potato', 'yam', 'beet', 'turnip', 'parsnip', 'radish',
   'mushroom', 'corn', 'pea', 'green bean', 'snap pea', 'snow pea',
-  'bean sprout', 'sprout', 'microgreen', 'herb', 'basil', 'cilantro',
-  'parsley', 'mint', 'dill', 'thyme', 'rosemary', 'sage', 'oregano',
-  'ginger', 'lemongrass', 'fennel', 'endive', 'radicchio',
+  'bean sprout', 'sprout', 'microgreen',
+  'herb', 'basil', 'cilantro', 'parsley', 'mint', 'dill', 'thyme',
+  'rosemary', 'sage', 'oregano', 'ginger', 'lemongrass', 'fennel',
+  'endive', 'radicchio',
   'berries', 'fruit', 'vegetable', 'veggie', 'salad', 'greens', 'fresh'
 ];
 
@@ -62,47 +65,25 @@ export const BAKERY_KEYWORDS: string[] = [
 ];
 
 export const PANTRY_KEYWORDS: string[] = [
-  'oil', 'olive oil', 'vegetable oil', 'canola oil', 'coconut oil', 'sesame oil',
-  'vinegar', 'balsamic', 'apple cider vinegar', 'red wine vinegar', 'white vinegar',
-  'salt', 'pepper', 'black pepper', 'white pepper', 'sea salt', 'kosher salt',
-  'sugar', 'brown sugar', 'powdered sugar', 'honey', 'maple syrup', 'agave',
-  'molasses', 'corn syrup', 'stevia', 'sweetener',
-  'flour', 'all-purpose flour', 'bread flour', 'whole wheat flour', 'almond flour',
-  'cornstarch', 'baking powder', 'baking soda', 'yeast',
+  ...SHARED_PANTRY_STAPLES,
+  // Packaged goods — go in Pantry category but NOT staples (quantity matters)
   'rice', 'white rice', 'brown rice', 'jasmine rice', 'basmati rice', 'wild rice',
   'pasta', 'spaghetti', 'penne', 'fettuccine', 'macaroni', 'linguine', 'orzo',
   'noodle', 'ramen', 'udon', 'rice noodle', 'egg noodle',
   'quinoa', 'couscous', 'bulgur', 'farro', 'barley', 'oat', 'oatmeal', 'grain',
+  'flour', 'all-purpose flour', 'bread flour', 'whole wheat flour', 'almond flour',
   'bean', 'black bean', 'kidney bean', 'pinto bean', 'cannellini', 'chickpea',
   'lentil', 'split pea',
   'nut', 'almond', 'walnut', 'pecan', 'cashew', 'peanut', 'pistachio', 'hazelnut',
   'seed', 'sunflower seed', 'pumpkin seed', 'chia seed', 'flax seed', 'sesame seed',
   'peanut butter', 'almond butter', 'tahini', 'nut butter',
-  'canned', 'can of', 'diced tomato', 'tomato paste', 'tomato sauce', 'crushed tomato',
+  'canned', 'diced tomato', 'tomato paste', 'tomato sauce', 'crushed tomato',
   'broth', 'stock', 'chicken broth', 'beef broth', 'vegetable broth', 'bone broth',
-  'soy sauce', 'tamari', 'fish sauce', 'worcestershire', 'hot sauce', 'sriracha',
-  'ketchup', 'mustard', 'mayonnaise', 'mayo', 'relish', 'bbq sauce', 'teriyaki',
   'salsa', 'pesto', 'hummus', 'guacamole',
-  'spice', 'cumin', 'paprika', 'chili powder', 'cayenne', 'turmeric', 'curry',
-  'cinnamon', 'nutmeg', 'allspice', 'clove', 'cardamom', 'ginger powder',
-  'garlic powder', 'onion powder', 'italian seasoning', 'oregano dried',
-  'thyme dried', 'basil dried', 'bay leaf', 'red pepper flake',
-  'vanilla', 'vanilla extract', 'almond extract', 'extract',
-  'cocoa', 'chocolate chip', 'chocolate', 'coffee', 'tea',
+  'vanilla', 'cocoa', 'chocolate chip', 'chocolate', 'coffee', 'tea',
   'cereal', 'granola', 'dried fruit', 'raisin', 'cranberry dried', 'date',
   'coconut milk', 'almond milk', 'oat milk', 'soy milk', 'plant milk'
 ];
 
-export const PANTRY_STAPLES: string[] = [
-  'oil', 'olive oil', 'vegetable oil', 'canola oil', 'coconut oil', 'sesame oil',
-  'vinegar', 'balsamic', 'apple cider vinegar', 'red wine vinegar', 'white vinegar',
-  'salt', 'pepper', 'black pepper', 'sea salt', 'kosher salt',
-  'sugar', 'brown sugar', 'honey', 'maple syrup',
-  'flour', 'all-purpose flour', 'cornstarch', 'baking powder', 'baking soda',
-  'soy sauce', 'fish sauce', 'worcestershire', 'hot sauce',
-  'ketchup', 'mustard', 'mayonnaise', 'mayo',
-  'cumin', 'paprika', 'chili powder', 'cayenne', 'turmeric', 'curry powder',
-  'cinnamon', 'nutmeg', 'garlic powder', 'onion powder', 'italian seasoning',
-  'oregano', 'thyme', 'basil dried', 'bay leaf', 'red pepper flake',
-  'vanilla', 'vanilla extract', 'cocoa powder'
-];
+// Re-export the shared list as PANTRY_STAPLES for backward compatibility
+export const PANTRY_STAPLES: string[] = SHARED_PANTRY_STAPLES;
