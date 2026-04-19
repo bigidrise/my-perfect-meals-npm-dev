@@ -27,7 +27,10 @@ import {
   getDayLists,
   setDayLists,
   cloneDayLists,
+  updateMealImageInBoard,
+  getMealImageUrl,
 } from "@/lib/boardApi";
+import { useChefMealImage } from "@/hooks/useChefMealImage";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { MealPickerDrawer } from "@/components/pickers/MealPickerDrawer";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
@@ -213,6 +216,7 @@ export default function WeeklyMealBoard() {
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
+  const { fetchImageForMeal } = useChefMealImage();
   const boardRef = React.useRef<WeekBoard | null>(null);
 
   // Register WeeklyMealBoard as the active board (default namespace — no bt)
@@ -604,6 +608,16 @@ export default function WeeklyMealBoard() {
           boardRef.current = updatedBoard;
           await saveBoard(updatedBoard);
         }
+
+        fetchImageForMeal(meal, slot, (mealId, imageUrl) => {
+          setBoard(prev => {
+            if (!prev) return prev;
+            if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
+            const updated = updateMealImageInBoard(prev, mealId, imageUrl);
+            saveBoard(updated).catch(() => {});
+            return updated;
+          });
+        });
 
         window.dispatchEvent(new Event("macros:updated"));
 
@@ -1980,7 +1994,8 @@ export default function WeeklyMealBoard() {
                       : "col-span-full pb-32"
                   }
                 >
-                  <RemainingMacrosFooter
+                  {!proClientId && <RemainingMacrosFooter
+                    userId={effectiveUserId}
                     consumedOverride={consumed}
                     showSaveButton={Boolean(isDay) && !dayAlreadyLocked}
                     layoutMode={isDay ? "inline" : "sticky"}
@@ -2060,7 +2075,7 @@ export default function WeeklyMealBoard() {
                           }
                         : undefined
                     }
-                  />
+                  />}
                 </div>
               );
             })()}

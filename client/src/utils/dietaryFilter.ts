@@ -47,6 +47,21 @@ export function normalizeDiet(rawDiet?: string | string[] | null): DietType {
   return "omnivore";
 }
 
+const PLANT_MILK_RE = /\b(almond|soy|oat|coconut|cashew|rice|hemp|pea|flax|macadamia|hazelnut|pistachio|walnut|banana|quinoa|sesame|sunflower|tiger\s*nut)[\s-]+milk\b/gi;
+const NUT_BUTTER_RE  = /\b(peanut|almond|cashew|sunflower|apple|pumpkin)[\s-]*butter\b/gi;
+const CREAM_OF_RE    = /\bcream\s+of\s+\w+/gi;
+const COCONUT_CREAM_RE = /\bcoconut[\s-]+cream\b/gi;
+const ICE_CREAM_COMPOUND_RE = /\b(nice|banana|coconut|cashew|almond|oat)[\s-]+ice[\s-]+cream\b/gi;
+
+function normalizeMealContent(raw: string): string {
+  return raw
+    .replace(ICE_CREAM_COMPOUND_RE, "__VF__")
+    .replace(COCONUT_CREAM_RE, "__CCR__")
+    .replace(CREAM_OF_RE, "__CROF__")
+    .replace(PLANT_MILK_RE, "__PM__")
+    .replace(NUT_BUTTER_RE, "__NB__");
+}
+
 export function mealMatchesDiet(
   diet: DietType,
   meal: { name?: string; description?: string; ingredients?: any[] }
@@ -60,13 +75,15 @@ export function mealMatchesDiet(
     return [ing.name, ing.item, ing.displayText, ing.notes].filter(Boolean).join(" ");
   });
 
-  const content = [
+  const raw = [
     meal.name ?? "",
     meal.description ?? "",
     ...ingredientStrings,
   ]
     .join(" ")
     .toLowerCase();
+
+  const content = normalizeMealContent(raw);
 
   const has = (terms: string[]) => terms.some((t) => content.includes(t));
 

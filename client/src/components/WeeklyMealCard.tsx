@@ -1,6 +1,7 @@
 // client/src/components/WeeklyMealCard.tsx
 // Updated to match Fridge Rescue meal card exactly
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { getMealFallbackImage } from "@/lib/mealFallbackImage";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChefHat, Clock, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
@@ -8,6 +9,7 @@ import { useState } from "react";
 import HealthBadgesPopover from "./badges/HealthBadgesPopover";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import DietStyleBadge from "@/components/DietStyleBadge";
+import BuilderSourcePill from "@/components/BuilderSourcePill";
 
 interface WeeklyMealCardProps {
   dateISO: string;
@@ -15,6 +17,7 @@ interface WeeklyMealCardProps {
   meal: any;
   time?: string;
   onRegenerate?: (slot: string, mealType: string) => Promise<void>;
+  builderType?: string;
 }
 
 function convertToAmericanUnits(
@@ -87,7 +90,7 @@ function convertToAmericanUnits(
   return { quantity: String(quantity), unit };
 }
 
-export default function WeeklyMealCard({ dateISO, slot, meal, time, onRegenerate }: WeeklyMealCardProps) {
+export default function WeeklyMealCard({ dateISO, slot, meal, time, onRegenerate, builderType }: WeeklyMealCardProps) {
   const [regenerating, setRegenerating] = useState(false);
   const [instructionsExpanded, setInstructionsExpanded] = useState(false);
   
@@ -138,14 +141,11 @@ export default function WeeklyMealCard({ dateISO, slot, meal, time, onRegenerate
       {/* Image with badges - exactly like Fridge Rescue */}
       <div className="relative">
         <img
-          src={
-            imageUrl ||
-            `https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400&h=300&fit=crop&auto=format`
-          }
+          src={imageUrl || getMealFallbackImage(title)}
           alt={title}
           className="w-full h-48 object-cover"
           onError={(e) => {
-            e.currentTarget.src = `https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400&h=300&fit=crop&auto=format`;
+            e.currentTarget.src = getMealFallbackImage(title);
           }}
         />
         <div className="absolute top-3 left-3">
@@ -165,9 +165,19 @@ export default function WeeklyMealCard({ dateISO, slot, meal, time, onRegenerate
         </div>
       </div>
 
+      {/* Coaching line */}
+      <div className="px-4 pt-3 pb-0">
+        <p className="text-xs text-white/55 leading-relaxed border-l-2 border-white/20 pl-2.5">
+          Built for your current plan and targets.
+        </p>
+      </div>
+
       <CardHeader className="pb-3">
         <CardTitle className="text-lg text-white">{title}</CardTitle>
-        <DietStyleBadge className="mt-1" />
+        <div className="flex flex-wrap items-center gap-1 mt-1">
+          <DietStyleBadge />
+          <BuilderSourcePill source={builderType || meal?.builderType} />
+        </div>
         {description && (
           <CardDescription className="text-sm text-white/80">
             {description}

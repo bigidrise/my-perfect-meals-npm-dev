@@ -15,18 +15,14 @@ export type DietType =
 
 export type BeachBodyPhase = 'lean' | 'carb-control' | 'maintenance' | 'sculpt';
 
-/**
- * Starch Context for intelligent carb distribution
- * Part of the Starch Game Plan coaching system
- */
 export interface StarchContext {
-  strategy: 'one' | 'flex'; // "one" = 1 starch meal/day, "flex" = 2 meals
+  strategy: 'one' | 'flex';
   existingMeals?: Array<{
     slot: 'breakfast' | 'lunch' | 'dinner' | 'snack';
     hasStarch: boolean;
   }>;
-  forceStarch?: boolean; // User explicitly requested starch
-  forceFiberBased?: boolean; // User explicitly requested no starch
+  forceStarch?: boolean;
+  forceFiberBased?: boolean;
 }
 
 interface Meal {
@@ -36,7 +32,7 @@ interface Meal {
   description?: string;
   ingredients: Array<{ name: string; quantity: string; unit: string }>;
   instructions?: string | string[];
-  imageUrl?: string;
+  imageUrl?: string | null;
   calories?: number;
   protein?: number;
   carbs?: number;
@@ -60,11 +56,16 @@ interface SafetyOptions {
   overrideToken?: string;
 }
 
+export interface ExplicitOverride {
+  item: string;
+  confirmed: boolean;
+}
+
 interface UseCreateWithChefRequestResult {
   generating: boolean;
   progress: number;
   error: string | null;
-  generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner", dietType?: DietType, dietPhase?: BeachBodyPhase, starchContext?: StarchContext, safetyOptions?: SafetyOptions, strictMode?: boolean) => Promise<Meal | null>;
+  generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner", dietType?: DietType, dietPhase?: BeachBodyPhase, starchContext?: StarchContext, safetyOptions?: SafetyOptions, strictMode?: boolean, explicitOverride?: ExplicitOverride) => Promise<Meal | null>;
   cancel: () => void;
 }
 
@@ -110,7 +111,9 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
     dietPhase?: BeachBodyPhase,
     starchContext?: StarchContext,
     safetyOptions?: SafetyOptions,
-    strictMode?: boolean
+    strictMode?: boolean,
+    explicitOverride?: ExplicitOverride,
+    userDietOverride?: boolean
   ): Promise<Meal | null> => {
     setGenerating(true);
     setError(null);
@@ -134,6 +137,9 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
           safetyMode: safetyOptions?.safetyMode || "STRICT",
           overrideToken: safetyOptions?.overrideToken,
           strictMode: strictMode === true,
+          skipImage: true,
+          explicitOverride: explicitOverride || null,
+          userDietOverride: userDietOverride === true,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -141,7 +147,6 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
       const data = await response.json();
       
       if (!response.ok || !data.success) {
-        // Check if this is a safety/allergy block with detailed message
         if (data.safetyBlocked && data.error) {
           throw new Error(data.error);
         }
@@ -153,15 +158,16 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
       }
 
       const generatedMeal = data.meals[0];
+      const mealId = generatedMeal.id || `chef-${Date.now()}`;
 
       const meal: Meal = {
-        id: generatedMeal.id || `chef-${Date.now()}`,
+        id: mealId,
         name: generatedMeal.name,
         title: generatedMeal.name,
         description: generatedMeal.description,
         ingredients: generatedMeal.ingredients || [],
         instructions: generatedMeal.instructions,
-        imageUrl: generatedMeal.imageUrl,
+        imageUrl: null,
         calories: generatedMeal.calories,
         protein: generatedMeal.protein,
         carbs: generatedMeal.carbs,
@@ -178,10 +184,12 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
         },
         medicalBadges: generatedMeal.medicalBadges || [],
         substitutionNotes: generatedMeal.substitutionNotes || undefined,
+        dietClassification: generatedMeal.dietClassification || null,
       };
 
       stopProgressTicker();
       setGenerating(false);
+
       return meal;
     } catch (err: any) {
       if (err.name === "AbortError") {

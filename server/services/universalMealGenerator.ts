@@ -83,25 +83,40 @@ export type FinalMeal = {
   } | null;
 };
 
-// Generate DALL-E image
+// Generate DALL-E image — 30s timeout to prevent infinite hangs in production
 async function generateImageFromDalle(prompt: string): Promise<string | null> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+    console.warn("⏱️ [DALL-E] Image generation timed out after 30s — aborting");
+  }, 30_000);
+
   try {
-    const response = await getOpenAI().images.generate({
-      model: "dall-e-3",
-      prompt: prompt,
-      n: 1,
-      size: "1024x1024",
-      quality: "standard",
-    });
+    const response = await getOpenAI().images.generate(
+      {
+        model: "dall-e-3",
+        prompt: prompt,
+        n: 1,
+        size: "1024x1024",
+        quality: "standard",
+      },
+      { signal: controller.signal },
+    );
+    clearTimeout(timeoutId);
     return response.data?.[0]?.url || null;
-  } catch (error) {
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error?.name === "AbortError" || controller.signal.aborted) {
+      console.warn("⏱️ [DALL-E] Request aborted due to 30s timeout");
+      return null;
+    }
     console.error("DALL-E image generation error:", error);
     return null;
   }
 }
 
 // 🔁 Universal AI Meal Generator for any craving
-export async function generateMealFromPrompt(prompt: string, mealType: MealType, userPrefs?: Partial<WeeklyMealReq>): Promise<FinalMeal> {
+export async function generateMealFromPrompt(prompt: string, mealType: MealType, userPrefs?: Partial<WeeklyMealReq> & { skipImage?: boolean }): Promise<FinalMeal> {
   console.log("🌟 GPT-4 universal meal creation triggered with prompt:", prompt);
   
   const sessionId = telemetry.createSession("universalMealGenerator");
@@ -282,12 +297,14 @@ Fat: 12g`
     telemetry.tagFallback(sessionId, "instruction_fallback", "No instructions parsed from AI response");
   }
 
-  // Generate DALL-E image
-  const imagePrompt = `${name}, healthy ${mealType}, professional food photography, overhead view, clean plate presentation`;
-  const imageUrl = await generateImageFromDalle(imagePrompt);
-  
-  if (!imageUrl) {
-    telemetry.tagFallback(sessionId, "image_generation_failed", "DALL-E returned null");
+  // Generate DALL-E image — skip if caller handles images separately (e.g. experiences pipeline)
+  let imageUrl: string | null = null;
+  if (!userPrefs?.skipImage) {
+    const imagePrompt = `${name}, healthy ${mealType}, professional food photography, overhead view, clean plate presentation`;
+    imageUrl = await generateImageFromDalle(imagePrompt);
+    if (!imageUrl) {
+      telemetry.tagFallback(sessionId, "image_generation_failed", "DALL-E returned null");
+    }
   }
   
   // POST-GENERATION DIETARY HARD SCAN

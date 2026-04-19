@@ -82,7 +82,13 @@ export default function DiabeticHub() {
   const { data: glucoseLogs } = useGlucoseLogs(userId, 50); // Fetch last 50 readings for 7-day analytics
   const { data: profile } = useDiabetesProfile(userId);
 
-  // Guardrail state (hydrated from server)
+  // ── Phase 3: Context fields ───────────────────────────────────────────────
+  const [diabetesType, setDiabetesType] = useState<"T1D" | "T2D" | "PRE_D" | "NONE">("NONE");
+  const [a1cValue, setA1cValue] = useState("");
+  const [hypoRisk, setHypoRisk] = useState(false);
+  const [hasCustomizedGuardrails, setHasCustomizedGuardrails] = useState(false);
+
+  // ── Guardrail state (hydrated from server) ────────────────────────────────
   const [glucoseReading, setGlucoseReading] = useState("");
   const [glucoseContext, setGlucoseContext] =
     useState<GlucoseContext>("PRE_MEAL");
@@ -104,10 +110,17 @@ export default function DiabeticHub() {
     }
   }, []);
 
-  // Auto-hydrate guardrails from server on mount
+  // Auto-hydrate all context + guardrails from server on mount
   useEffect(() => {
-    if (profile?.data?.guardrails) {
-      const g = profile.data.guardrails;
+    if (!profile?.data) return;
+    const p = profile.data;
+    // Context fields
+    if (p.type && p.type !== "NONE") setDiabetesType(p.type as "T1D" | "T2D" | "PRE_D");
+    if (p.a1cPercent) setA1cValue(String(p.a1cPercent));
+    if (p.hypoHistory) setHypoRisk(!!p.hypoHistory);
+    // Guardrails
+    if (p.guardrails) {
+      const g = p.guardrails;
       if (g.fastingMin) setFastingMin(String(g.fastingMin));
       if (g.fastingMax) setFastingMax(String(g.fastingMax));
       if (g.postMealMax) setPostMealMax(String(g.postMealMax));
@@ -115,8 +128,10 @@ export default function DiabeticHub() {
       if (g.fiberMin) setFiberMin(String(g.fiberMin));
       if (g.giCap) setGiCap(String(g.giCap));
       if (g.mealFrequency) setMealFrequency(String(g.mealFrequency));
+      // Mark as already customized so type switching won't overwrite
+      setHasCustomizedGuardrails(true);
     }
-  }, [profile?.data?.guardrails]);
+  }, [profile?.data]);
 
   // Get latest reading for display
   const latestReading = glucoseLogs?.data?.[0];
@@ -125,24 +140,70 @@ export default function DiabeticHub() {
   const targetMax = parseInt(fastingMax) || GLUCOSE_THRESHOLDS.PRE_MEAL_MAX;
   const inRange = lastValue >= targetMin && lastValue <= targetMax;
 
-  // Handlers
+  // ── Phase 3: Type change — applies defaults ONCE unless already customized ──
+  const handleTypeChange = (type: "T1D" | "T2D" | "PRE_D") => {
+    setDiabetesType(type);
+    if (!hasCustomizedGuardrails) {
+      if (type === "T1D") {
+        setFastingMin("80"); setFastingMax("110");
+        setPostMealMax("130"); setDailyCarbLimit("90");
+        setFiberMin("30"); setGiCap("50"); setMealFrequency("5");
+      } else if (type === "T2D") {
+        setFastingMin("80"); setFastingMax("120");
+        setPostMealMax("140"); setDailyCarbLimit("120");
+        setFiberMin("25"); setGiCap("55"); setMealFrequency("4");
+      } else if (type === "PRE_D") {
+        setFastingMin("80"); setFastingMax("125");
+        setPostMealMax("150"); setDailyCarbLimit("150");
+        setFiberMin("25"); setGiCap("60"); setMealFrequency("4");
+      }
+    }
+  };
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
   const handleSaveGuardrails = async () => {
+    // Validation before save
+    const carbNum = parseInt(dailyCarbLimit);
+    const freqNum = parseInt(mealFrequency);
+    const fastMinNum = parseInt(fastingMin);
+    const fastMaxNum = parseInt(fastingMax);
+    const postMaxNum = parseInt(postMealMax);
+
+    if (!carbNum || carbNum < 30 || carbNum > 400) {
+      toast({ title: "Daily carb limit must be between 30–400g", variant: "destructive" });
+      return;
+    }
+    if (!freqNum || freqNum < 2 || freqNum > 8) {
+      toast({ title: "Meal frequency must be 2–8 per day", variant: "destructive" });
+      return;
+    }
+    if (!fastMinNum || !fastMaxNum || fastMinNum >= fastMaxNum) {
+      toast({ title: "Fasting range: min must be less than max", variant: "destructive" });
+      return;
+    }
+    if (!postMaxNum || postMaxNum < fastMaxNum) {
+      toast({ title: "Post-meal max must be greater than fasting max", variant: "destructive" });
+      return;
+    }
+
     try {
       await saveMutation.mutateAsync({
         userId,
-        type: "T2D",
-        hypoHistory: false,
+        type: diabetesType === "NONE" ? "T2D" : diabetesType,
+        hypoHistory: hypoRisk,
+        a1cPercent: a1cValue ? parseFloat(a1cValue) : undefined,
         guardrails: {
-          fastingMin: parseInt(fastingMin) || 80,
-          fastingMax: parseInt(fastingMax) || 120,
-          postMealMax: parseInt(postMealMax) || 140,
-          carbLimit: parseInt(dailyCarbLimit) || 120,
+          fastingMin: fastMinNum,
+          fastingMax: fastMaxNum,
+          postMealMax: postMaxNum,
+          carbLimit: carbNum,
           fiberMin: parseInt(fiberMin) || 25,
           giCap: parseInt(giCap) || 55,
-          mealFrequency: parseInt(mealFrequency) || 4,
+          mealFrequency: freqNum,
         },
       });
-      setSelectedPreset(""); // Clear preset after manual save
+      setSelectedPreset("");
+      setHasCustomizedGuardrails(true);
       toast({ title: "Guardrails saved successfully" });
     } catch (error) {
       toast({ title: "Failed to save guardrails", variant: "destructive" });
@@ -237,6 +298,32 @@ export default function DiabeticHub() {
           className="max-w-6xl mx-auto px-4 space-y-8 pb-24"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          {/* ── Copilot Banner — adapts to diabetes type ── */}
+          <div className="rounded-xl border-l-[3px] border-teal-500/60 bg-teal-500/5 px-4 py-3 space-y-1.5">
+            <p className="text-sm text-white/80 leading-relaxed">
+              This hub makes sure every meal you get is safe for your goals — carb limits, glucose patterns, and safe ranges applied automatically.
+            </p>
+            <p className="text-sm text-white/50 leading-relaxed">
+              {diabetesType === "T1D"
+                ? "Focus on consistency above all. Even small carb swings can affect your range — your meals are built to minimize variability."
+                : diabetesType === "T2D"
+                ? "Your meals are built around controlled carb reduction. Steady patterns over time are what move the needle."
+                : diabetesType === "PRE_D"
+                ? "You're in prevention mode. Your meals are designed to keep blood sugar stable and reduce long-term risk."
+                : "Stay consistent with your logs. The system adjusts your meals to keep your blood sugar stable."}
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {["Carb Guardrails", "Glucose Trends", "Meal Decisions"].map(chip => (
+                <span key={chip} className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-300">
+                  {chip}
+                </span>
+              ))}
+            </div>
+            <p className="text-[11px] text-white/30 pt-0.5">
+              Your meal builders automatically use these settings.
+            </p>
+          </div>
+
           {/* Doctor / Coach Guardrail Card */}
           <section className="bg-black/30 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8 mb-2 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/3 pointer-events-none" />
@@ -248,6 +335,84 @@ export default function DiabeticHub() {
                 <p className="text-white/80 text-md">
                   Set your clinical targets and constraints
                 </p>
+              </div>
+            </div>
+
+            {/* ── Phase 3: Diabetes Type Selector ── */}
+            <div className="mb-6 relative z-10">
+              <label className="block text-sm font-semibold text-white/80 mb-3">
+                Diabetes Type
+              </label>
+              <div className="flex gap-2 flex-wrap">
+                {(["T1D", "T2D", "PRE_D"] as const).map((t) => {
+                  const labels: Record<string, string> = { T1D: "Type 1", T2D: "Type 2", PRE_D: "Pre-Diabetes" };
+                  const active = diabetesType === t;
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => handleTypeChange(t)}
+                      className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
+                        active
+                          ? "bg-teal-500/25 border-teal-500/60 text-teal-300"
+                          : "bg-white/8 border-white/20 text-white/50 hover:bg-white/15 hover:text-white/80"
+                      }`}
+                    >
+                      {labels[t]}
+                    </button>
+                  );
+                })}
+              </div>
+              {diabetesType !== "NONE" && !hasCustomizedGuardrails && (
+                <p className="text-[11px] text-teal-400/60 mt-2">
+                  Default guardrails for {diabetesType === "PRE_D" ? "Pre-Diabetes" : diabetesType} applied — customize below, then save.
+                </p>
+              )}
+            </div>
+
+            {/* ── Phase 3: A1C + Hypo Risk ── */}
+            <div className="mb-6 relative z-10 grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-white/80 mb-1.5">
+                  A1C (optional)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="3"
+                  max="15"
+                  value={a1cValue}
+                  onChange={(e) => setA1cValue(e.target.value)}
+                  placeholder="e.g. 6.5"
+                  className="w-full px-3 py-2 rounded-xl bg-white/20 border border-white/40 text-white placeholder-white/40 focus:outline-none focus:border-teal-400/60"
+                />
+                <p className="text-[11px] text-white/35 mt-1">
+                  If you know your A1C, you can enter it here. This helps personalize your plan.
+                </p>
+              </div>
+              <div className="flex flex-col justify-start pt-1">
+                <label className="block text-sm font-semibold text-white/80 mb-3">
+                  Low Blood Sugar Risk
+                </label>
+                <button
+                  onClick={() => setHypoRisk(!hypoRisk)}
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all text-sm font-medium w-full ${
+                    hypoRisk
+                      ? "bg-amber-500/15 border-amber-500/40 text-amber-300"
+                      : "bg-white/8 border-white/20 text-white/50 hover:bg-white/12"
+                  }`}
+                >
+                  <div className={`w-4 h-4 rounded-sm border-2 flex items-center justify-center shrink-0 ${
+                    hypoRisk ? "bg-amber-500 border-amber-400" : "border-white/40"
+                  }`}>
+                    {hypoRisk && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  </div>
+                  History of low blood sugar (hypoglycemia)
+                </button>
+                {hypoRisk && (
+                  <p className="text-[11px] text-amber-400/60 mt-1.5 px-1">
+                    Meals will include a minimum carb floor to reduce hypoglycemia risk.
+                  </p>
+                )}
               </div>
             </div>
 

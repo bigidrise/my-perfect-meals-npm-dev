@@ -1329,3 +1329,59 @@ button, a, [role="button"], .interactive {
 .desktop-content > .desktop-page-reset > div > div {
   padding-top: 0 !important;
 }
+
+@keyframes mpm-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ============================================
+   DESKTOP ANIMATION TONE-DOWN (FINAL PASS)
+   Prefer-reduced-motion-lite:
+   Desktop gets 50-70% less idle animation.
+   Only interaction-triggered motion on pointer devices.
+   ============================================ */
+@media (hover: hover) and (pointer: fine) {
+  /* --- Flash-border: disable continuous pulse, static glow only ---
+     Used on AI buttons, chef buttons, and chef AI meal cards.
+     On desktop: still, activates subtly on hover. */
+  .flash-border {
+    animation: none !important;
+    box-shadow: 0 0 8px rgba(249, 115, 22, 0.12);
+    border-color: rgba(249, 115, 22, 0.35);
+    transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+  }
+  .flash-border:hover {
+    box-shadow: 0 0 18px rgba(249, 115, 22, 0.45);
+    border-color: rgba(249, 115, 22, 0.72);
+    transform: scale(1.01);
+  }
+
+  /* --- Critical border: keep pulse (signals urgency) but slow it down --- */
+  .flash-border-critical {
+    animation-duration: 2.4s !important;
+  }
+
+  /* --- Shimmer: slower on desktop = calmer loading feel --- */
+  .mpm-shimmer-bar {
+    animation-duration: 2.5s !important;
+  }
+
+  /* --- Soft macro-limit pulse: static on desktop --- */
+  .animate-mpm-pulse-soft {
+    animation: none !important;
+  }
+
+  /* --- Chef motivation card sparkles: no continuous pulse on desktop.
+     Four icons pulsing simultaneously violates the "one animated element
+     per section" rule. Fade them to a soft static opacity instead. --- */
+  .chef-decoration-pulse {
+    animation: none !important;
+    opacity: 0.55;
+  }
+
+  /* --- Guided tour lime pulse: keep but slow down (tour is intentional) --- */
+  .pulse-lime-border {
+    animation-duration: 2s !important;
+  }
+}

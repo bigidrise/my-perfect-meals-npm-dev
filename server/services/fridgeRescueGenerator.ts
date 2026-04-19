@@ -1,5 +1,4 @@
 import OpenAI from 'openai';
-import { generateImage } from './imageService';
 import { deriveCarbSplit } from './generators/macros/carbSplit';
 import { convertStructuredIngredients } from '../utils/unitConverter';
 import { enforceCarbs } from '../utils/carbClassifier';
@@ -8,6 +7,7 @@ import { getBaselineMacroPrompt } from './guardrails/promptPolicyGate';
 import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 import { buildDietPromptBlock, violatesDietaryConstraints } from './allergyGuardrails';
 import { enforceBeforeGenerate, UserProtocolEnvelope } from './protocolEnvelope';
+import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from './behavioralMemoryService';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -286,8 +286,23 @@ EXAMPLE: If target is 50g protein + 30g starchy carbs, your meal MUST have 45-55
 This is for athlete meal planning - precision is critical for contest preparation.
 ` : "";
 
+  // ── Behavioral memory: soft preference hints ───────────────────────────────
+  let fridgeBehavioralMemorySection = "";
+  const fridgeUserId = user?.id as string | undefined;
+  if (fridgeUserId) {
+    try {
+      const behavioralProfile = await derivePreferenceProfile(fridgeUserId);
+      if (behavioralProfile) {
+        fridgeBehavioralMemorySection = buildBehavioralMemoryPromptSection(behavioralProfile);
+        console.log(`🧠 [BehavioralMemory/Fridge] Profile loaded — ${behavioralProfile.auditMeta.evidenceCount} signals`);
+      }
+    } catch (err) {
+      console.warn("⚠️ [BehavioralMemory/Fridge] Could not derive preference profile:", err);
+    }
+  }
+
   const prompt = `You are a creative chef helping someone make meals with limited ingredients from their fridge.
-${fridgeEnforcementBlock ? `\n${fridgeEnforcementBlock}\n` : ""}${strictMode ? `\n${buildStrictModeBlock(fridgeItems.join(", "))}\n` : ""}
+${fridgeEnforcementBlock ? `\n${fridgeEnforcementBlock}\n` : ""}${fridgeBehavioralMemorySection ? `\n${fridgeBehavioralMemorySection}\n` : ""}${strictMode ? `\n${buildStrictModeBlock(fridgeItems.join(", "))}\n` : ""}
 TASK: Create 3 different, realistic meals using ONLY these ingredients: ${fridgeItems.join(', ')}
 Each meal should be portioned for ${servings} serving${servings > 1 ? 's' : ''}. Scale all ingredient quantities and nutritional values accordingly.
 ${macroTargetingText}
@@ -472,38 +487,8 @@ Remember: Only use ingredients from this list: ${fridgeItems.join(', ')}`;
       processedMeals.push(processedMeal);
     }
 
-    // Generate all images in parallel with a 25-second hard cap.
-    // If images are still pending after the cap, meals are returned without them
-    // rather than making iOS / slow connections time out.
-    const IMAGE_TIMEOUT_MS = 25_000;
-    const imageTimeout = new Promise<void>((resolve) =>
-      setTimeout(() => { console.warn("⚠️ [FRIDGE] Image generation timed out — returning meals without images"); resolve(); }, IMAGE_TIMEOUT_MS)
-    );
-
-    const imageGenerations = Promise.allSettled(
-      processedMeals.map(async (processedMeal) => {
-        try {
-          const imageUrl = await generateImage({
-            name: processedMeal.name,
-            description: processedMeal.description,
-            type: 'meal',
-            style: 'homemade',
-            ingredients: processedMeal.ingredients?.map(ing => ing.name) || [],
-            calories: processedMeal.calories,
-            protein: processedMeal.protein,
-            carbs: processedMeal.carbs,
-            fat: processedMeal.fat,
-          });
-          if (imageUrl) processedMeal.imageUrl = imageUrl;
-        } catch (error) {
-          console.error(`Failed to generate image for ${processedMeal.name}:`, error);
-        }
-      })
-    );
-
-    await Promise.race([imageGenerations, imageTimeout]);
-
-    console.log("✅ Fridge rescue meals generated successfully with images");
+    // Images are generated client-side in parallel — return meals immediately
+    console.log("✅ Fridge rescue meals generated — images will hydrate client-side");
     // ENFORCE CARBS: Final safety net - ensure all meals have valid starchy/fibrous values
     return processedMeals.map(meal => enforceCarbs(meal));
 

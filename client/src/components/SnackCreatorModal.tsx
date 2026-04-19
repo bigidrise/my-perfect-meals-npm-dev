@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,18 +10,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Cookie } from "lucide-react";
 import BreathingOrb from "@/components/BreathingOrb";
-import { useSnackCreatorRequest, DietType, BeachBodyPhase } from "@/hooks/useSnackCreatorRequest";
+import { useSnackCreatorRequest, DietType, BeachBodyPhase, ExplicitOverride } from "@/hooks/useSnackCreatorRequest";
 import { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsage } from "@/lib/guestMode";
 import { SafetyGuardBanner, EMPTY_SAFETY_ALERT } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
+import { DietGuardIntercept } from "@/components/DietGuardIntercept";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { StarchOverrideToggle } from "@/components/StarchOverrideToggle";
 import { KeepItSimpleToggle } from "@/components/KeepItSimpleToggle";
 import { isAllergyRelatedError } from "@/utils/allergyAlert";
+import { detectBuilderConflict, isCoachableBuilder } from "@/lib/builderGuardrailConfig";
+import { BuilderOverrideDialog } from "@/components/meal/BuilderOverrideDialog";
 
 interface SnackCreatorModalProps {
   open: boolean;
@@ -45,15 +49,30 @@ export function SnackCreatorModal({
   const [pendingGeneration, setPendingGeneration] = useState(false);
   const [starchOverride, setStarchOverride] = useState(false);
   const [strictMode, setStrictMode] = useState(false);
+
+  // Builder Override state — coach-style dialog for builder guardrail conflicts
+  const [showBuilderOverride, setShowBuilderOverride] = useState(false);
+  const [builderConflictItem, setBuilderConflictItem] = useState<string>("");
   
   const { user } = useAuth();
-  
+
+  const dietAdaptModeRef = useRef(false);
+  const continueAnywayRef = useRef(false);
+
   const isGuest = isGuestMode();
   const guestSession = isGuest ? getGuestSession() : null;
   const userId = user?.id?.toString() || guestSession?.sessionId || "";
   
   const { generating, progress, error, generateSnack, cancel } = useSnackCreatorRequest(userId);
   const { toast } = useToast();
+
+  const {
+    alert: dietAlert,
+    checkDiet,
+    clearAlert: clearDietAlert,
+    shouldShowIntercept: showDietIntercept,
+    setDecision: setDietDecision,
+  } = useDietGuardPrecheck();
   
   const {
     checking,
@@ -101,12 +120,18 @@ export function SnackCreatorModal({
       setStarchOverride(false);
       setStrictMode(false);
       clearAlert();
+      clearDietAlert();
+      dietAdaptModeRef.current = false;
+      setShowBuilderOverride(false);
+      setBuilderConflictItem("");
       cancel();
     }
-  }, [open, cancel, clearAlert]);
+  }, [open, cancel, clearAlert, clearDietAlert]);
 
-  const executeGeneration = async () => {
-    const snack = await generateSnack(description.trim(), dietType, dietPhase, overrideToken || undefined, starchOverride || undefined, strictMode === true);
+  const executeGeneration = async (explicitOverride?: ExplicitOverride) => {
+    const userDietOverride = continueAnywayRef.current;
+    continueAnywayRef.current = false;
+    const snack = await generateSnack(description.trim(), dietType, dietPhase, overrideToken || undefined, starchOverride || undefined, strictMode === true, explicitOverride, userDietOverride);
 
     if (snack) {
       if (isGuest) {
@@ -122,7 +147,7 @@ export function SnackCreatorModal({
     } else if (error) {
       if (isAllergyRelatedError(error)) {
         toast({
-          title: "⚠️ Allergy Alert",
+          title: "Allergy Alert",
           description: error,
           variant: "warning",
         });
@@ -164,6 +189,29 @@ export function SnackCreatorModal({
       return;
     }
 
+    // DIET GUARD — Tier 0: dietary identity runs before safety check
+    if (!dietAdaptModeRef.current) {
+      const dietOk = checkDiet(description.trim());
+      if (!dietOk) return;
+    }
+
+    // If user chose "Let Chef Adapt", skip ALL remaining guards
+    if (dietAdaptModeRef.current) {
+      dietAdaptModeRef.current = false;
+      await executeGeneration();
+      return;
+    }
+
+    // BUILDER OVERRIDE — Tier 1: coachable builder conflict
+    if (isCoachableBuilder(dietType)) {
+      const conflictItem = detectBuilderConflict(description.trim(), dietType);
+      if (conflictItem) {
+        setBuilderConflictItem(conflictItem);
+        setShowBuilderOverride(true);
+        return;
+      }
+    }
+
     if (hasActiveOverride || !safetyEnabled) {
       await executeGeneration();
       return;
@@ -174,6 +222,44 @@ export function SnackCreatorModal({
     if (isSafe) {
       await executeGeneration();
     }
+  };
+
+  // Builder override handlers
+  const handleKeepOnPlan = () => {
+    setShowBuilderOverride(false);
+    setBuilderConflictItem("");
+  };
+
+  const handleMakeItAnyway = async () => {
+    const item = builderConflictItem;
+    setShowBuilderOverride(false);
+    setBuilderConflictItem("");
+
+    const override: ExplicitOverride = { item, confirmed: true };
+
+    if (hasActiveOverride || !safetyEnabled) {
+      await executeGeneration(override);
+      return;
+    }
+    const isSafe = await checkSafety(description.trim(), "snack-creator");
+    if (isSafe) {
+      await executeGeneration(override);
+    }
+  };
+
+  const handleDietDecision = async (decision: "pick_something_else" | "let_chef_adapt" | "continue_anyway") => {
+    if (decision === "pick_something_else") {
+      setDietDecision("pick_something_else");
+      clearDietAlert();
+      return;
+    }
+    if (decision === "continue_anyway") {
+      continueAnywayRef.current = true;
+    }
+    setDietDecision(decision);
+    dietAdaptModeRef.current = true;
+    clearDietAlert();
+    await handleGenerate();
   };
 
   const isProcessing = generating || checking;
@@ -210,7 +296,27 @@ export function SnackCreatorModal({
             </p>
           </div>
 
-          {alert.show && (
+          {/* Diet Guard — Tier 0 protocol intercept (identity diets) */}
+          {showDietIntercept && (
+            <DietGuardIntercept
+              alert={dietAlert}
+              onDecision={handleDietDecision}
+            />
+          )}
+
+          {/* Builder Override — Tier 1 coachable conflict (anti-inflammatory, GLP-1, etc.) */}
+          {!showDietIntercept && showBuilderOverride && builderConflictItem && (
+            <BuilderOverrideDialog
+              show={showBuilderOverride}
+              conflictingItem={builderConflictItem}
+              builderType={dietType as string}
+              onKeepOnPlan={handleKeepOnPlan}
+              onMakeItAnyway={handleMakeItAnyway}
+            />
+          )}
+
+          {/* Safety Guard banner */}
+          {!showDietIntercept && !showBuilderOverride && alert.show && (
             <SafetyGuardBanner
               alert={alert}
               mealRequest={description}
@@ -256,7 +362,7 @@ export function SnackCreatorModal({
           </div>
 
           <div className="flex gap-3 pt-2">
-            {!isProcessing && (
+            {!isProcessing && !showDietIntercept && !showBuilderOverride && (
               <Button
                 className="flex-1 bg-lime-600 hover:bg-lime-500 text-white"
                 onClick={handleGenerate}

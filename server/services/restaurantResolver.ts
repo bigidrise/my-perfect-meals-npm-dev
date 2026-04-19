@@ -1,5 +1,5 @@
 /**
- * Restaurant Resolver Service v1.0
+ * Restaurant Resolver Service v1.1
  * 
  * Shared utility for resolving restaurant locations by ZIP code.
  * Used by both Meal Finder and Restaurant Guide features.
@@ -8,10 +8,12 @@
  * - ZIP → coordinates conversion
  * - Google Places API integration
  * - Restaurant data normalization
+ * - price_level capture (0-4)
  */
 
 import axios from 'axios';
 import { zipToCoordinates } from './zipToCoordsService';
+import { classifyRestaurantArchetype } from './restaurantCuisineArchetype';
 
 export interface ResolvedRestaurant {
   name: string;
@@ -21,6 +23,7 @@ export interface ResolvedRestaurant {
   photoUrl?: string;
   placeId?: string;
   types?: string[];
+  priceLevel?: number;
   location?: {
     lat: number;
     lng: number;
@@ -33,6 +36,7 @@ export interface RestaurantResolverRequest {
   radiusMiles?: number;
   limit?: number;
   searchMode?: 'craving' | 'restaurant';
+  overrideQuery?: string;
 }
 
 export interface RestaurantResolverResult {
@@ -43,30 +47,8 @@ export interface RestaurantResolverResult {
 }
 
 function detectCuisine(name: string, types: string[] = []): string {
-  const nameLower = name.toLowerCase();
-  const typesStr = types.join(' ').toLowerCase();
-  
-  if (typesStr.includes('mexican')) return 'Mexican';
-  if (typesStr.includes('italian')) return 'Italian';
-  if (typesStr.includes('chinese')) return 'Chinese';
-  if (typesStr.includes('japanese')) return 'Japanese';
-  if (typesStr.includes('indian')) return 'Indian';
-  if (typesStr.includes('thai')) return 'Thai';
-  if (typesStr.includes('mediterranean')) return 'Mediterranean';
-  if (typesStr.includes('greek')) return 'Greek';
-  if (typesStr.includes('french')) return 'French';
-  if (typesStr.includes('korean')) return 'Korean';
-  if (typesStr.includes('vietnamese')) return 'Vietnamese';
-  
-  if (nameLower.includes('taco') || nameLower.includes('burrito')) return 'Mexican';
-  if (nameLower.includes('pizza') || nameLower.includes('pasta')) return 'Italian';
-  if (nameLower.includes('sushi') || nameLower.includes('ramen')) return 'Japanese';
-  if (nameLower.includes('curry') || nameLower.includes('tandoor')) return 'Indian';
-  if (nameLower.includes('pita') || nameLower.includes('gyro')) return 'Mediterranean';
-  if (nameLower.includes('pho') || nameLower.includes('banh')) return 'Vietnamese';
-  if (nameLower.includes('bbq') || nameLower.includes('barbecue')) return 'BBQ';
-  
-  return 'American';
+  const result = classifyRestaurantArchetype(name, types);
+  return result.archetype.label;
 }
 
 function getPhotoUrl(photoReference?: string): string | undefined {
@@ -81,8 +63,9 @@ function getPhotoUrl(photoReference?: string): string | undefined {
  * @param request.query - Search term (craving like "steak" or restaurant name like "Chipotle")
  * @param request.zipCode - 5-digit US ZIP code
  * @param request.radiusMiles - Search radius in miles (default: 5)
- * @param request.limit - Max restaurants to return (default: 3)
+ * @param request.limit - Max restaurants to return (default: 10)
  * @param request.searchMode - 'craving' searches for "restaurants serving X", 'restaurant' searches for the restaurant directly
+ * @param request.overrideQuery - If provided, bypasses searchMode logic and uses this exact query string
  */
 export async function resolveRestaurantsByZip(
   request: RestaurantResolverRequest
@@ -91,8 +74,9 @@ export async function resolveRestaurantsByZip(
     query, 
     zipCode, 
     radiusMiles = 5, 
-    limit = 3,
-    searchMode = 'craving'
+    limit = 10,
+    searchMode = 'craving',
+    overrideQuery
   } = request;
 
   console.log(`🔍 Resolving restaurants for "${query}" near ZIP ${zipCode} (mode: ${searchMode})`);
@@ -117,9 +101,11 @@ export async function resolveRestaurantsByZip(
   }
 
   try {
-    const searchQuery = searchMode === 'craving'
-      ? `restaurants serving ${query}`
-      : query;
+    const searchQuery = overrideQuery
+      ? overrideQuery
+      : searchMode === 'craving'
+        ? `restaurants serving ${query}`
+        : query;
     
     const radiusMeters = Math.round(radiusMiles * 1609.34);
     const url = `https://maps.googleapis.com/maps/api/place/textsearch/json`;
@@ -160,6 +146,7 @@ export async function resolveRestaurantsByZip(
           : undefined,
         placeId: place.place_id,
         types: place.types,
+        priceLevel: place.price_level,
         location: place.geometry?.location
           ? { lat: place.geometry.location.lat, lng: place.geometry.location.lng }
           : undefined

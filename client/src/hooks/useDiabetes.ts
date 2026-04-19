@@ -3,7 +3,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { get, post } from "@/lib/api";
 import { apiUrl } from '@/lib/resolveApiBase';
 
-export type DiabetesType = "NONE" | "T1D" | "T2D";
+export type DiabetesType = "NONE" | "T1D" | "T2D" | "PRE_D";
 export type GlucoseContext = "FASTED" | "PRE_MEAL" | "POST_MEAL_1H" | "POST_MEAL_2H" | "RANDOM";
 
 export interface DiabetesProfile {

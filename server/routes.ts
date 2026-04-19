@@ -28,7 +28,7 @@ import { generateCravingMealWithProfile } from "./services/generators/cravingCre
 import { enforceSafetyProfile } from "./services/safetyProfileService";
 import { runEnforcement, toRouteResponse } from "./services/enforcementGateway";
 import { scanForHiddenDietaryViolations, AVOIDANCE_EXPANSION } from "./services/allergyGuardrails";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol, buildGuestEnvelope, scanGeneratedOutput } from "./services/protocolEnvelope";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol, buildGuestEnvelope, scanGeneratedOutput, buildComplianceSection, buildMealComplianceBundle } from "./services/protocolEnvelope";
 import { 
   hasUserSetPin, 
   setUserPin, 
@@ -639,8 +639,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         nutritionStrategy: bodyNutritionStrategy,
         safetyMode,
         overrideToken,
-        strictMode
+        strictMode,
+        skipImage,
+        explicitOverride,
+        userDietOverride,
       } = req.body;
+
+      // When user chose "Continue Anyway" on the diet guard, inject a soft coaching override
+      // so the AI includes the requested ingredient while keeping everything else diet-aligned
+      const effectiveInput = userDietOverride === true && input && typeof input === 'string'
+        ? `${input} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`
+        : input;
 
       // 🚨 ENFORCEMENT GATEWAY: Pre-generation — Tier 1 (allergy) + Tier 2 (religious)
       if (userId && input) {
@@ -749,7 +758,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await generateMealUnified({
         type,
         mealType,
-        input,
+        input: effectiveInput,
         userId,
         macroTargets,
         count,
@@ -757,13 +766,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         starchContext,
         nutritionStrategy: nutritionStrategy ?? undefined,
         strictMode: strictMode === true,
-        safetyAlreadyChecked: true
+        skipImage: skipImage === true,
+        safetyAlreadyChecked: true,
+        explicitOverride: explicitOverride || null,
       });
 
       const durationMs = Date.now() - startTime;
       recordGeneration('/api/meals/generate', result.source as any, durationMs);
 
       console.log(`✅ Unified generation complete: source=${result.source}, success=${result.success}`);
+
+      // ── Compliance bundle: attach complianceSection + dietClassification ──
+      // Every meal leaving the server MUST pass through buildMealComplianceBundle.
+      // This matches the exact pattern used in craving-creator and fridge-rescue routes.
+      // NOTE: pipeline returns BOTH result.meal and result.meals[0] — patch both so all
+      // consumers (hook reads meals[0], other readers use meal) get the classification.
+      if (result.success && (result.meal || result.meals?.length)) {
+        const envelope = userId
+          ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+          : buildGuestEnvelope();
+        if (result.meal) {
+          const { complianceSection, dietClassification } = buildMealComplianceBundle(result.meal, envelope);
+          result.meal = { ...result.meal, complianceSection, dietClassification };
+        }
+        if (result.meals?.length) {
+          result.meals = result.meals.map((m: any) => {
+            const { complianceSection, dietClassification } = buildMealComplianceBundle(m, envelope);
+            return { ...m, complianceSection, dietClassification };
+          });
+        }
+      }
 
       res.json(result);
 
@@ -807,7 +839,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("🥕 Fridge Rescue route hit - generating 3 meals");
 
       const userId = getAuthUserId(req);
-      const { fridgeItems, servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken, skipPalate, strictMode } = req.body;
+      const { fridgeItems, servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken, skipPalate, strictMode, dietAdaptOverride, userDietOverride } = req.body;
 
       if (!fridgeItems || !Array.isArray(fridgeItems) || fridgeItems.length === 0) {
         console.error("[FRIDGE] validation error: invalid fridgeItems", fridgeItems);
@@ -918,6 +950,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // ── Post-generation protocol scan (ingredient + instruction level) ──────
       const cleanFridgeMeals = filterMealsByProtocol(meals, fridgeProtocolEnvelope, {
         generatorName: "fridge_rescue",
+        skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
       });
 
       if (cleanFridgeMeals.length === 0 && meals.length > 0) {
@@ -938,8 +971,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       recordGeneration('/api/meals/fridge-rescue', 'ai', durationMs);
 
       console.log("[FRIDGE] ok returning", cleanFridgeMeals.length, "meals");
+      const fridgeMealsWithCompliance = cleanFridgeMeals.map(meal => {
+        const { complianceSection, dietClassification } = buildMealComplianceBundle(
+          meal, fridgeProtocolEnvelope
+        );
+        return { ...meal, complianceSection, dietClassification };
+      });
       res.json({
-        meals: cleanFridgeMeals,
+        meals: fridgeMealsWithCompliance,
         quota: {
           remaining: quotaCheck.remaining,
           limit: quotaCheck.limit,
@@ -3287,7 +3326,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/meals/craving-creator", async (req, res) => {
     try {
-      const { targetMealType, cravingInput, dietaryRestrictions, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode } = req.body;
+      const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode, dietAdaptOverride, userDietOverride } = req.body;
+
+      // When the user chose "Let Chef Adapt", inject a pareve/adaptation instruction
+      // so the AI knows to substitute restricted elements with compliant alternatives.
+      // When the user chose "Continue Anyway", inject a soft override that keeps the
+      // requested ingredient but controls its portion and keeps everything else aligned.
+      const cravingInput = dietAdaptOverride === true
+        ? `${rawCravingInput} [CHEF ADAPTATION MODE: The user has explicitly requested this dish be adapted for their dietary law. Preserve the intent and texture. Replace any dairy elements (cream, butter, milk, cheese) with certified pareve or non-dairy alternatives ONLY: coconut cream, cashew cream, oat-based cream, or pareve margarine. The final dish MUST contain zero dairy. Use non-dairy alternatives throughout.]`
+        : userDietOverride === true
+        ? `${rawCravingInput} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`
+        : rawCravingInput;
 
       // Fix A: Resolve authenticated user from session/token (server-authoritative).
       // Never rely solely on client-sent userId — client may not send it at all.
@@ -3361,7 +3410,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // 🎲 VARIETY ENGINE: Always generate 3 distinct options (Layers 1-4)
-      const { generateCravingMealOptions } = await import("./services/unifiedMealPipeline");
+      const { generateCravingMealOptions, generateSingleCompliantFallback } = await import("./services/unifiedMealPipeline");
 
       const bodyDietRestrictions = dietaryRestrictions
         ? (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean)
@@ -3391,15 +3440,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // combination violations, AND forbidden instruction phrases.
       const cleanOptions = filterMealsByProtocol(mealOptions, protocolEnvelope, {
         generatorName: "craving_creator",
+        skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
       });
 
       if (cleanOptions.length === 0 && mealOptions.length > 0) {
-        console.log(`⚠️ [ProtocolEnvelope] ALL options violated protocol — returning enforcement error`);
-        return res.status(400).json({
-          error: "AVOIDANCE_VIOLATION_ALL_OPTIONS",
-          message: "All generated options contained ingredients or instructions that conflict with your dietary protocol. Please try a different dish or adjust your craving description.",
-          retryable: true,
-        });
+        console.warn(`⚠️ [ProtocolEnvelope] ALL options violated protocol — attempting emergency compliant fallback`);
+        const fallbackMeal = await generateSingleCompliantFallback(
+          cravingInput || "something delicious",
+          targetMealType || "lunch",
+          protocolEnvelope.dietaryIdentity,
+        );
+        if (fallbackMeal) {
+          console.log(`✅ [ProtocolEnvelope] Emergency fallback succeeded: "${fallbackMeal.name}"`);
+          cleanOptions.push(fallbackMeal);
+        } else {
+          console.error(`❌ [ProtocolEnvelope] Emergency fallback also failed — returning enforcement error`);
+          return res.status(400).json({
+            error: "AVOIDANCE_VIOLATION_ALL_OPTIONS",
+            message: "All generated options contained ingredients or instructions that conflict with your dietary protocol. Please try a different dish or adjust your craving description.",
+            retryable: true,
+          });
+        }
       }
 
       if (cleanOptions.length < mealOptions.length) {
@@ -3410,6 +3471,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Format and optionally scale each option
       const formattedOptions = scannedOptions.map(meal => {
+        const { complianceSection, dietClassification } = buildMealComplianceBundle(
+          meal, protocolEnvelope, { isChefAdapted: dietAdapted }
+        );
         const formatted: any = {
           id: meal.id,
           name: meal.name,
@@ -3424,7 +3488,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
           medicalBadges: meal.medicalBadges || [],
           imageUrl: meal.imageUrl,
-          servingSize: validatedServings > 1 ? `${validatedServings} servings` : "1 serving"
+          servingSize: validatedServings > 1 ? `${validatedServings} servings` : "1 serving",
+          complianceSection,
+          dietClassification,
         };
         if (validatedServings > 1) {
           formatted.nutrition.calories *= validatedServings;
@@ -6251,6 +6317,166 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     }
   });
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // UNIFIED ROUTE BLOCK — all routes from index.ts that were missing from
+  // registerRoutes. Adding them here ensures dev AND prod are always in sync.
+  // ─────────────────────────────────────────────────────────────────────────
+  const { default: mealsRouterShared } = await import("./routes/meals");
+  app.use("/api/meals", mealsRouterShared);
+
+  const { default: experiencesRouterShared } = await import("./routes/experiences");
+  app.use("/api/experiences", requireAuth, requireActiveAccess, experiencesRouterShared);
+
+  const { default: cravingCreatorRouterShared } = await import("./routes/craving-creator");
+  app.use("/api/craving-creator", requireAuth, requireActiveAccess, cravingCreatorRouterShared);
+
+  const { default: breakfastRouterShared } = await import("./routes/breakfast");
+  app.use("/api/breakfast", breakfastRouterShared);
+
+  const { default: lunchRouterShared } = await import("./routes/lunch");
+  app.use("/api/lunch", lunchRouterShared);
+
+  const { default: dinnerRouterShared } = await import("./routes/dinner");
+  app.use("/api/dinner", dinnerRouterShared);
+
+  const { default: snacksRouterShared } = await import("./routes/snacks");
+  app.use("/api/snacks", snacksRouterShared);
+
+  const { default: gamesRouterShared } = await import("./routes/games");
+  app.use("/api/games", gamesRouterShared);
+
+  const { testimonialsRouter: testimonialsRouterShared } = await import("./routes/testimonials");
+  app.use("/api/testimonials", testimonialsRouterShared);
+
+  const { default: fitlifeRouterShared } = await import("./routes/fitlife");
+  app.use("/api/fitlife", fitlifeRouterShared);
+
+  const { default: mybestlifeRouterShared } = await import("./routes/mybestlife");
+  app.use("/api/my-best-life", mybestlifeRouterShared);
+
+  const { constraintsRouter: constraintsRouterShared } = await import("./routes/mealEngineConstraints");
+  app.use("/api/meal-engine", constraintsRouterShared);
+
+  const { generationRouter: generationRouterShared } = await import("./routes/generation");
+  app.use("/api/generation", generationRouterShared);
+
+  const { default: triviaRouterShared } = await import("./routes/trivia");
+  app.use("/api/trivia", triviaRouterShared);
+
+  const { default: challengeRoutesShared } = await import("./routes/challenges");
+  app.use("/api/challenges", challengeRoutesShared);
+
+  const { templateRouter: templateRouterShared } = await import("./routes/mealTemplates");
+  app.use("/api/meal-templates", templateRouterShared);
+
+  const { default: chefPairingsRouterShared } = await import("./routes/chef-pairings");
+  app.use("/api/ai/chef-pairings", requireAuth, requireActiveAccess, chefPairingsRouterShared);
+
+  const { default: studioGeneratorRouterShared } = await import("./routes/studioGenerator");
+  app.use("/api/studio", requireAuth, requireActiveAccess, studioGeneratorRouterShared);
+
+  const { default: dessertCreatorRouterShared } = await import("./routes/dessert-creator");
+  app.use("/api/meals/dessert-creator", requireAuth, requireActiveAccess, dessertCreatorRouterShared);
+
+  const { default: beverageCreatorRouterShared } = await import("./routes/beverage-creator");
+  app.use("/api/meals/beverage-creator", requireAuth, requireActiveAccess, beverageCreatorRouterShared);
+
+  const { default: foodLogsRouterShared } = await import("./routes/foodLogs");
+  app.use("/api", foodLogsRouterShared);
+
+  const { default: alcoholRouterShared } = await import("./routes/alcohol");
+  app.use("/api", alcoholRouterShared);
+
+  const { default: glycemicRouterShared } = await import("./routes/glycemic");
+  app.use("/api", glycemicRouterShared);
+
+  const { default: mealSummarizeRouterShared } = await import("./routes/mealSummarize");
+  app.use("/api", mealSummarizeRouterShared);
+
+  const { default: shoppingListRouterShared } = await import("./routes/shoppingList");
+  app.use("/api", shoppingListRouterShared);
+
+  const { shoppingPreviewRouter: shoppingPreviewRouterShared, shoppingRouter: shoppingRouterShared } = await import("./routes/shoppingListV2");
+  app.use("/api/shopping-list-v2", shoppingPreviewRouterShared);
+  app.use("/api/shopping-list-v2", shoppingRouterShared);
+
+  const { default: waterLogsRouterShared } = await import("./routes/waterLogs");
+  app.use("/api", waterLogsRouterShared);
+
+  const { default: wmc2LogRouterShared } = await import("./routes/wmc2Log");
+  app.use("/api", wmc2LogRouterShared);
+
+  const { default: wmc2TelemetryRouterShared } = await import("./routes/wmc2Telemetry");
+  app.use("/api", wmc2TelemetryRouterShared);
+
+  const { default: wmc2EnhancedRouterShared } = await import("./routes/wmc2Enhanced");
+  app.use("/api", wmc2EnhancedRouterShared);
+
+  const { default: mealEngineRouterShared } = await import("./routes/mealEngine.routes");
+  app.use("/api", mealEngineRouterShared);
+
+  const { default: weeklyPlanRoutesShared } = await import("./routes/weeklyPlan.routes");
+  app.use("/api", weeklyPlanRoutesShared);
+
+  const { default: mealScheduleRouterShared } = await import("./routes/mealSchedule");
+  app.use("/api", mealScheduleRouterShared);
+
+  const { default: notifyRouterShared } = await import("./routes/notify");
+  app.use("/api", notifyRouterShared);
+
+  const { default: notifyAckRouterShared } = await import("./routes/notifyAck");
+  app.use("/api", notifyAckRouterShared);
+
+  const { default: timePresetsRouterShared } = await import("./routes/timePresets");
+  app.use("/api", timePresetsRouterShared);
+
+  const { default: notifyRegisterRouterShared } = await import("./routes/notify.register");
+  app.use("/api", notifyRegisterRouterShared);
+
+  const { default: notifyTestRouterShared } = await import("./routes/notify.test");
+  app.use("/api", notifyTestRouterShared);
+
+  const { default: quickTestRouterShared } = await import("./routes/notify.quicktest");
+  app.use("/api", quickTestRouterShared);
+
+  const { default: quickTestEnhancedRouterShared } = await import("./routes/notify.quicktest.enhanced");
+  app.use("/api", quickTestEnhancedRouterShared);
+
+  const { default: adherenceRouterShared } = await import("./routes/adherence");
+  app.use("/api", adherenceRouterShared);
+
+  const { default: notifyExtrasRouterShared } = await import("./routes/notifyExtras");
+  app.use("/api", notifyExtrasRouterShared);
+
+  const { default: cookingTutorialsRouterShared } = await import("./routes/cookingTutorials.routes");
+  app.use("/api", cookingTutorialsRouterShared);
+
+  const { default: preferencesRouterShared } = await import("./routes/preferences");
+  app.use("/api", preferencesRouterShared);
+
+  const { userMealPrefsRouter: userMealPrefsRouterShared } = await import("./routes/userMealPrefs");
+  app.use("/api/user-prefs/meals", userMealPrefsRouterShared);
+
+  const { default: manualMacrosRouterShared } = await import("./routes/manualMacros");
+  app.use("/api", manualMacrosRouterShared);
+
+  const { default: clinicalLabsRouterShared } = await import("./routes/clinicalLabs");
+  app.use("/api/biometrics/labs", clinicalLabsRouterShared);
+
+  const { default: translateRouterShared } = await import("./routes/translate");
+  app.use("/api/translate", requireAuth, requireActiveAccess, translateRouterShared);
+
+  const { default: restaurantRoutesShared } = await import("./routes/restaurants");
+  const { resolveCuisineMiddleware: resolveCuisineShared } = await import("./middleware/resolveCuisineMiddleware");
+  app.use("/api/restaurants", requireAuth, requireActiveAccess, resolveCuisineShared, restaurantRoutesShared);
+
+  const { default: mealPlanRoutesV1Shared } = await import("./routes/mealPlans.routes");
+  app.use("/api/meal-plan", mealPlanRoutesV1Shared);
+  app.use("/api/meal-plans", mealPlanRoutesV1Shared);
+
+  const { default: abTestingMealPlansRouterShared } = await import("./routes/mealPlans");
+  app.use(abTestingMealPlansRouterShared);
+
   const CRITICAL_ROUTES = [
     "/api/biometrics",
     "/api/ai-quota",
@@ -6285,100 +6511,6 @@ Provide a single exceptional meal recommendation in JSON format with the followi
       console.log(`  ❌ MISSING ${route}`);
     }
   }
-
-  // ── Ultimate Experiences: multi-course situational meal generation ──────────
-  app.post("/api/experiences/generate", async (req, res) => {
-    const startTime = Date.now();
-    try {
-      const { situation, eventType, courseCount, servingSize, userId } = req.body;
-
-      if (!situation || !courseCount) {
-        return res.status(400).json({ success: false, error: "situation and courseCount are required" });
-      }
-
-      const courseMap: Record<number, string[]> = {
-        3: ["appetizer", "main", "dessert"],
-        4: ["appetizer", "main", "side", "dessert"],
-        5: ["appetizer", "soup", "main", "side", "dessert"],
-      };
-      const coursePositions: string[] = courseMap[courseCount] ?? courseMap[3];
-
-      const envelope = userId
-        ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
-        : buildGuestEnvelope();
-
-      const { generateMealUnified } = await import("./services/unifiedMealPipeline");
-
-      const situationGuardrails: Record<string, string> = {
-        holidays: "Dishes must be celebratory, multi-serving, traditional, and culturally appropriate for the event. Rich, festive flavor profiles.",
-        camping: "Dishes must require minimal equipment, be portable, require low refrigeration, and be easy to prepare outdoors over a fire or single burner.",
-        tailgating: "Dishes must be shareable, easy to serve in a group setting, finger-food friendly where possible, bold and simple flavors.",
-      };
-
-      const courseToMealType: Record<string, string> = {
-        appetizer: "lunch", soup: "lunch", main: "dinner", side: "lunch", dessert: "snack",
-      };
-
-      const eventLabel = eventType ? ` (${eventType})` : "";
-      const situationLabel = situation.charAt(0).toUpperCase() + situation.slice(1);
-      const guardrail = situationGuardrails[situation.toLowerCase()] ?? "";
-
-      const generatedCourses: Array<{ position: string; meal: any }> = [];
-
-      for (const position of coursePositions) {
-        const posLabel = position.charAt(0).toUpperCase() + position.slice(1);
-        const input = `You are generating a cohesive multi-course meal experience.
-
-Situation: ${situationLabel}${eventLabel}
-Course: ${posLabel} (${coursePositions.indexOf(position) + 1} of ${coursePositions.length})
-Serving size: ${servingSize} people
-
-Requirements:
-- This is the ${posLabel} course of a full ${situationLabel}${eventLabel} meal experience
-- All dishes in this meal share the same theme and flavor profile — this ${posLabel} must feel like part of the same table
-- Portions and quantities must be sized for ${servingSize} people
-- Do NOT generate a random standalone meal — it must fit the ${situationLabel} experience
-- ${guardrail}
-
-Generate a ${posLabel} dish for ${servingSize} people that fits this experience.`;
-
-        const result = await generateMealUnified({
-          type: "create-with-chef",
-          mealType: courseToMealType[position] ?? "lunch",
-          input,
-          userId,
-          count: 1,
-          safetyAlreadyChecked: false,
-        });
-
-        if (result.success) {
-          const sourceMeal = result.meal ?? result.meals?.[0];
-          if (sourceMeal) {
-            const { complianceSection, dietClassification } = buildMealComplianceBundle(sourceMeal, envelope);
-            generatedCourses.push({
-              position,
-              meal: { ...sourceMeal, complianceSection, dietClassification },
-            });
-          }
-        } else {
-          console.warn(`[Ultimate Experiences] Course "${position}" failed: ${result.error}`);
-        }
-      }
-
-      console.log(`✅ [Ultimate Experiences] Generated ${generatedCourses.length}/${coursePositions.length} courses in ${Date.now() - startTime}ms`);
-
-      return res.json({
-        success: true,
-        situation,
-        eventType: eventType ?? null,
-        servingSize,
-        courses: generatedCourses,
-      });
-    } catch (error: any) {
-      console.error("[Ultimate Experiences] Error:", error);
-      return res.status(500).json({ success: false, error: "Failed to generate experience" });
-    }
-  });
 
   return httpServer;
 }

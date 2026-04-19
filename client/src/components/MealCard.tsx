@@ -1,5 +1,6 @@
 // client/src/components/MealCard.tsx
 import * as React from "react";
+import { getMealFallbackImage } from "@/lib/mealFallbackImage";
 import { BarChart3 } from "lucide-react";
 import { generateMedicalBadges, getUserMedicalProfile, type MedicalBadge } from "@/utils/medicalBadges";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
@@ -11,7 +12,12 @@ import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import MealCardActions from "@/components/MealCardActions";
 import { StarchMealBadge } from "@/components/StarchMealBadge";
 import DietStyleBadge from "@/components/DietStyleBadge";
+import MealClassificationPill, { type DietClassification } from "@/components/MealClassificationPill";
+import KosherProTip from "@/components/KosherProTip";
+import BuilderSourcePill from "@/components/BuilderSourcePill";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
+import FavoriteButton from "@/components/FavoriteButton";
+import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 
 // Keep your Meal type colocated here (WeeklyMealBoard imports from this file)
 export type Meal = {
@@ -35,6 +41,8 @@ export type Meal = {
   medicalBadges?: any[];
   starchyCarbs?: number;
   fibrousCarbs?: number;
+  dietClassification?: DietClassification | null;
+  builderType?: string;
 };
 
 type Slot = "breakfast" | "lunch" | "dinner" | "snacks";
@@ -49,13 +57,15 @@ function MacroPill({ label, value, suffix = "" }: { label: string; value: number
 }
 
 export function MealCard({
-  date, slot, meal, onUpdated, showStarchBadge = false,
+  date, slot, meal, onUpdated, showStarchBadge = false, coachingLine, builderType,
 }: {
   date: string; // "board" or "YYYY-MM-DD"
   slot: Slot;
   meal: Meal;
   onUpdated: (m: Meal | null) => void; // null = delete
   showStarchBadge?: boolean; // Show starch/fiber classification badge on meal boards
+  coachingLine?: string; // Optional coaching confirmation line shown below the meal image
+  builderType?: string; // Builder identity override — used by medical builders (e.g. "oncology-support")
 }) {
   const { toast } = useToast();
   const [macrosLogged, setMacrosLogged] = React.useState(false);
@@ -126,22 +136,55 @@ export function MealCard({
 
   // Detect Create With Chef meals for special styling
   const isChefMeal = meal.id?.startsWith("chef-");
-  
+  const isAIMeal = isChefMeal || meal.id?.startsWith("ai-meal-");
+  const imageUrl = (meal as any).imageUrl as string | null | undefined;
+  const [imageRevealed, setImageRevealed] = React.useState(false);
+
   return (
     <div className={`relative rounded-2xl border bg-white/5 backdrop-blur-xl overflow-hidden hover:bg-white/10 transition-colors ${isChefMeal ? "flash-border" : "border-white/20"}`}>
-      {/* Image at top if available (EXACT COPY FROM FRIDGE RESCUE) */}
-      {(meal as any).imageUrl && (
-        <div className="relative">
-          <img
-            src={(meal as any).imageUrl}
-            alt={title}
-            className="w-full h-48 object-cover"
-            onError={(e) => {
-              e.currentTarget.src = `https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400&h=300&fit=crop&auto=format`;
-            }}
-          />
+      {/* Image slot — always rendered for AI/chef meals so shimmer shows while loading */}
+      {(isAIMeal || imageUrl) && (
+        <div
+          className="relative w-full h-48 overflow-hidden"
+          style={{ background: "linear-gradient(135deg, #1c1c1e 0%, #2c2c2e 100%)" }}
+        >
+          {/* Shimmer — visible while imageUrl is absent */}
+          {!imageUrl && (
+            <div
+              className="mpm-shimmer-bar absolute inset-0"
+              style={{
+                background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%)",
+                animation: "mpm-shimmer 1.8s ease-in-out infinite",
+              }}
+            />
+          )}
+          {/* Image — fades in once loaded */}
+          {imageUrl && (
+            <>
+              {!imageRevealed && (
+                <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, #1c1c1e 0%, #2c2c2e 100%)" }} />
+              )}
+              <img
+                src={imageUrl}
+                alt={title}
+                className={`w-full h-48 object-cover transition-opacity duration-300 ${imageRevealed ? "opacity-100" : "opacity-0"}`}
+                onLoad={() => setImageRevealed(true)}
+                onError={(e) => {
+                  e.currentTarget.src = getMealFallbackImage(title);
+                  setImageRevealed(true);
+                }}
+              />
+            </>
+          )}
         </div>
       )}
+
+      {/* Coaching confirmation line — specific line from builder, or universal fallback */}
+      <div className="px-4 pt-3 pb-0">
+        <p className="text-xs text-white/55 leading-relaxed border-l-2 border-white/20 pl-2.5">
+          {coachingLine || "Built for your current plan and targets."}
+        </p>
+      </div>
 
       <div className="p-4">
         <div>
@@ -157,12 +200,23 @@ export function MealCard({
                 displayTitle
               )}
             </h3>
+            <FavoriteButton
+              title={title}
+              sourceType={builderType ?? meal.builderType ?? "meal-builder"}
+              mealData={{ ...meal, builderType: builderType ?? meal.builderType }}
+              size={20}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
             {showStarchBadge && (
               <StarchMealBadge meal={{ name: displayTitle, ingredients: displayIngredients }} />
             )}
+            <DietStyleBadge />
+            <BuilderSourcePill source={builderType ?? meal.builderType} />
+            <MealClassificationPill dietClassification={meal.dietClassification} />
+            <KosherProTip dietClassification={meal.dietClassification} />
           </div>
-          <DietStyleBadge className="mt-1" badges={meal.medicalBadges || []} />
-          
+
           {/* Description */}
           {displayDescription && (
             <p className="text-sm text-white/80 mt-1">{displayDescription}</p>
@@ -331,6 +385,9 @@ export function MealCard({
               label="Add to Macros"
             />
           )}
+          <AddToMealPlanButton
+            meal={{ ...meal, builderType: builderType ?? meal.builderType }}
+          />
           <MealCardActions
             meal={{
               name: displayTitle,

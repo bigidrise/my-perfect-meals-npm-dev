@@ -1,5 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
+import { X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PillButton } from "@/components/ui/pill-button";
 import TrashButton from "@/components/ui/TrashButton";
 import {
   useGlp1Shots,
@@ -156,9 +158,12 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-white font-bold text-lg">Shot Tracker</h3>
-        <Button onClick={onClose} className="bg-white/10 hover:bg-white/20 text-white h-8 px-3 text-xs">
-          Close
-        </Button>
+        <div className="flex flex-col items-center gap-1">
+          <PillButton onClick={onClose}>
+            <X className="w-3 h-3" />
+          </PillButton>
+          <span className="text-[11px] text-white font-medium">Close</span>
+        </div>
       </div>
 
       {/* Quick Add - Always visible and functional */}
@@ -203,15 +208,21 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
           />
         </div>
       </div>
-      <div className="mt-3 flex items-center gap-3">
-        <Button
-          onClick={addShot}
-          disabled={createM.isPending}
-          className="bg-lime-600 text-white"
-        >
-          {createM.isPending ? "Saving..." : "Save Shot"}
-        </Button>
-        <div className="text-white/80 text-sm">{nextHint}</div>
+      <div className="mt-3 flex items-center gap-4">
+        <div className="flex flex-col items-center gap-1">
+          <PillButton
+            onClick={addShot}
+            disabled={createM.isPending}
+            active
+            variant="emerald"
+          >
+            <Check className="w-3 h-3" />
+          </PillButton>
+          <span className="text-[11px] text-white font-medium">
+            {createM.isPending ? "Saving…" : "Save Shot"}
+          </span>
+        </div>
+        <div className="text-white/60 text-sm">{nextHint}</div>
       </div>
 
       {/* History - Resilient to loading/error states */}

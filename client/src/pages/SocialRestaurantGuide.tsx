@@ -17,6 +17,8 @@
 // - Real-time progress ticker (0-90% with visual feedback)
 // - Medical personalization with user health data integration
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useChefFlowImages, chefFlowMealId } from "@/hooks/useChefFlowImages";
+import { ChefFlowImage } from "@/components/ChefFlowImage";
 import { useAuth } from "@/contexts/AuthContext";
 import CometBar from "@/components/CometBar";
 import { normalizeDiet, filterMealsByDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
@@ -297,8 +299,8 @@ export default function RestaurantGuidePage() {
     (nextStep: GuidedStep) => {
       stop(); // Stop any currently playing voice first
       setGuidedStep(nextStep);
-      // Speak the script for this step (skip entry since it's handled by mount effect)
-      if (nextStep !== "entry") {
+      // Only speak during meal generation — all other steps are silent
+      if (nextStep === "generating") {
         const script = stepScripts[nextStep];
         if (script) {
           speak(script);
@@ -324,6 +326,13 @@ export default function RestaurantGuidePage() {
     rating?: number;
     photoUrl?: string;
   } | null>(null);
+
+  const chefFlowMeals = useMemo(
+    () => generatedMeals.map((m) => ({ id: m.id, name: m.name || m.meal, imageUrl: m.imageUrl })),
+    [generatedMeals],
+  );
+  const { imageMap: chefFlowImages } = useChefFlowImages(chefFlowMeals, "restaurant");
+
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -990,19 +999,12 @@ export default function RestaurantGuidePage() {
                         className="overflow-hidden shadow-lg hover:shadow-orange-500/50 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-black/40 backdrop-blur-lg border border-white/20"
                       >
                         <div className="grid md:grid-cols-3 gap-4">
-                          {/* Meal Image */}
+                          {/* Meal Image — ChefFlow Render System */}
                           <div className="relative h-48 md:h-auto">
-                            {meal.imageUrl ? (
-                              <img
-                                src={meal.imageUrl}
-                                alt={meal.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-black/20 backdrop-blur-lg flex items-center justify-center">
-                                <div className="text-4xl">🍽️</div>
-                              </div>
-                            )}
+                            <ChefFlowImage
+                              src={chefFlowImages[chefFlowMealId(meal, "restaurant")]}
+                              alt={meal.name || meal.meal || "Meal"}
+                            />
                           </div>
 
                           {/* Meal Details */}
@@ -1153,17 +1155,48 @@ export default function RestaurantGuidePage() {
                               </p>
                             </div>
 
-                            {/* Modifications */}
-                            <div className="bg-black/20 border border-white/10 rounded-lg p-3 backdrop-blur-sm mb-3">
-                              <h4 className="font-medium text-orange-300 text-sm mb-1">
-                                Ask For:
-                              </h4>
-                              <p className="text-orange-200 text-sm">
-                                {meal.modifications || meal.orderInstructions}
-                              </p>
-                            </div>
+                            {/* How to Order — structured block */}
+                            {meal.howToOrder ? (
+                              <div className="bg-black/20 border border-white/10 rounded-lg p-3 backdrop-blur-sm mb-3 space-y-2">
+                                <h4 className="font-medium text-orange-300 text-sm">
+                                  How to Order:
+                                </h4>
+                                {meal.menuAnchorItem && (
+                                  <p className="text-white/40 text-xs italic">
+                                    Based on: {meal.menuAnchorItem}
+                                  </p>
+                                )}
+                                <div className="space-y-1.5">
+                                  <div className="flex items-start gap-2">
+                                    <span className="text-orange-400 text-xs font-semibold mt-0.5 shrink-0 w-16">Ask for:</span>
+                                    <span className="text-orange-200 text-sm">{meal.howToOrder.askFor}</span>
+                                  </div>
+                                  {meal.howToOrder.modify.length > 0 && (
+                                    <div className="flex items-start gap-2">
+                                      <span className="text-orange-400 text-xs font-semibold mt-0.5 shrink-0 w-16">Modify:</span>
+                                      <span className="text-orange-200 text-sm">{meal.howToOrder.modify.join(", ")}</span>
+                                    </div>
+                                  )}
+                                  {meal.howToOrder.swap.length > 0 && (
+                                    <div className="flex items-start gap-2">
+                                      <span className="text-orange-400 text-xs font-semibold mt-0.5 shrink-0 w-16">Swap:</span>
+                                      <span className="text-orange-200 text-sm">{meal.howToOrder.swap.join(", ")}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="bg-black/20 border border-white/10 rounded-lg p-3 backdrop-blur-sm mb-3">
+                                <h4 className="font-medium text-orange-300 text-sm mb-1">
+                                  Ask For:
+                                </h4>
+                                <p className="text-orange-200 text-sm">
+                                  {meal.modifications || meal.orderInstructions}
+                                </p>
+                              </div>
+                            )}
 
-                            {/* Order It Right */}
+                            {/* Diet-specific order tips */}
                             {(() => {
                               const restrictions: string[] = (user as any)?.dietaryRestrictions ?? [];
                               const primaryDiet = restrictions
@@ -1175,7 +1208,7 @@ export default function RestaurantGuidePage() {
                               return (
                                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 backdrop-blur-sm mb-3">
                                   <h4 className="font-medium text-blue-300 text-sm mb-1">
-                                    Order It Right:
+                                    Diet Tips:
                                   </h4>
                                   <ul className="space-y-1">
                                     {orderInstructions.map((item, i) => (

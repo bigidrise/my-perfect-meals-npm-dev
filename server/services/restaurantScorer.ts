@@ -109,23 +109,11 @@ function scorePlaceForDiet(
     const hasKosherSignal = textHits(text, KOSHER_POSITIVE);
     if (hasKosherSignal) {
       boost += 50;
-      badges.push("Kosher");
-      reasons.push("Matches your dietary protocol");
-    }
-    if (hasSeafood) {
-      penalty += 50;
-      reasons.push("Seafood-focused — conflicts with kosher protocol");
-    }
-    if (hasSteak && !hasKosherSignal) {
-      penalty += 40;
-      reasons.push("Non-certified steakhouse — certification unknown");
-    }
-    if (hasPork && !hasKosherSignal) {
+      badges.push("Kosher Certified");
+      reasons.push("Kosher-certified restaurant");
+    } else {
       hardBlocked = true;
-      reasons.push("Pork-heavy menu — not compatible with your protocol");
-    }
-    if (!hasKosherSignal && !hardBlocked && !hasSeafood && !hasPork) {
-      reasons.push("No kosher certification found — order carefully");
+      reasons.push("No kosher certification found");
     }
   }
 
@@ -133,24 +121,19 @@ function scorePlaceForDiet(
     const hasHalalSignal = textHits(text, HALAL_POSITIVE);
     if (hasHalalSignal) {
       boost += 40;
-      badges.push("Halal");
-      reasons.push("Matches your dietary protocol");
-    }
-    if (hasPork) {
-      penalty += 40;
-      if (!hasHalalSignal) {
-        hardBlocked = true;
-        reasons.push("Pork-heavy menu — not compatible with your protocol");
-      } else {
+      badges.push("Halal Certified");
+      reasons.push("Halal-certified restaurant");
+      if (hasPork) {
+        penalty += 20;
         reasons.push("Contains pork items — ask about specific dishes");
       }
-    }
-    if (hasAlcohol) {
-      penalty += 25;
-      reasons.push("Alcohol-focused venue — may require careful ordering");
-    }
-    if (!hasHalalSignal && !hardBlocked) {
-      reasons.push("No halal certification found — confirm with restaurant");
+      if (hasAlcohol) {
+        penalty += 15;
+        reasons.push("Alcohol-focused venue — may require careful ordering");
+      }
+    } else {
+      hardBlocked = true;
+      reasons.push("No halal certification found");
     }
   }
 

@@ -1,33 +1,95 @@
+// client/src/components/MealClassificationPill.tsx
+//
+// SECONDARY pill — shows meal-level classification alongside the primary diet identity pill.
+//
+// RULES:
+//   - NEVER replaces the primary DietStyleBadge pill (which comes from user profile)
+//   - Only renders when dietClassification data is present from the server
+//   - Never derives classification from instruction text — only from structured data
+//   - Must not contradict complianceSection — server validateDietConsistency() handles
+//     this gate before the data reaches the client (null is returned on mismatch)
+//   - Pro Care Mode: hidden (matches DietStyleBadge behaviour)
+import { useProClient } from "@/contexts/ProClientContext";
+
+export interface DietClassification {
+  kosherCategory?: "meat" | "dairy" | "pareve";
+  halalFlags?: {
+    alcoholFree: boolean;
+    porkFree: boolean;
+  };
+  veganFlags?: {
+    plantBased: boolean;
+  };
+  ketoMetrics?: {
+    carbsPerServing: number;
+  };
+}
+
 interface MealClassificationPillProps {
-  dietClassification: string | null;
+  dietClassification?: DietClassification | null;
   className?: string;
 }
 
-const DIET_CONFIG: Record<string, { label: string; colors: string }> = {
-  kosher:       { label: "Kosher",       colors: "bg-amber-900/40 border-amber-500/50 text-amber-300" },
-  halal:        { label: "Halal",        colors: "bg-teal-900/40 border-teal-500/50 text-teal-300" },
-  vegan:        { label: "Vegan",        colors: "bg-green-900/40 border-green-500/50 text-green-400" },
-  vegetarian:   { label: "Vegetarian",   colors: "bg-green-900/40 border-green-500/50 text-green-400" },
-  pescatarian:  { label: "Pescatarian",  colors: "bg-cyan-900/40 border-cyan-500/50 text-cyan-400" },
-  keto:         { label: "Keto",         colors: "bg-violet-900/40 border-violet-500/50 text-violet-300" },
-  paleo:        { label: "Paleo",        colors: "bg-amber-900/40 border-amber-500/50 text-amber-300" },
-  mediterranean:{ label: "Mediterranean",colors: "bg-blue-900/40 border-blue-500/50 text-blue-300" },
-  "gluten-free":{ label: "Gluten-Free",  colors: "bg-orange-900/40 border-orange-500/50 text-orange-300" },
-};
+/** Derive the secondary pill label + color from structured classification data */
+function resolveSecondaryPill(
+  dc: DietClassification,
+): { label: string; color: string } | null {
+  // Kosher sub-category
+  if (dc.kosherCategory) {
+    const map: Record<string, { label: string; color: string }> = {
+      meat:   { label: "Meat",   color: "bg-red-500/15 border-red-400/30 text-red-300" },
+      dairy:  { label: "Dairy",  color: "bg-blue-500/15 border-blue-400/30 text-blue-300" },
+      pareve: { label: "Pareve", color: "bg-amber-500/15 border-amber-400/30 text-amber-300" },
+    };
+    return map[dc.kosherCategory] ?? null;
+  }
+
+  // Halal flags — show most specific status
+  if (dc.halalFlags) {
+    if (dc.halalFlags.alcoholFree && dc.halalFlags.porkFree) {
+      return { label: "Alcohol-Free · Pork-Free", color: "bg-teal-500/15 border-teal-400/30 text-teal-300" };
+    }
+    if (dc.halalFlags.alcoholFree) {
+      return { label: "Alcohol-Free", color: "bg-teal-500/15 border-teal-400/30 text-teal-300" };
+    }
+    if (dc.halalFlags.porkFree) {
+      return { label: "Pork-Free", color: "bg-teal-500/15 border-teal-400/30 text-teal-300" };
+    }
+  }
+
+  // Vegan
+  if (dc.veganFlags?.plantBased) {
+    return { label: "Plant-Based", color: "bg-green-500/15 border-green-400/30 text-green-300" };
+  }
+
+  // Keto carb count
+  if (dc.ketoMetrics != null) {
+    return {
+      label: `${dc.ketoMetrics.carbsPerServing}g Carbs`,
+      color: "bg-purple-500/15 border-purple-400/30 text-purple-300",
+    };
+  }
+
+  return null;
+}
 
 export default function MealClassificationPill({
   dietClassification,
   className = "",
 }: MealClassificationPillProps) {
-  if (!dietClassification || dietClassification === "omnivore") return null;
-  const config = DIET_CONFIG[dietClassification.toLowerCase()];
-  if (!config) return null;
+  const { isProCareMode } = useProClient();
+
+  if (isProCareMode) return null;
+  if (!dietClassification) return null;
+
+  const pill = resolveSecondaryPill(dietClassification);
+  if (!pill) return null;
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${config.colors} ${className}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${pill.color} ${className}`}
     >
-      ✅ {config.label} compliant
+      {pill.label}
     </span>
   );
 }

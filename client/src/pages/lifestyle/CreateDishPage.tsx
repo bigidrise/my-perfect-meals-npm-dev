@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { useMealImages } from "@/hooks/useMealImages";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import ThinkingDots from "@/components/ThinkingDots";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -53,7 +55,10 @@ import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import PhaseGate from "@/components/PhaseGate";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import DietStyleBadge from "@/components/DietStyleBadge";
+import MealClassificationPill from "@/components/MealClassificationPill";
+import KosherProTip from "@/components/KosherProTip";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
+import { PillButton } from "@/components/ui/pill-button";
 
 interface StructuredIngredient {
   name: string;
@@ -92,6 +97,7 @@ interface MealData {
   }>;
   imageUrl?: string;
   dietaryComplianceVerified?: boolean;
+  dietClassification?: import("@/components/MealClassificationPill").DietClassification | null;
 }
 
 // ============================================================
@@ -148,14 +154,14 @@ function getMealNutrition(meal: any) {
   };
 }
 
-const COOK_METHODS = [
-  "Stovetop",
-  "Oven",
-  "Air Fryer",
-  "Slow Cooker",
-  "Grill",
-  "No-Bake",
-  "Any",
+const COOK_METHODS: { label: string; emoji: string }[] = [
+  { label: "Stovetop", emoji: "🍳" },
+  { label: "Oven",     emoji: "♨️" },
+  { label: "Air Fryer", emoji: "💨" },
+  { label: "Slow Cooker", emoji: "🥘" },
+  { label: "Grill",    emoji: "🔥" },
+  { label: "No-Bake",  emoji: "❄️" },
+  { label: "Any",      emoji: "✨" },
 ];
 
 export default function CreateDishPage() {
@@ -167,6 +173,7 @@ export default function CreateDishPage() {
   const [cookMethod, setCookMethod] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [generatedMeals, setGeneratedMeals] = useState<MealData[]>([]);
+  const { loadingImages, hydrateImages } = useMealImages(setGeneratedMeals, { mealType: "dinner", concurrency: 1 });
   // ============================================================
   // GUARD: generatedInSession controls ShoppingAggregateBar visibility.
   // It MUST start false and remain false during auto-restore on mount.
@@ -231,6 +238,7 @@ export default function CreateDishPage() {
   const userId = user?.id || "";
 
   const mealOptionsRef = useRef<HTMLDivElement | null>(null);
+  const continueAnywayRef = useRef(false);
 
   useEffect(() => {
     if (mealOptions.length > 0 && mealOptionsRef.current) {
@@ -285,40 +293,16 @@ export default function CreateDishPage() {
     addRecentMeal(meal.name);
     setIsPlatingMeal(true);
 
-    let finalMeal = { ...meal };
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 20000);
-      const imgRes = await fetch(apiUrl("/api/meal-images/generate"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({
-          mealName: meal.name,
-          ingredients: (meal.ingredients || []).map((i: any) => i.name || i),
-          style: "overhead",
-          mealType: "dinner",
-        }),
-      });
-      clearTimeout(timeout);
-      if (imgRes.ok) {
-        const imgData = await imgRes.json();
-        if (imgData.success && imgData.image?.url) {
-          finalMeal = { ...finalMeal, imageUrl: imgData.image.url };
-        }
-      }
-    } catch (imgErr) {
-      console.warn("[CREATE DISH] Image generation failed:", imgErr);
-    }
-
-    setGeneratedMeals([finalMeal]);
+    // Show card immediately — image hydrates in parallel
+    setGeneratedMeals([meal]);
     setGeneratedInSession(true);
     setIsPlatingMeal(false);
     saveDishCache({
-      generatedMeal: finalMeal,
+      generatedMeal: meal,
       servings,
       generatedAtISO: new Date().toISOString(),
     });
+    hydrateImages([meal]);
   };
 
   const startProgressTicker = () => {
@@ -396,7 +380,10 @@ export default function CreateDishPage() {
     }
   }, [pendingGeneration, overrideToken, isGenerating]);
 
-  const handleGenerateDish = async (skipPreflight = false) => {
+  const handleGenerateDish = async (skipPreflight = false, dietAdaptOverride = false, userDietOverride = false) => {
+    const effectiveUserDietOverride = userDietOverride || continueAnywayRef.current;
+    continueAnywayRef.current = false;
+    userDietOverride = effectiveUserDietOverride;
     setDietAdaptedNotice(null);
 
     if (!dishInput.trim()) {
@@ -410,7 +397,18 @@ export default function CreateDishPage() {
 
     const prompt = buildPrompt();
 
-    // 🔐 SafetyGuard pre-flight — blocks allergic ingredients before any API call
+    // 🥗 DietGuard pre-flight — cultural/dietary identity gets highest priority.
+    // Must run BEFORE SafetyGuard so protocol conflicts (halal/kosher/vegan)
+    // show the Protocol Conflict modal instead of the generic safety banner.
+    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt" && !continueAnywayRef.current) {
+      const dietOk = checkDiet(prompt);
+      if (!dietOk) {
+        return;
+      }
+    }
+
+    // 🔐 SafetyGuard pre-flight — allergy/intolerance check (runs after diet so
+    // cultural protocol conflicts are never shadowed by the safety banner).
     if (!skipPreflight && !hasActiveOverride) {
       const isSafe = await checkSafety(prompt, "create-dish");
       if (!isSafe) {
@@ -421,13 +419,6 @@ export default function CreateDishPage() {
     if (!skipPreflight && starchDecision !== "let_chef_pick") {
       const starchOk = checkStarch(prompt);
       if (!starchOk) {
-        return;
-      }
-    }
-
-    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
-      const dietOk = checkDiet(prompt);
-      if (!dietOk) {
         return;
       }
     }
@@ -458,6 +449,8 @@ export default function CreateDishPage() {
           skipPalate: !flavorPersonal,
           excludeMeals: getRecentMeals(),
           strictMode: keepItSimple,
+          dietAdaptOverride,
+          userDietOverride,
         }),
       });
 
@@ -639,21 +632,21 @@ export default function CreateDishPage() {
                     <label className="block text-sm font-medium mb-2 text-white">
                       Cooking Method
                     </label>
-                    <div className="flex flex-wrap gap-2">
-                      {COOK_METHODS.map((method) => (
-                        <button
-                          key={method}
-                          onClick={() =>
-                            setCookMethod(cookMethod === method ? "" : method)
-                          }
-                          className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
-                            cookMethod === method
-                              ? "bg-orange-500 border-orange-400 text-white"
-                              : "bg-black/40 border-white/20 text-white/70 hover:border-orange-400/50 hover:text-white"
-                          }`}
-                        >
-                          {method}
-                        </button>
+                    <div className="flex flex-wrap gap-x-5 gap-y-3">
+                      {COOK_METHODS.map((m) => (
+                        <div key={m.label} className="flex flex-col items-center gap-1.5">
+                          <PillButton
+                            active={cookMethod === m.label}
+                            variant="amber"
+                            onClick={() => setCookMethod(cookMethod === m.label ? "" : m.label)}
+                            className="w-14 text-lg leading-none py-2"
+                          >
+                            {m.emoji}
+                          </PillButton>
+                          <span className="text-xs text-white/80 font-medium text-center leading-tight">
+                            {m.label}
+                          </span>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -715,7 +708,12 @@ export default function CreateDishPage() {
                         setDishInput("");
                       } else if (decision === "let_chef_adapt") {
                         setDietDecision("let_chef_adapt");
-                        handleGenerateDish(true);
+                        clearDietAlert();
+                        handleGenerateDish(true, true, false);
+                      } else if (decision === "continue_anyway") {
+                        continueAnywayRef.current = true;
+                        clearDietAlert();
+                        handleGenerateDish(true, false, true);
                       }
                     }}
                     className="mt-3"
@@ -806,9 +804,13 @@ export default function CreateDishPage() {
                         <h4 className="text-white font-bold text-base mb-1 truncate">
                           {option.name}
                         </h4>
-                        <p className="text-white/70 text-sm mb-3 line-clamp-2">
+                        <p className="text-white/70 text-sm mb-2 line-clamp-2">
                           {option.description}
                         </p>
+                        <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                          <MealClassificationPill dietClassification={option.dietClassification ?? null} />
+                          <KosherProTip dietClassification={option.dietClassification ?? null} isAdapted={false} />
+                        </div>
                         <div className="flex gap-4 text-xs text-white/60 flex-wrap">
                           <span>
                             {option.nutrition?.calories ??
@@ -890,35 +892,27 @@ export default function CreateDishPage() {
                         />
                       )}
 
-                      {dietAdaptedNotice && (
-                        <DietAdaptedNotice
-                          diet={normalizeDiet(user?.dietaryRestrictions)}
-                          notice={dietAdaptedNotice}
-                          className="mb-4"
-                        />
-                      )}
-
-                      <div className="mb-3">
-                        <DietStyleBadge
-                          mealCompliant={meal.dietaryComplianceVerified}
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                        <DietStyleBadge />
+                        <MealClassificationPill dietClassification={meal.dietClassification} />
+                        {dietAdaptedNotice && (
+                          <DietAdaptedNotice
+                            diet={normalizeDiet(user?.dietaryRestrictions)}
+                          />
+                        )}
+                        <KosherProTip
+                          dietClassification={meal.dietClassification}
+                          isAdapted={!!dietAdaptedNotice}
                         />
                       </div>
 
                       <p className="text-white/90 mb-4">{meal.description}</p>
 
-                      {meal.imageUrl && (
-                        <div className="mb-6 rounded-lg overflow-hidden">
-                          <img
-                            key={meal.imageUrl}
-                            src={meal.imageUrl}
-                            alt={meal.name}
-                            className="w-full h-64 object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none";
-                            }}
-                          />
-                        </div>
-                      )}
+                      <MealImageSlot
+                        imageUrl={meal.imageUrl}
+                        mealName={meal.name}
+                        isLoading={!!loadingImages[meal.id]}
+                      />
 
                       <div className="mb-4 p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-lg">
                         <div className="flex items-center gap-2 text-sm text-white">

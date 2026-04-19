@@ -21,8 +21,11 @@ CRITICAL RESTRICTIONS:
 - Do NOT include any of these blocked ingredients: ${antiInflammatoryRules.blockedIngredients.slice(0, 20).join(', ')}
 - PREFER these anti-inflammatory ingredients: ${antiInflammatoryRules.preferredIngredients.slice(0, 15).join(', ')}
 - All cooking oils MUST be olive oil or avocado oil
-- No red meat, no processed meats, no fried foods
-- No refined sugars or white flour products`;
+- RED MEAT DEFAULT RULE: When beef, steak, lamb, or pork is included and the user has not named a specific cut, always default to a lean cut — rotate through: sirloin, tenderloin, eye of round, flank steak, or filet mignon (vary the cut, do not always pick the same one). Default portion is 4–6 oz.
+- If the user explicitly names a cut (e.g., "ribeye", "T-bone"), use that cut — do not substitute it. Naming a cut only overrides the cut choice, NOT the portion. Portion still defaults to 4–6 oz regardless of the cut, unless the user also specifies a different amount (e.g., "12 oz ribeye"). Optimize preparation method (grilled or broiled preferred) and pair with anti-inflammatory sides.
+- If any requested ingredient conflicts with this protocol, include it — but optimize preparation method, portion, and pairing to reduce inflammatory impact where possible.
+- NEVER use processed meats: bacon, sausage, hot dogs, salami, pepperoni
+- No fried foods, no refined sugars, no white flour products`;
 }
 
 /**
@@ -56,11 +59,13 @@ KEY PRINCIPLES:
 3. Anti-inflammatory spices (turmeric, ginger, garlic)
 4. Healthy fats (olive oil, avocado)
 5. Whole grains over refined
-6. No processed foods, seed oils, or red meat
+6. No processed foods or seed oils
+7. Red meat: limit by default. When no cut is specified, default to lean cuts (sirloin, tenderloin, eye of round, filet mignon) at 6–8 oz. If the user explicitly names a cut or requests a specific item, honor it exactly — optimize preparation and sides, but never substitute or block the request.
 
 Every meal you create must be:
 - Delicious and satisfying
-- Inflammation-reducing
+- Inflammation-reducing where possible
 - Free of seed oils and processed ingredients
-- Rich in anti-inflammatory compounds`;
+- Rich in anti-inflammatory compounds
+- Respectful of what the user actually asked for`;
 }

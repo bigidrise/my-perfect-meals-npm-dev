@@ -1,6 +1,7 @@
 // 🔒 DESSERT CREATOR - RESTRUCTURED (December 9, 2025)
 // New 5-field structure: Category, Flavor Family, Specific Dessert, Serving Size, Dietary
 import { useState, useEffect, useRef } from "react";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import ThinkingDots from "@/components/ThinkingDots";
 import { motion } from "framer-motion";
@@ -38,6 +39,8 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import DietStyleBadge from "@/components/DietStyleBadge";
+import MealClassificationPill from "@/components/MealClassificationPill";
+import KosherProTip from "@/components/KosherProTip";
 import {
   DietGuardIntercept,
   DietAdaptedNotice,
@@ -184,7 +187,9 @@ export default function DessertCreator() {
 
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
+  const continueAnywayRef = useRef(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [dessertImageLoading, setDessertImageLoading] = useState(false);
   // 🥗 Diet guard — hook-based precheck (mirrors StarchGuard)
   const {
     alert: dietAlert,
@@ -288,7 +293,9 @@ export default function DessertCreator() {
     setProgress(100);
   };
 
-  async function handleGenerateDessert(skipPreflight = false, overrideToken?: string) {
+  async function handleGenerateDessert(skipPreflight = false, overrideToken?: string, dietAdaptOverride = false) {
+    const userDietOverride = continueAnywayRef.current;
+    continueAnywayRef.current = false;
     setDietAdaptedNotice(null);
     const hasCustomDescription = customDessertDescription.trim().length > 0;
 
@@ -369,6 +376,8 @@ export default function DessertCreator() {
           skipPalate: !flavorPersonal,
           strictMode: keepItSimple,
           customDessertDescription: customDessertDescription.trim() || undefined,
+          dietAdaptOverride,
+          userDietOverride,
         }),
       });
 
@@ -422,6 +431,19 @@ export default function DessertCreator() {
 
       stopProgressTicker();
       setGeneratedDessert(meal);
+      // Fire image async — non-blocking
+      setDessertImageLoading(true);
+      fetch(apiUrl("/api/meals/generate-image"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mealId: meal.id, mealName: meal.name, mealType: "desserts", ingredients: meal.ingredients }),
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.imageUrl) setGeneratedDessert((prev: any) => prev ? { ...prev, imageUrl: d.imageUrl } : prev);
+        })
+        .catch(() => {})
+        .finally(() => setDessertImageLoading(false));
 
       toast({
         title: "✨ Dessert Created!",
@@ -730,6 +752,11 @@ export default function DessertCreator() {
                     setGeneratedDessert(null);
                   } else if (decision === "let_chef_adapt") {
                     setDietDecision("let_chef_adapt");
+                    clearDietAlert();
+                    handleGenerateDessert(true, undefined, true);
+                  } else if (decision === "continue_anyway") {
+                    continueAnywayRef.current = true;
+                    clearDietAlert();
                     handleGenerateDessert(true);
                   }
                 }}
@@ -825,32 +852,29 @@ export default function DessertCreator() {
                     </button>
                   </div>
 
-                  {/* Diet Adapted Notice (soft chip when AI adapted for dietary preference) */}
-                  {dietAdaptedNotice && (
-                    <DietAdaptedNotice
-                      diet={normalizeDiet(user?.dietaryRestrictions)}
-                      notice={dietAdaptedNotice}
-                      className="mb-4"
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <DietStyleBadge />
+                    <MealClassificationPill dietClassification={generatedDessert.dietClassification} />
+                    {dietAdaptedNotice && (
+                      <DietAdaptedNotice
+                        diet={normalizeDiet(user?.dietaryRestrictions)}
+                      />
+                    )}
+                    <KosherProTip
+                      dietClassification={generatedDessert.dietClassification}
+                      isAdapted={!!dietAdaptedNotice}
                     />
-                  )}
-
-                  <div className="mb-3">
-                    <DietStyleBadge mealCompliant={generatedDessert.dietaryComplianceVerified} />
                   </div>
 
                   <p className="text-white/90 mb-4">
                     {generatedDessert.description}
                   </p>
 
-                  {generatedDessert.imageUrl && (
-                    <div className="mb-6 rounded-lg overflow-hidden">
-                      <img
-                        src={generatedDessert.imageUrl}
-                        alt={generatedDessert.name}
-                        className="w-full h-64 object-cover"
-                      />
-                    </div>
-                  )}
+                  <MealImageSlot
+                    imageUrl={generatedDessert.imageUrl}
+                    mealName={generatedDessert.name}
+                    isLoading={dessertImageLoading}
+                  />
 
                   <div className="mb-4 p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-lg">
                     <div className="flex items-center gap-2 text-sm text-white">
