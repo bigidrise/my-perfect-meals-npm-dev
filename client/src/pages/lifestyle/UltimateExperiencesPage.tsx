@@ -1455,7 +1455,7 @@ export default function UltimateExperiencesPage() {
                               mealSlot: "dinner",
                             });
                             setLocation(
-                              "/biometrics?from=ultimate-experience&view=macros",
+                              "/biometrics?from=my-perfect-gatherings&view=macros",
                             );
                           }}
                           className="w-full bg-gradient-to-r from-zinc-900 via-zinc-800 to-black hover:from-zinc-800 hover:via-zinc-700 hover:to-zinc-900 text-white flex items-center justify-center border border-white/30"
