@@ -2946,7 +2946,7 @@ export default function MacroCounter() {
               {/* Quick Edit fixed summary bar — always visible, never scrolls */}
               {results && (
                 <div
-                  className="fixed left-0 right-0 z-40 bg-black/85 backdrop-blur-md border-b border-white/10 px-4 py-3"
+                  className="fixed left-0 md:left-60 right-0 z-40 bg-black/85 backdrop-blur-md border-b border-white/10 px-4 py-3"
                   style={{ top: "calc(env(safe-area-inset-top, 0px) + 56px)" }}
                 >
                   <div className="flex items-center justify-between mb-2">
