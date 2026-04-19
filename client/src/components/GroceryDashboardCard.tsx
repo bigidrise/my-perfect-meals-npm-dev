@@ -20,7 +20,7 @@ const GroceryDashboardCard = ({ items }: GroceryDashboardCardProps) => {
     { id: "1", name: "Organic Chicken Breast", completed: false, category: "Protein" },
     { id: "2", name: "Brown Rice", completed: true, category: "Grains" },
     { id: "3", name: "Fresh Spinach", completed: false, category: "Vegetables" },
-    { id: "4", name: "Greek Yogurt", completed: true, category: "Dairy" },
+    { id: "4", name: "Greek Yogurt", completed: true, category: "Dairy & Eggs" },
     { id: "5", name: "Salmon Fillet", completed: false, category: "Protein" },
   ];
 
