@@ -11,6 +11,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { proStore } from "@/lib/proData";
+import { clearResolvedTargetsCache } from "@/lib/macroResolver";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ClientLegalModal from "@/components/pro/ClientLegalModal";
@@ -86,6 +88,29 @@ export default function MorePage() {
       await apiRequest("/api/pro/disconnect-self", { method: "POST" });
       setShowDisconnectConfirm(false);
       setConnectionStatus({ connected: false });
+
+      // Protocol Ownership Model: strip all physician medical flags from localStorage
+      // so the meal builder immediately reflects the disconnected state and no longer
+      // applies any physician-set clinical protocol (e.g. oncology, renal, cardiac).
+      if (user?.id) {
+        try {
+          const clientMap: Record<string, string> = JSON.parse(
+            localStorage.getItem("mpm_user_client_map") || "{}"
+          );
+          const clientId = clientMap[user.id];
+          if (clientId) {
+            const stripped = proStore.stripMedicalFlags(clientId);
+            if (stripped) {
+              clearResolvedTargetsCache();
+              window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
+              console.log("[Disconnect] Cleared physician medical flags from local store.");
+            }
+          }
+        } catch {
+          // Non-fatal — localStorage may be unavailable
+        }
+      }
+
       await refreshUser();
     } catch (e: any) {
       alert("Failed to disconnect. Please try again.");
