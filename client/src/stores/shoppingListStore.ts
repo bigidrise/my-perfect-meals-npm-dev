@@ -4,6 +4,73 @@ import { classifyIngredient, normalizeIngredientName } from '@/utils/ingredientC
 import { normalizeIngredient } from '@shared/ingredientNormalizer';
 import type { IngredientCategory } from '@/data/ingredientCategories';
 
+// ── Cross-unit conversion tables ──────────────────────────────────────────────
+const VOLUME_TO_ML: Record<string, number> = {
+  ml: 1, milliliter: 1, milliliters: 1,
+  tsp: 4.929, teaspoon: 4.929, teaspoons: 4.929,
+  tbsp: 14.787, tablespoon: 14.787, tablespoons: 14.787,
+  'fl oz': 29.574, 'fluid oz': 29.574, 'fluid ounce': 29.574,
+  cup: 236.588, cups: 236.588,
+  pt: 473.176, pint: 473.176, pints: 473.176,
+  qt: 946.353, quart: 946.353, quarts: 946.353,
+  l: 1000, liter: 1000, liters: 1000, litre: 1000, litres: 1000,
+};
+
+const WEIGHT_TO_G: Record<string, number> = {
+  g: 1, gram: 1, grams: 1,
+  oz: 28.3495, ounce: 28.3495, ounces: 28.3495,
+  lb: 453.592, lbs: 453.592, pound: 453.592, pounds: 453.592,
+  kg: 1000, kilogram: 1000, kilograms: 1000,
+};
+
+function getUnitType(unit: string): 'volume' | 'weight' | 'count' {
+  const u = (unit || '').toLowerCase().trim();
+  if (VOLUME_TO_ML[u] !== undefined) return 'volume';
+  if (WEIGHT_TO_G[u] !== undefined) return 'weight';
+  return 'count';
+}
+
+/**
+ * Converts quantity from one unit to another if they share the same measurement type.
+ * Returns null if the units are incompatible.
+ */
+function convertUnit(quantity: number, fromUnit: string, toUnit: string): number | null {
+  const from = (fromUnit || '').toLowerCase().trim();
+  const to = (toUnit || '').toLowerCase().trim();
+  if (from === to) return quantity;
+  if (VOLUME_TO_ML[from] !== undefined && VOLUME_TO_ML[to] !== undefined) {
+    return (quantity * VOLUME_TO_ML[from]) / VOLUME_TO_ML[to];
+  }
+  if (WEIGHT_TO_G[from] !== undefined && WEIGHT_TO_G[to] !== undefined) {
+    return (quantity * WEIGHT_TO_G[from]) / WEIGHT_TO_G[to];
+  }
+  return null;
+}
+
+/**
+ * Finds an existing item that can be merged with an incoming item.
+ * Tries exact unit match first, then cross-unit match within the same measurement type.
+ */
+function findMergeable(
+  items: ShoppingListItem[],
+  normalizedName: string,
+  unit: string,
+): number {
+  const u = (unit || '').toLowerCase().trim();
+  // Exact name + unit match
+  const exact = items.findIndex(
+    e => e.normalizedName === normalizedName && (e.unit || '').toLowerCase().trim() === u,
+  );
+  if (exact !== -1) return exact;
+
+  // Cross-unit match (same measurement type)
+  const incomingType = getUnitType(unit);
+  if (incomingType === 'count') return -1; // unitless — don't cross-merge
+  return items.findIndex(
+    e => e.normalizedName === normalizedName && getUnitType(e.unit) === incomingType,
+  );
+}
+
 export interface UniversalIngredient {
   name: string;
   quantity: number;
@@ -85,9 +152,32 @@ function normalizeForAggregation(name: string, quantity: number, unit: string) {
   };
 }
 
+// canMerge kept for migration compatibility — new code uses findMergeable
 const canMerge = (a: ShoppingListItem, b: { normalizedName: string; unit: string }): boolean => {
   return a.normalizedName === b.normalizedName && a.unit.toLowerCase() === b.unit.toLowerCase();
 };
+
+/**
+ * Merge an incoming qty+unit into an existing item.
+ * Converts units when they are the same measurement type (e.g. cups + oz → cups).
+ * Returns the merged {quantity, unit} after normalizing upward at thresholds.
+ */
+function mergeIntoExisting(
+  existingQty: number,
+  existingUnit: string,
+  incomingQty: number,
+  incomingUnit: string,
+): { quantity: number; unit: string } {
+  const converted = convertUnit(incomingQty, incomingUnit, existingUnit);
+  if (converted !== null) {
+    // Same measurement type — add in existing unit
+    const merged = existingQty + converted;
+    return normalizeUnit(merged, existingUnit);
+  }
+  // Same unit string (exact match case) — just add
+  const merged = existingQty + incomingQty;
+  return normalizeUnit(merged, existingUnit);
+}
 
 function createShoppingItem(input: UniversalIngredient): ShoppingListItem {
   const { canonicalName, normalizedName, normQty, normUnit, category, isPantryStaple } =
@@ -118,24 +208,24 @@ export const useShoppingListStore = create<ShoppingListStore>()(
           const { canonicalName, normalizedName, normQty, normUnit, category, isPantryStaple } =
             normalizeForAggregation(item.name, item.quantity, item.unit);
 
-          const existingIndex = state.items.findIndex((existing) =>
-            canMerge(existing, { normalizedName, unit: normUnit })
-          );
+          const existingIndex = findMergeable(state.items, normalizedName, normUnit);
 
           if (existingIndex !== -1) {
             const updated = [...state.items];
-            const merged = updated[existingIndex].quantity + normQty;
-            const { quantity: finalQty, unit: finalUnit } = normalizeUnit(merged, normUnit);
+            const existing = updated[existingIndex];
+            const { quantity: finalQty, unit: finalUnit } = mergeIntoExisting(
+              existing.quantity, existing.unit, normQty, normUnit,
+            );
             updated[existingIndex] = {
-              ...updated[existingIndex],
+              ...existing,
               quantity: finalQty,
               unit: finalUnit,
               sourceMeals: item.sourceMeals
-                ? [...(updated[existingIndex].sourceMeals || []), ...item.sourceMeals]
-                : updated[existingIndex].sourceMeals,
+                ? [...(existing.sourceMeals || []), ...item.sourceMeals]
+                : existing.sourceMeals,
               notes: item.notes
-                ? `${updated[existingIndex].notes || ''}${updated[existingIndex].notes ? ', ' : ''}${item.notes}`
-                : updated[existingIndex].notes,
+                ? `${existing.notes || ''}${existing.notes ? ', ' : ''}${item.notes}`
+                : existing.notes,
             };
             return { items: updated };
           }
@@ -168,23 +258,23 @@ export const useShoppingListStore = create<ShoppingListStore>()(
             const { canonicalName, normalizedName, normQty, normUnit, category, isPantryStaple } =
               normalizeForAggregation(newItem.name, newItem.quantity || 1, newItem.unit || '');
 
-            const existingIndex = updatedItems.findIndex((existing) =>
-              canMerge(existing, { normalizedName, unit: normUnit })
-            );
+            const existingIndex = findMergeable(updatedItems, normalizedName, normUnit);
 
             if (existingIndex !== -1) {
-              const merged = updatedItems[existingIndex].quantity + normQty;
-              const { quantity: finalQty, unit: finalUnit } = normalizeUnit(merged, normUnit);
+              const existing = updatedItems[existingIndex];
+              const { quantity: finalQty, unit: finalUnit } = mergeIntoExisting(
+                existing.quantity, existing.unit, normQty, normUnit,
+              );
               updatedItems[existingIndex] = {
-                ...updatedItems[existingIndex],
+                ...existing,
                 quantity: finalQty,
                 unit: finalUnit,
                 notes: newItem.notes
-                  ? `${updatedItems[existingIndex].notes || ''}${updatedItems[existingIndex].notes ? ', ' : ''}${newItem.notes}`
-                  : updatedItems[existingIndex].notes,
+                  ? `${existing.notes || ''}${existing.notes ? ', ' : ''}${newItem.notes}`
+                  : existing.notes,
                 sourceMeals: newItem.sourceMeals
-                  ? [...(updatedItems[existingIndex].sourceMeals || []), ...newItem.sourceMeals]
-                  : updatedItems[existingIndex].sourceMeals,
+                  ? [...(existing.sourceMeals || []), ...newItem.sourceMeals]
+                  : existing.sourceMeals,
               };
             } else {
               updatedItems.push({
@@ -247,7 +337,9 @@ export const useShoppingListStore = create<ShoppingListStore>()(
         const grouped: Record<IngredientCategory, ShoppingListItem[]> = {
           Produce: [],
           Meat: [],
-          Dairy: [],
+          'Plant Proteins': [],
+          'Dairy & Eggs': [],
+          'Grains & Packaged': [],
           Pantry: [],
           Frozen: [],
           Bakery: [],
@@ -274,7 +366,7 @@ export const useShoppingListStore = create<ShoppingListStore>()(
     }),
     {
       name: 'shopping-list-storage',
-      version: 2,
+      version: 4,
       migrate: (persistedState: any, version: number) => {
         if (version < 2) {
           const oldItems = persistedState?.items || [];
@@ -287,6 +379,29 @@ export const useShoppingListStore = create<ShoppingListStore>()(
               category: item.category || classified.category,
               isPantryStaple: classified.isPantryStaple,
               isChecked: item.isChecked || false
+            };
+          });
+          return { ...persistedState, items: migratedItems };
+        }
+        if (version < 3) {
+          // Rename "Dairy" category to "Dairy & Eggs"
+          const oldItems = persistedState?.items || [];
+          const migratedItems = oldItems.map((item: any) => ({
+            ...item,
+            category: item.category === 'Dairy' ? 'Dairy & Eggs' : item.category
+          }));
+          return { ...persistedState, items: migratedItems };
+        }
+        if (version < 4) {
+          // Re-classify tofu/tempeh/seitan from Meat/Other → Plant Proteins
+          const plantProteinNames = ['tofu', 'tempeh', 'seitan', 'edamame', 'nutritional yeast', 'nooch', 'tvp', 'jackfruit'];
+          const oldItems = persistedState?.items || [];
+          const migratedItems = oldItems.map((item: any) => {
+            const n = (item.name || '').toLowerCase();
+            const isPlant = plantProteinNames.some(p => n.includes(p));
+            return {
+              ...item,
+              category: isPlant ? 'Plant Proteins' : item.category
             };
           });
           return { ...persistedState, items: migratedItems };

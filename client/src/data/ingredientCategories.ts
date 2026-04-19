@@ -1,4 +1,18 @@
-export type IngredientCategory = 'Produce' | 'Meat' | 'Dairy' | 'Pantry' | 'Frozen' | 'Bakery' | 'Other';
+import { SHARED_PANTRY_STAPLES } from '@shared/pantryStaples';
+
+export type IngredientCategory = 'Produce' | 'Meat' | 'Plant Proteins' | 'Dairy & Eggs' | 'Grains & Packaged' | 'Pantry' | 'Frozen' | 'Bakery' | 'Other';
+
+export const PLANT_PROTEIN_KEYWORDS: string[] = [
+  'tofu', 'extra firm tofu', 'firm tofu', 'silken tofu', 'soft tofu',
+  'tempeh', 'seitan', 'edamame',
+  'nutritional yeast', 'nooch',
+  'tvp', 'textured vegetable protein',
+  'jackfruit', 'young jackfruit',
+  'beyond meat', 'impossible burger', 'impossible meat',
+  'veggie burger', 'veggie patty', 'black bean burger', 'lentil burger',
+  'meatless', 'plant-based protein', 'plant based protein',
+  'pea protein', 'soy protein',
+];
 
 export const MEAT_KEYWORDS: string[] = [
   'chicken', 'beef', 'pork', 'lamb', 'turkey', 'bacon', 'sausage', 'ham',
@@ -22,13 +36,14 @@ export const PRODUCE_KEYWORDS: string[] = [
   'collard', 'mustard green', 'bok choy', 'watercress',
   'broccoli', 'cauliflower', 'brussels sprout', 'asparagus', 'artichoke',
   'carrot', 'celery', 'cucumber', 'zucchini', 'squash', 'eggplant',
-  'bell pepper', 'pepper', 'jalapeno', 'habanero', 'serrano', 'poblano',
+  'bell pepper', 'jalapeno', 'habanero', 'serrano', 'poblano',
   'onion', 'garlic', 'shallot', 'leek', 'scallion', 'green onion', 'chive',
   'potato', 'sweet potato', 'yam', 'beet', 'turnip', 'parsnip', 'radish',
   'mushroom', 'corn', 'pea', 'green bean', 'snap pea', 'snow pea',
-  'bean sprout', 'sprout', 'microgreen', 'herb', 'basil', 'cilantro',
-  'parsley', 'mint', 'dill', 'thyme', 'rosemary', 'sage', 'oregano',
-  'ginger', 'lemongrass', 'fennel', 'endive', 'radicchio',
+  'bean sprout', 'sprout', 'microgreen',
+  'herb', 'basil', 'cilantro', 'parsley', 'mint', 'dill', 'thyme',
+  'rosemary', 'sage', 'oregano', 'ginger', 'lemongrass', 'fennel',
+  'endive', 'radicchio',
   'berries', 'fruit', 'vegetable', 'veggie', 'salad', 'greens', 'fresh'
 ];
 
@@ -61,48 +76,51 @@ export const BAKERY_KEYWORDS: string[] = [
   'cookie', 'brownie', 'cracker'
 ];
 
-export const PANTRY_KEYWORDS: string[] = [
-  'oil', 'olive oil', 'vegetable oil', 'canola oil', 'coconut oil', 'sesame oil',
-  'vinegar', 'balsamic', 'apple cider vinegar', 'red wine vinegar', 'white vinegar',
-  'salt', 'pepper', 'black pepper', 'white pepper', 'sea salt', 'kosher salt',
-  'sugar', 'brown sugar', 'powdered sugar', 'honey', 'maple syrup', 'agave',
-  'molasses', 'corn syrup', 'stevia', 'sweetener',
-  'flour', 'all-purpose flour', 'bread flour', 'whole wheat flour', 'almond flour',
-  'cornstarch', 'baking powder', 'baking soda', 'yeast',
+/**
+ * Grains, pasta, beans, legumes — items that have meaningful purchase quantities
+ * (sold by weight or as cans), distinct from pantry spices/oils.
+ */
+export const GRAINS_PACKAGED_KEYWORDS: string[] = [
   'rice', 'white rice', 'brown rice', 'jasmine rice', 'basmati rice', 'wild rice',
   'pasta', 'spaghetti', 'penne', 'fettuccine', 'macaroni', 'linguine', 'orzo',
   'noodle', 'ramen', 'udon', 'rice noodle', 'egg noodle',
   'quinoa', 'couscous', 'bulgur', 'farro', 'barley', 'oat', 'oatmeal', 'grain',
-  'bean', 'black bean', 'kidney bean', 'pinto bean', 'cannellini', 'chickpea',
-  'lentil', 'split pea',
+  'flour', 'all-purpose flour', 'bread flour', 'whole wheat flour', 'almond flour',
+  'bean', 'black bean', 'kidney bean', 'pinto bean', 'cannellini',
+  'chickpea', 'chickpeas', 'garbanzo', 'garbanzo bean', 'garbanzo beans',
+  'lentil', 'lentils', 'split pea',
+];
+
+export const PANTRY_KEYWORDS: string[] = [
+  ...SHARED_PANTRY_STAPLES,
   'nut', 'almond', 'walnut', 'pecan', 'cashew', 'peanut', 'pistachio', 'hazelnut',
-  'seed', 'sunflower seed', 'pumpkin seed', 'chia seed', 'flax seed', 'sesame seed',
+  'seed', 'sunflower seed', 'sunflower seeds', 'pumpkin seed', 'pumpkin seeds',
+  'chia seed', 'chia seeds', 'flax seed', 'flax seeds',
+  'sesame seed', 'sesame seeds', 'hemp seed', 'hemp seeds',
   'peanut butter', 'almond butter', 'tahini', 'nut butter',
-  'canned', 'can of', 'diced tomato', 'tomato paste', 'tomato sauce', 'crushed tomato',
+  'canned', 'diced tomato', 'tomato paste', 'tomato sauce', 'crushed tomato',
   'broth', 'stock', 'chicken broth', 'beef broth', 'vegetable broth', 'bone broth',
-  'soy sauce', 'tamari', 'fish sauce', 'worcestershire', 'hot sauce', 'sriracha',
-  'ketchup', 'mustard', 'mayonnaise', 'mayo', 'relish', 'bbq sauce', 'teriyaki',
   'salsa', 'pesto', 'hummus', 'guacamole',
-  'spice', 'cumin', 'paprika', 'chili powder', 'cayenne', 'turmeric', 'curry',
-  'cinnamon', 'nutmeg', 'allspice', 'clove', 'cardamom', 'ginger powder',
-  'garlic powder', 'onion powder', 'italian seasoning', 'oregano dried',
-  'thyme dried', 'basil dried', 'bay leaf', 'red pepper flake',
-  'vanilla', 'vanilla extract', 'almond extract', 'extract',
-  'cocoa', 'chocolate chip', 'chocolate', 'coffee', 'tea',
+  'vanilla', 'cocoa', 'chocolate chip', 'chocolate', 'coffee', 'tea',
   'cereal', 'granola', 'dried fruit', 'raisin', 'cranberry dried', 'date',
   'coconut milk', 'almond milk', 'oat milk', 'soy milk', 'plant milk'
 ];
 
-export const PANTRY_STAPLES: string[] = [
-  'oil', 'olive oil', 'vegetable oil', 'canola oil', 'coconut oil', 'sesame oil',
-  'vinegar', 'balsamic', 'apple cider vinegar', 'red wine vinegar', 'white vinegar',
-  'salt', 'pepper', 'black pepper', 'sea salt', 'kosher salt',
-  'sugar', 'brown sugar', 'honey', 'maple syrup',
-  'flour', 'all-purpose flour', 'cornstarch', 'baking powder', 'baking soda',
-  'soy sauce', 'fish sauce', 'worcestershire', 'hot sauce',
-  'ketchup', 'mustard', 'mayonnaise', 'mayo',
-  'cumin', 'paprika', 'chili powder', 'cayenne', 'turmeric', 'curry powder',
-  'cinnamon', 'nutmeg', 'garlic powder', 'onion powder', 'italian seasoning',
-  'oregano', 'thyme', 'basil dried', 'bay leaf', 'red pepper flake',
-  'vanilla', 'vanilla extract', 'cocoa powder'
+/**
+ * Items that must always classify as Pantry even when their name contains
+ * a word that also appears in PRODUCE_KEYWORDS (e.g. "garlic" in "garlic powder").
+ * Checked BEFORE the PRODUCE keyword match in classifyIngredient.
+ */
+export const PANTRY_SPICE_OVERRIDES: string[] = [
+  'garlic powder', 'garlic salt',
+  'onion powder', 'onion salt',
+  'celery powder', 'celery salt',
+  'mushroom powder',
+  'tomato powder',
+  'lemon pepper',
+  'garlic pepper',
+  'chili powder',
 ];
+
+// Re-export the shared list as PANTRY_STAPLES for backward compatibility
+export const PANTRY_STAPLES: string[] = SHARED_PANTRY_STAPLES;

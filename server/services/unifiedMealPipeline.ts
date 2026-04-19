@@ -203,6 +203,7 @@ export interface MealGenerationRequest {
   count?: number; // number of meals to generate (default 1)
   dietType?: DietType; // Diet-specific guardrails (anti-inflammatory, diabetic, etc.)
   starchContext?: StarchContext; // Starch Game Plan context for intelligent carb distribution
+  diversityContext?: { usedBases: Record<string, number>; usedTypes: Record<string, number> } | null; // Meal diversity tracking
   nutritionStrategy?: NutritionStrategyContext; // Vegetable system + cut intensity guardrails
   safetyAlreadyChecked?: boolean; // Skip internal safety check if route already verified with override token
   strictMode?: boolean; // "Keep It Simple" — AI uses ONLY user-listed ingredients, no additions
@@ -1600,6 +1601,46 @@ export async function generateFridgeRescueUnified(
  * Supports diet-specific guardrails for specialized builders
  * Supports Starch Game Plan for intelligent carb distribution
  */
+function buildDiversityGuidance(
+  diversityContext: { usedBases: Record<string, number>; usedTypes: Record<string, number> } | null | undefined
+): string {
+  if (!diversityContext) return "";
+
+  const { usedBases, usedTypes } = diversityContext;
+
+  const softAvoidBases = Object.entries(usedBases).filter(([, n]) => n >= 2 && n < 3).map(([b, n]) => `${b} (×${n})`);
+  const hardAvoidBases = Object.entries(usedBases).filter(([, n]) => n >= 3).map(([b, n]) => `${b} (×${n})`);
+  const softAvoidTypes = Object.entries(usedTypes).filter(([, n]) => n >= 2 && n < 3).map(([t, n]) => `${t} (×${n})`);
+  const hardAvoidTypes = Object.entries(usedTypes).filter(([, n]) => n >= 3).map(([t, n]) => `${t} (×${n})`);
+
+  if (
+    softAvoidBases.length === 0 &&
+    hardAvoidBases.length === 0 &&
+    softAvoidTypes.length === 0 &&
+    hardAvoidTypes.length === 0
+  ) {
+    return "";
+  }
+
+  const lines: string[] = ["🌈 MEAL DIVERSITY (important for weekly variety):"];
+
+  if (hardAvoidBases.length > 0) {
+    lines.push(`- STRONGLY avoid these overused main ingredients: ${hardAvoidBases.join(", ")}. Choose a completely different primary ingredient.`);
+  }
+  if (softAvoidBases.length > 0) {
+    lines.push(`- Try to avoid these frequently used ingredients: ${softAvoidBases.join(", ")}. Prefer a different base if possible.`);
+  }
+  if (hardAvoidTypes.length > 0) {
+    lines.push(`- STRONGLY avoid this meal format (used too often this week): ${hardAvoidTypes.join(", ")}. Choose a different structure (e.g. wrap, skillet, salad, soup, stir-fry).`);
+  }
+  if (softAvoidTypes.length > 0) {
+    lines.push(`- Try to vary the meal format away from: ${softAvoidTypes.join(", ")}.`);
+  }
+  lines.push("- If dietary constraints make full variety difficult, prioritize meeting dietary rules over diversity.");
+
+  return lines.join("\n");
+}
+
 export async function generateFromDescriptionUnified(
   description: string,
   mealType: string,
@@ -1609,7 +1650,8 @@ export async function generateFromDescriptionUnified(
   nutritionStrategy?: NutritionStrategyContext,
   strictMode: boolean = false,
   skipImage: boolean = false,
-  explicitOverride?: ExplicitOverride | null
+  explicitOverride?: ExplicitOverride | null,
+  diversityContext?: { usedBases: Record<string, number>; usedTypes: Record<string, number> } | null
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
   
@@ -1697,6 +1739,11 @@ export async function generateFromDescriptionUnified(
     const OpenAI = (await import('openai')).default;
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     
+    const diversityGuidance = buildDiversityGuidance(diversityContext);
+    if (diversityGuidance) {
+      console.log(`🌈 [DiversityRule] Injecting diversity guidance into prompt`);
+    }
+
     let basePrompt = `You are a professional chef creating a personalized meal recipe.
 ${chefProtocolBlock ? `\n${chefProtocolBlock}\n` : ""}${behavioralMemorySection ? `\n${behavioralMemorySection}\n` : ""}
 TASK: Create a complete ${validMealType} recipe based on this request: "${description}"
@@ -1708,7 +1755,7 @@ REQUIREMENTS:
 - Include accurate nutritional estimates with SEPARATE carb types
 - Make the recipe achievable for home cooks
 ${starchGuidance}
-${vegetableStrategyGuidance ? `\n${vegetableStrategyGuidance}\n` : ''}
+${diversityGuidance ? `\n${diversityGuidance}\n` : ""}${vegetableStrategyGuidance ? `\n${vegetableStrategyGuidance}\n` : ''}
 CARBOHYDRATE BREAKDOWN (CRITICAL):
 - starchyCarbs: Carbs from rice, pasta, bread, potatoes, grains, beans, corn, oats
 - fibrousCarbs: Carbs from vegetables, leafy greens, broccoli, peppers, onions, mushrooms
@@ -2490,7 +2537,7 @@ export async function generateMealUnified(
       const chefDescription = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType, request.starchContext, request.nutritionStrategy, request.strictMode === true, request.skipImage === true, request.explicitOverride);
+      result = await generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType, request.starchContext, request.nutritionStrategy, request.strictMode === true, request.skipImage === true, request.explicitOverride, request.diversityContext);
       break;
 
     case 'snack-creator':

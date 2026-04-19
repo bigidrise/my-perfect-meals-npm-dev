@@ -636,6 +636,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         count = 1,
         dietType,
         starchContext,
+        diversityContext,
         nutritionStrategy: bodyNutritionStrategy,
         safetyMode,
         overrideToken,
@@ -764,6 +765,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         count,
         dietType,
         starchContext,
+        diversityContext: diversityContext || null,
         nutritionStrategy: nutritionStrategy ?? undefined,
         strictMode: strictMode === true,
         skipImage: skipImage === true,
@@ -5828,7 +5830,7 @@ function getMealIngredientsDatabase() {
 
     if (produce.some(item => lowerIngredient.includes(item))) return 'Produce';
     if (protein.some(item => lowerIngredient.includes(item))) return 'Protein';
-    if (!isNonDairy && (dairy.some(item => lowerIngredient.includes(item)) || halfAndHalfRe.test(lowerIngredient))) return 'Dairy';
+    if (!isNonDairy && (dairy.some(item => lowerIngredient.includes(item)) || halfAndHalfRe.test(lowerIngredient))) return 'Dairy & Eggs';
     if (pantry.some(item => lowerIngredient.includes(item))) return 'Pantry';
 
     return 'Other';

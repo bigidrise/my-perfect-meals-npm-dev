@@ -1,4 +1,4 @@
-export type Category = 'Produce'|'Protein'|'Pantry'|'Dairy'|'Frozen'|'Other';
+export type Category = 'Produce'|'Protein'|'Plant Proteins'|'Pantry'|'Dairy & Eggs'|'Frozen'|'Other';
 export type ShoppingItem = {
   id: string;
   name: string;

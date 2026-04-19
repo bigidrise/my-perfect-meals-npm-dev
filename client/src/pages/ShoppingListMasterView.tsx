@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MACRO_SOURCES, getMacroSourceBySlug } from "@/lib/macroSourcesConfig";
+import { getRetailQuantity } from "@/lib/retailIntelligence";
 import AddOtherItems from "@/components/AddOtherItems";
 import { readOtherItems } from "@/stores/otherItemsStore";
 import { buildWalmartSearchUrl } from "@/lib/walmartLinkBuilder";
@@ -38,6 +39,30 @@ import { ArrowLeft } from "lucide-react";
 import { recordShoppingToBiometricsTransition, hasCompletedFirstLoop } from "@/lib/guestSuiteNavigator";
 import { useGuestNavigationGuard } from "@/hooks/useGuestNavigationGuard";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+
+const CATEGORY_ORDER = [
+  'Produce',
+  'Meat',
+  'Plant Proteins',
+  'Dairy & Eggs',
+  'Grains & Packaged',
+  'Pantry',
+  'Frozen',
+  'Bakery',
+  'Other',
+];
+
+function sortedEntries<T>(grouped: Record<string, T>): [string, T][] {
+  const entries = Object.entries(grouped);
+  return entries.sort(([a], [b]) => {
+    const ai = CATEGORY_ORDER.indexOf(a);
+    const bi = CATEGORY_ORDER.indexOf(b);
+    if (ai === -1 && bi === -1) return a.localeCompare(b);
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+}
 
 export default function ShoppingListMasterView() {
   const [, setLocation] = useLocation();
@@ -563,7 +588,7 @@ export default function ShoppingListMasterView() {
           </div>
         ) : (
           <div data-testid="shopping-list" className="space-y-4">
-            {Object.entries(groupedUnchecked).map(([cat, arr]) => (
+            {sortedEntries(groupedUnchecked).map(([cat, arr]) => (
               <div
                 key={cat}
                 className="rounded-2xl bg-white/5 border border-white/20 p-4 backdrop-blur"
@@ -612,7 +637,7 @@ export default function ShoppingListMasterView() {
                   {arr.map((item, idx) => (
                     <div
                       data-testid={
-                        idx === 0 && cat === Object.keys(groupedUnchecked)[0]
+                        idx === 0 && cat === sortedEntries(groupedUnchecked)[0]?.[0]
                           ? "shopping-first-item"
                           : undefined
                       }
@@ -703,9 +728,15 @@ export default function ShoppingListMasterView() {
                           >
                             {item.name}
                           </div>
-                          <div className="text-white/70 text-sm shrink-0">
-                            {formatQuantity(item.quantity, item.unit)}
-                          </div>
+                          {(() => {
+                            const qty = getRetailQuantity(item);
+                            if (!qty) return null;
+                            return (
+                              <div className="text-white/70 text-sm shrink-0">
+                                {qty}
+                              </div>
+                            );
+                          })()}
                           <Button
                             size="sm"
                             variant="ghost"
@@ -754,7 +785,7 @@ export default function ShoppingListMasterView() {
                 </button>
                 {purchasedOpen && (
                   <div className="p-4 pt-0 space-y-4">
-                    {Object.entries(groupedChecked).map(([cat, arr]) => (
+                    {sortedEntries(groupedChecked).map(([cat, arr]) => (
                       <div key={cat}>
                         <h4 className="text-white/70 text-sm font-semibold mb-2">
                           {cat}
@@ -777,9 +808,15 @@ export default function ShoppingListMasterView() {
                               <div className="flex-1 text-white line-through">
                                 {item.name}
                               </div>
-                              <div className="text-white/70 text-sm shrink-0">
-                                {formatQuantity(item.quantity, item.unit)}
-                              </div>
+                              {(() => {
+                                const qty = getRetailQuantity(item);
+                                if (!qty) return null;
+                                return (
+                                  <div className="text-white/70 text-sm shrink-0">
+                                    {qty}
+                                  </div>
+                                );
+                              })()}
                               <TrashButton
                                 size="sm"
                                 onClick={() => removeItem(item.id)}

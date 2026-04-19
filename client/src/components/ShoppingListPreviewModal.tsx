@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 
-const AISLE_ORDER = ["Produce", "Meat", "Dairy", "Pantry", "Other"];
+const AISLE_ORDER = ["Produce", "Meat", "Plant Proteins", "Dairy & Eggs", "Pantry", "Other"];
 
 type PreviewItem = {
   name: string;
@@ -189,7 +189,7 @@ export default function ShoppingListPreviewModal({ isOpen, onClose, meal }: Shop
                   <div key={aisle}>
                     <h3 className="font-semibold text-white/90 mb-2 flex items-center gap-2">
                       <span>
-                        {aisle === 'Produce' ? '🥬' : aisle === 'Meat' ? '🥩' : aisle === 'Dairy' ? '🥛' : aisle === 'Pantry' ? '🥫' : '📦'}
+                        {aisle === 'Produce' ? '🥬' : aisle === 'Meat' ? '🥩' : aisle === 'Plant Proteins' ? '🌱' : aisle === 'Dairy & Eggs' ? '🥛' : aisle === 'Pantry' ? '🥫' : '📦'}
                       </span>
                       {aisle}
                       <span className="text-xs text-white/60 font-normal">({items.length})</span>
