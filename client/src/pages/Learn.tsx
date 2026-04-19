@@ -315,6 +315,50 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
     },
   },
   {
+    id: "taste-memory",
+    title: "Taste Memory — How the App Learns You",
+    subtitle: "The system that gets smarter the more you use it",
+    icon: Brain,
+    content: {
+      sections: [
+        {
+          heading: "The App Remembers What You Like",
+          text: "Every time you save a meal, save a recipe, or log something you ate, the app is paying attention. It is not just storing records — it is building a picture of who you are as an eater. That picture is your Taste Memory, and it gets applied quietly in the background every time a new meal is generated for you.",
+        },
+        {
+          heading: "What It Learns",
+          list: [
+            "Preferred proteins — chicken, salmon, beef, tofu, shrimp, and which ones show up most in your history",
+            "Preferred cuisines — Mediterranean, Asian, Mexican, Italian, and what you keep coming back to",
+            "Preferred cooking methods — grilled, baked, sautéed, slow-cooked, and your tendencies over time",
+            "High-protein tendency — whether you consistently choose meals that are protein-forward",
+            "Quick-prep tendency — whether you favor recipes that come together fast versus more involved cooking",
+          ],
+        },
+        {
+          heading: "How It Works",
+          text: "The system reads your last 90 days of saved meals and recipes and scores them using a recency decay model. Recent choices carry more weight than older ones, with a half-life of about 28 days. That means your Taste Memory is always current — it naturally shifts as your tastes and habits evolve over time.",
+        },
+        {
+          heading: "Where It Is Applied",
+          list: [
+            "All six diet builders — Anti-Inflammatory, Diabetic, GLP-1, General Nutrition, Performance, Beach Body",
+            "Craving Creator",
+            "Weekly AI Meal Planner",
+          ],
+        },
+        {
+          heading: "What It Does NOT Do",
+          text: "Taste Memory is always treated as a soft influence — a set of hints. It never overrides your dietary rules, medical protocols, allergy protections, or macro targets. If your protocol says no refined carbs, Taste Memory cannot put them back in. It only shapes the meal within the boundaries already set for you.",
+        },
+        {
+          heading: "You Do Not Have to Set It Up",
+          text: "There are no buttons, no preference surveys, no profiles to fill out. Taste Memory builds itself automatically from how you actually use the app. The more you save and log, the more accurate it becomes. A new user starts with no memory. A user with six months of history gets meals that feel like they were written specifically for them — because in a sense, they were.",
+        },
+      ],
+    },
+  },
+  {
     id: "macro-calculator",
     title: "How the Macro Calculator Works",
     subtitle: "Science-based, personalized numbers",
