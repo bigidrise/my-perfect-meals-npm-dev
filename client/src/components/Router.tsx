@@ -410,6 +410,7 @@ export default function Router() {
         <Route path="/lifestyle" component={LifestyleLandingPage} />
         {/* DELETED: /healthy-kids-meals, /kids-meals, /toddler-meals routes (Phase 1 cleanup) */}
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
+        <Route path="/lifestyle/my-perfect-gatherings" component={UltimateExperiencesPage} />
         <Route path="/lifestyle/ultimate-experiences" component={UltimateExperiencesPage} />
         <Route path="/lifestyle/chefs-kitchen" component={withGate(ChefsKitchenPage, 'chefsKitchen')} />
         <Route path="/lifestyle/create-a-dish" component={withGate(CreateDishPage, 'chefsKitchen')} />

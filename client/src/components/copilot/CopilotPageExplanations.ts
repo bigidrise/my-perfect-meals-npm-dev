@@ -196,8 +196,8 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
-  "/lifestyle/ultimate-experiences": {
-    pageId: "lifestyle/ultimate-experiences",
+  "/lifestyle/my-perfect-gatherings": {
+    pageId: "lifestyle/my-perfect-gatherings",
     title: "My Perfect Gatherings",
     description:
       "Plan full multi-course meals for holidays, camping, tailgates, and group events — with AI-generated courses that feel chef-designed, not random.",

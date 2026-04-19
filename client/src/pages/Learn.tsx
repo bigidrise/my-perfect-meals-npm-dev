@@ -871,7 +871,7 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
     },
   },
   {
-    id: "ultimate-experiences",
+    id: "my-perfect-gatherings",
     title: "My Perfect Gatherings",
     subtitle: "Multi-course AI meal planning for any occasion",
     icon: Sparkles,
