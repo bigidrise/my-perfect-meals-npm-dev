@@ -32,15 +32,32 @@ function getClientId(userId: string): string | null {
 export function useMacroTargetSync() {
   const { user } = useAuth();
   const userIdRef = useRef<string | undefined>(undefined);
+  const isProCareRef = useRef<boolean | undefined>(undefined);
 
   useEffect(() => {
     userIdRef.current = user?.id;
-  }, [user?.id]);
+    isProCareRef.current = !!(user as any)?.isProCare;
+  }, [user?.id, (user as any)?.isProCare]);
 
   useEffect(() => {
     const sync = async () => {
       const userId = userIdRef.current;
       if (!userId) return;
+
+      // Protocol Ownership Model: if the user is no longer connected to a physician,
+      // strip any stale physician medical flags from localStorage so they don't
+      // persist across sessions and incorrectly activate clinical protocols.
+      if (isProCareRef.current === false) {
+        const clientId = getClientId(userId);
+        if (clientId) {
+          const stripped = proStore.stripMedicalFlags(clientId);
+          if (stripped) {
+            clearResolvedTargetsCache();
+            window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
+            console.log("[MacroTargetSync] Stripped stale physician medical flags — ProCare ended.");
+          }
+        }
+      }
 
       // Only sync for clients who are linked to a pro (have a clientId mapping).
       // Self-managed clients update their own localStorage directly via Macro Calculator

@@ -410,6 +410,30 @@ export const proStore = {
     saveState(state);
   },
 
+  /**
+   * Protocol Ownership Model: strips high-risk physician-only flags from a
+   * client's stored targets when ProCare has ended. Called by useMacroTargetSync
+   * whenever user.isProCare === false so stale localStorage flags don't persist.
+   * Returns true if any flag was changed (caller should clear resolver cache).
+   */
+  stripMedicalFlags(clientId: string): boolean {
+    const existing = state.targets[clientId];
+    if (!existing?.flags) return false;
+    const PHYSICIAN_MEDICAL_FLAGS = ['oncologySupport', 'renal', 'cardiac', 'liverDisease', 'liverSupport'] as const;
+    let changed = false;
+    for (const flag of PHYSICIAN_MEDICAL_FLAGS) {
+      if ((existing.flags as any)[flag]) {
+        (existing.flags as any)[flag] = false;
+        changed = true;
+      }
+    }
+    if (changed) {
+      state.targets[clientId] = existing;
+      saveState(state);
+    }
+    return changed;
+  },
+
   getPrefs(clientId: string): Prefs {
     return state.prefs[clientId] ?? { dislikes:[], allergens:[], cuisines:[], effort:'standard', budget:'med' };
   },
