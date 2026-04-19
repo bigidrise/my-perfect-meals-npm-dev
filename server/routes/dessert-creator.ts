@@ -12,6 +12,7 @@ import { eq } from "drizzle-orm";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
 import { buildPalateSection, PalatePreferences, buildStrictModeBlock } from "../services/promptBuilder";
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope, buildMealComplianceBundle } from "../services/protocolEnvelope";
+import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from "../services/behavioralMemoryService";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -256,10 +257,24 @@ CELEBRATION CAKE REQUIREMENTS:
       ? `\n[USER DIET SOFT OVERRIDE: The user has explicitly chosen to create this dessert despite their dietary preference. You MUST create the specifically requested dessert. Keep the serving size realistic. Do NOT add additional non-compliant ingredients beyond what is inherent to this dessert type.]\n`
       : "";
 
+    // ── Behavioral memory: soft preference hints ──────────────────────────────
+    let dessertBehavioralMemorySection = "";
+    if (userId && userId !== "1") {
+      try {
+        const behavioralProfile = await derivePreferenceProfile(userId);
+        if (behavioralProfile) {
+          dessertBehavioralMemorySection = buildBehavioralMemoryPromptSection(behavioralProfile);
+          console.log(`🧠 [BehavioralMemory/Dessert] Profile loaded — ${behavioralProfile.auditMeta.evidenceCount} signals`);
+        }
+      } catch (err) {
+        console.warn("⚠️ [BehavioralMemory/Dessert] Could not derive preference profile:", err);
+      }
+    }
+
     const prompt = `
 You are a master pastry chef + nutrition expert inside the My Perfect Meals system.
 Generate a FULL structured dessert recipe.
-${dessertProtocolBlock ? `\n${dessertProtocolBlock}\n` : ""}${chefAdaptBlock}${softOverrideBlock}${strictMode === true ? `\n${buildStrictModeBlock(dessertIdentifier)}\n` : ""}
+${dessertProtocolBlock ? `\n${dessertProtocolBlock}\n` : ""}${dessertBehavioralMemorySection ? `\n${dessertBehavioralMemorySection}\n` : ""}${chefAdaptBlock}${softOverrideBlock}${strictMode === true ? `\n${buildStrictModeBlock(dessertIdentifier)}\n` : ""}
 
 Return JSON ONLY, following this exact schema:
 
