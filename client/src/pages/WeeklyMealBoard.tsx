@@ -1994,7 +1994,7 @@ export default function WeeklyMealBoard() {
                       : "col-span-full pb-32"
                   }
                 >
-                  <RemainingMacrosFooter
+                  {!proClientId && <RemainingMacrosFooter
                     userId={effectiveUserId}
                     consumedOverride={consumed}
                     showSaveButton={Boolean(isDay) && !dayAlreadyLocked}
@@ -2075,7 +2075,7 @@ export default function WeeklyMealBoard() {
                           }
                         : undefined
                     }
-                  />
+                  />}
                 </div>
               );
             })()}
