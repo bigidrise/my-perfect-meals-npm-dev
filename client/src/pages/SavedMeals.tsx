@@ -4,6 +4,9 @@ import { Heart, ChevronDown, ChevronRight, ArrowLeft, Loader2 } from "lucide-rea
 import { useSavedMealsList, useToggleSavedMeal } from "@/hooks/useSavedMeals";
 import { useToast } from "@/hooks/use-toast";
 import MealCardActions from "@/components/MealCardActions";
+import AddToMealPlanButton from "@/components/AddToMealPlanButton";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
+import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { setQuickView } from "@/lib/macrosQuickView";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
@@ -122,16 +125,25 @@ export default function SavedMeals() {
                 <div key={row.id} className="rounded-xl border border-white/15 bg-white/5 overflow-hidden">
                   <button
                     onClick={() => setExpandedId(isExpanded ? null : row.id)}
-                    className="w-full flex items-center justify-between px-4 py-3 active:scale-[0.98]"
+                    className="w-full flex items-center justify-between px-3 py-3 active:scale-[0.98]"
                   >
-                    <div className="flex items-center gap-3 text-left min-w-0">
-                      <Heart className="h-5 w-5 text-red-500 shrink-0" fill="currentColor" />
+                    {/* Thumbnail image */}
+                    <div className="shrink-0 w-14 h-14 rounded-lg overflow-hidden bg-white/10 mr-3">
+                      <MealImageSlot
+                        imageUrl={d?.imageUrl}
+                        mealName={row.title}
+                        height="h-14"
+                        className="!mb-0 !rounded-none"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 text-left min-w-0 flex-1">
                       <div className="min-w-0">
                         <div className="text-white font-medium truncate">{row.title}</div>
                         <div className="text-xs text-white/50">{sourceLabel(row.sourceType)}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
+                      <Heart className="h-4 w-4 text-red-500 shrink-0" fill="currentColor" />
                       <span className="text-xs text-white/40">{calories} cal</span>
                       {isExpanded ? (
                         <ChevronDown className="h-4 w-4 text-white/40" />
@@ -143,11 +155,11 @@ export default function SavedMeals() {
 
                   {isExpanded && (
                     <div className="px-4 pb-4 space-y-4 border-t border-white/10 pt-4">
-                      {d?.imageUrl && (
-                        <div className="rounded-lg overflow-hidden">
-                          <img src={d.imageUrl} alt={row.title} className="w-full h-48 object-cover" />
-                        </div>
-                      )}
+                      <MealImageSlot
+                        imageUrl={d?.imageUrl}
+                        mealName={row.title}
+                        height="h-52"
+                      />
 
                       {d?.description && (
                         <p className="text-white/80 text-sm">{d.description}</p>
@@ -193,18 +205,36 @@ export default function SavedMeals() {
                       {d?.instructions && (
                         <div>
                           <h4 className="text-sm font-semibold text-white/70 mb-2">Instructions</h4>
-                          <ol className="space-y-1 list-decimal list-inside">
-                            {(Array.isArray(d.instructions) ? d.instructions : [d.instructions]).map((step: string, i: number) => (
-                              <li key={i} className="text-sm text-white/80">{step}</li>
+                          <ol className="space-y-3">
+                            {normalizeInstructions(d.instructions).map((step: string, i: number) => (
+                              <li key={i} className="flex gap-3 text-sm text-white/80">
+                                <span className="shrink-0 w-6 h-6 rounded-full bg-blue-600/70 flex items-center justify-center text-xs font-bold text-white">
+                                  {i + 1}
+                                </span>
+                                <span className="pt-0.5">{step}</span>
+                              </li>
                             ))}
                           </ol>
                         </div>
                       )}
 
                       <div className="flex flex-wrap gap-2 pt-2">
+                        <AddToMealPlanButton
+                          meal={{
+                            id: row.id,
+                            name: row.title,
+                            description: d?.description,
+                            instructions: d?.instructions,
+                            ingredients: d?.ingredients,
+                            nutrition: d?.nutrition || { calories, protein, carbs, fat },
+                            imageUrl: d?.imageUrl,
+                            servings: d?.servings,
+                            servingSize: d?.servingSize,
+                          }}
+                        />
                         <button
                           onClick={() => handleAddToMacros(row)}
-                          className="flex-1 bg-blue-600 text-white text-sm py-2 px-3 rounded-lg active:scale-[0.98]"
+                          className="flex-1 bg-white/10 text-white text-sm py-2 px-3 rounded-lg active:scale-[0.98]"
                         >
                           Add to Macros
                         </button>
