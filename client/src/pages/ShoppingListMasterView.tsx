@@ -703,9 +703,11 @@ export default function ShoppingListMasterView() {
                           >
                             {item.name}
                           </div>
-                          <div className="text-white/70 text-sm shrink-0">
-                            {formatQuantity(item.quantity, item.unit)}
-                          </div>
+                          {!item.isPantryStaple && (
+                            <div className="text-white/70 text-sm shrink-0">
+                              {formatQuantity(item.quantity, item.unit)}
+                            </div>
+                          )}
                           <Button
                             size="sm"
                             variant="ghost"
