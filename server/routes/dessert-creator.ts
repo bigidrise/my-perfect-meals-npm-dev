@@ -11,8 +11,7 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
 import { buildPalateSection, PalatePreferences, buildStrictModeBlock } from "../services/promptBuilder";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope, buildMealComplianceBundle } from "../services/protocolEnvelope";
-import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from "../services/behavioralMemoryService";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope } from "../services/protocolEnvelope";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -100,8 +99,6 @@ dessertCreatorRouter.post("/", async (req, res) => {
       skipPalate,
       strictMode,
       customDessertDescription,
-      dietAdaptOverride,
-      userDietOverride,
     } = req.body ?? {};
 
     const hasCustomDescription = !!(customDessertDescription && typeof customDessertDescription === 'string' && customDessertDescription.trim().length > 0);
@@ -249,32 +246,10 @@ CELEBRATION CAKE REQUIREMENTS:
       ? customDessertDescription.trim()
       : (specificDessert || `${flavorFamily} ${dessertCategory}`);
 
-    const chefAdaptBlock = dietAdaptOverride === true
-      ? `\n[CHEF ADAPTATION MODE: The user has explicitly requested this dessert be adapted for their dietary law. Replace any dairy elements (cream, butter, milk, cheese, cream cheese) with ONLY certified pareve or non-dairy alternatives: coconut cream, cashew cream, oat milk, vegan butter, or pareve margarine. The final dessert MUST contain zero dairy. Preserve the intended flavor and texture using compliant alternatives only.]\n`
-      : "";
-
-    const softOverrideBlock = userDietOverride === true
-      ? `\n[USER DIET SOFT OVERRIDE: The user has explicitly chosen to create this dessert despite their dietary preference. You MUST create the specifically requested dessert. Keep the serving size realistic. Do NOT add additional non-compliant ingredients beyond what is inherent to this dessert type.]\n`
-      : "";
-
-    // ── Behavioral memory: soft preference hints ──────────────────────────────
-    let dessertBehavioralMemorySection = "";
-    if (userId && userId !== "1") {
-      try {
-        const behavioralProfile = await derivePreferenceProfile(userId);
-        if (behavioralProfile) {
-          dessertBehavioralMemorySection = buildBehavioralMemoryPromptSection(behavioralProfile);
-          console.log(`🧠 [BehavioralMemory/Dessert] Profile loaded — ${behavioralProfile.auditMeta.evidenceCount} signals`);
-        }
-      } catch (err) {
-        console.warn("⚠️ [BehavioralMemory/Dessert] Could not derive preference profile:", err);
-      }
-    }
-
     const prompt = `
 You are a master pastry chef + nutrition expert inside the My Perfect Meals system.
 Generate a FULL structured dessert recipe.
-${dessertProtocolBlock ? `\n${dessertProtocolBlock}\n` : ""}${dessertBehavioralMemorySection ? `\n${dessertBehavioralMemorySection}\n` : ""}${chefAdaptBlock}${softOverrideBlock}${strictMode === true ? `\n${buildStrictModeBlock(dessertIdentifier)}\n` : ""}
+${dessertProtocolBlock ? `\n${dessertProtocolBlock}\n` : ""}${strictMode === true ? `\n${buildStrictModeBlock(dessertIdentifier)}\n` : ""}
 
 Return JSON ONLY, following this exact schema:
 
@@ -371,7 +346,6 @@ INCORRECT (NEVER DO THIS):
     // ── Post-gen protocol scan ──────────────────────────────────────────────
     const dessertScan = scanGeneratedOutput(meal, dessertEnvelope, {
       generatorName: 'dessert_creator',
-      skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
     });
     if (!dessertScan.passed) {
       console.log(`🚫 [DESSERT] Post-gen protocol violation: ${dessertScan.message}`);
@@ -411,19 +385,32 @@ INCORRECT (NEVER DO THIS):
 
     const medicalBadges = computeMedicalBadges(constraints, ingredientNames);
 
-    // Image is generated client-side in parallel via /api/meals/generate-image
-    const imageUrl = null;
+    if (isDev) console.log("[DESSERT] Starting image generation...");
+    let imageUrl = null;
+    try {
+      const { generateImage } = await import("../services/imageService");
+      imageUrl = await generateImage({
+        name: meal.name,
+        description: meal.description || `A delicious ${flavorLabel} ${categoryLabel}`,
+        type: 'meal',
+        style: 'homemade',
+        ingredients: ingredientNames,
+        calories: meal.nutrition?.calories || 0,
+        protein: meal.nutrition?.protein || 0,
+        carbs: meal.nutrition?.carbs || 0,
+        fat: meal.nutrition?.fat || 0,
+      });
+      if (isDev) console.log(`[DESSERT] 📸 Image generated for ${meal.name}`);
+    } catch (error) {
+      if (isDev) console.log(`[DESSERT] ❌ Image generation failed for ${meal.name}:`, error);
+    }
 
-    if (isDev) console.log("[DESSERT] Sending response (image handled client-side)...");
-    const { complianceSection: dessertCompliance, dietClassification: dessertDietClass } =
-      buildMealComplianceBundle(meal, dessertEnvelope, { isChefAdapted: dietAdapted });
+    if (isDev) console.log("[DESSERT] Sending response...");
     return res.json({
       ...meal,
       imageUrl,
       medicalBadges,
       ...(dietAdapted && { dietAdapted: true, dietNotice }),
-      complianceSection: dessertCompliance,
-      dietClassification: dessertDietClass,
       meta: {
         userId: userId ?? "1",
         dessertCategory,

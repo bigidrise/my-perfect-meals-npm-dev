@@ -8,8 +8,7 @@ import { eq } from "drizzle-orm";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
 import { buildPalateSection, PalatePreferences } from "../services/promptBuilder";
 import { resolveDietCategoryStrategy, type DietCategoryStrategy } from "../services/allergyGuardrails";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope, buildMealComplianceBundle } from "../services/protocolEnvelope";
-import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from "../services/behavioralMemoryService";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope } from "../services/protocolEnvelope";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -64,26 +63,21 @@ beverageCreatorRouter.post("/", async (req, res) => {
       beverageCategory,
       flavorFamily,
       specificDrink,
-      customBeverageDescription,
       servingSize,
       dietaryPreferences,
       userId,
       safetyMode,
       overrideToken,
       skipPalate,
-      dietAdaptOverride,
-      userDietOverride,
     } = req.body ?? {};
 
     if (isDev) console.log("[BEVERAGE] Request params:", { beverageCategory, flavorFamily, servingSize });
 
-    const hasCustomDesc = typeof customBeverageDescription === "string" && customBeverageDescription.trim().length > 0;
-
-    if (!hasCustomDesc && !beverageCategory) {
+    if (!beverageCategory) {
       return res.status(400).json({ error: "Beverage category is required" });
     }
 
-    if (!hasCustomDesc && !flavorFamily) {
+    if (!flavorFamily) {
       return res.status(400).json({ error: "Flavor family is required" });
     }
 
@@ -226,7 +220,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
         case "coffee":
           return `\n☕ COFFEE DRINK-SPECIFIC RULES:
 - Specify coffee type (espresso, cold brew, drip, etc.)
-- Use ONLY plant-based milk/cream (oat milk, almond milk, soy milk, coconut milk) — NEVER dairy milk or cream
+- Include milk/cream options
 - Include sweetener amounts if applicable`;
         case "tea":
           return `\n🍵 TEA DRINK-SPECIFIC RULES:
@@ -248,28 +242,10 @@ beverageCreatorRouter.post("/", async (req, res) => {
       }
     })();
 
-    const softOverrideBlock = userDietOverride === true
-      ? `\n[USER DIET SOFT OVERRIDE: The user has explicitly chosen to make this beverage despite their dietary preference. You MUST create the specifically requested drink. Keep the serving size realistic. Do NOT add additional non-compliant ingredients beyond what is inherent to this beverage type.]\n`
-      : "";
-
-    // ── Behavioral memory: soft preference hints ──────────────────────────────
-    let beverageBehavioralMemorySection = "";
-    if (userId && userId !== "1") {
-      try {
-        const behavioralProfile = await derivePreferenceProfile(userId);
-        if (behavioralProfile) {
-          beverageBehavioralMemorySection = buildBehavioralMemoryPromptSection(behavioralProfile);
-          console.log(`🧠 [BehavioralMemory/Beverage] Profile loaded — ${behavioralProfile.auditMeta.evidenceCount} signals`);
-        }
-      } catch (err) {
-        console.warn("⚠️ [BehavioralMemory/Beverage] Could not derive preference profile:", err);
-      }
-    }
-
     const prompt = `
 You are a professional mixologist, nutritionist, and beverage chef inside the My Perfect Meals system.
 Generate a FULL structured beverage recipe.
-${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${beverageBehavioralMemorySection ? `\n${beverageBehavioralMemorySection}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}${softOverrideBlock}
+${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}
 The result MUST be a drink. Never generate solid food, meals, or desserts.
 
 Return JSON ONLY, following this exact schema:
@@ -297,9 +273,9 @@ Return JSON ONLY, following this exact schema:
 }
 
 CRITERIA:
-${hasCustomDesc ? `- User's custom beverage idea: "${customBeverageDescription}" (this takes FULL priority — build the entire recipe around this description; infer the drink type and flavor from it)` : `- Beverage CATEGORY: "${categoryLabel}" (this defines the drink type)
+- Beverage CATEGORY: "${categoryLabel}" (this defines the drink type)
 - Flavor FAMILY: "${flavorLabel}" (this defines the main taste direction)
-- Specific drink requested: "${specificDrink || "Create your own unique version"}"`}
+- Specific drink requested: "${specificDrink || "Create your own unique version"}"
 - Dietary requirements: "${dietaryRules}"
 - Number of servings: ${serving.count}
 ${categorySpecificRules}
@@ -327,55 +303,44 @@ CORRECT INGREDIENT EXAMPLES:
 - {"name": "fresh lime juice", "amount": "1", "unit": "oz"}
 - {"name": "simple syrup", "amount": "0.5", "unit": "oz"}
 - {"name": "mint leaves", "amount": "6", "unit": "each"}
-- {"name": "oat milk", "amount": "1", "unit": "cup"}
+- {"name": "whole milk", "amount": "1", "unit": "cup"}
 
 INCORRECT (NEVER DO THIS):
 - {"name": "vodka", "amount": "60", "unit": "ml"} ❌ (use oz)
 - {"name": "sugar", "amount": "15", "unit": "g"} ❌ (use tsp/tbsp)
 `;
 
-    const MAX_BEVERAGE_ATTEMPTS = 2;
+    if (isDev) console.log("[BEVERAGE] Calling OpenAI GPT-4o...");
+    const completion = await getOpenAI().chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+    });
+    if (isDev) console.log("[BEVERAGE] OpenAI response received");
+
     let meal: any;
-    let beverageScan: ReturnType<typeof scanGeneratedOutput> | null = null;
+    try {
+      const rawText = completion.choices[0]?.message?.content || "{}";
+      meal = JSON.parse(rawText);
+      if (isDev) console.log("[BEVERAGE] Parsed beverage:", meal.name);
+    } catch (parseErr) {
+      console.error("Beverage Creator JSON parse error:", parseErr);
+      return res
+        .status(500)
+        .json({ error: "AI returned invalid JSON for beverage" });
+    }
 
-    for (let attempt = 1; attempt <= MAX_BEVERAGE_ATTEMPTS; attempt++) {
-      const retryHint = attempt > 1 && beverageScan
-        ? `\n\nPREVIOUS ATTEMPT VIOLATION — fix this before generating:\n${beverageScan.message}\nEnsure every ingredient and the drink name are fully compliant with the dietary rules above.`
-        : "";
-
-      if (isDev) console.log(`[BEVERAGE] Calling OpenAI GPT-4o (attempt ${attempt})...`);
-      const completion = await getOpenAI().chat.completions.create({
-        model: "gpt-4o",
-        messages: [{ role: "user", content: prompt + retryHint }],
-        response_format: { type: "json_object" },
+    // ── Post-gen protocol scan ──────────────────────────────────────────────
+    const beverageScan = scanGeneratedOutput(meal, beverageEnvelope, {
+      generatorName: 'beverage_creator',
+    });
+    if (!beverageScan.passed) {
+      console.log(`🚫 [BEVERAGE] Post-gen protocol violation: ${beverageScan.message}`);
+      return res.status(400).json({
+        error: "PROTOCOL_VIOLATION",
+        message: beverageScan.message,
+        retryable: true,
       });
-      if (isDev) console.log("[BEVERAGE] OpenAI response received");
-
-      try {
-        const rawText = completion.choices[0]?.message?.content || "{}";
-        meal = JSON.parse(rawText);
-        if (isDev) console.log("[BEVERAGE] Parsed beverage:", meal.name);
-      } catch (parseErr) {
-        console.error("Beverage Creator JSON parse error:", parseErr);
-        return res.status(500).json({ error: "AI returned invalid JSON for beverage" });
-      }
-
-      // ── Post-gen protocol scan ────────────────────────────────────────────
-      beverageScan = scanGeneratedOutput(meal, beverageEnvelope, {
-        generatorName: 'beverage_creator',
-        skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
-      });
-
-      if (beverageScan.passed) break;
-
-      console.log(`🚫 [BEVERAGE] Post-gen protocol violation (attempt ${attempt}): ${beverageScan.message}`);
-      if (attempt >= MAX_BEVERAGE_ATTEMPTS) {
-        return res.status(400).json({
-          error: "PROTOCOL_VIOLATION",
-          message: beverageScan.message,
-          retryable: true,
-        });
-      }
     }
 
     const normalizedIngredients = normalizeIngredients(meal.ingredients || []);
@@ -405,19 +370,32 @@ INCORRECT (NEVER DO THIS):
 
     const medicalBadges = computeMedicalBadges(constraints, ingredientNames);
 
-    // Image is generated client-side in parallel via /api/meals/generate-image
-    const imageUrl = null;
+    if (isDev) console.log("[BEVERAGE] Starting image generation...");
+    let imageUrl = null;
+    try {
+      const { generateImage } = await import("../services/imageService");
+      imageUrl = await generateImage({
+        name: meal.name,
+        description: meal.description || `A delicious ${flavorLabel} ${categoryLabel}`,
+        type: 'meal',
+        style: 'homemade',
+        ingredients: ingredientNames,
+        calories: meal.nutrition?.calories || 0,
+        protein: meal.nutrition?.protein || 0,
+        carbs: meal.nutrition?.carbs || 0,
+        fat: meal.nutrition?.fat || 0,
+      });
+      if (isDev) console.log(`[BEVERAGE] 📸 Image generated for ${meal.name}`);
+    } catch (error) {
+      if (isDev) console.log(`[BEVERAGE] ❌ Image generation failed for ${meal.name}:`, error);
+    }
 
-    if (isDev) console.log("[BEVERAGE] Sending response (image handled client-side)...");
-    const { complianceSection: bevCompliance, dietClassification: bevDietClass } =
-      buildMealComplianceBundle(meal, beverageEnvelope, { isChefAdapted: dietAdapted });
+    if (isDev) console.log("[BEVERAGE] Sending response...");
     return res.json({
       ...meal,
       imageUrl,
       medicalBadges,
       ...(dietAdapted && { dietAdapted: true, dietNotice }),
-      complianceSection: bevCompliance,
-      dietClassification: bevDietClass,
       ...(dietCategoryStrategy.conflictLevel !== 'none' && {
         dietCategoryConflict: dietCategoryStrategy.conflictLevel,
         requestedCategory: dietCategoryStrategy.requestedCategory,

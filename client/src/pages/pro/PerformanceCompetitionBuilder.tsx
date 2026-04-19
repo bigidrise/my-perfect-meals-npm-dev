@@ -23,10 +23,7 @@ import {
   cloneDayLists,
   putWeekBoard,
   getWeekBoardByDate,
-  updateMealImageInBoard,
-  getMealImageUrl,
 } from "@/lib/boardApi";
-import { useChefMealImage } from "@/hooks/useChefMealImage";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
 import { CompetitionMealPickerDrawer } from "@/components/pickers/CompetitionMealPickerDrawer";
@@ -238,7 +235,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
-  const { fetchImageForMeal } = useChefMealImage();
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
@@ -747,15 +743,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
 
         setBoard(updatedBoard);
-        fetchImageForMeal(transformedMeal, slot, (mealId, imageUrl) => {
-          setBoard(prev => {
-            if (!prev) return prev;
-            if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
-            const updated = updateMealImageInBoard(prev, mealId, imageUrl);
-            saveBoard(updated).catch(() => {});
-            return updated;
-          });
-        });
         toast({
           title: "AI Meal Added!",
           description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === slot)?.[1]}`,
@@ -1759,7 +1746,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
               const dayAlreadyLocked = isDayLocked(activeDayISO, clientId);
               const resolved = getResolvedTargets(clientId);
               
-              if (proClientId) return null;
               return (
                 <div className="col-span-full mb-6">
                   <RemainingMacrosFooter

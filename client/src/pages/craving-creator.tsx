@@ -15,8 +15,6 @@ import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { isFeatureEnabled } from "@/lib/productionGates";
-import { useMealImages } from "@/hooks/useMealImages";
-import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import {
   Card,
   CardContent,
@@ -64,8 +62,6 @@ import PhaseGate from "@/components/PhaseGate";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import DietStyleBadge from "@/components/DietStyleBadge";
-import MealClassificationPill from "@/components/MealClassificationPill";
-import KosherProTip from "@/components/KosherProTip";
 import ThinkingDots from "@/components/ThinkingDots";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
@@ -121,7 +117,6 @@ interface MealData {
   }>;
   imageUrl?: string;
   dietaryComplianceVerified?: boolean;
-  dietClassification?: import("@/components/MealClassificationPill").DietClassification | null;
 }
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { setQuickView } from "@/lib/macrosQuickView";
@@ -210,7 +205,6 @@ export default function CravingCreator() {
   const [generatedMeals, setGeneratedMeals] = useState<MealData[]>([]);
   const [mealOptions, setMealOptions] = useState<any[]>([]);
   const [isPlatingMeal, setIsPlatingMeal] = useState(false);
-  const { loadingImages, hydrateImages } = useMealImages(setGeneratedMeals, { mealType: "snacks", concurrency: 1 });
 
   const getRecentMeals = (): string[] => {
     try { return JSON.parse(sessionStorage.getItem('cc_recent_meals') || '[]'); } catch { return []; }
@@ -231,7 +225,6 @@ export default function CravingCreator() {
   // 🔋 Progress bar state (real-time ticker like Restaurant Guide)
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
-  const continueAnywayRef = useRef(false);
   // 🥗 Diet guard — hook-based precheck (mirrors StarchGuard)
   const {
     alert: dietAlert,
@@ -318,20 +311,46 @@ export default function CravingCreator() {
     }
   }, [generatedMeals, cravingInput, servings]);
 
-  const handleSelectMeal = (meal: any) => {
+  const handleSelectMeal = async (meal: any) => {
     setMealOptions([]);
     addRecentMeal(meal.name);
-    // Show card immediately — image hydrates in parallel
-    setGeneratedMeals([meal]);
+    setIsPlatingMeal(true);
+
+    let finalMeal = { ...meal };
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000); // 20s hard timeout
+      const imgRes = await fetch(apiUrl("/api/meal-images/generate"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          mealName: meal.name,
+          ingredients: (meal.ingredients || []).map((i: any) => i.name || i),
+          style: "overhead",
+          mealType: "snacks",
+        }),
+      });
+      clearTimeout(timeout);
+      if (imgRes.ok) {
+        const imgData = await imgRes.json();
+        if (imgData.success && imgData.image?.url) {
+          finalMeal = { ...finalMeal, imageUrl: imgData.image.url };
+        }
+      }
+    } catch (imgErr) {
+      console.warn("[CRAVING CREATOR] Image generation failed, using fallback:", imgErr);
+    }
+
+    setGeneratedMeals([finalMeal]);
     setIsPlatingMeal(false);
     saveCravingCache({
-      generatedMeal: meal,
+      generatedMeal: finalMeal,
       craving: cravingInput,
       servings: servings,
       mealType: "snacks",
       generatedAtISO: new Date().toISOString(),
     });
-    hydrateImages([meal]);
   };
 
   useEffect(() => {
@@ -480,9 +499,7 @@ export default function CravingCreator() {
     }
   }, [cravingInput, starchDecision, checkStarch]);
 
-  const handleGenerateMeal = async (skipPreflight = false, dietAdaptOverride = false) => {
-    const userDietOverride = continueAnywayRef.current;
-    continueAnywayRef.current = false;
+  const handleGenerateMeal = async (skipPreflight = false) => {
     console.log("🔥 handleGenerateMeal called - craving:", cravingInput);
     setDietAdaptedNotice(null);
 
@@ -515,7 +532,7 @@ export default function CravingCreator() {
     }
 
     // 🥗 Diet Guard preflight check — advisory, fires at generate time (not on keystroke)
-    if (!skipPreflight && activeDiet && !dietAdaptOverride) {
+    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
       const dietOk = checkDiet(cravingInput);
       if (!dietOk) {
         // DietGuardIntercept will show inline — user chooses path
@@ -561,8 +578,6 @@ export default function CravingCreator() {
           excludeMeals: getRecentMeals(),
           strictMode: keepItSimple,
           generationMode,
-          dietAdaptOverride,
-          userDietOverride,
         }),
       });
 
@@ -624,7 +639,6 @@ export default function CravingCreator() {
 
       stopProgressTicker();
       setGeneratedMeals([meal]);
-      hydrateImages([meal]);
 
       // Immediately cache the new meal so it survives navigation/refresh
       saveCravingCache({
@@ -1041,11 +1055,6 @@ export default function CravingCreator() {
                         setCravingInput("");
                       } else if (decision === "let_chef_adapt") {
                         setDietDecision("let_chef_adapt");
-                        clearDietAlert();
-                        handleGenerateMeal(true, true);
-                      } else if (decision === "continue_anyway") {
-                        continueAnywayRef.current = true;
-                        clearDietAlert();
                         handleGenerateMeal(true);
                       }
                     }}
@@ -1179,11 +1188,7 @@ export default function CravingCreator() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <h4 className="text-white font-bold text-base mb-1 truncate">{option.name}</h4>
-                        <p className="text-white/70 text-sm mb-2 line-clamp-2">{option.description}</p>
-                        <div className="flex flex-wrap items-center gap-1.5 mb-2">
-                          <MealClassificationPill dietClassification={option.dietClassification ?? null} />
-                          <KosherProTip dietClassification={option.dietClassification ?? null} isAdapted={false} />
-                        </div>
+                        <p className="text-white/70 text-sm mb-3 line-clamp-2">{option.description}</p>
                         <div className="flex gap-4 text-xs text-white/60 flex-wrap">
                           <span>{option.nutrition?.calories ?? option.calories ?? "—"} cal</span>
                           <span>{option.nutrition?.protein ?? option.protein ?? "—"}g protein</span>
@@ -1220,33 +1225,31 @@ export default function CravingCreator() {
                     className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl rounded 2xl"
                   >
                     <CardContent className="p-6">
-                      <div className="mb-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Sparkles className="h-5 w-5 text-yellow-600 shrink-0" />
-                          <h3 className="text-xl font-bold text-white truncate leading-tight">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <Sparkles className="h-6 w-6 text-yellow-600" />
+                          <h3 className="text-xl font-bold text-white">
                             {meal.name}
                           </h3>
-                        </div>
-                        <div className="flex items-center justify-between">
                           <FavoriteButton
                             title={meal.name}
                             sourceType="craving-creator"
                             mealData={meal}
                           />
-                          <button
-                            onClick={() => {
-                              setGeneratedMeals([]);
-                              clearCravingCache();
-                              setCravingInput("");
-                              setSubstitutedStarchTerms([]);
-                              clearStarchAlert();
-                            }}
-                            className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
-                            data-testid="button-create-new"
-                          >
-                            Create New
-                          </button>
                         </div>
+                        <button
+                          onClick={() => {
+                            setGeneratedMeals([]);
+                            clearCravingCache();
+                            setCravingInput("");
+                            setSubstitutedStarchTerms([]);
+                            clearStarchAlert();
+                          }}
+                          className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
+                          data-testid="button-create-new"
+                        >
+                          Create New
+                        </button>
                       </div>
 
                       {/* Starch Substitution Notice (when Chef picked alternatives) */}
@@ -1257,27 +1260,36 @@ export default function CravingCreator() {
                         />
                       )}
 
-                      <div className="flex flex-wrap items-center gap-2 mb-3">
-                        <DietStyleBadge />
-                        <MealClassificationPill dietClassification={meal.dietClassification} />
-                        {dietAdaptedNotice && (
-                          <DietAdaptedNotice
-                            diet={normalizeDiet(user?.dietaryRestrictions)}
-                          />
-                        )}
-                        <KosherProTip
-                          dietClassification={meal.dietClassification}
-                          isAdapted={!!dietAdaptedNotice}
+                      {/* Diet Adapted Notice (soft chip when AI adapted for dietary preference) */}
+                      {dietAdaptedNotice && (
+                        <DietAdaptedNotice
+                          diet={normalizeDiet(user?.dietaryRestrictions)}
+                          notice={dietAdaptedNotice}
+                          className="mb-4"
                         />
+                      )}
+
+                      <div className="mb-3">
+                        <DietStyleBadge badges={meal.medicalBadges || []} />
                       </div>
 
                       <p className="text-white/90 mb-4">{meal.description}</p>
 
-                      <MealImageSlot
-                        imageUrl={meal.imageUrl}
-                        mealName={meal.name}
-                        isLoading={!!loadingImages[meal.id]}
-                      />
+                      {/* Meal Image - Show if available */}
+                      {meal.imageUrl && (
+                        <div className="mb-6 rounded-lg overflow-hidden">
+                          <img
+                            key={meal.imageUrl}
+                            src={meal.imageUrl}
+                            alt={meal.name}
+                            className="w-full h-64 object-cover"
+                            onError={(e) => {
+                              console.log("Image load error:", e);
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
+                        </div>
+                      )}
 
                       {/* Serving Size Display - ALWAYS SHOW */}
                       <div className="mb-4 p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-lg">

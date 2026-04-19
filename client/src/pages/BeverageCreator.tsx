@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import ThinkingDots from "@/components/ThinkingDots";
 import { motion } from "framer-motion";
@@ -35,8 +34,6 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import DietStyleBadge from "@/components/DietStyleBadge";
-import MealClassificationPill from "@/components/MealClassificationPill";
-import KosherProTip from "@/components/KosherProTip";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
@@ -136,7 +133,6 @@ export default function BeverageCreator() {
   const [beverageCategory, setBeverageCategory] = useState("");
   const [flavorFamily, setFlavorFamily] = useState("");
   const [specificDrink, setSpecificDrink] = useState("");
-  const [customBeverageDescription, setCustomBeverageDescription] = useState("");
   const [servingSize, setServingSize] = useState("single");
   const [dietaryPreference, setDietaryPreference] = useState("");
   const [customDietary, setCustomDietary] = useState("");
@@ -154,7 +150,6 @@ export default function BeverageCreator() {
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [beverageImageLoading, setBeverageImageLoading] = useState(false);
 
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [pendingGeneration, setPendingGeneration] = useState(false);
@@ -245,22 +240,20 @@ export default function BeverageCreator() {
     setProgress(100);
   };
 
-  async function handleGenerateBeverage(skipDietPreflight = false, overrideToken?: string, dietAdaptOverride = false, userDietOverride = false) {
-    const hasCustomDesc = customBeverageDescription.trim().length > 0;
-
-    if (!hasCustomDesc && !beverageCategory) {
+  async function handleGenerateBeverage(skipDietPreflight = false, overrideToken?: string) {
+    if (!beverageCategory) {
       toast({
         title: "Missing Information",
-        description: "Select a drink type or describe your own idea above.",
+        description: "Please select a beverage category.",
         variant: "destructive",
       });
       return;
     }
 
-    if (!hasCustomDesc && !flavorFamily) {
+    if (!flavorFamily) {
       toast({
         title: "Missing Information",
-        description: "Select a flavor family or describe your idea above.",
+        description: "Please select a flavor family.",
         variant: "destructive",
       });
       return;
@@ -277,7 +270,7 @@ export default function BeverageCreator() {
 
     // 🥗 DietGuard preflight — advisory, skipped on "Let Chef Adapt" retry
     if (!skipDietPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
-      const dietInput = customBeverageDescription.trim() || `${beverageCategory} ${flavorFamily} ${specificDrink}`.trim();
+      const dietInput = `${beverageCategory} ${flavorFamily} ${specificDrink}`.trim();
       const dietOk = checkDiet(dietInput);
       if (!dietOk) return;
     }
@@ -303,7 +296,6 @@ export default function BeverageCreator() {
           beverageCategory,
           flavorFamily,
           specificDrink,
-          customBeverageDescription: customBeverageDescription.trim() || undefined,
           servingSize,
           dietaryPreferences: [
             ...(dietaryPreference && dietaryPreference !== "none"
@@ -316,8 +308,6 @@ export default function BeverageCreator() {
             !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: !safetyEnabled ? overrideToken : undefined,
           skipPalate: !flavorPersonal,
-          dietAdaptOverride,
-          userDietOverride,
         }),
       });
 
@@ -371,19 +361,6 @@ export default function BeverageCreator() {
 
       stopProgressTicker();
       setGeneratedBeverage(meal);
-      // Fire image async — non-blocking
-      setBeverageImageLoading(true);
-      fetch(apiUrl("/api/meals/generate-image"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mealId: meal.id, mealName: meal.name, mealType: "beverages", ingredients: meal.ingredients }),
-      })
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.imageUrl) setGeneratedBeverage((prev: any) => prev ? { ...prev, imageUrl: d.imageUrl } : prev);
-        })
-        .catch(() => {})
-        .finally(() => setBeverageImageLoading(false));
 
       toast({
         title: "✨ Drink Created!",
@@ -470,38 +447,9 @@ export default function BeverageCreator() {
             </CardHeader>
 
             <CardContent className="space-y-4">
-              {/* Free-text idea input — fills in dropdowns when used */}
               <div>
                 <label className="block text-md font-medium text-white mb-1">
-                  What do you want to drink?
-                  <span className="ml-2 text-xs text-blue-300 font-normal">
-                    (optional — fills in the rest)
-                  </span>
-                </label>
-                <textarea
-                  value={customBeverageDescription}
-                  onChange={(e) => setCustomBeverageDescription(e.target.value)}
-                  placeholder='e.g. "A frozen mango margarita with tajin rim" or "Iced lavender oat milk latte"'
-                  rows={3}
-                  className="w-full rounded-lg bg-black/60 border border-blue-400/40 text-white placeholder-white/30 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400/60 resize-none"
-                />
-                {customBeverageDescription.trim().length > 0 && (
-                  <p className="text-xs text-blue-300 mt-1">
-                    Category and flavor selections below are optional — your description takes priority.
-                  </p>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2 text-white/30">
-                <div className="flex-1 h-px bg-white/10" />
-                <span className="text-xs">or choose from options below</span>
-                <div className="flex-1 h-px bg-white/10" />
-              </div>
-
-              <div>
-                <label className="block text-md font-medium text-white mb-1">
-                  Beverage Category{" "}
-                  {!customBeverageDescription.trim() && <span className="text-blue-400">*</span>}
+                  Beverage Category <span className="text-blue-400">*</span>
                 </label>
                 <Select
                   value={beverageCategory}
@@ -510,7 +458,7 @@ export default function BeverageCreator() {
                   <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
                     <SelectValue placeholder="Select drink type" />
                   </SelectTrigger>
-                  <SelectContent position="popper" side="bottom" sideOffset={4} className="max-h-60 overflow-y-auto">
+                  <SelectContent>
                     {BEVERAGE_CATEGORIES.map((cat) => (
                       <SelectItem key={cat.value} value={cat.value}>
                         {cat.label}
@@ -522,14 +470,13 @@ export default function BeverageCreator() {
 
               <div>
                 <label className="block text-md font-medium text-white mb-1">
-                  Flavor Family{" "}
-                  {!customBeverageDescription.trim() && <span className="text-blue-400">*</span>}
+                  Flavor Family <span className="text-blue-400">*</span>
                 </label>
                 <Select value={flavorFamily} onValueChange={setFlavorFamily}>
                   <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
                     <SelectValue placeholder="Select flavor" />
                   </SelectTrigger>
-                  <SelectContent position="popper" side="bottom" sideOffset={4} className="max-h-60 overflow-y-auto">
+                  <SelectContent>
                     {FLAVOR_FAMILIES.map((flavor) => (
                       <SelectItem key={flavor.value} value={flavor.value}>
                         {flavor.label}
@@ -563,7 +510,7 @@ export default function BeverageCreator() {
                   <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent position="popper" side="bottom" sideOffset={4} className="max-h-60 overflow-y-auto">
+                  <SelectContent>
                     {SERVING_SIZES.map((size) => (
                       <SelectItem key={size.value} value={size.value}>
                         {size.label}
@@ -584,7 +531,7 @@ export default function BeverageCreator() {
                   <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
                     <SelectValue placeholder="Select dietary requirement" />
                   </SelectTrigger>
-                  <SelectContent position="popper" side="bottom" sideOffset={4} className="max-h-60 overflow-y-auto">
+                  <SelectContent>
                     <SelectItem value="none">None</SelectItem>
                     {DIETARY_OPTIONS.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
@@ -654,67 +601,62 @@ export default function BeverageCreator() {
                 clearDietAlert();
               } else if (decision === "let_chef_adapt") {
                 setDietDecision("let_chef_adapt");
-                clearDietAlert();
-                handleGenerateBeverage(true, undefined, true, false);
-              } else if (decision === "continue_anyway") {
-                clearDietAlert();
-                handleGenerateBeverage(true, undefined, false, true);
+                handleGenerateBeverage(true);
               }
             }}
           />
+
+          {dietAdaptedNotice && (
+            <DietAdaptedNotice
+              message={dietAdaptedNotice}
+              onDismiss={() => setDietAdaptedNotice(null)}
+            />
+          )}
 
           {generatedBeverage && (
             <div className="space-y-6">
               <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl">
                 <CardContent className="p-6">
-                  <div className="mb-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Wine className="h-5 w-5 text-blue-400 shrink-0" />
-                      <h3 className="text-xl font-bold text-white truncate leading-tight">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <Wine className="h-6 w-6 text-blue-400" />
+                      <h3 className="text-xl font-bold text-white">
                         {generatedBeverage.name}
                       </h3>
-                    </div>
-                    <div className="flex items-center justify-between">
                       <FavoriteButton
                         title={generatedBeverage.name}
                         sourceType="beverage-creator"
                         mealData={generatedBeverage}
                       />
-                      <button
-                        onClick={() => {
-                          setGeneratedBeverage(null);
-                          localStorage.removeItem("mpm_beverage_creator_result");
-                        }}
-                        className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
-                      >
-                        Create New
-                      </button>
                     </div>
+                    <button
+                      onClick={() => {
+                        setGeneratedBeverage(null);
+                        localStorage.removeItem("mpm_beverage_creator_result");
+                      }}
+                      className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
+                    >
+                      Create New
+                    </button>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2 mb-3">
-                    <DietStyleBadge />
-                    <MealClassificationPill dietClassification={generatedBeverage.dietClassification} />
-                    {dietAdaptedNotice && (
-                      <DietAdaptedNotice
-                        diet={normalizeDiet(user?.dietaryRestrictions)}
-                      />
-                    )}
-                    <KosherProTip
-                      dietClassification={generatedBeverage.dietClassification}
-                      isAdapted={!!dietAdaptedNotice}
-                    />
+                  <div className="mb-3">
+                    <DietStyleBadge mealCompliant={generatedBeverage.dietaryComplianceVerified} />
                   </div>
 
                   <p className="text-white/90 mb-4">
                     {generatedBeverage.description}
                   </p>
 
-                  <MealImageSlot
-                    imageUrl={generatedBeverage.imageUrl}
-                    mealName={generatedBeverage.name}
-                    isLoading={beverageImageLoading}
-                  />
+                  {generatedBeverage.imageUrl && (
+                    <div className="mb-6 rounded-lg overflow-hidden">
+                      <img
+                        src={generatedBeverage.imageUrl}
+                        alt={generatedBeverage.name}
+                        className="w-full h-64 object-cover"
+                      />
+                    </div>
+                  )}
 
                   <div className="mb-4 p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-lg">
                     <div className="flex items-center gap-2 text-sm text-white">

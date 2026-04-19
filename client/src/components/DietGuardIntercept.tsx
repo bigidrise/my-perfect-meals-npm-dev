@@ -1,4 +1,4 @@
-import { Leaf, ChefHat, ArrowLeft, ArrowRight, ShieldAlert } from "lucide-react";
+import { Leaf, ChefHat, ArrowLeft, ShieldAlert } from "lucide-react";
 import { DietGuardAlertState, DietGuardDecision } from "@/hooks/useDietGuardPrecheck";
 
 interface DietGuardInterceptProps {
@@ -44,9 +44,8 @@ export function DietGuardIntercept({
   const protocolColor = getProtocolColor(alert.diet);
   const iconBgClass = getIconBgClass(alert.diet);
 
-  // Show "Let Chef Adapt It" unless the rule explicitly forbids adaptation.
-  // undefined means adaptable — only isAdaptable: false (hard-blocked rules) hides the button.
-  const showAdaptButton = alert.isAdaptable !== false;
+  // For cultural protocols, only show "Let Chef Adapt It" when the conflict is adaptable
+  const showAdaptButton = !isCultural || alert.isAdaptable === true;
 
   const headingText = isCultural
     ? "Protocol Conflict"
@@ -56,7 +55,7 @@ export function DietGuardIntercept({
     ? alert.isAdaptable
       ? `Chef can fix this for you — would you like to pick something else, or let the chef adapt it to your ${alert.diet} protocol?`
       : `This ingredient requires certification certainty the app cannot provide. Please pick something else.`
-    : `You can continue anyway with your request, or let the chef create a diet-friendly version for you.`;
+    : `Would you like to pick something else, or let the chef create a diet-friendly version for you?`;
 
   return (
     <div
@@ -103,23 +102,13 @@ export function DietGuardIntercept({
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          {isCultural ? (
-            <button
-              onClick={() => onDecision("pick_something_else")}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-neutral-800/80 border border-neutral-600/50 text-neutral-200 text-sm font-medium transition-all active:scale-[0.98]"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Pick Something Else
-            </button>
-          ) : (
-            <button
-              onClick={() => onDecision("continue_anyway")}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-neutral-800/80 border border-neutral-600/50 text-neutral-200 text-sm font-medium transition-all active:scale-[0.98]"
-            >
-              <ArrowRight className="h-4 w-4" />
-              Continue Anyway
-            </button>
-          )}
+          <button
+            onClick={() => onDecision("pick_something_else")}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-neutral-800/80 border border-neutral-600/50 text-neutral-200 text-sm font-medium transition-all active:scale-[0.98]"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Pick Something Else
+          </button>
 
           {showAdaptButton && (
             <button
@@ -138,33 +127,39 @@ export function DietGuardIntercept({
 
 interface DietAdaptedNoticeProps {
   diet: string;
-  // Legacy props — accepted for backward compat but no longer used in display
   notice?: string;
   swapDetail?: string;
-  message?: string;
-  onDismiss?: () => void;
   className?: string;
 }
 
 export function DietAdaptedNotice({
   diet,
+  notice,
+  swapDetail,
   className = "",
 }: DietAdaptedNoticeProps) {
   const isCultural = diet === "kosher" || diet === "halal";
-  const iconColor = diet === "kosher" ? "text-amber-400" : diet === "halal" ? "text-teal-400" : "text-green-400";
-  const borderColor = diet === "kosher" ? "border-amber-500/30" : diet === "halal" ? "border-teal-500/30" : "border-green-500/30";
+  const iconColor = diet === "kosher" ? "text-blue-400" : diet === "halal" ? "text-teal-400" : "text-green-400";
+
+  const defaultNotice = isCultural
+    ? swapDetail
+      ? `Adapted for your ${diet} protocol — ${swapDetail}`
+      : `Adapted for your ${diet} protocol — ingredients adjusted to comply.`
+    : `Adapted for your ${diet} diet.`;
 
   return (
-    <span
-      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-neutral-800/70 border ${borderColor} text-xs font-medium whitespace-nowrap ${className}`}
+    <div
+      className={`rounded-lg px-3 py-2 bg-neutral-800/60 border border-neutral-700/50 flex items-center gap-2 ${className}`}
     >
       {isCultural ? (
-        <ShieldAlert className={`h-3 w-3 ${iconColor} shrink-0`} />
+        <ShieldAlert className={`h-3.5 w-3.5 ${iconColor} shrink-0`} />
       ) : (
-        <Leaf className={`h-3 w-3 ${iconColor} shrink-0`} />
+        <Leaf className={`h-3.5 w-3.5 ${iconColor} shrink-0`} />
       )}
-      <span className={iconColor}>Chef Adapted</span>
-    </span>
+      <p className="text-neutral-400 text-xs">
+        {notice ?? defaultNotice}
+      </p>
+    </div>
   );
 }
 

@@ -14,7 +14,7 @@ const router = express.Router();
  */
 router.post('/meal-finder', async (req, res) => {
   try {
-    const { mealQuery, zipCode, dietaryRestrictions, priceRange } = req.body;
+    const { mealQuery, zipCode, dietaryRestrictions } = req.body;
     
     // Validate request
     if (!mealQuery || typeof mealQuery !== 'string') {
@@ -50,8 +50,7 @@ router.post('/meal-finder', async (req, res) => {
       mealQuery,
       zipCode,
       user,
-      dietaryRestrictions: bodyDietRestrictions.length > 0 ? bodyDietRestrictions : undefined,
-      priceRange: Array.isArray(priceRange) && priceRange.length > 0 ? priceRange : undefined,
+      dietaryRestrictions: bodyDietRestrictions.length > 0 ? bodyDietRestrictions : undefined
     });
     
     return res.status(200).json({

@@ -196,34 +196,26 @@ const SECTION_START_HERE: LibraryTopic[] = [
   {
     id: "why-different",
     title: "Why This App Is Different",
-    subtitle: "A coaching app that leads you — not another log-and-hope tracker",
+    subtitle: "Not a tracker — a decision system",
     icon: Zap,
     content: {
       sections: [
         {
-          heading: "Every Other App Says Good Luck",
-          text: "Most nutrition apps hand you a log and walk away. You check boxes. You track entries. When motivation runs out — and it always does — there is nothing there to guide you. That is not coaching. That is bookkeeping.",
+          heading: "Not Another Calorie Counter",
+          text: "Most nutrition apps track what you ate. My Perfect Meals tells you what to eat—before you eat it.",
         },
         {
-          heading: "This App Actually Leads You",
-          text: "My Perfect Meals tells you what to eat before you eat it. It builds your week. It adjusts when things change. It guides every decision — breakfast to dinner — so you are never left wondering what to do next. Other apps react after the fact. This one responds before your next decision.",
-        },
-        {
-          heading: "Powered by Behavior AI",
-          text: "The app does not just generate meals. It learns how you eat. It notices what you choose, what you skip, and what you come back to. Over time it adapts — not just to your numbers, but to your actual behavior. That is the part most apps cannot do.",
-        },
-        {
-          heading: "What Makes It Different",
+          heading: "Key Differences",
           list: [
-            "Other apps track what you already ate — this one guides what you eat next",
-            "Other apps show data and leave you to figure it out — this one makes the decision for you",
-            "Other apps are passive — this one leads",
-            "Follow the plan and results are guaranteed — not magic, just the math and structure working",
+            "Proactive meal planning, not reactive tracking",
+            "AI-generated meals tailored to your exact needs",
+            "Behavioral guardrails that prevent diet failures",
+            "Coach voice guidance when you need support",
           ],
         },
         {
-          heading: "A Coach in Your Pocket — Not a Replacement for One",
-          text: "This is not a theory. Clients have gotten results for years following the same principles this app runs on — eat the right things at the right amounts for your body, stay consistent. The app brings that structure to people who do not have a trainer or coach beside them every day. But nothing replaces the nuance, judgment, and relationship of working with a real professional. That is why the app is built to support coaches and clinicians — not compete with them. When a coach is in the picture, the app follows their lead.",
+          heading: "The Philosophy",
+          text: "Information alone doesn't change behavior. Structure does. That's what this app provides.",
         },
       ],
     },
@@ -278,85 +270,6 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
         {
           heading: "Quality Control",
           text: "Generated meals go through validation to ensure nutritional accuracy. If something doesn't add up, it gets regenerated.",
-        },
-        {
-          heading: "How the Diabetic Hub Changes Meal Generation",
-          text: "When the Diabetic Hub is active, meal generation does not just adjust macros — it enforces a clinical layer on top of every decision the AI makes.",
-          list: [
-            "A per-meal carb ceiling replaces the default starchy carb baseline — the AI cannot exceed it",
-            "High-spike ingredients (white rice, white bread, sugary sauces, high-GI starches) are blocked entirely — not just reduced",
-            "Ingredient validation runs before any meal is accepted — blocked items trigger a full regeneration",
-            "Glycemic index caps are enforced: no ingredient above your set GI ceiling passes validation",
-            "Fiber minimums are enforced per meal to slow glucose absorption",
-            "Meal frequency is locked to your hub setting — the system won't suggest more meals than your protocol allows",
-          ],
-        },
-        {
-          heading: "What This Means in Practice",
-          text: "A meal that looks healthy — like a banana smoothie or honey-glazed chicken — will be blocked if its ingredients spike blood sugar above your safe range. The system checks ingredients, not just meal names. You will never receive a meal that violates your diabetic guardrails, even if it sounds clean on the surface.",
-        },
-        {
-          heading: "How the GLP-1 Hub Changes Meal Generation",
-          text: "When the GLP-1 Hub is active, the AI generates meals built for a reduced-appetite environment — not just smaller portions, but a fundamentally different composition.",
-          list: [
-            "Maximum meal volume is enforced — meals are designed to be completable, not just nutritious",
-            "Protein minimum per meal is enforced — muscle support is prioritized when appetite is suppressed",
-            "Fat ceiling limits heavy, slow-digesting meals that cause discomfort during the active medication phase",
-            "Carbonated ingredients and alcohol are flagged and removed when those settings are active",
-            "Slow-digesting foods are prioritized when that setting is on — helping sustain fullness between meals",
-            "Meal count is locked to your GLP-1 profile setting — the system adapts to how many meals you can realistically eat per day",
-          ],
-        },
-        {
-          heading: "When Both Hubs Are Active",
-          text: "If you have both the Diabetic Hub and GLP-1 Hub active at the same time, every generated meal must satisfy both protocols simultaneously. Carb ceilings, GI caps, and blocked ingredients apply from the diabetic layer. Portion limits, protein floors, and volume constraints apply from the GLP-1 layer. The strictest rule from either hub always wins.",
-        },
-      ],
-    },
-  },
-  {
-    id: "taste-memory",
-    title: "Taste Memory — How the App Learns You",
-    subtitle: "The system that gets smarter the more you use it",
-    icon: Brain,
-    content: {
-      sections: [
-        {
-          heading: "The App Remembers What You Like",
-          text: "Every time you save a meal, save a recipe, or log something you ate, the app is paying attention. It is not just storing records — it is building a picture of who you are as an eater. That picture is your Taste Memory, and it gets applied quietly in the background every time a new meal is generated for you.",
-        },
-        {
-          heading: "What It Learns",
-          list: [
-            "Preferred proteins — chicken, salmon, beef, tofu, shrimp, and which ones show up most in your history",
-            "Preferred cuisines — Mediterranean, Asian, Mexican, Italian, and what you keep coming back to",
-            "Preferred cooking methods — grilled, baked, sautéed, slow-cooked, and your tendencies over time",
-            "High-protein tendency — whether you consistently choose meals that are protein-forward",
-            "Quick-prep tendency — whether you favor recipes that come together fast versus more involved cooking",
-          ],
-        },
-        {
-          heading: "How It Works",
-          text: "The system reads your last 90 days of saved meals and recipes and scores them using a recency decay model. Recent choices carry more weight than older ones, with a half-life of about 28 days. That means your Taste Memory is always current — it naturally shifts as your tastes and habits evolve over time.",
-        },
-        {
-          heading: "Where It Is Applied",
-          list: [
-            "All six diet builders — Anti-Inflammatory, Diabetic, GLP-1, General Nutrition, Performance, Beach Body",
-            "Weekly AI Meal Planner",
-            "Craving Creator",
-            "Fridge Rescue",
-            "Beverage Creator",
-            "Dessert Creator",
-          ],
-        },
-        {
-          heading: "What It Does NOT Do",
-          text: "Taste Memory is always treated as a soft influence — a set of hints. It never overrides your dietary rules, medical protocols, allergy protections, or macro targets. If your protocol says no refined carbs, Taste Memory cannot put them back in. It only shapes the meal within the boundaries already set for you.",
-        },
-        {
-          heading: "You Do Not Have to Set It Up",
-          text: "There are no buttons, no preference surveys, no profiles to fill out. Taste Memory builds itself automatically from how you actually use the app. The more you save and log, the more accurate it becomes. A new user starts with no memory. A user with six months of history gets meals that feel like they were written specifically for them — because in a sense, they were.",
         },
       ],
     },
@@ -866,99 +779,6 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
         {
           heading: "Important Note",
           text: "This system is designed to guide compliant meal choices. For strict religious or medical adherence, always follow the guidance of your local religious authority or licensed physician.",
-        },
-      ],
-    },
-  },
-  {
-    id: "my-perfect-gatherings",
-    title: "My Perfect Gatherings",
-    subtitle: "Multi-course AI meal planning for any occasion",
-    icon: Sparkles,
-    content: {
-      sections: [
-        {
-          heading: "What Is My Perfect Gatherings?",
-          text: "My Perfect Gatherings is a multi-course meal planner built for intentional eating. Instead of generating a single meal, it designs a complete gathering menu — appetizer, main course, side dishes, and dessert — all connected to the same situation, flavor profile, and occasion.",
-        },
-        {
-          heading: "How It Works",
-          list: [
-            "Choose your situation: holiday, camping, date night, family dinner, or more",
-            "Set the number of people and courses you want",
-            "Pick a flavor direction or let Chef choose for you",
-            "Optionally pin specific dishes to any course or paste in a family recipe",
-            "Chef generates every course as part of a single cohesive meal — not a random collection",
-          ],
-        },
-        {
-          heading: "What Makes It Different",
-          text: "Every course is built with awareness of the others. The system enforces course roles, cooking method diversity, ingredient balance, and strict duplication rules — so you never get three potato dishes in the same meal. The result feels like a chef designed it, not an algorithm.",
-        },
-        {
-          heading: "Supported Situations",
-          list: [
-            "Holidays: Thanksgiving, Christmas, Hanukkah, Easter, Passover, Eid, and more",
-            "Camping: fire-cooked, foil packet, skillet, and no-cook courses",
-            "Date Night: elegant multi-course dining at home",
-            "Family Dinner: comfort food designed for a crowd",
-            "Game Day, Potluck, Backyard BBQ, and more",
-          ],
-        },
-        {
-          heading: "Family Recipes",
-          text: "You can paste in a family recipe during the holiday experience. Chef will use it as the anchor for that course and build the rest of the meal around it — so tradition stays intact while the full experience is elevated.",
-        },
-        {
-          heading: "Where to Find It",
-          list: [
-            "Lifestyle Hub — My Perfect Gatherings card",
-            "Included with Premium and Ultimate subscriptions",
-          ],
-        },
-      ],
-    },
-  },
-  {
-    id: "fast-food-guide",
-    title: "Fast Food Guide",
-    subtitle: "Smart ordering at fast food restaurants",
-    icon: Zap,
-    content: {
-      sections: [
-        {
-          heading: "What Is the Fast Food Guide?",
-          text: "The Fast Food Guide gives you three smart, goal-aligned meal choices at any fast food restaurant. It uses the same AI engine as the Restaurant Guide, but focused specifically on fast food chains — McDonald's, Chick-fil-A, Taco Bell, and any other chain you're heading to.",
-        },
-        {
-          heading: "How It Works",
-          list: [
-            "Tell the app which fast food restaurant you're going to",
-            "Describe what you're in the mood for — or leave it open",
-            "Enter your location so the app confirms the restaurant exists nearby",
-            "Receive three smart meal options with estimated macros and an ordering tip",
-            "Log any option to your Biometrics with one tap",
-          ],
-        },
-        {
-          heading: "Why It Exists",
-          text: "Fast food is a real part of life — road trips, kids, late nights, busy weeks. The Fast Food Guide exists because ignoring that reality does not help anyone. Knowing how to order smarter at the drive-through does.",
-        },
-        {
-          heading: "What It Respects",
-          list: [
-            "Your dietary preferences from onboarding",
-            "SafetyGuard allergy protections",
-            "Your active macro targets from the Macro Calculator",
-            "Specialty diets like vegan, vegetarian, gluten-free, and others",
-          ],
-        },
-        {
-          heading: "Where to Find It",
-          list: [
-            "Social Hub — Fast Food Guide card",
-            "Included with Premium and Ultimate subscriptions",
-          ],
         },
       ],
     },

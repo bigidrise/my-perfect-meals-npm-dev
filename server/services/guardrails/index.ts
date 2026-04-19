@@ -83,11 +83,16 @@ export function applyGuardrails(
       break;
 
     case 'diabetic':
-      // ⚠️ GATED: Diabetic prompt conditioning is handled exclusively by the
-      // diabeticHubModule in hubCoupling. This legacy path is intentionally
-      // disabled to prevent double-prompting. Do not re-enable without removing
-      // the hub module path first.
-      console.log(`🛡️ Guardrails: Diabetic handled by hub module — legacy path skipped for ${mealType}`);
+      if (mealType === 'snack') {
+        modifiedPrompt = `${basePrompt}\n\n${buildDiabeticSnackPromptConditions()}`;
+      } else {
+        modifiedPrompt = `${basePrompt}\n\n${buildDiabeticPromptConditions()}`;
+      }
+      appliedRules.push('diabetic-glycemic-control');
+      appliedRules.push('diabetic-sugar-restriction');
+      appliedRules.push('diabetic-carb-control');
+      appliedRules.push('diabetic-fiber-priority');
+      console.log(`🛡️ Guardrails: Applied diabetic rules for ${mealType}`);
       break;
 
     case 'glp1':

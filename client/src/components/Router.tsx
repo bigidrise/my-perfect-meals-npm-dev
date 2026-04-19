@@ -169,7 +169,6 @@ import WeaningOffTool from "@/pages/weaning-off-tool";
 import SocializingHub from "@/pages/SocializingHub";
 import SocialFindMeals from "@/pages/SocialFindMeals";
 import SocialRestaurantGuide from "@/pages/SocialRestaurantGuide";
-import FastFoodGuidePage from "@/pages/FastFoodGuidePage";
 import RestaurantFinderPage from "@/pages/RestaurantFinderPage";
 
 // Founders page
@@ -410,10 +409,9 @@ export default function Router() {
         <Route path="/lifestyle" component={LifestyleLandingPage} />
         {/* DELETED: /healthy-kids-meals, /kids-meals, /toddler-meals routes (Phase 1 cleanup) */}
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
-        <Route path="/lifestyle/my-perfect-gatherings" component={UltimateExperiencesPage} />
-        <Route path="/lifestyle/ultimate-experiences" component={UltimateExperiencesPage} />
         <Route path="/lifestyle/chefs-kitchen" component={withGate(ChefsKitchenPage, 'chefsKitchen')} />
         <Route path="/lifestyle/create-a-dish" component={withGate(CreateDishPage, 'chefsKitchen')} />
+        <Route path="/lifestyle/ultimate-experiences" component={UltimateExperiencesPage} />
         <Route path="/lifestyle/beverage-creator" component={BeverageCreator} />
         <Route path="/lifestyle/chef-pairings" component={ChefPairings} />
         <Route path="/lifestyle/pairings-hub" component={PairingsHub} />
@@ -428,7 +426,6 @@ export default function Router() {
         <Route path="/social-hub" component={SocializingHub} />
         <Route path="/social-hub/find" component={SocialFindMeals} />
         <Route path="/social-hub/restaurant-guide" component={SocialRestaurantGuide} />
-        <Route path="/social-hub/fast-food" component={FastFoodGuidePage} />
         <Route path="/social-hub/restaurant-finder" component={RestaurantFinderPage} />
         {/* DELETED: SmartWeekBuilder, AdultBeverageHubPage routes */}
         <Route path="/macro-counter" component={SafeMacroCounter} />

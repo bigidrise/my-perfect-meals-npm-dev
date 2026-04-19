@@ -2,8 +2,6 @@
 // BACKUP: backups/fridge-rescue-stable-version.tsx
 // FEATURES: Perfect fridge ingredient rescue, AI meal generation, ingredient optimization, medical personalization
 import { useState, useRef, useEffect } from "react";
-import { useMealImages } from "@/hooks/useMealImages";
-import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import ThinkingDots from "@/components/ThinkingDots";
 import { motion } from "framer-motion";
@@ -61,8 +59,6 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet, filterMealsByDiet } from "@/utils/dietaryFilter";
 import DietStyleBadge from "@/components/DietStyleBadge";
-import MealClassificationPill from "@/components/MealClassificationPill";
-import KosherProTip from "@/components/KosherProTip";
 import {
   DietGuardIntercept,
   DietAdaptedNotice,
@@ -115,7 +111,6 @@ interface MealData {
   cookingTime: string;
   difficulty: "Easy" | "Medium";
   imageUrl?: string;
-  dietClassification?: import("@/components/MealClassificationPill").DietClassification | null;
   medicalBadges: Array<{
     id: string;
     label: string;
@@ -186,7 +181,6 @@ const FridgeRescuePage = () => {
   }
   const [ingredients, setIngredients] = useState("");
   const [meals, setMeals] = useState<MealData[]>([]);
-  const { loadingImages, hydrateImages } = useMealImages(setMeals, { mealType: "dinner" });
   const [isLoading, setIsLoading] = useState(false);
   const [servings, setServings] = useState(2);
   const [quotaInfo, setQuotaInfo] = useState<{ remaining: number; limit: number; used: number; resetAt: string } | null>(null);
@@ -256,7 +250,6 @@ const FridgeRescuePage = () => {
   // 🔋 Progress bar state (real-time ticker like Restaurant Guide)
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
-  const continueAnywayRef = useRef(false);
   // 🥗 Diet guard — hook-based precheck (mirrors StarchGuard)
   const {
     alert: dietAlert,
@@ -383,9 +376,7 @@ const FridgeRescuePage = () => {
     setProgress(100); // Complete progress
   };
 
-  const handleGenerateMeals = async (skipPreflight = false, dietAdaptOverride = false) => {
-    const userDietOverride = continueAnywayRef.current;
-    continueAnywayRef.current = false;
+  const handleGenerateMeals = async (skipPreflight = false) => {
     setDietAdaptedNotice(null);
     // Dispatch "interacted" event
     const interactedEvent = new CustomEvent("walkthrough:event", {
@@ -436,8 +427,6 @@ const FridgeRescuePage = () => {
           overrideToken: hasActiveOverride ? overrideToken : undefined,
           skipPalate: !flavorPersonal,
           strictMode: keepItSimple,
-          dietAdaptOverride,
-          userDietOverride,
         }),
       });
 
@@ -508,7 +497,6 @@ const FridgeRescuePage = () => {
       console.log("✅ Setting meals:", mealsArray.length);
       stopProgressTicker();
       setMeals(mealsArray);
-      hydrateImages(mealsArray);
       setShowResults(true);
 
       if (data.quota) {
@@ -860,11 +848,6 @@ const FridgeRescuePage = () => {
                       setShowResults(false);
                     } else if (decision === "let_chef_adapt") {
                       setDietDecision("let_chef_adapt");
-                      clearDietAlert();
-                      handleGenerateMeals(true, true);
-                    } else if (decision === "continue_anyway") {
-                      continueAnywayRef.current = true;
-                      clearDietAlert();
                       handleGenerateMeals(true);
                     }
                   }}
@@ -994,6 +977,10 @@ const FridgeRescuePage = () => {
                 />
               )}
 
+              <div className="mb-4">
+                <DietStyleBadge />
+              </div>
+
               <div className="grid grid-cols-1 gap-6 mb-8 max-w-2xl mx-auto">
                 {meals.map((meal, index) => (
                   <Card
@@ -1002,11 +989,16 @@ const FridgeRescuePage = () => {
                     className="overflow-hidden bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl flex flex-col h-full"
                   >
                     <div className="relative">
-                      <MealImageSlot
-                        imageUrl={meal.imageUrl}
-                        mealName={meal.name}
-                        isLoading={!!loadingImages[meal.id]}
-                        height="h-48"
+                      <img
+                        src={
+                          meal.imageUrl ||
+                          `https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400&h=300&fit=crop&auto=format`
+                        }
+                        alt={meal.name}
+                        className="w-full h-48 object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = `https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400&h=300&fit=crop&auto=format`;
+                        }}
                       />
                       <div className="absolute top-3 left-3">
                         <Badge
@@ -1038,14 +1030,7 @@ const FridgeRescuePage = () => {
                           mealData={meal}
                         />
                       </div>
-                      <div className="flex flex-wrap items-center gap-2 mt-1">
-                        <DietStyleBadge />
-                        <MealClassificationPill dietClassification={meal.dietClassification} />
-                        <KosherProTip
-                          dietClassification={meal.dietClassification}
-                        />
-                      </div>
-                      <CardDescription className="text-sm text-white/80 mt-2">
+                      <CardDescription className="text-sm text-white/80">
                         {meal.description}
                       </CardDescription>
                     </CardHeader>

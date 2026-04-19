@@ -25,10 +25,7 @@ import {
   getDayLists,
   setDayLists,
   cloneDayLists,
-  updateMealImageInBoard,
-  getMealImageUrl,
 } from "@/lib/boardApi";
-import { useChefMealImage } from "@/hooks/useChefMealImage";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { MealPickerDrawer } from "@/components/pickers/MealPickerDrawer";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
@@ -273,7 +270,6 @@ export default function AntiInflammatoryMenuBuilder() {
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
-  const { fetchImageForMeal } = useChefMealImage();
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
@@ -943,15 +939,6 @@ export default function AntiInflammatoryMenuBuilder() {
         const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
         setBoard(updatedBoard);
-        fetchImageForMeal(transformedMeal, slot, (mealId, imageUrl) => {
-          setBoard(prev => {
-            if (!prev) return prev;
-            if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
-            const updated = updateMealImageInBoard(prev, mealId, imageUrl);
-            saveBoard(updated).catch(() => {});
-            return updated;
-          });
-        });
 
         try {
           await saveBoard(updatedBoard);
@@ -1500,7 +1487,7 @@ export default function AntiInflammatoryMenuBuilder() {
                         </div>
                         <div className="space-y-3">
                           {dayLists[key as keyof typeof dayLists].map((meal: Meal, idx: number) => (
-                            <MealCard key={meal.id} date={activeDayISO} slot={key} meal={meal} showStarchBadge={true} builderType={clinicalModeState} data-wt="wmb-meal-card"
+                            <MealCard key={meal.id} date={activeDayISO} slot={key} meal={meal} showStarchBadge={true} data-wt="wmb-meal-card"
                               onUpdated={(m) => {
                                 if (m === null) {
                                   if (meal.id.startsWith("ai-meal-")) clearAIMealsCache();
@@ -1555,7 +1542,7 @@ export default function AntiInflammatoryMenuBuilder() {
                           </div>
                           <div className="space-y-3">
                             {dayLists.snacks.filter((m: Meal) => m.id.startsWith(slotPrefix)).map((meal: Meal) => (
-                              <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true} builderType={clinicalModeState}
+                              <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true}
                                 onUpdated={(m) => {
                                   if (m === null) {
                                     const updatedDayLists = { ...dayLists, snacks: dayLists.snacks.filter((e) => e.id !== meal.id) };
@@ -1603,7 +1590,7 @@ export default function AntiInflammatoryMenuBuilder() {
                       </div>
                       <div className="space-y-3">
                         {dayLists.snacks.filter((m: Meal) => !m.id.startsWith("dyn-")).map((meal: Meal) => (
-                          <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true} builderType={clinicalModeState}
+                          <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true}
                             onUpdated={(m) => {
                               if (m === null) {
                                 const updatedDayLists = { ...dayLists, snacks: dayLists.snacks.filter((e) => e.id !== meal.id) };
@@ -1645,7 +1632,7 @@ export default function AntiInflammatoryMenuBuilder() {
                   </div>
                   <div className="space-y-3">
                     {board.lists[key].map((meal: Meal, idx: number) => (
-                      <MealCard key={meal.id} date={"board"} slot={key} meal={meal} showStarchBadge={true} builderType={clinicalModeState}
+                      <MealCard key={meal.id} date={"board"} slot={key} meal={meal} showStarchBadge={true}
                         onUpdated={(m) => {
                           if (m === null) {
                             if (!board) return;
@@ -1749,7 +1736,6 @@ export default function AntiInflammatoryMenuBuilder() {
               };
               const dayAlreadyLocked = isDayLocked(activeDayISO, effectiveUserId);
               
-              if (proClientId) return null;
               return (
                 <div className="col-span-full mb-6">
                   <RemainingMacrosFooter

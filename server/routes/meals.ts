@@ -9,36 +9,6 @@ import { getAuthUserId } from "../utils/getAuthUserId";
 
 const router = express.Router();
 
-// ─────────────────────────────────────────────
-// Shared image generation endpoint (non-blocking, called in parallel by client)
-// Used by ALL AI meal generators after text is returned
-// 1 retry with simplified prompt on failure — never crashes the card
-// ─────────────────────────────────────────────
-router.post("/generate-image", async (req: any, res) => {
-  const { mealName, mealType = "dinner" } = req.body || {};
-  if (!mealName) return res.status(400).json({ imageUrl: null });
-
-  const { genImageFast } = await import("../utils/openaiSafe");
-
-  const promptStyles: Record<string, string> = {
-    breakfast: "warm morning light, rustic wooden table, side-angle shot, vibrant colors",
-    lunch: "bright natural daylight, casual fresh setting, 45-degree angle, colorful",
-    dinner: "warm evening ambiance, elegant plating, soft directional lighting, rich tones",
-    snack: "close-up macro shot, natural light, vibrant fresh ingredients, clean white background",
-    dessert: "soft overhead shot, pastel tones, inviting warm lighting, stylized plating",
-  };
-  const style = promptStyles[mealType as keyof typeof promptStyles] || "professional food photography, overhead shot, clean plate presentation, natural lighting";
-  const fullPrompt = `${mealName}, healthy ${mealType} dish, ${style}, photorealistic, appetizing`;
-  let imageUrl: string | null = (await genImageFast(fullPrompt)) ?? null;
-
-  if (!imageUrl) {
-    console.log(`🔄 [generate-image] Retry for "${mealName}"`);
-    imageUrl = (await genImageFast(`${mealName}, food photography, fresh ingredients, appetizing presentation`)) ?? null;
-  }
-
-  return res.json({ imageUrl });
-});
-
 // Utility to recalculate daily nutrition (mock implementation)
 const recalcDailyNutrition = async (userId: string, date?: Date) => {
   // TODO: Implement actual nutrition calculation

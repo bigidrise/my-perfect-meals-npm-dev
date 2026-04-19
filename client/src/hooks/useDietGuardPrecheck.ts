@@ -27,7 +27,7 @@ export const EMPTY_DIET_ALERT: DietGuardAlertState = {
 };
 
 // Advisory decisions — DietGuard never blocks permanently
-export type DietGuardDecision = "pending" | "pick_something_else" | "let_chef_adapt" | "continue_anyway";
+export type DietGuardDecision = "pending" | "pick_something_else" | "let_chef_adapt";
 
 interface UseDietGuardPrecheckResult {
   checking: boolean;
@@ -97,7 +97,7 @@ export function useDietGuardPrecheck(): UseDietGuardPrecheckResult {
   const triggerAlert = useCallback(
     (matchedTerms: string[], message: string) => {
       if (!activeDiet) return;
-      setAlert({ show: true, matchedTerms, message, diet: activeDiet, isAdaptable: true });
+      setAlert({ show: true, matchedTerms, message, diet: activeDiet });
       setDecisionState("pending");
     },
     [activeDiet],
@@ -117,7 +117,7 @@ export function useDietGuardPrecheck(): UseDietGuardPrecheckResult {
 
   // Advisory flags — DietGuard never hard-blocks the user
   const shouldShowIntercept = alert.show && decision === "pending";
-  const canProceed = !alert.show || decision === "let_chef_adapt" || decision === "continue_anyway";
+  const canProceed = !alert.show || decision === "let_chef_adapt";
 
   return {
     checking,

@@ -57,25 +57,6 @@ export function maskNutButters(text: string): string {
   return text.replace(NUT_BUTTER_PATTERN, "__NUT_BUTTER__");
 }
 
-/**
- * CENTRALIZED NORMALIZATION LAYER — single entry point for all dietary scanning.
- *
- * Every post-generation scan MUST pass text through this function before
- * running any term matching. Adding new safe-compound rules belongs here only —
- * never inline masking calls inside individual scan functions.
- *
- * Current normalizations:
- *   1. Lowercase
- *   2. Mask plant milks (oat milk, almond milk, etc.) → prevents false dairy flags
- *   3. Mask nut butters (peanut butter, almond butter, etc.) → prevents false butter flags
- */
-export function normalizeForDietaryScan(text: string): string {
-  const lowered = text.toLowerCase();
-  const milkMasked = maskPlantMilks(lowered);
-  const butterMasked = maskNutButters(milkMasked);
-  return butterMasked;
-}
-
 
 /**
  * FOOD AVOIDANCE EXPANSION MAP
@@ -1355,39 +1336,6 @@ const KOSHER_DAIRY_TERMS = [
 ];
 
 /**
- * Classify the halachic category of a kosher meal.
- * Returns "meat" (fleishig), "dairy" (milchig), or "pareve" (neither).
- * Used to power the compliance status label on meal cards.
- *
- * A compliant kosher meal should NEVER return both meat and dairy —
- * if somehow both are detected it defaults to "meat" (the stricter category).
- */
-export type KosherCategory = "meat" | "dairy" | "pareve";
-
-export function classifyKosherMealCategory(mealText: string): KosherCategory {
-  // CRITICAL: normalize BEFORE term matching.
-  // "oat milk", "almond milk", "cashew milk" etc. contain the bare word "milk"
-  // which would falsely trigger a dairy match. Masking them to __PLANT_MILK__
-  // first prevents pareve dishes from being mis-classified as dairy.
-  const normalized = normalizeForDietaryScan(mealText);
-  const lower = normalized.toLowerCase();
-
-  const hasMeat = KOSHER_MEAT_TERMS.some(t => {
-    const esc = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return new RegExp(`\\b${esc}\\b`, "i").test(lower);
-  });
-
-  const hasDairy = KOSHER_DAIRY_TERMS.some(t => {
-    const esc = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return new RegExp(`\\b${esc}\\b`, "i").test(lower);
-  });
-
-  if (hasMeat) return "meat";
-  if (hasDairy) return "dairy";
-  return "pareve";
-}
-
-/**
  * Detect meat/dairy mixing in a meal (kosher violation — basar b'chalav).
  * Returns true if both a meat term and a dairy term are found in the same meal text.
  */
@@ -1418,11 +1366,10 @@ function detectMeatDairyMixing(mealText: string): boolean {
 export function scanForHiddenDietaryViolations(
   mealText: string,
   dietTypes: string[],
-  avoidList: string[] = [],
-  options?: { skipMeatDairyCombinationCheck?: boolean }
+  avoidList: string[] = []
 ): HiddenViolation[] {
   const violations: HiddenViolation[] = [];
-  const lower = normalizeForDietaryScan(mealText);
+  const lower = mealText.toLowerCase();
 
   const normalizedDiets = dietTypes.map(d => d.trim().toLowerCase());
   const isKosher      = normalizedDiets.some(d => d === "kosher" || d === "kosher-halal");
@@ -1460,9 +1407,8 @@ export function scanForHiddenDietaryViolations(
         violations.push({ term, category: "kosher", reason });
       }
     }
-    // Meat/dairy mixing check — skipped when the user explicitly chose "Let Chef Adapt"
-    // (dietAdaptOverride=true), which means they accepted a pareve substitution
-    if (!options?.skipMeatDairyCombinationCheck && detectMeatDairyMixing(lower)) {
+    // Meat/dairy mixing check
+    if (detectMeatDairyMixing(lower)) {
       violations.push({
         term: "meat + dairy combination",
         category: "kosher",

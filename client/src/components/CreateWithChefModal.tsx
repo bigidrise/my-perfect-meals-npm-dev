@@ -16,10 +16,7 @@ import {
   DietType,
   BeachBodyPhase,
   StarchContext,
-  ExplicitOverride,
 } from "@/hooks/useCreateWithChefRequest";
-import { detectBuilderConflict, isCoachableBuilder } from "@/lib/builderGuardrailConfig";
-import { BuilderOverrideDialog } from "@/components/meal/BuilderOverrideDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsage } from "@/lib/guestMode";
@@ -66,17 +63,11 @@ export function CreateWithChefModal({
   const [starchBlocked, setStarchBlocked] = useState(false);
   const [starchMatchedTerms, setStarchMatchedTerms] = useState<string[]>([]);
   const [alternativeInput, setAlternativeInput] = useState("");
-
-  // Builder Override state — coach-style dialog for builder guardrail conflicts
-  const [showBuilderOverride, setShowBuilderOverride] = useState(false);
-  const [builderConflictItem, setBuilderConflictItem] = useState<string>("");
   
   const { user } = useAuth();
 
   // Ref lets "Let Chef Adapt It" skip the diet check on the next call without state timing issues
   const dietAdaptModeRef = useRef(false);
-  // Ref tracks "Continue Anyway" — user explicitly overrides diet preference for this generation
-  const continueAnywayRef = useRef(false);
 
   const {
     alert: dietAlert,
@@ -144,19 +135,14 @@ export function CreateWithChefModal({
       setStarchBlocked(false);
       setStarchMatchedTerms([]);
       setAlternativeInput("");
-      setShowBuilderOverride(false);
-      setBuilderConflictItem("");
       cancel();
     }
   }, [open, cancel, clearSafetyAlert, clearDietAlert]);
 
-  const executeGeneration = async (mealDescription: string, explicitOverride?: ExplicitOverride) => {
+  const executeGeneration = async (mealDescription: string) => {
     const effectiveStarchContext = starchOverride && starchContext
       ? { ...starchContext, forceStarch: true }
       : starchContext;
-
-    const userDietOverride = continueAnywayRef.current;
-    continueAnywayRef.current = false;
 
     const meal = await generateMeal(
       mealDescription,
@@ -168,9 +154,7 @@ export function CreateWithChefModal({
         safetyMode: !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
         overrideToken: !safetyEnabled ? overrideToken || undefined : undefined,
       },
-      strictMode,
-      explicitOverride,
-      userDietOverride
+      strictMode
     );
 
     if (meal) {
@@ -235,25 +219,7 @@ export function CreateWithChefModal({
       const dietOk = checkDiet(description.trim());
       if (!dietOk) return; // DietGuardIntercept now showing
     }
-
-    // If user chose "Let Chef Adapt", skip ALL remaining guards — no second block allowed
-    if (dietAdaptModeRef.current) {
-      dietAdaptModeRef.current = false;
-      await executeGeneration(description.trim());
-      return;
-    }
-
-    // BUILDER OVERRIDE — Tier 1: coachable builder conflict (anti-inflammatory, GLP-1, etc.)
-    // Only fires when no identity diet is active (DietGuard handles those above)
-    // Only fires when the builder is coachable — identity diets are never shown this dialog
-    if (isCoachableBuilder(dietType)) {
-      const conflictItem = detectBuilderConflict(description.trim(), dietType);
-      if (conflictItem) {
-        setBuilderConflictItem(conflictItem);
-        setShowBuilderOverride(true);
-        return; // BuilderOverrideDialog now showing
-      }
-    }
+    dietAdaptModeRef.current = false;
 
     // STARCH GUARD — Option C: intent-aware, not a hard blocker
     // If starch slots are exhausted and the user hasn't already overridden:
@@ -307,42 +273,16 @@ export function CreateWithChefModal({
     }
   };
   
-  // Handle builder override dialog — "Keep it on plan" dismisses, "Make it anyway" overrides
-  const handleKeepOnPlan = () => {
-    setShowBuilderOverride(false);
-    setBuilderConflictItem("");
-  };
-
-  const handleMakeItAnyway = async () => {
-    const item = builderConflictItem;
-    setShowBuilderOverride(false);
-    setBuilderConflictItem("");
-
-    const override: ExplicitOverride = { item, confirmed: true };
-
-    if (hasActiveOverride || !safetyEnabled) {
-      await executeGeneration(description.trim(), override);
-      return;
-    }
-    const isSafe = await checkSafety(description.trim(), `create-with-chef-${mealType}`);
-    if (isSafe) {
-      await executeGeneration(description.trim(), override);
-    }
-  };
-
-  // Handle diet guard decision:
-  // "continue_anyway" — user proceeds with their original request, soft override active
-  // "let_chef_adapt" — bypass diet check and generate with protocol-aware adaptation
-  const handleDietDecision = async (decision: "pick_something_else" | "let_chef_adapt" | "continue_anyway") => {
+  // Handle diet guard decision — "Pick Something Else" clears the alert,
+  // "Let Chef Adapt It" skips the diet check and proceeds to generation
+  const handleDietDecision = async (decision: "pick_something_else" | "let_chef_adapt") => {
     if (decision === "pick_something_else") {
       setDietDecision("pick_something_else");
       clearDietAlert();
       return;
     }
-    if (decision === "continue_anyway") {
-      continueAnywayRef.current = true;
-    }
-    setDietDecision(decision);
+    // "let_chef_adapt" — bypass diet check and generate with protocol-aware adaptation
+    setDietDecision("let_chef_adapt");
     dietAdaptModeRef.current = true;
     clearDietAlert();
     await handleGenerate();
@@ -522,7 +462,7 @@ export function CreateWithChefModal({
                 </p>
               </div>
 
-              {/* Diet Guard — Tier 0 protocol intercept (identity diets: vegan, kosher, halal, etc.) */}
+              {/* Diet Guard — Tier 0 protocol intercept */}
               {showDietIntercept && (
                 <DietGuardIntercept
                   alert={dietAlert}
@@ -530,19 +470,8 @@ export function CreateWithChefModal({
                 />
               )}
 
-              {/* Builder Override — Tier 1 coachable conflict (anti-inflammatory, GLP-1, etc.) */}
-              {!showDietIntercept && showBuilderOverride && builderConflictItem && (
-                <BuilderOverrideDialog
-                  show={showBuilderOverride}
-                  conflictingItem={builderConflictItem}
-                  builderType={dietType as string}
-                  onKeepOnPlan={handleKeepOnPlan}
-                  onMakeItAnyway={handleMakeItAnyway}
-                />
-              )}
-
               {/* SafetyGuard Preflight Banner */}
-              {!showDietIntercept && !showBuilderOverride && (
+              {!showDietIntercept && (
                 <SafetyGuardBanner
                   alert={safetyAlert}
                   mealRequest={description}
@@ -600,7 +529,7 @@ export function CreateWithChefModal({
               )}
 
               <div className="flex gap-3 pt-2">
-                {!isProcessing && !showDietIntercept && !showBuilderOverride && (
+                {!isProcessing && !showDietIntercept && (
                   <Button
                     className="flex-1 bg-lime-600 hover:bg-lime-600 text-white"
                     onClick={handleGenerate}

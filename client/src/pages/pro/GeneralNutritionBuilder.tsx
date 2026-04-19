@@ -15,8 +15,7 @@ import {
 import { useLocation, useRoute } from "wouter";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { MealCard, Meal } from "@/components/MealCard";
-import { getWeekBoard, saveWeekBoard, removeMealFromCurrentWeek, getCurrentWeekBoard, getWeekBoardByDate, putWeekBoard, type WeekBoard, getDayLists, setDayLists, cloneDayLists, updateMealImageInBoard, getMealImageUrl } from "@/lib/boardApi";
-import { useChefMealImage } from "@/hooks/useChefMealImage";
+import { getWeekBoard, saveWeekBoard, removeMealFromCurrentWeek, getCurrentWeekBoard, getWeekBoardByDate, putWeekBoard, type WeekBoard, getDayLists, setDayLists, cloneDayLists } from "@/lib/boardApi";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { MealPickerDrawer } from "@/components/pickers/MealPickerDrawer";
 import { ManualMealModal } from "@/components/pickers/ManualMealModal";
@@ -120,7 +119,6 @@ export default function WeeklyMealBoard() {
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
-  const { fetchImageForMeal } = useChefMealImage();
   const boardRef = React.useRef<WeekBoard | null>(null);
 
   // Register this builder's board namespace so cross-context features (Add to Plan, etc.) write to the correct board
@@ -263,16 +261,6 @@ export default function WeeklyMealBoard() {
         setBoard(updatedBoard);
         await saveBoard(updatedBoard);
       }
-
-      fetchImageForMeal(meal, slot, (mealId, imageUrl) => {
-        setBoard(prev => {
-          if (!prev) return prev;
-          if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
-          const updated = updateMealImageInBoard(prev, mealId, imageUrl);
-          saveBoard(updated).catch(() => {});
-          return updated;
-        });
-      });
 
       window.dispatchEvent(new Event("macros:updated"));
       
@@ -1432,7 +1420,6 @@ export default function WeeklyMealBoard() {
             const dayAlreadyLocked = isDayLocked(activeDayISO, effectiveUserId);
             const resolved = getResolvedTargets(effectiveUserId);
             
-            if (proClientId) return null;
             return (
               <div className="col-span-full mb-6">
                 <RemainingMacrosFooter

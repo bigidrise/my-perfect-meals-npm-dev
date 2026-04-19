@@ -39,16 +39,11 @@ interface Snack {
   medicalBadges?: string[];
 }
 
-export interface ExplicitOverride {
-  item: string;
-  confirmed: boolean;
-}
-
 interface UseSnackCreatorRequestResult {
   generating: boolean;
   progress: number;
   error: string | null;
-  generateSnack: (description: string, dietType?: DietType, dietPhase?: BeachBodyPhase, overrideToken?: string, forceStarch?: boolean, strictMode?: boolean, explicitOverride?: ExplicitOverride, userDietOverride?: boolean) => Promise<Snack | null>;
+  generateSnack: (description: string, dietType?: DietType, dietPhase?: BeachBodyPhase, overrideToken?: string, forceStarch?: boolean, strictMode?: boolean) => Promise<Snack | null>;
   cancel: () => void;
 }
 
@@ -89,9 +84,7 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
     dietPhase?: BeachBodyPhase,
     overrideToken?: string,
     forceStarch?: boolean,
-    strictMode?: boolean,
-    explicitOverride?: ExplicitOverride,
-    userDietOverride?: boolean
+    strictMode?: boolean
   ): Promise<Snack | null> => {
     setGenerating(true);
     setError(null);
@@ -115,8 +108,6 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
           safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           forceStarch: forceStarch || false,
           strictMode: strictMode === true,
-          explicitOverride: explicitOverride || null,
-          userDietOverride: userDietOverride === true,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -160,7 +151,6 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
           fibrousCarbs: generatedSnack.fibrousCarbs || 0,
         },
         medicalBadges: generatedSnack.medicalBadges || [],
-        dietClassification: generatedSnack.dietClassification || null,
       };
 
       stopProgressTicker();

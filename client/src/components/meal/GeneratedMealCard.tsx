@@ -11,8 +11,6 @@ import type { MacroSourceSlug } from "@/lib/macroSourcesConfig";
 import { isFeatureEnabled } from "@/lib/productionGates";
 import FavoriteButton from "@/components/FavoriteButton";
 import DietStyleBadge from "@/components/DietStyleBadge";
-import MealClassificationPill, { type DietClassification } from "@/components/MealClassificationPill";
-import BuilderSourcePill from "@/components/BuilderSourcePill";
 
 export interface GeneratedMealData {
   id: string;
@@ -55,15 +53,6 @@ export interface GeneratedMealData {
    * undefined → legacy / non-vegan diet, badge shows per user preference
    */
   dietaryComplianceVerified?: boolean;
-  /** Meal-level diet classification from the server (drives secondary pill). */
-  dietClassification?: DietClassification | null;
-  /** Full compliance section — prep rules, pairing guidance, why-this-complies. */
-  complianceSection?: {
-    statusLabel: string;
-    whyThisComplies: string;
-    prepRules: string[];
-    pairingGuidance: string[];
-  } | null;
 }
 
 interface GeneratedMealCardProps {
@@ -137,22 +126,6 @@ export default function GeneratedMealCard({
 
   const s = Math.max(1, Math.round(servings ?? 1));
 
-  // Derive coaching confirmation line from builder source + meal flags
-  const coachingLine = (() => {
-    const src = (source || "").toLowerCase();
-    const flagsList = (generatedMeal.flags || []).join(" ").toLowerCase();
-    if (src.includes("glp1") || src.includes("glp-1") || flagsList.includes("glp1") || flagsList.includes("glp-1")) {
-      return "Built for your GLP-1 phase — small portion, protein-first, easy to digest.";
-    }
-    if (src.includes("diabet") || flagsList.includes("diabet")) {
-      return "Built to keep you within your glucose target range.";
-    }
-    if (src.includes("anti") || src.includes("inflammatory") || flagsList.includes("anti")) {
-      return "Built around anti-inflammatory principles — whole foods, clean carbs, low-inflammatory fats.";
-    }
-    return "Built for your current plan and targets.";
-  })();
-
   const totalProtein = generatedMeal.nutrition?.protein || generatedMeal.protein || 0;
   const totalCarbs = generatedMeal.nutrition?.carbs || generatedMeal.carbs || 0;
   const totalFat = generatedMeal.nutrition?.fat || generatedMeal.fat || 0;
@@ -213,11 +186,7 @@ export default function GeneratedMealCard({
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <DietStyleBadge />
-        <BuilderSourcePill source={source} />
-        <MealClassificationPill dietClassification={mealToShow.dietClassification} />
-      </div>
+      <DietStyleBadge mealCompliant={generatedMeal.dietaryComplianceVerified} />
 
       {mealToShow.description && (
         <p className="text-white/90">{mealToShow.description}</p>
@@ -234,12 +203,6 @@ export default function GeneratedMealCard({
           />
         </div>
       )}
-
-      {/* Coaching confirmation — answers "why should I trust this meal?" */}
-      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.06] border border-white/10">
-        <Brain className="h-3.5 w-3.5 text-white/40 shrink-0" />
-        <p className="text-xs text-white/55 leading-relaxed">{coachingLine}</p>
-      </div>
 
       {/* 3. Serving Size */}
       <div className="p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-lg">

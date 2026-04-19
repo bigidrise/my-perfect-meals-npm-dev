@@ -22,11 +22,6 @@ export type DietType =
 
 export type BeachBodyPhase = 'lean' | 'carb-control' | 'maintenance' | 'sculpt';
 
-export interface ExplicitOverride {
-  item: string;
-  confirmed: boolean;
-}
-
 export interface GuardrailRequest {
   dietType: DietType;
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -38,7 +33,6 @@ export interface GuardrailRequest {
     fat_g?: number;
     calories?: number;
   };
-  explicitOverride?: ExplicitOverride;
 }
 
 export interface GuardrailRules {

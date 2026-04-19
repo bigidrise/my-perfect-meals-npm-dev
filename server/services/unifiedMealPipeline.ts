@@ -62,7 +62,6 @@ import { storage } from '../storage';
 import OpenAI from 'openai';
 import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 import { macroAudit, macroAuditPrompt, macroAuditCache } from '../utils/macroAuditLogger';
-import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from './behavioralMemoryService';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AVOIDANCE PROMPT BLOCK BUILDER
@@ -184,11 +183,6 @@ export interface StarchContext {
   forceFiberBased?: boolean; // User explicitly requested no starch
 }
 
-export interface ExplicitOverride {
-  item: string;
-  confirmed: boolean;
-}
-
 export interface MealGenerationRequest {
   type: 'craving' | 'fridge-rescue' | 'premade' | 'create-with-chef' | 'snack-creator';
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -206,8 +200,6 @@ export interface MealGenerationRequest {
   nutritionStrategy?: NutritionStrategyContext; // Vegetable system + cut intensity guardrails
   safetyAlreadyChecked?: boolean; // Skip internal safety check if route already verified with override token
   strictMode?: boolean; // "Keep It Simple" — AI uses ONLY user-listed ingredients, no additions
-  skipImage?: boolean; // Skip DALL-E generation — client handles image async via /api/meals/generate-image
-  explicitOverride?: ExplicitOverride | null; // User confirmed override for a builder guardrail conflict
 }
 
 export interface MealGenerationResponse {
@@ -483,13 +475,6 @@ export async function generateCravingMealUnified(
     cravingDietRestrictions = Array.from(merged);
   }
   cravingDietBlock = buildDietPromptBlock(cravingDietRestrictions);
-  // Kosher category intent: inject DAIRY/MEAT/PAREVE block so the AI
-  // never auto-converts explicit dairy (butter, milk) to pareve/coconut milk.
-  const cravingKosherIntent = detectKosherCategoryIntent(cravingDietRestrictions, cravingInput);
-  if (cravingKosherIntent) {
-    cravingDietBlock += (cravingDietBlock ? '\n' : '') + buildKosherCategoryBlock(cravingKosherIntent);
-    console.log(`🕍 [CRAVING] Kosher category intent: ${cravingKosherIntent}`);
-  }
   if (cravingDietBlock) {
     console.log(`🥗 [CRAVING] Dietary constraint enforced: ${cravingDietRestrictions.join("|")}`);
   }
@@ -891,129 +876,6 @@ function validateVarietyOption(opt: any, category: string, dishFamily: string, d
   return true;
 }
 
-// ── Kosher category intent detection ─────────────────────────────────────────
-// Reads the user's craving text to determine which kosher category they are
-// implicitly requesting, so the AI never auto-converts dairy to pareve when
-// the user explicitly mentions butter, milk, cream, etc.
-
-const DAIRY_INTENT_TERMS = [
-  'milk', 'butter', 'cream', 'cheese', 'yogurt', 'dairy',
-  'mozzarella', 'cheddar', 'parmesan', 'brie', 'camembert',
-  'ricotta', 'sour cream', 'heavy cream', 'half and half',
-  'whipped cream', 'ice cream', 'milchig', 'milchige', 'queso',
-];
-
-const MEAT_INTENT_TERMS = [
-  'chicken', 'beef', 'lamb', 'turkey', 'veal', 'duck', 'goose',
-  'brisket', 'steak', 'burger', 'meatball', 'liver', 'pastrami',
-  'corned beef', 'schnitzel', 'flanken', 'ribs', 'fleishig',
-  'ground beef', 'ground turkey', 'ground chicken',
-];
-
-/**
- * Detect which kosher category the craving implies.
- * Returns null when the user is not on a kosher diet.
- * Returns 'pareve' when no specific dairy/meat terms are found, OR when both
- * are present (meat-dairy mix is a conflict — safe fallback is pareve).
- */
-function detectKosherCategoryIntent(
-  restrictions: string[],
-  craving: string,
-): 'dairy' | 'meat' | 'pareve' | null {
-  // getPrimaryDiet only covers strict diet modes (vegan/keto/paleo/etc) — not religious diets.
-  // Check for kosher directly so "Kosher" (capital K from DB) is not missed.
-  const normalizedRestrictions = (restrictions || []).map(r => r.trim().toLowerCase());
-  const isKosher = normalizedRestrictions.includes('kosher') || normalizedRestrictions.includes('kosher-halal');
-  if (!isKosher) return null;
-  const lower = craving.toLowerCase();
-  const hasDairy = DAIRY_INTENT_TERMS.some(t => lower.includes(t));
-  const hasMeat = MEAT_INTENT_TERMS.some(t => lower.includes(t));
-  if (hasDairy && !hasMeat) return 'dairy';
-  if (hasMeat && !hasDairy) return 'meat';
-  return 'pareve'; // conflict (both) or neutral (neither) → safe pareve
-}
-
-/**
- * Build a kosher category enforcement block to inject into the AI prompt.
- * This tells the AI exactly which category to generate and what's forbidden.
- */
-function buildKosherCategoryBlock(category: 'dairy' | 'meat' | 'pareve'): string {
-  if (category === 'dairy') {
-    return [
-      `KOSHER CATEGORY — DAIRY (Milchig):`,
-      `The user explicitly requested dairy ingredients. Generate a DAIRY kosher dish.`,
-      `✅ USE FREELY: milk, butter, cream, cream cheese, sour cream, yogurt, and all cheeses.`,
-      `❌ FORBIDDEN: ALL meat and poultry — no chicken, beef, lamb, turkey, veal, or meat products of any kind.`,
-      `⛔ DO NOT substitute dairy with non-dairy alternatives (no coconut milk, oat milk, cashew cream, vegan butter).`,
-      `The dairy ingredients ARE the dish. Honor the user's explicit request and use them as written.`,
-    ].join('\n');
-  }
-  if (category === 'meat') {
-    return [
-      `KOSHER CATEGORY — MEAT (Fleishig):`,
-      `The user requested a meat-based dish. Generate a MEAT kosher dish.`,
-      `✅ USE FREELY: chicken, beef, lamb, turkey, veal, and all kosher meats.`,
-      `❌ FORBIDDEN: ALL dairy — no milk, butter, cream, cheese, yogurt, or any dairy products.`,
-      `For richness and creaminess, use: olive oil, meat broths, reduced stock sauces, or vegetable-based foundations.`,
-    ].join('\n');
-  }
-  return [
-    `KOSHER CATEGORY — PAREVE:`,
-    `Generate a PAREVE kosher dish (neither meat nor dairy).`,
-    `✅ USE FREELY: fish, eggs, vegetables, fruits, grains, legumes, olive oil, vegetable broths.`,
-    `❌ FORBIDDEN: ALL meat AND ALL dairy — absolutely no mixing of the two.`,
-  ].join('\n');
-}
-
-/**
- * Detect if the previous generation attempt violated kosher meat/dairy separation
- * and return a targeted correction block to append to the retry prompt.
- * Returns undefined when no targeted correction is needed (non-kosher, non-meat, or no dairy found).
- */
-function buildKosherViolationHint(
-  rawOptions: any[],
-  dietRestrictions: string[],
-  kosherIntent: 'dairy' | 'meat' | 'pareve' | null,
-): string | undefined {
-  if (kosherIntent !== 'meat') return undefined;
-  const normalized = (dietRestrictions || []).map(r => r.trim().toLowerCase());
-  const isKosher = normalized.includes('kosher') || normalized.includes('kosher-halal');
-  if (!isKosher) return undefined;
-
-  const DAIRY_DETECTION = [
-    'butter', 'ghee', 'cream', 'heavy cream', 'light cream', 'half-and-half', 'half and half',
-    'cheese', 'feta', 'parmesan', 'mozzarella', 'cheddar', 'brie', 'goat cheese', 'ricotta',
-    'milk', 'yogurt', 'sour cream', 'crème fraîche', 'creme fraiche', 'tzatziki',
-  ];
-
-  const hasDairy = rawOptions.some(opt => {
-    const text = [
-      opt.name || '',
-      opt.description || '',
-      ...(opt.ingredients || []).map((i: any) => i.name || ''),
-    ].join(' ').toLowerCase();
-    return DAIRY_DETECTION.some(t => text.includes(t));
-  });
-
-  if (!hasDairy) return undefined;
-
-  return [
-    `DIETARY VIOLATION FIX — URGENT CORRECTION:`,
-    `Your previous response included dairy in a KOSHER MEAT dish (butter, cream, feta, cheese, or similar).`,
-    `This is a strict kosher law violation (basar b'chalav). Correct this immediately.`,
-    ``,
-    `MANDATORY FOR THIS RETRY:`,
-    `❌ ZERO dairy: no butter, ghee, cream, heavy cream, half-and-half, cheese, feta,`,
-    `   parmesan, mozzarella, cheddar, goat cheese, ricotta, milk, yogurt, sour cream`,
-    `✅ COOKING FAT: olive oil, avocado oil, grapeseed oil, or rendered meat drippings ONLY`,
-    `✅ RICHNESS/CREAMINESS: use pureed vegetables, reduced meat stock, tahini, or hummus — never cream`,
-    `✅ MEDITERRANEAN DISHES: replace feta entirely with olives, capers, lemon zest, or sun-dried tomatoes`,
-    `✅ HERB SAUCES: chimichurri, salsa verde, lemon-herb vinaigrette — all dairy-free`,
-    ``,
-    `Generate 3 options that are 100% dairy-free. Check every ingredient before including it.`,
-  ].join('\n');
-}
-
 /** Build the hierarchy-enforcing prompt for the variety engine */
 function buildVarietyPrompt(
   cravingInput: string,
@@ -1312,14 +1174,7 @@ export async function generateCravingMealOptions(
     const merged = new Set([...dietRestrictions, ...dietaryRestrictionsOverride]);
     dietRestrictions = Array.from(merged);
   }
-  let dietBlock = buildDietPromptBlock(dietRestrictions);
-  // Kosher category intent: inject DAIRY/MEAT/PAREVE block so the AI
-  // never auto-converts explicit dairy (butter, milk) to pareve/coconut milk.
-  const varietyKosherIntent = detectKosherCategoryIntent(dietRestrictions, cravingInput);
-  if (varietyKosherIntent) {
-    dietBlock += (dietBlock ? '\n' : '') + buildKosherCategoryBlock(varietyKosherIntent);
-    console.log(`🕍 [VARIETY ENGINE] Kosher category intent: ${varietyKosherIntent}`);
-  }
+  const dietBlock = buildDietPromptBlock(dietRestrictions);
 
   const excludeClause = excludeMeals && excludeMeals.length > 0
     ? `ANTI-REPETITION: Do NOT generate anything resembling these recently seen options — vary the primary ingredient, preparation, and concept: ${excludeMeals.join(", ")}`
@@ -1333,17 +1188,16 @@ export async function generateCravingMealOptions(
   }
 
   /** One attempt at calling AI and parsing result */
-  const attempt = async (stricterMode: boolean, violationHint?: string): Promise<any[]> => {
+  const attempt = async (stricterMode: boolean): Promise<any[]> => {
     const prompt = isRecipeMode
       ? buildRecipeVarietyPrompt(cravingInput, validMealType, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock)
       : buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock);
     const stricter = stricterMode
       ? `\n\nSECOND ATTEMPT — STRICT MODE: The previous response drifted from the dish family. You MUST generate 3 options that are clearly recognizable variations of "${dishFamily}". No exceptions.`
       : "";
-    const hintAddendum = violationHint ? `\n\n${violationHint}` : "";
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
-      messages: [{ role: "user", content: (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter + hintAddendum }],
+      messages: [{ role: "user", content: (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter }],
       temperature: stricterMode ? 0.6 : 0.85,
       max_tokens: 2500,
     });
@@ -1378,13 +1232,8 @@ export async function generateCravingMealOptions(
   // If majority fail validation, regenerate once with stricter prompt
   if (valid.length < 2) {
     console.warn(`[VARIETY ENGINE] Only ${valid.length}/3 options passed validation — regenerating with strict prompt`);
-    // Detect WHY options failed and build a targeted correction for the retry
-    const violationHint = buildKosherViolationHint(rawOptions, dietRestrictions, varietyKosherIntent);
-    if (violationHint) {
-      console.warn(`[VARIETY ENGINE] Kosher dairy violation detected — injecting targeted dietary correction into retry`);
-    }
     try {
-      rawOptions = await attempt(true, violationHint);
+      rawOptions = await attempt(true);
       const strictValid = rawOptions.slice(0, 3).filter(opt =>
         validateVarietyOption(opt, category, dishFamily, dietRestrictions)
       );
@@ -1400,63 +1249,6 @@ export async function generateCravingMealOptions(
   const finalOptions = rawOptions.slice(0, 3);
   console.log(`✅ [VARIETY ENGINE] ${finalOptions.length} options: ${finalOptions.map((o: any) => o?.name).join(" | ")}`);
   return finalOptions.map((opt, idx) => mapToUnifiedMeal(opt, idx, cravingInput, validMealType));
-}
-
-/**
- * Emergency fallback: generate a single guaranteed-compliant meal when the
- * variety engine AND its retry both produce options that fail protocol scanning.
- * Uses a maximum-constraint single-option prompt at temperature 0.3.
- */
-export async function generateSingleCompliantFallback(
-  cravingInput: string,
-  mealType: string,
-  dietaryIdentity: string[],
-): Promise<UnifiedMeal | null> {
-  const validMealType = normalizeMealType(mealType);
-  const kosherIntent = detectKosherCategoryIntent(dietaryIdentity, cravingInput);
-  const dietBlock = buildDietPromptBlock(dietaryIdentity);
-  const kosherBlock = kosherIntent ? buildKosherCategoryBlock(kosherIntent) : '';
-
-  const meatDairyGuard = kosherIntent === 'meat' ? [
-    `ABSOLUTE KOSHER MEAT REQUIREMENT:`,
-    `❌ ZERO dairy: no butter, ghee, cream, heavy cream, half-and-half, cheese, feta,`,
-    `   parmesan, mozzarella, cheddar, goat cheese, ricotta, milk, yogurt, or sour cream`,
-    `✅ COOKING FAT: olive oil or avocado oil ONLY`,
-    `✅ CREAMINESS: use reduced meat stock, pureed vegetables, or tahini — never cream`,
-    `✅ Every single ingredient must be dairy-free. No exceptions.`,
-  ].join('\n') : '';
-
-  const prompt = [
-    `You are a precision dietary chef. Generate exactly ONE meal that strictly complies with all dietary rules below.`,
-    dietBlock,
-    kosherBlock,
-    meatDairyGuard,
-    `The meal must be: ${cravingInput}`,
-    `Keep it simple, compliant, and delicious.`,
-    ``,
-    `OUTPUT FORMAT — ONLY valid JSON, no markdown fences:`,
-    `{"name":"...","description":"One appetizing sentence.","ingredients":[{"name":"...","quantity":"...","unit":"..."}],"instructions":"Full cooking steps as one paragraph.","calories":400,"protein":30,"starchyCarbs":20,"fibrousCarbs":10,"fat":15,"cookingTime":"25 minutes"}`,
-  ].filter(Boolean).join('\n');
-
-  try {
-    const openai = getOpenAI();
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.3,
-      max_tokens: 1200,
-    });
-    const content = response.choices[0]?.message?.content;
-    if (!content) return null;
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
-    const opt = JSON.parse(jsonMatch[0]);
-    console.log(`🛟 [FALLBACK] Generated compliant fallback: "${opt.name}"`);
-    return mapToUnifiedMeal(opt, 0, cravingInput, validMealType);
-  } catch (err) {
-    console.error('[FALLBACK GENERATION] Failed:', err);
-    return null;
-  }
 }
 
 /**
@@ -1607,9 +1399,7 @@ export async function generateFromDescriptionUnified(
   dietType?: DietType,
   starchContext?: StarchContext,
   nutritionStrategy?: NutritionStrategyContext,
-  strictMode: boolean = false,
-  skipImage: boolean = false,
-  explicitOverride?: ExplicitOverride | null
+  strictMode: boolean = false
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
   
@@ -1678,27 +1468,11 @@ export async function generateFromDescriptionUnified(
       console.log(`🥗 [CREATE-WITH-CHEF] Protocol enforcement active: ${chefDietRestrictions.join('|') || 'guest'}`);
     }
 
-    // ── Load behavioral preference profile (soft hints — after protocol, before prompt) ─
-    let behavioralMemorySection = "";
-    if (userId) {
-      try {
-        const behavioralProfile = await derivePreferenceProfile(userId);
-        if (behavioralProfile) {
-          behavioralMemorySection = buildBehavioralMemoryPromptSection(behavioralProfile);
-          console.log(`🧠 [BehavioralMemory] Profile loaded — ${behavioralProfile.auditMeta.evidenceCount} signals | proteins: ${behavioralProfile.patterns.prefersProteins.join(", ") || "none"} | cuisines: ${behavioralProfile.patterns.prefersCuisines.join(", ") || "none"}`);
-        } else {
-          console.log(`🧠 [BehavioralMemory] No preference history yet for user ${userId.slice(0, 8)}`);
-        }
-      } catch (err) {
-        console.warn("⚠️ [BehavioralMemory] Could not derive preference profile:", err);
-      }
-    }
-
     const OpenAI = (await import('openai')).default;
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     
     let basePrompt = `You are a professional chef creating a personalized meal recipe.
-${chefProtocolBlock ? `\n${chefProtocolBlock}\n` : ""}${behavioralMemorySection ? `\n${behavioralMemorySection}\n` : ""}
+${chefProtocolBlock ? `\n${chefProtocolBlock}\n` : ""}
 TASK: Create a complete ${validMealType} recipe based on this request: "${description}"
 
 REQUIREMENTS:
@@ -1755,14 +1529,6 @@ Create the recipe for: "${description}"`;
       if (guardrailResult.appliedRules.length > 0) {
         console.log(`🛡️ Applied guardrails: ${guardrailResult.appliedRules.join(', ')}`);
       }
-    }
-
-    // EXPLICIT OVERRIDE INJECTION: user confirmed a builder guardrail conflict
-    // Must be appended AFTER guardrails so it takes final precedence in the prompt
-    if (explicitOverride?.confirmed && explicitOverride.item) {
-      const overrideInstruction = `\n\nEXPLICIT USER REQUEST — MANDATORY: The user has explicitly requested "${explicitOverride.item}". You MUST include it in this meal. Do NOT substitute or remove it. You may only adjust the portion size, cooking method, or sides to best fit the plan. Never say it is "not allowed" or omit it.`;
-      prompt = prompt + overrideInstruction;
-      console.log(`✅ [ExplicitOverride] Injected override for "${explicitOverride.item}"`);
     }
 
     const messages: Array<{ role: 'system' | 'user'; content: string }> = [];
@@ -1936,30 +1702,26 @@ Create the recipe for: "${description}"`;
       throw new Error("Failed to generate valid meal after regeneration attempts");
     }
 
-    // Image generation — skipped when client handles it async (skipImage: true)
-    let imageUrl: string | null = skipImage ? null : getFallbackImage(validMealType);
-    if (!skipImage) {
-      try {
-        const generatedImage = await generateImage({
-          name: finalMealData.name,
-          description: finalMealData.description,
-          type: 'meal',
-          style: 'homemade',
-          ingredients: finalMealData.ingredients?.map((ing: any) => ing.name) || [],
-          calories: finalMealData.calories,
-          protein: finalMealData.protein,
-          carbs: finalMealData.totalCarbs,
-          fat: finalMealData.fat,
-        });
-        if (generatedImage) {
-          imageUrl = generatedImage;
-          console.log(`🖼️ Generated DALL-E image for Create With Chef: ${finalMealData.name}`);
-        }
-      } catch (imgError) {
-        console.warn('⚠️ DALL-E image generation failed, using fallback:', imgError);
+    let imageUrl = getFallbackImage(validMealType);
+    try {
+      const generatedImage = await generateImage({
+        name: finalMealData.name,
+        description: finalMealData.description,
+        type: 'meal',
+        style: 'homemade',
+        ingredients: finalMealData.ingredients?.map((ing: any) => ing.name) || [],
+        calories: finalMealData.calories,
+        protein: finalMealData.protein,
+        carbs: finalMealData.totalCarbs,
+        fat: finalMealData.fat,
+      });
+      
+      if (generatedImage) {
+        imageUrl = generatedImage;
+        console.log(`🖼️ Generated DALL-E image for Create With Chef: ${finalMealData.name}`);
       }
-    } else {
-      console.log(`⚡ [create-with-chef] skipImage=true — returning text immediately, client handles image`);
+    } catch (imgError) {
+      console.warn('⚠️ DALL-E image generation failed, using fallback:', imgError);
     }
     
     const unifiedMeal: UnifiedMeal = {
@@ -2047,8 +1809,7 @@ export async function generateSnackFromCravingUnified(
   cravingDescription: string,
   userId?: string,
   dietType?: DietType,
-  strictMode: boolean = false,
-  explicitOverride?: ExplicitOverride | null
+  strictMode: boolean = false
 ): Promise<MealGenerationResponse> {
   console.log(`🍪 Snack Creator: Generating healthy snack from craving: "${cravingDescription}"${dietType ? ` (diet: ${dietType})` : ''}`);
   
@@ -2152,17 +1913,10 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
 
     // Apply diet-specific guardrails to the prompt
     const guardrailResult = applyGuardrails(basePrompt, dietType || null, 'snack');
-    let guardrailedPrompt = guardrailResult.modifiedPrompt;
+    const guardrailedPrompt = guardrailResult.modifiedPrompt;
     
     if (guardrailResult.appliedRules.length > 0) {
       console.log(`🛡️ Applied snack guardrails: ${guardrailResult.appliedRules.join(', ')}`);
-    }
-
-    // EXPLICIT OVERRIDE INJECTION: user confirmed a builder guardrail conflict for snack
-    if (explicitOverride?.confirmed && explicitOverride.item) {
-      const overrideInstruction = `\n\nEXPLICIT USER REQUEST — MANDATORY: The user has explicitly requested "${explicitOverride.item}". You MUST include it in this snack. Do NOT substitute or remove it. You may only adjust the portion size, cooking method, or accompaniments to best fit the plan.`;
-      guardrailedPrompt = guardrailedPrompt + overrideInstruction;
-      console.log(`✅ [ExplicitOverride] Injected snack override for "${explicitOverride.item}"`);
     }
 
     // Apply Keep It Simple — same block as Create with Chef, no variation
@@ -2490,14 +2244,14 @@ export async function generateMealUnified(
       const chefDescription = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType, request.starchContext, request.nutritionStrategy, request.strictMode === true, request.skipImage === true, request.explicitOverride);
+      result = await generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType, request.starchContext, request.nutritionStrategy, request.strictMode === true);
       break;
 
     case 'snack-creator':
       const snackCraving = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateSnackFromCravingUnified(snackCraving, request.userId, request.dietType, request.strictMode === true, request.explicitOverride);
+      result = await generateSnackFromCravingUnified(snackCraving, request.userId, request.dietType, request.strictMode === true);
       break;
 
     case 'fridge-rescue':
