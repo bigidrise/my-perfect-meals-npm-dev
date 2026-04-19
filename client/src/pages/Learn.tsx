@@ -23,6 +23,7 @@ import {
   Flame,
   Stethoscope,
   Dna,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
@@ -957,6 +958,40 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
           heading: "Where to Find It",
           list: [
             "Social Hub — Fast Food Guide card",
+            "Included with Premium and Ultimate subscriptions",
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "find-meals-near-me",
+    title: "Find Meals Near Me",
+    subtitle: "Real-world dining that fits your diet",
+    icon: MapPin,
+    content: {
+      sections: [
+        {
+          heading: "How It Works",
+          text: "When you use Find Meals Near Me, the app searches for restaurants that match your dietary preferences. This includes both specialized restaurants and locations that offer strong compatible options for your diet. The goal is to give you more real-world choices while still keeping your meals aligned with how you eat.",
+        },
+        {
+          heading: "What That Means",
+          text: "We recommend places where your diet works — not just places labeled for it. Whether you're vegan, keto, pescatarian, gluten-free, or following any other protocol, the app surfaces restaurants and meal options that fit, across both dedicated and general dining spots.",
+        },
+        {
+          heading: "What the App Respects",
+          list: [
+            "Your dietary preferences from onboarding",
+            "SafetyGuard allergy protections",
+            "Your active macro targets",
+            "Stricter filtering for kosher and halal (certification-required diets)",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: [
+            "Social Hub — Find Meals Near Me card",
             "Included with Premium and Ultimate subscriptions",
           ],
         },
