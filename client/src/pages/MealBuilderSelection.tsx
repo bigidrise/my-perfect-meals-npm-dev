@@ -394,6 +394,10 @@ export default function MealBuilderSelection() {
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className={`text-base font-semibold truncate ${!isUnlocked ? "text-zinc-400" : ""}`}>{option.title}</h3>
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-cyan-500/10 border border-cyan-400/25 rounded-full text-[8px] font-semibold text-cyan-300 tracking-wide flex-shrink-0">
+                          <span className="w-1 h-1 bg-cyan-400 rounded-full" />
+                          Behavioral AI™
+                        </span>
                         {!isUnlocked && isProBuilder && (
                           <Lock className="w-4 h-4 text-zinc-500" />
                         )}

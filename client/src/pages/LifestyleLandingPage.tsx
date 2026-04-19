@@ -23,6 +23,7 @@ interface AIFeature {
   gradient: string;
   testId: string;
   freeAccess?: boolean;
+  badge?: "emotion" | "behavioral";
 }
 
 export default function LifestyleLandingPage() {
@@ -44,6 +45,7 @@ export default function LifestyleLandingPage() {
       route: "/lifestyle/create-a-dish",
       gradient: "from-orange-500/20 to-red-500/20",
       testId: "card-create-a-dish",
+      badge: "emotion",
     },
     {
       title: "Craving Creator Hub",
@@ -51,8 +53,9 @@ export default function LifestyleLandingPage() {
         "Your craving-focused hub — home of the original Craving Creator that started it all.",
       icon: Sparkles,
       route: "/craving-creator-landing",
-      gradient: "from-purple-500/20 to-pink-500/20",
+      gradient: "from-orange-500/20 to-red-500/20",
       testId: "card-craving-creator",
+      badge: "emotion",
     },
     {
       title: "Beverage Creator",
@@ -62,15 +65,17 @@ export default function LifestyleLandingPage() {
       route: "/lifestyle/beverage-creator",
       gradient: "from-blue-500/20 to-cyan-500/20",
       testId: "card-beverage-creator",
+      badge: "behavioral",
     },
     {
       title: "Spirit & Wine Pairing Hub",
       description:
-        "AI, spirit, wine & beer pairing,  wine list translator, and a drink reduceing tool.",
+        "AI, spirit, wine & beer pairing, wine list translator, and a drink reducing tool.",
       icon: Wine,
       route: "/lifestyle/pairings-hub",
       gradient: "from-orange-500/20 to-amber-500/20",
       testId: "card-pairings-hub",
+      badge: "behavioral",
     },
     {
       title: "Fridge Rescue",
@@ -80,6 +85,7 @@ export default function LifestyleLandingPage() {
       gradient: "from-emerald-500/20 to-teal-500/20",
       testId: "card-fridge-rescue",
       freeAccess: true,
+      badge: "behavioral",
     },
     {
       title: "Socializing Hub",
@@ -88,6 +94,7 @@ export default function LifestyleLandingPage() {
       route: "/social-hub",
       gradient: "from-pink-500/20 to-purple-500/20",
       testId: "card-socializing-hub",
+      badge: "behavioral",
     },
   ];
 
@@ -158,10 +165,10 @@ export default function LifestyleLandingPage() {
               }}
               data-testid="card-my-perfect-gatherings"
             >
-              <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-amber-700 to-black rounded-full border border-amber-400/30 shadow-lg z-10">
-                <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" />
-                <span className="text-white font-semibold text-[8px] tracking-wide">
-                  Premium
+              <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-cyan-700/80 to-black rounded-full border border-cyan-400/30 shadow-lg z-10">
+                <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
+                <span className="text-cyan-200 font-semibold text-[8px] tracking-wide">
+                  Behavioral AI™
                 </span>
               </div>
               <CardContent className="p-3">
@@ -238,21 +245,20 @@ export default function LifestyleLandingPage() {
                     }}
                     data-testid={feature.testId}
                   >
-                    {/* Badges */}
-                    {isCreateDish && (
-                      <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-orange-600 to-black rounded-full border border-orange-400/30 shadow-lg z-10">
-                        <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse" />
-                        <span className="text-white font-semibold text-[8px] tracking-wide">
-                          Powered by Emotion AI™
+                    {/* AI type badge */}
+                    {feature.badge === "emotion" && (
+                      <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-violet-700/80 to-black rounded-full border border-violet-400/30 shadow-lg z-10">
+                        <div className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse" />
+                        <span className="text-violet-200 font-semibold text-[8px] tracking-wide">
+                          Emotion AI™
                         </span>
                       </div>
                     )}
-
-                    {isCravingCreator && (
-                      <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-purple-600 to-black rounded-full border border-purple-400/30 shadow-lg z-10">
-                        <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" />
-                        <span className="text-white font-semibold text-[8px] tracking-wide">
-                          Powered by Emotion AI™
+                    {feature.badge === "behavioral" && (
+                      <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-cyan-700/80 to-black rounded-full border border-cyan-400/30 shadow-lg z-10">
+                        <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
+                        <span className="text-cyan-200 font-semibold text-[8px] tracking-wide">
+                          Behavioral AI™
                         </span>
                       </div>
                     )}
