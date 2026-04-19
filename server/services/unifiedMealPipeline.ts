@@ -62,6 +62,7 @@ import { storage } from '../storage';
 import OpenAI from 'openai';
 import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 import { macroAudit, macroAuditPrompt, macroAuditCache } from '../utils/macroAuditLogger';
+import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from './behavioralMemoryService';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AVOIDANCE PROMPT BLOCK BUILDER
@@ -1677,11 +1678,27 @@ export async function generateFromDescriptionUnified(
       console.log(`🥗 [CREATE-WITH-CHEF] Protocol enforcement active: ${chefDietRestrictions.join('|') || 'guest'}`);
     }
 
+    // ── Load behavioral preference profile (soft hints — after protocol, before prompt) ─
+    let behavioralMemorySection = "";
+    if (userId) {
+      try {
+        const behavioralProfile = await derivePreferenceProfile(userId);
+        if (behavioralProfile) {
+          behavioralMemorySection = buildBehavioralMemoryPromptSection(behavioralProfile);
+          console.log(`🧠 [BehavioralMemory] Profile loaded — ${behavioralProfile.auditMeta.evidenceCount} signals | proteins: ${behavioralProfile.patterns.prefersProteins.join(", ") || "none"} | cuisines: ${behavioralProfile.patterns.prefersCuisines.join(", ") || "none"}`);
+        } else {
+          console.log(`🧠 [BehavioralMemory] No preference history yet for user ${userId.slice(0, 8)}`);
+        }
+      } catch (err) {
+        console.warn("⚠️ [BehavioralMemory] Could not derive preference profile:", err);
+      }
+    }
+
     const OpenAI = (await import('openai')).default;
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     
     let basePrompt = `You are a professional chef creating a personalized meal recipe.
-${chefProtocolBlock ? `\n${chefProtocolBlock}\n` : ""}
+${chefProtocolBlock ? `\n${chefProtocolBlock}\n` : ""}${behavioralMemorySection ? `\n${behavioralMemorySection}\n` : ""}
 TASK: Create a complete ${validMealType} recipe based on this request: "${description}"
 
 REQUIREMENTS:
