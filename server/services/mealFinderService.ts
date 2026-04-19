@@ -117,11 +117,35 @@ async function resolveWithFallback(
   zipCode: string,
   primaryDiet: string | null,
 ): Promise<{ labeled: ResolvedWithLabel[]; coords?: { lat: number; lng: number } }> {
+  const CERT_REQUIRED_DIETS = new Set(['kosher', 'halal']);
+  const isCertDiet = primaryDiet && CERT_REQUIRED_DIETS.has(primaryDiet);
   const isIdentity = primaryDiet && IDENTITY_DIETS.has(primaryDiet);
   let labeled: ResolvedWithLabel[] = [];
   let coords: { lat: number; lng: number } | undefined;
 
-  if (isIdentity && primaryDiet) {
+  if (isCertDiet && primaryDiet) {
+    // Certification-required diets (kosher, halal): Pass 1 ONLY — no fallback, no mixing
+    console.log(`🔒 Certification diet "${primaryDiet}" — strict pass only, no fallback`);
+    const pass1 = await resolveRestaurantsByZip({
+      query: mealQuery,
+      zipCode,
+      radiusMiles: 8,
+      limit: 15,
+      overrideQuery: getStrictDietQuery(primaryDiet, mealQuery),
+    });
+    coords = pass1.coordinates;
+    if (pass1.success) {
+      const seen = new Set<string>();
+      for (const r of pass1.restaurants) {
+        const key = r.placeId ?? r.name;
+        if (!seen.has(key)) {
+          labeled.push({ restaurant: r, matchLabel: 'Exact match' });
+          seen.add(key);
+        }
+      }
+    }
+    console.log(`📍 Certification pass: ${labeled.length} results (no fallback applied)`);
+  } else if (isIdentity && primaryDiet) {
     // Pass 1 (strict) + Pass 2 (flexible) fire simultaneously — saves 0.5–2s
     console.log(`⚡ Running passes 1+2 in parallel for diet: ${primaryDiet}`);
     const [pass1, pass2] = await Promise.all([
