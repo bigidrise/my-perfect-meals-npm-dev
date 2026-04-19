@@ -825,14 +825,14 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
   },
   {
     id: "ultimate-experiences",
-    title: "Perfect Gatherings",
+    title: "My Perfect Gatherings",
     subtitle: "Multi-course AI meal planning for any occasion",
     icon: Sparkles,
     content: {
       sections: [
         {
-          heading: "What Is Perfect Gatherings?",
-          text: "Perfect Gatherings is a multi-course meal planner built for intentional eating. Instead of generating a single meal, it designs a complete gathering menu — appetizer, main course, side dishes, and dessert — all connected to the same situation, flavor profile, and occasion.",
+          heading: "What Is My Perfect Gatherings?",
+          text: "My Perfect Gatherings is a multi-course meal planner built for intentional eating. Instead of generating a single meal, it designs a complete gathering menu — appetizer, main course, side dishes, and dessert — all connected to the same situation, flavor profile, and occasion.",
         },
         {
           heading: "How It Works",
@@ -865,7 +865,7 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
         {
           heading: "Where to Find It",
           list: [
-            "Lifestyle Hub — Perfect Gatherings card",
+            "Lifestyle Hub — My Perfect Gatherings card",
             "Included with Premium and Ultimate subscriptions",
           ],
         },
