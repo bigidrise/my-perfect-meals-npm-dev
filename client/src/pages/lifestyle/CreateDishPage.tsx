@@ -58,6 +58,7 @@ import DietStyleBadge from "@/components/DietStyleBadge";
 import MealClassificationPill from "@/components/MealClassificationPill";
 import KosherProTip from "@/components/KosherProTip";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
+import { PillButton } from "@/components/ui/pill-button";
 
 interface StructuredIngredient {
   name: string;
@@ -153,14 +154,14 @@ function getMealNutrition(meal: any) {
   };
 }
 
-const COOK_METHODS = [
-  "Stovetop",
-  "Oven",
-  "Air Fryer",
-  "Slow Cooker",
-  "Grill",
-  "No-Bake",
-  "Any",
+const COOK_METHODS: { label: string; emoji: string }[] = [
+  { label: "Stovetop", emoji: "🍳" },
+  { label: "Oven",     emoji: "♨️" },
+  { label: "Air Fryer", emoji: "💨" },
+  { label: "Slow Cooker", emoji: "🥘" },
+  { label: "Grill",    emoji: "🔥" },
+  { label: "No-Bake",  emoji: "❄️" },
+  { label: "Any",      emoji: "✨" },
 ];
 
 export default function CreateDishPage() {
@@ -631,21 +632,21 @@ export default function CreateDishPage() {
                     <label className="block text-sm font-medium mb-2 text-white">
                       Cooking Method
                     </label>
-                    <div className="flex flex-wrap gap-2">
-                      {COOK_METHODS.map((method) => (
-                        <button
-                          key={method}
-                          onClick={() =>
-                            setCookMethod(cookMethod === method ? "" : method)
-                          }
-                          className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
-                            cookMethod === method
-                              ? "bg-orange-500 border-orange-400 text-white"
-                              : "bg-black/40 border-white/20 text-white/70 hover:border-orange-400/50 hover:text-white"
-                          }`}
-                        >
-                          {method}
-                        </button>
+                    <div className="flex flex-wrap gap-x-5 gap-y-3">
+                      {COOK_METHODS.map((m) => (
+                        <div key={m.label} className="flex flex-col items-center gap-1.5">
+                          <PillButton
+                            active={cookMethod === m.label}
+                            variant="amber"
+                            onClick={() => setCookMethod(cookMethod === m.label ? "" : m.label)}
+                            className="w-14 text-lg leading-none py-2"
+                          >
+                            {m.emoji}
+                          </PillButton>
+                          <span className="text-xs text-white/80 font-medium text-center leading-tight">
+                            {m.label}
+                          </span>
+                        </div>
                       ))}
                     </div>
                   </div>
