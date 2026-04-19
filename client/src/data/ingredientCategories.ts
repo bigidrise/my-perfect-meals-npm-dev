@@ -1,6 +1,18 @@
 import { SHARED_PANTRY_STAPLES } from '@shared/pantryStaples';
 
-export type IngredientCategory = 'Produce' | 'Meat' | 'Dairy & Eggs' | 'Pantry' | 'Frozen' | 'Bakery' | 'Other';
+export type IngredientCategory = 'Produce' | 'Meat' | 'Plant Proteins' | 'Dairy & Eggs' | 'Pantry' | 'Frozen' | 'Bakery' | 'Other';
+
+export const PLANT_PROTEIN_KEYWORDS: string[] = [
+  'tofu', 'extra firm tofu', 'firm tofu', 'silken tofu', 'soft tofu',
+  'tempeh', 'seitan', 'edamame',
+  'nutritional yeast', 'nooch',
+  'tvp', 'textured vegetable protein',
+  'jackfruit', 'young jackfruit',
+  'beyond meat', 'impossible burger', 'impossible meat',
+  'veggie burger', 'veggie patty', 'black bean burger', 'lentil burger',
+  'meatless', 'plant-based protein', 'plant based protein',
+  'pea protein', 'soy protein',
+];
 
 export const MEAT_KEYWORDS: string[] = [
   'chicken', 'beef', 'pork', 'lamb', 'turkey', 'bacon', 'sausage', 'ham',

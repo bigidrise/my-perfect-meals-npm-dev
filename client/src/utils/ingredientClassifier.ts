@@ -1,6 +1,7 @@
 import {
   IngredientCategory,
   MEAT_KEYWORDS,
+  PLANT_PROTEIN_KEYWORDS,
   PRODUCE_KEYWORDS,
   DAIRY_KEYWORDS,
   FROZEN_KEYWORDS,
@@ -54,7 +55,9 @@ export function classifyIngredient(name: string): ClassifiedIngredient {
   
   let category: IngredientCategory = 'Other';
   
-  if (matchesKeywords(normalizedName, FROZEN_KEYWORDS)) {
+  if (matchesKeywords(normalizedName, PLANT_PROTEIN_KEYWORDS)) {
+    category = 'Plant Proteins';
+  } else if (matchesKeywords(normalizedName, FROZEN_KEYWORDS)) {
     category = 'Frozen';
   } else if (matchesKeywords(normalizedName, MEAT_KEYWORDS)) {
     category = 'Meat';
