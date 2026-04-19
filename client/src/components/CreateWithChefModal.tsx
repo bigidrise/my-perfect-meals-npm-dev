@@ -32,6 +32,7 @@ import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 import { DietGuardIntercept } from "@/components/DietGuardIntercept";
 import { detectStarchyIngredients, hasExplicitStarchRequest } from "@/utils/ingredientClassifier";
+import type { DiversityContext } from "@/lib/diversityContext";
 import { isAllergyRelatedError } from "@/utils/allergyAlert";
 
 interface CreateWithChefModalProps {
@@ -45,6 +46,7 @@ interface CreateWithChefModalProps {
   dietType?: DietType;
   dietPhase?: BeachBodyPhase;
   starchContext?: StarchContext;
+  diversityContext?: DiversityContext;
 }
 
 export function CreateWithChefModal({
@@ -55,6 +57,7 @@ export function CreateWithChefModal({
   dietType,
   dietPhase,
   starchContext,
+  diversityContext,
 }: CreateWithChefModalProps) {
   const [description, setDescription] = useState("");
   const [safetyEnabled, setSafetyEnabled] = useState(true);
@@ -170,7 +173,8 @@ export function CreateWithChefModal({
       },
       strictMode,
       explicitOverride,
-      userDietOverride
+      userDietOverride,
+      diversityContext
     );
 
     if (meal) {

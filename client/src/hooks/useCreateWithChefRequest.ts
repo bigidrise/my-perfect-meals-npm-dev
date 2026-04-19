@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import type { DiversityContext } from "@/lib/diversityContext";
 
 export type DietType = 
   | 'anti-inflammatory'
@@ -65,7 +66,7 @@ interface UseCreateWithChefRequestResult {
   generating: boolean;
   progress: number;
   error: string | null;
-  generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner", dietType?: DietType, dietPhase?: BeachBodyPhase, starchContext?: StarchContext, safetyOptions?: SafetyOptions, strictMode?: boolean, explicitOverride?: ExplicitOverride) => Promise<Meal | null>;
+  generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner", dietType?: DietType, dietPhase?: BeachBodyPhase, starchContext?: StarchContext, safetyOptions?: SafetyOptions, strictMode?: boolean, explicitOverride?: ExplicitOverride, userDietOverride?: boolean, diversityContext?: DiversityContext) => Promise<Meal | null>;
   cancel: () => void;
 }
 
@@ -113,7 +114,8 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
     safetyOptions?: SafetyOptions,
     strictMode?: boolean,
     explicitOverride?: ExplicitOverride,
-    userDietOverride?: boolean
+    userDietOverride?: boolean,
+    diversityContext?: DiversityContext
   ): Promise<Meal | null> => {
     setGenerating(true);
     setError(null);
@@ -134,6 +136,7 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
           dietType: dietType || null,
           dietPhase: dietPhase || null,
           starchContext: starchContext || null,
+          diversityContext: diversityContext || null,
           safetyMode: safetyOptions?.safetyMode || "STRICT",
           overrideToken: safetyOptions?.overrideToken,
           strictMode: strictMode === true,
