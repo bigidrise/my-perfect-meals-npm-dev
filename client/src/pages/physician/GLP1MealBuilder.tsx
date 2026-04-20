@@ -1386,7 +1386,7 @@ export default function GLP1MealBuilder() {
                               <Sparkles className="h-3 w-3" />
                               Create with Chef
                             </Button>
-                            <AddOwnMealButton slot="breakfast" onSave={(meal) => quickAdd("breakfast", meal)} variant="icon" />
+                            <AddOwnMealButton slot="snacks" onSave={(meal) => quickAdd("snacks", { ...meal, id: `dyn-${mealNumber}-${meal.id}` })} variant="icon" />
                             <Button
                               size="sm"
                               variant="ghost"

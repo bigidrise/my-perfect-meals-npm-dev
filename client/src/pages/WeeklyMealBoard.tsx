@@ -1703,7 +1703,7 @@ export default function WeeklyMealBoard() {
                               <Sparkles className="h-3 w-3" />
                               Create with Chef
                             </Button>
-                            <AddOwnMealButton slot="breakfast" onSave={(meal) => { if (!checkLockedDay(activeDayISO)) quickAdd("breakfast", meal); }} variant="icon" />
+                            <AddOwnMealButton slot="snacks" onSave={(meal) => { if (!checkLockedDay(activeDayISO)) quickAdd("snacks", { ...meal, id: `dyn-${mealNumber}-${meal.id}` }); }} variant="icon" />
                             <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-900/30" onClick={() => handleRemoveMealSlot(mealNumber)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>

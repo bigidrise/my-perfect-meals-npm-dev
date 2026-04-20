@@ -1434,7 +1434,7 @@ export default function BeachBodyMealBoard() {
                             </Button>
 
                             {/* Manual entry */}
-                            <AddOwnMealButton slot="snacks" onSave={(meal) => quickAdd("snacks", meal)} variant="icon" />
+                            <AddOwnMealButton slot="snacks" onSave={(meal) => quickAdd("snacks", { ...meal, id: `bb-dyn-${mealNumber}-${meal.id}` })} variant="icon" />
 
                             {/* Delete slot */}
                             <Button
