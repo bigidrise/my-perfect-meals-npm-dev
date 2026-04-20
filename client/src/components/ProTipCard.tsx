@@ -1,49 +1,42 @@
-import React, { useState, useCallback, useRef } from "react";
-import { ttsService } from "@/lib/tts";
-import { PRO_TIP_SCRIPT } from "@/components/copilot/scripts/proTipScript";
+import React, { useState, useCallback } from "react";
+import { PRO_TIP_SECTIONS } from "@/components/copilot/scripts/proTipScript";
+import { useNarration } from "@/hooks/useNarration";
 import { PillButton } from "@/components/ui/pill-button";
+import { Play, Pause, RotateCcw } from "lucide-react";
 
 export const ProTipCard: React.FC = () => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [hasStarted, setHasStarted] = useState(false);
 
-  const handleToggle = useCallback(async () => {
-    if (isPlaying) {
-      ttsService.stop();
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
-      setIsPlaying(false);
-      return;
-    }
+  const {
+    isPlaying,
+    currentSectionIndex,
+    totalSections,
+    play,
+    pause,
+    resume,
+    stop,
+    reset,
+  } = useNarration(PRO_TIP_SECTIONS, {
+    onEnd: () => setHasStarted(false),
+  });
 
-    setIsPlaying(true);
+  const isActive = hasStarted;
 
-    try {
-      const result = await ttsService.speak(PRO_TIP_SCRIPT, {
-        onStart: () => setIsPlaying(true),
-        onEnd: () => setIsPlaying(false),
-        onError: () => setIsPlaying(false),
-      });
+  const handleListen = () => {
+    setHasStarted(true);
+    play();
+  };
 
-      if (result.audioUrl) {
-        const audio = new Audio(result.audioUrl);
-        audioRef.current = audio;
-        audio.onended = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(result.audioUrl!);
-        };
-        audio.onerror = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(result.audioUrl!);
-        };
-        await audio.play();
-      }
-    } catch {
-      setIsPlaying(false);
-    }
-  }, [isPlaying]);
+  const handleStop = () => {
+    stop();
+    setHasStarted(false);
+  };
+
+  const handleStartOver = useCallback(() => {
+    reset();
+    setHasStarted(true);
+    setTimeout(() => play(), 50);
+  }, [reset, play]);
 
   return (
     <div className="col-span-full">
@@ -77,10 +70,39 @@ export const ProTipCard: React.FC = () => {
                 >
                   ★ Pro Tip
                 </span>
+
+                {isActive && (
+                  <span className="text-xs text-white/35">
+                    {currentSectionIndex + 1} / {totalSections}
+                  </span>
+                )}
               </div>
+
               <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.85)" }}>
-                Learn how to use the Meal Builder for maximum accuracy.
+                {isActive
+                  ? PRO_TIP_SECTIONS[currentSectionIndex]?.heading
+                  : "Learn how to use the Meal Builder for maximum accuracy."}
               </p>
+
+              {isActive && (
+                <div className="flex items-center gap-2 mt-3">
+                  {isPlaying ? (
+                    <PillButton onClick={pause} active className="flex items-center gap-1.5">
+                      <Pause className="h-3.5 w-3.5" />
+                      Pause
+                    </PillButton>
+                  ) : (
+                    <PillButton onClick={resume} active className="flex items-center gap-1.5">
+                      <Play className="h-3.5 w-3.5" />
+                      Resume
+                    </PillButton>
+                  )}
+                  <PillButton onClick={handleStartOver} className="flex items-center gap-1.5">
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Start Over
+                  </PillButton>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col items-center gap-1 flex-shrink-0">
@@ -96,9 +118,15 @@ export const ProTipCard: React.FC = () => {
                   boxShadow: "0 0 8px rgba(251,191,36,0.35)",
                 }}
               />
-              <PillButton onClick={handleToggle} active={isPlaying}>
-                {isPlaying ? "Stop" : "Listen"}
-              </PillButton>
+              {!isActive ? (
+                <PillButton onClick={handleListen}>
+                  Listen
+                </PillButton>
+              ) : (
+                <PillButton onClick={handleStop}>
+                  Stop
+                </PillButton>
+              )}
             </div>
           </div>
         </div>

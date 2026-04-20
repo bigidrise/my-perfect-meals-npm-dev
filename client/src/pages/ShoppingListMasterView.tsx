@@ -78,6 +78,8 @@ export default function ShoppingListMasterView() {
 
   // Subscribe to Zustand store
   const items = useShoppingListStore((s) => s.items);
+  const isHydrating = useShoppingListStore((s) => s.isHydrating);
+  const hydrate = useShoppingListStore((s) => s.hydrate);
   const addItem = useShoppingListStore((s) => s.addItem);
   const toggleItem = useShoppingListStore((s) => s.toggleItem);
   const removeItem = useShoppingListStore((s) => s.removeItem);
@@ -85,6 +87,11 @@ export default function ShoppingListMasterView() {
   const clearAll = useShoppingListStore((s) => s.clearAll);
   const updateItem = useShoppingListStore((s) => s.updateItem);
   const replaceItems = useShoppingListStore((s) => s.replaceItems);
+
+  // Guardrail 3: Hydrate from server on mount (no empty flicker — local items show immediately)
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   
@@ -457,6 +464,9 @@ export default function ShoppingListMasterView() {
           {/* Title */}
           <h1 className="text-lg font-bold text-white flex items-center gap-2">
             Smart Grocery List
+            {isHydrating && (
+              <span className="text-xs font-normal text-white/50 animate-pulse">syncing…</span>
+            )}
           </h1>
         </div>
       </div>
