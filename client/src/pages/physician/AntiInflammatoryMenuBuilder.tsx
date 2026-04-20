@@ -469,7 +469,6 @@ export default function AntiInflammatoryMenuBuilder() {
       try {
         // Add to the snacks slot
         if (
-          FEATURES.dayPlanning === "alpha" &&
           planningMode === "day" &&
           activeDayISO
         ) {
@@ -528,7 +527,6 @@ export default function AntiInflammatoryMenuBuilder() {
       try {
         // Add to the appropriate slot based on premadePickerSlot
         if (
-          FEATURES.dayPlanning === "alpha" &&
           planningMode === "day" &&
           activeDayISO
         ) {
@@ -734,7 +732,7 @@ export default function AntiInflammatoryMenuBuilder() {
     if (!board) return;
 
     const lists =
-      FEATURES.dayPlanning === "alpha" && planningMode === "day" && activeDayISO
+      planningMode === "day" && activeDayISO
         ? getDayLists(board, activeDayISO)
         : board.lists;
 
@@ -823,7 +821,6 @@ export default function AntiInflammatoryMenuBuilder() {
     // Collect all meals from current view (day or week mode)
     let allMeals: Meal[] = [];
     if (
-      FEATURES.dayPlanning === "alpha" &&
       planningMode === "day" &&
       activeDayISO
     ) {
@@ -1121,7 +1118,7 @@ export default function AntiInflammatoryMenuBuilder() {
     if (!board) return;
     try {
       const slotPrefix = `dyn-${mealNumber}-`;
-      if (FEATURES.dayPlanning === "alpha" && planningMode === "day" && activeDayISO) {
+      if (planningMode === "day" && activeDayISO) {
         const dayLists = getDayLists(board, activeDayISO);
         const updatedDayLists = { ...dayLists, snacks: dayLists.snacks.filter((meal: Meal) => !meal.id.startsWith(slotPrefix)) };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
@@ -1402,7 +1399,7 @@ export default function AntiInflammatoryMenuBuilder() {
             </div>
 
             {/* ROW 2 & 3: Days of Week */}
-            {FEATURES.dayPlanning === "alpha" && weekDatesList.length > 0 && (
+            {weekDatesList.length > 0 && (
               <div className="flex justify-center">
                 <DayChips
                   weekDates={weekDatesList}
@@ -1413,8 +1410,7 @@ export default function AntiInflammatoryMenuBuilder() {
             )}
 
             {/* ROW 4: Daily Starch Indicator */}
-            {FEATURES.dayPlanning === "alpha" &&
-              activeDayISO &&
+            {activeDayISO &&
               board && (
                 <div className="flex justify-center">
                   <DailyStarchIndicator 
@@ -1515,8 +1511,7 @@ export default function AntiInflammatoryMenuBuilder() {
 
         <div className="max-w-[1600px] mx-auto px-4 pb-10 grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
           {/* Render day view or week view based on mode */}
-          {FEATURES.dayPlanning === "alpha" &&
-          planningMode === "day" &&
+          {planningMode === "day" &&
           activeDayISO &&
           board
             ? // DAY MODE: Meal 1/2/3, dynamic Meal 4+, Snacks
@@ -1746,7 +1741,6 @@ export default function AntiInflammatoryMenuBuilder() {
 
         {/* Remaining Macros Footer - Inline Mode */}
         {board &&
-          FEATURES.dayPlanning === "alpha" &&
           planningMode === "day" &&
           activeDayISO && (() => {
               const dayLists = getDayLists(board, activeDayISO);
@@ -1906,7 +1900,7 @@ export default function AntiInflammatoryMenuBuilder() {
         />
 
         {/* NEW: Duplicate Day Modal */}
-        {FEATURES.dayPlanning === "alpha" && (
+        {(
           <DuplicateDayModal
             isOpen={showDuplicateDayModal}
             onClose={() => setShowDuplicateDayModal(false)}
@@ -1994,7 +1988,6 @@ export default function AntiInflammatoryMenuBuilder() {
 
             // DAY MODE: Show dual buttons (Send Day + Send Entire Week)
             if (
-              FEATURES.dayPlanning === "alpha" &&
               planningMode === "day" &&
               activeDayISO
             ) {
