@@ -1290,7 +1290,7 @@ function mapToUnifiedMeal(opt: any, idx: number, cravingInput: string, validMeal
     fat: opt.fat || 12,
     cookingTime: opt.cookingTime || '25 minutes',
     difficulty: 'Easy',
-    imageUrl: FALLBACK_IMAGES[validMealType] || FALLBACK_IMAGES.default,
+    imageUrl: '',
     medicalBadges: [],
     source: 'ai'
   };
