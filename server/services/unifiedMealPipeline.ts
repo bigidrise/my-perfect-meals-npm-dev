@@ -63,7 +63,7 @@ import OpenAI from 'openai';
 import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 import { macroAudit, macroAuditPrompt, macroAuditCache } from '../utils/macroAuditLogger';
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from './behavioralMemoryService';
-import { buildDishTypeHint, getSemanticFallback, buildStableCacheKey } from './mealImageGenerator';
+import { buildDishTypeHint, getSemanticFallback, buildStableCacheKey, generateMealImageUnified } from './mealImageGenerator';
 import { mealImageCache } from '../db/schema/mealImageCache';
 
 // ─────────────────────────────────────────────────────────────────────────────
