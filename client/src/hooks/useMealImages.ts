@@ -38,7 +38,11 @@ export function useMealImages<T extends HasMealImage>(
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-                body: JSON.stringify({ mealName: meal.name, mealType: meal.mealType || mealType }),
+                body: JSON.stringify({
+                  mealName: meal.name,
+                  mealType: meal.mealType || mealType,
+                  ingredients: (meal as any).ingredients || [],
+                }),
               });
               const data = await res.json();
               if (data.imageUrl) {

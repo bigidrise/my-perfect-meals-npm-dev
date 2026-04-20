@@ -371,7 +371,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
         quality: "standard",
         style: "natural",
       }),
-      8000
+      25000
     );
 
     imageUrl = response.data?.[0]?.url ?? null;
