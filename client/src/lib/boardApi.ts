@@ -22,7 +22,10 @@ export type WeekLists = {
   breakfast: ExtendedMeal[];
   lunch: ExtendedMeal[];
   dinner: ExtendedMeal[];
-  snacks: ExtendedMeal[]; // unlimited snacks supported
+  snacks: ExtendedMeal[];
+  meal4: ExtendedMeal[];
+  meal5: ExtendedMeal[];
+  meal6: ExtendedMeal[];
 };
 
 export type WeekBoard = {
@@ -58,12 +61,12 @@ export async function saveWeekBoard(board: WeekBoard): Promise<WeekBoard> {
   return put<WeekBoard>("/api/week-board", board);
 }
 
-export async function addMealToList(list: "breakfast"|"lunch"|"dinner"|"snacks", meal: Meal, dateISO?: string): Promise<WeekBoard> {
+export async function addMealToList(list: "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal: Meal, dateISO?: string): Promise<WeekBoard> {
   const body = dateISO ? { list, meal, dateISO } : { list, meal };
   return post<WeekBoard>("/api/week-board/add", body);
 }
 
-export async function removeMealFromList(list: "breakfast"|"lunch"|"dinner"|"snacks", mealId: string, dateISO?: string): Promise<WeekBoard> {
+export async function removeMealFromList(list: "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", mealId: string, dateISO?: string): Promise<WeekBoard> {
   const body = dateISO ? { list, mealId, dateISO } : { list, mealId };
   return post<WeekBoard>("/api/week-board/remove", body);
 }
@@ -139,7 +142,10 @@ export function getDayLists(board: WeekBoard, dateISO: string): WeekLists {
       breakfast: [],
       lunch: [],
       dinner: [],
-      snacks: []
+      snacks: [],
+      meal4: [],
+      meal5: [],
+      meal6: [],
     };
   }
   
@@ -164,7 +170,7 @@ export function setDayLists(board: WeekBoard, dateISO: string, lists: WeekLists)
 /** Update a specific meal's imageUrl anywhere in the board (days or lists structure).
  *  Used by page-level image loaders so image fetches survive modal close. */
 export function updateMealImageInBoard(board: WeekBoard, mealId: string, imageUrl: string): WeekBoard {
-  const slots = ['breakfast', 'lunch', 'dinner', 'snacks'] as const;
+  const slots = ['breakfast', 'lunch', 'dinner', 'snacks', 'meal4', 'meal5', 'meal6'] as const;
 
   let daysUpdated = false;
   let newDays = board.days;
@@ -209,7 +215,7 @@ export function updateMealImageInBoard(board: WeekBoard, mealId: string, imageUr
 /** Get the current imageUrl for a meal anywhere in the board.
  *  Used as a guard before persisting an image update — avoids redundant saveBoard calls. */
 export function getMealImageUrl(board: WeekBoard, mealId: string): string | null | undefined {
-  const slots = ['breakfast', 'lunch', 'dinner', 'snacks'] as const;
+  const slots = ['breakfast', 'lunch', 'dinner', 'snacks', 'meal4', 'meal5', 'meal6'] as const;
   if (board.days) {
     for (const dayLists of Object.values(board.days)) {
       for (const slot of slots) {
@@ -256,7 +262,10 @@ export function cloneDayLists(lists: WeekLists): WeekLists {
     breakfast: cloned.breakfast.map(reId),
     lunch: cloned.lunch.map(reId),
     dinner: cloned.dinner.map(reId),
-    snacks: cloned.snacks.map(reId), // keep orderIndex as-is
+    snacks: cloned.snacks.map(reId),
+    meal4: (cloned.meal4 || []).map(reId),
+    meal5: (cloned.meal5 || []).map(reId),
+    meal6: (cloned.meal6 || []).map(reId),
   };
 }
 

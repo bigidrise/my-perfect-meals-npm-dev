@@ -68,7 +68,6 @@ import { setActiveBuilderNs } from "@/lib/activeBuilderNs";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
 import {
-  Plus,
   Check,
   Sparkles,
   Calendar,
@@ -79,7 +78,6 @@ import {
   ChevronRight,
   Copy,
   Info,
-  Trash2,
   ChefHat,
 } from "lucide-react";
 import { FEATURES } from "@/utils/features";
@@ -178,11 +176,14 @@ function makeNewSnack(nextIndex: number): Meal {
 // CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
 // Using noon UTC anchor pattern to prevent day-shift bugs
 
-// Fixed Meal Slots (Meals 1-3 only, dynamic meals 4+ handled separately)
-const lists: Array<["breakfast" | "lunch" | "dinner" | "snacks", string]> = [
+// Fixed Meal Slots (6 meals)
+const lists: Array<["breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6", string]> = [
   ["breakfast", "Meal 1"],
   ["lunch", "Meal 2"],
   ["dinner", "Meal 3"],
+  ["meal4", "Meal 4"],
+  ["meal5", "Meal 5"],
+  ["meal6", "Meal 6"],
 ];
 
 export default function BeachBodyMealBoard() {
@@ -365,120 +366,7 @@ export default function BeachBodyMealBoard() {
     meal: any | null;
   }>({ isOpen: false, meal: null });
 
-  // Dynamic meal slot tracking (Meal 4+) - track specific slot numbers as a Set
-  const [dynamicSlots, setDynamicSlots] = useState<Set<number>>(new Set());
-
-  // Derive dynamicSlots from saved meals when board loads
-  useEffect(() => {
-    if (!board) return;
-
-    // Scan all snacks for bb-dyn-{N}- prefixed meals to find which slots exist
-    const allSnacks =
-      planningMode === "day" && activeDayISO
-        ? getDayLists(board, activeDayISO).snacks
-        : board.lists.snacks;
-
-    const slots = new Set<number>();
-    const prefix = "bb-dyn-";
-    allSnacks.forEach((meal: Meal) => {
-      if (meal.id.startsWith(prefix)) {
-        const match = meal.id.match(/bb-dyn-(\d+)-/);
-        if (match) {
-          slots.add(parseInt(match[1], 10));
-        }
-      }
-    });
-
-    setDynamicSlots(slots);
-  }, [board, planningMode, activeDayISO]);
-
-  // Calculate next available slot number
-  const nextSlotNumber = useMemo(() => {
-    if (dynamicSlots.size === 0) return 4;
-    return Math.max(...Array.from(dynamicSlots)) + 1;
-  }, [dynamicSlots]);
-
-  // Add a new dynamic meal slot
-  const handleAddMealSlot = useCallback(() => {
-    const newSlot = nextSlotNumber;
-    setDynamicSlots((prev) => new Set([...prev, newSlot]));
-    toast({
-      title: "Meal Slot Added",
-      description: `Meal ${newSlot} is ready to use`,
-    });
-  }, [nextSlotNumber, toast]);
-
-  // Remove a dynamic meal slot and clean up board data
-  const handleRemoveMealSlot = useCallback(
-    async (mealNumber: number) => {
-      if (!board) return;
-
-      try {
-        const slotPrefix = `bb-dyn-${mealNumber}-`;
-
-        if (
-          FEATURES.dayPlanning === "alpha" &&
-          planningMode === "day" &&
-          activeDayISO
-        ) {
-          // DAY MODE: Remove meals from day-specific lists
-          const dayLists = getDayLists(board, activeDayISO);
-          const updatedDayLists = {
-            ...dayLists,
-            snacks: dayLists.snacks.filter(
-              (m: Meal) => !m.id.startsWith(slotPrefix),
-            ),
-          };
-          const updatedBoard = setDayLists(
-            board,
-            activeDayISO,
-            updatedDayLists,
-          );
-          await saveBoard(updatedBoard);
-        } else {
-          // WEEK MODE: Remove meals from global snacks list
-          const updatedBoard = {
-            ...board,
-            lists: {
-              ...board.lists,
-              snacks: board.lists.snacks.filter(
-                (m: Meal) => !m.id.startsWith(slotPrefix),
-              ),
-            },
-          };
-          await saveBoard(updatedBoard);
-        }
-
-        // Remove slot from set
-        setDynamicSlots((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(mealNumber);
-          return newSet;
-        });
-
-        toast({
-          title: "Meal Slot Removed",
-          description: `Meal ${mealNumber} has been deleted`,
-        });
-      } catch (err) {
-        console.error("Failed to remove meal slot:", err);
-        toast({
-          title: "Error",
-          description: "Failed to remove meal slot",
-          variant: "destructive",
-        });
-      }
-    },
-    [board, planningMode, activeDayISO, saveBoard, toast],
-  );
-
-  // Sorted array of dynamic slot numbers for rendering
-  const sortedDynamicSlots = useMemo(
-    () => Array.from(dynamicSlots).sort((a, b) => a - b),
-    [dynamicSlots],
-  );
-
-  // Track current dynamic slot for meal additions
+  // Track current dynamic slot for meal additions (legacy, kept for premade picker compat)
   const [currentDynamicSlot, setCurrentDynamicSlot] = useState<number | null>(
     null,
   );
@@ -1006,7 +894,7 @@ export default function BeachBodyMealBoard() {
   }, [weekStartISO, gotoWeek]);
 
   async function quickAdd(
-    list: "breakfast" | "lunch" | "dinner" | "snacks",
+    list: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
     meal: Meal,
   ) {
     if (!board) return;
@@ -1323,7 +1211,7 @@ export default function BeachBodyMealBoard() {
                             onSnackCreator={() => {
                               setSnackCreatorOpen(true);
                             }}
-                            onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks", meal)}
+                            onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)}
                             onFavorites={() => {
                               setFavoritesSlot(key as "breakfast" | "lunch" | "dinner" | "snacks");
                               setFavoritesOpen(true);
@@ -1404,124 +1292,6 @@ export default function BeachBodyMealBoard() {
                       </section>
                     ))}
 
-                    {/* Dynamic Meal Slots (Meal 4+) */}
-                    {sortedDynamicSlots.map((mealNumber) => (
-                      <section
-                        key={`dyn-${mealNumber}`}
-                        className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4"
-                      >
-                        <div className="flex items-center justify-between mb-4">
-                          <h2 className="text-white/90 text-lg font-medium">
-                            Meal {mealNumber}
-                          </h2>
-                          <div className="flex gap-2">
-                            {/* Snack Creator (replaced Create with AI) */}
-                            <SnackCreatorButton
-                              onClick={() => setSnackCreatorOpen(true)}
-                            />
-
-                            {/* AI Premades */}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-white/80 hover:bg-black/50 border border-emerald-400/30 text-xs font-medium flex items-center gap-1"
-                              onClick={() =>
-                                handleOpenPremadePicker("snacks", mealNumber)
-                              }
-                            >
-                              <ChefHat className="h-3 w-3" />
-                              AI Premades
-                            </Button>
-
-                            {/* Manual entry */}
-                            <AddOwnMealButton slot="snacks" onSave={(meal) => quickAdd("snacks", { ...meal, id: `bb-dyn-${mealNumber}-${meal.id}` })} variant="icon" />
-
-                            {/* Delete slot */}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-red-400 hover:text-red-300 hover:bg-red-900/30"
-                              onClick={() => handleRemoveMealSlot(mealNumber)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="space-y-3">
-                          {dayLists.snacks
-                            .filter((m: Meal) =>
-                              m.id.startsWith(`bb-dyn-${mealNumber}-`),
-                            )
-                            .map((meal: Meal, idx: number) => (
-                              <MealCard
-                                key={meal.id}
-                                date={activeDayISO}
-                                slot="snacks"
-                                meal={meal}
-                                showStarchBadge={true}
-                                onUpdated={(m) => {
-                                  if (m === null) {
-                                    const updatedDayLists = {
-                                      ...dayLists,
-                                      snacks: dayLists.snacks.filter(
-                                        (existingMeal: Meal) =>
-                                          existingMeal.id !== meal.id,
-                                      ),
-                                    };
-                                    const updatedBoard = setDayLists(
-                                      board,
-                                      activeDayISO,
-                                      updatedDayLists,
-                                    );
-                                    saveBoard(updatedBoard);
-                                  } else {
-                                    const updatedDayLists = {
-                                      ...dayLists,
-                                      snacks: dayLists.snacks.map(
-                                        (existingMeal: Meal) =>
-                                          existingMeal.id === meal.id
-                                            ? m
-                                            : existingMeal,
-                                      ),
-                                    };
-                                    const updatedBoard = setDayLists(
-                                      board,
-                                      activeDayISO,
-                                      updatedDayLists,
-                                    );
-                                    saveBoard(updatedBoard);
-                                  }
-                                }}
-                              />
-                            ))}
-                          {dayLists.snacks.filter((m: Meal) =>
-                            m.id.startsWith(`bb-dyn-${mealNumber}-`),
-                          ).length === 0 && (
-                            <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
-                              <p className="mb-2">No meals yet</p>
-                              <p className="text-xs text-white/40">
-                                Use buttons above to add meals
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </section>
-                    ))}
-
-                    {/* Add Meal Button */}
-                    <section className="rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/20 backdrop-blur p-4 flex items-center justify-center min-h-[120px]">
-                      <Button
-                        variant="ghost"
-                        className="text-white/60 hover:text-white hover:bg-white/10 flex flex-col items-center gap-2 py-6"
-                        onClick={handleAddMealSlot}
-                      >
-                        <Plus className="h-8 w-8" />
-                        <span className="text-sm">
-                          Add Meal {nextSlotNumber}
-                        </span>
-                      </Button>
-                    </section>
                   </>
                 );
               })()
@@ -1570,7 +1340,7 @@ export default function BeachBodyMealBoard() {
                         />
                       )}
 
-                      <AddOwnMealButton slot={key as "breakfast"|"lunch"|"dinner"|"snacks"} onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks", meal)} variant="icon" />
+                      <AddOwnMealButton slot={key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6"} onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)} variant="icon" />
                     </div>
                   </div>
 
@@ -1639,18 +1409,7 @@ export default function BeachBodyMealBoard() {
                 </section>
               ))}
 
-          {/* Add Meal Button - WEEK MODE */}
-          <div className="col-span-full flex justify-center my-4">
-            <Button
-              onClick={handleAddMealSlot}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-8 py-3 rounded-xl flex items-center gap-2"
-            >
-              <Plus className="h-5 w-5" />
-              Add Meal {nextSlotNumber}
-            </Button>
-          </div>
-
-          {/* Snack Card - Below Add Meal Button, Above Daily Totals */}
+          {/* Snack Card - Below Meals, Above Daily Totals */}
           <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4 col-span-full">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-white/90 text-lg font-medium">Snacks</h2>
