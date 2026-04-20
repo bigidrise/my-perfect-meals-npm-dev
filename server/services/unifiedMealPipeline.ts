@@ -2448,7 +2448,7 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
         finalSnackData.name,
         finalSnackData.ingredients?.map((ing: any) => ing.name) || [],
         'meal',
-        'homemade',
+        'realistic professional food photography, natural light, plated, clean background, shallow depth of field, no text, no watermark, no logo, no people, no hands, no utensils in motion',
       );
 
       if (generatedImage) {
