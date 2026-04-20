@@ -58,6 +58,8 @@ import { useCopilot } from "@/components/copilot/CopilotContext";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { useStarchGuardPrecheck } from "@/hooks/useStarchGuardPrecheck";
+import { StarchGuardIntercept } from "@/components/StarchGuardIntercept";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet, filterMealsByDiet } from "@/utils/dietaryFilter";
 import DietStyleBadge from "@/components/DietStyleBadge";
@@ -268,6 +270,12 @@ const FridgeRescuePage = () => {
     activeDiet,
   } = useDietGuardPrecheck();
   const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(null);
+  const [pendingFridgeMeal, setPendingFridgeMeal] = useState<any>(null);
+  const {
+    alert: starchAlert,
+    checkStarch,
+    clearAlert: clearStarchAlert,
+  } = useStarchGuardPrecheck();
   const [stepsExpanded, setStepsExpanded] = useState<Record<string, boolean>>({});
   const [activeSteps, setActiveSteps] = useState<Record<string, number | null>>({});
   const [expandedInstructions, setExpandedInstructions] = useState<string[]>(
@@ -638,7 +646,16 @@ const FridgeRescuePage = () => {
     if (!resp.ok) throw new Error(data?.error || `HTTP ${resp.status}`);
     if (!data?.meals?.length) throw new Error("No meals returned");
 
-    await addMealToPlan(data.meals[0]); // send to weekly slot
+    const generatedMeal = data.meals[0];
+    const ingredientTexts = (generatedMeal.ingredients || []).map((ing: any) =>
+      typeof ing === "string" ? ing : ing?.name || ""
+    ).filter(Boolean);
+    const starchOk = checkStarch(ingredientTexts.length ? ingredientTexts : [generatedMeal.name || ""]);
+    if (starchOk) {
+      await addMealToPlan(generatedMeal);
+    } else {
+      setPendingFridgeMeal(generatedMeal);
+    }
   }
 
   // Local list replace (for non-replace mode)
@@ -965,6 +982,24 @@ const FridgeRescuePage = () => {
               </div>
             </div>
           </div>
+
+          {starchAlert.show && pendingFridgeMeal && (
+            <div className="bg-black/30 backdrop-blur-lg border border-white/20 rounded-2xl p-6 max-w-6xl mx-auto mt-8">
+              <StarchGuardIntercept
+                alert={starchAlert}
+                onDecision={async (decision) => {
+                  if (decision === "continue_anyway") {
+                    await addMealToPlan(pendingFridgeMeal);
+                  }
+                  clearStarchAlert();
+                  setPendingFridgeMeal(null);
+                }}
+                showContinueAnyway
+                continueAnywayLabel="Add It Anyway"
+                chooseAnotherLabel="Try Different Ingredients"
+              />
+            </div>
+          )}
 
           {showResults && meals.length > 0 && (
             <div

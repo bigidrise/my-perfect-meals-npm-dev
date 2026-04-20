@@ -32,6 +32,8 @@ import TranslateToggle from "@/components/TranslateToggle";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { useStarchGuardPrecheck } from "@/hooks/useStarchGuardPrecheck";
+import { Wheat } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import DietStyleBadge from "@/components/DietStyleBadge";
@@ -187,6 +189,20 @@ export default function BeverageCreator() {
   } = useDietGuardPrecheck();
 
   const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(null);
+
+  const {
+    alert: beverageStarchAlert,
+    checkStarch: checkBeverageStarch,
+    clearAlert: clearBeverageStarchAlert,
+  } = useStarchGuardPrecheck();
+
+  useEffect(() => {
+    if (!generatedBeverage) return;
+    const ingredientTexts = (generatedBeverage.ingredients || []).map((ing: any) =>
+      typeof ing === "string" ? ing : ing?.name || ""
+    ).filter(Boolean);
+    checkBeverageStarch(ingredientTexts.length ? ingredientTexts : [generatedBeverage.name || ""]);
+  }, [generatedBeverage]);
 
   const handleSafetyOverride = (enabled: boolean, token?: string) => {
     setSafetyEnabled(enabled);
@@ -862,6 +878,22 @@ export default function BeverageCreator() {
                     >
                       Add to Macros
                     </GlassButton>
+
+                    {beverageStarchAlert.show && (
+                      <div className="flex items-start gap-2 rounded-lg bg-amber-950/40 border border-amber-600/40 px-3 py-2.5 mb-1">
+                        <Wheat className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-amber-300 text-xs font-medium">Starchy Carbs Already Covered</p>
+                          <p className="text-amber-400/70 text-xs mt-0.5">{beverageStarchAlert.message}</p>
+                        </div>
+                        <button
+                          onClick={clearBeverageStarchAlert}
+                          className="text-amber-500/60 hover:text-amber-300 text-xs shrink-0"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-2">
                       <AddToMealPlanButton meal={generatedBeverage} />
