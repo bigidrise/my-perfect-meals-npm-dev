@@ -1,94 +1,42 @@
-import React, { useState, useCallback, useRef } from "react";
-import { ttsService } from "@/lib/tts";
-import { PRO_TIP_SCRIPT } from "@/components/copilot/scripts/proTipScript";
+import React, { useState, useCallback } from "react";
+import { PRO_TIP_SECTIONS } from "@/components/copilot/scripts/proTipScript";
+import { useNarration } from "@/hooks/useNarration";
 import { PillButton } from "@/components/ui/pill-button";
-import { Play, Pause, RotateCcw, Loader2 } from "lucide-react";
-
-type PlayState = "idle" | "loading" | "playing" | "paused";
+import { Play, Pause, RotateCcw } from "lucide-react";
 
 export const ProTipCard: React.FC = () => {
-  const [playState, setPlayState] = useState<PlayState>("idle");
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioUrlRef = useRef<string | null>(null);
+  const [hasStarted, setHasStarted] = useState(false);
 
-  const cleanupAudio = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.onended = null;
-      audioRef.current.onerror = null;
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-    if (audioUrlRef.current) {
-      URL.revokeObjectURL(audioUrlRef.current);
-      audioUrlRef.current = null;
-    }
-  }, []);
+  const {
+    isPlaying,
+    currentSectionIndex,
+    totalSections,
+    play,
+    pause,
+    resume,
+    stop,
+    reset,
+  } = useNarration(PRO_TIP_SECTIONS, {
+    onEnd: () => setHasStarted(false),
+  });
 
-  const attachAudioHandlers = useCallback((audio: HTMLAudioElement, url: string) => {
-    audio.onended = () => {
-      cleanupAudio();
-      setPlayState("idle");
-    };
-    audio.onerror = () => {
-      cleanupAudio();
-      setPlayState("idle");
-    };
-  }, [cleanupAudio]);
+  const isActive = hasStarted;
 
-  const handleListen = useCallback(async () => {
-    setPlayState("loading");
-    try {
-      ttsService.stop();
-      const result = await ttsService.speak(PRO_TIP_SCRIPT, {
-        onEnd: () => setPlayState("idle"),
-        onError: () => setPlayState("idle"),
-      });
+  const handleListen = () => {
+    setHasStarted(true);
+    play();
+  };
 
-      if (result.audioUrl) {
-        const audio = new Audio(result.audioUrl);
-        audioRef.current = audio;
-        audioUrlRef.current = result.audioUrl;
-        attachAudioHandlers(audio, result.audioUrl);
-        await audio.play();
-        setPlayState("playing");
-      } else {
-        setPlayState("playing");
-      }
-    } catch {
-      setPlayState("idle");
-    }
-  }, [attachAudioHandlers]);
+  const handleStop = () => {
+    stop();
+    setHasStarted(false);
+  };
 
-  const handlePause = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-    } else if (window.speechSynthesis?.speaking) {
-      window.speechSynthesis.pause();
-    }
-    setPlayState("paused");
-  }, []);
-
-  const handleResume = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.play().catch(() => setPlayState("idle"));
-    } else if (window.speechSynthesis?.paused) {
-      window.speechSynthesis.resume();
-    }
-    setPlayState("playing");
-  }, []);
-
-  const handleStartOver = useCallback(async () => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => {});
-      setPlayState("playing");
-    } else {
-      cleanupAudio();
-      ttsService.stop();
-      if (window.speechSynthesis) window.speechSynthesis.cancel();
-      await handleListen();
-    }
-  }, [cleanupAudio, handleListen]);
+  const handleStartOver = useCallback(() => {
+    reset();
+    setHasStarted(true);
+    setTimeout(() => play(), 50);
+  }, [reset, play]);
 
   return (
     <div className="col-span-full">
@@ -122,20 +70,29 @@ export const ProTipCard: React.FC = () => {
                 >
                   ★ Pro Tip
                 </span>
+
+                {isActive && (
+                  <span className="text-xs text-white/35">
+                    {currentSectionIndex + 1} / {totalSections}
+                  </span>
+                )}
               </div>
+
               <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.85)" }}>
-                Learn how to use the Meal Builder for maximum accuracy.
+                {isActive
+                  ? PRO_TIP_SECTIONS[currentSectionIndex]?.heading
+                  : "Learn how to use the Meal Builder for maximum accuracy."}
               </p>
 
-              {(playState === "playing" || playState === "paused") && (
+              {isActive && (
                 <div className="flex items-center gap-2 mt-3">
-                  {playState === "playing" ? (
-                    <PillButton onClick={handlePause} active className="flex items-center gap-1.5">
+                  {isPlaying ? (
+                    <PillButton onClick={pause} active className="flex items-center gap-1.5">
                       <Pause className="h-3.5 w-3.5" />
                       Pause
                     </PillButton>
                   ) : (
-                    <PillButton onClick={handleResume} active className="flex items-center gap-1.5">
+                    <PillButton onClick={resume} active className="flex items-center gap-1.5">
                       <Play className="h-3.5 w-3.5" />
                       Resume
                     </PillButton>
@@ -161,26 +118,12 @@ export const ProTipCard: React.FC = () => {
                   boxShadow: "0 0 8px rgba(251,191,36,0.35)",
                 }}
               />
-              {playState === "idle" && (
+              {!isActive ? (
                 <PillButton onClick={handleListen}>
                   Listen
                 </PillButton>
-              )}
-              {playState === "loading" && (
-                <PillButton active className="flex items-center gap-1.5 opacity-70 cursor-not-allowed">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Loading…
-                </PillButton>
-              )}
-              {(playState === "playing" || playState === "paused") && (
-                <PillButton
-                  onClick={() => {
-                    cleanupAudio();
-                    ttsService.stop();
-                    if (window.speechSynthesis) window.speechSynthesis.cancel();
-                    setPlayState("idle");
-                  }}
-                >
+              ) : (
+                <PillButton onClick={handleStop}>
                   Stop
                 </PillButton>
               )}
