@@ -1,5 +1,7 @@
 import express from "express";
-import { generateImage } from "../services/imageService";
+// DO NOT call generateImage() from imageService directly.
+// Use generateMealImageUnified only.
+import { generateMealImageUnified } from "../services/mealImageGenerator";
 const router = express.Router();
 
 type MealType = "breakfast" | "lunch" | "dinner" | "snack";
@@ -56,19 +58,15 @@ async function generateMeal(opts: {
     },
   };
 
-  // 🔒 PROTECTED: DALL-E image generation system
   if (generateImages) {
     try {
-      const imageUrl = await generateImage({
-        name: meal.name,
-        description: meal.description,
-        type: 'meal',
-        style: 'appetizing food photography'
-      });
-      if (imageUrl) {
-        (meal as any).imageUrl = imageUrl;
-        console.log(`🖼️ Generated image for: ${meal.name}`);
-      }
+      // DO NOT call image generation directly.
+      // Use generateMealImageUnified only.
+      (meal as any).imageUrl = await generateMealImageUnified(
+        meal.name,
+        meal.ingredients
+      );
+      console.log(`🖼️ Generated image for: ${meal.name}`);
     } catch (imageError) {
       console.warn(`⚠️ Image generation failed for ${meal.name}:`, imageError);
     }
