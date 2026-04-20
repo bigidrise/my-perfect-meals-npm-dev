@@ -30,10 +30,6 @@ function getUnitType(unit: string): 'volume' | 'weight' | 'count' {
   return 'count';
 }
 
-/**
- * Converts quantity from one unit to another if they share the same measurement type.
- * Returns null if the units are incompatible.
- */
 function convertUnit(quantity: number, fromUnit: string, toUnit: string): number | null {
   const from = (fromUnit || '').toLowerCase().trim();
   const to = (toUnit || '').toLowerCase().trim();
@@ -47,25 +43,18 @@ function convertUnit(quantity: number, fromUnit: string, toUnit: string): number
   return null;
 }
 
-/**
- * Finds an existing item that can be merged with an incoming item.
- * Tries exact unit match first, then cross-unit match within the same measurement type.
- */
 function findMergeable(
   items: ShoppingListItem[],
   normalizedName: string,
   unit: string,
 ): number {
   const u = (unit || '').toLowerCase().trim();
-  // Exact name + unit match
   const exact = items.findIndex(
     e => e.normalizedName === normalizedName && (e.unit || '').toLowerCase().trim() === u,
   );
   if (exact !== -1) return exact;
-
-  // Cross-unit match (same measurement type)
   const incomingType = getUnitType(unit);
-  if (incomingType === 'count') return -1; // unitless — don't cross-merge
+  if (incomingType === 'count') return -1;
   return items.findIndex(
     e => e.normalizedName === normalizedName && getUnitType(e.unit) === incomingType,
   );
@@ -82,7 +71,7 @@ export interface UniversalIngredient {
 
 export interface ShoppingListItem {
   id: string;
-  /** DB UUID — set when this item is synced to the server */
+  /** DB UUID — present once this item has been synced to the server */
   serverId?: string;
   name: string;
   normalizedName: string;
@@ -97,10 +86,8 @@ export interface ShoppingListItem {
 
 interface ShoppingListStore {
   items: ShoppingListItem[];
-  /** True while fetching from server on mount */
+  /** True while the initial server fetch is in progress */
   isHydrating: boolean;
-  /** True once the first server hydration has completed this session */
-  hydrated: boolean;
   addItem: (item: Omit<ShoppingListItem, 'id' | 'isChecked' | 'normalizedName' | 'category' | 'isPantryStaple'> & { category?: IngredientCategory }) => void;
   addItems: (items: UniversalIngredient[]) => void;
   toggleItem: (id: string) => void;
@@ -109,7 +96,11 @@ interface ShoppingListStore {
   clearAll: () => void;
   updateItem: (id: string, updates: Partial<ShoppingListItem>) => void;
   replaceItems: (items: ShoppingListItem[]) => void;
-  /** Fetch from server, merge with local cache, push local-only items to server */
+  /**
+   * Fetch grocery list from server, deduplicate, merge with local-only items,
+   * and push any local-only items up to the server.
+   * Runs on every shopping list page open — server is always the source of truth.
+   */
   hydrate: () => Promise<void>;
   getGroupedByCategory: () => Record<IngredientCategory, ShoppingListItem[]>;
   getFilteredItems: (excludePantryStaples: boolean) => ShoppingListItem[];
@@ -117,35 +108,20 @@ interface ShoppingListStore {
 
 const generateId = () => `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-/**
- * Unit normalization: convert to larger units when thresholds are met.
- * Runs before aggregation AND after merging to keep quantities clean.
- * Only converts oz, tsp, tbsp — never grams or milliliters.
- */
 function normalizeUnit(quantity: number, unit: string): { quantity: number; unit: string } {
   const u = unit.toLowerCase().trim();
-
   if ((u === 'tsp' || u === 'teaspoon' || u === 'teaspoons') && quantity >= 3) {
     return normalizeUnit(quantity / 3, 'tbsp');
   }
-
   if ((u === 'tbsp' || u === 'tablespoon' || u === 'tablespoons') && quantity >= 16) {
     return normalizeUnit(quantity / 16, 'cup');
   }
-
   if (u === 'oz' && quantity >= 16) {
     return { quantity: quantity / 16, unit: 'lb' };
   }
-
   return { quantity, unit };
 }
 
-/**
- * Full aggregation-order normalization for a single incoming item.
- * Step 1: normalize ingredient name (canonical food name)
- * Step 2: normalize unit (convert up at thresholds)
- * Returns values ready for canMerge check.
- */
 function normalizeForAggregation(name: string, quantity: number, unit: string) {
   const canonicalName = normalizeIngredient(name);
   const { quantity: normQty, unit: normUnit } = normalizeUnit(quantity, unit);
@@ -160,16 +136,11 @@ function normalizeForAggregation(name: string, quantity: number, unit: string) {
   };
 }
 
-// canMerge kept for migration compatibility — new code uses findMergeable
+// canMerge kept for migration compatibility
 const canMerge = (a: ShoppingListItem, b: { normalizedName: string; unit: string }): boolean => {
   return a.normalizedName === b.normalizedName && a.unit.toLowerCase() === b.unit.toLowerCase();
 };
 
-/**
- * Merge an incoming qty+unit into an existing item.
- * Converts units when they are the same measurement type (e.g. cups + oz → cups).
- * Returns the merged {quantity, unit} after normalizing upward at thresholds.
- */
 function mergeIntoExisting(
   existingQty: number,
   existingUnit: string,
@@ -178,34 +149,12 @@ function mergeIntoExisting(
 ): { quantity: number; unit: string } {
   const converted = convertUnit(incomingQty, incomingUnit, existingUnit);
   if (converted !== null) {
-    // Same measurement type — add in existing unit
-    const merged = existingQty + converted;
-    return normalizeUnit(merged, existingUnit);
+    return normalizeUnit(existingQty + converted, existingUnit);
   }
-  // Same unit string (exact match case) — just add
-  const merged = existingQty + incomingQty;
-  return normalizeUnit(merged, existingUnit);
+  return normalizeUnit(existingQty + incomingQty, existingUnit);
 }
 
-function createShoppingItem(input: UniversalIngredient): ShoppingListItem {
-  const { canonicalName, normalizedName, normQty, normUnit, category, isPantryStaple } =
-    normalizeForAggregation(input.name, input.quantity || 1, input.unit || '');
-
-  return {
-    id: generateId(),
-    name: canonicalName,
-    normalizedName,
-    quantity: normQty,
-    unit: normUnit,
-    category: input.category || category,
-    isPantryStaple,
-    isChecked: false,
-    notes: input.notes,
-    sourceMeals: input.sourceMeals,
-  };
-}
-
-/** Map a raw server item (shoppingListItems row) to the client ShoppingListItem shape */
+/** Map a raw server DB row to the client ShoppingListItem shape */
 function mapServerItem(si: any): ShoppingListItem {
   const classified = classifyIngredient(si.name || '');
   return {
@@ -223,38 +172,96 @@ function mapServerItem(si: any): ShoppingListItem {
   };
 }
 
+/**
+ * Deduplicate an array of server items by normalizedName + unit (sum quantities).
+ * The server can have multiple rows for the same ingredient — normalize them first.
+ */
+function deduplicateServerItems(items: ShoppingListItem[]): ShoppingListItem[] {
+  const deduped: ShoppingListItem[] = [];
+  for (const si of items) {
+    const existingIdx = deduped.findIndex(
+      e =>
+        e.normalizedName === si.normalizedName &&
+        (e.unit || '').toLowerCase() === (si.unit || '').toLowerCase(),
+    );
+    if (existingIdx !== -1) {
+      deduped[existingIdx] = {
+        ...deduped[existingIdx],
+        quantity: deduped[existingIdx].quantity + si.quantity,
+        // Only mark checked if ALL duplicates are checked
+        isChecked: deduped[existingIdx].isChecked && si.isChecked,
+      };
+    } else {
+      deduped.push(si);
+    }
+  }
+  return deduped;
+}
+
+/** Fire-and-forget POST of items to the server */
+function serverPost(items: ShoppingListItem[]) {
+  if (items.length === 0) return;
+  fetch('/api/shopping-list', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      items,
+      scopeType: 'adhoc',
+      scopeKey: 'cross-device',
+    }),
+  }).catch(() => {
+    // Fail silently — hydration on page open will recover any missed writes
+  });
+}
+
+/** Fire-and-forget PATCH of a quantity update to an existing server item */
+function serverPatch(serverId: string, quantity: number, unit: string) {
+  fetch(`/api/shopping-list-v2/${serverId}`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ quantity: quantity.toString(), unit }),
+  }).catch(() => {});
+}
+
 export const useShoppingListStore = create<ShoppingListStore>()(
   persist(
     (set, get) => ({
       items: [],
       isHydrating: false,
-      hydrated: false,
 
       // ── HYDRATE ────────────────────────────────────────────────────────────
+      /**
+       * Fetch from server on every shopping list page open.
+       * Server is source of truth. Local cache is merged in for items not yet on server.
+       * Only blocked if a hydration is already in progress.
+       */
       hydrate: async () => {
-        if (get().hydrated || get().isHydrating) return;
+        if (get().isHydrating) return;
         set({ isHydrating: true });
 
         try {
           const res = await fetch('/api/shopping-list-v2/', { credentials: 'include' });
           if (!res.ok) {
-            set({ isHydrating: false, hydrated: true });
+            set({ isHydrating: false });
             return;
           }
 
           const { items: serverItems } = await res.json() as { items: any[] };
-          const mappedServer: ShoppingListItem[] = serverItems.map(mapServerItem);
 
-          // ── Guardrail 1 & 2: Merge local+server, dedup by normalizedName+unit, sum quantities
+          // Map and deduplicate server rows (server can have multiple rows per ingredient)
+          const rawServer: ShoppingListItem[] = serverItems.map(mapServerItem);
+          const dedupedServer = deduplicateServerItems(rawServer);
+
+          // Merge local-only items (no serverId = never been pushed to server)
           const localItems = get().items;
-          const merged = [...mappedServer];
+          const merged = [...dedupedServer];
           const localOnly: ShoppingListItem[] = [];
 
           for (const local of localItems) {
-            // Items with serverId are already on the server from a previous session — skip
-            if (local.serverId) continue;
+            if (local.serverId) continue; // already on server, skip
 
-            // Truly new local item: find server counterpart by normalizedName+unit
             const serverIdx = merged.findIndex(
               s =>
                 s.normalizedName === local.normalizedName &&
@@ -262,18 +269,17 @@ export const useShoppingListStore = create<ShoppingListStore>()(
             );
 
             if (serverIdx !== -1) {
-              // Duplicate found — sum quantities (guardrail 2)
+              // Same ingredient on server — sum quantities (dedup rule)
               merged[serverIdx] = {
                 ...merged[serverIdx],
                 quantity: merged[serverIdx].quantity + local.quantity,
               };
             } else {
-              // Truly new — push to server
               localOnly.push(local);
             }
           }
 
-          // Push local-only items to server (migration: first sync)
+          // Push local-only items to server so other devices can see them
           if (localOnly.length > 0) {
             try {
               await fetch('/api/shopping-list', {
@@ -287,31 +293,40 @@ export const useShoppingListStore = create<ShoppingListStore>()(
                 }),
               });
 
-              // Re-fetch so all items (including newly pushed) have server UUIDs
+              // Re-fetch to get server UUIDs for all items (including just-pushed ones)
               const res2 = await fetch('/api/shopping-list-v2/', { credentials: 'include' });
               if (res2.ok) {
                 const { items: refreshed } = await res2.json() as { items: any[] };
-                set({ items: refreshed.map(mapServerItem), isHydrating: false, hydrated: true });
+                const all = deduplicateServerItems(refreshed.map(mapServerItem));
+                set({ items: all, isHydrating: false });
                 return;
               }
             } catch {
-              // Push failed — continue with best-effort merged list (local items keep local IDs)
+              // Push failed — show merged with local items (no serverIds for those)
             }
-            // Fallback: server empty + push failed → show merged (local items without serverIds)
-            set({ items: [...merged, ...localOnly], isHydrating: false, hydrated: true });
+            set({ items: [...merged, ...localOnly], isHydrating: false });
             return;
           }
 
-          set({ items: mappedServer, isHydrating: false, hydrated: true });
+          set({ items: dedupedServer, isHydrating: false });
         } catch {
-          // Fail open: keep existing local state so the user can still use the list offline
-          set({ isHydrating: false, hydrated: true });
+          // Fail open — keep local state so the user can still use the list offline
+          set({ isHydrating: false });
         }
       },
 
       // ── MUTATIONS ─────────────────────────────────────────────────────────
 
+      /**
+       * Add a single item locally and immediately write to server.
+       * If an identical item exists, merge quantities and PATCH the server item.
+       */
       addItem: (item) => {
+        let created: ShoppingListItem | null = null;
+        let mergedServerId: string | null = null;
+        let mergedQty = 0;
+        let mergedUnit = '';
+
         set((state) => {
           const { canonicalName, normalizedName, normQty, normUnit, category, isPantryStaple } =
             normalizeForAggregation(item.name, item.quantity, item.unit);
@@ -335,29 +350,45 @@ export const useShoppingListStore = create<ShoppingListStore>()(
                 ? `${existing.notes || ''}${existing.notes ? ', ' : ''}${item.notes}`
                 : existing.notes,
             };
+            if (existing.serverId) {
+              mergedServerId = existing.serverId;
+              mergedQty = finalQty;
+              mergedUnit = finalUnit;
+            }
             return { items: updated };
           }
 
-          return {
-            items: [
-              ...state.items,
-              {
-                ...item,
-                id: generateId(),
-                name: canonicalName,
-                normalizedName,
-                quantity: normQty,
-                unit: normUnit,
-                category: item.category || category,
-                isPantryStaple,
-                isChecked: false,
-              },
-            ],
+          const newEntry: ShoppingListItem = {
+            ...item,
+            id: generateId(),
+            name: canonicalName,
+            normalizedName,
+            quantity: normQty,
+            unit: normUnit,
+            category: item.category || category,
+            isPantryStaple,
+            isChecked: false,
           };
+          created = newEntry;
+          return { items: [...state.items, newEntry] };
         });
+
+        // Server sync (fire-and-forget)
+        if (created) {
+          serverPost([created]);
+        } else if (mergedServerId) {
+          serverPatch(mergedServerId, mergedQty, mergedUnit);
+        }
       },
 
+      /**
+       * Add multiple items locally and immediately write new ones to server.
+       * Merged items (quantity updates) trigger a server PATCH.
+       */
       addItems: (newItems) => {
+        const toPost: ShoppingListItem[] = [];
+        const toMergePatch: Array<{ serverId: string; quantity: number; unit: string }> = [];
+
         set((state) => {
           const updatedItems = [...state.items];
 
@@ -383,8 +414,11 @@ export const useShoppingListStore = create<ShoppingListStore>()(
                   ? [...(existing.sourceMeals || []), ...newItem.sourceMeals]
                   : existing.sourceMeals,
               };
+              if (existing.serverId) {
+                toMergePatch.push({ serverId: existing.serverId, quantity: finalQty, unit: finalUnit });
+              }
             } else {
-              updatedItems.push({
+              const newEntry: ShoppingListItem = {
                 id: generateId(),
                 name: canonicalName,
                 normalizedName,
@@ -395,30 +429,33 @@ export const useShoppingListStore = create<ShoppingListStore>()(
                 isChecked: false,
                 notes: newItem.notes,
                 sourceMeals: newItem.sourceMeals,
-              });
+              };
+              updatedItems.push(newEntry);
+              toPost.push(newEntry);
             }
           });
 
           return { items: updatedItems };
         });
+
+        // Server sync (fire-and-forget)
+        serverPost(toPost);
+        toMergePatch.forEach(({ serverId, quantity, unit }) => serverPatch(serverId, quantity, unit));
       },
 
       /**
-       * Optimistic toggle + server PATCH.
-       * Rolls back locally if the server call fails.
+       * Optimistic toggle + server PATCH. Rolls back locally if server fails.
        */
       toggleItem: (id) => {
         const item = get().items.find(i => i.id === id);
         if (!item) return;
 
-        // Optimistic local update
         set((state) => ({
           items: state.items.map((i) =>
             i.id === id ? { ...i, isChecked: !i.isChecked } : i
           ),
         }));
 
-        // Mirror to server if this item is synced
         if (item.serverId) {
           fetch(`/api/shopping-list-v2/${item.serverId}`, {
             method: 'PATCH',
@@ -426,7 +463,6 @@ export const useShoppingListStore = create<ShoppingListStore>()(
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ checked: !item.isChecked }),
           }).catch(() => {
-            // Rollback (guardrail 4)
             set((state) => ({
               items: state.items.map((i) =>
                 i.id === id ? { ...i, isChecked: item.isChecked } : i
@@ -437,23 +473,19 @@ export const useShoppingListStore = create<ShoppingListStore>()(
       },
 
       /**
-       * Optimistic remove + server DELETE.
-       * Rolls back by re-inserting the item if the server call fails.
+       * Optimistic remove + server DELETE. Rolls back by re-inserting if server fails.
        */
       removeItem: (id) => {
         const item = get().items.find(i => i.id === id);
         if (!item) return;
 
-        // Optimistic local removal
         set((state) => ({ items: state.items.filter((i) => i.id !== id) }));
 
-        // Mirror to server if synced
         if (item.serverId) {
           fetch(`/api/shopping-list-v2/${item.serverId}`, {
             method: 'DELETE',
             credentials: 'include',
           }).catch(() => {
-            // Rollback (guardrail 4)
             set((state) => ({ items: [...state.items, item] }));
           });
         }
@@ -461,16 +493,14 @@ export const useShoppingListStore = create<ShoppingListStore>()(
 
       /**
        * Optimistic clear-checked + server DELETE for each checked server item.
-       * Rolls back all items if any server call fails.
+       * Rolls back all checked items if any server call fails.
        */
       clearChecked: () => {
         const checkedItems = get().items.filter(i => i.isChecked);
         const serverChecked = checkedItems.filter(i => i.serverId);
 
-        // Optimistic local clear
         set((state) => ({ items: state.items.filter((i) => !i.isChecked) }));
 
-        // Mirror to server
         if (serverChecked.length > 0) {
           (async () => {
             const results = await Promise.allSettled(
@@ -482,7 +512,6 @@ export const useShoppingListStore = create<ShoppingListStore>()(
               )
             );
             if (results.some(r => r.status === 'rejected')) {
-              // Rollback (guardrail 4)
               set((state) => ({ items: [...state.items, ...checkedItems] }));
             }
           })();
@@ -490,8 +519,7 @@ export const useShoppingListStore = create<ShoppingListStore>()(
       },
 
       /**
-       * Optimistic clear-all + server DELETE all.
-       * Rolls back full list if the server call fails.
+       * Optimistic clear-all + server DELETE all. Full list restore on failure.
        */
       clearAll: () => {
         const prevItems = get().items;
@@ -504,7 +532,6 @@ export const useShoppingListStore = create<ShoppingListStore>()(
             method: 'DELETE',
             credentials: 'include',
           }).catch(() => {
-            // Rollback (guardrail 4)
             set({ items: prevItems });
           });
         }
@@ -557,7 +584,7 @@ export const useShoppingListStore = create<ShoppingListStore>()(
     {
       name: 'shopping-list-storage',
       version: 4,
-      // Only persist items — isHydrating and hydrated are ephemeral session state
+      // Only persist items — isHydrating is ephemeral session state
       partialize: (state) => ({ items: state.items }),
       migrate: (persistedState: any, version: number) => {
         if (version < 2) {
@@ -576,7 +603,6 @@ export const useShoppingListStore = create<ShoppingListStore>()(
           return { ...persistedState, items: migratedItems };
         }
         if (version < 3) {
-          // Rename "Dairy" category to "Dairy & Eggs"
           const oldItems = persistedState?.items || [];
           const migratedItems = oldItems.map((item: any) => ({
             ...item,
@@ -585,7 +611,6 @@ export const useShoppingListStore = create<ShoppingListStore>()(
           return { ...persistedState, items: migratedItems };
         }
         if (version < 4) {
-          // Re-classify tofu/tempeh/seitan from Meat/Other → Plant Proteins
           const plantProteinNames = ['tofu', 'tempeh', 'seitan', 'edamame', 'nutritional yeast', 'nooch', 'tvp', 'jackfruit'];
           const oldItems = persistedState?.items || [];
           const migratedItems = oldItems.map((item: any) => {
