@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { JustDescribeItModal } from "@/components/JustDescribeItModal";
 import { StarchGuardIntercept } from "@/components/StarchGuardIntercept";
@@ -102,10 +102,14 @@ export function AddOwnMealButton({ slot, onSave, variant = "icon", disabled = fa
           data-testid={`button-add-own-${slot}`}
         >
           {isGenerating ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <span className="flex items-center gap-2">
+              <span className="flex items-center space-x-1">
+                <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce [animation-delay:0s]" />
+                <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce [animation-delay:0.15s]" />
+                <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce [animation-delay:0.3s]" />
+              </span>
               Generating…
-            </>
+            </span>
           ) : (
             <>
               <Plus className="h-4 w-4 mr-2" />
@@ -136,7 +140,11 @@ export function AddOwnMealButton({ slot, onSave, variant = "icon", disabled = fa
         data-testid={`button-add-own-${slot}`}
       >
         {isGenerating ? (
-          <Loader2 className="h-3 w-3 animate-spin" />
+          <span className="flex items-center space-x-px">
+            <span className="w-1 h-1 bg-amber-400 rounded-full animate-bounce [animation-delay:0s]" />
+            <span className="w-1 h-1 bg-amber-400 rounded-full animate-bounce [animation-delay:0.15s]" />
+            <span className="w-1 h-1 bg-amber-400 rounded-full animate-bounce [animation-delay:0.3s]" />
+          </span>
         ) : (
           <Plus className="h-3 w-3" />
         )}
@@ -190,10 +198,14 @@ function Overlays({
 
       {phase === "generating" && (
         <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-gradient-to-b from-gray-900 to-black border border-white/20 rounded-2xl p-6 text-center w-full max-w-xs">
-            <Loader2 className="h-8 w-8 animate-spin text-amber-500 mx-auto mb-3" />
-            <p className="text-white font-medium">Generating meal image…</p>
-            <p className="text-white/50 text-sm mt-1">Adding to your board in a moment</p>
+          <div className="bg-gradient-to-b from-gray-900 to-black border border-white/20 rounded-2xl p-8 text-center w-full max-w-xs">
+            <div className="flex items-center justify-center space-x-2 mb-4">
+              <span className="w-3 h-3 bg-amber-400 rounded-full animate-bounce [animation-delay:0s]" />
+              <span className="w-3 h-3 bg-amber-400 rounded-full animate-bounce [animation-delay:0.15s]" />
+              <span className="w-3 h-3 bg-amber-400 rounded-full animate-bounce [animation-delay:0.3s]" />
+            </div>
+            <p className="text-white font-semibold text-base">Crafting your meal…</p>
+            <p className="text-white/50 text-sm mt-1">Building your card, just a sec</p>
           </div>
         </div>
       )}
