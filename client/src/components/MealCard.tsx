@@ -400,6 +400,7 @@ export function MealCard({
               instructions: displayInstructions || [],
               nutrition: meal.nutrition,
             }}
+            showPrepareButton={!meal.id?.startsWith("described_")}
             onContentUpdate={(updated) => setTranslatedContent((prev) => ({ ...prev, ...updated }))}
           />
         </div>
