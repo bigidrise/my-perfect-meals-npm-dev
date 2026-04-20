@@ -7,7 +7,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { useSavedMealsList, type SavedMealRow } from "@/hooks/useSavedMeals";
-import { Button } from "@/components/ui/button";
+import { PillButton } from "@/components/ui/pill-button";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 
 export type FavoriteCategory = "all" | "breakfast-style" | "mains" | "snacks" | "drinks";
@@ -97,17 +97,14 @@ export function FavoritesPickerModal({
 
         <div className="flex gap-2 overflow-x-auto px-4 py-3 border-b border-zinc-800 shrink-0 no-scrollbar">
           {FILTER_TABS.map((tab) => (
-            <button
+            <PillButton
               key={tab.key}
               onClick={() => setActiveFilter(tab.key)}
-              className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                activeFilter === tab.key
-                  ? "bg-yellow-400/20 text-yellow-300 border border-yellow-400/40"
-                  : "bg-zinc-800 text-white/60 border border-zinc-700 hover:bg-zinc-700"
-              }`}
+              active={activeFilter === tab.key}
+              className="shrink-0"
             >
               {tab.label}
-            </button>
+            </PillButton>
           ))}
         </div>
 
@@ -156,13 +153,12 @@ export function FavoritesPickerModal({
                     </p>
                   )}
                 </div>
-                <Button
-                  size="sm"
+                <PillButton
                   onClick={() => { onSelect(row); onClose(); }}
-                  className="shrink-0 bg-yellow-500/15 text-yellow-300 border border-yellow-400/30 hover:bg-yellow-500/25 text-xs px-3"
+                  className="shrink-0"
                 >
                   Use This
-                </Button>
+                </PillButton>
               </div>
             );
           })}
