@@ -82,6 +82,8 @@ export interface UniversalIngredient {
 
 export interface ShoppingListItem {
   id: string;
+  /** DB UUID — set when this item is synced to the server */
+  serverId?: string;
   name: string;
   normalizedName: string;
   quantity: number;
@@ -95,6 +97,10 @@ export interface ShoppingListItem {
 
 interface ShoppingListStore {
   items: ShoppingListItem[];
+  /** True while fetching from server on mount */
+  isHydrating: boolean;
+  /** True once the first server hydration has completed this session */
+  hydrated: boolean;
   addItem: (item: Omit<ShoppingListItem, 'id' | 'isChecked' | 'normalizedName' | 'category' | 'isPantryStaple'> & { category?: IngredientCategory }) => void;
   addItems: (items: UniversalIngredient[]) => void;
   toggleItem: (id: string) => void;
@@ -103,6 +109,8 @@ interface ShoppingListStore {
   clearAll: () => void;
   updateItem: (id: string, updates: Partial<ShoppingListItem>) => void;
   replaceItems: (items: ShoppingListItem[]) => void;
+  /** Fetch from server, merge with local cache, push local-only items to server */
+  hydrate: () => Promise<void>;
   getGroupedByCategory: () => Record<IngredientCategory, ShoppingListItem[]>;
   getFilteredItems: (excludePantryStaples: boolean) => ShoppingListItem[];
 }
@@ -197,14 +205,114 @@ function createShoppingItem(input: UniversalIngredient): ShoppingListItem {
   };
 }
 
+/** Map a raw server item (shoppingListItems row) to the client ShoppingListItem shape */
+function mapServerItem(si: any): ShoppingListItem {
+  const classified = classifyIngredient(si.name || '');
+  return {
+    id: si.id,
+    serverId: si.id,
+    name: si.name || '',
+    normalizedName: classified.normalizedName,
+    quantity: parseFloat(String(si.quantity)) || 1,
+    unit: si.unit || '',
+    category: (si.category as IngredientCategory) || classified.category,
+    isPantryStaple: classified.isPantryStaple,
+    isChecked: Boolean(si.checked),
+    notes: si.notes ?? undefined,
+    sourceMeals: si.sources?.map((s: any) => s.mealName).filter(Boolean) ?? undefined,
+  };
+}
+
 export const useShoppingListStore = create<ShoppingListStore>()(
   persist(
     (set, get) => ({
       items: [],
+      isHydrating: false,
+      hydrated: false,
+
+      // ── HYDRATE ────────────────────────────────────────────────────────────
+      hydrate: async () => {
+        if (get().hydrated || get().isHydrating) return;
+        set({ isHydrating: true });
+
+        try {
+          const res = await fetch('/api/shopping-list-v2/', { credentials: 'include' });
+          if (!res.ok) {
+            set({ isHydrating: false, hydrated: true });
+            return;
+          }
+
+          const { items: serverItems } = await res.json() as { items: any[] };
+          const mappedServer: ShoppingListItem[] = serverItems.map(mapServerItem);
+
+          // ── Guardrail 1 & 2: Merge local+server, dedup by normalizedName+unit, sum quantities
+          const localItems = get().items;
+          const merged = [...mappedServer];
+          const localOnly: ShoppingListItem[] = [];
+
+          for (const local of localItems) {
+            // Items with serverId are already on the server from a previous session — skip
+            if (local.serverId) continue;
+
+            // Truly new local item: find server counterpart by normalizedName+unit
+            const serverIdx = merged.findIndex(
+              s =>
+                s.normalizedName === local.normalizedName &&
+                (s.unit || '').toLowerCase() === (local.unit || '').toLowerCase(),
+            );
+
+            if (serverIdx !== -1) {
+              // Duplicate found — sum quantities (guardrail 2)
+              merged[serverIdx] = {
+                ...merged[serverIdx],
+                quantity: merged[serverIdx].quantity + local.quantity,
+              };
+            } else {
+              // Truly new — push to server
+              localOnly.push(local);
+            }
+          }
+
+          // Push local-only items to server (migration: first sync)
+          if (localOnly.length > 0) {
+            try {
+              await fetch('/api/shopping-list', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  items: localOnly,
+                  scopeType: 'adhoc',
+                  scopeKey: 'cross-device',
+                }),
+              });
+
+              // Re-fetch so all items (including newly pushed) have server UUIDs
+              const res2 = await fetch('/api/shopping-list-v2/', { credentials: 'include' });
+              if (res2.ok) {
+                const { items: refreshed } = await res2.json() as { items: any[] };
+                set({ items: refreshed.map(mapServerItem), isHydrating: false, hydrated: true });
+                return;
+              }
+            } catch {
+              // Push failed — continue with best-effort merged list (local items keep local IDs)
+            }
+            // Fallback: server empty + push failed → show merged (local items without serverIds)
+            set({ items: [...merged, ...localOnly], isHydrating: false, hydrated: true });
+            return;
+          }
+
+          set({ items: mappedServer, isHydrating: false, hydrated: true });
+        } catch {
+          // Fail open: keep existing local state so the user can still use the list offline
+          set({ isHydrating: false, hydrated: true });
+        }
+      },
+
+      // ── MUTATIONS ─────────────────────────────────────────────────────────
 
       addItem: (item) => {
         set((state) => {
-          // Aggregation order: 1. normalize name  2. normalize unit  3. aggregate  4. format (display layer)
           const { canonicalName, normalizedName, normQty, normUnit, category, isPantryStaple } =
             normalizeForAggregation(item.name, item.quantity, item.unit);
 
@@ -254,7 +362,6 @@ export const useShoppingListStore = create<ShoppingListStore>()(
           const updatedItems = [...state.items];
 
           newItems.forEach((newItem) => {
-            // Aggregation order: 1. normalize name  2. normalize unit  3. aggregate  4. format (display layer)
             const { canonicalName, normalizedName, normQty, normUnit, category, isPantryStaple } =
               normalizeForAggregation(newItem.name, newItem.quantity || 1, newItem.unit || '');
 
@@ -296,28 +403,111 @@ export const useShoppingListStore = create<ShoppingListStore>()(
         });
       },
 
+      /**
+       * Optimistic toggle + server PATCH.
+       * Rolls back locally if the server call fails.
+       */
       toggleItem: (id) => {
+        const item = get().items.find(i => i.id === id);
+        if (!item) return;
+
+        // Optimistic local update
         set((state) => ({
-          items: state.items.map((item) =>
-            item.id === id ? { ...item, isChecked: !item.isChecked } : item
+          items: state.items.map((i) =>
+            i.id === id ? { ...i, isChecked: !i.isChecked } : i
           ),
         }));
+
+        // Mirror to server if this item is synced
+        if (item.serverId) {
+          fetch(`/api/shopping-list-v2/${item.serverId}`, {
+            method: 'PATCH',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ checked: !item.isChecked }),
+          }).catch(() => {
+            // Rollback (guardrail 4)
+            set((state) => ({
+              items: state.items.map((i) =>
+                i.id === id ? { ...i, isChecked: item.isChecked } : i
+              ),
+            }));
+          });
+        }
       },
 
+      /**
+       * Optimistic remove + server DELETE.
+       * Rolls back by re-inserting the item if the server call fails.
+       */
       removeItem: (id) => {
-        set((state) => ({
-          items: state.items.filter((item) => item.id !== id),
-        }));
+        const item = get().items.find(i => i.id === id);
+        if (!item) return;
+
+        // Optimistic local removal
+        set((state) => ({ items: state.items.filter((i) => i.id !== id) }));
+
+        // Mirror to server if synced
+        if (item.serverId) {
+          fetch(`/api/shopping-list-v2/${item.serverId}`, {
+            method: 'DELETE',
+            credentials: 'include',
+          }).catch(() => {
+            // Rollback (guardrail 4)
+            set((state) => ({ items: [...state.items, item] }));
+          });
+        }
       },
 
+      /**
+       * Optimistic clear-checked + server DELETE for each checked server item.
+       * Rolls back all items if any server call fails.
+       */
       clearChecked: () => {
-        set((state) => ({
-          items: state.items.filter((item) => !item.isChecked),
-        }));
+        const checkedItems = get().items.filter(i => i.isChecked);
+        const serverChecked = checkedItems.filter(i => i.serverId);
+
+        // Optimistic local clear
+        set((state) => ({ items: state.items.filter((i) => !i.isChecked) }));
+
+        // Mirror to server
+        if (serverChecked.length > 0) {
+          (async () => {
+            const results = await Promise.allSettled(
+              serverChecked.map(item =>
+                fetch(`/api/shopping-list-v2/${item.serverId}`, {
+                  method: 'DELETE',
+                  credentials: 'include',
+                })
+              )
+            );
+            if (results.some(r => r.status === 'rejected')) {
+              // Rollback (guardrail 4)
+              set((state) => ({ items: [...state.items, ...checkedItems] }));
+            }
+          })();
+        }
       },
 
+      /**
+       * Optimistic clear-all + server DELETE all.
+       * Rolls back full list if the server call fails.
+       */
       clearAll: () => {
+        const prevItems = get().items;
+        const hadServerItems = prevItems.some(i => i.serverId);
+
         set({ items: [] });
+
+        if (hadServerItems) {
+          fetch('/api/shopping-list-v2/', {
+            method: 'DELETE',
+            credentials: 'include',
+          }).catch(() => {
+            // Rollback (guardrail 4)
+            set({ items: prevItems });
+          });
+        }
       },
 
       updateItem: (id, updates) => {
@@ -367,6 +557,8 @@ export const useShoppingListStore = create<ShoppingListStore>()(
     {
       name: 'shopping-list-storage',
       version: 4,
+      // Only persist items — isHydrating and hydrated are ephemeral session state
+      partialize: (state) => ({ items: state.items }),
       migrate: (persistedState: any, version: number) => {
         if (version < 2) {
           const oldItems = persistedState?.items || [];
