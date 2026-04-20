@@ -44,10 +44,8 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import { getMacroTargets } from "@/lib/dailyLimits";
 import { useAuth } from "@/contexts/AuthContext";
 import WeeklyOverviewModal from "@/components/WeeklyOverviewModal";
-import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
-import { normalizeIngredients } from "@/utils/ingredientParser";
+import BuilderShoppingBar from "@/components/BuilderShoppingBar";
 import { useOnboardingProfile } from "@/hooks/useOnboardingProfile";
-import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { computeTargetsFromOnboarding, sumBoard } from "@/lib/targets";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
 import { useMidnightReset } from "@/hooks/useMidnightReset";
@@ -729,135 +727,6 @@ export default function DiabeticMenuBuilder() {
     [board, activeDayISO, weekStartISO, saveBoard, toast],
   );
 
-  // Shopping list v2 handler - Single day
-  const handleAddToShoppingList = useCallback(() => {
-    if (!board) {
-      toast({
-        title: "No meals found",
-        description: "Add meals to your board before creating a shopping list.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Collect all meals from current view (day or week mode)
-    let allMeals: Meal[] = [];
-    if (
-      FEATURES.dayPlanning === "alpha" &&
-      planningMode === "day" &&
-      activeDayISO
-    ) {
-      const dayLists = getDayLists(board, activeDayISO);
-      allMeals = [
-        ...dayLists.breakfast,
-        ...dayLists.lunch,
-        ...dayLists.dinner,
-        ...dayLists.snacks,
-      ];
-    } else {
-      allMeals = [
-        ...board.lists.breakfast,
-        ...board.lists.lunch,
-        ...board.lists.dinner,
-        ...board.lists.snacks,
-      ];
-    }
-
-    if (allMeals.length === 0) {
-      toast({
-        title: "No meals found",
-        description: "Add meals to your board before creating a shopping list.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Normalize ingredients and add to shopping list store
-    const ingredients = allMeals.flatMap((meal) =>
-      normalizeIngredients(meal.ingredients || []),
-    );
-
-    const items = ingredients.map((i) => ({
-      name: i.name,
-      quantity:
-        typeof i.qty === "number"
-          ? i.qty
-          : i.qty
-            ? parseFloat(String(i.qty))
-            : 0,
-      unit: i.unit || "",
-      notes:
-        planningMode === "day" && activeDayISO
-          ? `${formatDateDisplay(activeDayISO, { weekday: "long" })} Meal Plan`
-          : `Weekly Meal Plan (${formatWeekLabel(weekStartISO)})`,
-    }));
-
-    useShoppingListStore.getState().addItems(items);
-
-    toast({
-      title: "Added to Shopping List",
-      description: `${ingredients.length} items added to your Smart Grocery List`,
-    });
-  }, [board, planningMode, activeDayISO, weekStartISO, toast]);
-
-  // NEW: Shopping list handler - Entire week (all 7 days)
-  const handleAddEntireWeekToShoppingList = useCallback(() => {
-    if (!board) {
-      toast({
-        title: "No meals found",
-        description: "Add meals to your board before creating a shopping list.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Collect ALL meals from ALL 7 days of the week
-    let allMeals: Meal[] = [];
-
-    // Loop through all days in the week
-    weekDatesList.forEach((dateISO) => {
-      const dayLists = getDayLists(board, dateISO);
-      allMeals.push(
-        ...dayLists.breakfast,
-        ...dayLists.lunch,
-        ...dayLists.dinner,
-        ...dayLists.snacks,
-      );
-    });
-
-    if (allMeals.length === 0) {
-      toast({
-        title: "No meals found",
-        description: "Add meals to your week before creating a shopping list.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Normalize ingredients and add to shopping list store
-    const ingredients = allMeals.flatMap((meal) =>
-      normalizeIngredients(meal.ingredients || []),
-    );
-
-    const items = ingredients.map((i) => ({
-      name: i.name,
-      quantity:
-        typeof i.qty === "number"
-          ? i.qty
-          : i.qty
-            ? parseFloat(String(i.qty))
-            : 0,
-      unit: i.unit || "",
-      notes: `Weekly Meal Plan (${formatWeekLabel(weekStartISO)}) - All 7 Days`,
-    }));
-
-    useShoppingListStore.getState().addItems(items);
-
-    toast({
-      title: "Added to Shopping List",
-      description: `${ingredients.length} items from entire week added to your Smart Grocery List`,
-    });
-  }, [board, weekStartISO, weekDatesList, toast]);
 
   const handleChefMealGenerated = useCallback(
     async (
@@ -1819,106 +1688,13 @@ export default function DiabeticMenuBuilder() {
         starchContext={starchContext}
       />
 
-      {/* Shopping List Buttons - Dual buttons in Day Mode, single in Week Mode */}
-      {board &&
-        (() => {
-          const allMeals =
-            planningMode === "day" && activeDayISO
-              ? (() => {
-                  const dayLists = getDayLists(board, activeDayISO);
-                  return [
-                    ...dayLists.breakfast,
-                    ...dayLists.lunch,
-                    ...dayLists.dinner,
-                    ...dayLists.snacks,
-                  ];
-                })()
-              : [
-                  ...board.lists.breakfast,
-                  ...board.lists.lunch,
-                  ...board.lists.dinner,
-                  ...board.lists.snacks,
-                ];
-
-          const ingredients = allMeals.flatMap((meal) =>
-            normalizeIngredients(meal.ingredients || []),
-          );
-
-          // If no ingredients, don't show the bar
-          if (ingredients.length === 0) return null;
-
-          // DAY MODE: Show dual buttons (Send Day + Send Entire Week)
-          if (
-            FEATURES.dayPlanning === "alpha" &&
-            planningMode === "day" &&
-            activeDayISO
-          ) {
-            const dayName = formatDateDisplay(activeDayISO, {
-              weekday: "long",
-            });
-
-            return (
-              <div
-                className={`fixed ${isDesktop ? "left-[240px]" : "left-0"} right-0 z-30 bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl`}
-                style={{ bottom: isDesktop ? 0 : "calc(64px + var(--safe-bottom, 0px))" }}
-              >
-                <div className="container mx-auto px-4 py-3">
-                  <div className="flex flex-col gap-2">
-                    <div className="text-white text-sm font-semibold">
-                      Shopping List Ready - {ingredients.length} ingredients
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => {
-                          handleAddToShoppingList();
-                          setTimeout(
-                            () =>
-                              setLocation(
-                                "/shopping-list-v2?from=weekly-meal-board",
-                              ),
-                            100,
-                          );
-                        }}
-                        className="flex-1 min-h-[44px] bg-orange-600 hover:bg-orange-700 text-white border border-white/30"
-                        data-testid="button-send-day-shopping"
-                      >
-                        <ShoppingCart className="h-5 w-5 mr-2" />
-                        Send {dayName}
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          handleAddEntireWeekToShoppingList();
-                          setTimeout(
-                            () =>
-                              setLocation(
-                                "/shopping-list-v2?from=weekly-meal-board",
-                              ),
-                            100,
-                          );
-                        }}
-                        className="flex-1 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white border border-white/30"
-                        data-testid="button-send-week-shopping"
-                      >
-                        <ShoppingCart className="h-5 w-5 mr-2" />
-                        Send Entire Week
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // WEEK MODE: Use existing ShoppingAggregateBar component
-          return (
-            <ShoppingAggregateBar
-              ingredients={ingredients}
-              source={`Diabetic Meal Plan (${formatWeekLabel(weekStartISO)})`}
-              sourceSlug="diabetic-meal-board"
-              aboveBottomNav
-            />
-          );
-        })()}
+      {/* Shopping bar */}
+      <BuilderShoppingBar
+        board={board}
+        activeDayISO={activeDayISO}
+        weekDatesList={weekDatesList}
+        sourceSlug="diabetic-meal-board"
+      />
 
       {/* Daily Totals Info Modal - Next Steps After First Meal */}
       <Dialog
