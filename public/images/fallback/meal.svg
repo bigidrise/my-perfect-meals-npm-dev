@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" fill="none">
+  <rect width="400" height="300" fill="#F8F5F0"/>
+  <ellipse cx="200" cy="200" rx="135" ry="28" fill="#A08060" opacity="0.2"/>
+  <ellipse cx="200" cy="182" rx="135" ry="78" fill="#EDE8E0"/>
+  <ellipse cx="200" cy="165" rx="118" ry="64" fill="#E0D8C8"/>
+  <circle cx="185" cy="155" r="28" fill="#C07030" opacity="0.85"/>
+  <circle cx="218" cy="158" r="22" fill="#4A9A28" opacity="0.85"/>
+  <ellipse cx="195" cy="172" rx="35" ry="14" fill="#E8C050" opacity="0.8"/>
+  <circle cx="185" cy="155" r="10" fill="#D08840" opacity="0.7"/>
+  <text x="200" y="262" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#6A4A28" opacity="0.7">Meal</text>
+</svg>

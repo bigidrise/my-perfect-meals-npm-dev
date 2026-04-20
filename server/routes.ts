@@ -3765,6 +3765,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await handleImageGeneration(req, res);
   });
 
+  // Per-meal image endpoint — called by client after user selects a specific meal.
+  // DO NOT call image generation directly — uses generateMealImageUnified only.
+  app.post("/api/meals/generate-image", async (req, res) => {
+    try {
+      const { mealName, ingredients = [], mealType } = req.body;
+      if (!mealName) return res.status(400).json({ error: "mealName is required" });
+      console.log(`🖼️ IMAGE PIPELINE START: ${mealName}`);
+      const { generateMealImageUnified } = await import("./services/mealImageGenerator");
+      const ingredientNames = (ingredients as any[]).map((i: any) =>
+        typeof i === "string" ? i : (i.name || i.item || "")
+      ).filter(Boolean);
+      const imageUrl = await generateMealImageUnified(mealName, ingredientNames);
+      res.json({ imageUrl });
+    } catch (err: any) {
+      console.error("❌ /api/meals/generate-image error:", err);
+      res.status(500).json({ error: "Image generation failed" });
+    }
+  });
+
   // Weekly meal calendar endpoint
   app.post("/api/meals/weekly", async (req, res) => {
     try {

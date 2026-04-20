@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" fill="none">
+  <rect width="400" height="300" fill="#FDFAF0"/>
+  <ellipse cx="200" cy="210" rx="110" ry="20" fill="#B08030" opacity="0.2"/>
+  <rect x="110" y="148" width="180" height="55" rx="6" fill="#E8C870"/>
+  <rect x="115" y="158" width="170" height="12" fill="#3A8A28" opacity="0.85"/>
+  <rect x="115" y="173" width="170" height="10" fill="#C03020" opacity="0.8"/>
+  <rect x="115" y="184" width="170" height="10" fill="#E0C060" opacity="0.85"/>
+  <path d="M110 148 Q200 118 290 148" fill="#D0A040" stroke="#C09030" stroke-width="1"/>
+  <rect x="110" y="195" width="180" height="15" rx="4" fill="#C08020" opacity="0.7"/>
+  <text x="200" y="262" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#7A5010" opacity="0.7">Wrap / Sandwich</text>
+</svg>

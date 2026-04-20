@@ -145,7 +145,11 @@ export default function BeverageCreator() {
   const [generatedBeverage, setGeneratedBeverage] = useState<any | null>(() => {
     try {
       const saved = localStorage.getItem("mpm_beverage_creator_result");
-      return saved ? JSON.parse(saved) : null;
+      if (!saved) return null;
+      const parsed = JSON.parse(saved);
+      // Strip server-computed diet fields — they can go stale if user settings change
+      const { dietClassification: _dc, complianceSection: _cs, ...rest } = parsed;
+      return rest;
     } catch {
       return null;
     }
@@ -478,13 +482,24 @@ export default function BeverageCreator() {
                     (optional — fills in the rest)
                   </span>
                 </label>
-                <textarea
-                  value={customBeverageDescription}
-                  onChange={(e) => setCustomBeverageDescription(e.target.value)}
-                  placeholder='e.g. "A frozen mango margarita with tajin rim" or "Iced lavender oat milk latte"'
-                  rows={3}
-                  className="w-full rounded-lg bg-black/60 border border-blue-400/40 text-white placeholder-white/30 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400/60 resize-none"
-                />
+                <div className="relative">
+                  <textarea
+                    value={customBeverageDescription}
+                    onChange={(e) => setCustomBeverageDescription(e.target.value)}
+                    placeholder='e.g. "A frozen mango margarita with tajin rim" or "Iced lavender oat milk latte"'
+                    rows={3}
+                    className="w-full rounded-lg bg-black/60 border border-blue-400/40 text-white placeholder-white/30 text-sm px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-400/60 resize-none"
+                  />
+                  {customBeverageDescription && (
+                    <TrashButton
+                      onClick={() => setCustomBeverageDescription("")}
+                      size="sm"
+                      ariaLabel="Clear beverage description"
+                      title="Clear"
+                      className="absolute top-2 right-2"
+                    />
+                  )}
+                </div>
                 {customBeverageDescription.trim().length > 0 && (
                   <p className="text-xs text-blue-300 mt-1">
                     Category and flavor selections below are optional — your description takes priority.
@@ -543,13 +558,24 @@ export default function BeverageCreator() {
                 <label className="block text-md font-medium text-white mb-1">
                   Additional Notes (optional)
                 </label>
-                <input
-                  value={specificDrink}
-                  onChange={(e) => setSpecificDrink(e.target.value)}
-                  placeholder="e.g., with coconut milk, extra strong, frozen..."
-                  className="w-full bg-black text-white border border-white/30 px-3 py-2 rounded-lg text-sm placeholder:text-white/50"
-                  maxLength={150}
-                />
+                <div className="relative">
+                  <input
+                    value={specificDrink}
+                    onChange={(e) => setSpecificDrink(e.target.value)}
+                    placeholder="e.g., with coconut milk, extra strong, frozen..."
+                    className="w-full bg-black text-white border border-white/30 px-3 py-2 pr-8 rounded-lg text-sm placeholder:text-white/50"
+                    maxLength={150}
+                  />
+                  {specificDrink && (
+                    <TrashButton
+                      onClick={() => setSpecificDrink("")}
+                      size="sm"
+                      ariaLabel="Clear additional notes"
+                      title="Clear"
+                      className="absolute top-1/2 -translate-y-1/2 right-2"
+                    />
+                  )}
+                </div>
                 <p className="text-xs text-white/60 mt-1">
                   Add specific details or leave empty
                 </p>

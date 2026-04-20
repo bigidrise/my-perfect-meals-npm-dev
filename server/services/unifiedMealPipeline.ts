@@ -63,6 +63,76 @@ import OpenAI from 'openai';
 import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 import { macroAudit, macroAuditPrompt, macroAuditCache } from '../utils/macroAuditLogger';
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from './behavioralMemoryService';
+import { buildDishTypeHint, getSemanticFallback, buildStableCacheKey } from './mealImageGenerator';
+import { mealImageCache } from '../db/schema/mealImageCache';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IMAGE PERSISTENCE HELPER
+// Wraps imageService's generateImage with DB cache (check → generate → save).
+// Prevents different images on server restart. Layer 2: removes description bleed.
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function generateImageCached(
+  name: string,
+  ingredients: string[],
+  type: string,
+  style: string,
+  extraParams?: Record<string, any>
+): Promise<string | null> {
+  const cacheKey = buildStableCacheKey(name, ingredients);
+
+  try {
+    const [dbRow] = await db
+      .select({ imageUrl: mealImageCache.imageUrl })
+      .from(mealImageCache)
+      .where(eq(mealImageCache.cacheKey, cacheKey))
+      .limit(1);
+
+    if (dbRow) {
+      console.log(`🗄️ [pipeline] DB cache hit for: ${name}`);
+      return dbRow.imageUrl;
+    }
+  } catch (e) {
+    console.warn(`⚠️ [pipeline] DB cache read failed for "${name}":`, e);
+  }
+
+  const dishHint = buildDishTypeHint(name);
+
+  let imageUrl: string | null = null;
+  try {
+    const result = await Promise.race([
+      generateImage({
+        name,
+        description: dishHint,
+        type,
+        style,
+        ingredients,
+        ...extraParams,
+      }),
+      new Promise<null>((_, reject) =>
+        setTimeout(() => reject(new Error("Image generation timeout")), 8000)
+      ),
+    ]);
+    imageUrl = result ?? null;
+  } catch (e: any) {
+    console.warn(`⚠️ [pipeline] generateImage failed for "${name}": ${e.message}`);
+  }
+
+  if (!imageUrl) {
+    return getSemanticFallback(name);
+  }
+
+  try {
+    await db
+      .insert(mealImageCache)
+      .values({ cacheKey, imageUrl, mealName: name, promptUsed: dishHint })
+      .onConflictDoNothing();
+  } catch (e) {
+    console.warn(`⚠️ [pipeline] DB cache write failed for "${name}":`, e);
+  }
+
+  return imageUrl;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AVOIDANCE PROMPT BLOCK BUILDER
@@ -383,17 +453,12 @@ async function ensureImage(
         ? `Key foods visible: ${visual.keyFoods.join(", ")}.`
         : `Key foods visible: ingredients consistent with "${visual.title}".`;
 
-    const imageUrl = await generateImage({
-      name: visual.title,
-      description: `${keyFoodsLine} ${meal.description || ""}`.trim(),
-      type: "meal",
-      style: visual.style,
-      ingredients: visual.keyFoods,
-      calories: (meal as any).calories,
-      protein: (meal as any).protein,
-      carbs: (meal as any).carbs,
-      fat: (meal as any).fat,
-    });
+    const imageUrl = await generateImageCached(
+      visual.title,
+      visual.keyFoods,
+      "meal",
+      visual.style,
+    );
 
     if (imageUrl) {
       console.log(`🖼️ Canva-style image generated for: ${meal.name || visual.title}`);
@@ -1225,7 +1290,7 @@ function mapToUnifiedMeal(opt: any, idx: number, cravingInput: string, validMeal
     fat: opt.fat || 12,
     cookingTime: opt.cookingTime || '25 minutes',
     difficulty: 'Easy',
-    imageUrl: FALLBACK_IMAGES[validMealType] || FALLBACK_IMAGES.default,
+    imageUrl: '',
     medicalBadges: [],
     source: 'ai'
   };
@@ -1987,23 +2052,18 @@ Create the recipe for: "${description}"`;
     let imageUrl: string | null = skipImage ? null : getFallbackImage(validMealType);
     if (!skipImage) {
       try {
-        const generatedImage = await generateImage({
-          name: finalMealData.name,
-          description: finalMealData.description,
-          type: 'meal',
-          style: 'homemade',
-          ingredients: finalMealData.ingredients?.map((ing: any) => ing.name) || [],
-          calories: finalMealData.calories,
-          protein: finalMealData.protein,
-          carbs: finalMealData.totalCarbs,
-          fat: finalMealData.fat,
-        });
+        const generatedImage = await generateImageCached(
+          finalMealData.name,
+          finalMealData.ingredients?.map((ing: any) => ing.name) || [],
+          'meal',
+          'homemade',
+        );
         if (generatedImage) {
           imageUrl = generatedImage;
-          console.log(`🖼️ Generated DALL-E image for Create With Chef: ${finalMealData.name}`);
+          console.log(`🖼️ [create-with-chef] Image ready for: ${finalMealData.name}`);
         }
       } catch (imgError) {
-        console.warn('⚠️ DALL-E image generation failed, using fallback:', imgError);
+        console.warn('⚠️ Image generation failed, using fallback:', imgError);
       }
     } else {
       console.log(`⚡ [create-with-chef] skipImage=true — returning text immediately, client handles image`);
@@ -2384,24 +2444,19 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
 
     let imageUrl = getFallbackImage('snack');
     try {
-      const generatedImage = await generateImage({
-        name: finalSnackData.name,
-        description: finalSnackData.description,
-        type: 'meal',
-        style: 'homemade',
-        ingredients: finalSnackData.ingredients?.map((ing: any) => ing.name) || [],
-        calories: finalSnackData.calories,
-        protein: finalSnackData.protein,
-        carbs: finalSnackData.snackTotalCarbs,
-        fat: finalSnackData.fat,
-      });
-      
+      const generatedImage = await generateImageCached(
+        finalSnackData.name,
+        finalSnackData.ingredients?.map((ing: any) => ing.name) || [],
+        'meal',
+        'homemade',
+      );
+
       if (generatedImage) {
         imageUrl = generatedImage;
-        console.log(`🖼️ Generated DALL-E image for Snack Creator: ${finalSnackData.name}`);
+        console.log(`🖼️ [snack-creator] Image ready for: ${finalSnackData.name}`);
       }
     } catch (imgError) {
-      console.warn('⚠️ DALL-E image generation failed for snack, using fallback:', imgError);
+      console.warn('⚠️ Image generation failed for snack, using fallback:', imgError);
     }
     
     const snackIngredients = finalSnackData.tempSnackIngredients || (finalSnackData.ingredients || []).map((ing: any) => ({
