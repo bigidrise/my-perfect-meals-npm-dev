@@ -44,7 +44,8 @@ function computeNetCarbs(n: any) {
 generationRouter.post("/enforce", async (req, res) => {
   try {
     const body = EnforceReq.parse(req.body);
-    const { candidate, constraints, mealType } = body as { candidate: any; constraints: MealConstraints; mealType: any };
+    const { candidate, constraints, mealType: rawMealType } = body as { candidate: any; constraints: MealConstraints; mealType: any };
+    const mealType = ["meal4","meal5","meal6"].includes(rawMealType) ? "lunch" : rawMealType;
 
     // 1) Carb cap
     const [minC, maxC] = constraints.carbCaps[mealType];

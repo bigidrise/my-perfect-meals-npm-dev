@@ -249,11 +249,11 @@ export default function GLP1MealBuilder() {
 
   // AI Premades modal state
   const [premadePickerOpen, setPremadePickerOpen] = useState(false);
-  const [premadePickerSlot, setPremadePickerSlot] = useState<"breakfast" | "lunch" | "dinner">("breakfast");
+  const [premadePickerSlot, setPremadePickerSlot] = useState<"breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6">("breakfast");
 
   // Create With Chef modal state
   const [createWithChefOpen, setCreateWithChefOpen] = useState(false);
-  const [createWithChefSlot, setCreateWithChefSlot] = useState<"breakfast" | "lunch" | "dinner">("breakfast");
+  const [createWithChefSlot, setCreateWithChefSlot] = useState<"breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6">("breakfast");
 
   // Build StarchContext for Create With Chef modal
   const starchContext: StarchContext | undefined = useMemo(() => {
@@ -276,7 +276,7 @@ export default function GLP1MealBuilder() {
 
   // Favorites picker state
   const [favoritesOpen, setFavoritesOpen] = useState(false);
-  const [favoritesSlot, setFavoritesSlot] = useState<"breakfast" | "lunch" | "dinner" | "snacks">("breakfast");
+  const [favoritesSlot, setFavoritesSlot] = useState<"breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6">("breakfast");
 
   // Locked day dialog state
   const [lockedDayDialogOpen, setLockedDayDialogOpen] = useState(false);
@@ -1247,19 +1247,19 @@ export default function GLP1MealBuilder() {
                       <div className="flex items-center justify-between mb-4">
                         <h2 className="text-white/90 text-lg font-medium">{label}</h2>
                         <GlobalMealActionBar
-                          slot={key as "breakfast" | "lunch" | "dinner"}
+                          slot={key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6"}
                           onCreateWithAI={() => {
-                            setAiMealSlot(key as "breakfast" | "lunch" | "dinner" | "snacks");
+                            setAiMealSlot(key as "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6");
                             setAiMealModalOpen(true);
                           }}
                           onCreateWithChef={() => {
-                            setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner");
+                            setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6");
                             setCreateWithChefOpen(true);
                           }}
                           onSnackCreator={() => setSnackCreatorOpen(true)}
-                          onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks", meal)}
+                          onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)}
                           onFavorites={() => {
-                            setFavoritesSlot(key as "breakfast" | "lunch" | "dinner");
+                            setFavoritesSlot(key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6");
                             setFavoritesOpen(true);
                           }}
                           onLogSnack={() => {}}
@@ -1382,7 +1382,7 @@ export default function GLP1MealBuilder() {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-white/90 text-lg font-medium">{label}</h2>
                   <div className="flex gap-2">
-                    <AddOwnMealButton slot={key as "breakfast"|"lunch"|"dinner"|"snacks"} onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks", meal)} variant="icon" />
+                    <AddOwnMealButton slot={key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6"} onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)} variant="icon" />
                   </div>
                 </div>
                 <div className="space-y-3">

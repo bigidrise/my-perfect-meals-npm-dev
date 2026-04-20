@@ -66,7 +66,7 @@ interface UseCreateWithChefRequestResult {
   generating: boolean;
   progress: number;
   error: string | null;
-  generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner", dietType?: DietType, dietPhase?: BeachBodyPhase, starchContext?: StarchContext, safetyOptions?: SafetyOptions, strictMode?: boolean, explicitOverride?: ExplicitOverride, userDietOverride?: boolean, diversityContext?: DiversityContext) => Promise<Meal | null>;
+  generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6", dietType?: DietType, dietPhase?: BeachBodyPhase, starchContext?: StarchContext, safetyOptions?: SafetyOptions, strictMode?: boolean, explicitOverride?: ExplicitOverride, userDietOverride?: boolean, diversityContext?: DiversityContext) => Promise<Meal | null>;
   cancel: () => void;
 }
 
@@ -107,7 +107,7 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
 
   const generateMeal = async (
     description: string,
-    mealType: "breakfast" | "lunch" | "dinner",
+    mealType: "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6",
     dietType?: DietType,
     dietPhase?: BeachBodyPhase,
     starchContext?: StarchContext,

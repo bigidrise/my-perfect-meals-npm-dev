@@ -38,10 +38,10 @@ import { isAllergyRelatedError } from "@/utils/allergyAlert";
 interface CreateWithChefModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  mealType: "breakfast" | "lunch" | "dinner";
+  mealType: "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6";
   onMealGenerated: (
     meal: any,
-    slot: "breakfast" | "lunch" | "dinner" | "snacks",
+    slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
   ) => void;
   dietType?: DietType;
   dietPhase?: BeachBodyPhase;
