@@ -27,6 +27,7 @@ import {
   ChefHat,
   Wine,
   Refrigerator,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
@@ -870,6 +871,49 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
         {
           heading: "Important Note",
           text: "This system is designed to guide compliant meal choices. For strict religious or medical adherence, always follow the guidance of your local religious authority or licensed physician.",
+        },
+      ],
+    },
+  },
+  {
+    id: "my-favorites",
+    title: "My Favorites — Build Faster With Meals You Already Love",
+    subtitle: "Instant meal recall from your personal saved library",
+    icon: Star,
+    content: {
+      sections: [
+        {
+          heading: "What My Favorites Is",
+          text: "My Favorites is a recall system built into every meal builder. Once you've saved meals you enjoy, you can pull them back into any slot instantly — no rebuilding, no searching, no starting over. It turns your history into a shortcut.",
+        },
+        {
+          heading: "How to Save a Meal",
+          text: "On any meal card, tap the red star icon in the top corner. That meal is now saved to your favorites library, permanently accessible from any builder until you remove it.",
+        },
+        {
+          heading: "Where to Find the Favorites Button",
+          text: "Look for the gold 'My Favorites' pill button with a red star on the action bar below any meal slot in your builder. It appears next to the Create with Chef and AI buttons on every Breakfast, Lunch, Dinner, and Snack slot.",
+        },
+        {
+          heading: "How to Use It",
+          list: [
+            "Tap My Favorites on any meal slot",
+            "Filter by type — Breakfast-style, Mains, Snacks, or Drinks",
+            "Find the meal you want and tap Use This",
+            "The meal drops into that slot immediately and your macros update automatically",
+          ],
+        },
+        {
+          heading: "What Happens After You Select",
+          text: "The selected meal replaces the entire slot. Your Nutrition Budget at the bottom of the screen recalculates instantly to reflect the new totals. No manual entry needed.",
+        },
+        {
+          heading: "Why It Matters",
+          text: "Most people find a handful of meals they like and want to rotate them. Without My Favorites, they have to rebuild those meals from scratch every time. With it, your plan becomes a rotation of meals you already know work — built faster, eaten with confidence.",
+        },
+        {
+          heading: "Pro Tip",
+          text: "The more you save, the more useful this becomes. Start by saving two or three go-to meals for each part of the day. Over time your favorites become a personal library that makes daily planning take seconds instead of minutes.",
         },
       ],
     },

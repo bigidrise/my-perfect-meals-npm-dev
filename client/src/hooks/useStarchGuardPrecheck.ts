@@ -20,7 +20,7 @@ export const EMPTY_STARCH_ALERT: StarchGuardAlertState = {
   target: 0,
 };
 
-export type StarchGuardDecision = 'pending' | 'order_something_else' | 'let_chef_pick';
+export type StarchGuardDecision = 'pending' | 'order_something_else' | 'let_chef_pick' | 'continue_anyway';
 
 interface UseStarchGuardPrecheckResult {
   checking: boolean;

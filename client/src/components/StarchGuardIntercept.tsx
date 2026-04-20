@@ -1,16 +1,22 @@
-import { Wheat, ChefHat, ArrowLeft } from "lucide-react";
+import { Wheat, ChefHat, ArrowLeft, CheckCircle } from "lucide-react";
 import { StarchGuardAlertState, StarchGuardDecision } from "@/hooks/useStarchGuardPrecheck";
 
 interface StarchGuardInterceptProps {
   alert: StarchGuardAlertState;
   onDecision: (decision: StarchGuardDecision) => void;
   className?: string;
+  showContinueAnyway?: boolean;
+  continueAnywayLabel?: string;
+  chooseAnotherLabel?: string;
 }
 
 export function StarchGuardIntercept({
   alert,
   onDecision,
-  className = ""
+  className = "",
+  showContinueAnyway = false,
+  continueAnywayLabel = "Use It Anyway",
+  chooseAnotherLabel = "Order Something Else",
 }: StarchGuardInterceptProps) {
   if (!alert.show) {
     return null;
@@ -58,16 +64,26 @@ export function StarchGuardIntercept({
             className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-neutral-800/80 border border-neutral-600/50 text-neutral-200 text-sm font-medium transition-all active:scale-[0.98]"
           >
             <ArrowLeft className="h-4 w-4" />
-            Order Something Else
+            {chooseAnotherLabel}
           </button>
-          
-          <button
-            onClick={() => onDecision('let_chef_pick')}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-neutral-700/80 border border-neutral-500/50 text-white text-sm font-medium transition-all active:scale-[0.98]"
-          >
-            <ChefHat className="h-4 w-4" />
-            Let Chef Pick
-          </button>
+
+          {showContinueAnyway ? (
+            <button
+              onClick={() => onDecision('continue_anyway')}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-neutral-700/80 border border-neutral-500/50 text-white text-sm font-medium transition-all active:scale-[0.98]"
+            >
+              <CheckCircle className="h-4 w-4" />
+              {continueAnywayLabel}
+            </button>
+          ) : (
+            <button
+              onClick={() => onDecision('let_chef_pick')}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-neutral-700/80 border border-neutral-500/50 text-white text-sm font-medium transition-all active:scale-[0.98]"
+            >
+              <ChefHat className="h-4 w-4" />
+              Let Chef Pick
+            </button>
+          )}
         </div>
       </div>
     </div>
