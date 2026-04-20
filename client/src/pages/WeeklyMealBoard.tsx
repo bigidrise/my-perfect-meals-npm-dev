@@ -33,7 +33,7 @@ import {
 import { useChefMealImage } from "@/hooks/useChefMealImage";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { MealPickerDrawer } from "@/components/pickers/MealPickerDrawer";
-import { ManualMealModal } from "@/components/pickers/ManualMealModal";
+import { AddOwnMealButton } from "@/components/pickers/AddOwnMealButton";
 import {
   RemainingMacrosFooter,
   type ConsumedMacros,
@@ -368,10 +368,6 @@ export default function WeeklyMealBoard() {
   );
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [pickerList, setPickerList] = React.useState<
-    "breakfast" | "lunch" | "dinner" | "snacks" | null
-  >(null);
-  const [manualModalOpen, setManualModalOpen] = React.useState(false);
-  const [manualModalList, setManualModalList] = React.useState<
     "breakfast" | "lunch" | "dinner" | "snacks" | null
   >(null);
   const [dynamicMealCount, setDynamicMealCount] = React.useState(0);
@@ -1365,10 +1361,6 @@ export default function WeeklyMealBoard() {
     setPickerOpen(true);
   }
 
-  function openManualModal(list: "breakfast" | "lunch" | "dinner" | "snacks") {
-    setManualModalList(list);
-    setManualModalOpen(true);
-  }
 
   const handleFavoriteSelect = useCallback(async (row: SavedMealRow) => {
     if (!board || !favoritesSlot) return;
@@ -1642,10 +1634,7 @@ export default function WeeklyMealBoard() {
                             if (checkLockedDay(activeDayISO)) return;
                             setSnackCreatorOpen(true);
                           }}
-                          onManualAdd={() => {
-                            if (checkLockedDay(activeDayISO)) return;
-                            openManualModal(key);
-                          }}
+                          onSave={(meal) => { if (!checkLockedDay(activeDayISO)) quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks", meal); }}
                           onFavorites={() => {
                             if (checkLockedDay(activeDayISO)) return;
                             setFavoritesSlot(key as "breakfast" | "lunch" | "dinner");
@@ -1714,10 +1703,7 @@ export default function WeeklyMealBoard() {
                               <Sparkles className="h-3 w-3" />
                               Create with Chef
                             </Button>
-                            <Button size="sm" variant="ghost" className="text-white/80 hover:bg-white/10"
-                              onClick={() => { if (checkLockedDay(activeDayISO)) return; openManualModal("breakfast"); }}>
-                              <Plus className="h-4 w-4" />
-                            </Button>
+                            <AddOwnMealButton slot="breakfast" onSave={(meal) => { if (!checkLockedDay(activeDayISO)) quickAdd("breakfast", meal); }} variant="icon" />
                             <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-900/30" onClick={() => handleRemoveMealSlot(mealNumber)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -1823,15 +1809,7 @@ export default function WeeklyMealBoard() {
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-white/90 text-lg font-medium">{label}</h2>
                     <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className={weekModeReadOnly ? "text-white/40 cursor-not-allowed" : "text-white/80 hover:bg-white/10"}
-                        onClick={() => !weekModeReadOnly && openManualModal(key)}
-                        disabled={weekModeReadOnly}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
+                      {!weekModeReadOnly && <AddOwnMealButton slot={key as "breakfast"|"lunch"|"dinner"|"snacks"} onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks", meal)} variant="icon" />}
                     </div>
                   </div>
                   <div className="space-y-3">
@@ -2180,21 +2158,6 @@ export default function WeeklyMealBoard() {
             }
             setPickerOpen(false);
             setPickerList(null);
-          }}
-        />
-
-        <ManualMealModal
-          open={manualModalOpen}
-          onClose={() => {
-            setManualModalOpen(false);
-            setManualModalList(null);
-          }}
-          onSave={(meal) => {
-            if (manualModalList) {
-              quickAdd(manualModalList, meal);
-            }
-            setManualModalOpen(false);
-            setManualModalList(null);
           }}
         />
 

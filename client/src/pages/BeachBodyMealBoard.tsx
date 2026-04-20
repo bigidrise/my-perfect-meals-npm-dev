@@ -27,7 +27,7 @@ import {
 } from "@/lib/boardApi";
 import { useChefMealImage } from "@/hooks/useChefMealImage";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
-import { ManualMealModal } from "@/components/pickers/ManualMealModal";
+import { AddOwnMealButton } from "@/components/pickers/AddOwnMealButton";
 import { AthleteMealPickerDrawer } from "@/components/pickers/AthleteMealPickerDrawer";
 import MealPremadePicker from "@/components/pickers/MealPremadePicker";
 import {
@@ -272,10 +272,6 @@ export default function BeachBodyMealBoard() {
 
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [pickerList, setPickerList] = React.useState<
-    "breakfast" | "lunch" | "dinner" | "snacks" | null
-  >(null);
-  const [manualModalOpen, setManualModalOpen] = React.useState(false);
-  const [manualModalList, setManualModalList] = React.useState<
     "breakfast" | "lunch" | "dinner" | "snacks" | null
   >(null);
   const [showOverview, setShowOverview] = React.useState(false);
@@ -1061,11 +1057,6 @@ export default function BeachBodyMealBoard() {
     setPickerOpen(true);
   }
 
-  function openManualModal(list: "breakfast" | "lunch" | "dinner" | "snacks") {
-    setManualModalList(list);
-    setManualModalOpen(true);
-  }
-
   const handleFavoriteSelect = useCallback(async (row: SavedMealRow) => {
     if (!board || !favoritesSlot) return;
     if (checkLockedDay()) return;
@@ -1332,7 +1323,7 @@ export default function BeachBodyMealBoard() {
                             onSnackCreator={() => {
                               setSnackCreatorOpen(true);
                             }}
-                            onManualAdd={() => openManualModal(key)}
+                            onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks", meal)}
                             onFavorites={() => {
                               setFavoritesSlot(key as "breakfast" | "lunch" | "dinner" | "snacks");
                               setFavoritesOpen(true);
@@ -1443,17 +1434,7 @@ export default function BeachBodyMealBoard() {
                             </Button>
 
                             {/* Manual entry */}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-white/80 hover:bg-white/10"
-                              onClick={() => {
-                                setCurrentDynamicSlot(mealNumber);
-                                openManualModal("snacks");
-                              }}
-                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
+                            <AddOwnMealButton slot="snacks" onSave={(meal) => quickAdd("snacks", meal)} variant="icon" />
 
                             {/* Delete slot */}
                             <Button
@@ -1589,14 +1570,7 @@ export default function BeachBodyMealBoard() {
                         />
                       )}
 
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-white/80 hover:bg-white/10"
-                        onClick={() => openManualModal(key)}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
+                      <AddOwnMealButton slot={key as "breakfast"|"lunch"|"dinner"|"snacks"} onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks", meal)} variant="icon" />
                     </div>
                   </div>
 
@@ -1686,15 +1660,7 @@ export default function BeachBodyMealBoard() {
                   onClick={() => setSnackCreatorOpen(true)}
                 />
 
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-white/80 hover:bg-white/10"
-                  onClick={() => openManualModal("snacks")}
-                  data-wt="wmb-add-custom-button"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
+                <AddOwnMealButton slot="snacks" onSave={(meal) => quickAdd("snacks", meal)} variant="icon" data-wt="wmb-add-custom-button" />
               </div>
             </div>
 
@@ -2003,21 +1969,6 @@ export default function BeachBodyMealBoard() {
             }
             setPickerOpen(false);
             setPickerList(null);
-          }}
-        />
-
-        <ManualMealModal
-          open={manualModalOpen}
-          onClose={() => {
-            setManualModalOpen(false);
-            setManualModalList(null);
-          }}
-          onSave={(meal) => {
-            if (manualModalList) {
-              quickAdd(manualModalList, meal);
-            }
-            setManualModalOpen(false);
-            setManualModalList(null);
           }}
         />
 

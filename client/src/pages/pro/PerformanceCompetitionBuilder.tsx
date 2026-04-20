@@ -28,7 +28,7 @@ import {
 } from "@/lib/boardApi";
 import { useChefMealImage } from "@/hooks/useChefMealImage";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
-import { ManualMealModal } from "@/components/pickers/ManualMealModal";
+import { AddOwnMealButton } from "@/components/pickers/AddOwnMealButton";
 import { CompetitionMealPickerDrawer } from "@/components/pickers/CompetitionMealPickerDrawer";
 import { CreateWithChefButton } from "@/components/CreateWithChefButton";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
@@ -317,10 +317,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
 
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [pickerList, setPickerList] = React.useState<
-    "breakfast" | "lunch" | "dinner" | "snacks" | null
-  >(null);
-  const [manualModalOpen, setManualModalOpen] = React.useState(false);
-  const [manualModalList, setManualModalList] = React.useState<
     "breakfast" | "lunch" | "dinner" | "snacks" | null
   >(null);
   const [showOverview, setShowOverview] = React.useState(false);
@@ -897,11 +893,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     setPickerOpen(true);
   }
 
-  function openManualModal(list: "breakfast" | "lunch" | "dinner" | "snacks") {
-    setManualModalList(list);
-    setManualModalOpen(true);
-  }
-
   const handleFavoriteSelect = useCallback(async (row: SavedMealRow) => {
     if (!board || !favoritesSlot) return;
     const mealObj = savedMealToMeal(row);
@@ -1253,7 +1244,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                           onSnackCreator={() => {
                             setSnackCreatorOpen(true);
                           }}
-                          onManualAdd={() => openManualModal(key)}
+                          onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks", meal)}
                           onFavorites={() => {
                             setFavoritesSlot(key as "breakfast" | "lunch" | "dinner" | "snacks");
                             setFavoritesOpen(true);
@@ -1392,15 +1383,11 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                               Create with Chef
                             </Button>
 
-                            {/* Plus button for manual entry */}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-white/80 hover:bg-white/10"
-                              onClick={() => openManualModal("snacks")}
-                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
+                            <AddOwnMealButton
+                              slot="snacks"
+                              onSave={(meal) => quickAdd("snacks", meal)}
+                              variant="icon"
+                            />
 
                             {/* Delete button - Remove this dynamic meal slot */}
                             <Button
@@ -1629,15 +1616,11 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         Create with Chef
                       </Button>
 
-                      {/* Plus button for manual entry */}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-white/80 hover:bg-white/10"
-                        onClick={() => openManualModal(key)}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
+                      <AddOwnMealButton
+                        slot={key as "breakfast"|"lunch"|"dinner"|"snacks"}
+                        onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks", meal)}
+                        variant="icon"
+                      />
                     </div>
                   </div>
 
@@ -1875,21 +1858,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             }
             setPickerOpen(false);
             setPickerList(null);
-          }}
-        />
-
-        <ManualMealModal
-          open={manualModalOpen}
-          onClose={() => {
-            setManualModalOpen(false);
-            setManualModalList(null);
-          }}
-          onSave={(meal) => {
-            if (manualModalList) {
-              quickAdd(manualModalList, meal);
-            }
-            setManualModalOpen(false);
-            setManualModalList(null);
           }}
         />
 
