@@ -2,48 +2,93 @@ import React, { useState, useCallback, useRef } from "react";
 import { ttsService } from "@/lib/tts";
 import { PRO_TIP_SCRIPT } from "@/components/copilot/scripts/proTipScript";
 import { PillButton } from "@/components/ui/pill-button";
+import { Play, Pause, RotateCcw, Loader2 } from "lucide-react";
+
+type PlayState = "idle" | "loading" | "playing" | "paused";
 
 export const ProTipCard: React.FC = () => {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [playState, setPlayState] = useState<PlayState>("idle");
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
 
-  const handleToggle = useCallback(async () => {
-    if (isPlaying) {
-      ttsService.stop();
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
-      setIsPlaying(false);
-      return;
+  const cleanupAudio = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.onended = null;
+      audioRef.current.onerror = null;
+      audioRef.current.pause();
+      audioRef.current = null;
     }
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
+  }, []);
 
-    setIsPlaying(true);
+  const attachAudioHandlers = useCallback((audio: HTMLAudioElement, url: string) => {
+    audio.onended = () => {
+      cleanupAudio();
+      setPlayState("idle");
+    };
+    audio.onerror = () => {
+      cleanupAudio();
+      setPlayState("idle");
+    };
+  }, [cleanupAudio]);
 
+  const handleListen = useCallback(async () => {
+    setPlayState("loading");
     try {
+      ttsService.stop();
       const result = await ttsService.speak(PRO_TIP_SCRIPT, {
-        onStart: () => setIsPlaying(true),
-        onEnd: () => setIsPlaying(false),
-        onError: () => setIsPlaying(false),
+        onEnd: () => setPlayState("idle"),
+        onError: () => setPlayState("idle"),
       });
 
       if (result.audioUrl) {
         const audio = new Audio(result.audioUrl);
         audioRef.current = audio;
-        audio.onended = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(result.audioUrl!);
-        };
-        audio.onerror = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(result.audioUrl!);
-        };
+        audioUrlRef.current = result.audioUrl;
+        attachAudioHandlers(audio, result.audioUrl);
         await audio.play();
+        setPlayState("playing");
+      } else {
+        setPlayState("playing");
       }
     } catch {
-      setIsPlaying(false);
+      setPlayState("idle");
     }
-  }, [isPlaying]);
+  }, [attachAudioHandlers]);
+
+  const handlePause = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    } else if (window.speechSynthesis?.speaking) {
+      window.speechSynthesis.pause();
+    }
+    setPlayState("paused");
+  }, []);
+
+  const handleResume = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.play().catch(() => setPlayState("idle"));
+    } else if (window.speechSynthesis?.paused) {
+      window.speechSynthesis.resume();
+    }
+    setPlayState("playing");
+  }, []);
+
+  const handleStartOver = useCallback(async () => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => {});
+      setPlayState("playing");
+    } else {
+      cleanupAudio();
+      ttsService.stop();
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+      await handleListen();
+    }
+  }, [cleanupAudio, handleListen]);
 
   return (
     <div className="col-span-full">
@@ -81,6 +126,26 @@ export const ProTipCard: React.FC = () => {
               <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.85)" }}>
                 Learn how to use the Meal Builder for maximum accuracy.
               </p>
+
+              {(playState === "playing" || playState === "paused") && (
+                <div className="flex items-center gap-2 mt-3">
+                  {playState === "playing" ? (
+                    <PillButton onClick={handlePause} active className="flex items-center gap-1.5">
+                      <Pause className="h-3.5 w-3.5" />
+                      Pause
+                    </PillButton>
+                  ) : (
+                    <PillButton onClick={handleResume} active className="flex items-center gap-1.5">
+                      <Play className="h-3.5 w-3.5" />
+                      Resume
+                    </PillButton>
+                  )}
+                  <PillButton onClick={handleStartOver} className="flex items-center gap-1.5">
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Start Over
+                  </PillButton>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col items-center gap-1 flex-shrink-0">
@@ -96,9 +161,29 @@ export const ProTipCard: React.FC = () => {
                   boxShadow: "0 0 8px rgba(251,191,36,0.35)",
                 }}
               />
-              <PillButton onClick={handleToggle} active={isPlaying}>
-                {isPlaying ? "Stop" : "Listen"}
-              </PillButton>
+              {playState === "idle" && (
+                <PillButton onClick={handleListen}>
+                  Listen
+                </PillButton>
+              )}
+              {playState === "loading" && (
+                <PillButton active className="flex items-center gap-1.5 opacity-70 cursor-not-allowed">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Loading…
+                </PillButton>
+              )}
+              {(playState === "playing" || playState === "paused") && (
+                <PillButton
+                  onClick={() => {
+                    cleanupAudio();
+                    ttsService.stop();
+                    if (window.speechSynthesis) window.speechSynthesis.cancel();
+                    setPlayState("idle");
+                  }}
+                >
+                  Stop
+                </PillButton>
+              )}
             </div>
           </div>
         </div>
