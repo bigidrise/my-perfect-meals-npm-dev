@@ -2444,11 +2444,9 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
 
     let imageUrl = getFallbackImage('snack');
     try {
-      const generatedImage = await generateImageCached(
+      const generatedImage = await generateMealImageUnified(
         finalSnackData.name,
-        finalSnackData.ingredients?.map((ing: any) => ing.name) || [],
-        'meal',
-        'realistic professional food photography, natural light, plated, clean background, shallow depth of field, no text, no watermark, no logo, no people, no hands, no utensils in motion',
+        finalSnackData.ingredients || [],
       );
 
       if (generatedImage) {

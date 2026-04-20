@@ -866,6 +866,15 @@ export default function BeachBodyMealBoard() {
 
         // Dispatch board update event
         window.dispatchEvent(new Event("macros:updated"));
+
+        // Trigger proper image pipeline — matches Chef/Craving Creator flow
+        fetchImageForMeal({ id: snack.id, name: snack.name }, 'snacks', (mealId, imageUrl) => {
+          setBoard(prev => {
+            if (!prev) return prev;
+            if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
+            return updateMealImageInBoard(prev, mealId, imageUrl);
+          });
+        });
       } catch (error) {
         console.error("Failed to add snack:", error);
         toast({
