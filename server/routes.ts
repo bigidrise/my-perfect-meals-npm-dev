@@ -3501,6 +3501,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let scannedOptions = cleanOptions;
 
+      // Generate dish-accurate images for all options in parallel.
+      // DO NOT call image generation directly — use generateMealImageUnified only.
+      const { generateMealImageUnified } = await import("./services/mealImageGenerator");
+      await Promise.all(scannedOptions.map(async (meal) => {
+        try {
+          console.log(`🖼️ IMAGE PIPELINE START: ${meal.name}`);
+          const ingredientNames = (meal.ingredients || []).map((i: any) => i.name || "").filter(Boolean);
+          meal.imageUrl = await generateMealImageUnified(meal.name, ingredientNames);
+        } catch (err) {
+          console.warn(`⚠️ Image generation failed for "${meal.name}", keeping fallback`);
+        }
+      }));
+
       // Format and optionally scale each option
       const formattedOptions = scannedOptions.map(meal => {
         const { complianceSection, dietClassification } = buildMealComplianceBundle(
