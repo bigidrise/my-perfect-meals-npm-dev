@@ -179,7 +179,11 @@ export default function DessertCreator() {
   const [generatedDessert, setGeneratedDessert] = useState<any | null>(() => {
     try {
       const saved = localStorage.getItem("mpm_dessert_creator_result");
-      return saved ? JSON.parse(saved) : null;
+      if (!saved) return null;
+      const parsed = JSON.parse(saved);
+      // Strip server-computed diet fields — they can go stale if user settings change
+      const { dietClassification: _dc, complianceSection: _cs, ...rest } = parsed;
+      return rest;
     } catch {
       return null;
     }
