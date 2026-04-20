@@ -3,7 +3,9 @@
 // DO NOT MODIFY - PRODUCTION-READY SYSTEM LOCKED FOR TESTING
 import { type User } from "@shared/schema";
 import OpenAI from 'openai';
-import { generateImage } from './imageService';
+// DO NOT call generateImage() from imageService directly.
+// Use generateMealImageUnified only.
+import { generateMealImageUnified } from './mealImageGenerator';
 import { convertStructuredIngredients } from "../utils/unitConverter";
 
 let _openai: OpenAI | null = null;
@@ -165,24 +167,11 @@ export async function generateRestaurantMeals(request: RestaurantMealRequest): P
   for (const meal of fallbackMeals) {
     try {
       console.log(`🖼️ Generating image for ${meal.name}...`);
-      const imageUrl = await generateImage({
-        name: meal.name,
-        description: meal.description,
-        type: 'meal',
-        style: cuisine,
-        ingredients: meal.ingredients || [],
-        calories: meal.calories,
-        protein: meal.protein,
-        carbs: meal.carbs,
-        fat: meal.fat,
-      });
-
-      if (imageUrl) {
-        meal.imageUrl = imageUrl;
-        console.log(`✅ Image generated for ${meal.name}: ${imageUrl}`);
-      } else {
-        console.log(`⚠️ No image generated for ${meal.name}, using placeholder`);
-      }
+      // DO NOT call image generation directly.
+      // Use generateMealImageUnified only.
+      const imageUrl = await generateMealImageUnified(meal.name, meal.ingredients || []);
+      meal.imageUrl = imageUrl;
+      console.log(`✅ Image generated for ${meal.name}: ${imageUrl}`);
     } catch (error) {
       console.error(`❌ Failed to generate image for ${meal.name}:`, error);
     }

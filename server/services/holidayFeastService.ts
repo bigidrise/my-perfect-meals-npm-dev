@@ -1,5 +1,8 @@
 // server/services/holidayFeastService.ts
+// DO NOT call generateImage() from imageService directly.
+// Use generateMealImageUnified only.
 import OpenAI from "openai";
+import { generateMealImageUnified } from "./mealImageGenerator";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -213,24 +216,16 @@ Respond with this exact JSON structure:
 
   console.log(`🎨 Generating images for ${feast.length} dishes...`);
   
-  const { generateImage } = await import("./imageService");
-  
   for (const dish of feast) {
     if (dish.imagePrompt) {
       console.log(`🎨 Generating image for: ${dish.name}`);
-      const imageUrl = await generateImage({
-        name: dish.name,
-        description: dish.description,
-        type: 'meal',
-        style: 'holiday feast photography'
-      });
-      
-      if (imageUrl) {
-        (dish as any).imageUrl = imageUrl;
-        console.log(`✅ Generated image for: ${dish.name}`);
-      } else {
-        console.log(`⚠️ No image generated for: ${dish.name}`);
-      }
+      // DO NOT call image generation directly.
+      // Use generateMealImageUnified only.
+      (dish as any).imageUrl = await generateMealImageUnified(
+        dish.name,
+        (dish as any).ingredients || []
+      );
+      console.log(`✅ Generated image for: ${dish.name}`);
     }
   }
 

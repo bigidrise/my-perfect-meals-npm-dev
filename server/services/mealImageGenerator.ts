@@ -477,3 +477,32 @@ export function getImageCacheStats(): { size: number; entries: string[] } {
     entries: Array.from(memCache.keys()),
   };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UNIFIED ENTRY POINT — every feature must go through this function.
+// DO NOT call generateImage() from imageService directly.
+// DO NOT pass raw AI descriptions as image prompts.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function generateMealImageUnified(
+  mealName: string,
+  ingredients: Array<string | Record<string, any>> = []
+): Promise<string> {
+  // DO NOT call image generation directly.
+  // Use generateMealImageUnified only.
+
+  if (!mealName || !mealName.trim()) {
+    return getSemanticFallback("meal");
+  }
+
+  const ingredientNames = ingredients
+    .map(i => typeof i === "string" ? i : (i.name || i.item || ""))
+    .filter(Boolean);
+
+  const result = await generateMealImage({
+    mealName,
+    ingredients: ingredientNames,
+  });
+
+  return result.url;
+}

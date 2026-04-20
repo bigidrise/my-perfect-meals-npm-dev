@@ -3,7 +3,9 @@
 // Falls back to locked generator if AI fails
 import { type User } from "@shared/schema";
 import OpenAI from 'openai';
-import { generateImage } from './imageService';
+// DO NOT call generateImage() from imageService directly.
+// Use generateMealImageUnified only.
+import { generateMealImageUnified } from './mealImageGenerator';
 import { generateRestaurantMeals as generateFallbackMeals } from './restaurantMealGenerator';
 import { enforceCarbs } from '../utils/carbClassifier';
 import { buildDietPromptBlock, violatesDietaryConstraints, getPrimaryDiet } from './allergyGuardrails';
@@ -557,22 +559,11 @@ Return ONLY a single JSON object (not an array) with this exact structure:
       console.log(`🖼️ Generating images for all ${enforcedMeals.length} meals in parallel...`);
       const imagePromises = enforcedMeals.map(async (meal) => {
         try {
-          const imageUrl = await generateImage({
-            name: meal.name,
-            description: meal.description,
-            type: 'meal',
-            style: cuisine,
-            ingredients: meal.ingredients,
-            calories: meal.calories,
-            protein: meal.protein,
-            carbs: meal.carbs,
-            fat: meal.fat,
-          });
-
-          if (imageUrl) {
-            meal.imageUrl = imageUrl;
-            console.log(`✅ Image generated for ${meal.name}`);
-          }
+          // DO NOT call image generation directly.
+          // Use generateMealImageUnified only.
+          const imageUrl = await generateMealImageUnified(meal.name, meal.ingredients || []);
+          meal.imageUrl = imageUrl;
+          console.log(`✅ Image generated for ${meal.name}`);
         } catch (error) {
           console.error(`❌ Failed to generate image for ${meal.name}:`, error);
         }
