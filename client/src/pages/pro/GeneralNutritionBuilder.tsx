@@ -71,6 +71,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 
 import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { SnackCreatorButton } from "@/components/SnackCreatorButton";
+import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
+import { FavoritesPickerModal } from "@/components/FavoritesPickerModal";
+import { savedMealToMeal } from "@/utils/savedMealToMeal";
+import type { SavedMealRow } from "@/hooks/useSavedMeals";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
@@ -205,6 +209,10 @@ export default function WeeklyMealBoard() {
 
   // Snack Creator modal state
   const [snackCreatorOpen, setSnackCreatorOpen] = useState(false);
+
+  // Favorites picker state
+  const [favoritesOpen, setFavoritesOpen] = useState(false);
+  const [favoritesSlot, setFavoritesSlot] = useState<"breakfast" | "lunch" | "dinner" | "snacks">("breakfast");
 
   // Dynamic meal slots (Meal 4+)
   const [dynamicMealCount, setDynamicMealCount] = useState(0);
@@ -824,6 +832,33 @@ export default function WeeklyMealBoard() {
     setManualModalOpen(true);
   }
 
+  const handleFavoriteSelect = useCallback(async (row: SavedMealRow) => {
+    if (!board || !favoritesSlot) return;
+    const mealObj = savedMealToMeal(row);
+    try {
+      if (FEATURES.dayPlanning === 'alpha' && planningMode === 'day' && activeDayISO) {
+        const dayLists = getDayLists(board, activeDayISO);
+        const updatedDayLists = { ...dayLists, [favoritesSlot]: [mealObj] };
+        const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+        setBoard(updatedBoard);
+        await saveBoard(updatedBoard);
+      } else {
+        const updatedBoard = {
+          ...board,
+          lists: { ...board.lists, [favoritesSlot]: [mealObj] },
+          version: board.version + 1,
+          meta: { ...board.meta, lastUpdatedAt: new Date().toISOString() },
+        };
+        setBoard(updatedBoard);
+        await saveBoard(updatedBoard);
+      }
+      window.dispatchEvent(new Event("macros:updated"));
+      setFavoritesOpen(false);
+    } catch (err) {
+      console.error("Failed to insert favorite:", err);
+    }
+  }, [board, favoritesSlot, planningMode, activeDayISO, saveBoard]);
+
   const lists: Array<["breakfast"|"lunch"|"dinner", string]> = [
     ["breakfast","Meal 1"], ["lunch","Meal 2"], ["dinner","Meal 3"]
   ];
@@ -1043,45 +1078,23 @@ export default function WeeklyMealBoard() {
                   <section key={key} data-meal-id={key} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-white/90 text-lg font-medium">{label}</h2>
-                      <div className="flex gap-2">
-                        {FEATURES.showCreateWithAI && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-white/80 hover:bg-black/50 border border-pink-400/30 text-xs font-medium flex items-center gap-1 flash-border"
-                            onClick={() => {
-                              setAiMealSlot(key as "breakfast" | "lunch" | "dinner" | "snacks");
-                              setAiMealModalOpen(true);
-                            }}
-                            data-wt="wmb-create-ai-button"
-                          >
-                            <Sparkles className="h-3 w-3" />
-                            Create with AI
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-white/80 hover:bg-black/50 border border-orange-400/40 text-xs font-medium flex items-center gap-1 flash-border"
-                          onClick={() => {
-                            setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner");
-                            setCreateWithChefOpen(true);
-                          }}
-                          data-wt="wmb-create-chef-button"
-                        >
-                          <Sparkles className="h-3 w-3" />
-                          Create with Chef
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-white/80 hover:bg-white/10"
-                          onClick={() => openManualModal(key)}
-                          data-wt="wmb-add-custom-button"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <GlobalMealActionBar
+                        slot={key as "breakfast" | "lunch" | "dinner"}
+                        onCreateWithAI={() => {
+                          setAiMealSlot(key as "breakfast" | "lunch" | "dinner" | "snacks");
+                          setAiMealModalOpen(true);
+                        }}
+                        onCreateWithChef={() => {
+                          setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner");
+                          setCreateWithChefOpen(true);
+                        }}
+                        onSnackCreator={() => setSnackCreatorOpen(true)}
+                        onManualAdd={() => openManualModal(key)}
+                        onFavorites={() => {
+                          setFavoritesSlot(key as "breakfast" | "lunch" | "dinner");
+                          setFavoritesOpen(true);
+                        }}
+                      />
                     </div>
                     <div className="space-y-3">
                       {dayLists[key as keyof typeof dayLists].map((meal: Meal, idx: number) => (
@@ -1143,27 +1156,24 @@ export default function WeeklyMealBoard() {
                     >
                       <div className="flex items-center justify-between mb-4">
                         <h2 className="text-white/90 text-lg font-medium">Meal {mealNumber}</h2>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-white/80 hover:bg-black/50 border border-orange-400/40 text-xs font-medium flex items-center gap-1 flash-border"
-                            onClick={() => {
+                        <div className="flex gap-2 items-center">
+                          <GlobalMealActionBar
+                            slot="dinner"
+                            onCreateWithAI={() => {
+                              setAiMealSlot("snacks");
+                              setAiMealModalOpen(true);
+                            }}
+                            onCreateWithChef={() => {
                               setCreateWithChefSlot("breakfast");
                               setCreateWithChefOpen(true);
                             }}
-                          >
-                            <Sparkles className="h-3 w-3" />
-                            Create with Chef
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-white/80 hover:bg-white/10"
-                            onClick={() => openManualModal("breakfast")}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
+                            onSnackCreator={() => setSnackCreatorOpen(true)}
+                            onManualAdd={() => openManualModal("breakfast")}
+                            onFavorites={() => {
+                              setFavoritesSlot("snacks");
+                              setFavoritesOpen(true);
+                            }}
+                          />
                           <Button
                             size="sm"
                             variant="ghost"
@@ -1235,9 +1245,17 @@ export default function WeeklyMealBoard() {
                 <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4 col-span-full">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-white/90 text-lg font-medium">Snacks</h2>
-                    <div className="flex gap-2">
-                      <SnackCreatorButton onClick={() => setSnackCreatorOpen(true)} />
-                    </div>
+                    <GlobalMealActionBar
+                      slot="snacks"
+                      onCreateWithAI={() => {}}
+                      onCreateWithChef={() => {}}
+                      onSnackCreator={() => setSnackCreatorOpen(true)}
+                      onManualAdd={() => openManualModal("snacks")}
+                      onFavorites={() => {
+                        setFavoritesSlot("snacks");
+                        setFavoritesOpen(true);
+                      }}
+                    />
                   </div>
                   <div className="space-y-3">
                     {dayLists.snacks
@@ -1291,28 +1309,23 @@ export default function WeeklyMealBoard() {
             <section key={key} data-meal-id={key} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-white/90 text-lg font-medium">{label}</h2>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-white/80 hover:bg-black/50 border border-orange-400/40 text-xs font-medium flex items-center gap-1 flash-border"
-                    onClick={() => {
-                      setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner");
-                      setCreateWithChefOpen(true);
-                    }}
-                  >
-                    <Sparkles className="h-3 w-3" />
-                    Create with Chef
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-white/80 hover:bg-white/10"
-                    onClick={() => openManualModal(key)}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
+                <GlobalMealActionBar
+                  slot={key as "breakfast" | "lunch" | "dinner"}
+                  onCreateWithAI={() => {
+                    setAiMealSlot(key as "breakfast" | "lunch" | "dinner" | "snacks");
+                    setAiMealModalOpen(true);
+                  }}
+                  onCreateWithChef={() => {
+                    setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner");
+                    setCreateWithChefOpen(true);
+                  }}
+                  onSnackCreator={() => setSnackCreatorOpen(true)}
+                  onManualAdd={() => openManualModal(key)}
+                  onFavorites={() => {
+                    setFavoritesSlot(key as "breakfast" | "lunch" | "dinner");
+                    setFavoritesOpen(true);
+                  }}
+                />
               </div>
               <div className="space-y-3">
                 {board.lists[key].map((meal: Meal, idx: number) => (
@@ -1732,6 +1745,14 @@ export default function WeeklyMealBoard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Favorites Picker Modal */}
+      <FavoritesPickerModal
+        open={favoritesOpen}
+        onClose={() => setFavoritesOpen(false)}
+        onSelect={handleFavoriteSelect}
+        targetLabel={`Meal ${favoritesSlot.charAt(0).toUpperCase() + favoritesSlot.slice(1)}`}
+      />
 
       {/* Create With Chef Modal */}
       <CreateWithChefModal
