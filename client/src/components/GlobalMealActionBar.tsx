@@ -1,18 +1,19 @@
 import { Button } from "@/components/ui/button";
-import { Sparkles, Plus, Star } from "lucide-react";
+import { Sparkles, Star } from "lucide-react";
 import { CreateWithChefButton } from "@/components/CreateWithChefButton";
 import { SnackCreatorButton } from "@/components/SnackCreatorButton";
 import { PillButton } from "@/components/ui/pill-button";
+import { AddOwnMealButton } from "@/components/pickers/AddOwnMealButton";
 import { FEATURES } from "@/featureFlags";
 
-type MealSlot = "breakfast" | "lunch" | "dinner" | "snacks";
+type MealSlot = "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6";
 
 interface GlobalMealActionBarProps {
   slot: MealSlot;
   onCreateWithAI: () => void;
   onCreateWithChef: () => void;
   onSnackCreator?: () => void;
-  onManualAdd: () => void;
+  onSave: (meal: any) => void;
   onLogSnack?: () => void;
   onFavorites?: () => void;
   disabled?: boolean;
@@ -26,7 +27,7 @@ export function GlobalMealActionBar({
   onCreateWithAI,
   onCreateWithChef,
   onSnackCreator,
-  onManualAdd,
+  onSave,
   onLogSnack,
   onFavorites,
   disabled = false,
@@ -35,11 +36,10 @@ export function GlobalMealActionBar({
   showLogSnack = false,
 }: GlobalMealActionBarProps) {
   const isSnackSlot = slot === "snacks";
-  const isMealSlot = slot === "breakfast" || slot === "lunch" || slot === "dinner";
+  const isMealSlot = slot === "breakfast" || slot === "lunch" || slot === "dinner" || slot === "meal4" || slot === "meal5" || slot === "meal6";
 
   return (
     <div className="flex gap-2">
-      {/* For meal slots: Show Create with AI (hidden by feature flag for launch) */}
       {FEATURES.showCreateWithAI && isMealSlot && (
         <Button
           size="sm"
@@ -54,7 +54,6 @@ export function GlobalMealActionBar({
         </Button>
       )}
 
-      {/* For snack slots: Show Snack Creator ONLY (replaces Create with AI) */}
       {showSnackCreator && isSnackSlot && onSnackCreator && (
         <SnackCreatorButton
           onClick={onSnackCreator}
@@ -69,7 +68,6 @@ export function GlobalMealActionBar({
         />
       )}
 
-      {/* Favorites button — shown on all slot types when provided */}
       {onFavorites && (
         <PillButton
           onClick={onFavorites}
@@ -81,16 +79,12 @@ export function GlobalMealActionBar({
         </PillButton>
       )}
 
-      <Button
-        size="sm"
-        variant="ghost"
-        data-wt="weekly-empty-slot"
-        className="text-white/80 hover:bg-white/10"
-        onClick={onManualAdd}
+      <AddOwnMealButton
+        slot={slot}
+        onSave={onSave}
+        variant="icon"
         disabled={disabled}
-      >
-        <Plus className="h-4 w-4" />
-      </Button>
+      />
 
       {showLogSnack && isSnackSlot && onLogSnack && (
         <Button

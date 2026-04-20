@@ -28,7 +28,7 @@ import {
 } from "@/lib/boardApi";
 import { useChefMealImage } from "@/hooks/useChefMealImage";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
-import { ManualMealModal } from "@/components/pickers/ManualMealModal";
+import { AddOwnMealButton } from "@/components/pickers/AddOwnMealButton";
 import { CompetitionMealPickerDrawer } from "@/components/pickers/CompetitionMealPickerDrawer";
 import { CreateWithChefButton } from "@/components/CreateWithChefButton";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
@@ -36,7 +36,6 @@ import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { getResolvedTargets } from "@/lib/macroResolver";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
-import { SnackCreatorButton } from "@/components/SnackCreatorButton";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
 import { FavoritesPickerModal } from "@/components/FavoritesPickerModal";
 import { savedMealToMeal } from "@/utils/savedMealToMeal";
@@ -49,9 +48,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { lockDay, isDayLocked } from "@/lib/lockedDays";
 import { setQuickView } from "@/lib/macrosQuickView";
 import WeeklyOverviewModal from "@/components/WeeklyOverviewModal";
-import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
-import { normalizeIngredients } from "@/utils/ingredientParser";
-import { useShoppingListStore } from "@/stores/shoppingListStore";
+import BuilderShoppingBar from "@/components/BuilderShoppingBar";
 import { useToast } from "@/hooks/use-toast";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { 
@@ -71,13 +68,11 @@ import { setActiveBuilderNs } from "@/lib/activeBuilderNs";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
 import {
-  Plus,
   Check,
   Sparkles,
   BarChart3,
   ShoppingCart,
   X,
-  Trash2,
   ChevronLeft,
   Calendar,
   ChevronRight,
@@ -163,15 +158,15 @@ const PERFORMANCE_TOUR_STEPS: TourStep[] = [
 // CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
 // Using noon UTC anchor pattern to prevent day-shift bugs
 
-// Pro Care Meal Slots - 3 meals for competition prep (fixed)
-const lists: Array<["breakfast" | "lunch" | "dinner", string]> = [
+// Pro Care Meal Slots - 6 fixed meals for competition prep
+const lists: Array<["breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6", string]> = [
   ["breakfast", "Meal 1"],
   ["lunch", "Meal 2"],
   ["dinner", "Meal 3"],
+  ["meal4", "Meal 4"],
+  ["meal5", "Meal 5"],
+  ["meal6", "Meal 6"],
 ];
-
-// Meal 5 will be rendered separately using the snacks slot
-// Dynamic meals (6+) will be stored in board.days[date].snacks array with special prefix
 
 interface AthleteBoardProps {
   mode?: "athlete" | "procare";
@@ -319,10 +314,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const [pickerList, setPickerList] = React.useState<
     "breakfast" | "lunch" | "dinner" | "snacks" | null
   >(null);
-  const [manualModalOpen, setManualModalOpen] = React.useState(false);
-  const [manualModalList, setManualModalList] = React.useState<
-    "breakfast" | "lunch" | "dinner" | "snacks" | null
-  >(null);
   const [showOverview, setShowOverview] = React.useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = React.useState(false);
 
@@ -331,7 +322,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   // Create With Chef modal state
   const [createWithChefOpen, setCreateWithChefOpen] = useState(false);
   const [createWithChefSlot, setCreateWithChefSlot] = useState<
-    "breakfast" | "lunch" | "dinner"
+    "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6"
   >("breakfast");
 
   // Day/Week planning state (moved up for starchContext dependency)
@@ -359,7 +350,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
 
   // Favorites picker state
   const [favoritesOpen, setFavoritesOpen] = useState(false);
-  const [favoritesSlot, setFavoritesSlot] = useState<"breakfast" | "lunch" | "dinner" | "snacks">("breakfast");
+  const [favoritesSlot, setFavoritesSlot] = useState<"breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6">("breakfast");
 
   // Guided Tour state
   const [hasSeenInfo, setHasSeenInfo] = useState(false);
@@ -379,9 +370,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     isOpen: boolean;
     meal: any | null;
   }>({ isOpen: false, meal: null });
-
-  // Dynamic meal tracking (Meal 6+)
-  const [dynamicMealCount, setDynamicMealCount] = useState(0);
 
   // 🔋 AI Meal Creator localStorage persistence (copy Weekly Meal Board pattern)
   const AI_MEALS_CACHE_KEY = "ai-athlete-meal-creator-cached-meals";
@@ -593,129 +581,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     [board, activeDayISO, weekStartISO, saveBoard, toast],
   );
 
-  // Shopping list handler - Single day
-  const handleAddToShoppingList = useCallback(() => {
-    if (!board) {
-      toast({
-        title: "No meals found",
-        description: "Add meals to your board before creating a shopping list.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    let allMeals: Meal[] = [];
-    if (
-      FEATURES.dayPlanning === "alpha" &&
-      planningMode === "day" &&
-      activeDayISO
-    ) {
-      const dayLists = getDayLists(board, activeDayISO);
-      allMeals = [
-        ...dayLists.breakfast,
-        ...dayLists.lunch,
-        ...dayLists.dinner,
-        ...dayLists.snacks,
-      ];
-    } else {
-      allMeals = [
-        ...board.lists.breakfast,
-        ...board.lists.lunch,
-        ...board.lists.dinner,
-        ...board.lists.snacks,
-      ];
-    }
-
-    if (allMeals.length === 0) {
-      toast({
-        title: "No meals found",
-        description: "Add meals to your board before creating a shopping list.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const ingredients = allMeals.flatMap((meal) =>
-      normalizeIngredients(meal.ingredients || []),
-    );
-
-    const items = ingredients.map((i) => ({
-      name: i.name,
-      quantity:
-        typeof i.qty === "number"
-          ? i.qty
-          : i.qty
-            ? parseFloat(String(i.qty))
-            : 1,
-      unit: i.unit || "",
-      notes:
-        planningMode === "day" && activeDayISO
-          ? `${formatDateDisplay(activeDayISO, { weekday: "long" })} Athlete Plan`
-          : `Athlete Meal Plan (${formatWeekLabel(weekStartISO)})`,
-    }));
-
-    useShoppingListStore.getState().addItems(items);
-
-    toast({
-      title: "Added to Shopping List",
-      description: `${ingredients.length} items added to your Smart Grocery List`,
-    });
-  }, [board, planningMode, activeDayISO, weekStartISO, toast]);
-
-  // Shopping list handler - Entire week
-  const handleAddEntireWeekToShoppingList = useCallback(() => {
-    if (!board) {
-      toast({
-        title: "No meals found",
-        description: "Add meals to your board before creating a shopping list.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    let allMeals: Meal[] = [];
-    weekDatesList.forEach((dateISO) => {
-      const dayLists = getDayLists(board, dateISO);
-      allMeals.push(
-        ...dayLists.breakfast,
-        ...dayLists.lunch,
-        ...dayLists.dinner,
-        ...dayLists.snacks,
-      );
-    });
-
-    if (allMeals.length === 0) {
-      toast({
-        title: "No meals found",
-        description: "Add meals to your week before creating a shopping list.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const ingredients = allMeals.flatMap((meal) =>
-      normalizeIngredients(meal.ingredients || []),
-    );
-
-    const items = ingredients.map((i) => ({
-      name: i.name,
-      quantity:
-        typeof i.qty === "number"
-          ? i.qty
-          : i.qty
-            ? parseFloat(String(i.qty))
-            : 1,
-      unit: i.unit || "",
-      notes: `Athlete Meal Plan (${formatWeekLabel(weekStartISO)}) - All 7 Days`,
-    }));
-
-    useShoppingListStore.getState().addItems(items);
-
-    toast({
-      title: "Added to Shopping List",
-      description: `${ingredients.length} items from entire week added to your Smart Grocery List`,
-    });
-  }, [board, weekStartISO, weekDatesList, toast]);
 
   const handleChefMealGenerated = useCallback(
     async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
@@ -820,6 +685,15 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           description: `${snack.title} added successfully`,
         });
 
+        // Trigger proper image pipeline — matches Chef/Craving Creator flow
+        fetchImageForMeal({ id: snack.id, name: snack.name }, 'snacks', (mealId, imageUrl) => {
+          setBoard(prev => {
+            if (!prev) return prev;
+            if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
+            return updateMealImageInBoard(prev, mealId, imageUrl);
+          });
+        });
+
         setSnackPickerOpen(false);
       } catch (error) {
         console.error("Failed to add snack:", error);
@@ -849,7 +723,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   }, [weekStartISO, gotoWeek]);
 
   async function quickAdd(
-    list: "breakfast" | "lunch" | "dinner" | "snacks",
+    list: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
     meal: Meal,
   ) {
     if (!board) return;
@@ -897,11 +771,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     setPickerOpen(true);
   }
 
-  function openManualModal(list: "breakfast" | "lunch" | "dinner" | "snacks") {
-    setManualModalList(list);
-    setManualModalOpen(true);
-  }
-
   const handleFavoriteSelect = useCallback(async (row: SavedMealRow) => {
     if (!board || !favoritesSlot) return;
     const mealObj = savedMealToMeal(row);
@@ -917,78 +786,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       console.error("Failed to insert favorite:", err);
     }
   }, [board, favoritesSlot, activeDayISO, saveBoard]);
-
-  // Add a new dynamic meal slot
-  const handleAddMealSlot = useCallback(() => {
-    setDynamicMealCount((prev) => prev + 1);
-    toast({
-      title: "Meal Slot Added",
-      description: `Meal ${4 + dynamicMealCount} is ready to use`,
-    });
-  }, [dynamicMealCount, toast]);
-
-  // Remove a dynamic meal slot and clean up board data
-  const handleRemoveMealSlot = useCallback(
-    async (mealNumber: number) => {
-      if (!board) return;
-
-      try {
-        // Clean up meals with this slot's ID prefix from the board
-        const slotPrefix = `dyn-${mealNumber}-`;
-
-        if (
-          FEATURES.dayPlanning === "alpha" &&
-          planningMode === "day" &&
-          activeDayISO
-        ) {
-          // DAY MODE: Remove meals from day-specific lists
-          const dayLists = getDayLists(board, activeDayISO);
-          const updatedDayLists = {
-            ...dayLists,
-            snacks: dayLists.snacks.filter(
-              (meal: Meal) => !meal.id.startsWith(slotPrefix),
-            ),
-          };
-          const updatedBoard = setDayLists(
-            board,
-            activeDayISO,
-            updatedDayLists,
-          );
-          setBoard(updatedBoard);
-          await saveBoard(updatedBoard);
-        } else {
-          // WEEK MODE: Remove from board.lists
-          const updatedBoard = {
-            ...board,
-            lists: {
-              ...board.lists,
-              snacks: board.lists.snacks.filter(
-                (meal: Meal) => !meal.id.startsWith(slotPrefix),
-              ),
-            },
-          };
-          setBoard(updatedBoard);
-          await saveBoard(updatedBoard);
-        }
-
-        // Decrement counter (this will shift all subsequent meal numbers down)
-        setDynamicMealCount((prev) => Math.max(0, prev - 1));
-
-        toast({
-          title: "Meal Slot Removed",
-          description: `Meal ${mealNumber} has been deleted`,
-        });
-      } catch (error) {
-        console.error("Failed to remove meal slot:", error);
-        toast({
-          title: "Error",
-          description: "Failed to remove meal slot",
-          variant: "destructive",
-        });
-      }
-    },
-    [board, planningMode, activeDayISO, saveBoard, toast],
-  );
 
   // Resolved macro targets (coach override → Macro Calculator baseline)
   const coachMacroTargets = useMemo(() => {
@@ -1232,7 +1029,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         </h2>
                         <GlobalMealActionBar
                           slot={
-                            key as "breakfast" | "lunch" | "dinner" | "snacks"
+                            key as "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6"
                           }
                           onCreateWithAI={() => {
                             setAiMealSlot(
@@ -1240,22 +1037,25 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                                 | "breakfast"
                                 | "lunch"
                                 | "dinner"
-                                | "snacks",
+                                | "snacks"
+                                | "meal4"
+                                | "meal5"
+                                | "meal6",
                             );
                             setAiMealModalOpen(true);
                           }}
                           onCreateWithChef={() => {
                             setCreateWithChefSlot(
-                              key as "breakfast" | "lunch" | "dinner",
+                              key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6",
                             );
                             setCreateWithChefOpen(true);
                           }}
                           onSnackCreator={() => {
                             setSnackCreatorOpen(true);
                           }}
-                          onManualAdd={() => openManualModal(key)}
+                          onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)}
                           onFavorites={() => {
-                            setFavoritesSlot(key as "breakfast" | "lunch" | "dinner" | "snacks");
+                            setFavoritesSlot(key as "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6");
                             setFavoritesOpen(true);
                           }}
                         />
@@ -1345,158 +1145,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                     </section>
                   ))}
 
-                  {/* Dynamic Meal Cards (Meal 4+) - Matches Meals 1-3 structure */}
-                  {Array.from({ length: dynamicMealCount }, (_, i) => {
-                    const mealNumber = 4 + i;
-                    const dynamicSlotKey = `dyn-${mealNumber}` as
-                      | "breakfast"
-                      | "lunch"
-                      | "dinner";
-                    return (
-                      <section
-                        key={`dynamic-meal-${mealNumber}`}
-                        className="rounded-2xl border border-emerald-800 bg-emerald-950/40 backdrop-blur p-4"
-                      >
-                        <div className="flex items-center justify-between mb-4">
-                          <h2 className="text-white/90 text-lg font-medium">
-                            Meal {mealNumber}
-                          </h2>
-                          <div className="flex gap-2">
-                            {/* Create with AI button - hidden by feature flag for launch */}
-                            {FEATURES.showCreateWithAI && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-white/80 hover:bg-black/50 border border-pink-400/30 text-xs font-medium flex items-center gap-1 flash-border"
-                                onClick={() => {
-                                  setAiMealSlot("snacks");
-                                  setAiMealModalOpen(true);
-                                }}
-                              >
-                                <Sparkles className="h-3 w-3" />
-                                Create with AI
-                              </Button>
-                            )}
-
-                            {/* Create with Chef button - Competition meals */}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-white/80 hover:bg-black/50 border border-emerald-400/30 text-xs font-medium flex items-center gap-1"
-                              onClick={() => {
-                                setCreateWithChefSlot(dynamicSlotKey);
-                                setCreateWithChefOpen(true);
-                              }}
-                            >
-                              <ChefHat className="h-3 w-3" />
-                              Create with Chef
-                            </Button>
-
-                            {/* Plus button for manual entry */}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-white/80 hover:bg-white/10"
-                              onClick={() => openManualModal("snacks")}
-                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
-
-                            {/* Delete button - Remove this dynamic meal slot */}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-red-400 hover:text-red-300 hover:bg-red-900/30"
-                              onClick={() => handleRemoveMealSlot(mealNumber)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="space-y-3">
-                          {dayLists.snacks
-                            .filter((m: Meal) =>
-                              m.id.startsWith(`dyn-${mealNumber}-`),
-                            )
-                            .map((meal: Meal, idx: number) => (
-                              <MealCard
-                                key={meal.id}
-                                date={activeDayISO}
-                                slot="snacks"
-                                meal={meal}
-                                showStarchBadge={true}
-                                onUpdated={(m) => {
-                                  if (m === null) {
-                                    const updatedDayLists = {
-                                      ...dayLists,
-                                      snacks: dayLists.snacks.filter(
-                                        (existingMeal) =>
-                                          existingMeal.id !== meal.id,
-                                      ),
-                                    };
-                                    const updatedBoard = setDayLists(
-                                      board,
-                                      activeDayISO,
-                                      updatedDayLists,
-                                    );
-                                    setBoard(updatedBoard);
-                                    saveBoard(updatedBoard).catch((err) => {
-                                      console.error(
-                                        "❌ Delete sync failed (Day mode):",
-                                        err,
-                                      );
-                                      toast({
-                                        title: "Sync pending",
-                                        description: "Changes will sync automatically.",
-                                      });
-                                    });
-                                  } else {
-                                    const updatedDayLists = {
-                                      ...dayLists,
-                                      snacks: dayLists.snacks.map(
-                                        (existingMeal) =>
-                                          existingMeal.id === meal.id
-                                            ? m
-                                            : existingMeal,
-                                      ),
-                                    };
-                                    const updatedBoard = setDayLists(
-                                      board,
-                                      activeDayISO,
-                                      updatedDayLists,
-                                    );
-                                    saveBoard(updatedBoard);
-                                  }
-                                }}
-                              />
-                            ))}
-                          {dayLists.snacks.filter((m: Meal) =>
-                            m.id.startsWith(`dyn-${mealNumber}-`),
-                          ).length === 0 && (
-                            <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
-                              <p className="mb-2">No Meal {mealNumber} yet</p>
-                              <p className="text-xs text-white/40">
-                                Use "+" to add meals
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </section>
-                    );
-                  })}
-
-                  {/* Add Meal Button */}
-                  <div className="col-span-full flex justify-center my-4">
-                    <Button
-                      onClick={handleAddMealSlot}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-8 py-3 rounded-xl flex items-center gap-2"
-                    >
-                      <Plus className="h-5 w-5" />
-                      Add Meal {4 + dynamicMealCount}
-                    </Button>
-                  </div>
-
                   {/* ================================
                     SNACKS SECTION - Competition Snacks
                 ==================================== */}
@@ -1505,16 +1153,18 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                       <h2 className="text-white/90 text-lg font-medium">
                         Snacks
                       </h2>
-                      <div className="flex gap-2">
-                        <SnackCreatorButton
-                          onClick={() => setSnackCreatorOpen(true)}
-                        />
-                      </div>
+                      <GlobalMealActionBar
+                        slot="snacks"
+                        onCreateWithAI={() => {}}
+                        onCreateWithChef={() => {}}
+                        onSnackCreator={() => setSnackCreatorOpen(true)}
+                        onSave={(meal) => quickAdd("snacks", meal)}
+                        onFavorites={() => { setFavoritesSlot("snacks"); setFavoritesOpen(true); }}
+                      />
                     </div>
 
                     <div className="space-y-3">
                       {dayLists.snacks
-                        .filter((m: Meal) => !m.id.startsWith("dyn-"))
                         .map((meal: Meal, idx: number) => (
                           <MealCard
                             key={meal.id}
@@ -1566,13 +1216,11 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                             }}
                           />
                         ))}
-                      {dayLists.snacks.filter(
-                        (m: Meal) => !m.id.startsWith("dyn-"),
-                      ).length === 0 && (
+                      {dayLists.snacks.length === 0 && (
                         <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
                           <p className="mb-2">No snacks yet</p>
                           <p className="text-xs text-white/40">
-                            Use "Add Snack" to add competition-safe snacks
+                            Use "Create with Chef" to add competition-safe snacks
                           </p>
                         </div>
                       )}
@@ -1603,7 +1251,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                           className="text-white/80 hover:bg-black/50 border border-pink-400/30 text-xs font-medium flex items-center gap-1 flash-border"
                           onClick={() => {
                             setAiMealSlot(
-                              key as "breakfast" | "lunch" | "dinner" | "snacks",
+                              key as "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
                             );
                             setAiMealModalOpen(true);
                           }}
@@ -1620,7 +1268,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         className="text-white/80 hover:bg-black/50 border border-emerald-400/30 text-xs font-medium flex items-center gap-1"
                         onClick={() => {
                           setCreateWithChefSlot(
-                            key as "breakfast" | "lunch" | "dinner",
+                            key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6",
                           );
                           setCreateWithChefOpen(true);
                         }}
@@ -1629,15 +1277,11 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         Create with Chef
                       </Button>
 
-                      {/* Plus button for manual entry */}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-white/80 hover:bg-white/10"
-                        onClick={() => openManualModal(key)}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
+                      <AddOwnMealButton
+                        slot={key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6"}
+                        onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)}
+                        variant="icon"
+                      />
                     </div>
                   </div>
 
@@ -1878,21 +1522,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           }}
         />
 
-        <ManualMealModal
-          open={manualModalOpen}
-          onClose={() => {
-            setManualModalOpen(false);
-            setManualModalList(null);
-          }}
-          onSave={(meal) => {
-            if (manualModalList) {
-              quickAdd(manualModalList, meal);
-            }
-            setManualModalOpen(false);
-            setManualModalList(null);
-          }}
-        />
-
         <WeeklyOverviewModal
           open={showOverview}
           onClose={() => setShowOverview(false)}
@@ -1939,102 +1568,13 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           starchContext={starchContext}
         />
 
-        {/* Shopping List Buttons */}
-        {board &&
-          (() => {
-            const currentBoard = board; // Capture board in local variable for type safety
-
-            const allMeals =
-              planningMode === "day" && activeDayISO
-                ? (() => {
-                    const dayLists = getDayLists(currentBoard, activeDayISO);
-                    return [
-                      ...dayLists.breakfast,
-                      ...dayLists.lunch,
-                      ...dayLists.dinner,
-                      ...dayLists.snacks,
-                    ];
-                  })()
-                : [
-                    ...currentBoard.lists.breakfast,
-                    ...currentBoard.lists.lunch,
-                    ...currentBoard.lists.dinner,
-                    ...currentBoard.lists.snacks,
-                  ];
-
-            const ingredients = allMeals.flatMap((meal) =>
-              normalizeIngredients(meal.ingredients || []),
-            );
-
-            if (ingredients.length === 0) return null;
-
-            // DAY MODE: Show dual buttons
-            if (
-              FEATURES.dayPlanning === "alpha" &&
-              planningMode === "day" &&
-              activeDayISO
-            ) {
-              const dayName = formatDateDisplay(activeDayISO, { weekday: "long" });
-
-              return (
-                <div className={`fixed ${isDesktop ? "left-[240px]" : "left-0"} right-0 pb-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl`} style={{ bottom: isDesktop ? 0 : "calc(64px + var(--safe-bottom, 0px))" }}>
-                  <div className="container mx-auto px-4 py-3">
-                    <div className="flex flex-col gap-2">
-                      <div className="text-white text-sm font-semibold">
-                        Shopping List Ready - {ingredients.length} ingredients
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => {
-                            handleAddToShoppingList();
-                            setTimeout(
-                              () =>
-                                setLocation(
-                                  "/shopping-list-v2?from=performance-competition-builder",
-                                ),
-                              100,
-                            );
-                          }}
-                          className="flex-1 min-h-[44px] bg-orange-600 hover:bg-orange-700 text-white border border-white/30"
-                          data-testid="button-send-day-shopping"
-                        >
-                          <ShoppingCart className="h-5 w-5 mr-2" />
-                          Send {dayName}
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            handleAddEntireWeekToShoppingList();
-                            setTimeout(
-                              () =>
-                                setLocation(
-                                  "/shopping-list-v2?from=performance-competition-builder",
-                                ),
-                              100,
-                            );
-                          }}
-                          className="flex-1 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white border border-white/30"
-                          data-testid="button-send-week-shopping"
-                        >
-                          <ShoppingCart className="h-5 w-5 mr-2" />
-                          Send Entire Week
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-
-            // WEEK MODE: Use ShoppingAggregateBar
-            return (
-              <ShoppingAggregateBar
-                ingredients={ingredients}
-                source="Performance & Competition Builder"
-                sourceSlug="performance-competition-builder"
-                aboveBottomNav
-              />
-            );
-          })()}
+        {/* Shopping bar */}
+        <BuilderShoppingBar
+          board={board}
+          activeDayISO={activeDayISO}
+          weekDatesList={weekDatesList}
+          sourceSlug="performance-competition-builder"
+        />
       </div>
 
       {/* Daily Totals Info Modal - Next Steps After First Meal */}

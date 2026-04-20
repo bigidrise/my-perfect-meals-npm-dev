@@ -63,7 +63,7 @@ import OpenAI from 'openai';
 import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 import { macroAudit, macroAuditPrompt, macroAuditCache } from '../utils/macroAuditLogger';
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from './behavioralMemoryService';
-import { buildDishTypeHint, getSemanticFallback, buildStableCacheKey } from './mealImageGenerator';
+import { buildDishTypeHint, getSemanticFallback, buildStableCacheKey, generateMealImageUnified } from './mealImageGenerator';
 import { mealImageCache } from '../db/schema/mealImageCache';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2444,11 +2444,9 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
 
     let imageUrl = getFallbackImage('snack');
     try {
-      const generatedImage = await generateImageCached(
+      const generatedImage = await generateMealImageUnified(
         finalSnackData.name,
-        finalSnackData.ingredients?.map((ing: any) => ing.name) || [],
-        'meal',
-        'homemade',
+        finalSnackData.ingredients || [],
       );
 
       if (generatedImage) {
