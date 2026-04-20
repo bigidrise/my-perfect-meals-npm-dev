@@ -720,6 +720,15 @@ export default function WeeklyMealBoard() {
         // Only dispatch macros:updated - do NOT refetch board after local mutation
         window.dispatchEvent(new Event("macros:updated"));
 
+        // Trigger proper image pipeline — matches Chef/Craving Creator flow
+        fetchImageForMeal({ id: snack.id, name: snack.name }, 'snacks', (mealId, imageUrl) => {
+          setBoard(prev => {
+            if (!prev) return prev;
+            if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
+            return updateMealImageInBoard(prev, mealId, imageUrl);
+          });
+        });
+
         // Dispatch walkthrough event for snacks
         const eventTarget = document.querySelector(
           `[data-testid="meal-filled-snack"]`,
