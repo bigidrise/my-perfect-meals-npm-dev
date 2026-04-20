@@ -578,13 +578,24 @@ export default function DessertCreator() {
                     (optional — fills in the rest)
                   </span>
                 </label>
-                <textarea
-                  value={customDessertDescription}
-                  onChange={(e) => setCustomDessertDescription(e.target.value)}
-                  placeholder='e.g. "A rustic peach galette with almond frangipane" or "Dark chocolate lava cake, gluten-free"'
-                  rows={3}
-                  className="w-full rounded-lg bg-black/60 border border-orange-400/40 text-white placeholder-white/30 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400/60 resize-none"
-                />
+                <div className="relative">
+                  <textarea
+                    value={customDessertDescription}
+                    onChange={(e) => setCustomDessertDescription(e.target.value)}
+                    placeholder='e.g. "A rustic peach galette with almond frangipane" or "Dark chocolate lava cake, gluten-free"'
+                    rows={3}
+                    className="w-full rounded-lg bg-black/60 border border-orange-400/40 text-white placeholder-white/30 text-sm px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-orange-400/60 resize-none"
+                  />
+                  {customDessertDescription && (
+                    <TrashButton
+                      onClick={() => setCustomDessertDescription("")}
+                      size="sm"
+                      ariaLabel="Clear dessert description"
+                      title="Clear"
+                      className="absolute top-2 right-2"
+                    />
+                  )}
+                </div>
                 {customDessertDescription.trim().length > 0 && (
                   <p className="text-xs text-orange-300 mt-1">
                     Category and flavor selections below are optional — your description takes priority.
@@ -682,13 +693,24 @@ export default function DessertCreator() {
                 <label className="block text-md font-medium text-white mb-1">
                   Additional Flavor Notes (optional)
                 </label>
-                <input
-                  value={specificDessert}
-                  onChange={(e) => setSpecificDessert(e.target.value)}
-                  placeholder="e.g., with cream cheese frosting, extra cinnamon..."
-                  className="w-full bg-black text-white border border-white/30 px-3 py-2 rounded-lg text-sm placeholder:text-white/50"
-                  maxLength={150}
-                />
+                <div className="relative">
+                  <input
+                    value={specificDessert}
+                    onChange={(e) => setSpecificDessert(e.target.value)}
+                    placeholder="e.g., with cream cheese frosting, extra cinnamon..."
+                    className="w-full bg-black text-white border border-white/30 px-3 py-2 pr-8 rounded-lg text-sm placeholder:text-white/50"
+                    maxLength={150}
+                  />
+                  {specificDessert && (
+                    <TrashButton
+                      onClick={() => setSpecificDessert("")}
+                      size="sm"
+                      ariaLabel="Clear flavor notes"
+                      title="Clear"
+                      className="absolute top-1/2 -translate-y-1/2 right-2"
+                    />
+                  )}
+                </div>
                 <p className="text-xs text-white/60 mt-1">
                   Add specific details or leave empty
                 </p>
