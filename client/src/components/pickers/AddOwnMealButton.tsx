@@ -1,55 +1,125 @@
-import { useState } from "react";
-import { Plus } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ManualMealModal } from "./ManualMealModal";
-import type { Meal } from "@/components/MealCard";
+import { JustDescribeItModal } from "@/components/JustDescribeItModal";
+import { StarchGuardIntercept } from "@/components/StarchGuardIntercept";
+import { useStarchGuardPrecheck, StarchGuardDecision } from "@/hooks/useStarchGuardPrecheck";
+import { mapEstimateToBoardMeal, MacroEstimate } from "@/lib/mapEstimateToBoardMeal";
+import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
 
-type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
+type MealSlot = "breakfast" | "lunch" | "dinner" | "snacks";
 
 interface AddOwnMealButtonProps {
   slot: MealSlot;
   onSave: (meal: any) => void;
   variant?: "icon" | "full";
+  disabled?: boolean;
 }
 
-export function AddOwnMealButton({ slot, onSave, variant = "icon" }: AddOwnMealButtonProps) {
-  const [open, setOpen] = useState(false);
+type Phase = "idle" | "describing" | "starch_blocked" | "generating";
 
-  const handleSave = (meal: Meal) => {
-    // Convert ManualMealModal's Meal to builder format
-    const converted = {
-      id: meal.id,
-      name: meal.title || meal.name || "Custom Meal",
-      badges: [],
-      macros: {
-        calories: meal.nutrition?.calories || 0,
-        protein_g: meal.nutrition?.protein || 0,
-        carbs_g: meal.nutrition?.carbs || 0,
-        fat_g: meal.nutrition?.fat || 0,
-      },
-      ingredients: meal.ingredients || [],
-      instructions: meal.instructions || [],
-    };
-    onSave(converted);
-    setOpen(false);
-  };
+function slotToMealType(s: MealSlot): string {
+  if (s === "breakfast") return "breakfast";
+  if (s === "lunch") return "lunch";
+  if (s === "snacks") return "snack";
+  return "dinner";
+}
 
-  if (variant === "icon") {
+export function AddOwnMealButton({ slot, onSave, variant = "icon", disabled = false }: AddOwnMealButtonProps) {
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [pendingMacros, setPendingMacros] = useState<MacroEstimate | null>(null);
+
+  const { alert, checkStarch, clearAlert, setDecision } = useStarchGuardPrecheck();
+
+  const generateImageAndInsert = useCallback(async (macros: MacroEstimate) => {
+    setPhase("generating");
+    let imageUrl: string | null = null;
+
+    try {
+      const res = await fetch(apiUrl("/api/meals/generate-image"), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify({
+          mealName: macros.description,
+          mealType: slotToMealType(slot),
+          ingredients: [],
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        imageUrl = data.imageUrl ?? null;
+      }
+    } catch {
+      // silent — insert without image
+    }
+
+    const meal = mapEstimateToBoardMeal(macros, imageUrl);
+    onSave(meal);
+    setPhase("idle");
+    setPendingMacros(null);
+    clearAlert();
+  }, [slot, onSave, clearAlert]);
+
+  const handleEstimateComplete = useCallback((macros: MacroEstimate) => {
+    setPendingMacros(macros);
+
+    // Starch guard: only trigger when starchyCarbs > 0 AND user is at limit (keyword detected)
+    if (macros.starchyCarbs > 0) {
+      const allowed = checkStarch(macros.description);
+      if (!allowed) {
+        setPhase("starch_blocked");
+        return;
+      }
+    }
+
+    generateImageAndInsert(macros);
+  }, [checkStarch, generateImageAndInsert]);
+
+  const handleStarchDecision = useCallback((decision: StarchGuardDecision) => {
+    setDecision(decision);
+    clearAlert();
+
+    if (decision === "continue_anyway" && pendingMacros) {
+      generateImageAndInsert(pendingMacros);
+    } else {
+      // "order_something_else" — go back to describe flow
+      setPhase("describing");
+      setPendingMacros(null);
+    }
+  }, [pendingMacros, generateImageAndInsert, clearAlert, setDecision]);
+
+  const isGenerating = phase === "generating";
+
+  if (variant === "full") {
     return (
       <>
         <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setOpen(true)}
-          className="h-6 w-6 p-0 bg-black hover:bg-zinc-900 text-white border border-white/30"
+          onClick={() => setPhase("describing")}
+          className="bg-black hover:bg-zinc-900 text-white border border-white/30"
+          disabled={disabled || isGenerating}
           data-testid={`button-add-own-${slot}`}
         >
-          <Plus className="h-3 w-3" />
+          {isGenerating ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Generating…
+            </>
+          ) : (
+            <>
+              <Plus className="h-4 w-4 mr-2" />
+              Describe What You Ate
+            </>
+          )}
         </Button>
-        <ManualMealModal
-          open={open}
-          onClose={() => setOpen(false)}
-          onSave={handleSave}
+
+        <Overlays
+          phase={phase}
+          alert={alert}
+          onDescribeClose={() => setPhase("idle")}
+          onEstimateComplete={handleEstimateComplete}
+          onStarchDecision={handleStarchDecision}
         />
       </>
     );
@@ -58,18 +128,75 @@ export function AddOwnMealButton({ slot, onSave, variant = "icon" }: AddOwnMealB
   return (
     <>
       <Button
-        onClick={() => setOpen(true)}
-        className="bg-black hover:bg-zinc-900 text-white border border-white/30"
+        variant="ghost"
+        size="sm"
+        onClick={() => setPhase("describing")}
+        className="h-6 w-6 p-0 bg-black hover:bg-zinc-900 text-white border border-white/30"
+        disabled={disabled || isGenerating}
         data-testid={`button-add-own-${slot}`}
       >
-        <Plus className="h-4 w-4 mr-2" />
-        Add Your Own Meal
+        {isGenerating ? (
+          <Loader2 className="h-3 w-3 animate-spin" />
+        ) : (
+          <Plus className="h-3 w-3" />
+        )}
       </Button>
-      <ManualMealModal
-        open={open}
-        onClose={() => setOpen(false)}
-        onSave={handleSave}
+
+      <Overlays
+        phase={phase}
+        alert={alert}
+        onDescribeClose={() => setPhase("idle")}
+        onEstimateComplete={handleEstimateComplete}
+        onStarchDecision={handleStarchDecision}
       />
+    </>
+  );
+}
+
+function Overlays({
+  phase,
+  alert,
+  onDescribeClose,
+  onEstimateComplete,
+  onStarchDecision,
+}: {
+  phase: Phase;
+  alert: ReturnType<typeof useStarchGuardPrecheck>["alert"];
+  onDescribeClose: () => void;
+  onEstimateComplete: (macros: MacroEstimate) => void;
+  onStarchDecision: (d: StarchGuardDecision) => void;
+}) {
+  return (
+    <>
+      <JustDescribeItModal
+        open={phase === "describing"}
+        onClose={onDescribeClose}
+        onAdd={onEstimateComplete}
+      />
+
+      {phase === "starch_blocked" && alert.show && (
+        <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-sm">
+            <StarchGuardIntercept
+              alert={alert}
+              onDecision={onStarchDecision}
+              showContinueAnyway={true}
+              continueAnywayLabel="Add It Anyway"
+              chooseAnotherLabel="Describe Something Else"
+            />
+          </div>
+        </div>
+      )}
+
+      {phase === "generating" && (
+        <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-gradient-to-b from-gray-900 to-black border border-white/20 rounded-2xl p-6 text-center w-full max-w-xs">
+            <Loader2 className="h-8 w-8 animate-spin text-amber-500 mx-auto mb-3" />
+            <p className="text-white font-medium">Generating meal image…</p>
+            <p className="text-white/50 text-sm mt-1">Adding to your board in a moment</p>
+          </div>
+        </div>
+      )}
     </>
   );
 }

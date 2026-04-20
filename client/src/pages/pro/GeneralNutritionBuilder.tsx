@@ -19,7 +19,6 @@ import { getWeekBoard, saveWeekBoard, removeMealFromCurrentWeek, getCurrentWeekB
 import { useChefMealImage } from "@/hooks/useChefMealImage";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { MealPickerDrawer } from "@/components/pickers/MealPickerDrawer";
-import { ManualMealModal } from "@/components/pickers/ManualMealModal";
 import { MacroBridgeFooter } from "@/components/biometrics/MacroBridgeFooter";
 import { RemainingMacrosFooter } from "@/components/biometrics/RemainingMacrosFooter";
 import { DailyTargetsCard } from "@/components/biometrics/DailyTargetsCard";
@@ -191,8 +190,6 @@ export default function WeeklyMealBoard() {
   }, [saveToHook, clearDraft, markClean]);
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [pickerList, setPickerList] = React.useState<"breakfast"|"lunch"|"dinner"|"snacks"|null>(null);
-  const [manualModalOpen, setManualModalOpen] = React.useState(false);
-  const [manualModalList, setManualModalList] = React.useState<"breakfast"|"lunch"|"dinner"|"snacks"|null>(null);
   const [showOverview, setShowOverview] = React.useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = React.useState(false);
 
@@ -827,10 +824,6 @@ export default function WeeklyMealBoard() {
     setPickerOpen(true);
   }
 
-  function openManualModal(list: "breakfast"|"lunch"|"dinner"|"snacks") {
-    setManualModalList(list);
-    setManualModalOpen(true);
-  }
 
   const handleFavoriteSelect = useCallback(async (row: SavedMealRow) => {
     if (!board || !favoritesSlot) return;
@@ -1089,7 +1082,7 @@ export default function WeeklyMealBoard() {
                           setCreateWithChefOpen(true);
                         }}
                         onSnackCreator={() => setSnackCreatorOpen(true)}
-                        onManualAdd={() => openManualModal(key)}
+                        onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks", meal)}
                         onFavorites={() => {
                           setFavoritesSlot(key as "breakfast" | "lunch" | "dinner");
                           setFavoritesOpen(true);
@@ -1168,7 +1161,7 @@ export default function WeeklyMealBoard() {
                               setCreateWithChefOpen(true);
                             }}
                             onSnackCreator={() => setSnackCreatorOpen(true)}
-                            onManualAdd={() => openManualModal("breakfast")}
+                            onSave={(meal) => quickAdd("breakfast", meal)}
                             onFavorites={() => {
                               setFavoritesSlot("snacks");
                               setFavoritesOpen(true);
@@ -1250,7 +1243,7 @@ export default function WeeklyMealBoard() {
                       onCreateWithAI={() => {}}
                       onCreateWithChef={() => {}}
                       onSnackCreator={() => setSnackCreatorOpen(true)}
-                      onManualAdd={() => openManualModal("snacks")}
+                      onSave={(meal) => quickAdd("snacks", meal)}
                       onFavorites={() => {
                         setFavoritesSlot("snacks");
                         setFavoritesOpen(true);
@@ -1320,7 +1313,7 @@ export default function WeeklyMealBoard() {
                     setCreateWithChefOpen(true);
                   }}
                   onSnackCreator={() => setSnackCreatorOpen(true)}
-                  onManualAdd={() => openManualModal(key)}
+                  onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks", meal)}
                   onFavorites={() => {
                     setFavoritesSlot(key as "breakfast" | "lunch" | "dinner");
                     setFavoritesOpen(true);
@@ -1542,21 +1535,6 @@ export default function WeeklyMealBoard() {
           }
           setPickerOpen(false);
           setPickerList(null);
-        }}
-      />
-
-      <ManualMealModal
-        open={manualModalOpen}
-        onClose={() => {
-          setManualModalOpen(false);
-          setManualModalList(null);
-        }}
-        onSave={(meal) => {
-          if (manualModalList) {
-            quickAdd(manualModalList, meal);
-          }
-          setManualModalOpen(false);
-          setManualModalList(null);
         }}
       />
 

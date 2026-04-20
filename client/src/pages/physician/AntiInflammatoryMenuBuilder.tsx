@@ -31,7 +31,7 @@ import {
 import { useChefMealImage } from "@/hooks/useChefMealImage";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
 import { MealPickerDrawer } from "@/components/pickers/MealPickerDrawer";
-import { ManualMealModal } from "@/components/pickers/ManualMealModal";
+import { AddOwnMealButton } from "@/components/pickers/AddOwnMealButton";
 import { RemainingMacrosFooter, type ConsumedMacros } from "@/components/biometrics/RemainingMacrosFooter";
 import { DailyTargetsCard } from "@/components/biometrics/DailyTargetsCard";
 import { ProTipCard } from "@/components/ProTipCard";
@@ -380,10 +380,6 @@ export default function AntiInflammatoryMenuBuilder() {
 
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [pickerList, setPickerList] = React.useState<
-    "breakfast" | "lunch" | "dinner" | "snacks" | null
-  >(null);
-  const [manualModalOpen, setManualModalOpen] = React.useState(false);
-  const [manualModalList, setManualModalList] = React.useState<
     "breakfast" | "lunch" | "dinner" | "snacks" | null
   >(null);
   const [dynamicMealCount, setDynamicMealCount] = React.useState(0);
@@ -1249,11 +1245,6 @@ export default function AntiInflammatoryMenuBuilder() {
     setPickerOpen(true);
   }
 
-  function openManualModal(list: "breakfast" | "lunch" | "dinner" | "snacks") {
-    setManualModalList(list);
-    setManualModalOpen(true);
-  }
-
   const handleFavoriteSelect = useCallback(async (row: SavedMealRow) => {
     if (!board || !favoritesSlot) return;
     if (checkLockedDay()) return;
@@ -1548,7 +1539,7 @@ export default function AntiInflammatoryMenuBuilder() {
                               setCreateWithChefOpen(true);
                             }}
                             onSnackCreator={() => setSnackCreatorOpen(true)}
-                            onManualAdd={() => openManualModal(key)}
+                            onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks", meal)}
                             onFavorites={() => {
                               setFavoritesSlot(key as "breakfast" | "lunch" | "dinner");
                               setFavoritesOpen(true);
@@ -1604,9 +1595,7 @@ export default function AntiInflammatoryMenuBuilder() {
                                 <Sparkles className="h-3 w-3" />
                                 Create with Chef
                               </Button>
-                              <Button size="sm" variant="ghost" className="text-white/80 hover:bg-white/10" onClick={() => openManualModal("breakfast")}>
-                                <Plus className="h-4 w-4" />
-                              </Button>
+                              <AddOwnMealButton slot="breakfast" onSave={(meal) => quickAdd("breakfast", meal)} variant="icon" />
                               <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-900/30" onClick={() => handleRemoveMealSlot(mealNumber)}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -1697,9 +1686,7 @@ export default function AntiInflammatoryMenuBuilder() {
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-white/90 text-lg font-medium">{label}</h2>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="ghost" className="text-white/80 hover:bg-white/10 disabled:opacity-30" onClick={() => openManualModal(key)} disabled={readOnly}>
-                        <Plus className="h-4 w-4" />
-                      </Button>
+                      <AddOwnMealButton slot={key as "breakfast"|"lunch"|"dinner"|"snacks"} onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks", meal)} variant="icon" />
                     </div>
                   </div>
                   <div className="space-y-3">
@@ -1907,21 +1894,6 @@ export default function AntiInflammatoryMenuBuilder() {
             }
             setPickerOpen(false);
             setPickerList(null);
-          }}
-        />
-
-        <ManualMealModal
-          open={manualModalOpen}
-          onClose={() => {
-            setManualModalOpen(false);
-            setManualModalList(null);
-          }}
-          onSave={(meal) => {
-            if (manualModalList) {
-              quickAdd(manualModalList, meal);
-            }
-            setManualModalOpen(false);
-            setManualModalList(null);
           }}
         />
 
