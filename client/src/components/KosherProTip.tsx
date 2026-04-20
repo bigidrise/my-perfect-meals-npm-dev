@@ -35,7 +35,6 @@ export default function KosherProTip({
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const category = dietClassification?.kosherCategory;
-  if (!category) return null;
 
   const handleToggle = useCallback(async () => {
     if (isPlaying) {
@@ -48,6 +47,7 @@ export default function KosherProTip({
       return;
     }
 
+    if (!category) return;
     setIsPlaying(true);
     const script = buildKosherScript(category, isAdapted);
 
@@ -75,6 +75,8 @@ export default function KosherProTip({
       setIsPlaying(false);
     }
   }, [isPlaying, category, isAdapted]);
+
+  if (!category) return null;
 
   return (
     <PillButton
