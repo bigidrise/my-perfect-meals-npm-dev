@@ -57,6 +57,25 @@ const FLAVOR_LABELS: Record<string, string> = {
 
 const isDev = process.env.NODE_ENV === "development";
 
+// ── Classify free-text description into a beverage category ──────────────────
+// Used when hasCustomDesc is true so the prompt gets the same category-specific
+// rules as the dropdown path. Never guesses food — defaults to "frozen" for
+// blended drinks and "cocktail" as a last resort.
+function classifyBeverageIntent(text: string): string {
+  const t = text.toLowerCase();
+  if (/smoothie|blend|acai|banana\s+shake/.test(t)) return "smoothie";
+  if (/protein.shake|whey|mass.gainer|post.workout.shake/.test(t)) return "protein-shake";
+  if (/milkshake|milk\s+shake|ice\s+cream\s+shake/.test(t)) return "milkshake";
+  if (/latte|espresso|cold\s+brew|americano|cappuccino|macchiato|frappuccino|coffee/.test(t)) return "coffee";
+  if (/matcha|chai|green\s+tea|black\s+tea|herbal\s+tea|iced\s+tea|tea/.test(t)) return "tea";
+  if (/margarita|daiquiri|mojito|martini|sangria|cosmo|cosmopolitan|whiskey\s+sour|negroni|spritz|mimosa|bloody\s+mary|pina\s+colada|rum|vodka|gin|tequila|whiskey|whisky|bourbon|wine|beer|champagne|cocktail/.test(t)) return "cocktail";
+  if (/mocktail|virgin|alcohol.free|non.alcoholic/.test(t)) return "mocktail";
+  if (/lemonade|juice|agua\s+fresca|electrolyte|hydration|sports\s+drink|kombucha|infused\s+water/.test(t)) return "hydration";
+  if (/frozen|slushie|slush|frappe|blended|icee/.test(t)) return "frozen";
+  // No strong signal — use "frozen" as safe generic drink default
+  return "frozen";
+}
+
 beverageCreatorRouter.post("/", async (req, res) => {
   if (isDev) console.log("[BEVERAGE] POST request received");
   try {
@@ -75,7 +94,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
       userDietOverride,
     } = req.body ?? {};
 
-    if (isDev) console.log("[BEVERAGE] Request params:", { beverageCategory, flavorFamily, servingSize });
+    if (isDev) console.log("[BEVERAGE] Request params:", { beverageCategory, flavorFamily, servingSize, hasCustomDesc: typeof customBeverageDescription === "string" && customBeverageDescription.trim().length > 0 });
 
     const hasCustomDesc = typeof customBeverageDescription === "string" && customBeverageDescription.trim().length > 0;
 
@@ -90,7 +109,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
     let dietAdapted = false;
     let dietNotice = "";
     if (userId) {
-      const inputText = [specificDrink, flavorFamily, beverageCategory].filter(Boolean).join(' ');
+      const inputText = [customBeverageDescription, specificDrink, flavorFamily, beverageCategory].filter(Boolean).join(' ');
       const safetyCheck = await enforceSafetyProfile(userId, inputText, "beverage-creator", {
         safetyMode: safetyMode || "STRICT",
         overrideToken: overrideToken
@@ -185,8 +204,11 @@ beverageCreatorRouter.post("/", async (req, res) => {
     }
 
     const serving = SERVING_MULTIPLIERS[servingSize] || SERVING_MULTIPLIERS.single;
+    // When free-text is used, classify it into a beverage category so the same
+    // strict category rules apply as in the dropdown path.
+    const inferredCategory = hasCustomDesc ? classifyBeverageIntent(customBeverageDescription) : null;
     // Use effectiveCategory for generation (may differ from requested for redirect cases)
-    const effectiveCategory = dietCategoryStrategy.effectiveCategory;
+    const effectiveCategory = inferredCategory ?? dietCategoryStrategy.effectiveCategory;
     const categoryLabel = CATEGORY_LABELS[effectiveCategory] || effectiveCategory;
     const flavorLabel = FLAVOR_LABELS[flavorFamily] || flavorFamily;
     const dietaryRules = Array.isArray(dietaryPreferences) && dietaryPreferences.length > 0
@@ -297,7 +319,9 @@ Return JSON ONLY, following this exact schema:
 }
 
 CRITERIA:
-${hasCustomDesc ? `- User's custom beverage idea: "${customBeverageDescription}" (this takes FULL priority — build the entire recipe around this description; infer the drink type and flavor from it)` : `- Beverage CATEGORY: "${categoryLabel}" (this defines the drink type)
+${hasCustomDesc ? `- User's custom beverage idea: "${customBeverageDescription}" (this takes FULL priority)
+- Classified drink type: ${categoryLabel} — apply ALL ${categoryLabel}-specific rules below strictly
+- 🚨 MANDATORY: Generate a ${categoryLabel} ONLY. This is a DRINK. Never return eggs, solid food, snacks, meals, or baked goods.` : `- Beverage CATEGORY: "${categoryLabel}" (this defines the drink type)
 - Flavor FAMILY: "${flavorLabel}" (this defines the main taste direction)
 - Specific drink requested: "${specificDrink || "Create your own unique version"}"`}
 - Dietary requirements: "${dietaryRules}"
@@ -334,6 +358,20 @@ INCORRECT (NEVER DO THIS):
 - {"name": "sugar", "amount": "15", "unit": "g"} ❌ (use tsp/tbsp)
 `;
 
+    if (hasCustomDesc && inferredCategory) {
+      console.log(`🍹 [BEVERAGE] Free-text classified as "${inferredCategory}" (input: "${customBeverageDescription.substring(0, 60)}")`);
+    }
+
+    // ── Solid-food guard — fast-fail before sending bad output ─────────────────
+    const SOLID_FOOD_SIGNALS = /\begg(s)?\b|\bchicken breast\b|\bground beef\b|\bpasta\b|\brice\b|\bpizza\b|\btaco\b|\bbread\b|\btoast\b|\bsalad\b|\bsoup\b|\bsteak\b|\bsalmon fillet\b|\bpork\b/i;
+    function isSolidFood(meal: any): boolean {
+      const nameHit = SOLID_FOOD_SIGNALS.test(meal.name || "");
+      const ingredientHit = (meal.ingredients || []).some((i: any) =>
+        SOLID_FOOD_SIGNALS.test(typeof i === "string" ? i : (i.name || ""))
+      );
+      return nameHit || ingredientHit;
+    }
+
     const MAX_BEVERAGE_ATTEMPTS = 2;
     let meal: any;
     let beverageScan: ReturnType<typeof scanGeneratedOutput> | null = null;
@@ -358,6 +396,20 @@ INCORRECT (NEVER DO THIS):
       } catch (parseErr) {
         console.error("Beverage Creator JSON parse error:", parseErr);
         return res.status(500).json({ error: "AI returned invalid JSON for beverage" });
+      }
+
+      // ── Solid-food fast-fail guard ────────────────────────────────────────
+      if (isSolidFood(meal)) {
+        console.warn(`🚨 [BEVERAGE] Solid food detected in output ("${meal.name}") — attempt ${attempt}. Forcing retry.`);
+        if (attempt >= MAX_BEVERAGE_ATTEMPTS) {
+          return res.status(400).json({
+            error: "INVALID_BEVERAGE",
+            message: "The generator produced food instead of a drink. Please try again or use the dropdown.",
+            retryable: true,
+          });
+        }
+        beverageScan = { passed: false, message: `Output was food ("${meal.name}"), not a beverage. You MUST generate a ${categoryLabel} drink.` } as any;
+        continue;
       }
 
       // ── Post-gen protocol scan ────────────────────────────────────────────
