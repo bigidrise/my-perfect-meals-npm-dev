@@ -36,7 +36,6 @@ import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { getResolvedTargets } from "@/lib/macroResolver";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
-import { SnackCreatorButton } from "@/components/SnackCreatorButton";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
 import { FavoritesPickerModal } from "@/components/FavoritesPickerModal";
 import { savedMealToMeal } from "@/utils/savedMealToMeal";
@@ -1270,11 +1269,14 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                       <h2 className="text-white/90 text-lg font-medium">
                         Snacks
                       </h2>
-                      <div className="flex gap-2">
-                        <SnackCreatorButton
-                          onClick={() => setSnackCreatorOpen(true)}
-                        />
-                      </div>
+                      <GlobalMealActionBar
+                        slot="snacks"
+                        onCreateWithAI={() => {}}
+                        onCreateWithChef={() => {}}
+                        onSnackCreator={() => setSnackCreatorOpen(true)}
+                        onSave={(meal) => quickAdd("snacks", meal)}
+                        onFavorites={() => { setFavoritesSlot("snacks"); setFavoritesOpen(true); }}
+                      />
                     </div>
 
                     <div className="space-y-3">
@@ -1334,7 +1336,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
                           <p className="mb-2">No snacks yet</p>
                           <p className="text-xs text-white/40">
-                            Use "Add Snack" to add competition-safe snacks
+                            Use "Create with Chef" to add competition-safe snacks
                           </p>
                         </div>
                       )}

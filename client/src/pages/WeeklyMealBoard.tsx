@@ -77,7 +77,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   Calendar1,
   Check,
-  Sparkles,
   BarChart3,
   ShoppingCart,
   X,
@@ -1657,11 +1656,14 @@ export default function WeeklyMealBoard() {
                   <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4 col-span-full">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-white/90 text-lg font-medium">Snacks</h2>
-                      <Button size="sm" variant="ghost" className="text-white/80 hover:bg-black/50 border border-purple-400/40 text-xs font-medium flex items-center gap-1"
-                        onClick={() => { if (checkLockedDay(activeDayISO)) return; setSnackCreatorOpen(true); }}>
-                        <Sparkles className="h-3 w-3" />
-                        Add Snack
-                      </Button>
+                      <GlobalMealActionBar
+                        slot="snacks"
+                        onCreateWithAI={() => {}}
+                        onCreateWithChef={() => {}}
+                        onSnackCreator={() => { if (checkLockedDay(activeDayISO)) return; setSnackCreatorOpen(true); }}
+                        onSave={(meal) => { if (!checkLockedDay(activeDayISO)) quickAdd("snacks", meal); }}
+                        onFavorites={() => { if (checkLockedDay(activeDayISO)) return; setFavoritesSlot("snacks"); setFavoritesOpen(true); }}
+                      />
                     </div>
                     <div className="space-y-3">
                       {dayLists.snacks.map((meal: Meal) => (
@@ -1688,7 +1690,7 @@ export default function WeeklyMealBoard() {
                       {dayLists.snacks.length === 0 && (
                         <div data-wt="weekly-empty-slot" className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
                           <p className="mb-2">No snacks yet</p>
-                          <p className="text-xs text-white/40">Use "Add Snack" to create snacks</p>
+                          <p className="text-xs text-white/40">Use "Create with Chef" to create snacks</p>
                         </div>
                       )}
                     </div>

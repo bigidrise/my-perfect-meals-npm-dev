@@ -1413,14 +1413,14 @@ export default function BeachBodyMealBoard() {
           <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4 col-span-full">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-white/90 text-lg font-medium">Snacks</h2>
-              <div className="flex gap-2">
-                {/* Snack Creator (replaced Create with AI) */}
-                <SnackCreatorButton
-                  onClick={() => setSnackCreatorOpen(true)}
-                />
-
-                <AddOwnMealButton slot="snacks" onSave={(meal) => quickAdd("snacks", meal)} variant="icon" data-wt="wmb-add-custom-button" />
-              </div>
+              <GlobalMealActionBar
+                slot="snacks"
+                onCreateWithAI={() => {}}
+                onCreateWithChef={() => {}}
+                onSnackCreator={() => setSnackCreatorOpen(true)}
+                onSave={(meal) => quickAdd("snacks", meal)}
+                onFavorites={() => { setFavoritesSlot("snacks"); setFavoritesOpen(true); }}
+              />
             </div>
 
             <div className="space-y-3">

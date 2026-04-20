@@ -1144,7 +1144,7 @@ export default function WeeklyMealBoard() {
                     {dayLists.snacks.length === 0 && (
                       <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
                         <p className="mb-2">No snacks yet</p>
-                        <p className="text-xs text-white/40">Use "Add Snack" to create snacks</p>
+                        <p className="text-xs text-white/40">Use "Create with Chef" to create snacks</p>
                       </div>
                     )}
                   </div>
