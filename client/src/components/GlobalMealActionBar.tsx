@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Plus, Star } from "lucide-react";
 import { CreateWithChefButton } from "@/components/CreateWithChefButton";
 import { SnackCreatorButton } from "@/components/SnackCreatorButton";
+import { PillButton } from "@/components/ui/pill-button";
 import { FEATURES } from "@/featureFlags";
 
 type MealSlot = "breakfast" | "lunch" | "dinner" | "snacks";
@@ -70,16 +71,14 @@ export function GlobalMealActionBar({
 
       {/* Favorites button — shown on all slot types when provided */}
       {onFavorites && (
-        <Button
-          size="sm"
-          variant="ghost"
+        <PillButton
           onClick={onFavorites}
           disabled={disabled}
-          title="Pick from Favorites"
-          className="text-yellow-400/80 hover:bg-yellow-400/10 border border-yellow-400/25 text-xs flex items-center gap-1"
+          title="Pick from My Favorites"
         >
-          <Star className="h-3.5 w-3.5 fill-yellow-400/40" />
-        </Button>
+          <Star className="h-3 w-3 mr-1 fill-red-500 text-red-500" />
+          My Favorites
+        </PillButton>
       )}
 
       <Button
