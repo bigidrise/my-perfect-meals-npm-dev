@@ -1,4 +1,4 @@
-import { Cookie } from "lucide-react";
+import { ChefHat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface SnackCreatorButtonProps {
@@ -12,12 +12,12 @@ export function SnackCreatorButton({ onClick, disabled, className }: SnackCreato
     <Button
       size="sm"
       variant="ghost"
-      className={`text-white/80 hover:bg-black/50 border border-amber-400/40 text-xs font-medium flex items-center gap-1 flash-border ${className || ''}`}
+      className={`text-white/80 hover:bg-black/50 border border-emerald-400/30 text-xs font-medium flex items-center gap-1 flash-border ${className || ''}`}
       onClick={onClick}
       disabled={disabled}
     >
-      <Cookie className="h-3 w-3" />
-      AI Snack Creator
+      <ChefHat className="h-3 w-3" />
+      Create with Chef
     </Button>
   );
 }
