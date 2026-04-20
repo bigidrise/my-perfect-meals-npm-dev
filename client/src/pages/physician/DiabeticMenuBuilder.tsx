@@ -94,6 +94,9 @@ import { CreateWithChefButton } from "@/components/CreateWithChefButton";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
+import { FavoritesPickerModal } from "@/components/FavoritesPickerModal";
+import { savedMealToMeal } from "@/utils/savedMealToMeal";
+import type { SavedMealRow } from "@/hooks/useSavedMeals";
 import { getResolvedTargets } from "@/lib/macroResolver";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
@@ -326,6 +329,10 @@ export default function DiabeticMenuBuilder() {
 
   // Snack Creator modal state (Phase 2)
   const [snackCreatorOpen, setSnackCreatorOpen] = useState(false);
+
+  // Favorites picker state
+  const [favoritesOpen, setFavoritesOpen] = useState(false);
+  const [favoritesSlot, setFavoritesSlot] = useState<"breakfast" | "lunch" | "dinner" | "snacks">("breakfast");
 
   // Locked day dialog state
   const [lockedDayDialogOpen, setLockedDayDialogOpen] = useState(false);
@@ -1156,6 +1163,23 @@ export default function DiabeticMenuBuilder() {
     setManualModalOpen(true);
   }
 
+  const handleFavoriteSelect = useCallback(async (row: SavedMealRow) => {
+    if (!board || !favoritesSlot) return;
+    if (checkLockedDay()) return;
+    const mealObj = savedMealToMeal(row);
+    try {
+      const dayLists = getDayLists(board, activeDayISO);
+      const updatedDayLists = { ...dayLists, [favoritesSlot]: [mealObj] };
+      const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+      setBoard(updatedBoard);
+      await saveBoard(updatedBoard);
+      window.dispatchEvent(new Event("macros:updated"));
+      setFavoritesOpen(false);
+    } catch (err) {
+      console.error("Failed to insert favorite:", err);
+    }
+  }, [board, favoritesSlot, activeDayISO, saveBoard, checkLockedDay]);
+
   const lists: Array<["breakfast" | "lunch" | "dinner", string]> = [
     ["breakfast", "Meal 1"],
     ["lunch", "Meal 2"],
@@ -1398,6 +1422,10 @@ export default function DiabeticMenuBuilder() {
                           }}
                           onSnackCreator={() => setSnackCreatorOpen(true)}
                           onManualAdd={() => openManualModal(key)}
+                          onFavorites={() => {
+                            setFavoritesSlot(key as "breakfast" | "lunch" | "dinner");
+                            setFavoritesOpen(true);
+                          }}
                           onLogSnack={() => {}}
                           showLogSnack={false}
                         />
@@ -2092,6 +2120,14 @@ export default function DiabeticMenuBuilder() {
         dateISO={pendingLockedDayISO}
         onViewOnly={() => setLockedDayDialogOpen(false)}
         onCreateNewDay={handleGoToToday}
+      />
+
+      {/* Favorites Picker Modal */}
+      <FavoritesPickerModal
+        open={favoritesOpen}
+        onClose={() => setFavoritesOpen(false)}
+        onSelect={handleFavoriteSelect}
+        targetLabel={`Meal ${favoritesSlot.charAt(0).toUpperCase() + favoritesSlot.slice(1)}`}
       />
 
       {/* Additional Macros Modal */}
