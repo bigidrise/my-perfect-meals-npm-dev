@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" fill="none">
+  <rect width="400" height="300" fill="#FDF6EC"/>
+  <ellipse cx="200" cy="197" rx="130" ry="28" fill="#C08030" opacity="0.2"/>
+  <ellipse cx="200" cy="178" rx="130" ry="80" fill="#EDE5D5"/>
+  <ellipse cx="200" cy="158" rx="114" ry="66" fill="#E8C870" opacity="0.6"/>
+  <path d="M165 140 Q185 128 205 148 Q225 128 240 148" stroke="#E8A040" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M158 152 Q178 138 200 158 Q220 138 242 155" stroke="#D09030" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M162 163 Q182 148 202 168 Q222 148 240 163" stroke="#E8A040" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <circle cx="192" cy="142" r="7" fill="#C03020" opacity="0.85"/>
+  <circle cx="215" cy="150" r="6" fill="#C03020" opacity="0.85"/>
+  <circle cx="180" cy="155" r="5" fill="#C03020" opacity="0.8"/>
+  <text x="200" y="262" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#7A4A10" opacity="0.7">Pasta</text>
+</svg>

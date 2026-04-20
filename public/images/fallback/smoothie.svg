@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" fill="none">
+  <rect width="400" height="300" fill="#F5F0FA"/>
+  <ellipse cx="200" cy="232" rx="48" ry="12" fill="#9860C8" opacity="0.25"/>
+  <path d="M162 100 L152 225 Q152 235 200 235 Q248 235 248 225 L238 100 Z" fill="#C890E8"/>
+  <path d="M162 100 L152 180 Q152 220 200 225 Q248 220 248 180 L238 100 Z" fill="#B070D8"/>
+  <rect x="158" y="92" width="84" height="16" rx="8" fill="#D0A0F0"/>
+  <rect x="196" y="70" width="8" height="30" rx="4" fill="#DDD"/>
+  <circle cx="200" cy="68" r="5" fill="#E060A0" opacity="0.8"/>
+  <circle cx="185" cy="155" r="6" fill="white" opacity="0.3"/>
+  <circle cx="215" cy="175" r="4" fill="white" opacity="0.25"/>
+  <text x="200" y="262" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#6040A0" opacity="0.7">Smoothie</text>
+</svg>

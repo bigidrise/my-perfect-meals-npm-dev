@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" fill="none">
+  <rect width="400" height="300" fill="#FAF5E8"/>
+  <ellipse cx="200" cy="200" rx="135" ry="30" fill="#C08820" opacity="0.2"/>
+  <ellipse cx="200" cy="188" rx="135" ry="75" fill="#EEE4D0"/>
+  <ellipse cx="200" cy="175" rx="118" ry="62" fill="#E8C870"/>
+  <rect x="150" y="148" width="45" height="25" rx="4" fill="#C07030" opacity="0.85" transform="rotate(-10 150 148)"/>
+  <rect x="205" y="143" width="40" height="22" rx="4" fill="#5AB840" opacity="0.85" transform="rotate(8 205 143)"/>
+  <rect x="175" y="160" width="42" height="20" rx="4" fill="#C07030" opacity="0.75" transform="rotate(5 175 160)"/>
+  <rect x="218" y="160" width="35" height="18" rx="4" fill="#E84040" opacity="0.8" transform="rotate(-5 218 160)"/>
+  <rect x="158" y="165" width="38" height="18" rx="4" fill="#5AB840" opacity="0.75" transform="rotate(12 158 165)"/>
+  <text x="200" y="262" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#7A5210" opacity="0.7">Stir Fry</text>
+</svg>

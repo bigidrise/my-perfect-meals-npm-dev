@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" fill="none">
+  <rect width="400" height="300" fill="#F5F0E8"/>
+  <ellipse cx="200" cy="197" rx="128" ry="28" fill="#B8884A" opacity="0.25"/>
+  <ellipse cx="200" cy="178" rx="128" ry="82" fill="#E0D8CC"/>
+  <ellipse cx="200" cy="158" rx="112" ry="68" fill="#E8B84B" opacity="0.5"/>
+  <ellipse cx="200" cy="152" rx="100" ry="58" fill="#D4924A"/>
+  <ellipse cx="200" cy="148" rx="95" ry="52" fill="#C07830"/>
+  <path d="M155 140 Q175 128 200 140 Q225 128 245 140" stroke="#E8A040" stroke-width="2" fill="none" opacity="0.6"/>
+  <circle cx="178" cy="148" r="5" fill="#1A7A2E" opacity="0.8"/>
+  <circle cx="210" cy="142" r="4" fill="#E8D4B0" opacity="0.9"/>
+  <circle cx="225" cy="152" r="4" fill="#1A7A2E" opacity="0.8"/>
+  <path d="M195 90 Q198 78 200 70 Q202 78 205 90" stroke="#CCC" stroke-width="1.5" fill="none" opacity="0.5"/>
+  <path d="M182 88 Q185 76 187 68 Q189 76 192 88" stroke="#CCC" stroke-width="1.5" fill="none" opacity="0.4"/>
+  <text x="200" y="262" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#7A5A2A" opacity="0.7">Soup</text>
+</svg>
