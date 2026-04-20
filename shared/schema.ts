@@ -24,7 +24,7 @@ Do NOT remove or rename these without updating the guard.
 This prevents silent data corruption.
 */
 import { pgTable, varchar, boolean, serial, integer, timestamp, jsonb, index, uniqueIndex, pgEnum, uuid, text, decimal, real, time, date, numeric, unique, check, primaryKey } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
+import { sql, relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod"
 
@@ -1715,6 +1715,17 @@ export const insertShoppingListSourceSchema = createInsertSchema(shoppingListSou
 
 export type ShoppingListSource = typeof shoppingListSources.$inferSelect;
 export type InsertShoppingListSource = z.infer<typeof insertShoppingListSourceSchema>;
+
+export const shoppingListItemsRelations = relations(shoppingListItems, ({ many }) => ({
+  sources: many(shoppingListSources),
+}));
+
+export const shoppingListSourcesRelations = relations(shoppingListSources, ({ one }) => ({
+  item: one(shoppingListItems, {
+    fields: [shoppingListSources.itemId],
+    references: [shoppingListItems.id],
+  }),
+}));
 
 // ========================================
 // Physician Medical Reports Schema
