@@ -8,7 +8,7 @@ import { mapEstimateToBoardMeal, MacroEstimate } from "@/lib/mapEstimateToBoardM
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 
-type MealSlot = "breakfast" | "lunch" | "dinner" | "snacks";
+type MealSlot = "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6";
 
 interface AddOwnMealButtonProps {
   slot: MealSlot;

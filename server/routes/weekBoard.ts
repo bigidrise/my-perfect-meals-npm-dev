@@ -129,6 +129,9 @@ function normalizeBoard(raw: any): any {
   const breakfast = normalizeMealArray(lists.breakfast);
   const lunch     = normalizeMealArray(lists.lunch);
   const dinner    = normalizeMealArray(lists.dinner);
+  const meal4     = normalizeMealArray(lists.meal4);
+  const meal5     = normalizeMealArray(lists.meal5);
+  const meal6     = normalizeMealArray(lists.meal6);
 
   // 👇 KEY PART: ensure snacks is ALWAYS an array (any length) and stably ordered
   let snacks = normalizeMealArray(lists.snacks);
@@ -175,6 +178,9 @@ function normalizeBoard(raw: any): any {
           lunch: lunch,
           dinner: dinner,
           snacks: snacks,
+          meal4: meal4,
+          meal5: meal5,
+          meal6: meal6,
         };
       } else {
         days[dateISO] = {
@@ -182,6 +188,9 @@ function normalizeBoard(raw: any): any {
           lunch: [],
           dinner: [],
           snacks: [],
+          meal4: [],
+          meal5: [],
+          meal6: [],
         };
       }
     } else {
@@ -198,6 +207,9 @@ function normalizeBoard(raw: any): any {
         lunch: normalizeMealArray(dayLists.lunch),
         dinner: normalizeMealArray(dayLists.dinner),
         snacks: daySnacks,
+        meal4: normalizeMealArray(dayLists.meal4),
+        meal5: normalizeMealArray(dayLists.meal5),
+        meal6: normalizeMealArray(dayLists.meal6),
       };
     }
   });
@@ -206,7 +218,7 @@ function normalizeBoard(raw: any): any {
     id: boardId,
     version: Number(base.version ?? 1),
     // Keep legacy lists for backward compatibility (use Monday's data)
-    lists: days[weekDates[0]] || { breakfast, lunch, dinner, snacks },
+    lists: days[weekDates[0]] || { breakfast, lunch, dinner, snacks, meal4, meal5, meal6 },
     // NEW: 7-day structure
     days: days,
     meta: {
@@ -307,6 +319,9 @@ async function processAllMealImagesForSave(board: any): Promise<{ board: any; im
     lunch: await processMealList(lists.lunch || []),
     dinner: await processMealList(lists.dinner || []),
     snacks: await processMealList(lists.snacks || []),
+    meal4: await processMealList(lists.meal4 || []),
+    meal5: await processMealList(lists.meal5 || []),
+    meal6: await processMealList(lists.meal6 || []),
   };
 
   // Process days structure if present
@@ -334,6 +349,9 @@ async function processAllMealImagesForSave(board: any): Promise<{ board: any; im
             lunch: await processMealList(dayData.lunch || []),
             dinner: await processMealList(dayData.dinner || []),
             snacks: await processMealList(dayData.snacks || []),
+            meal4: await processMealList(dayData.meal4 || []),
+            meal5: await processMealList(dayData.meal5 || []),
+            meal6: await processMealList(dayData.meal6 || []),
           };
           return [dateKey, processedDay];
         } else if (dayData.lists) {

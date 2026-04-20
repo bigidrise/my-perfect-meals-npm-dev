@@ -56,6 +56,9 @@ export const DayListsSchema = z.object({
   lunch: z.array(MealSchema),
   dinner: z.array(MealSchema),
   snacks: z.array(MealSchema),
+  meal4: z.array(MealSchema).default([]),
+  meal5: z.array(MealSchema).default([]),
+  meal6: z.array(MealSchema).default([]),
 });
 
 export type DayLists = z.infer<typeof DayListsSchema>;
@@ -100,6 +103,9 @@ export function createEmptyWeekStructure(weekStartISO: string): WeekBoardRespons
       lunch: [],
       dinner: [],
       snacks: [],
+      meal4: [],
+      meal5: [],
+      meal6: [],
     };
   }
 
