@@ -11,6 +11,7 @@ import OpenAI from "openai";
 import pLimit from "p-limit";
 import { convertToUserFriendlyUnits } from "../utils/unitConverter";
 import { generateMealFromPrompt } from "./universalMealGenerator";
+import { buildDishTypeHint, getSemanticFallback } from "./mealImageGenerator";
 import { getGlycemicSettings } from "./glycemicSettingsService";
 import * as telemetry from "./aiTelemetry";
 import type { DebugMetadata } from "./aiTelemetry";
@@ -1132,12 +1133,12 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
         };
         
         // Generate image for meal
-        let imageUrl = null;
+        let imageUrl: string | null = null;
         try {
           const { generateImage } = await import("./imageService");
           imageUrl = await generateImage({
             name: selected.name,
-            description: `child-friendly cartoon-style version, colorful plate, fun design, appealing to kids`,
+            description: buildDishTypeHint(selected.name),
             type: 'meal',
             style: 'kid-friendly',
             ingredients: selected.ingredients.map(ing => ing.name),
@@ -1149,6 +1150,7 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
           console.log(`📸 Generated kid-friendly image for ${selected.name}`);
         } catch (error) {
           console.log(`❌ Image generation failed for ${selected.name}:`, error);
+          imageUrl = getSemanticFallback(selected.name);
         }
         
         return {
@@ -1486,12 +1488,12 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
     : `A delicious ${targetMealType} featuring ${mainIngredients}. ${selected.tags.includes('high_protein') ? 'High in protein and ' : ''}Perfect for satisfying your cravings while maintaining your health goals.`;
   
   // Generate image for meal with kid-friendly styling
-  let imageUrl = null;
+  let imageUrl: string | null = null;
   try {
     const { generateImage } = await import("./imageService");
     imageUrl = await generateImage({
       name: selected.name,
-      description: isKidMeal ? `child-friendly cartoon-style version, colorful plate, fun design, appealing to kids` : description,
+      description: buildDishTypeHint(selected.name),
       type: 'meal',
       style: isKidMeal ? 'kid-friendly' : 'homemade',
       ingredients: selected.ingredients.map(ing => ing.name),
@@ -1504,6 +1506,7 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
   } catch (error) {
     telemetry.tagFallback(sessionId, "image_generation_failed", `Image failed for ${selected.name}`);
     console.log(`❌ Image generation failed for ${selected.name}:`, error);
+    imageUrl = getSemanticFallback(selected.name);
   }
   
   // Track instruction fallback

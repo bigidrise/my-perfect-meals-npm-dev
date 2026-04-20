@@ -1,11 +1,19 @@
 // server/services/mealImageGenerator.ts
-// DALL-E 3 meal image generation with permanent storage via Replit Object Storage
-// CRITICAL: Snacks use STATIC images ONLY (no DALL-E calls to save money/time)
+// 4-Layer Meal Image System
+//
+// Layer 1: Strong structured prompt (dish-type aware)
+// Layer 2: Description sanitized — only dish-type hint, never raw AI text
+// Layer 3: DB persistence (meal_image_cache) — survives server restarts
+// Layer 4: Semantic fallback — never shows a wrong image, never returns null
+//
+// CRITICAL: Snacks use STATIC images ONLY (no DALL-E calls)
 
 import OpenAI from 'openai';
 import crypto from 'crypto';
-import { uploadImageToPermanentStorage, checkImageExists } from './permanentImageStorage';
-import { getStaticSnackImage, DEFAULT_SNACK_IMAGE, isLikelySnack } from '../../shared/staticSnackMappings';
+import { db } from '../db';
+import { mealImageCache } from '../db/schema/mealImageCache';
+import { eq } from 'drizzle-orm';
+import { getStaticSnackImage, isLikelySnack } from '../../shared/staticSnackMappings';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -18,12 +26,259 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// DISH TYPE DETECTOR
+// Determines the visual form of the dish from the meal name.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface DishType {
+  type: string;
+  presentation: string;
+  textureDescription: string;
+}
+
+export function detectDishType(name: string): DishType {
+  const lower = name.toLowerCase();
+
+  if (lower.includes("chili")) {
+    return {
+      type: "bowl dish",
+      presentation: "deep rustic bowl filled with the dish",
+      textureDescription: "thick, hearty, spoonable chili with visible protein and beans",
+    };
+  }
+  if (lower.includes("soup") || lower.includes("bisque") || lower.includes("broth") || lower.includes("chowder")) {
+    return {
+      type: "bowl dish",
+      presentation: "bowl filled with soup and steam rising",
+      textureDescription: "hot liquid-based dish with vegetables and protein",
+    };
+  }
+  if (lower.includes("stew") || lower.includes("ragù") || lower.includes("ragu")) {
+    return {
+      type: "bowl dish",
+      presentation: "deep bowl filled with hearty stew",
+      textureDescription: "thick, rich stew with chunks of vegetables and meat",
+    };
+  }
+  if (lower.includes("curry")) {
+    return {
+      type: "bowl dish",
+      presentation: "bowl of curry served with rice on the side",
+      textureDescription: "rich, saucy curry with vibrant color from spices",
+    };
+  }
+  if (lower.includes("oatmeal") || lower.includes("porridge") || lower.includes("congee")) {
+    return {
+      type: "bowl dish",
+      presentation: "bowl of oatmeal with toppings",
+      textureDescription: "creamy, thick porridge with visible toppings",
+    };
+  }
+  if (lower.includes("stir") || lower.includes("stir-fry") || lower.includes("fried rice")) {
+    return {
+      type: "stir-fry",
+      presentation: "plate or shallow bowl with sautéed ingredients",
+      textureDescription: "sautéed ingredients with slight gloss and charred texture",
+    };
+  }
+  if (lower.includes("salad")) {
+    return {
+      type: "salad",
+      presentation: "wide bowl or plate with fresh layered ingredients",
+      textureDescription: "fresh, vibrant, crisp vegetables and toppings",
+    };
+  }
+  if (lower.includes("pasta") || lower.includes("noodle") || lower.includes("spaghetti") || lower.includes("linguine") || lower.includes("penne") || lower.includes("fettuccine")) {
+    return {
+      type: "pasta dish",
+      presentation: "wide plate or bowl with pasta and sauce",
+      textureDescription: "coated noodles with sauce, protein, and herbs",
+    };
+  }
+  if (lower.includes("wrap") || lower.includes("taco") || lower.includes("burrito") || lower.includes("quesadilla")) {
+    return {
+      type: "handheld",
+      presentation: "on a plate, sliced or folded",
+      textureDescription: "filled handheld food with visible ingredients inside",
+    };
+  }
+  if (lower.includes("sandwich") || lower.includes("sub") || lower.includes("hoagie") || lower.includes("panini")) {
+    return {
+      type: "sandwich",
+      presentation: "on a plate, sliced in half to show filling",
+      textureDescription: "stacked bread with visible fillings",
+    };
+  }
+  if (lower.includes("burger")) {
+    return {
+      type: "burger",
+      presentation: "on a plate or board",
+      textureDescription: "stacked burger with visible layers",
+    };
+  }
+  if (lower.includes("pizza")) {
+    return {
+      type: "pizza",
+      presentation: "flat circular pizza on a wooden board or plate",
+      textureDescription: "topped pizza with melted cheese and toppings",
+    };
+  }
+  if (lower.includes("bowl")) {
+    return {
+      type: "bowl dish",
+      presentation: "served in a bowl",
+      textureDescription: "composed bowl with protein, grains, and vegetables",
+    };
+  }
+  if (lower.includes("breakfast") || lower.includes("eggs") || lower.includes("omelette") || lower.includes("omelet") || lower.includes("pancake") || lower.includes("waffle")) {
+    return {
+      type: "breakfast plate",
+      presentation: "on a plate with breakfast presentation",
+      textureDescription: "morning meal with eggs, proteins, or grains",
+    };
+  }
+  if (lower.includes("smoothie") || lower.includes("shake") || lower.includes("juice")) {
+    return {
+      type: "beverage",
+      presentation: "in a tall glass",
+      textureDescription: "blended beverage with vibrant color",
+    };
+  }
+  if (lower.includes("grilled") || lower.includes("roasted") || lower.includes("baked") || lower.includes("seared")) {
+    return {
+      type: "plated entree",
+      presentation: "plated on a clean white plate",
+      textureDescription: "cooked protein or vegetables with golden, caramelized exterior",
+    };
+  }
+
+  return {
+    type: "plated meal",
+    presentation: "served on a plate",
+    textureDescription: "balanced, composed cooked meal",
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DISH TYPE HINT
+// Returns a one-line visual anchor for use in image generation calls.
+// This replaces raw AI description to prevent hallucination bleed.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function buildDishTypeHint(mealName: string): string {
+  const dish = detectDishType(mealName);
+  return `${dish.textureDescription}, ${dish.presentation}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STRONG PROMPT BUILDER
+// Layer 1: Structured prompt that tells DALL-E exactly what to render.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildMealImagePrompt(mealName: string, ingredients: string[]): string {
+  const dish = detectDishType(mealName);
+  const topIngredients = ingredients.slice(0, 5).join(", ");
+
+  return `A photorealistic ${dish.presentation} of ${mealName}.
+This is a ${dish.textureDescription}.
+Made with ${topIngredients || "fresh whole ingredients"}.
+
+The dish must clearly look like ${mealName}. Do not generate any unrelated foods such as pizza, pasta, burgers, sandwiches, or desserts unless that is what the dish actually is.
+
+Style: cinematic, high-detail, natural lighting, realistic food photography.
+Camera: 3/4 angle or overhead depending on dish type.
+Background: clean, minimal, neutral surface, no clutter, no text, no logos, no people, no hands.`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SEMANTIC FALLBACK
+// Layer 4: Category-appropriate fallback — never shows the wrong image.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function getSemanticFallback(mealName: string): string {
+  const lower = mealName.toLowerCase();
+
+  if (lower.includes("chili") || lower.includes("stew") || lower.includes("ragù") || lower.includes("ragu")) {
+    return "/images/fallback/chili-bowl.svg";
+  }
+  if (lower.includes("soup") || lower.includes("bisque") || lower.includes("broth") || lower.includes("chowder") || lower.includes("curry") || lower.includes("oatmeal") || lower.includes("porridge")) {
+    return "/images/fallback/soup-bowl.svg";
+  }
+  if (lower.includes("salad")) {
+    return "/images/fallback/salad.svg";
+  }
+  if (lower.includes("stir") || lower.includes("fried rice")) {
+    return "/images/fallback/stir-fry.svg";
+  }
+  if (lower.includes("pasta") || lower.includes("noodle") || lower.includes("spaghetti")) {
+    return "/images/fallback/pasta.svg";
+  }
+  if (lower.includes("breakfast") || lower.includes("eggs") || lower.includes("omelette") || lower.includes("omelet") || lower.includes("pancake")) {
+    return "/images/fallback/breakfast.svg";
+  }
+  if (lower.includes("smoothie") || lower.includes("shake") || lower.includes("juice")) {
+    return "/images/fallback/smoothie.svg";
+  }
+  if (lower.includes("wrap") || lower.includes("taco") || lower.includes("burrito") || lower.includes("sandwich") || lower.includes("burger")) {
+    return "/images/fallback/handheld.svg";
+  }
+
+  return "/images/fallback/meal.svg";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STABLE CACHE KEY
+// Version-tagged hash: mealName + top-5 sorted ingredients + version
+// Bump "v2", "v3" etc. to invalidate all cached images after prompt changes.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CACHE_VERSION = "v1";
+
+export function buildStableCacheKey(mealName: string, ingredients: string[]): string {
+  const normalizedName = mealName.toLowerCase().trim();
+  const normalizedIngredients = ingredients
+    .slice(0, 5)
+    .map(i => i.toLowerCase().trim())
+    .sort()
+    .join(",");
+
+  return crypto
+    .createHash('sha256')
+    .update(`${normalizedName}|${normalizedIngredients}|${CACHE_VERSION}`)
+    .digest('hex')
+    .substring(0, 32);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IN-MEMORY CACHE (fast path, clears on restart — DB is the persistent layer)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const memCache = new Map<string, string>();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DALL-E TIMEOUT HELPER
+// ─────────────────────────────────────────────────────────────────────────────
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`Image generation timed out after ${ms}ms`)), ms)
+    ),
+  ]);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CORE TYPES (kept for backward compatibility with mealImages route)
+// ─────────────────────────────────────────────────────────────────────────────
+
 export interface MealImageRequest {
   mealName: string;
   ingredients: string[];
   style?: 'overhead' | 'plated' | 'rustic' | 'restaurant';
   templateRef?: string;
-  mealType?: 'breakfast' | 'lunch' | 'dinner' | 'snack'; // NEW: Type-aware routing
+  mealType?: 'breakfast' | 'lunch' | 'dinner' | 'snack';
 }
 
 export interface GeneratedImage {
@@ -34,193 +289,191 @@ export interface GeneratedImage {
   createdAt: string;
 }
 
-// In-memory cache for generated images (replace with database/Redis in production)
-const imageCache = new Map<string, GeneratedImage>();
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN GENERATION FUNCTION — 4-Layer Pipeline
+// ─────────────────────────────────────────────────────────────────────────────
 
-// Generate stable hash for caching
-function generateImageHash(request: MealImageRequest): string {
-  const key = `${request.mealName}-${request.ingredients.join(',')}-${request.style || 'overhead'}`;
-  return crypto.createHash('md5').update(key).digest('hex');
-}
-
-// Create deterministic prompts for consistent styling
-function createImagePrompt(request: MealImageRequest): string {
-  const { mealName, ingredients, style = 'overhead' } = request;
-  
-  const baseStyle = {
-    overhead: "overhead 3/4 view on clean white plate, neutral matte background, soft natural lighting",
-    plated: "beautifully plated on elegant dish, restaurant presentation, soft natural lighting", 
-    rustic: "rustic home-style presentation on wooden table, warm natural lighting",
-    restaurant: "professional restaurant plating, garnished, clean presentation"
-  }[style];
-  
-  const ingredientList = ingredients.slice(0, 4).join(', '); // Limit to avoid prompt bloat
-  
-  return `${mealName} featuring ${ingredientList}, ${baseStyle}, food photography, realistic, appetizing, no text, no logos, high quality, detailed`;
-}
-
-// Generate meal image using DALL-E 3 and store permanently
-// CRITICAL: Snacks are SHORT-CIRCUITED to static images ONLY (no cache, no Object Storage, no DALL-E)
 export async function generateMealImage(request: MealImageRequest): Promise<GeneratedImage> {
-  const hash = generateImageHash(request);
-  
-  // 🚫 SNACK FIREWALL LAYER 1: Explicit mealType check (most reliable)
-  // 🚫 SNACK FIREWALL LAYER 2: Fallback pattern detection (catches snacks without mealType)
-  const isSnackByType = request.mealType === 'snack';
-  const isSnackByPattern = !request.mealType && isLikelySnack(request.mealName);
-  
+  const { mealName, ingredients, mealType } = request;
+  const cacheKey = buildStableCacheKey(mealName, ingredients);
+
+  // ── SNACK FIREWALL ──────────────────────────────────────────────────────────
+  const isSnackByType = mealType === 'snack';
+  const isSnackByPattern = !mealType && isLikelySnack(mealName);
+
   if (isSnackByType || isSnackByPattern) {
-    const staticImage = getStaticSnackImage(request.mealName);
-    const detectionMethod = isSnackByType ? 'explicit mealType' : 'pattern detection';
-    
-    console.log(`🍎 SNACK FIREWALL (${detectionMethod}): Using static image for "${request.mealName}" → ${staticImage}`);
-    console.log(`💰 COST SAVED: Blocked DALL-E API call (estimated $0.04-$0.08)`);
-    console.log(`⚡ TIME SAVED: Instant static image (vs ~5-10s AI generation)`);
-    
-    const result: GeneratedImage = {
+    const staticImage = getStaticSnackImage(mealName);
+    console.log(`🍎 SNACK FIREWALL: Static image for "${mealName}" → ${staticImage}`);
+    return {
       url: staticImage,
-      prompt: `Static image (no AI, ${detectionMethod}): ${request.mealName}`,
+      prompt: `Static snack image: ${mealName}`,
       templateRef: request.templateRef,
-      hash,
-      createdAt: new Date().toISOString()
+      hash: cacheKey,
+      createdAt: new Date().toISOString(),
     };
-    
-    // Cache the static result for consistency
-    imageCache.set(hash, result);
-    return result;
   }
-  
-  // Check cache first
-  const cached = imageCache.get(hash);
-  if (cached) {
-    console.log(`🎨 Using cached image for ${request.mealName}`);
-    return cached;
-  }
-  
-  // Check if already exists in permanent storage
-  const existingUrl = await checkImageExists(hash);
-  if (existingUrl) {
-    console.log(`🎨 Found existing permanent image for ${request.mealName}`);
-    const result: GeneratedImage = {
-      url: existingUrl,
-      prompt: createImagePrompt(request),
+
+  // ── LAYER 3: CHECK IN-MEMORY CACHE ─────────────────────────────────────────
+  const memHit = memCache.get(cacheKey);
+  if (memHit) {
+    console.log(`⚡ Memory cache hit for: ${mealName}`);
+    return {
+      url: memHit,
+      prompt: "(memory cache)",
       templateRef: request.templateRef,
-      hash,
-      createdAt: new Date().toISOString()
+      hash: cacheKey,
+      createdAt: new Date().toISOString(),
     };
-    imageCache.set(hash, result);
-    return result;
   }
-  
-  const prompt = createImagePrompt(request);
-  console.log(`🎨 Generating AI image for: ${request.mealName}`);
-  console.log(`📝 Prompt: ${prompt}`);
-  
+
+  // ── LAYER 3: CHECK DB CACHE ─────────────────────────────────────────────────
   try {
-    // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-    const response = await getOpenAI().images.generate({
-      model: "dall-e-3",
-      prompt,
-      n: 1,
-      size: "1024x1024",
-      quality: "standard",
-      style: "natural"
-    });
-    
-    const tempUrl = response.data?.[0]?.url;
-    if (!tempUrl) {
-      throw new Error('No image URL returned from DALL-E');
+    const [dbRow] = await db
+      .select({ imageUrl: mealImageCache.imageUrl, promptUsed: mealImageCache.promptUsed })
+      .from(mealImageCache)
+      .where(eq(mealImageCache.cacheKey, cacheKey))
+      .limit(1);
+
+    if (dbRow) {
+      console.log(`🗄️ DB cache hit for: ${mealName}`);
+      memCache.set(cacheKey, dbRow.imageUrl);
+      return {
+        url: dbRow.imageUrl,
+        prompt: dbRow.promptUsed || "(db cache)",
+        templateRef: request.templateRef,
+        hash: cacheKey,
+        createdAt: new Date().toISOString(),
+      };
     }
-    
-    // Upload to permanent storage immediately
-    console.log(`📦 Uploading to permanent storage...`);
-    const uploadResult = await uploadImageToPermanentStorage({
-      imageUrl: tempUrl,
-      mealName: request.mealName,
-      imageHash: hash,
-    });
-    
-    const result: GeneratedImage = {
-      url: uploadResult.permanentUrl,
-      prompt,
-      templateRef: request.templateRef,
-      hash,
-      createdAt: uploadResult.uploadedAt
-    };
-    
-    // Cache the result with permanent URL
-    imageCache.set(hash, result);
-    console.log(`✅ Generated and stored permanent image for ${request.mealName}`);
-    
-    return result;
-    
-  } catch (error: any) {
-    console.error(`❌ Failed to generate image for ${request.mealName}:`, error.message);
-    
-    // Return fallback image info instead of throwing
-    const fallback: GeneratedImage = {
-      url: `/assets/meals/default-${request.mealName.toLowerCase().includes('breakfast') ? 'breakfast' : 
-             request.mealName.toLowerCase().includes('lunch') ? 'lunch' : 'dinner'}.svg`,
-      prompt: `Fallback for: ${prompt}`,
-      templateRef: request.templateRef,
-      hash,
-      createdAt: new Date().toISOString()
-    };
-    
-    imageCache.set(hash, fallback);
-    return fallback;
+  } catch (dbErr) {
+    console.warn(`⚠️ DB cache read failed for "${mealName}":`, dbErr);
   }
+
+  // ── LAYER 1: BUILD STRONG PROMPT ───────────────────────────────────────────
+  const prompt = buildMealImagePrompt(mealName, ingredients);
+
+  if (process.env.NODE_ENV === "development") {
+    console.log(`📝 IMAGE PROMPT for "${mealName}":\n${prompt}`);
+  } else {
+    console.log(`🎨 Generating image for: ${mealName}`);
+  }
+
+  // ── LAYER 1: CALL DALL-E WITH TIMEOUT ──────────────────────────────────────
+  let imageUrl: string | null = null;
+
+  try {
+    const response = await withTimeout(
+      getOpenAI().images.generate({
+        model: "dall-e-3",
+        prompt,
+        n: 1,
+        size: "1024x1024",
+        quality: "standard",
+        style: "natural",
+      }),
+      8000
+    );
+
+    imageUrl = response.data?.[0]?.url ?? null;
+  } catch (dalleErr: any) {
+    console.warn(`⚠️ DALL-E failed for "${mealName}": ${dalleErr.message}`);
+  }
+
+  // ── LAYER 4: FALLBACK — NEVER RETURN NULL ──────────────────────────────────
+  if (!imageUrl) {
+    const fallback = getSemanticFallback(mealName);
+    console.log(`🛡️ Using semantic fallback for "${mealName}": ${fallback}`);
+    memCache.set(cacheKey, fallback);
+    return {
+      url: fallback,
+      prompt: `Fallback (generation failed): ${mealName}`,
+      templateRef: request.templateRef,
+      hash: cacheKey,
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  // ── LAYER 3: PERSIST TO DB ─────────────────────────────────────────────────
+  try {
+    await db
+      .insert(mealImageCache)
+      .values({
+        cacheKey,
+        imageUrl,
+        mealName,
+        promptUsed: prompt,
+      })
+      .onConflictDoNothing();
+    console.log(`✅ Image cached in DB for: ${mealName}`);
+  } catch (dbWriteErr) {
+    console.warn(`⚠️ DB cache write failed for "${mealName}":`, dbWriteErr);
+  }
+
+  memCache.set(cacheKey, imageUrl);
+
+  return {
+    url: imageUrl,
+    prompt,
+    templateRef: request.templateRef,
+    hash: cacheKey,
+    createdAt: new Date().toISOString(),
+  };
 }
 
-// Batch generate images for multiple meals
+// ─────────────────────────────────────────────────────────────────────────────
+// BATCH GENERATION
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function generateMealImages(requests: MealImageRequest[]): Promise<GeneratedImage[]> {
   const results: GeneratedImage[] = [];
-  
-  // Process in small batches to avoid rate limits
   const batchSize = 3;
+
   for (let i = 0; i < requests.length; i += batchSize) {
     const batch = requests.slice(i, i + batchSize);
-    
-    const batchPromises = batch.map(request => 
-      generateMealImage(request).catch(error => {
-        console.error(`Batch error for ${request.mealName}:`, error);
-        return {
-          url: `/assets/meals/default-dinner.svg`,
-          prompt: `Error: ${error.message}`,
-          hash: generateImageHash(request),
-          createdAt: new Date().toISOString()
-        };
-      })
+    const batchResults = await Promise.all(
+      batch.map(req =>
+        generateMealImage(req).catch(err => ({
+          url: getSemanticFallback(req.mealName),
+          prompt: `Error: ${err.message}`,
+          hash: buildStableCacheKey(req.mealName, req.ingredients),
+          createdAt: new Date().toISOString(),
+        }))
+      )
     );
-    
-    const batchResults = await Promise.all(batchPromises);
     results.push(...batchResults);
-    
-    // Small delay between batches
     if (i + batchSize < requests.length) {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
-  
+
   return results;
 }
 
-// Get cached image if available
+// ─────────────────────────────────────────────────────────────────────────────
+// BACKWARD-COMPATIBLE HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+
 export function getCachedImage(request: MealImageRequest): GeneratedImage | null {
-  const hash = generateImageHash(request);
-  return imageCache.get(hash) || null;
+  const cacheKey = buildStableCacheKey(request.mealName, request.ingredients);
+  const url = memCache.get(cacheKey);
+  if (!url) return null;
+  return {
+    url,
+    prompt: "(memory cache)",
+    templateRef: request.templateRef,
+    hash: cacheKey,
+    createdAt: new Date().toISOString(),
+  };
 }
 
-// Clear cache (for development/testing)
 export function clearImageCache(): void {
-  imageCache.clear();
-  console.log('🗑️ Image cache cleared');
+  memCache.clear();
+  console.log('🗑️ In-memory image cache cleared');
 }
 
-// Get cache statistics
 export function getImageCacheStats(): { size: number; entries: string[] } {
   return {
-    size: imageCache.size,
-    entries: Array.from(imageCache.keys())
+    size: memCache.size,
+    entries: Array.from(memCache.keys()),
   };
 }

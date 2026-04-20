@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" fill="none">
+  <rect width="400" height="300" fill="#F2F8F0"/>
+  <ellipse cx="200" cy="197" rx="128" ry="28" fill="#6AAA40" opacity="0.2"/>
+  <ellipse cx="200" cy="178" rx="128" ry="82" fill="#E8EEE4"/>
+  <ellipse cx="200" cy="158" rx="112" ry="68" fill="#D8EAD0"/>
+  <ellipse cx="185" cy="148" rx="30" ry="18" fill="#3A9A28" opacity="0.85" transform="rotate(-20 185 148)"/>
+  <ellipse cx="215" cy="143" rx="28" ry="16" fill="#5AB840" opacity="0.85" transform="rotate(15 215 143)"/>
+  <ellipse cx="200" cy="158" rx="26" ry="15" fill="#2A8A18" opacity="0.85" transform="rotate(-5 200 158)"/>
+  <ellipse cx="170" cy="158" rx="24" ry="14" fill="#4AAA30" opacity="0.8" transform="rotate(25 170 158)"/>
+  <ellipse cx="228" cy="155" rx="22" ry="13" fill="#5AB840" opacity="0.8" transform="rotate(-15 228 155)"/>
+  <circle cx="188" cy="140" r="6" fill="#E84040" opacity="0.9"/>
+  <circle cx="215" cy="155" r="5" fill="#E84040" opacity="0.9"/>
+  <circle cx="200" cy="148" r="4" fill="#F0C040" opacity="0.9"/>
+  <circle cx="172" cy="145" r="4" fill="#F0C040" opacity="0.9"/>
+  <text x="200" y="262" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#2A6A18" opacity="0.7">Salad</text>
+</svg>
