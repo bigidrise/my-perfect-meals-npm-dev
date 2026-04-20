@@ -87,7 +87,7 @@ export function CompetitionMealPickerDrawer({
   onPick,
 }: {
   open: boolean;
-  list: "breakfast" | "lunch" | "dinner" | "snacks" | null;
+  list: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6" | null;
   onClose: () => void;
   onPick: (meal: Meal) => void;
 }) {

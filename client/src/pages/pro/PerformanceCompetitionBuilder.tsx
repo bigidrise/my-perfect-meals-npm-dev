@@ -325,7 +325,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   // Create With Chef modal state
   const [createWithChefOpen, setCreateWithChefOpen] = useState(false);
   const [createWithChefSlot, setCreateWithChefSlot] = useState<
-    "breakfast" | "lunch" | "dinner"
+    "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6"
   >("breakfast");
 
   // Day/Week planning state (moved up for starchContext dependency)
@@ -353,7 +353,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
 
   // Favorites picker state
   const [favoritesOpen, setFavoritesOpen] = useState(false);
-  const [favoritesSlot, setFavoritesSlot] = useState<"breakfast" | "lunch" | "dinner" | "snacks">("breakfast");
+  const [favoritesSlot, setFavoritesSlot] = useState<"breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6">("breakfast");
 
   // Guided Tour state
   const [hasSeenInfo, setHasSeenInfo] = useState(false);
@@ -1146,7 +1146,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         </h2>
                         <GlobalMealActionBar
                           slot={
-                            key as "breakfast" | "lunch" | "dinner" | "snacks"
+                            key as "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6"
                           }
                           onCreateWithAI={() => {
                             setAiMealSlot(
@@ -1154,22 +1154,25 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                                 | "breakfast"
                                 | "lunch"
                                 | "dinner"
-                                | "snacks",
+                                | "snacks"
+                                | "meal4"
+                                | "meal5"
+                                | "meal6",
                             );
                             setAiMealModalOpen(true);
                           }}
                           onCreateWithChef={() => {
                             setCreateWithChefSlot(
-                              key as "breakfast" | "lunch" | "dinner",
+                              key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6",
                             );
                             setCreateWithChefOpen(true);
                           }}
                           onSnackCreator={() => {
                             setSnackCreatorOpen(true);
                           }}
-                          onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks", meal)}
+                          onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)}
                           onFavorites={() => {
-                            setFavoritesSlot(key as "breakfast" | "lunch" | "dinner" | "snacks");
+                            setFavoritesSlot(key as "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6");
                             setFavoritesOpen(true);
                           }}
                         />
@@ -1362,7 +1365,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                           className="text-white/80 hover:bg-black/50 border border-pink-400/30 text-xs font-medium flex items-center gap-1 flash-border"
                           onClick={() => {
                             setAiMealSlot(
-                              key as "breakfast" | "lunch" | "dinner" | "snacks",
+                              key as "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
                             );
                             setAiMealModalOpen(true);
                           }}
@@ -1379,7 +1382,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         className="text-white/80 hover:bg-black/50 border border-emerald-400/30 text-xs font-medium flex items-center gap-1"
                         onClick={() => {
                           setCreateWithChefSlot(
-                            key as "breakfast" | "lunch" | "dinner",
+                            key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6",
                           );
                           setCreateWithChefOpen(true);
                         }}
@@ -1389,8 +1392,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                       </Button>
 
                       <AddOwnMealButton
-                        slot={key as "breakfast"|"lunch"|"dinner"|"snacks"}
-                        onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks", meal)}
+                        slot={key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6"}
+                        onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)}
                         variant="icon"
                       />
                     </div>

@@ -6,7 +6,7 @@ import { PillButton } from "@/components/ui/pill-button";
 import { AddOwnMealButton } from "@/components/pickers/AddOwnMealButton";
 import { FEATURES } from "@/featureFlags";
 
-type MealSlot = "breakfast" | "lunch" | "dinner" | "snacks";
+type MealSlot = "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6";
 
 interface GlobalMealActionBarProps {
   slot: MealSlot;
@@ -36,7 +36,7 @@ export function GlobalMealActionBar({
   showLogSnack = false,
 }: GlobalMealActionBarProps) {
   const isSnackSlot = slot === "snacks";
-  const isMealSlot = slot === "breakfast" || slot === "lunch" || slot === "dinner";
+  const isMealSlot = slot === "breakfast" || slot === "lunch" || slot === "dinner" || slot === "meal4" || slot === "meal5" || slot === "meal6";
 
   return (
     <div className="flex gap-2">

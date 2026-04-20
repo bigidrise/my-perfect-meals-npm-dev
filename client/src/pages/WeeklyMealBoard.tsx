@@ -395,7 +395,7 @@ export default function WeeklyMealBoard() {
   // Create With Chef modal state (replaces AI Premades)
   const [createWithChefOpen, setCreateWithChefOpen] = useState(false);
   const [createWithChefSlot, setCreateWithChefSlot] = useState<
-    "breakfast" | "lunch" | "dinner"
+    "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6"
   >("breakfast");
 
   // Snack Creator modal state (Phase 2 - replaces Create with AI for snacks)
@@ -403,7 +403,7 @@ export default function WeeklyMealBoard() {
 
   // Favorites picker state
   const [favoritesOpen, setFavoritesOpen] = useState(false);
-  const [favoritesSlot, setFavoritesSlot] = useState<"breakfast" | "lunch" | "dinner" | "snacks">("breakfast");
+  const [favoritesSlot, setFavoritesSlot] = useState<"breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6">("breakfast");
 
   // Locked day dialog state
   const [lockedDayDialogOpen, setLockedDayDialogOpen] = useState(false);
@@ -1587,15 +1587,15 @@ export default function WeeklyMealBoard() {
                       <div className="flex items-center justify-between mb-4">
                         <h2 className="text-white/90 text-lg font-medium">{label}</h2>
                         <GlobalMealActionBar
-                          slot={key as "breakfast" | "lunch" | "dinner"}
+                          slot={key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6"}
                           onCreateWithAI={() => {
                             if (checkLockedDay(activeDayISO)) return;
-                            setAiMealSlot(key as "breakfast" | "lunch" | "dinner" | "snacks");
+                            setAiMealSlot(key as "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6");
                             setAiMealModalOpen(true);
                           }}
                           onCreateWithChef={() => {
                             if (checkLockedDay(activeDayISO)) return;
-                            setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner");
+                            setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6");
                             setCreateWithChefOpen(true);
                           }}
                           onSnackCreator={() => {
@@ -1605,7 +1605,7 @@ export default function WeeklyMealBoard() {
                           onSave={(meal) => { if (!checkLockedDay(activeDayISO)) quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal); }}
                           onFavorites={() => {
                             if (checkLockedDay(activeDayISO)) return;
-                            setFavoritesSlot(key as "breakfast" | "lunch" | "dinner");
+                            setFavoritesSlot(key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6");
                             setFavoritesOpen(true);
                           }}
                           onLogSnack={() => {}}

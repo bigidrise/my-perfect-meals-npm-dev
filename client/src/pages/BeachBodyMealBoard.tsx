@@ -316,13 +316,13 @@ export default function BeachBodyMealBoard() {
   // AI Premade Picker state (competition meals)
   const [premadePickerOpen, setPremadePickerOpen] = useState(false);
   const [premadePickerSlot, setPremadePickerSlot] = useState<
-    "breakfast" | "lunch" | "dinner" | "snacks"
+    "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6"
   >("breakfast");
 
   // Create With Chef modal state
   const [createWithChefOpen, setCreateWithChefOpen] = useState(false);
   const [createWithChefSlot, setCreateWithChefSlot] = useState<
-    "breakfast" | "lunch" | "dinner"
+    "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6"
   >("breakfast");
 
   // Build StarchContext for Create With Chef modal
@@ -346,9 +346,9 @@ export default function BeachBodyMealBoard() {
 
   // Favorites picker state
   const [favoritesOpen, setFavoritesOpen] = useState(false);
-  const [favoritesSlot, setFavoritesSlot] = useState<"breakfast" | "lunch" | "dinner" | "snacks">("breakfast");
+  const [favoritesSlot, setFavoritesSlot] = useState<"breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6">("breakfast");
 
-  const [aiMealSlot, setAiMealSlot] = useState<"breakfast" | "lunch" | "dinner" | "snacks">("breakfast");
+  const [aiMealSlot, setAiMealSlot] = useState<"breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6">("breakfast");
   const [aiMealModalOpen, setAiMealModalOpen] = useState(false);
 
   // Guided Tour state
@@ -1199,13 +1199,13 @@ export default function BeachBodyMealBoard() {
                             {label}
                           </h2>
                           <GlobalMealActionBar
-                            slot={key as "breakfast" | "lunch" | "dinner" | "snacks"}
+                            slot={key as "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6"}
                             onCreateWithAI={() => {
-                              setAiMealSlot(key as "breakfast" | "lunch" | "dinner" | "snacks");
+                              setAiMealSlot(key as "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6");
                               setAiMealModalOpen(true);
                             }}
                             onCreateWithChef={() => {
-                              setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner");
+                              setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6");
                               setCreateWithChefOpen(true);
                             }}
                             onSnackCreator={() => {
@@ -1213,7 +1213,7 @@ export default function BeachBodyMealBoard() {
                             }}
                             onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)}
                             onFavorites={() => {
-                              setFavoritesSlot(key as "breakfast" | "lunch" | "dinner" | "snacks");
+                              setFavoritesSlot(key as "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6");
                               setFavoritesOpen(true);
                             }}
                           />
