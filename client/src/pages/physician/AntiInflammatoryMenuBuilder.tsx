@@ -1202,7 +1202,6 @@ export default function AntiInflammatoryMenuBuilder() {
     try {
       // In Day mode, add to the specific day. In Week mode, use legacy behavior
       if (
-        FEATURES.dayPlanning === "alpha" &&
         planningMode === "day" &&
         activeDayISO
       ) {
@@ -1213,6 +1212,7 @@ export default function AntiInflammatoryMenuBuilder() {
           [list]: [...dayLists[list as keyof typeof dayLists], meal],
         };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+        setBoard(updatedBoard);
         await saveBoard(updatedBoard);
         console.log("✅ Successfully added meal to", list, "for", activeDayISO);
       } else {
