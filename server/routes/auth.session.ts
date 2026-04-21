@@ -27,7 +27,8 @@ function isTesterEmail(_email: string): boolean {
  */
 router.post("/api/auth/signup", async (req, res) => {
   try {
-    const { email, password, procare } = req.body;
+    const { password, procare } = req.body;
+    const email = typeof req.body.email === "string" ? req.body.email.toLowerCase().trim() : req.body.email;
 
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password are required" });
@@ -225,7 +226,7 @@ router.post("/api/auth/login", async (req, res) => {
 
     // Find user by email (case-insensitive)
     const normalizedEmail = email.toLowerCase().trim();
-    const [user] = await db.select().from(users).where(eq(users.email, normalizedEmail)).limit(1);
+    const [user] = await db.select().from(users).where(sql`LOWER(${users.email}) = ${normalizedEmail}`).limit(1);
     
     if (!user) {
       console.log("❌ User not found");
