@@ -14,11 +14,12 @@ type MealSlot = "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" 
 interface AddOwnMealButtonProps {
   slot: MealSlot;
   onSave: (meal: any) => void;
+  onImageReady?: (mealId: string, imageUrl: string) => void;
   variant?: "icon" | "full";
   disabled?: boolean;
 }
 
-type Phase = "idle" | "describing" | "starch_blocked" | "generating";
+type Phase = "idle" | "describing" | "starch_blocked";
 
 function slotToMealType(s: MealSlot): string {
   if (s === "breakfast") return "breakfast";
@@ -27,46 +28,43 @@ function slotToMealType(s: MealSlot): string {
   return "dinner";
 }
 
-export function AddOwnMealButton({ slot, onSave, variant = "icon", disabled = false }: AddOwnMealButtonProps) {
+export function AddOwnMealButton({ slot, onSave, onImageReady, variant = "icon", disabled = false }: AddOwnMealButtonProps) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [pendingMacros, setPendingMacros] = useState<MacroEstimate | null>(null);
 
   const { alert, checkStarch, clearAlert, setDecision } = useStarchGuardPrecheck();
 
-  const generateImageAndInsert = useCallback(async (macros: MacroEstimate) => {
-    setPhase("generating");
-    let imageUrl: string | null = null;
+  const fetchImageInBackground = useCallback((meal: { id: string; name: string }) => {
+    if (!onImageReady) return;
+    fetch(apiUrl("/api/meals/generate-image"), {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      body: JSON.stringify({
+        mealName: meal.name,
+        mealType: slotToMealType(slot),
+        ingredients: [],
+      }),
+    })
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (data?.imageUrl) onImageReady(meal.id, data.imageUrl);
+      })
+      .catch(() => {});
+  }, [slot, onImageReady]);
 
-    try {
-      const res = await fetch(apiUrl("/api/meals/generate-image"), {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({
-          mealName: macros.description,
-          mealType: slotToMealType(slot),
-          ingredients: [],
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        imageUrl = data.imageUrl ?? null;
-      }
-    } catch {
-      // silent — insert without image
-    }
-
-    const meal = mapEstimateToBoardMeal(macros, imageUrl);
+  const insertMeal = useCallback((macros: MacroEstimate) => {
+    const meal = mapEstimateToBoardMeal(macros, null);
     onSave(meal);
     setPhase("idle");
     setPendingMacros(null);
     clearAlert();
-  }, [slot, onSave, clearAlert]);
+    fetchImageInBackground({ id: meal.id, name: meal.name });
+  }, [onSave, clearAlert, fetchImageInBackground]);
 
   const handleEstimateComplete = useCallback((macros: MacroEstimate) => {
     setPendingMacros(macros);
 
-    // Starch guard: only trigger when starchyCarbs > 0 AND user is at limit (keyword detected)
     if (macros.starchyCarbs > 0) {
       const allowed = checkStarch(macros.description);
       if (!allowed) {
@@ -75,23 +73,20 @@ export function AddOwnMealButton({ slot, onSave, variant = "icon", disabled = fa
       }
     }
 
-    generateImageAndInsert(macros);
-  }, [checkStarch, generateImageAndInsert]);
+    insertMeal(macros);
+  }, [checkStarch, insertMeal]);
 
   const handleStarchDecision = useCallback((decision: StarchGuardDecision) => {
     setDecision(decision);
     clearAlert();
 
     if (decision === "continue_anyway" && pendingMacros) {
-      generateImageAndInsert(pendingMacros);
+      insertMeal(pendingMacros);
     } else {
-      // "order_something_else" — go back to describe flow
       setPhase("describing");
       setPendingMacros(null);
     }
-  }, [pendingMacros, generateImageAndInsert, clearAlert, setDecision]);
-
-  const isGenerating = phase === "generating";
+  }, [pendingMacros, insertMeal, clearAlert, setDecision]);
 
   if (variant === "full") {
     return (
@@ -99,24 +94,13 @@ export function AddOwnMealButton({ slot, onSave, variant = "icon", disabled = fa
         <Button
           onClick={() => setPhase("describing")}
           className="bg-black hover:bg-zinc-900 text-white border border-white/30"
-          disabled={disabled || isGenerating}
+          disabled={disabled}
           data-testid={`button-add-own-${slot}`}
         >
-          {isGenerating ? (
-            <span className="flex items-center gap-2">
-              <span className="flex items-center space-x-1">
-                <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce [animation-delay:0s]" />
-                <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce [animation-delay:0.15s]" />
-                <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce [animation-delay:0.3s]" />
-              </span>
-              Generating…
-            </span>
-          ) : (
-            <>
-              <Plus className="h-4 w-4 mr-2" />
-              Describe What You Ate
-            </>
-          )}
+          <>
+            <Plus className="h-4 w-4 mr-2" />
+            Describe What You Ate
+          </>
         </Button>
 
         <Overlays
@@ -137,18 +121,10 @@ export function AddOwnMealButton({ slot, onSave, variant = "icon", disabled = fa
         size="sm"
         onClick={() => setPhase("describing")}
         className="h-6 w-6 p-0 bg-black hover:bg-zinc-900 text-white border border-white/30"
-        disabled={disabled || isGenerating}
+        disabled={disabled}
         data-testid={`button-add-own-${slot}`}
       >
-        {isGenerating ? (
-          <span className="flex items-center space-x-px">
-            <span className="w-1 h-1 bg-amber-400 rounded-full animate-bounce [animation-delay:0s]" />
-            <span className="w-1 h-1 bg-amber-400 rounded-full animate-bounce [animation-delay:0.15s]" />
-            <span className="w-1 h-1 bg-amber-400 rounded-full animate-bounce [animation-delay:0.3s]" />
-          </span>
-        ) : (
-          <Plus className="h-3 w-3" />
-        )}
+        <Plus className="h-3 w-3" />
       </Button>
 
       <Overlays
@@ -193,20 +169,6 @@ function Overlays({
               continueAnywayLabel="Add It Anyway"
               chooseAnotherLabel="Describe Something Else"
             />
-          </div>
-        </div>
-      )}
-
-      {phase === "generating" && (
-        <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-gradient-to-b from-gray-900 to-black border border-white/20 rounded-2xl p-8 text-center w-full max-w-xs">
-            <div className="flex items-center justify-center space-x-2 mb-4">
-              <span className="w-3 h-3 bg-amber-400 rounded-full animate-bounce [animation-delay:0s]" />
-              <span className="w-3 h-3 bg-amber-400 rounded-full animate-bounce [animation-delay:0.15s]" />
-              <span className="w-3 h-3 bg-amber-400 rounded-full animate-bounce [animation-delay:0.3s]" />
-            </div>
-            <p className="text-white font-semibold text-base">Crafting your meal…</p>
-            <p className="text-white/50 text-sm mt-1">Building your card, just a sec</p>
           </div>
         </div>
       )}
