@@ -750,20 +750,41 @@ const SECTION_HEALTH_SAFETY: LibraryTopic[] = [
       sections: [
         {
           heading: "What Is SafetyGuard?",
-          text: "SafetyGuard is My Perfect Meals' two-layer allergy protection system. It's designed to help prevent meals from being created with ingredients you've marked as unsafe.",
+          text: "SafetyGuard is My Perfect Meals' two-layer guidance system designed to help reduce the risk of generating meals that conflict with food allergies, dietary restrictions, or medical considerations you've provided.",
+        },
+        {
+          heading: "Layer 1 — Pre-Generation Safety Check",
+          text: "Before any meal is created, the system checks your safety profile — including allergies, dietary restrictions, and relevant medical considerations — against a structured food and ingredient taxonomy. If a requested meal may conflict with your profile, the request is blocked before generation and you're guided on how to adjust it more safely.",
+        },
+        {
+          heading: "Layer 2 — Post-Generation Validation",
+          text: "After a meal is created, the system performs an additional validation pass to confirm the final ingredients remain within your stated safety constraints. If a potential conflict is detected, the meal may be flagged, adjusted, or rejected.",
         },
         {
           heading: "How SafetyGuard Works",
           list: [
-            "Pre-generation checks stop meals that include known allergens before they're created",
-            "Post-generation validation scans ingredients and nutrition before a meal is shown",
             "Protection is always on by default",
+            "Pre-generation checks stop meals that include known allergens before they're created",
+            "Post-generation validation scans ingredients before a meal is shown",
             "Temporary overrides require a personal Safety PIN and apply to one meal only",
+          ],
+        },
+        {
+          heading: "What It's Built On",
+          list: [
+            "Structured food and ingredient taxonomies",
+            "Common allergen classifications recognized by public health organizations",
+            "Clinical nutrition principles for diabetes support, GLP-1 support, anti-inflammatory eating, and oncology-supportive meal planning",
+            "AI-assisted language understanding to interpret user input, ingredient families, compound foods, and common substitutions",
           ],
         },
         {
           heading: "Why It Exists",
           text: "Food allergies are serious. SafetyGuard is designed to add structure and intentional decision-making at the exact moment meals are created.",
+        },
+        {
+          heading: "Important Limitation",
+          text: "SafetyGuard is a software-based guidance tool, not a medical device. It does not diagnose, treat, or replace professional medical advice. All safety checks are based on user-provided information and are intended to support safer food choices, not medical decision-making.",
         },
       ],
     },
