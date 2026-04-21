@@ -1137,6 +1137,7 @@ export default function GLP1MealBuilder() {
                           }}
                           onSnackCreator={() => setSnackCreatorOpen(true)}
                           onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)}
+                          onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; if (getMealImageUrl(prev, mealId) === imageUrl) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
                           onFavorites={() => {
                             setFavoritesSlot(key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6");
                             setFavoritesOpen(true);
@@ -1206,6 +1207,7 @@ export default function GLP1MealBuilder() {
                         onCreateWithChef={() => {}}
                         onSnackCreator={() => setSnackCreatorOpen(true)}
                         onSave={(meal) => quickAdd("snacks", meal)}
+                        onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; if (getMealImageUrl(prev, mealId) === imageUrl) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
                         onFavorites={() => { setFavoritesSlot("snacks"); setFavoritesOpen(true); }}
                       />
                     </div>
