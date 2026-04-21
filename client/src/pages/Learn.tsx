@@ -28,6 +28,7 @@ import {
   Wine,
   Refrigerator,
   Star,
+  ShoppingCart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
@@ -466,6 +467,45 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
         {
           heading: "Important",
           text: "Compliance is not a grade. It is simply a signal that helps you and your coach understand what is happening so better decisions can be made.",
+        },
+      ],
+    },
+  },
+  {
+    id: "smart-shopping",
+    title: "Smart Shopping — Shop Your Way",
+    subtitle: "Send one day, choose multiple days, stop overbuying",
+    icon: ShoppingCart,
+    content: {
+      sections: [
+        {
+          heading: "How Shopping Works Now",
+          text: "Every meal builder has a shopping bar at the bottom of the screen. Instead of always sending your entire week to the grocery list, you now choose exactly how much you want to shop for.",
+        },
+        {
+          heading: "Send This Day",
+          text: "Tap the orange Send button to send only the meals from the day you are currently viewing to your shopping list. This is the fastest way to shop for today or any single day.",
+        },
+        {
+          heading: "Choose Days",
+          text: "Tap the Choose Days button to open a multi-select panel showing every day of your current week. Each day shows its name and how many meals are planned. Check the days you want, then send them all in one tap.",
+          list: [
+            "Shop for just Monday and Tuesday before mid-week",
+            "Prep for the weekend by selecting Friday through Sunday",
+            "Select all 7 days if you want to shop for the full week",
+          ],
+        },
+        {
+          heading: "Why This Matters",
+          text: "Most people do not shop for a full week at once. Produce goes bad. Plans change. The old system forced you to send everything or nothing. Now you shop for exactly the window you need, which means fresher food, less waste, and a shorter list every trip.",
+        },
+        {
+          heading: "Works Across All Builders",
+          text: "This shopping system is the same across every meal builder in the app — Weekly, GLP-1, Anti-Inflammatory, Diabetic, Performance, Beach Body, and General Nutrition. Same experience, no matter which builder you use.",
+        },
+        {
+          heading: "Your List Syncs Automatically",
+          text: "Once items are sent to your shopping list, they sync to your account instantly. You will see the same list whether you are on your phone, tablet, or another device.",
         },
       ],
     },
