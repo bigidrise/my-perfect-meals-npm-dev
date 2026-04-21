@@ -91,6 +91,9 @@ export default function ClinicianClientDashboard() {
   const [client, setClient] = useState(() => proStore.getClient(clientId));
   const [t, setT] = useState<Targets>(() => proStore.getTargets(clientId));
   const [ctx, setCtx] = useState<ClinicalContext>(() => proStore.getContext(clientId));
+  const [isDirty, setIsDirty] = useState(false);
+  const updateT = (next: Targets) => { setT(next); setIsDirty(true); };
+  const updateCtx = (next: ClinicalContext) => { setCtx(next); setIsDirty(true); };
   const PHYSICIAN_BUILDER_KEYS = getBuilderKeys("physician");
   const [assignedBuilder, setAssignedBuilder] = useState<ProfessionalBuilderKey | undefined>(
     () => client?.assignedBuilder as ProfessionalBuilderKey | undefined
@@ -281,6 +284,7 @@ export default function ClinicianClientDashboard() {
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
     }
+    setIsDirty(false);
     toast({
       title: "Targets saved",
       description: "Macro targets updated successfully.",
@@ -300,7 +304,7 @@ export default function ClinicianClientDashboard() {
   ) => {
     const current = ctx.clinicalTags || [];
     const next = current.includes(tag) ? current.filter((t) => t !== tag) : [...current, tag];
-    setCtx({ ...ctx, clinicalTags: next });
+    updateCtx({ ...ctx, clinicalTags: next });
   };
 
   const scheduleFollowUp = () => {
@@ -485,7 +489,7 @@ export default function ClinicianClientDashboard() {
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
                 value={t.protein || ""}
-                onChange={(e) => setT({ ...t, protein: e.target.value === "" ? 0 : Number(e.target.value) })}
+                onChange={(e) => updateT({ ...t, protein: e.target.value === "" ? 0 : Number(e.target.value) })}
                 placeholder="protein"
               />
             </div>
@@ -495,7 +499,7 @@ export default function ClinicianClientDashboard() {
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
                 value={t.starchyCarbs || ""}
-                onChange={(e) => setT({ ...t, starchyCarbs: e.target.value === "" ? 0 : Number(e.target.value) })}
+                onChange={(e) => updateT({ ...t, starchyCarbs: e.target.value === "" ? 0 : Number(e.target.value) })}
                 placeholder="starchy carbs"
               />
             </div>
@@ -505,7 +509,7 @@ export default function ClinicianClientDashboard() {
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
                 value={t.fibrousCarbs || ""}
-                onChange={(e) => setT({ ...t, fibrousCarbs: e.target.value === "" ? 0 : Number(e.target.value) })}
+                onChange={(e) => updateT({ ...t, fibrousCarbs: e.target.value === "" ? 0 : Number(e.target.value) })}
                 placeholder="fibrous carbs"
               />
             </div>
@@ -515,7 +519,7 @@ export default function ClinicianClientDashboard() {
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
                 value={t.fat || ""}
-                onChange={(e) => setT({ ...t, fat: e.target.value === "" ? 0 : Number(e.target.value) })}
+                onChange={(e) => updateT({ ...t, fat: e.target.value === "" ? 0 : Number(e.target.value) })}
                 placeholder="fat"
               />
             </div>
@@ -538,7 +542,7 @@ export default function ClinicianClientDashboard() {
                     <button
                       key={key}
                       type="button"
-                      onClick={() => setT({ ...t, flags: { ...t.flags, [key]: !isOn } })}
+                      onClick={() => updateT({ ...t, flags: { ...t.flags, [key]: !isOn } })}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 active:scale-[0.97] border ${
                         isOn
                           ? "bg-teal-600 border-teal-400 text-white"
@@ -560,7 +564,7 @@ export default function ClinicianClientDashboard() {
                     return (
                       <button
                         type="button"
-                        onClick={() => setT({ ...t, flags: { ...t.flags, oncologySupport: !isOn } })}
+                        onClick={() => updateT({ ...t, flags: { ...t.flags, oncologySupport: !isOn } })}
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 active:scale-[0.97] border ${
                           isOn
                             ? "bg-rose-600 border-rose-400 text-white"
@@ -589,7 +593,7 @@ export default function ClinicianClientDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setT({ ...t, starchStrategy: 'one' })}
+                  onClick={() => updateT({ ...t, starchStrategy: 'one' })}
                   className={`p-4 rounded-xl border text-left transition-all ${
                     (t.starchStrategy || 'one') === 'one'
                       ? 'bg-orange-600/30 border-orange-400'
@@ -605,7 +609,7 @@ export default function ClinicianClientDashboard() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setT({ ...t, starchStrategy: 'flex' })}
+                  onClick={() => updateT({ ...t, starchStrategy: 'flex' })}
                   className={`p-4 rounded-xl border text-left transition-all ${
                     t.starchStrategy === 'flex'
                       ? 'bg-yellow-600/30 border-yellow-400'
@@ -627,14 +631,14 @@ export default function ClinicianClientDashboard() {
                 advisory={ctx.advisory}
                 targets={t}
                 onAdvisoryChange={(advisory: ClinicalAdvisory) => {
-                  setCtx({ ...ctx, advisory });
+                  updateCtx({ ...ctx, advisory });
                   proStore.setContext(clientId, { ...ctx, advisory });
                 }}
                 onApplySuggestions={(deltas) => {
                   const totalCarbs = (t.starchyCarbs || 0) + (t.fibrousCarbs || 0);
                   const newTotalCarbs = Math.max(0, totalCarbs + deltas.carbs);
                   const starchyRatio = totalCarbs > 0 ? (t.starchyCarbs || 0) / totalCarbs : 0.5;
-                  setT({
+                  updateT({
                     ...t,
                     protein: Math.max(0, (t.protein || 0) + deltas.protein),
                     starchyCarbs: Math.round(newTotalCarbs * starchyRatio),
@@ -646,8 +650,14 @@ export default function ClinicianClientDashboard() {
               />
             </div>
 
+            {isDirty && (
+              <p className="col-span-full text-xs text-orange-400 font-semibold flex items-center gap-1.5">
+                <span className="inline-block w-2 h-2 rounded-full bg-orange-400 animate-ping" />
+                Unsaved changes — press Save Targets &amp; Directives
+              </p>
+            )}
             <div className="col-span-full flex gap-2">
-              <Button onClick={saveTargets} className="bg-lime-600 border border-white/20 text-white font-medium px-8 py-3 shadow-2xl transition-all duration-200 active:scale-[0.98] flex-1">
+              <Button onClick={saveTargets} className={`border border-white/20 text-white font-medium px-8 py-3 shadow-2xl transition-all duration-300 active:scale-[0.98] flex-1 ${isDirty ? "bg-lime-600 ring-2 ring-orange-400 shadow-[0_0_16px_rgba(251,146,60,0.55)] animate-pulse" : "bg-lime-600"}`}>
                 Save Targets &amp; Directives
               </Button>
               <Button
@@ -691,7 +701,7 @@ export default function ClinicianClientDashboard() {
                 className="bg-black/30 border-white/30 text-white"
                 placeholder="e.g., Type 2 Diabetes, Post-Bariatric"
                 value={ctx.diagnosis || ""}
-                onChange={(e) => setCtx({ ...ctx, diagnosis: e.target.value })}
+                onChange={(e) => updateCtx({ ...ctx, diagnosis: e.target.value })}
               />
             </div>
 
@@ -720,7 +730,7 @@ export default function ClinicianClientDashboard() {
                 className="bg-black/30 border-white/30 text-white min-h-[80px]"
                 placeholder="Clinical observations, medication notes, dietary restrictions..."
                 value={ctx.patientNote || ""}
-                onChange={(e) => setCtx({ ...ctx, patientNote: e.target.value })}
+                onChange={(e) => updateCtx({ ...ctx, patientNote: e.target.value })}
               />
             </div>
 
@@ -730,7 +740,7 @@ export default function ClinicianClientDashboard() {
                 className="bg-black/30 border-white/30 text-white min-h-[80px]"
                 placeholder="Internal physician notes for this patient..."
                 value={ctx.coachNote || ""}
-                onChange={(e) => setCtx({ ...ctx, coachNote: e.target.value })}
+                onChange={(e) => updateCtx({ ...ctx, coachNote: e.target.value })}
               />
             </div>
 
@@ -739,7 +749,7 @@ export default function ClinicianClientDashboard() {
               <select
                 className="bg-black/30 border border-white/30 text-white rounded-lg px-3 py-1.5 text-sm"
                 value={ctx.followupWeeks || ""}
-                onChange={(e) => setCtx({ ...ctx, followupWeeks: e.target.value ? (Number(e.target.value) as 4 | 8 | 12) : undefined })}
+                onChange={(e) => updateCtx({ ...ctx, followupWeeks: e.target.value ? (Number(e.target.value) as 4 | 8 | 12) : undefined })}
               >
                 <option value="">Select</option>
                 <option value="4">4 weeks</option>

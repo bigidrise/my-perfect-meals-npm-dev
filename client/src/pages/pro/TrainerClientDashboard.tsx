@@ -84,6 +84,8 @@ export default function TrainerClientDashboard() {
   const [client, setClient] = useState(() => proStore.getClient(clientId));
   const resolvedClientUserId = client?.clientUserId || client?.userId || clientId;
   const [t, setT] = useState<Targets>(() => proStore.getTargets(clientId));
+  const [isDirty, setIsDirty] = useState(false);
+  const updateT = (next: Targets) => { setT(next); setIsDirty(true); };
 
   const [boardControl, setBoardControl] = useState<'client' | 'professional'>('client');
   const [boardControlLoading, setBoardControlLoading] = useState(false);
@@ -316,6 +318,7 @@ export default function TrainerClientDashboard() {
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
     }
+    setIsDirty(false);
     toast({
       title: "Targets saved",
       description: "Macro targets updated successfully.",
@@ -625,7 +628,7 @@ export default function TrainerClientDashboard() {
                 className="bg-black/30 border-white/30 text-white"
                 value={t.protein || ""}
                 onChange={(e) =>
-                  setT({
+                  updateT({
                     ...t,
                     protein: e.target.value === "" ? 0 : Number(e.target.value),
                   })
@@ -642,7 +645,7 @@ export default function TrainerClientDashboard() {
                 className="bg-black/30 border-white/30 text-white"
                 value={t.starchyCarbs || ""}
                 onChange={(e) =>
-                  setT({
+                  updateT({
                     ...t,
                     starchyCarbs:
                       e.target.value === "" ? 0 : Number(e.target.value),
@@ -660,7 +663,7 @@ export default function TrainerClientDashboard() {
                 className="bg-black/30 border-white/30 text-white"
                 value={t.fibrousCarbs || ""}
                 onChange={(e) =>
-                  setT({
+                  updateT({
                     ...t,
                     fibrousCarbs:
                       e.target.value === "" ? 0 : Number(e.target.value),
@@ -678,7 +681,7 @@ export default function TrainerClientDashboard() {
                 className="bg-black/30 border-white/30 text-white"
                 value={t.fat || ""}
                 onChange={(e) =>
-                  setT({
+                  updateT({
                     ...t,
                     fat: e.target.value === "" ? 0 : Number(e.target.value),
                   })
@@ -699,7 +702,7 @@ export default function TrainerClientDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setT({ ...t, starchStrategy: 'one' })}
+                  onClick={() => updateT({ ...t, starchStrategy: 'one' })}
                   className={`p-4 rounded-xl border text-left transition-all ${
                     (t.starchStrategy || 'one') === 'one'
                       ? 'bg-orange-600/30 border-orange-400'
@@ -719,7 +722,7 @@ export default function TrainerClientDashboard() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setT({ ...t, starchStrategy: 'flex' })}
+                  onClick={() => updateT({ ...t, starchStrategy: 'flex' })}
                   className={`p-4 rounded-xl border text-left transition-all ${
                     t.starchStrategy === 'flex'
                       ? 'bg-yellow-600/30 border-yellow-400'
@@ -740,10 +743,16 @@ export default function TrainerClientDashboard() {
               </div>
             </div>
 
+            {isDirty && (
+              <p className="col-span-full text-xs text-orange-400 font-semibold flex items-center gap-1.5">
+                <span className="inline-block w-2 h-2 rounded-full bg-orange-400 animate-ping" />
+                Unsaved changes — press Save Targets
+              </p>
+            )}
             <div className="col-span-full flex gap-2">
               <Button
                 onClick={saveTargets}
-                className="bg-lime-600 border border-white/20 text-white active:bg-white/30"
+                className={`border border-white/20 text-white active:bg-white/30 transition-all duration-300 ${isDirty ? "bg-lime-600 ring-2 ring-orange-400 shadow-[0_0_16px_rgba(251,146,60,0.55)] animate-pulse" : "bg-lime-600"}`}
               >
                 Save Targets
               </Button>
