@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { JustDescribeItModal } from "@/components/JustDescribeItModal";
@@ -174,7 +175,7 @@ function Overlays({
   onEstimateComplete: (macros: MacroEstimate) => void;
   onStarchDecision: (d: StarchGuardDecision) => void;
 }) {
-  return (
+  return createPortal(
     <>
       <JustDescribeItModal
         open={phase === "describing"}
@@ -209,6 +210,7 @@ function Overlays({
           </div>
         </div>
       )}
-    </>
+    </>,
+    document.body
   );
 }
