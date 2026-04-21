@@ -2959,7 +2959,7 @@ export default function MacroCounter() {
                       size="sm"
                       disabled={!isDirty || !isCalcInputValid || isSaving}
                       onClick={handleQuickSave}
-                      className="bg-lime-600 hover:bg-lime-500 text-white font-semibold text-xs rounded-lg px-3 py-1.5 h-auto disabled:opacity-40 disabled:cursor-not-allowed"
+                      className={`text-white font-semibold text-xs rounded-lg px-3 py-1.5 h-auto disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300 ${isDirty && isCalcInputValid ? "bg-lime-600 hover:bg-lime-500 ring-2 ring-orange-400 shadow-[0_0_14px_rgba(251,146,60,0.55)] animate-pulse" : "bg-lime-600 hover:bg-lime-500"}`}
                     >
                       <Save className="h-3 w-3 mr-1" />
                       {isSaving ? "Saving..." : isDirty ? "Update Macros" : "Saved"}
@@ -3690,7 +3690,7 @@ export default function MacroCounter() {
                       <Button
                         disabled={!isDirty || !isCalcInputValid || isSaving}
                         onClick={handleQuickSave}
-                        className="w-full mt-4 bg-lime-600 text-white font-semibold text-base rounded-xl disabled:opacity-40"
+                        className={`w-full mt-4 text-white font-semibold text-base rounded-xl disabled:opacity-40 transition-all duration-300 ${isDirty && isCalcInputValid ? "bg-lime-600 ring-2 ring-orange-400 shadow-[0_0_18px_rgba(251,146,60,0.55)] animate-pulse" : "bg-lime-600"}`}
                         data-testid="macro-update-button"
                       >
                         <Target className="h-4 w-4 mr-2" />

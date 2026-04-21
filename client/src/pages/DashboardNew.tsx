@@ -501,25 +501,25 @@ export default function DashboardNew() {
         >
           {isProCareClient ? (
             <Card
-              className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-purple-500/30 transition-all duration-300 rounded-xl shadow-md relative"
+              className={`cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md relative ${tabletHasUnread ? "border-2 border-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.55)] animate-pulse" : "border border-purple-500/30"}`}
               onClick={() => setTabletOpen(!tabletOpen)}
             >
-              {tabletHasUnread && (
-                <span className="absolute top-3 right-3 w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse z-10" />
-              )}
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-purple-500/20">
-                    <MessageSquare className="h-5 w-5 text-purple-400" />
+                  <div className={`p-2 rounded-lg ${tabletHasUnread ? "bg-orange-500/20" : "bg-purple-500/20"}`}>
+                    <MessageSquare className={`h-5 w-5 ${tabletHasUnread ? "text-orange-400" : "text-purple-400"}`} />
                   </div>
                   <div className="flex-1">
                     <h3 className="text-sm font-semibold text-white">
                       Messages
                     </h3>
-                    <p className="text-xs text-white/70">
-                      View and reply to your coach
+                    <p className={`text-xs ${tabletHasUnread ? "text-orange-400 font-medium" : "text-white/70"}`}>
+                      {tabletHasUnread ? "New message from your coach" : "View and reply to your coach"}
                     </p>
                   </div>
+                  {tabletHasUnread && (
+                    <span className="text-[10px] font-bold text-white bg-orange-500 rounded-full px-2 py-0.5 uppercase tracking-wide">New</span>
+                  )}
                   {tabletOpen ? (
                     <ChevronUp className="h-4 w-4 text-white/40" />
                   ) : (
