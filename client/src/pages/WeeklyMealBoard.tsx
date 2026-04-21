@@ -1470,6 +1470,7 @@ export default function WeeklyMealBoard() {
                             setSnackCreatorOpen(true);
                           }}
                           onSave={(meal) => { if (!checkLockedDay(activeDayISO)) quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal); }}
+                          onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; if (getMealImageUrl(prev, mealId) === imageUrl) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
                           onFavorites={() => {
                             if (checkLockedDay(activeDayISO)) return;
                             setFavoritesSlot(key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6");
@@ -1530,6 +1531,7 @@ export default function WeeklyMealBoard() {
                         onCreateWithChef={() => {}}
                         onSnackCreator={() => { if (checkLockedDay(activeDayISO)) return; setSnackCreatorOpen(true); }}
                         onSave={(meal) => { if (!checkLockedDay(activeDayISO)) quickAdd("snacks", meal); }}
+                        onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; if (getMealImageUrl(prev, mealId) === imageUrl) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
                         onFavorites={() => { if (checkLockedDay(activeDayISO)) return; setFavoritesSlot("snacks"); setFavoritesOpen(true); }}
                       />
                     </div>

@@ -14,6 +14,7 @@ interface GlobalMealActionBarProps {
   onCreateWithChef: () => void;
   onSnackCreator?: () => void;
   onSave: (meal: any) => void;
+  onImageReady?: (mealId: string, imageUrl: string) => void;
   onLogSnack?: () => void;
   onFavorites?: () => void;
   disabled?: boolean;
@@ -28,6 +29,7 @@ export function GlobalMealActionBar({
   onCreateWithChef,
   onSnackCreator,
   onSave,
+  onImageReady,
   onLogSnack,
   onFavorites,
   disabled = false,
@@ -82,6 +84,7 @@ export function GlobalMealActionBar({
       <AddOwnMealButton
         slot={slot}
         onSave={onSave}
+        onImageReady={onImageReady}
         variant="icon"
         disabled={disabled}
       />
