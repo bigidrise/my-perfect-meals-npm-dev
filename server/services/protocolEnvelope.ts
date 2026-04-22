@@ -1191,9 +1191,6 @@ export interface DietClassification {
   veganFlags?: {
     plantBased: boolean;
   };
-  ketoMetrics?: {
-    carbsPerServing: number;
-  };
 }
 
 /** Alcohol terms scanned for halal flag derivation */
