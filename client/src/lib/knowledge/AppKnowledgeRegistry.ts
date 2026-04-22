@@ -189,14 +189,12 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
       "Enter your weight and press Save to record your progress.",
       "Use the water tracker to log 8oz or 16oz increments throughout the day.",
       "Reset water anytime if you want to start over.",
-      "Your daily water goal is automatically calculated from your logged body weight using the formula: weight (lbs) × 0.67 = daily oz target. Update your weight to keep your goal accurate.",
     ],
     tips: [
       "Use 'Log from Photos' when scanning packaging like chips or drinks.",
       "Manual entry is great when you know exact macros from restaurant nutrition guides.",
       "Use weight logs weekly for reliable trends.",
       "Use the water tracker throughout the day to prevent underhydration.",
-      "Your water goal updates automatically when you log a new body weight — no manual target setting required.",
     ],
     relatedCommands: [
       "biometrics.scanLabel",
