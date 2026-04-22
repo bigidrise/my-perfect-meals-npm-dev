@@ -497,6 +497,7 @@ export default function Router() {
         <Route path="/care-team/physician" component={SafePhysicianCareTeam} />
         <Route path="/care-team/trainer" component={SafeTrainerCareTeam} />
         <Route path="/pro-portal" component={SafeProPortal} />
+        <Route path="/pro" component={() => { const [, go] = useLocation(); useEffect(() => { go("/pro-portal"); }, []); return null; }} />
         <Route path="/pro/clients" component={SafeProClients} />
         <Route path="/pro/physician-clients" component={SafeProClientsPhysician} />
         <Route path="/pro/workspace/:clientId" component={SafeWorkspaceShell} />
