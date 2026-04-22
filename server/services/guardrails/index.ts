@@ -6,6 +6,7 @@
  */
 
 import type { DietType, BuilderMode, GuardrailRequest, GuardrailResult, ValidationResult, BeachBodyPhase } from './types';
+import { INGREDIENT_PRECISION_PROMPT_BLOCK, validateIngredientPrecision } from './ingredientPrecision';
 import { validateDietaryRestriction, type DietaryMode } from './validators/dietaryRestrictionValidator';
 import { antiInflammatoryRules } from './rules/antiInflammatoryRules';
 import { buildAntiInflammatoryPrompt, buildAntiInflammatorySnackPrompt, getAntiInflammatorySystemPrompt } from './prompt/antiInflammatoryPromptBuilder';
@@ -77,11 +78,12 @@ export function applyGuardrails(
   remainingMacros?: { protein?: number; carbs?: number; fat?: number; calories?: number },
   builderMode?: BuilderMode
 ): GuardrailResult {
-  // No guardrails for null/undefined diet type (Weekly Meal Board)
+  // No diet-specific guardrails for null/undefined diet type (Weekly Meal Board),
+  // but still inject ingredient precision block.
   if (!dietType) {
     return {
-      modifiedPrompt: basePrompt,
-      appliedRules: [],
+      modifiedPrompt: basePrompt + '\n\n' + INGREDIENT_PRECISION_PROMPT_BLOCK,
+      appliedRules: ['ingredient-precision'],
       warnings: []
     };
   }
@@ -201,6 +203,10 @@ export function applyGuardrails(
     }
   }
 
+  // Append ingredient precision block to ALL diet-specific prompts (Layer 1).
+  modifiedPrompt = modifiedPrompt + '\n\n' + INGREDIENT_PRECISION_PROMPT_BLOCK;
+  appliedRules.push('ingredient-precision');
+
   return {
     modifiedPrompt,
     appliedRules,
@@ -245,30 +251,42 @@ export function validateMealForDiet(
   dietPhase?: BeachBodyPhase,
   isSnack: boolean = false
 ): ValidationResult {
-  // No validation needed for null diet type
-  if (!dietType) {
+  // Helper: merge ingredient precision violations into any diet result
+  function mergeWithPrecision(dietResult: ValidationResult): ValidationResult {
+    const precisionCheck = validateIngredientPrecision(meal.ingredients);
+    if (precisionCheck.isValid) return dietResult;
+    console.log(`📏 Ingredient Precision: ${precisionCheck.violations.length} violation(s) found`);
+    precisionCheck.violations.forEach(v => console.log(`  ⚠️ ${v}`));
     return {
-      isValid: true,
-      violations: [],
-      blockedIngredients: []
+      isValid: false,
+      violations: [...dietResult.violations, ...precisionCheck.violations],
+      blockedIngredients: [...(dietResult.blockedIngredients ?? [])],
+      warnings: dietResult.warnings,
     };
   }
 
+  // No diet-specific validation for null diet type, but still check ingredient precision
+  if (!dietType) {
+    return mergeWithPrecision({ isValid: true, violations: [], blockedIngredients: [] });
+  }
+
   switch (dietType) {
-    case 'anti-inflammatory':
+    case 'anti-inflammatory': {
       const antiInflamResult = validateAntiInflammatoryMeal(meal);
       console.log(getValidationSummary(antiInflamResult));
-      return antiInflamResult;
+      return mergeWithPrecision(antiInflamResult);
+    }
 
-    case 'liver-support':
+    case 'liver-support': {
       const liverResult = validateLiverSupportMeal(meal);
       if (liverResult.violations.length > 0) {
         console.log(`🛡️ Liver Support Validation: ${liverResult.violations.length} violations found`);
         liverResult.violations.forEach(v => console.log(`  ⚠️ ${v}`));
       }
-      return liverResult;
+      return mergeWithPrecision(liverResult);
+    }
 
-    case 'diabetic':
+    case 'diabetic': {
       const diabeticResult = validateDiabeticMeal({
         name: meal.name,
         ingredients: meal.ingredients,
@@ -278,20 +296,17 @@ export function validateMealForDiet(
         console.log(`🛡️ Diabetic Validation: ${diabeticResult.violations.length} violations found`);
         diabeticResult.violations.forEach(v => console.log(`  ⚠️ ${v}`));
       }
-      return {
+      return mergeWithPrecision({
         isValid: diabeticResult.isValid,
         violations: diabeticResult.violations,
         blockedIngredients: diabeticResult.violations.map(v => v.split('"')[1] || v),
-      };
+      });
+    }
 
-    case 'beachbody':
+    case 'beachbody': {
       const bbPhase = dietPhase || 'lean';
       const beachbodyResult = validateBeachBodyMeal(
-        {
-          name: meal.name,
-          ingredients: meal.ingredients,
-          instructions: meal.instructions,
-        },
+        { name: meal.name, ingredients: meal.ingredients, instructions: meal.instructions },
         bbPhase,
         isSnack
       );
@@ -299,30 +314,24 @@ export function validateMealForDiet(
         console.log(`🛡️ BeachBody Validation (${bbPhase}): ${beachbodyResult.violations.length} violations found`);
         beachbodyResult.violations.forEach(v => console.log(`  ⚠️ ${v}`));
       }
-      return beachbodyResult;
+      return mergeWithPrecision(beachbodyResult);
+    }
 
-    case 'general-nutrition':
+    case 'general-nutrition': {
       const generalResult = validateGeneralNutritionMeal(
-        {
-          name: meal.name,
-          ingredients: meal.ingredients,
-          instructions: meal.instructions,
-        },
+        { name: meal.name, ingredients: meal.ingredients, instructions: meal.instructions },
         isSnack
       );
       if (generalResult.violations.length > 0) {
         console.log(`🛡️ General Nutrition Validation: ${generalResult.violations.length} violations found`);
         generalResult.violations.forEach(v => console.log(`  ⚠️ ${v}`));
       }
-      return generalResult;
+      return mergeWithPrecision(generalResult);
+    }
 
-    case 'performance':
+    case 'performance': {
       const perfResult = validatePerformanceMeal(
-        {
-          name: meal.name,
-          ingredients: meal.ingredients,
-          instructions: meal.instructions,
-        },
+        { name: meal.name, ingredients: meal.ingredients, instructions: meal.instructions },
         (dietPhase as unknown as CompetitionPhase) || 'carb',
         isSnack
       );
@@ -330,35 +339,25 @@ export function validateMealForDiet(
         console.log(`🏆 Performance Validation: ${perfResult.violations.length} violations found`);
         perfResult.violations.forEach(v => console.log(`  ⚠️ ${v}`));
       }
-      return perfResult;
+      return mergeWithPrecision(perfResult);
+    }
 
-    case 'glp1':
+    case 'glp1': {
       const glp1Result = isSnack
-        ? validateGLP1Snack({
-            name: meal.name,
-            ingredients: meal.ingredients,
-            instructions: meal.instructions,
-          })
-        : validateGLP1Meal({
-            name: meal.name,
-            ingredients: meal.ingredients,
-            instructions: meal.instructions,
-          });
+        ? validateGLP1Snack({ name: meal.name, ingredients: meal.ingredients, instructions: meal.instructions })
+        : validateGLP1Meal({ name: meal.name, ingredients: meal.ingredients, instructions: meal.instructions });
       if (glp1Result.violations.length > 0) {
         console.log(`💊 GLP-1 Validation: ${glp1Result.violations.length} violations found`);
         glp1Result.violations.forEach(v => console.log(`  ⚠️ ${v}`));
       }
-      return glp1Result;
+      return mergeWithPrecision(glp1Result);
+    }
 
     case 'vegan':
     case 'vegetarian':
     case 'pescatarian': {
       const dietaryResult = validateDietaryRestriction(
-        {
-          name: meal.name,
-          ingredients: meal.ingredients,
-          instructions: meal.instructions,
-        },
+        { name: meal.name, ingredients: meal.ingredients, instructions: meal.instructions },
         dietType as DietaryMode,
       );
       if (dietaryResult.violations.length > 0) {
@@ -369,22 +368,18 @@ export function validateMealForDiet(
       } else {
         console.log(`✅ ${dietType.charAt(0).toUpperCase() + dietType.slice(1)} Validation: passed — confidence: ${dietaryResult.confidence}`);
       }
-      return {
+      return mergeWithPrecision({
         isValid: dietaryResult.isValid && dietaryResult.confidence !== 'low',
         violations: dietaryResult.violations,
         blockedIngredients: dietaryResult.blockedIngredients ?? [],
         warnings: dietaryResult.confidence === 'low'
           ? ['Meal contains unverifiable ingredients — compliance cannot be confirmed']
           : undefined,
-      };
+      });
     }
 
     default:
-      return {
-        isValid: true,
-        violations: [],
-        blockedIngredients: []
-      };
+      return mergeWithPrecision({ isValid: true, violations: [], blockedIngredients: [] });
   }
 }
 

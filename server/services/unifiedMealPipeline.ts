@@ -684,10 +684,15 @@ Create ONE delicious meal that perfectly satisfies this craving. The meal should
 - Focused on the craving flavors/ingredients mentioned
 - Balanced and nutritious
 
-CRITICAL INGREDIENT FORMAT RULES:
-- Use ONLY U.S. measurements: oz, lb, cup, tbsp, tsp, each, fl oz
-- NEVER use grams (g), milliliters (ml), or metric units
-- Each ingredient must have: name, quantity (number), unit
+INGREDIENT MEASUREMENT RULES (NON-NEGOTIABLE):
+Every ingredient MUST use a precise, measurable quantity:
+- Proteins (chicken, beef, fish): ALWAYS oz — e.g. "6 oz chicken breast"
+- Potatoes/yams: ALWAYS oz — e.g. "5 oz sweet potato" (NEVER "1 potato" or "each")
+- Rice/grains: cooked weight in oz — e.g. "4 oz cooked rice"
+- Eggs: MUST include size — e.g. "3 large eggs" (NEVER just "2 eggs")
+- Oils/sauces: tbsp or tsp — e.g. "1 tbsp olive oil"
+- Liquids: cup or fl oz — e.g. "8 fl oz almond milk"
+FORBIDDEN: "each", "piece", "serving", "handful"
 
 CARB CLASSIFICATION RULES (CRITICAL):
 - starchyCarbs: Energy-dense carbs from rice, pasta, bread, potatoes, grains, beans, corn, peas
@@ -1172,7 +1177,7 @@ OUTPUT FORMAT — ONLY valid JSON, no markdown:
   ]
 }
 
-INGREDIENT FORMAT: US measurements only (oz, lb, cup, tbsp, tsp, each, fl oz). Never grams or ml.
+INGREDIENT MEASUREMENT RULES (NON-NEGOTIABLE): Use oz for proteins/potatoes/grains (e.g. "6 oz chicken", "5 oz sweet potato", "4 oz cooked rice"). Eggs must include size (e.g. "3 large eggs"). Oils use tbsp/tsp. Liquids use cup/fl oz. NEVER use "each", "piece", "serving", "handful", or metric units.
 MEAL TYPE context: ${validMealType}
 ${strictMode ? `\n${buildStrictModeBlock(cravingInput)}` : ""}`;
 }
@@ -1243,7 +1248,7 @@ OUTPUT FORMAT — ONLY valid JSON, no markdown:
   ]
 }
 
-INGREDIENT FORMAT: US measurements only (oz, lb, cup, tbsp, tsp, each, fl oz). Never grams or ml.
+INGREDIENT MEASUREMENT RULES (NON-NEGOTIABLE): Use oz for proteins/potatoes/grains (e.g. "6 oz chicken", "5 oz sweet potato", "4 oz cooked rice"). Eggs must include size (e.g. "3 large eggs"). Oils use tbsp/tsp. Liquids use cup/fl oz. NEVER use "each", "piece", "serving", "handful", or metric units.
 CRITICAL SANITY CHECK: Before outputting, verify your ingredient counts are physically realistic for ${cravingInput}. A dozen rolls does not require 5 dozen eggs.
 MEAL TYPE context: ${validMealType}
 ${strictMode ? `\n${buildStrictModeBlock(cravingInput)}` : ""}`;
@@ -1847,13 +1852,19 @@ CARBOHYDRATE BREAKDOWN (CRITICAL):
 - starchyCarbs: Carbs from rice, pasta, bread, potatoes, grains, beans, corn, oats
 - fibrousCarbs: Carbs from vegetables, leafy greens, broccoli, peppers, onions, mushrooms
 ${hubCoupling?.promptFragment?.userPromptAddition || ''}
-🚨 U.S. MEASUREMENT RULES (CRITICAL - NO GRAMS ALLOWED):
-- Use ONLY these units: oz, lb, cup, tbsp, tsp, each (for eggs only), fl oz
-- NEVER use grams (g), milliliters (ml), or metric units for ANY ingredient
-- Proteins (chicken, beef, fish, pork): use oz (e.g., "6 oz chicken breast")
-- Vegetables (broccoli, spinach, peppers, zucchini): use cup (e.g., "2 cup broccoli florets")
-- Leafy greens: use cup (e.g., "3 cup mixed greens")
-- Dense vegetables (asparagus, green beans): use oz (e.g., "8 oz asparagus")
+INGREDIENT MEASUREMENT RULES (NON-NEGOTIABLE):
+Every ingredient MUST use a precise, measurable quantity. No vague units. No guessing.
+- Proteins (chicken, beef, fish, pork, turkey): ALWAYS oz — e.g. "6 oz chicken breast"
+- Potatoes / yams / sweet potatoes: ALWAYS oz — e.g. "5 oz sweet potato" (NEVER "1 potato" or "each")
+- Rice / grains / pasta: cooked weight in oz — e.g. "4 oz cooked jasmine rice"
+- Eggs: MUST include size — e.g. "3 large eggs" (NEVER just "2 eggs")
+- Dense vegetables (broccoli, asparagus, green beans): oz — e.g. "4 oz broccoli florets"
+- Leafy greens: cup — e.g. "3 cup mixed greens"
+- Light vegetables (peppers, zucchini, spinach): cup — e.g. "1 cup sliced zucchini"
+- Oils / condiments / sauces: tbsp or tsp — e.g. "1 tbsp olive oil"
+- Liquids (milk, broth, beverages): cup or fl oz — e.g. "8 fl oz almond milk"
+FORBIDDEN UNITS — NEVER use: "each", "piece", "pieces", "serving", "servings", "handful"
+NEVER use grams (g), milliliters (ml), or any metric unit
 
 FORMAT: Return as JSON object:
 {
@@ -2279,13 +2290,17 @@ CARBOHYDRATE BREAKDOWN (CRITICAL):
 - starchyCarbs: Carbs from rice, pasta, bread, potatoes, grains, beans, corn, oats, crackers
 - fibrousCarbs: Carbs from vegetables, leafy greens, fruits, berries
 ${snackProtocolBlock ? `${snackProtocolBlock}\n` : ''}${snackHubCoupling?.promptFragment?.userPromptAddition || ''}
-🚨 U.S. MEASUREMENT RULES (CRITICAL - NO GRAMS ALLOWED):
-- Use ONLY these units: oz, lb, cup, tbsp, tsp, each, fl oz
-- NEVER use grams (g), milliliters (ml), or metric units for ANY ingredient
-- Fruits: use cup or each (e.g., "1 cup berries", "1 each apple")
-- Vegetables: use cup (e.g., "1 cup carrot sticks", "1/2 cup celery")
-- Nuts/seeds: use oz or tbsp (e.g., "1 oz almonds", "2 tbsp sunflower seeds")
-- Yogurt/dairy: use cup or oz (e.g., "1 cup Greek yogurt", "4 oz cottage cheese")
+INGREDIENT MEASUREMENT RULES (NON-NEGOTIABLE):
+Every ingredient MUST use a precise, measurable quantity:
+- Proteins: ALWAYS oz — e.g. "4 oz turkey slices"
+- Eggs: MUST include size — e.g. "2 large eggs" (NEVER just "2 eggs")
+- Nuts/seeds: oz or tbsp — e.g. "1 oz almonds", "2 tbsp sunflower seeds"
+- Fruits: cup — e.g. "1 cup berries" (not "1 apple" — use "1 medium apple (5 oz)" if needed)
+- Vegetables: cup — e.g. "1 cup carrot sticks"
+- Yogurt/dairy: cup or oz — e.g. "1 cup Greek yogurt"
+- Oils/dressings: tbsp or tsp — e.g. "1 tbsp almond butter"
+- Liquids: cup or fl oz — e.g. "8 fl oz almond milk"
+FORBIDDEN: "each", "piece", "serving", "handful" — NEVER use these units
 
 FORMAT: Return as JSON object:
 {
