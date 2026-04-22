@@ -15,7 +15,7 @@ const router = express.Router();
 // 1 retry with simplified prompt on failure — never crashes the card
 // ─────────────────────────────────────────────
 router.post("/generate-image", async (req: any, res) => {
-  const { mealName, mealType = "dinner" } = req.body || {};
+  const { mealName, mealType = "dinner", dietType } = req.body || {};
   if (!mealName) return res.status(400).json({ imageUrl: null });
 
   const { genImageFast } = await import("../utils/openaiSafe");
@@ -28,12 +28,21 @@ router.post("/generate-image", async (req: any, res) => {
     dessert: "soft overhead shot, pastel tones, inviting warm lighting, stylized plating",
   };
   const style = promptStyles[mealType as keyof typeof promptStyles] || "professional food photography, overhead shot, clean plate presentation, natural lighting";
-  const fullPrompt = `${mealName}, healthy ${mealType} dish, ${style}, photorealistic, appetizing`;
+
+  const isCarnivore = dietType === "carnivore";
+  const carnivoreConstraint = isCarnivore
+    ? ", strictly animal-based foods only, no vegetables, no garnish, no herbs, no fruit, no plant-based sides, only meat fish eggs or animal fats on plate"
+    : "";
+
+  const fullPrompt = `${mealName}, healthy ${mealType} dish, ${style}, photorealistic, appetizing${carnivoreConstraint}`;
   let imageUrl: string | null = (await genImageFast(fullPrompt)) ?? null;
 
   if (!imageUrl) {
     console.log(`🔄 [generate-image] Retry for "${mealName}"`);
-    imageUrl = (await genImageFast(`${mealName}, food photography, fresh ingredients, appetizing presentation`)) ?? null;
+    const retryPrompt = isCarnivore
+      ? `${mealName}, food photography, animal-based meal, no plants, no garnish, appetizing presentation`
+      : `${mealName}, food photography, fresh ingredients, appetizing presentation`;
+    imageUrl = (await genImageFast(retryPrompt)) ?? null;
   }
 
   return res.json({ imageUrl });
