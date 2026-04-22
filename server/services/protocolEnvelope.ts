@@ -1258,11 +1258,7 @@ export function buildDietClassification(
     result.veganFlags = { plantBased: true };
   }
 
-  // ── Keto ─────────────────────────────────────────────────────────────────
-  if (primaryIdentity === "keto") {
-    const rawCarbs = meal.nutrition?.carbs ?? 0;
-    result.ketoMetrics = { carbsPerServing: Math.round(rawCarbs) };
-  }
+  // Keto: no secondary pill — "Keto ✓" from DietStyleBadge is sufficient.
 
   return Object.keys(result).length > 0 ? result : null;
 }
