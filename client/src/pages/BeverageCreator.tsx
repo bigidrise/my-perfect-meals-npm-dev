@@ -52,6 +52,7 @@ import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import TrashButton from "@/components/ui/TrashButton";
+import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 
 const BEVERAGE_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -767,25 +768,40 @@ export default function BeverageCreator() {
                   </div>
 
                   <div className="grid grid-cols-4 gap-4 mb-4 text-center">
-                    {(["calories", "protein", "carbs", "fat"] as const).map(
-                      (key) => {
-                        const value = Number(getNutrition(generatedBeverage)[key] ?? 0);
-                        return (
-                          <div
-                            key={key}
-                            className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md"
-                          >
-                            <div className="text-lg font-bold text-white">
-                              {value}
-                              {key !== "calories" && "g"}
+                    {(["calories", "protein"] as const).map((key) => {
+                      const value = Number(getNutrition(generatedBeverage)[key] ?? 0);
+                      return (
+                        <div key={key} className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
+                          <div className="text-lg font-bold text-white">{value}{key !== "calories" && "g"}</div>
+                          <div className="text-xs text-white capitalize">{key}</div>
+                        </div>
+                      );
+                    })}
+                    {(() => {
+                      const totalCarbs = Number(getNutrition(generatedBeverage).carbs ?? 0);
+                      const storedS = generatedBeverage.nutrition?.starchyCarbs ?? generatedBeverage.starchyCarbs;
+                      const storedF = generatedBeverage.nutrition?.fibrousCarbs ?? generatedBeverage.fibrousCarbs;
+                      const { starchyCarbs, fibrousCarbs } = (typeof storedS === "number" && typeof storedF === "number")
+                        ? { starchyCarbs: storedS, fibrousCarbs: storedF }
+                        : deriveSplitCarbs(generatedBeverage.ingredients ?? [], totalCarbs);
+                      return (
+                        <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
+                          <div className="text-lg font-bold text-white">{totalCarbs}g</div>
+                          <div className="text-xs text-white">Carbs</div>
+                          {(totalCarbs > 0 || starchyCarbs > 0 || fibrousCarbs > 0) && (
+                            <div className="text-xs text-white/80 mt-1 font-medium">
+                              <span className="text-amber-300">{Math.round(starchyCarbs)}S</span>
+                              {" / "}
+                              <span className="text-green-300">{Math.round(fibrousCarbs)}F</span>
                             </div>
-                            <div className="text-xs text-white capitalize">
-                              {key}
-                            </div>
-                          </div>
-                        );
-                      },
-                    )}
+                          )}
+                        </div>
+                      );
+                    })()}
+                    <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
+                      <div className="text-lg font-bold text-white">{Number(getNutrition(generatedBeverage).fat ?? 0)}g</div>
+                      <div className="text-xs text-white">Fat</div>
+                    </div>
                   </div>
 
                   <div className="mb-4">

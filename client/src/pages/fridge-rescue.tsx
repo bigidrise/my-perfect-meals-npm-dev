@@ -76,6 +76,7 @@ import { FlavorToggle } from "@/components/FlavorToggle";
 import { KeepItSimpleToggle } from "@/components/KeepItSimpleToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
@@ -1101,27 +1102,22 @@ const FridgeRescuePage = () => {
                           <div className="text-xs text-white/70">Protein</div>
                         </div>
                         <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
-                          {typeof meal.starchyCarbs === "number" &&
-                          typeof meal.fibrousCarbs === "number" ? (
-                            <div className="flex flex-col leading-tight">
-                              <div className="text-sm font-bold text-orange-400">
-                                {meal.starchyCarbs + meal.fibrousCarbs}g
+                          <div className="text-sm font-bold text-orange-400">{meal.carbs}g</div>
+                          <div className="text-xs text-white/70">Carbs</div>
+                          {(() => {
+                            const totalCarbs = meal.carbs || 0;
+                            const { starchyCarbs, fibrousCarbs } = (typeof meal.starchyCarbs === "number" && typeof meal.fibrousCarbs === "number")
+                              ? { starchyCarbs: meal.starchyCarbs, fibrousCarbs: meal.fibrousCarbs }
+                              : deriveSplitCarbs(meal.ingredients ?? [], totalCarbs);
+                            if (!totalCarbs && !starchyCarbs && !fibrousCarbs) return null;
+                            return (
+                              <div className="text-xs text-white/80 mt-1 font-medium">
+                                <span className="text-amber-300">{Math.round(starchyCarbs)}S</span>
+                                {" / "}
+                                <span className="text-green-300">{Math.round(fibrousCarbs)}F</span>
                               </div>
-                              <div className="text-[10px] text-white/70">
-                                Starch: {meal.starchyCarbs}g
-                              </div>
-                              <div className="text-[10px] text-white/70">
-                                Fibrous: {meal.fibrousCarbs}g
-                              </div>
-                            </div>
-                          ) : (
-                            <>
-                              <div className="text-sm font-bold text-orange-400">
-                                {meal.carbs}g
-                              </div>
-                              <div className="text-xs text-white/70">Carbs</div>
-                            </>
-                          )}
+                            );
+                          })()}
                         </div>
                         <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
                           <div className="text-sm font-bold text-purple-400">
