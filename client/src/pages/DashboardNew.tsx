@@ -1,6 +1,7 @@
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, useRef, useCallback } from "react";
+import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -84,6 +85,7 @@ export default function DashboardNew() {
   const isCoach = !!(user?.professionalRole);
   const isProCareClient = !!user?.isProCare && !isCoach;
   const proUnreadCount = useProUnreadCount();
+  const [showWorkspaceChooser, setShowWorkspaceChooser] = useState(false);
   const [tabletOpen, setTabletOpen] = useState(false);
   const [tabletMessages, setTabletMessages] = useState<any[]>([]);
   const [tabletLoading, setTabletLoading] = useState(false);
@@ -505,7 +507,7 @@ export default function DashboardNew() {
           {!isDesktop && isCoach ? (
             <Card
               className={`cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md relative ${proUnreadCount > 0 ? "border-2 border-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.55)] animate-pulse" : "border border-teal-500/30"}`}
-              onClick={() => setLocation("/pro/clients")}
+              onClick={() => setShowWorkspaceChooser(true)}
             >
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
@@ -909,6 +911,22 @@ export default function DashboardNew() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {showWorkspaceChooser && (
+        <WorkspaceChooser
+          onChoose={(choice) => {
+            setShowWorkspaceChooser(false);
+            if (choice === "workspace") {
+              localStorage.setItem("mpm_active_space", "workspace");
+              setLocation(
+                user?.professionalRole === "physician"
+                  ? "/pro/physician-clients"
+                  : "/pro/clients"
+              );
+            }
+          }}
+        />
+      )}
     </motion.div>
   );
 }
