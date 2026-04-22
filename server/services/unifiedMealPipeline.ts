@@ -19,7 +19,7 @@ import { STARCHY_KEYWORDS } from '../../shared/starchKeywords';
 import { createIngredientSignature, hashSignature } from './ingredientSignature';
 import { getCachedMeals, cacheMeals } from './mealCachePersistent';
 import { generateFridgeRescueMeals } from './fridgeRescueGenerator';
-import { applyGuardrails, validateMealForDiet, getSystemPromptForDiet, DietType } from './guardrails';
+import { applyGuardrails, validateMealForDiet, getSystemPromptForDiet, DietType, BuilderMode } from './guardrails';
 import { normalizeIngredients as normalizeIngredientsToUS } from './ingredientNormalizer';
 import { 
   resolveHubCoupling, 
@@ -291,6 +291,13 @@ export interface MealGenerationRequest {
   strictMode?: boolean; // "Keep It Simple" — AI uses ONLY user-listed ingredients, no additions
   skipImage?: boolean; // Skip DALL-E generation — client handles image async via /api/meals/generate-image
   explicitOverride?: ExplicitOverride | null; // User confirmed override for a builder guardrail conflict
+  /**
+   * Controls how remainingMacros is presented to the AI.
+   * - targeted: hard ceiling (BeachBody, GLP-1, Anti-Inflammatory, Diabetic)
+   * - lifestyle: guidance only (General Nutrition, Weekly)
+   * - hybrid: strong aim with small deviation allowed (Performance)
+   */
+  builderMode?: BuilderMode;
 }
 
 export interface MealGenerationResponse {
@@ -1730,7 +1737,8 @@ export async function generateFromDescriptionUnified(
   explicitOverride?: ExplicitOverride | null,
   diversityContext?: { usedBases: Record<string, number>; usedTypes: Record<string, number> } | null,
   dietPhase?: string,
-  remainingMacros?: { protein?: number; carbs?: number; fat?: number; calories?: number }
+  remainingMacros?: { protein?: number; carbs?: number; fat?: number; calories?: number },
+  builderMode?: BuilderMode
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
   
@@ -1881,7 +1889,8 @@ Create the recipe for: "${description}"`;
         dietType || null,
         validMealType,
         dietPhase as any,
-        remainingMacros
+        remainingMacros,
+        builderMode
       );
       prompt = guardrailResult.modifiedPrompt;
       if (guardrailResult.appliedRules.length > 0) {
@@ -2644,7 +2653,8 @@ export async function generateMealUnified(
         request.explicitOverride,
         request.diversityContext,
         request.dietPhase,
-        request.remainingMacros
+        request.remainingMacros,
+        request.builderMode
       );
       break;
 
