@@ -31,6 +31,7 @@ import BuilderShoppingBar from "@/components/BuilderShoppingBar";
 import { useOnboardingProfile } from "@/hooks/useOnboardingProfile";
 import { computeTargetsFromOnboarding, sumBoard } from "@/lib/targets";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
+import { useNutritionBudget } from "@/hooks/useNutritionBudget";
 import { useMidnightReset } from "@/hooks/useMidnightReset";
 import { 
   getWeekStartISOInTZ, 
@@ -511,6 +512,17 @@ export default function WeeklyMealBoard() {
 
   // 🔧 FIX #1: Use real macro tracking instead of board state
   const macroData = useTodayMacros(effectiveUserId || "");
+  const nutritionBudget = useNutritionBudget(effectiveUserId || "");
+  const remainingMacrosForChef = useMemo(() => {
+    if (!nutritionBudget.hasTargets) return undefined;
+    const r = nutritionBudget.remaining;
+    return {
+      protein: Math.max(0, r.protein),
+      carbs: Math.max(0, r.carbs),
+      fat: Math.max(0, r.fat),
+      calories: Math.max(0, r.calories),
+    };
+  }, [nutritionBudget.hasTargets, nutritionBudget.remaining]);
   const totals = {
     calories: macroData.kcal || 0,
     protein: macroData.protein || 0,
@@ -1441,6 +1453,7 @@ export default function WeeklyMealBoard() {
         mealType={createWithChefSlot}
         onMealGenerated={handleCreateWithChefSelect}
         starchContext={starchContext}
+        remainingMacros={remainingMacrosForChef}
       />
 
       {/* Quick Tour Modal */}

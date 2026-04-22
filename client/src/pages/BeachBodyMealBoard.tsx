@@ -637,11 +637,7 @@ export default function BeachBodyMealBoard() {
         title: generatedMeal.name,
         description: generatedMeal.description,
         ingredients: generatedMeal.ingredients || [],
-        instructions: Array.isArray(generatedMeal.instructions)
-          ? generatedMeal.instructions
-          : generatedMeal.instructions
-            ? [generatedMeal.instructions]
-            : [],
+        instructions: generatedMeal.instructions,
         servings: 1,
         imageUrl: generatedMeal.imageUrl,
         cookingTime: generatedMeal.cookingTime,
