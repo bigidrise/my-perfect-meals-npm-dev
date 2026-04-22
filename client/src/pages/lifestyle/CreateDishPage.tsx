@@ -58,6 +58,7 @@ import DietStyleBadge from "@/components/DietStyleBadge";
 import MealClassificationPill from "@/components/MealClassificationPill";
 import KosherProTip from "@/components/KosherProTip";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
+import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { PillButton } from "@/components/ui/pill-button";
 
 interface StructuredIngredient {
@@ -979,6 +980,22 @@ export default function CreateDishPage() {
                             {meal.nutrition?.carbs || meal.carbs || 0}g
                           </div>
                           <div className="text-xs text-white">Carbs</div>
+                          {(() => {
+                            const totalCarbs = meal.nutrition?.carbs || meal.carbs || 0;
+                            const storedS = meal.nutrition?.starchyCarbs ?? meal.starchyCarbs;
+                            const storedF = meal.nutrition?.fibrousCarbs ?? meal.fibrousCarbs;
+                            const { starchyCarbs, fibrousCarbs } = (typeof storedS === "number" && typeof storedF === "number")
+                              ? { starchyCarbs: storedS, fibrousCarbs: storedF }
+                              : deriveSplitCarbs(meal.ingredients ?? [], totalCarbs);
+                            if (!totalCarbs && !starchyCarbs && !fibrousCarbs) return null;
+                            return (
+                              <div className="text-xs text-white/80 mt-1 font-medium">
+                                <span className="text-amber-300">{Math.round(starchyCarbs)}S</span>
+                                {" / "}
+                                <span className="text-green-300">{Math.round(fibrousCarbs)}F</span>
+                              </div>
+                            );
+                          })()}
                         </div>
                         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
                           <div className="text-lg font-bold text-white">
