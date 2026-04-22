@@ -55,6 +55,7 @@ import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { ComplianceCard } from "@/components/dashboard/ComplianceCard";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { useProUnreadCount } from "@/hooks/useProUnreadCount";
 
 interface FeatureCard {
   title: string;
@@ -80,7 +81,9 @@ export default function DashboardNew() {
     setLocation("/my-biometrics?capture=1");
   };
 
-  const isProCareClient = !!user?.isProCare;
+  const isCoach = user?.role === 'coach';
+  const isProCareClient = !!user?.isProCare && !isCoach;
+  const proUnreadCount = useProUnreadCount();
   const [tabletOpen, setTabletOpen] = useState(false);
   const [tabletMessages, setTabletMessages] = useState<any[]>([]);
   const [tabletLoading, setTabletLoading] = useState(false);
@@ -499,7 +502,36 @@ export default function DashboardNew() {
           transition={{ delay: 0.12, duration: 0.5 }}
           className="mb-4 space-y-3"
         >
-          {isProCareClient ? (
+          {!isDesktop && isCoach ? (
+            <Card
+              className={`cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md relative ${proUnreadCount > 0 ? "border-2 border-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.55)] animate-pulse" : "border border-teal-500/30"}`}
+              onClick={() => setLocation("/pro")}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${proUnreadCount > 0 ? "bg-orange-500/20" : "bg-teal-500/20"}`}>
+                    <MessageSquare className={`h-5 w-5 ${proUnreadCount > 0 ? "text-orange-400" : "text-teal-400"}`} />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-white">
+                      Client Messages
+                    </h3>
+                    <p className={`text-xs ${proUnreadCount > 0 ? "text-orange-400 font-medium" : "text-white/60"}`}>
+                      {proUnreadCount > 0
+                        ? `${proUnreadCount} client${proUnreadCount > 1 ? "s" : ""} messaged you — tap to respond`
+                        : "No new messages from clients"}
+                    </p>
+                  </div>
+                  {proUnreadCount > 0 && (
+                    <span className="text-[10px] font-bold text-white bg-orange-500 rounded-full px-2 py-0.5 min-w-[1.4rem] text-center">
+                      {proUnreadCount}
+                    </span>
+                  )}
+                  <ChevronDown className={`h-4 w-4 ${proUnreadCount > 0 ? "text-orange-400/60" : "text-white/30"}`} />
+                </div>
+              </CardContent>
+            </Card>
+          ) : isProCareClient ? (
             <Card
               className={`cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md relative ${tabletHasUnread ? "border-2 border-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.55)] animate-pulse" : "border border-purple-500/30"}`}
               onClick={() => setTabletOpen(!tabletOpen)}
