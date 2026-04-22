@@ -268,6 +268,13 @@ export function MealCard({
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
               <div className="text-sm font-bold text-amber-400">{Math.round(carbs)}g</div>
               <div className="text-xs text-white/70">Carbs</div>
+              {hasStarchyFibrous && (
+                <div className="text-[10px] text-white/60 mt-1">
+                  <span className="text-amber-300">{Math.round(starchyCarbs!)}S</span>
+                  {" / "}
+                  <span className="text-green-300">{Math.round(fibrousCarbs!)}F</span>
+                </div>
+              )}
             </div>
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
               <div className="text-sm font-bold text-purple-400">{Math.round(fat)}g</div>
