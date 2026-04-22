@@ -1906,6 +1906,17 @@ Create the recipe for: "${description}"`;
     }
     messages.push({ role: 'user', content: prompt });
 
+    // Pre-build a relaxed prompt for BeachBody — strips remaining macro ceilings so the AI
+    // isn't trapped in an impossible constraint on the final retry attempt.
+    // Respects all clean-eating and phase rules; only the remaining-budget block is omitted.
+    let relaxedMessages: Array<{ role: 'system' | 'user'; content: string }> | null = null;
+    if (dietType === 'beachbody' && remainingMacros && !strictMode) {
+      const relaxedGuardrail = applyGuardrails(basePrompt, 'beachbody', validMealType, dietPhase as any, undefined);
+      relaxedMessages = [];
+      if (systemPrompt) relaxedMessages.push({ role: 'system', content: systemPrompt });
+      relaxedMessages.push({ role: 'user', content: relaxedGuardrail.modifiedPrompt });
+    }
+
     const MAX_REGENERATION_ATTEMPTS = 2;
     let finalMealData: any = null;
     let attemptCount = 0;
@@ -1917,9 +1928,20 @@ Create the recipe for: "${description}"`;
 
     while (attemptCount < MAX_REGENERATION_ATTEMPTS) {
       attemptCount++;
-      
-      const currentMessages = [...messages];
-      if (lastFixHint) {
+
+      // On the last retry for BeachBody with remaining macros: switch to the relaxed prompt
+      // (no budget ceilings) so the AI can still produce a clean compliant meal even when
+      // the remaining budget math would make the constraint unsolvable.
+      const isLastAttempt = attemptCount === MAX_REGENERATION_ATTEMPTS;
+      const useRelaxedPrompt = isLastAttempt && relaxedMessages !== null;
+      const currentMessages = useRelaxedPrompt ? [...relaxedMessages!] : [...messages];
+
+      if (useRelaxedPrompt) {
+        console.log(`🔄 [BeachBody] Last attempt — remaining macro ceiling relaxed, applying clean-eating fallback`);
+        if (lastFixHint) {
+          currentMessages.push({ role: 'user', content: `IMPORTANT CORRECTION: ${lastFixHint} (Remaining macro budget constraints have been relaxed for this attempt — focus on phase rules and clean ingredients only.)` });
+        }
+      } else if (lastFixHint) {
         currentMessages.push({ role: 'user', content: `IMPORTANT CORRECTION REQUIRED: ${lastFixHint}` });
         console.log(`🔄 Regeneration attempt ${attemptCount} with fix hint`);
       }

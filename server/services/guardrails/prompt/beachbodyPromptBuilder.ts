@@ -1,13 +1,18 @@
 /**
  * BeachBody Prompt Builder
- * 
+ *
  * Builds phase-aware prompts for BeachBody meal generation.
  * Each phase has different macro priorities and ingredient guidance.
- * 
- * When remainingMacros is provided in the request, those values become
- * HARD ceilings in the AI prompt — the AI must generate within them,
- * not just aim for the daily targets.
+ *
+ * When remainingMacros is provided:
+ * - NORMAL mode:  values become targets to maximize without exceeding ("aim for X, don't exceed X")
+ * - TIGHT mode:   if calories < MIN_VIABLE_CALORIES or protein < MIN_VIABLE_PROTEIN,
+ *                 switches to "best possible fit" — scales down to smallest viable clean meal
  */
+
+/** Below these thresholds remaining macros are too tight for a full hard ceiling — use fit mode */
+const MIN_VIABLE_CALORIES = 300;
+const MIN_VIABLE_PROTEIN = 25;
 
 import type { GuardrailRequest, BeachBodyPhase } from '../types';
 import { getBeachBodyRules, BEACHBODY_COOKING_METHODS } from '../rules/beachbodyRules';
@@ -62,8 +67,16 @@ Include precise macros (protein, carbs, fat, calories) and portion sizes.
 
 /**
  * Builds the remaining macro constraint block.
- * When present, these are HARD ceilings — not suggestions.
- * The AI must fit the meal inside whatever macros are left today.
+ *
+ * NORMAL mode (budget is viable):
+ *   The AI should AIM for the remaining values and not exceed them.
+ *   Framed as a target to maximize, not just a ceiling.
+ *   e.g. "50g protein remaining → aim for 42–50g, not 25g."
+ *
+ * TIGHT mode (budget is below minimum viable thresholds):
+ *   Hard ceilings would make an impossible constraint — switch to
+ *   "best possible fit": generate the smallest clean meal that respects
+ *   the budget without requiring the full phase minimums.
  */
 function buildRemainingMacroBlock(request: GuardrailRequest): string {
   const rm = request.remainingMacros;
@@ -75,22 +88,51 @@ function buildRemainingMacroBlock(request: GuardrailRequest): string {
     (rm.fat !== undefined && rm.fat > 0) ||
     (rm.calories !== undefined && rm.calories > 0)
   );
-
   if (!hasAny) return '';
 
+  // Detect tight budget — switch to best-possible-fit mode to avoid impossible constraints
+  const isTight = (
+    (rm.calories !== undefined && rm.calories > 0 && rm.calories < MIN_VIABLE_CALORIES) ||
+    (rm.protein !== undefined && rm.protein > 0 && rm.protein < MIN_VIABLE_PROTEIN)
+  );
+
   const lines: string[] = [];
-  if (rm.calories !== undefined && rm.calories > 0) lines.push(`- Calories remaining today: ${Math.round(rm.calories)} kcal MAX`);
-  if (rm.protein !== undefined && rm.protein > 0) lines.push(`- Protein remaining today: ${Math.round(rm.protein)}g MAX`);
-  if (rm.carbs !== undefined && rm.carbs > 0) lines.push(`- Carbs remaining today: ${Math.round(rm.carbs)}g MAX`);
-  if (rm.fat !== undefined && rm.fat > 0) lines.push(`- Fat remaining today: ${Math.round(rm.fat)}g MAX`);
+  if (rm.calories !== undefined && rm.calories > 0) lines.push(`- Calories remaining today: ${Math.round(rm.calories)} kcal`);
+  if (rm.protein !== undefined && rm.protein > 0) lines.push(`- Protein remaining today: ${Math.round(rm.protein)}g`);
+  if (rm.carbs !== undefined && rm.carbs > 0) lines.push(`- Carbs remaining today: ${Math.round(rm.carbs)}g`);
+  if (rm.fat !== undefined && rm.fat > 0) lines.push(`- Fat remaining today: ${Math.round(rm.fat)}g`);
 
   if (lines.length === 0) return '';
 
-  return `
-REMAINING MACRO BUDGET (MANDATORY — this is what the user has left today):
+  if (isTight) {
+    return `
+REMAINING MACRO BUDGET (TIGHT — scale down to fit):
 ${lines.join('\n')}
-This meal MUST fit within the remaining budget above. Do NOT exceed any of these values.
-Size portions accordingly. If a macro is very low (e.g. <10g carbs remaining), generate a nearly zero-carb meal.
+The user's remaining budget is tight. Generate the SMALLEST viable clean meal that:
+- Does NOT exceed the remaining values above
+- Still provides meaningful nutrition (prioritize protein above all else)
+- Is appropriate as a light meal or snack — NOT a full portion
+- Respects BeachBody clean eating rules even at small scale
+Do not generate a full-sized meal. Scale all portions down proportionally to fit the budget.
+`;
+  }
+
+  // Normal mode: target-maximization framing — aim for the budget, don't exceed it
+  const proteinTarget = rm.protein !== undefined ? rm.protein : null;
+  const proteinAimLow = proteinTarget !== null ? Math.round(proteinTarget * 0.85) : null;
+  const proteinAimHigh = proteinTarget !== null ? Math.round(proteinTarget) : null;
+  const proteinExample = proteinTarget !== null
+    ? `Aim for ${proteinAimLow}–${proteinAimHigh}g protein, not ${Math.round(proteinTarget * 0.5)}g.`
+    : '';
+
+  return `
+REMAINING MACRO BUDGET (optimize toward this target):
+${lines.join('\n')}
+This is your allocation for this meal — maximize usage without exceeding any value.
+Do NOT generate a meal that uses only half the budget when more is available.
+${proteinExample}
+Portions should fill most of the remaining allowance, not just meet minimums.
+Do NOT exceed any value above.
 `;
 }
 
