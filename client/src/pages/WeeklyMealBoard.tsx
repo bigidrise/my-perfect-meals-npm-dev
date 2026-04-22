@@ -190,6 +190,7 @@ export default function WeeklyMealBoard() {
   const queryClient = useQueryClient();
   const { runAction, open, startWalkthrough } = useCopilot();
   const { user } = useAuth();
+  const userDiet = normalizeDiet(user?.dietaryRestrictions);
 
   const [, proParams] = useRoute("/pro/clients/:id/weekly-builder");
   const proClientId = proParams?.id;
@@ -636,7 +637,7 @@ export default function WeeklyMealBoard() {
             saveBoard(updated).catch(() => {});
             return updated;
           });
-        });
+        }, userDiet);
 
         window.dispatchEvent(new Event("macros:updated"));
 
@@ -725,7 +726,7 @@ export default function WeeklyMealBoard() {
             if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
             return updateMealImageInBoard(prev, mealId, imageUrl);
           });
-        });
+        }, userDiet);
 
         // Dispatch walkthrough event for snacks
         const eventTarget = document.querySelector(

@@ -56,9 +56,7 @@ export const FIBROUS_KEYWORDS = [
   'sautéed greens', 'sauteed greens',
   'greens', 'leafy greens',
 
-  // Fruits
-  'apple', 'orange', 'berry', 'berries', 'strawberry', 'blueberry',
-  'raspberry', 'blackberry', 'grape', 'grapefruit', 'lemon', 'lime',
-  'peach', 'pear', 'plum', 'cherry', 'melon', 'watermelon', 'cantaloupe',
-  'kiwi', 'mango', 'papaya', 'pineapple', 'avocado',
+  // NOTE: Fruits (berries, apple, mango, etc.) are intentionally EXCLUDED.
+  // Fruits are sugary/starchy carbs, not fibrous carbs.
+  // Fibrous carbs = non-starchy vegetables ONLY.
 ];

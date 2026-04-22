@@ -11,11 +11,12 @@ export interface HasMealImage {
 
 export function useMealImages<T extends HasMealImage>(
   setMeals: React.Dispatch<React.SetStateAction<T[]>>,
-  options?: { mealType?: string; concurrency?: number }
+  options?: { mealType?: string; concurrency?: number; dietType?: string }
 ) {
   const [loadingImages, setLoadingImages] = useState<Record<string, boolean>>({});
   const concurrency = options?.concurrency ?? 3;
   const mealType = options?.mealType ?? "dinner";
+  const dietType = options?.dietType;
 
   const hydrateImages = useCallback(
     async (meals: T[]) => {
@@ -42,6 +43,7 @@ export function useMealImages<T extends HasMealImage>(
                   mealName: meal.name,
                   mealType: meal.mealType || mealType,
                   ingredients: (meal as any).ingredients || [],
+                  dietType,
                 }),
               });
               const data = await res.json();
