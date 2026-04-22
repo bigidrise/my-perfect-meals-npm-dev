@@ -1,6 +1,7 @@
 // server/services/ingredientNormalizer.ts
 // Normalizes AI-generated ingredients to the unified U.S. measurement contract
 // Converts metric units, strips macros, validates format
+// Layer 3 of the ingredient precision system — fixes borderline cases before display
 
 import { Ingredient, LegacyIngredient, US_SOLID_UNITS } from '@shared/types';
 
@@ -29,6 +30,16 @@ const DAIRY_INGREDIENTS = [
   'yogurt', 'milk', 'cheese', 'cream', 'butter', 'sour cream', 'cottage cheese'
 ];
 
+// Egg keywords (name-based detection)
+const EGG_PATTERN = /\begg(s)?\b/i;
+const EGG_SIZE_PATTERN = /\b(large|medium|small|jumbo|extra-large|xl)\b/i;
+
+// Potato/yam keywords
+const POTATO_PATTERN = /\b(potato|potatoes|yam|yams|sweet potato|sweet potatoes)\b/i;
+
+// Vague unit set
+const VAGUE_UNITS = new Set(['serving', 'servings', 'handful', 'handfuls']);
+
 function isProtein(name: string): boolean {
   const lower = name.toLowerCase();
   return PROTEIN_INGREDIENTS.some(p => lower.includes(p));
@@ -37,6 +48,18 @@ function isProtein(name: string): boolean {
 function isDairy(name: string): boolean {
   const lower = name.toLowerCase();
   return DAIRY_INGREDIENTS.some(d => lower.includes(d));
+}
+
+function isEgg(name: string): boolean {
+  return EGG_PATTERN.test(name);
+}
+
+function isPotato(name: string): boolean {
+  return POTATO_PATTERN.test(name);
+}
+
+function hasEggSize(name: string): boolean {
+  return EGG_SIZE_PATTERN.test(name);
 }
 
 function parseAmount(value: any): number {
@@ -101,14 +124,47 @@ function convertUnit(amount: number, unit: string, ingredientName: string): { am
     return { amount: formatAmount(convertedAmount), unit: targetUnit };
   }
   
+  // "piece"/"pieces" — convert to oz for proteins, estimate for others
   if (lowerUnit === 'piece' || lowerUnit === 'pieces') {
     if (isProtein(ingredientName)) {
       return { amount: formatAmount(amount * 6), unit: 'oz' };
     }
+    if (isPotato(ingredientName)) {
+      // 1 medium potato ≈ 5 oz
+      return { amount: formatAmount(amount * 5), unit: 'oz' };
+    }
+    // Generic non-protein solid: treat as ~4 oz per piece
+    return { amount: formatAmount(amount * 4), unit: 'oz' };
+  }
+
+  // "each" — only valid for small items; for potatoes/proteins convert to oz
+  if (lowerUnit === 'each') {
+    if (isProtein(ingredientName)) {
+      return { amount: formatAmount(amount * 6), unit: 'oz' };
+    }
+    if (isPotato(ingredientName)) {
+      // 1 medium potato ≈ 5 oz
+      return { amount: formatAmount(amount * 5), unit: 'oz' };
+    }
+    // Leave "each" for legitimately countable small items (e.g. garlic cloves)
     return { amount: formatAmount(amount), unit: 'each' };
   }
+
+  // "serving"/"servings" — convert to approximate oz
+  if (VAGUE_UNITS.has(lowerUnit)) {
+    if (isProtein(ingredientName)) {
+      return { amount: formatAmount(amount * 6), unit: 'oz' };
+    }
+    // Generic: ~4 oz per serving
+    return { amount: formatAmount(amount * 4), unit: 'oz' };
+  }
+
+  // "handful"/"handfuls" → ~1 oz per handful
+  if (lowerUnit === 'handful' || lowerUnit === 'handfuls') {
+    return { amount: formatAmount(amount), unit: 'oz' };
+  }
   
-  const validUnits = ['oz', 'lb', 'cup', 'cups', 'tbsp', 'tsp', 'each', 'fl oz'];
+  const validUnits = ['oz', 'lb', 'cup', 'cups', 'tbsp', 'tsp', 'fl oz'];
   if (validUnits.includes(lowerUnit) || lowerUnit === 'tablespoon' || lowerUnit === 'teaspoon') {
     let normalizedUnit = lowerUnit;
     if (lowerUnit === 'cups') normalizedUnit = 'cup';
@@ -120,17 +176,39 @@ function convertUnit(amount: number, unit: string, ingredientName: string): { am
   return { amount: formatAmount(amount), unit: lowerUnit };
 }
 
+/**
+ * Layer 3 failsafe: normalize ingredient name for precision.
+ * - Eggs missing size qualifier → prefix "large" to name
+ * - Potatoes with "each" or no weight unit → handled in convertUnit
+ */
+function normalizeName(name: string, unit: string): string {
+  const lowerUnit = unit.toLowerCase().trim();
+
+  // Eggs: if name has no size qualifier, add "large" as default
+  if (isEgg(name) && !hasEggSize(name)) {
+    // Insert "large" before "egg"/"eggs" in the name
+    return name.replace(EGG_PATTERN, (match) =>
+      match.toLowerCase().startsWith('eggs') || match.endsWith('s')
+        ? 'large eggs'
+        : 'large egg'
+    );
+  }
+
+  return name;
+}
+
 export function normalizeIngredient(raw: any): Ingredient {
-  const name = String(raw.name || raw.item || '').trim();
+  const rawName = String(raw.name || raw.item || '').trim();
   const rawAmount = raw.amount ?? raw.quantity ?? 1;
-  const rawUnit = String(raw.unit || 'each').trim();
+  const rawUnit = String(raw.unit || 'oz').trim();
   const prep = raw.preparationNote || raw.notes || undefined;
   
   const numericAmount = parseAmount(rawAmount);
-  const converted = convertUnit(numericAmount, rawUnit, name);
+  const converted = convertUnit(numericAmount, rawUnit, rawName);
+  const normalizedName = normalizeName(rawName, rawUnit);
   
   const result: Ingredient = {
-    name,
+    name: normalizedName,
     amount: converted.amount,
     unit: converted.unit,
   };
