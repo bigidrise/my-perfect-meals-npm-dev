@@ -2741,6 +2741,7 @@ function WaterLog({ userId, dietType }: { userId: string; dietType: string }) {
       </div>
 
       <span className={`text-xs font-semibold ${statusColor}`}>{statusLabel}</span>
+      <p className="text-[10px] text-white/30">Goal = your weight × 0.67 oz</p>
 
       <div className="flex gap-2">
         <Button data-wt="bio-water-plus8" onClick={() => addWater(8)} className="bg-sky-600 hover:bg-sky-700 text-white" data-testid="button-add-8oz">+8 oz</Button>
