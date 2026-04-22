@@ -16,6 +16,7 @@ import MealClassificationPill, { type DietClassification } from "@/components/Me
 import KosherProTip from "@/components/KosherProTip";
 import BuilderSourcePill from "@/components/BuilderSourcePill";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
+import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import FavoriteButton from "@/components/FavoriteButton";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 
@@ -94,9 +95,13 @@ export function MealCard({
   const protein = meal.nutrition?.protein ?? 0;
   const carbs = meal.nutrition?.carbs ?? 0;
   const fat = meal.nutrition?.fat ?? 0;
-  const starchyCarbs = meal.starchyCarbs ?? meal.nutrition?.starchyCarbs;
-  const fibrousCarbs = meal.fibrousCarbs ?? meal.nutrition?.fibrousCarbs;
-  const hasStarchyFibrous = typeof starchyCarbs === "number" && typeof fibrousCarbs === "number";
+  const storedStarchy = meal.starchyCarbs ?? meal.nutrition?.starchyCarbs;
+  const storedFibrous = meal.fibrousCarbs ?? meal.nutrition?.fibrousCarbs;
+  const hasSplit = typeof storedStarchy === "number" && typeof storedFibrous === "number";
+  const { starchyCarbs, fibrousCarbs } = hasSplit
+    ? { starchyCarbs: storedStarchy!, fibrousCarbs: storedFibrous! }
+    : deriveSplitCarbs(meal.ingredients ?? [], carbs);
+  const hasStarchyFibrous = carbs > 0 || starchyCarbs > 0 || fibrousCarbs > 0;
 
   const onDelete = () => { if (confirm("Remove this meal from the board?")) onUpdated(null); };
 
@@ -270,9 +275,9 @@ export function MealCard({
               <div className="text-xs text-white/70">Carbs</div>
               {hasStarchyFibrous && (
                 <div className="text-xs text-white/80 mt-1 font-medium">
-                  <span className="text-amber-300">{Math.round(starchyCarbs!)}S</span>
+                  <span className="text-amber-300">{Math.round(starchyCarbs)}S</span>
                   {" / "}
-                  <span className="text-green-300">{Math.round(fibrousCarbs!)}F</span>
+                  <span className="text-green-300">{Math.round(fibrousCarbs)}F</span>
                 </div>
               )}
             </div>
