@@ -513,11 +513,12 @@ export default function WeeklyMealBoard() {
   // 🔧 FIX #1: Use real macro tracking instead of board state
   const macroData = useTodayMacros(effectiveUserId || "");
   const nutritionBudget = useNutritionBudget(effectiveUserId || "");
-  // lifestyle: if user is already over in calories or protein, return undefined (no constraint — just generate freely)
+  // lifestyle: only drop constraint if significantly over budget (>150 kcal or >25g protein over).
+  // Slight overages still get guidance-mode awareness — the system bends, it doesn't disappear.
   const remainingMacrosForChef = useMemo(() => {
     if (!nutritionBudget.hasTargets) return undefined;
     const r = nutritionBudget.remaining;
-    if (r.calories < 0 || r.protein < 0) return undefined;
+    if (r.calories < -150 || r.protein < -25) return undefined;
     return {
       protein: Math.max(0, r.protein),
       carbs: Math.max(0, r.carbs),
