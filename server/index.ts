@@ -555,6 +555,29 @@ setTimeout(() => {
   });
 }, 3000);
 
+// Backfill: purge stale temp URLs from meal_image_cache
+// Any non-S3 URL is expired or will expire — delete so next request regenerates clean
+setTimeout(async () => {
+  try {
+    const { db } = await import('./db');
+    const { mealImageCache } = await import('./db/schema/mealImageCache');
+    const { sql } = await import('drizzle-orm');
+
+    const result = await db
+      .delete(mealImageCache)
+      .where(sql`${mealImageCache.imageUrl} NOT LIKE '%amazonaws.com%'`);
+
+    const count = (result as any).rowCount ?? (result as any).count ?? '?';
+    if (Number(count) > 0) {
+      console.log(`🧹 Image cache backfill: deleted ${count} stale non-S3 rows from meal_image_cache — they will regenerate with permanent URLs on next request`);
+    } else {
+      console.log(`✅ Image cache backfill: no stale entries found — cache is clean`);
+    }
+  } catch (err: any) {
+    console.error('❌ Image cache backfill failed:', err.message);
+  }
+}, 5000);
+
 // Twilio webhooks for STOP/HELP/delivery status
 app.post("/twilio/status", express.urlencoded({ extended: false }), async (req, res) => {
   // Message status updates: req.body.MessageSid, MessageStatus

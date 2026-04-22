@@ -129,7 +129,7 @@ export async function ingestImageToPermanentStorage(
       imageHash: hash
     });
 
-    console.log(`✅ Image ingested successfully: ${result.permanentUrl}`);
+    console.log(`✅ Image ingested successfully for "${mealName}": ${result.permanentUrl}`);
     
     return {
       success: true,
@@ -137,12 +137,14 @@ export async function ingestImageToPermanentStorage(
       status: 'ingested'
     };
   } catch (error: any) {
-    console.error(`❌ Image ingestion failed for ${mealName}:`, error.message);
+    console.error(
+      `❌ Image ingestion FAILED — meal: "${mealName}" | url: ${tempUrl.substring(0, 80)}... | reason: ${error.message}`
+    );
     
     return {
       success: false,
       error: error.message,
-      status: 'pending' // Mark as pending for retry
+      status: 'pending'
     };
   }
 }

@@ -14,6 +14,21 @@ import { db } from '../db';
 import { mealImageCache } from '../db/schema/mealImageCache';
 import { eq } from 'drizzle-orm';
 import { getStaticSnackImage, isLikelySnack } from '../../shared/staticSnackMappings';
+import { ingestImageToPermanentStorage } from './imageLifecycle';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// URL TYPE HELPERS — enforce hard boundaries on what enters the cache
+// ─────────────────────────────────────────────────────────────────────────────
+const S3_BUCKET = process.env.S3_BUCKET_NAME || 'my-perfect-meals-images';
+
+function isS3Url(url: string): boolean {
+  return url.startsWith(`https://${S3_BUCKET}.s3.`) || url.includes('amazonaws.com');
+}
+
+const TEMP_PATTERNS = ['oaidalleapiprodscus', 'blob.core.windows.net', 'openai.com'];
+function isTempUrl(url: string): boolean {
+  return TEMP_PATTERNS.some(p => url.includes(p));
+}
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -335,15 +350,22 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
       .limit(1);
 
     if (dbRow) {
-      console.log(`🗄️ DB cache hit for: ${mealName}`);
-      memCache.set(cacheKey, dbRow.imageUrl);
-      return {
-        url: dbRow.imageUrl,
-        prompt: dbRow.promptUsed || "(db cache)",
-        templateRef: request.templateRef,
-        hash: cacheKey,
-        createdAt: new Date().toISOString(),
-      };
+      if (isS3Url(dbRow.imageUrl)) {
+        console.log(`🗄️ DB cache hit (S3) for: ${mealName}`);
+        memCache.set(cacheKey, dbRow.imageUrl);
+        return {
+          url: dbRow.imageUrl,
+          prompt: dbRow.promptUsed || "(db cache)",
+          templateRef: request.templateRef,
+          hash: cacheKey,
+          createdAt: new Date().toISOString(),
+        };
+      } else {
+        console.warn(`⚠️ Stale temp URL in DB cache for "${mealName}" — deleting and regenerating`);
+        try {
+          await db.delete(mealImageCache).where(eq(mealImageCache.cacheKey, cacheKey));
+        } catch {}
+      }
     }
   } catch (dbErr) {
     console.warn(`⚠️ DB cache read failed for "${mealName}":`, dbErr);
@@ -393,26 +415,71 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
     };
   }
 
-  // ── LAYER 3: PERSIST TO DB ─────────────────────────────────────────────────
+  // ── LAYER 3: S3-FIRST PERSIST PIPELINE ────────────────────────────────────
+  // Rule: Temp URLs NEVER enter the DB or memCache under any condition.
+  // Only permanent S3 URLs are cached. If S3 fails, serve temp URL for this
+  // session only and log loudly — do NOT cache anything.
+
+  const tempUrl = imageUrl;
+
+  // Race-condition guard: check if another request already wrote an S3 URL
   try {
-    await db
-      .insert(mealImageCache)
-      .values({
-        cacheKey,
-        imageUrl,
-        mealName,
-        promptUsed: prompt,
-      })
-      .onConflictDoNothing();
-    console.log(`✅ Image cached in DB for: ${mealName}`);
-  } catch (dbWriteErr) {
-    console.warn(`⚠️ DB cache write failed for "${mealName}":`, dbWriteErr);
+    const [existing] = await db
+      .select({ imageUrl: mealImageCache.imageUrl })
+      .from(mealImageCache)
+      .where(eq(mealImageCache.cacheKey, cacheKey))
+      .limit(1);
+
+    if (existing && isS3Url(existing.imageUrl)) {
+      console.log(`✅ S3 URL already cached (race guard) for: ${mealName}`);
+      memCache.set(cacheKey, existing.imageUrl);
+      return {
+        url: existing.imageUrl,
+        prompt,
+        templateRef: request.templateRef,
+        hash: cacheKey,
+        createdAt: new Date().toISOString(),
+      };
+    }
+  } catch {}
+
+  // Upload to S3 — fully awaited before any cache write
+  console.log(`📦 Uploading to permanent S3 storage for: ${mealName}`);
+  const ingestionResult = await ingestImageToPermanentStorage(tempUrl, mealName);
+
+  if (ingestionResult.success && ingestionResult.permanentUrl) {
+    const s3Url = ingestionResult.permanentUrl;
+
+    // Write permanent S3 URL to DB — overwrite any stale temp row, never the reverse
+    try {
+      await db
+        .insert(mealImageCache)
+        .values({ cacheKey, imageUrl: s3Url, mealName, promptUsed: prompt })
+        .onConflictDoUpdate({
+          target: mealImageCache.cacheKey,
+          set: { imageUrl: s3Url, mealName, promptUsed: prompt },
+        });
+      console.log(`✅ S3 URL cached in DB for: ${mealName}`);
+    } catch (dbWriteErr) {
+      console.warn(`⚠️ DB cache write failed for "${mealName}":`, dbWriteErr);
+    }
+
+    memCache.set(cacheKey, s3Url);
+    return {
+      url: s3Url,
+      prompt,
+      templateRef: request.templateRef,
+      hash: cacheKey,
+      createdAt: new Date().toISOString(),
+    };
   }
 
-  memCache.set(cacheKey, imageUrl);
-
+  // S3 failed — serve temp URL for THIS REQUEST ONLY, nothing cached
+  console.error(
+    `🚨 S3 upload FAILED for "${mealName}" | url: ${tempUrl.substring(0, 80)}... | reason: ${ingestionResult.error ?? 'unknown'} — serving temp URL for current session only, NOT caching`
+  );
   return {
-    url: imageUrl,
+    url: tempUrl,
     prompt,
     templateRef: request.templateRef,
     hash: cacheKey,
