@@ -2,7 +2,7 @@ import {
   evaluateRelationshipRules,
 } from "../../../server/services/guardrails/rules/culturalRules";
 
-export type SupportedDiet = "vegan" | "vegetarian" | "keto" | "pescatarian" | "kosher" | "halal" | "paleo" | "gluten-free";
+export type SupportedDiet = "vegan" | "vegetarian" | "keto" | "pescatarian" | "kosher" | "halal" | "paleo" | "gluten-free" | "carnivore";
 
 /**
  * CLIENT-SIDE NORMALIZATION LAYER
@@ -34,6 +34,8 @@ const INTENT_OVERRIDES = [
   "tofu", "tempeh", "seitan", "tofurky", "jackfruit",
   "pescatarian", "keto-friendly", "keto friendly", "low-carb", "low carb",
   "no meat", "no dairy", "without meat", "without dairy",
+  // Carnivore intent overrides — user is knowingly requesting plant-friendly carnivore variant
+  "carnivore", "animal-based", "meat only", "no plants", "all meat",
 ];
 
 const VEGAN_EXCLUSIONS: string[] = [
@@ -142,6 +144,40 @@ const PALEO_EXCLUSIONS: string[] = [
   "white potato", "french fries", "mashed potatoes",
 ];
 
+const CARNIVORE_EXCLUSIONS: string[] = [
+  // Common plant-based dish types
+  "salad", "smoothie", "smoothie bowl", "acai bowl", "grain bowl", "buddha bowl", "power bowl",
+  "stir fry", "veggie burger", "veggie wrap",
+
+  // Vegetables
+  "vegetable", "vegetables", "veggie", "veggies",
+  "broccoli", "cauliflower", "spinach", "kale", "lettuce", "arugula", "chard", "cabbage",
+  "cucumber", "tomato", "pepper", "bell pepper", "onion", "mushroom", "mushrooms",
+  "zucchini", "squash", "eggplant", "asparagus", "green bean", "snap pea",
+  "carrot", "celery", "brussels sprout", "bok choy", "peas", "edamame", "corn",
+  "artichoke", "fennel", "leek", "radish", "beet", "turnip", "kohlrabi",
+
+  // Fruits
+  "fruit", "fruits",
+  "apple", "banana", "orange", "berry", "berries", "strawberry", "blueberry",
+  "raspberry", "blackberry", "grape", "mango", "pineapple", "avocado",
+  "peach", "pear", "cherry", "melon", "watermelon", "kiwi", "papaya",
+
+  // Grains, starches, legumes
+  "bread", "pasta", "rice", "noodles", "grains", "oats", "oatmeal",
+  "quinoa", "couscous", "barley", "bulgur", "cereal", "granola",
+  "beans", "black beans", "kidney beans", "lentils", "chickpeas",
+  "tofu", "tempeh", "hummus", "edamame",
+  "crackers", "tortilla", "pita", "wrap",
+
+  // Nuts and seeds (not carnivore)
+  "almonds", "cashews", "peanut", "walnuts", "sunflower seeds", "chia seeds",
+  "pumpkin seeds", "flaxseed",
+
+  // Sugars and plant sweeteners
+  "sugar", "maple syrup", "agave", "honey",
+];
+
 const GLUTEN_FREE_EXCLUSIONS: string[] = [
   // Wheat and wheat derivatives
   "wheat", "wheat flour", "all-purpose flour", "bread flour", "whole wheat",
@@ -173,6 +209,7 @@ export function normalizeDietPreference(raw: string | string[] | undefined | nul
   if (lower.includes("halal")) return "halal";
   if (lower.includes("paleo")) return "paleo";
   if (lower.includes("gluten-free") || lower.includes("gluten free") || lower.includes("celiac")) return "gluten-free";
+  if (lower.includes("carnivore") || lower.includes("animal-based") || lower.includes("animal based")) return "carnivore";
   return null;
 }
 
@@ -189,6 +226,7 @@ function buildExclusionList(diet: SupportedDiet): string[] | null {
     case "pescatarian": return PESCATARIAN_EXCLUSIONS;
     case "paleo": return PALEO_EXCLUSIONS;
     case "gluten-free": return GLUTEN_FREE_EXCLUSIONS;
+    case "carnivore": return CARNIVORE_EXCLUSIONS;
     case "kosher":
     case "halal":
       return null;

@@ -31,16 +31,16 @@ router.post("/generate-image", async (req: any, res) => {
 
   const isCarnivore = dietType === "carnivore";
   const carnivoreConstraint = isCarnivore
-    ? ", strictly animal-based foods only, no vegetables, no garnish, no herbs, no fruit, no plant-based sides, only meat fish eggs or animal fats on plate"
+    ? ". STRICT RULES: animal-based foods only on plate. Absolutely NO green elements, NO vegetables, NO leaves, NO garnish, NO herbs, NO parsley, NO lettuce, NO salad, NO fruit, NO plant-based sides, NO seeds, NO nuts. Plate must show only meat, fish, eggs, or animal fat. No green color anywhere on the plate."
     : "";
 
-  const fullPrompt = `${mealName}, healthy ${mealType} dish, ${style}, photorealistic, appetizing${carnivoreConstraint}`;
+  const fullPrompt = `${mealName}, ${mealType} dish, ${style}, photorealistic, appetizing${carnivoreConstraint}`;
   let imageUrl: string | null = (await genImageFast(fullPrompt)) ?? null;
 
   if (!imageUrl) {
     console.log(`🔄 [generate-image] Retry for "${mealName}"`);
     const retryPrompt = isCarnivore
-      ? `${mealName}, food photography, animal-based meal, no plants, no garnish, appetizing presentation`
+      ? `${mealName}, food photography, pure animal-based meal with only meat fish or eggs, zero plants zero garnish zero green color, appetizing plating`
       : `${mealName}, food photography, fresh ingredients, appetizing presentation`;
     imageUrl = (await genImageFast(retryPrompt)) ?? null;
   }
