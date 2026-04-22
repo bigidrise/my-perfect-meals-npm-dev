@@ -55,11 +55,11 @@ function buildMacroBudgetBlock(
 
   switch (builderMode) {
     case 'targeted':
-      return `\n\nREMAINING MACRO BUDGET (STRICT — do not exceed):\n${lines.join('\n')}\nYou MUST generate a meal that stays within these values. Do not exceed any macro listed above.`;
+      return `\n\nUser remaining macros:\n${lines.join('\n')}\n\nMODE: STRICT\nYou MUST generate a meal that stays within these values. Do not exceed any macro listed above. Hard ceiling — no exceptions.`;
     case 'lifestyle':
-      return `\n\nREMAINING MACRO BUDGET (AWARENESS — guidance only):\n${lines.join('\n')}\nUse these values as general awareness. Aim to stay within budget, but prioritize balance, enjoyment, and realistic eating. If the user's request naturally exceeds these numbers, still generate a high-quality, nutritious meal — do not restrict food choices.`;
+      return `\n\nUser remaining macros:\n${lines.join('\n')}\n\nMODE: AWARENESS\nAim to stay within these values. If the user's request naturally exceeds them, still generate a balanced, realistic, high-quality meal. Do not restrict food choices based on these numbers.`;
     case 'hybrid':
-      return `\n\nREMAINING MACRO BUDGET (PERFORMANCE — aim for compliance):\n${lines.join('\n')}\nStrongly aim to stay within these values. Small deviations of 5–10% are acceptable if needed for performance nutrition quality. Prioritize protein targets above all other macros.`;
+      return `\n\nUser remaining macros:\n${lines.join('\n')}\n\nMODE: PERFORMANCE\nStrongly aim to stay within these values. Small deviations of 5–10% are acceptable if needed for performance nutrition quality. Prioritize protein targets above all other macros.`;
     default:
       return '';
   }

@@ -236,11 +236,12 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   } = useWeeklyBoard(clientId, weekStartISO, proClientId, BUILDER_NS.PERFORMANCE_COMPETITION);
 
   const nutritionBudget = useNutritionBudget(clientId || user?.id || "");
-  // hybrid: if significantly over in calories, drop constraint entirely; else clamp to 0 with hybrid prompt framing
+  // hybrid: performance is macro-sensitive, not just calorie-sensitive.
+  // Drop constraint if significantly over in calories (>100) OR carbs (>20g) — both matter for athlete outcomes.
   const remainingMacrosForChef = useMemo(() => {
     if (!nutritionBudget.hasTargets) return undefined;
     const r = nutritionBudget.remaining;
-    if (r.calories < -100) return undefined;
+    if (r.calories < -100 || r.carbs < -20) return undefined;
     return {
       protein: Math.max(0, r.protein),
       carbs: Math.max(0, r.carbs),
