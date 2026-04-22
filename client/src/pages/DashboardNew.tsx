@@ -81,7 +81,7 @@ export default function DashboardNew() {
     setLocation("/my-biometrics?capture=1");
   };
 
-  const isCoach = user?.role === 'coach';
+  const isCoach = !!(user?.professionalRole);
   const isProCareClient = !!user?.isProCare && !isCoach;
   const proUnreadCount = useProUnreadCount();
   const [tabletOpen, setTabletOpen] = useState(false);
@@ -505,7 +505,7 @@ export default function DashboardNew() {
           {!isDesktop && isCoach ? (
             <Card
               className={`cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md relative ${proUnreadCount > 0 ? "border-2 border-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.55)] animate-pulse" : "border border-teal-500/30"}`}
-              onClick={() => setLocation("/pro")}
+              onClick={() => setLocation("/pro-portal")}
             >
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
