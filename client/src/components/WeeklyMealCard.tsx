@@ -124,6 +124,8 @@ export default function WeeklyMealCard({ dateISO, slot, meal, time, onRegenerate
     carbs: meal?.carbs || 0,
     fat: meal?.fat || 0
   };
+  const starchyCarbs = (meal?.nutrition as any)?.starchyCarbs || (meal as any)?.starchyCarbs || 0;
+  const fibrousCarbs = (meal?.nutrition as any)?.fibrousCarbs || (meal as any)?.fibrousCarbs || 0;
 
   const handleRegenerate = async () => {
     if (!onRegenerate) return;
@@ -215,6 +217,13 @@ export default function WeeklyMealCard({ dateISO, slot, meal, time, onRegenerate
               {nutrition?.carbs || 0}g
             </div>
             <div className="text-xs text-white/70">Carbs</div>
+            {(starchyCarbs > 0 || fibrousCarbs > 0) && (
+              <div className="text-[10px] mt-0.5">
+                <span className="text-amber-400">{starchyCarbs}S</span>
+                <span className="text-white/40"> / </span>
+                <span className="text-green-400">{fibrousCarbs}F</span>
+              </div>
+            )}
           </div>
           <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
             <div className="text-sm font-bold text-purple-400">

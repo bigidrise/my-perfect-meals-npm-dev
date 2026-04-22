@@ -181,6 +181,8 @@ export default function GeneratedMealCard({
   const perServingProtein = Math.round(totalProtein / s);
   const perServingCarbs = Math.round(totalCarbs / s);
   const perServingFat = Math.round(totalFat / s);
+  const perServingStarchyCarbs = Math.round(totalStarchyCarbs / s);
+  const perServingFibrousCarbs = Math.round(totalFibrousCarbs / s);
 
   const handleAddToMacros = () => {
     setQuickView({
@@ -302,6 +304,13 @@ export default function GeneratedMealCard({
             {perServingCarbs}g
           </div>
           <div className="text-xs text-white">Carbs</div>
+          {(perServingStarchyCarbs > 0 || perServingFibrousCarbs > 0) && (
+            <div className="text-[10px] mt-0.5">
+              <span className="text-amber-400">{perServingStarchyCarbs}S</span>
+              <span className="text-white/40"> / </span>
+              <span className="text-green-400">{perServingFibrousCarbs}F</span>
+            </div>
+          )}
         </div>
         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
           <div className="text-lg font-bold text-white">
