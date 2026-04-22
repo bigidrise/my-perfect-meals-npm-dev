@@ -24,7 +24,7 @@ import {
   maskNutButters,
 } from '../../allergyGuardrails';
 
-export type DietaryMode = 'vegan' | 'vegetarian' | 'pescatarian';
+export type DietaryMode = 'vegan' | 'vegetarian' | 'pescatarian' | 'carnivore';
 export type ConfidenceLevel = 'high' | 'medium' | 'low';
 export type ViolationSeverity = 'critical' | 'moderate' | 'low';
 
@@ -135,6 +135,17 @@ function getSeverity(term: string, diet: DietaryMode): ViolationSeverity {
     pescatarian: [
       'meat','beef','steak','pork','bacon','ham','lamb','veal',
       'chicken','turkey','duck','poultry','lard',
+    ],
+    carnivore: [
+      // Plants are the violation — any vegetable, fruit, grain, legume, or plant oil
+      'spinach','kale','lettuce','arugula','broccoli','cauliflower','zucchini','squash',
+      'cucumber','celery','carrot','onion','garlic','shallot','bell pepper','tomato',
+      'mushroom','asparagus','green beans','peas','corn','eggplant','cabbage','okra',
+      'apple','banana','orange','mango','berries','avocado','coconut','lemon','lime',
+      'bread','pasta','rice','oats','wheat','corn','quinoa','tortilla','noodles',
+      'beans','lentils','chickpeas','soy','tofu','tempeh','edamame','hummus',
+      'olive oil','vegetable oil','canola oil','coconut oil','avocado oil',
+      'sugar','honey','maple syrup','agave',
     ],
   };
 

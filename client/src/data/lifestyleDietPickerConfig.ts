@@ -686,6 +686,83 @@ export const lifestyleDietPickerConfig: Record<LifestyleDietKey, DietIngredients
       ]
     }
   },
+  carnivore: {
+    proteins: [
+      "Ribeye Steak",
+      "NY Strip Steak",
+      "Ground Beef (80/20)",
+      "Brisket",
+      "Short Ribs",
+      "Pork Chops",
+      "Pork Belly",
+      "Bacon",
+      "Chicken Thighs",
+      "Chicken Breast",
+      "Turkey",
+      "Lamb Chops",
+      "Salmon",
+      "Tuna",
+      "Shrimp",
+      "Sardines",
+      "Eggs",
+      "Organ Meats (Liver)"
+    ],
+    starchyCarbs: [],
+    fibrousCarbs: [],
+    fats: [
+      "Butter",
+      "Tallow",
+      "Lard",
+      "Heavy Cream",
+      "Cheese",
+      "Ghee"
+    ],
+    fruit: [],
+    snacks: {
+      sweetTreats: [
+        "Whipped heavy cream",
+        "Carnivore cheesecake (cream cheese, eggs)",
+        "Butter coffee",
+        "Egg custard (eggs, cream)",
+        "Cheese crisps"
+      ],
+      savoryCrunchy: [
+        "Beef jerky (no sugar)",
+        "Pork rinds",
+        "Hard-boiled eggs",
+        "Bacon strips",
+        "Pepperoni slices"
+      ],
+      lightGentle: [
+        "Soft-boiled eggs",
+        "Cheese slices",
+        "Smoked salmon",
+        "Sardines",
+        "Chicken breast bites"
+      ],
+      proteinEnergy: [
+        "Beef liver bites",
+        "Ground beef patties",
+        "Tuna (water-packed)",
+        "Steak bites",
+        "Hard-boiled eggs"
+      ],
+      drinkables: [
+        "Bone broth",
+        "Butter coffee",
+        "Heavy cream coffee",
+        "Egg yolk shake",
+        "Beef protein shake"
+      ],
+      dessertBites: [
+        "Cream cheese mousse",
+        "Whipped cream",
+        "Carnivore egg bites",
+        "Butter mints",
+        "Cheese fat bombs"
+      ]
+    }
+  },
   kosher: {
     proteins: [
       "Chicken Breast (kosher-certified)",

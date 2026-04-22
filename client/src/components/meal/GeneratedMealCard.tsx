@@ -1,6 +1,8 @@
 import { Sparkles, Users, Brain, ChefHat, CalendarPlus, Leaf } from "lucide-react";
 import { useLocation } from "wouter";
+import { useState as useStateCard, useEffect as useEffectCard } from "react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
@@ -86,6 +88,21 @@ export default function GeneratedMealCard({
   macroSource,
 }: GeneratedMealCardProps) {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
+  const userDiet: string = (user as any)?.dietaryRestrictions?.[0] || (user as any)?.dietType || "";
+  const isCarnivore = userDiet === "carnivore";
+  const CARNIVORE_TIPS = [
+    "Higher protein intake works best when hydration is consistent.",
+    "Water helps your body process increased protein and fat.",
+    "Simple meals. Consistent hydration. Better results.",
+  ];
+  const [carnTipIdx, setCarnTipIdx] = useStateCard(0);
+  useEffectCard(() => {
+    if (!isCarnivore) return;
+    const t = setInterval(() => setCarnTipIdx(i => (i + 1) % CARNIVORE_TIPS.length), 7000);
+    return () => clearInterval(t);
+  }, [isCarnivore]);
+
   const profile = getUserMedicalProfile(1);
   const mealForBadges = {
     name: generatedMeal.name,
@@ -240,6 +257,16 @@ export default function GeneratedMealCard({
         <Brain className="h-3.5 w-3.5 text-white/40 shrink-0" />
         <p className="text-xs text-white/55 leading-relaxed">{coachingLine}</p>
       </div>
+
+      {/* Carnivore hydration coaching tip — rotates every 7s */}
+      {isCarnivore && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-sky-900/20 border border-sky-400/20">
+          <span className="text-sky-400 text-sm shrink-0">💧</span>
+          <p className="text-xs text-sky-300/80 italic leading-relaxed">
+            {CARNIVORE_TIPS[carnTipIdx]}
+          </p>
+        </div>
+      )}
 
       {/* 3. Serving Size */}
       <div className="p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-lg">

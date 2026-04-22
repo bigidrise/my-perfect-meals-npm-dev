@@ -19,6 +19,7 @@ const DIET_CONFIG: Record<string, { label: string; color: string }> = {
   mediterranean:  { label: "Mediterranean ✓",   color: "bg-amber-500/20 border-amber-400/40 text-amber-300" },
   paleo:          { label: "Paleo ✓",           color: "bg-orange-500/20 border-orange-400/40 text-orange-300" },
   keto:           { label: "Keto ✓",            color: "bg-purple-500/20 border-purple-400/40 text-purple-300" },
+  carnivore:      { label: "Carnivore ✓",       color: "bg-red-500/20 border-red-400/40 text-red-300" },
   "gluten-free":  { label: "Gluten-Free ✓",    color: "bg-yellow-500/20 border-yellow-400/40 text-yellow-300" },
   "dairy-free":   { label: "Dairy-Free ✓",     color: "bg-cyan-500/20 border-cyan-400/40 text-cyan-300" },
   custom:         { label: "Custom Diet ✓",     color: "bg-pink-500/20 border-pink-400/40 text-pink-300" },

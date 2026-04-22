@@ -353,6 +353,7 @@ export function validateMealForDiet(
       return mergeWithPrecision(glp1Result);
     }
 
+    case 'carnivore':
     case 'vegan':
     case 'vegetarian':
     case 'pescatarian': {
