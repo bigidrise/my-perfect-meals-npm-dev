@@ -269,7 +269,7 @@ export function MealCard({
               <div className="text-sm font-bold text-amber-400">{Math.round(carbs)}g</div>
               <div className="text-xs text-white/70">Carbs</div>
               {hasStarchyFibrous && (
-                <div className="text-[10px] text-white/60 mt-1">
+                <div className="text-xs text-white/80 mt-1 font-medium">
                   <span className="text-amber-300">{Math.round(starchyCarbs!)}S</span>
                   {" / "}
                   <span className="text-green-300">{Math.round(fibrousCarbs!)}F</span>
