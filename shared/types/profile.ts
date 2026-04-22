@@ -1,6 +1,6 @@
 export type DietType =
   | 'balanced' | 'keto' | 'low_carb' | 'low_fat' | 'mediterranean'
-  | 'paleo' | 'vegan' | 'vegetarian' | 'pescatarian' | 'gluten_free'
+  | 'paleo' | 'vegan' | 'vegetarian' | 'pescatarian' | 'gluten_free' | 'carnivore'
   | 'dairy_free' | 'kosher' | 'halal' | 'custom';
 
 export type Condition =

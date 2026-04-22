@@ -134,6 +134,7 @@ const GOAL_LABELS: Record<FitnessGoal, string> = {
 const DIET_OPTIONS = [
   { label: "No Restriction", value: "none" },
   { label: "Keto", value: "keto" },
+  { label: "Carnivore", value: "carnivore" },
   { label: "Mediterranean", value: "mediterranean" },
   { label: "Paleo", value: "paleo" },
   { label: "Vegan", value: "vegan" },
@@ -150,6 +151,7 @@ const DIETARY_IDENTITY_HINTS: Record<string, string> = {
   vegan: "All meals will be fully plant-based — no meat, dairy, eggs, or animal byproducts.",
   vegetarian: "Meals will contain no meat or seafood. Dairy and eggs are included.",
   pescatarian: "Meals will contain no land-based meat. Fish and seafood are included.",
+  carnivore: "This is a strict animal-only eating style. Every meal will use only meat, seafood, eggs, and animal fats. No plant ingredients will appear. For best results, focus on hydration as you adjust.",
 };
 
 const KNOWN_DIET_VALUES = new Set(DIET_OPTIONS.map((o) => o.value));
