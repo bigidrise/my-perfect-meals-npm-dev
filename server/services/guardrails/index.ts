@@ -41,7 +41,8 @@ export function applyGuardrails(
   basePrompt: string,
   dietType: DietType,
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack',
-  dietPhase?: BeachBodyPhase
+  dietPhase?: BeachBodyPhase,
+  remainingMacros?: { protein?: number; carbs?: number; fat?: number; calories?: number }
 ): GuardrailResult {
   // No guardrails for null/undefined diet type (Weekly Meal Board)
   if (!dietType) {
@@ -109,12 +110,14 @@ export function applyGuardrails(
         dietType: 'beachbody',
         mealType,
         userInput: basePrompt,
-        dietPhase: phase
+        dietPhase: phase,
+        remainingMacros,
       });
       appliedRules.push(`beachbody-${phase}-phase-rules`);
       appliedRules.push('beachbody-macro-control');
       appliedRules.push('beachbody-cooking-methods');
-      console.log(`🛡️ Guardrails: Applied BeachBody ${phase} phase rules for ${mealType}`);
+      if (remainingMacros) appliedRules.push('beachbody-remaining-budget-enforcement');
+      console.log(`🛡️ Guardrails: Applied BeachBody ${phase} phase rules for ${mealType}${remainingMacros ? ' + remaining budget' : ''}`);
       break;
 
     case 'performance':
