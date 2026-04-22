@@ -38,6 +38,17 @@ export interface GuardrailRequest {
     fat_g?: number;
     calories?: number;
   };
+  /**
+   * Remaining macro budget for today. When provided, the AI MUST generate
+   * within these numbers — not the baseline daily targets.
+   * Only inject this when the user has active macro tracking and has eaten today.
+   */
+  remainingMacros?: {
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+    calories?: number;
+  };
   explicitOverride?: ExplicitOverride;
 }
 

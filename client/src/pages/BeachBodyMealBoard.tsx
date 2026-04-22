@@ -100,6 +100,7 @@ import { savedMealToMeal } from "@/utils/savedMealToMeal";
 import type { SavedMealRow } from "@/hooks/useSavedMeals";
 import { computeTargetsFromOnboarding } from "@/lib/targets";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
+import { useNutritionBudget } from "@/hooks/useNutritionBudget";
 import { useOnboardingProfile } from "@/hooks/useOnboardingProfile";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -855,6 +856,20 @@ export default function BeachBodyMealBoard() {
     [profile],
   );
   const macroData = useTodayMacros(effectiveUserId || "");
+  const nutritionBudget = useNutritionBudget(effectiveUserId || "");
+
+  // Remaining macro budget — passed to AI so it generates within today's remaining allowance.
+  // Only send if the user has targets configured. Clamp negatives to 0 (overage = nothing left).
+  const remainingMacrosForChef = useMemo(() => {
+    if (!nutritionBudget.hasTargets) return undefined;
+    const r = nutritionBudget.remaining;
+    return {
+      protein: Math.max(0, r.protein),
+      carbs: Math.max(0, r.carbs),
+      fat: Math.max(0, r.fat),
+      calories: Math.max(0, r.calories),
+    };
+  }, [nutritionBudget.hasTargets, nutritionBudget.remaining]);
 
   const totals = useMemo(() => {
     if (!board) return { calories: 0, protein: 0, carbs: 0, fat: 0 };
@@ -1681,7 +1696,7 @@ export default function BeachBodyMealBoard() {
           })()}
         />
 
-        {/* Create With Chef Modal - with BeachBody guardrails */}
+        {/* Create With Chef Modal - with BeachBody guardrails + remaining budget awareness */}
         <CreateWithChefModal
           open={createWithChefOpen}
           onOpenChange={setCreateWithChefOpen}
@@ -1690,6 +1705,7 @@ export default function BeachBodyMealBoard() {
           dietType="beachbody"
           dietPhase="lean"
           starchContext={starchContext}
+          remainingMacros={remainingMacrosForChef}
         />
 
         {/* Snack Creator Modal - contest prep guardrails (performance mode) */}

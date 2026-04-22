@@ -272,6 +272,18 @@ export interface MealGenerationRequest {
   };
   count?: number; // number of meals to generate (default 1)
   dietType?: DietType; // Diet-specific guardrails (anti-inflammatory, diabetic, etc.)
+  dietPhase?: string; // Phase for phase-aware builders (e.g. BeachBody: 'lean' | 'carb-control' | 'maintenance' | 'sculpt')
+  /**
+   * Remaining macro budget for today. When provided, the AI generates
+   * within these values — not the baseline daily targets.
+   * Used by BeachBody (and future builders) for real-time budget awareness.
+   */
+  remainingMacros?: {
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+    calories?: number;
+  };
   starchContext?: StarchContext; // Starch Game Plan context for intelligent carb distribution
   diversityContext?: { usedBases: Record<string, number>; usedTypes: Record<string, number> } | null; // Meal diversity tracking
   nutritionStrategy?: NutritionStrategyContext; // Vegetable system + cut intensity guardrails
@@ -1716,7 +1728,9 @@ export async function generateFromDescriptionUnified(
   strictMode: boolean = false,
   skipImage: boolean = false,
   explicitOverride?: ExplicitOverride | null,
-  diversityContext?: { usedBases: Record<string, number>; usedTypes: Record<string, number> } | null
+  diversityContext?: { usedBases: Record<string, number>; usedTypes: Record<string, number> } | null,
+  dietPhase?: string,
+  remainingMacros?: { protein?: number; carbs?: number; fat?: number; calories?: number }
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
   
@@ -1862,7 +1876,13 @@ Create the recipe for: "${description}"`;
       prompt = `${basePrompt}\n\n${buildStrictModeBlock(description)}`;
       console.log(`🔒 [StrictMode] Guardrails skipped — user override active`);
     } else {
-      const guardrailResult = applyGuardrails(basePrompt, dietType || null, validMealType);
+      const guardrailResult = applyGuardrails(
+        basePrompt,
+        dietType || null,
+        validMealType,
+        dietPhase as any,
+        remainingMacros
+      );
       prompt = guardrailResult.modifiedPrompt;
       if (guardrailResult.appliedRules.length > 0) {
         console.log(`🛡️ Applied guardrails: ${guardrailResult.appliedRules.join(', ')}`);
@@ -2590,7 +2610,20 @@ export async function generateMealUnified(
       const chefDescription = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateFromDescriptionUnified(chefDescription, request.mealType, request.userId, request.dietType, request.starchContext, request.nutritionStrategy, request.strictMode === true, request.skipImage === true, request.explicitOverride, request.diversityContext);
+      result = await generateFromDescriptionUnified(
+        chefDescription,
+        request.mealType,
+        request.userId,
+        request.dietType,
+        request.starchContext,
+        request.nutritionStrategy,
+        request.strictMode === true,
+        request.skipImage === true,
+        request.explicitOverride,
+        request.diversityContext,
+        request.dietPhase,
+        request.remainingMacros
+      );
       break;
 
     case 'snack-creator':

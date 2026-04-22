@@ -3,6 +3,10 @@
  * 
  * Validates generated meals against BeachBody phase-specific rules.
  * Checks ingredients, macros, and cooking methods.
+ * 
+ * ENFORCEMENT NOTE:
+ * Macro violations (fat ceiling, protein floor, carb ceiling) are HARD violations
+ * that set isValid=false and trigger the retry engine. They are NOT soft warnings.
  */
 
 import type { ValidationResult, GeneratedMeal, BeachBodyPhase } from '../types';
@@ -41,8 +45,9 @@ export function validateBeachBodyMeal(
   }
 
   if (meal.macros) {
-    const macroWarnings = validatePhaseMacros(meal.macros, phase);
-    warnings.push(...macroWarnings);
+    const macroResult = validatePhaseMacros(meal.macros, phase);
+    violations.push(...macroResult.violations);
+    warnings.push(...macroResult.warnings);
   }
 
   const hasPreferred = rules.preferredIngredients.some(pref => 
@@ -101,33 +106,61 @@ function validateSnack(meal: GeneratedMeal, phase: BeachBodyPhase): ValidationRe
   };
 }
 
+/**
+ * Validates macro compliance per phase.
+ * HARD violations trigger the retry engine (isValid = false).
+ * Soft warnings are informational only and do not block the meal.
+ */
 function validatePhaseMacros(
   macros: { calories?: number; protein?: number; carbs?: number; fat?: number },
   phase: BeachBodyPhase
-): string[] {
+): { violations: string[]; warnings: string[] } {
+  const violations: string[] = [];
   const warnings: string[] = [];
   
   switch (phase) {
     case 'lean':
+      // HARD: fat % ceiling — Phase 1 is a fat-loss phase, fat >30% is a violation
       if (macros.fat && macros.calories && (macros.fat * 9 / macros.calories) > 0.30) {
-        warnings.push('Fat percentage is high for lean phase - aim for under 25%');
+        violations.push(`Fat is ${Math.round(macros.fat * 9 / macros.calories * 100)}% of calories — Phase 1 (Lean) requires fat under 25%. Regenerate with a leaner protein source.`);
+      }
+      // HARD: protein floor — must hit minimum for muscle preservation during cut
+      if (macros.protein !== undefined && macros.protein < 30) {
+        violations.push(`Protein is ${macros.protein}g — Phase 1 (Lean) requires at least 30g per meal. Increase lean protein portion.`);
       }
       break;
     
     case 'carb-control':
-      if (macros.carbs && macros.carbs > 35) {
-        warnings.push('Carbs exceed 35g - consider reducing for carb-control phase');
+      // HARD: carb ceiling — this phase is keto-adjacent, >35g carbs is a violation
+      if (macros.carbs !== undefined && macros.carbs > 35) {
+        violations.push(`Carbs are ${macros.carbs}g — Phase 2 (Carb-Control) requires under 30g per meal. Remove starchy carb sources.`);
+      }
+      // HARD: protein floor
+      if (macros.protein !== undefined && macros.protein < 30) {
+        violations.push(`Protein is ${macros.protein}g — Phase 2 (Carb-Control) requires at least 30g per meal. Increase lean protein portion.`);
       }
       break;
     
     case 'sculpt':
-      if (macros.protein && macros.protein < 25) {
-        warnings.push('Protein is low for sculpt phase - aim for 30g+');
+      // HARD: protein floor — muscle building phase needs sufficient protein
+      if (macros.protein !== undefined && macros.protein < 30) {
+        violations.push(`Protein is ${macros.protein}g — Phase 4 (Sculpt) requires at least 35g per meal. Add more lean protein.`);
+      }
+      // Soft: inform if carbs are low for muscle building
+      if (macros.carbs !== undefined && macros.carbs < 30) {
+        warnings.push('Carbs are low for sculpt phase — consider adding a clean carb source to fuel training');
+      }
+      break;
+
+    case 'maintenance':
+      // Soft only — maintenance is the balanced phase, no hard macro blocks
+      if (macros.protein !== undefined && macros.protein < 25) {
+        warnings.push('Protein is below 25g — aim for at least 25g per meal during maintenance');
       }
       break;
   }
 
-  return warnings;
+  return { violations, warnings };
 }
 
 function hasAllowedContext(text: string, ingredient: string, phase: BeachBodyPhase): boolean {
@@ -135,7 +168,8 @@ function hasAllowedContext(text: string, ingredient: string, phase: BeachBodyPha
     'cheese': ['low-fat cheese', 'fat-free cheese', 'cottage cheese'],
     'pasta': ['protein pasta', 'chickpea pasta', 'lentil pasta', 'zucchini noodles'],
     'rice': ['cauliflower rice'],
-    'cream': ['greek yogurt', 'cream of tartar']
+    'cream': ['greek yogurt', 'cream of tartar'],
+    'ground beef': ['lean ground beef', '96% lean', '95% lean', '93% lean'],
   };
 
   const contexts = allowedContexts[ingredient];
