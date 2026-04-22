@@ -15,8 +15,10 @@ import {
   useCreateWithChefRequest,
   DietType,
   BeachBodyPhase,
+  BuilderMode,
   StarchContext,
   ExplicitOverride,
+  RemainingMacros,
 } from "@/hooks/useCreateWithChefRequest";
 import { detectBuilderConflict, isCoachableBuilder } from "@/lib/builderGuardrailConfig";
 import { BuilderOverrideDialog } from "@/components/meal/BuilderOverrideDialog";
@@ -47,6 +49,8 @@ interface CreateWithChefModalProps {
   dietPhase?: BeachBodyPhase;
   starchContext?: StarchContext;
   diversityContext?: DiversityContext;
+  remainingMacros?: RemainingMacros;
+  builderMode?: BuilderMode;
 }
 
 export function CreateWithChefModal({
@@ -58,6 +62,8 @@ export function CreateWithChefModal({
   dietPhase,
   starchContext,
   diversityContext,
+  remainingMacros,
+  builderMode,
 }: CreateWithChefModalProps) {
   const [description, setDescription] = useState("");
   const [safetyEnabled, setSafetyEnabled] = useState(true);
@@ -174,7 +180,9 @@ export function CreateWithChefModal({
       strictMode,
       explicitOverride,
       userDietOverride,
-      diversityContext
+      diversityContext,
+      remainingMacros,
+      builderMode
     );
 
     if (meal) {

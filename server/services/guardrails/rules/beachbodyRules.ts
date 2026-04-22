@@ -13,10 +13,44 @@ const COMMON_BLOCKED = [
   'soda', 'sugary drinks', 'alcohol', 'beer', 'wine', 'cocktail'
 ];
 
+/**
+ * LEAN PROTEIN BLOCK LIST — Phase 1 and Phase 2 enforcement.
+ * Contest prep requires strictly lean cuts. Fatty proteins spike fat macros
+ * and violate the physique goals of the cut phases.
+ * 
+ * Blocked: dark meat chicken, fattier beef cuts, pork belly/shoulder/ribs.
+ * Allowed: chicken breast, turkey breast, tilapia, cod, shrimp, egg whites,
+ *          sirloin, flank steak, 93%+ lean ground turkey, lean ground chicken.
+ */
+const LEAN_PROTEIN_BLOCKED = [
+  'chicken thigh', 'chicken thighs',
+  'chicken leg', 'chicken legs',
+  'chicken drumstick', 'chicken drumsticks',
+  'chicken wing', 'chicken wings',
+  'dark meat chicken', 'dark meat',
+  'chicken skin',
+  'pork belly',
+  'pork shoulder',
+  'pork butt',
+  'pork ribs',
+  'spare ribs',
+  'baby back ribs',
+  'short ribs',
+  'beef brisket',
+  'beef chuck',
+  'ground beef',
+  'regular ground beef',
+  'lamb chop', 'lamb chops',
+  'lamb shoulder',
+  'duck',
+  'duck breast',
+];
+
 const PHASE_1_LEAN: GuardrailRules = {
   dietType: 'beachbody',
   blockedIngredients: [
     ...COMMON_BLOCKED,
+    ...LEAN_PROTEIN_BLOCKED,
     'fried', 'deep-fried', 'pan-fried',
     'heavy cream', 'cream sauce', 'alfredo', 'bechamel',
     'cheese', 'cheddar', 'mozzarella', 'parmesan', 'brie',
@@ -50,6 +84,7 @@ const PHASE_2_CARB_CONTROL: GuardrailRules = {
   dietType: 'beachbody',
   blockedIngredients: [
     ...COMMON_BLOCKED,
+    ...LEAN_PROTEIN_BLOCKED,
     'bread', 'toast', 'bagel', 'bun', 'roll',
     'pasta', 'spaghetti', 'penne', 'noodles',
     'rice', 'white rice', 'brown rice', 'jasmine rice',
@@ -113,7 +148,8 @@ const PHASE_4_SCULPT: GuardrailRules = {
     ...COMMON_BLOCKED,
     'ultra-processed', 'artificial sweeteners',
     'fried', 'greasy', 'fast food',
-    'heavy desserts', 'sugary cereals'
+    'heavy desserts', 'sugary cereals',
+    'pork belly', 'spare ribs', 'baby back ribs'
   ],
   preferredIngredients: [
     'chicken breast', 'lean beef', 'salmon', 'tilapia', 'eggs', 'egg whites',

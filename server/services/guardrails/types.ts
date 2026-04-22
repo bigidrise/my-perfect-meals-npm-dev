@@ -6,6 +6,14 @@
  * common interfaces for consistent filtering and validation.
  */
 
+/**
+ * Controls how remaining macro budget is communicated to the AI.
+ * - targeted: MUST stay within budget (BeachBody, GLP-1, Anti-Inflammatory, Diabetic)
+ * - lifestyle: budget is guidance only — prioritize balance and enjoyment (General Nutrition, Weekly)
+ * - hybrid: strongly aim for budget, small deviations acceptable (Performance)
+ */
+export type BuilderMode = 'lifestyle' | 'targeted' | 'hybrid';
+
 export type DietType = 
   | 'anti-inflammatory'
   | 'liver-support'
@@ -38,6 +46,23 @@ export interface GuardrailRequest {
     fat_g?: number;
     calories?: number;
   };
+  /**
+   * Remaining macro budget for today. When provided, the AI generates
+   * within (or guided by) these numbers — not the baseline daily targets.
+   */
+  remainingMacros?: {
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+    calories?: number;
+  };
+  /**
+   * Controls how the AI interprets remainingMacros.
+   * - targeted: hard ceiling (default for BeachBody, GLP-1, Anti-Inflammatory, Diabetic)
+   * - lifestyle: guidance only — prioritize balance over restriction
+   * - hybrid: strong aim with small deviation allowed (Performance)
+   */
+  builderMode?: BuilderMode;
   explicitOverride?: ExplicitOverride;
 }
 
