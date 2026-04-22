@@ -42,6 +42,7 @@ import { savedMealToMeal } from "@/utils/savedMealToMeal";
 import type { SavedMealRow } from "@/hooks/useSavedMeals";
 import { MacroBridgeFooter } from "@/components/biometrics/MacroBridgeFooter";
 import { RemainingMacrosFooter } from "@/components/biometrics/RemainingMacrosFooter";
+import { useNutritionBudget } from "@/hooks/useNutritionBudget";
 import { DailyTargetsCard } from "@/components/biometrics/DailyTargetsCard";
 import { ProTipCard } from "@/components/ProTipCard";
 import { useAuth } from "@/contexts/AuthContext";
@@ -233,6 +234,18 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     refresh: refreshBoard,
     primeCache,
   } = useWeeklyBoard(clientId, weekStartISO, proClientId, BUILDER_NS.PERFORMANCE_COMPETITION);
+
+  const nutritionBudget = useNutritionBudget(clientId || user?.id || "");
+  const remainingMacrosForChef = useMemo(() => {
+    if (!nutritionBudget.hasTargets) return undefined;
+    const r = nutritionBudget.remaining;
+    return {
+      protein: Math.max(0, r.protein),
+      carbs: Math.max(0, r.carbs),
+      fat: Math.max(0, r.fat),
+      calories: Math.max(0, r.calories),
+    };
+  }, [nutritionBudget.hasTargets, nutritionBudget.remaining]);
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
@@ -1560,6 +1573,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           onMealGenerated={handleChefMealGenerated}
           dietType="performance"
           starchContext={starchContext}
+          remainingMacros={remainingMacrosForChef}
         />
 
         {/* Snack Creator Modal (Phase 2 - craving to healthy snack) - with STRICT performance guardrails */}
