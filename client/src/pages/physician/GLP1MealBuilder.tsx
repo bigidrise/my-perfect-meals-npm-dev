@@ -1545,6 +1545,7 @@ export default function GLP1MealBuilder() {
         dietType="glp1"
         starchContext={starchContext}
         remainingMacros={remainingMacrosForChef}
+        builderMode="targeted"
       />
 
       {/* Snack Creator Modal (Phase 2 - craving to healthy snack) - with GLP-1 guardrails */}

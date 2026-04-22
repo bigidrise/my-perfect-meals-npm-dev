@@ -5,7 +5,7 @@
  * Coordinates prompt modification and post-generation validation.
  */
 
-import type { DietType, GuardrailRequest, GuardrailResult, ValidationResult, BeachBodyPhase } from './types';
+import type { DietType, BuilderMode, GuardrailRequest, GuardrailResult, ValidationResult, BeachBodyPhase } from './types';
 import { validateDietaryRestriction, type DietaryMode } from './validators/dietaryRestrictionValidator';
 import { antiInflammatoryRules } from './rules/antiInflammatoryRules';
 import { buildAntiInflammatoryPrompt, buildAntiInflammatorySnackPrompt, getAntiInflammatorySystemPrompt } from './prompt/antiInflammatoryPromptBuilder';
@@ -34,6 +34,38 @@ import { buildLiverSupportPrompt, buildLiverSupportSnackPrompt, getLiverSupportS
 import { validateLiverSupportMeal } from './validators/liverSupportValidator';
 
 /**
+ * Builds a mode-aware macro budget block to append to non-BeachBody prompts.
+ * BeachBody handles its own macro block internally in beachbodyPromptBuilder.ts.
+ */
+function buildMacroBudgetBlock(
+  remainingMacros: { protein?: number; carbs?: number; fat?: number; calories?: number },
+  builderMode: BuilderMode
+): string {
+  const lines: string[] = [];
+  if (remainingMacros.calories !== undefined && remainingMacros.calories > 0)
+    lines.push(`- Calories remaining today: ${Math.round(remainingMacros.calories)} kcal`);
+  if (remainingMacros.protein !== undefined && remainingMacros.protein > 0)
+    lines.push(`- Protein remaining today: ${Math.round(remainingMacros.protein)}g`);
+  if (remainingMacros.carbs !== undefined && remainingMacros.carbs > 0)
+    lines.push(`- Carbs remaining today: ${Math.round(remainingMacros.carbs)}g`);
+  if (remainingMacros.fat !== undefined && remainingMacros.fat > 0)
+    lines.push(`- Fat remaining today: ${Math.round(remainingMacros.fat)}g`);
+
+  if (lines.length === 0) return '';
+
+  switch (builderMode) {
+    case 'targeted':
+      return `\n\nREMAINING MACRO BUDGET (STRICT — do not exceed):\n${lines.join('\n')}\nYou MUST generate a meal that stays within these values. Do not exceed any macro listed above.`;
+    case 'lifestyle':
+      return `\n\nREMAINING MACRO BUDGET (AWARENESS — guidance only):\n${lines.join('\n')}\nUse these values as general awareness. Aim to stay within budget, but prioritize balance, enjoyment, and realistic eating. If the user's request naturally exceeds these numbers, still generate a high-quality, nutritious meal — do not restrict food choices.`;
+    case 'hybrid':
+      return `\n\nREMAINING MACRO BUDGET (PERFORMANCE — aim for compliance):\n${lines.join('\n')}\nStrongly aim to stay within these values. Small deviations of 5–10% are acceptable if needed for performance nutrition quality. Prioritize protein targets above all other macros.`;
+    default:
+      return '';
+  }
+}
+
+/**
  * Apply diet-specific guardrails to a meal generation request
  * Returns modified prompt with diet-specific guidance injected
  */
@@ -42,7 +74,8 @@ export function applyGuardrails(
   dietType: DietType,
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack',
   dietPhase?: BeachBodyPhase,
-  remainingMacros?: { protein?: number; carbs?: number; fat?: number; calories?: number }
+  remainingMacros?: { protein?: number; carbs?: number; fat?: number; calories?: number },
+  builderMode?: BuilderMode
 ): GuardrailResult {
   // No guardrails for null/undefined diet type (Weekly Meal Board)
   if (!dietType) {
@@ -155,6 +188,17 @@ export function applyGuardrails(
 
     default:
       console.log(`⚠️ Unknown diet type: ${dietType}, no guardrails applied`);
+  }
+
+  // Inject mode-aware macro budget block for all non-BeachBody builders.
+  // BeachBody handles its own macro block internally in beachbodyPromptBuilder.ts.
+  if (remainingMacros && builderMode && dietType !== 'beachbody') {
+    const macroBlock = buildMacroBudgetBlock(remainingMacros, builderMode);
+    if (macroBlock) {
+      modifiedPrompt = modifiedPrompt + macroBlock;
+      appliedRules.push(`macro-budget-${builderMode}`);
+      console.log(`📊 Macro budget injected (${builderMode} mode) for ${dietType || 'null'}`);
+    }
   }
 
   return {
@@ -484,5 +528,5 @@ export function getResolvedProCareRules(rulePack: ProCareRulePack) {
   return resolveProCareRules(rulePack);
 }
 
-export type { DietType, GuardrailRequest, GuardrailResult, ValidationResult, BeachBodyPhase };
+export type { DietType, BuilderMode, GuardrailRequest, GuardrailResult, ValidationResult, BeachBodyPhase };
 export type { ProCareRulePack } from './rules/procareTypes';

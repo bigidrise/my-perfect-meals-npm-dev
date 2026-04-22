@@ -236,9 +236,11 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   } = useWeeklyBoard(clientId, weekStartISO, proClientId, BUILDER_NS.PERFORMANCE_COMPETITION);
 
   const nutritionBudget = useNutritionBudget(clientId || user?.id || "");
+  // hybrid: if significantly over in calories, drop constraint entirely; else clamp to 0 with hybrid prompt framing
   const remainingMacrosForChef = useMemo(() => {
     if (!nutritionBudget.hasTargets) return undefined;
     const r = nutritionBudget.remaining;
+    if (r.calories < -100) return undefined;
     return {
       protein: Math.max(0, r.protein),
       carbs: Math.max(0, r.carbs),
@@ -1574,6 +1576,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           dietType="performance"
           starchContext={starchContext}
           remainingMacros={remainingMacrosForChef}
+          builderMode="hybrid"
         />
 
         {/* Snack Creator Modal (Phase 2 - craving to healthy snack) - with STRICT performance guardrails */}

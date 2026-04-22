@@ -1757,6 +1757,7 @@ export default function AntiInflammatoryMenuBuilder() {
           dietType={clinicalMode}
           starchContext={starchContext}
           remainingMacros={remainingMacrosForChef}
+          builderMode="targeted"
         />
 
         {/* Snack Creator Modal (Phase 2 - craving to healthy snack) - with clinical mode guardrails */}

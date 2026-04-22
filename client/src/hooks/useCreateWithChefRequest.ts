@@ -16,6 +16,8 @@ export type DietType =
 
 export type BeachBodyPhase = 'lean' | 'carb-control' | 'maintenance' | 'sculpt';
 
+export type BuilderMode = 'lifestyle' | 'targeted' | 'hybrid';
+
 export interface StarchContext {
   strategy: 'one' | 'flex';
   existingMeals?: Array<{
@@ -73,7 +75,7 @@ interface UseCreateWithChefRequestResult {
   generating: boolean;
   progress: number;
   error: string | null;
-  generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6", dietType?: DietType, dietPhase?: BeachBodyPhase, starchContext?: StarchContext, safetyOptions?: SafetyOptions, strictMode?: boolean, explicitOverride?: ExplicitOverride, userDietOverride?: boolean, diversityContext?: DiversityContext, remainingMacros?: RemainingMacros) => Promise<Meal | null>;
+  generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6", dietType?: DietType, dietPhase?: BeachBodyPhase, starchContext?: StarchContext, safetyOptions?: SafetyOptions, strictMode?: boolean, explicitOverride?: ExplicitOverride, userDietOverride?: boolean, diversityContext?: DiversityContext, remainingMacros?: RemainingMacros, builderMode?: BuilderMode) => Promise<Meal | null>;
   cancel: () => void;
 }
 
@@ -123,7 +125,8 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
     explicitOverride?: ExplicitOverride,
     userDietOverride?: boolean,
     diversityContext?: DiversityContext,
-    remainingMacros?: RemainingMacros
+    remainingMacros?: RemainingMacros,
+    builderMode?: BuilderMode
   ): Promise<Meal | null> => {
     setGenerating(true);
     setError(null);
@@ -144,6 +147,7 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
           dietType: dietType || null,
           dietPhase: dietPhase || null,
           remainingMacros: remainingMacros || null,
+          builderMode: builderMode || null,
           starchContext: starchContext || null,
           diversityContext: diversityContext || null,
           safetyMode: safetyOptions?.safetyMode || "STRICT",

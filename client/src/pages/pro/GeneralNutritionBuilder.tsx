@@ -513,9 +513,11 @@ export default function WeeklyMealBoard() {
   // 🔧 FIX #1: Use real macro tracking instead of board state
   const macroData = useTodayMacros(effectiveUserId || "");
   const nutritionBudget = useNutritionBudget(effectiveUserId || "");
+  // lifestyle: if user is already over in calories or protein, return undefined (no constraint — just generate freely)
   const remainingMacrosForChef = useMemo(() => {
     if (!nutritionBudget.hasTargets) return undefined;
     const r = nutritionBudget.remaining;
+    if (r.calories < 0 || r.protein < 0) return undefined;
     return {
       protein: Math.max(0, r.protein),
       carbs: Math.max(0, r.carbs),
@@ -1454,6 +1456,7 @@ export default function WeeklyMealBoard() {
         onMealGenerated={handleCreateWithChefSelect}
         starchContext={starchContext}
         remainingMacros={remainingMacrosForChef}
+        builderMode="lifestyle"
       />
 
       {/* Quick Tour Modal */}
