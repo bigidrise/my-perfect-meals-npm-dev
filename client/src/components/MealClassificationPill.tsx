@@ -20,9 +20,6 @@ export interface DietClassification {
   veganFlags?: {
     plantBased: boolean;
   };
-  ketoMetrics?: {
-    carbsPerServing: number;
-  };
 }
 
 interface MealClassificationPillProps {
@@ -60,14 +57,6 @@ function resolveSecondaryPill(
   // Vegan
   if (dc.veganFlags?.plantBased) {
     return { label: "Plant-Based", color: "bg-green-500/15 border-green-400/30 text-green-300" };
-  }
-
-  // Keto carb count
-  if (dc.ketoMetrics != null) {
-    return {
-      label: `${dc.ketoMetrics.carbsPerServing}g Carbs`,
-      color: "bg-purple-500/15 border-purple-400/30 text-purple-300",
-    };
   }
 
   return null;

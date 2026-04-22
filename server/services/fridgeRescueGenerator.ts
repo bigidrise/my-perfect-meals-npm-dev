@@ -321,14 +321,17 @@ ${macroTargets ? '- ADJUST ingredient quantities precisely to hit the exact macr
 
 ${medicalConditionsText}
 
-CRITICAL INGREDIENT FORMAT REQUIREMENT:
-- ALL ingredients MUST have quantities in GRAMS (numeric value with unit "g")
-- For proteins (chicken, beef, fish, etc.): Use grams, e.g. {"name": "chicken breast", "amount": 170, "unit": "g"}
-- For starches (rice, potatoes, pasta): Use grams, e.g. {"name": "rice", "amount": 150, "unit": "g"}
-- For vegetables: Use grams, e.g. {"name": "broccoli", "amount": 100, "unit": "g"}
-- For liquids: Use ml, e.g. {"name": "olive oil", "amount": 15, "unit": "ml"}
-- For small amounts (spices): Use grams or "to taste"
-- NEVER use vague units like "piece", "fillet", or "breast" - always use exact gram weights
+INGREDIENT MEASUREMENT RULES (NON-NEGOTIABLE):
+Every ingredient MUST have an exact, measurable quantity:
+- Proteins (chicken, beef, fish, etc.): grams, e.g. {"name": "chicken breast", "amount": 170, "unit": "g"}
+- Eggs: specify size in name AND use gram weight — e.g. {"name": "large eggs", "amount": 100, "unit": "g"} (1 large egg ≈ 50g)
+- Potatoes / yams: always grams — NEVER "piece" or "each", e.g. {"name": "sweet potato", "amount": 140, "unit": "g"}
+- Starches (rice, pasta, oats): cooked weight in grams, e.g. {"name": "cooked rice", "amount": 150, "unit": "g"}
+- Vegetables: grams, e.g. {"name": "broccoli", "amount": 100, "unit": "g"}
+- Liquids and oils: ml, e.g. {"name": "olive oil", "amount": 15, "unit": "ml"}
+- Spices: grams or tsp — e.g. {"name": "garlic powder", "amount": 2, "unit": "g"}
+FORBIDDEN: "piece", "pieces", "each", "serving", "servings", "handful" — these units are NEVER allowed
+All quantities must be numeric — no vague descriptions
 
 CARB CLASSIFICATION RULES (CRITICAL):
 - starchyCarbs: Energy-dense carbs from rice, pasta, bread, potatoes, grains, beans, corn, peas

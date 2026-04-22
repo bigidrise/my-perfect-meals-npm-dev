@@ -320,6 +320,18 @@ function buildCoursePrompt(
     lines.push(`USER NOTES: ${notes}`);
   }
 
+  lines.push(``);
+  lines.push(`INGREDIENT MEASUREMENT RULES (NON-NEGOTIABLE):`);
+  lines.push(`Every ingredient MUST use a precise, measurable quantity:`);
+  lines.push(`- Proteins (chicken, beef, fish): ALWAYS oz — e.g. "6 oz chicken breast"`);
+  lines.push(`- Potatoes / yams / sweet potatoes: ALWAYS oz — e.g. "5 oz sweet potato" (NEVER "1 potato" or "each")`);
+  lines.push(`- Rice / grains / pasta: cooked weight in oz — e.g. "4 oz cooked rice"`);
+  lines.push(`- Eggs: MUST include size — e.g. "3 large eggs" (NEVER just "2 eggs")`);
+  lines.push(`- Vegetables: oz or cup — e.g. "4 oz broccoli" or "2 cup mixed greens"`);
+  lines.push(`- Oils / sauces: tbsp or tsp — e.g. "1 tbsp olive oil"`);
+  lines.push(`- Liquids: cup or fl oz — e.g. "8 fl oz broth"`);
+  lines.push(`FORBIDDEN UNITS — NEVER use: "each", "piece", "pieces", "serving", "servings", "handful"`);
+
   return lines.join("\n");
 }
 
