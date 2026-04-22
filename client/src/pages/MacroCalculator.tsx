@@ -1004,6 +1004,7 @@ export default function MacroCounter() {
   const [showResults, setShowResults] = useState(hasExistingSettings || resolveInitialStep() !== "entry");
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasSpokenEntry, setHasSpokenEntry] = useState(resolveInitialStep() !== "entry");
+  const [syncingWeight, setSyncingWeight] = useState(false);
   const entrySpokenRef = useRef(resolveInitialStep() !== "entry");
 
   // Chef Voice for guided walkthrough
@@ -2335,25 +2336,38 @@ export default function MacroCounter() {
                     <p className="text-white text-base">
                       Would you like to save your weight to biometrics?
                     </p>
+                    <p className="text-white/60 text-sm">
+                      This helps track your progress and adjust your plan over time.
+                    </p>
                     <Button
-                      onClick={() => {
-                        const weight =
-                          units === "imperial" ? weightLbs : weightKg;
-                        localStorage.setItem(
-                          "pending-weight-sync",
-                          JSON.stringify({
-                            weight,
-                            units,
-                            timestamp: Date.now(),
-                          }),
-                        );
-                        sessionStorage.setItem("biometrics:returnTo", "/macro-counter");
-                        setLocation(buildBiometricsUrl({ section: "weight", from: "macro-calculator" }));
+                      disabled={syncingWeight}
+                      onClick={async () => {
+                        const weightValue = units === "imperial" ? weightLbs : weightKg;
+                        if (!weightValue || weightValue <= 0) {
+                          toast({ title: "Enter weight first", description: "Please enter a valid weight before saving.", variant: "destructive" });
+                          return;
+                        }
+                        setSyncingWeight(true);
+                        try {
+                          const today = new Date().toISOString().split("T")[0];
+                          const res = await fetch(apiUrl("/api/biometrics/weight"), {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+                            body: JSON.stringify({ value: weightLbs, unit: "lb", localDate: today }),
+                          });
+                          if (!res.ok) throw new Error("Save failed");
+                          toast({ title: "Weight saved to biometrics", description: "Your progress is being tracked." });
+                          advanceGuided("metabolic");
+                        } catch {
+                          toast({ title: "Couldn't save weight", description: "Please try again.", variant: "destructive" });
+                        } finally {
+                          setSyncingWeight(false);
+                        }
                       }}
-                      className="w-full py-3 bg-lime-600 border border-lime-300 text-white font-semibold rounded-xl"
+                      className="w-full py-3 bg-lime-600 border border-lime-300 text-white font-semibold rounded-xl disabled:opacity-60"
                     >
                       <Scale className="h-4 w-4 mr-2" />
-                      Save Weight to Biometrics
+                      {syncingWeight ? "Saving…" : "Save Weight to Biometrics"}
                     </Button>
                     <Button
                       variant="ghost"
