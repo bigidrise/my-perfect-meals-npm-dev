@@ -27,32 +27,35 @@ SMOOTHIE / DRINK QUALITY RULES (apply whenever the result is a beverage):
 - The result must have a texture a person would actually drink willingly.
 
 MACRO BALANCE RULES (critical — apply to every drink result):
-- Fat target: 40g–80g per serving. Do NOT exceed 100g fat in a single drink.
-- Protein floor: minimum 25g–40g protein per drink. Eggs are the primary protein source.
-- If fat would exceed 80g, reduce cream or butter quantity — do not sacrifice protein to stay low calorie.
-- The ratio must feel like a drink, not a fat bomb. A person should be able to drink this daily.
+- Calorie target: 400–800 kcal per serving. Do NOT exceed 800 kcal in a single drink.
+- Fat target: 30g–70g per serving. Do NOT exceed 70g fat in a single drink.
+- Protein floor: minimum 30g–50g protein per drink.
+- If fat would exceed 70g, reduce cream or butter quantity first — protein must not drop below 30g.
+- The ratio must feel like a functional daily drink, not a liquid fat bomb.
 
 INGREDIENT BALANCE:
-- Eggs are the protein anchor — use 2–4 whole eggs or yolks as the core.
-- Heavy cream supports texture — use in moderate amounts (2–4 oz), not as the dominant ingredient.
-- Butter is a finishing touch only — 1 tablespoon maximum.
+- Eggs and egg whites are the primary protein anchor — use 2–4 whole eggs, or a mix of whole eggs and egg whites.
+- Heavy cream supports texture — use in moderate amounts (2–3 oz maximum), not as the dominant ingredient.
+- Butter is a finishing touch only — 1 tablespoon maximum. Do not use butter as a significant calorie source.
+- Do not build a drink that is mostly cream or liquid fat with minimal protein.
 
 VARIATION REQUIREMENT (when generating multiple options):
-- Each option must use a different ingredient emphasis. Do NOT repeat the same base combination.
-- Option variety examples: one egg-forward, one cream-forward, one lighter and simpler.
-- Avoid generating 3 versions of "egg + cream + butter" with different names.
+- Each option must use a noticeably different ingredient emphasis. Do NOT repeat the same base combination.
+- Include at least one lighter, more practical option — lower calorie and more drinkable than the others.
+- Option variety examples: one egg-forward with more protein, one cream-forward with moderate fat, one lighter and simpler version.
+- Avoid generating three versions that all feel like heavy cream bombs.
 
 PORTION REALISM:
-- The serving must reflect a realistic single drink (8–16 oz).
-- Do not generate excessive caloric loads — total calories should be 300–600 kcal for a drink.
-- If the calorie count would exceed 700 kcal, reduce quantities — do not add more ingredients.
+- The serving must reflect a realistic single drink (8–14 oz blended volume).
+- If the calorie count would exceed 800 kcal, reduce ingredient quantities — do not compensate by adding more ingredients.
+- Ask: "Would a real person on carnivore drink this regularly?" If no, reduce until the answer is yes.
 
 NAMING RULES:
 - Name the result based on what it actually is, not what was requested.
-- Good examples: "Creamy Egg Yolk Shake", "Rich Carnivore Cream Drink", "Whipped Egg and Cream Smoothie".
+- Good examples: "Whipped Egg and Cream Smoothie", "Carnivore Egg White Protein Shake", "Salted Yolk and Cream Drink".
 - Bad examples: "Beef Tallow Smoothie", "Butter Smoothie", "Carnivore Berry Smoothie".
 
-FINAL CHECK: Ask — "Would a person realistically drink this as part of their daily routine?" If the answer is no due to fat content, calorie load, or repetition, adjust before responding.]`;
+FINAL CHECK: The output must pass — drinkable texture, fat under 70g, protein over 30g, calories under 800, and at least one option that feels lighter and practical for daily use.]`;
 
     case "vegan":
       return `[CHEF ADAPTATION MODE — VEGAN: Transform this concept into a fully plant-based version. Remove all meat, poultry, seafood, eggs, dairy, and animal-derived products. Replace with whole food plant alternatives: legumes, tofu, tempeh, nuts, seeds, plant milks, vegetables, fruits, and grains. Preserve the flavor profile and texture intent of the original dish.]`;
