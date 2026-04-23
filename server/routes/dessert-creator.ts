@@ -13,6 +13,8 @@ import { enforceSafetyProfile } from "../services/safetyProfileService";
 import { buildPalateSection, PalatePreferences, buildStrictModeBlock } from "../services/promptBuilder";
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope, buildMealComplianceBundle } from "../services/protocolEnvelope";
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from "../services/behavioralMemoryService";
+import { getPrimaryDiet } from "../services/allergyGuardrails";
+import { buildChefAdaptationBlock } from "../utils/chefAdaptationBlock";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -161,6 +163,7 @@ dessertCreatorRouter.post("/", async (req, res) => {
 
     // 🎨 PALATE PREFERENCES: Load flavor preferences for seasoning/flavor guidance
     let palateGuidance = "\nFLAVOR STYLE: Use light, neutral flavoring suitable for serving to guests or family.";
+    let userDietaryRestrictions: string[] = [];
     if (userId && userId !== "1") {
       try {
         const [user] = await db.select({
@@ -170,9 +173,11 @@ dessertCreatorRouter.post("/", async (req, res) => {
           flavorPreference: users.flavorPreference,
           heatPreference: users.heatPreference,
           medicalConditions: users.medicalConditions,
+          dietaryRestrictions: users.dietaryRestrictions,
         }).from(users).where(eq(users.id, userId)).limit(1);
         
         if (user) {
+          userDietaryRestrictions = (user.dietaryRestrictions as string[]) || [];
           if (!skipPalate && (user.flavorPreference || user.heatPreference || user.palateSpiceTolerance || user.palateSeasoningIntensity || user.palateFlavorStyle)) {
             const palatePrefs: PalatePreferences = {
               palateSpiceTolerance: user.palateSpiceTolerance as PalatePreferences['palateSpiceTolerance'],
@@ -250,7 +255,7 @@ CELEBRATION CAKE REQUIREMENTS:
       : (specificDessert || `${flavorFamily} ${dessertCategory}`);
 
     const chefAdaptBlock = dietAdaptOverride === true
-      ? `\n[CHEF ADAPTATION MODE: The user has explicitly requested this dessert be adapted for their dietary law. Replace any dairy elements (cream, butter, milk, cheese, cream cheese) with ONLY certified pareve or non-dairy alternatives: coconut cream, cashew cream, oat milk, vegan butter, or pareve margarine. The final dessert MUST contain zero dairy. Preserve the intended flavor and texture using compliant alternatives only.]\n`
+      ? `\n${buildChefAdaptationBlock(getPrimaryDiet(userDietaryRestrictions))}\n`
       : "";
 
     const softOverrideBlock = userDietOverride === true
