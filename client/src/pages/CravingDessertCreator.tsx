@@ -11,6 +11,7 @@ import { getAuthHeaders } from "@/lib/auth";
 import { isFeatureEnabled } from "@/lib/productionGates";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassButton } from "@/components/glass";
+import { PillButton } from "@/components/ui/pill-button";
 import {
   Select,
   SelectContent,
@@ -850,17 +851,13 @@ export default function DessertCreator() {
                     { label: "No-Bake", emoji: "❄️" },
                   ].map(({ label, emoji }) => (
                     <div key={label} className="flex flex-col items-center gap-1">
-                      <button
-                        type="button"
+                      <PillButton
+                        active={cookMethod === label}
+                        variant="amber"
                         onClick={() => setCookMethod(cookMethod === label ? "" : label)}
-                        className={`px-3 py-1.5 rounded-full text-xl border transition ${
-                          cookMethod === label
-                            ? "bg-orange-600 border-orange-500"
-                            : "bg-black/40 border-white/20 hover:border-white/40"
-                        }`}
                       >
                         {emoji}
-                      </button>
+                      </PillButton>
                       <span className="text-[10px] text-white leading-tight text-center">{label}</span>
                     </div>
                   ))}

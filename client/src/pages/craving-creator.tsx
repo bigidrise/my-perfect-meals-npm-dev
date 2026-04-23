@@ -25,6 +25,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { GlassButton } from "@/components/glass";
+import { PillButton } from "@/components/ui/pill-button";
 import {
   Select,
   SelectContent,
@@ -1154,17 +1155,13 @@ export default function CravingCreator() {
                         { label: "No-Cook", emoji: "🥗" },
                       ].map(({ label, emoji }) => (
                         <div key={label} className="flex flex-col items-center gap-1">
-                          <button
-                            type="button"
+                          <PillButton
+                            active={cookMethod === label}
+                            variant="amber"
                             onClick={() => setCookMethod(cookMethod === label ? "" : label)}
-                            className={`px-3 py-1.5 rounded-full text-xl border transition ${
-                              cookMethod === label
-                                ? "bg-orange-600 border-orange-500"
-                                : "bg-black/40 border-white/20 hover:border-white/40"
-                            }`}
                           >
                             {emoji}
-                          </button>
+                          </PillButton>
                           <span className="text-[10px] text-white leading-tight text-center">{label}</span>
                         </div>
                       ))}
