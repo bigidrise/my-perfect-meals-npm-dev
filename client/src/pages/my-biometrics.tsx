@@ -2452,7 +2452,10 @@ export default function MyBiometrics() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <WaterLog />
+            <WaterLog
+              userId={user?.id || ""}
+              dietType={((user as any)?.dietaryRestrictions?.[0] || (user as any)?.dietType || "")}
+            />
           </CardContent>
         </Card>
 
@@ -2620,24 +2623,33 @@ export default function MyBiometrics() {
 }
 
 // ============================== WATER LOG ==============================
-function WaterLog() {
-  // SAFE: Start with defaults, load from storage in useEffect
-  const today = new Date().toDateString();
-  const [water, setWater] = useState({ date: today, ounces: 0 });
-  const [goal, setGoal] = useState(121); // default: 180 * 0.67
-  
-  // Load water and goal from storage on mount (deferred read)
+
+const CARNIVORE_HYDRATION_TIPS = [
+  "Higher protein intake works best when hydration is consistent.",
+  "Water helps your body process increased protein and fat intake.",
+  "Simple meals. Consistent hydration. Better results.",
+  "On a high-protein plan — aim for an extra glass with each meal.",
+];
+
+function getDayLabel(date: Date): string {
+  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()];
+}
+
+function WaterLog({ userId, dietType }: { userId: string; dietType: string }) {
+  const todayStr = new Date().toDateString();
+  const [water, setWater] = useState({ date: todayStr, ounces: 0 });
+  const [goal, setGoal] = useState(121);
+  const [weekHistory, setWeekHistory] = useState<{ label: string; oz: number; dateStr: string }[]>([]);
+  const [tipIndex, setTipIndex] = useState(0);
+  const isHighProtein = dietType === "carnivore" || dietType === "keto";
+
   useEffect(() => {
     try {
       const savedWater = localStorage.getItem("mpm_bio_water");
       if (savedWater) {
         const parsed = JSON.parse(savedWater);
-        const todayStr = new Date().toDateString();
-        if (parsed.date === todayStr) {
-          setWater(parsed);
-        }
+        if (parsed.date === new Date().toDateString()) setWater(parsed);
       }
-      
       const w = Number(localStorage.getItem("latestWeight")) || 180;
       setGoal(Math.round(w * 0.67));
     } catch (e) {
@@ -2645,43 +2657,77 @@ function WaterLog() {
     }
   }, []);
 
-  const save = (oz: number) => {
-    const today = new Date().toDateString();
-    const updated = { date: today, ounces: oz };
+  useEffect(() => {
+    if (!userId) return;
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - 6);
+    const fromStr = from.toISOString().split("T")[0];
+    const toStr = to.toISOString().split("T")[0];
+    fetch(`/api/water-logs?userId=${encodeURIComponent(userId)}&from=${fromStr}&to=${toStr}&limit=200`)
+      .then(r => r.ok ? r.json() : { items: [] })
+      .then(data => {
+        const byDay: Record<string, number> = {};
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          byDay[d.toDateString()] = 0;
+        }
+        (data.items || []).forEach((row: any) => {
+          const d = new Date(row.intakeTime).toDateString();
+          if (d in byDay) byDay[d] = (byDay[d] || 0) + Math.round(row.amountMl / 29.5735);
+        });
+        const history = Object.entries(byDay).map(([dateStr, oz]) => ({
+          label: getDayLabel(new Date(dateStr)),
+          oz,
+          dateStr,
+        }));
+        setWeekHistory(history);
+      })
+      .catch(() => {});
+  }, [userId]);
+
+  useEffect(() => {
+    if (!isHighProtein) return;
+    const interval = setInterval(() => {
+      setTipIndex(i => (i + 1) % CARNIVORE_HYDRATION_TIPS.length);
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [isHighProtein]);
+
+  const save = (newTotal: number, addedOz?: number) => {
+    const updated = { date: new Date().toDateString(), ounces: newTotal };
     setWater(updated);
     localStorage.setItem("mpm_bio_water", JSON.stringify(updated));
+    if (userId && addedOz && addedOz > 0) {
+      fetch("/api/water-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, amount: addedOz, unit: "oz" }),
+      }).catch(() => {});
+    }
   };
 
   const addWater = (oz: number) => {
-    save(Math.min(goal, water.ounces + oz));
+    const newTotal = Math.min(goal, water.ounces + oz);
+    const actual = newTotal - water.ounces;
+    save(newTotal, actual);
   };
-
   const resetWater = () => save(0);
-
   const pct = Math.min(100, (water.ounces / goal) * 100);
 
+  const statusLabel = pct < 40 ? "Below target" : pct < 80 ? "On track" : "Goal reached";
+  const statusColor = pct < 40 ? "text-red-400" : pct < 80 ? "text-sky-400" : "text-green-400";
+
+  const maxOz = Math.max(goal, ...weekHistory.map(d => d.oz), 1);
+
   return (
-    <div
-      data-wt="bio-water-counter"
-      className="flex flex-col items-center space-y-4 text-center"
-    >
+    <div data-wt="bio-water-counter" className="flex flex-col items-center space-y-4 text-center">
       <div className="relative w-32 h-32">
         <svg className="w-full h-full -rotate-90">
+          <circle cx="64" cy="64" r="60" stroke="rgba(255,255,255,0.1)" strokeWidth="8" fill="none" />
           <circle
-            cx="64"
-            cy="64"
-            r="60"
-            stroke="rgba(255,255,255,0.1)"
-            strokeWidth="8"
-            fill="none"
-          />
-          <circle
-            cx="64"
-            cy="64"
-            r="60"
-            stroke="#38bdf8"
-            strokeWidth="8"
-            fill="none"
+            cx="64" cy="64" r="60" stroke="#38bdf8" strokeWidth="8" fill="none"
             strokeLinecap="round"
             strokeDasharray={`${2 * Math.PI * 60}`}
             strokeDashoffset={`${2 * Math.PI * 60 * (1 - pct / 100)}`}
@@ -2694,39 +2740,46 @@ function WaterLog() {
         </div>
       </div>
 
+      <span className={`text-xs font-semibold ${statusColor}`}>{statusLabel}</span>
+      <p className="text-[10px] text-white/30">Goal = your weight × 0.67 oz</p>
+
       <div className="flex gap-2">
-        <Button
-          data-wt="bio-water-plus8"
-          onClick={() => addWater(8)}
-          className="bg-sky-600 hover:bg-sky-700 text-white"
-          data-testid="button-add-8oz"
-        >
-          +8 oz
-        </Button>
-        <Button
-          data-wt="bio-water-plus16"
-          onClick={() => addWater(16)}
-          className="bg-sky-600 hover:bg-sky-700 text-white"
-          data-testid="button-add-16oz"
-        >
-          +16 oz
-        </Button>
-        <Button
-          onClick={resetWater}
-          className="bg-black/30 border border-white/20 text-white hover:bg-black/50"
-          data-testid="button-reset-water"
-        >
-          Reset
-        </Button>
+        <Button data-wt="bio-water-plus8" onClick={() => addWater(8)} className="bg-sky-600 hover:bg-sky-700 text-white" data-testid="button-add-8oz">+8 oz</Button>
+        <Button data-wt="bio-water-plus16" onClick={() => addWater(16)} className="bg-sky-600 hover:bg-sky-700 text-white" data-testid="button-add-16oz">+16 oz</Button>
+        <Button onClick={resetWater} className="bg-black/30 border border-white/20 text-white hover:bg-black/50" data-testid="button-reset-water">Reset</Button>
       </div>
 
-      <p className="text-xs text-white/60">
-        {pct < 40
-          ? "Stay hydrated — your body loves water!"
-          : pct < 80
-            ? "Looking good — keep sipping 💧"
-            : "Perfect hydration! 💦"}
-      </p>
+      {isHighProtein && (
+        <p className="text-xs text-sky-300/80 italic max-w-xs transition-all">
+          {CARNIVORE_HYDRATION_TIPS[tipIndex]}
+        </p>
+      )}
+
+      {weekHistory.length > 0 && (
+        <div className="w-full pt-2">
+          <p className="text-xs text-white/50 mb-2">Past 7 days</p>
+          <div className="flex gap-1 items-end justify-center h-16">
+            {weekHistory.map((day, i) => {
+              const barH = day.oz > 0 ? Math.max(6, Math.round((day.oz / maxOz) * 52)) : 4;
+              const isToday = day.dateStr === new Date().toDateString();
+              const onTrack = day.oz >= goal * 0.8;
+              const barColor = isToday ? "bg-sky-400" : onTrack ? "bg-sky-600/70" : "bg-white/20";
+              return (
+                <div key={i} className="flex flex-col items-center gap-1" style={{ width: "13%" }}>
+                  <div
+                    className={`w-full rounded-t-sm ${barColor} transition-all duration-300`}
+                    style={{ height: `${barH}px` }}
+                    title={`${day.label}: ${day.oz} oz`}
+                  />
+                  <span className={`text-[10px] ${isToday ? "text-sky-300 font-bold" : "text-white/40"}`}>
+                    {day.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

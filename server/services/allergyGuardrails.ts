@@ -363,11 +363,11 @@ export const ALLERGEN_EXPANSION: Record<string, string[]> = {
  * DIET PRIORITY ORDER — strictest wins when multiple diets are present.
  * keto and paleo are strict (filter-first); vegan/vegetarian/pescatarian are flexible (modify-allowed).
  */
-export const DIET_PRIORITY = ["vegan", "vegetarian", "pescatarian", "keto", "paleo"] as const;
+export const DIET_PRIORITY = ["carnivore", "vegan", "vegetarian", "pescatarian", "keto", "paleo"] as const;
 export type DietMode = typeof DIET_PRIORITY[number];
 
 /** Strict diets — invalid meals must be rejected outright, not modified */
-const STRICT_DIETS: DietMode[] = ["keto", "paleo"];
+const STRICT_DIETS: DietMode[] = ["carnivore", "keto", "paleo"];
 
 /**
  * Resolve a single primary diet from a dietary restrictions array.
@@ -471,6 +471,40 @@ export const RESTRICTION_EXPANSION: Record<string, string[]> = {
     "margarine", "processed food", "refined flour",
     // Potatoes (white — sweet potatoes are paleo-allowed)
     "white potato", "white potatoes", "french fries", "mashed potatoes"
+  ],
+
+  carnivore: [
+    // ALL vegetables — hard blocked
+    "spinach", "kale", "lettuce", "arugula", "broccoli", "cauliflower",
+    "zucchini", "squash", "cucumber", "celery", "carrot", "carrots",
+    "onion", "onions", "garlic", "shallot", "leek", "bell pepper", "peppers",
+    "tomato", "tomatoes", "mushroom", "mushrooms", "asparagus", "green beans",
+    "peas", "corn", "eggplant", "cabbage", "bok choy", "brussels sprouts",
+    "artichoke", "beet", "beets", "radish", "turnip", "parsnip", "fennel",
+    "okra", "collard greens", "swiss chard", "watercress", "endive",
+    // ALL fruits — hard blocked
+    "apple", "banana", "orange", "mango", "berries", "blueberries",
+    "strawberries", "raspberries", "grapes", "lemon", "lime", "pineapple",
+    "melon", "watermelon", "peach", "plum", "cherry", "avocado", "coconut",
+    "date", "fig", "pomegranate", "kiwi",
+    // ALL grains — hard blocked
+    "bread", "pasta", "rice", "oats", "wheat", "barley", "rye", "corn",
+    "quinoa", "tortilla", "noodles", "cereal", "crackers", "flour",
+    "couscous", "bulgur", "farro", "granola", "oatmeal",
+    // ALL legumes — hard blocked
+    "beans", "lentils", "chickpeas", "peas", "soy", "tofu", "tempeh",
+    "edamame", "hummus", "peanut", "peanut butter",
+    // ALL plant oils and plant-based fats — hard blocked
+    "olive oil", "vegetable oil", "canola oil", "coconut oil", "avocado oil",
+    "sunflower oil", "sesame oil", "flaxseed oil", "soybean oil",
+    // ALL sugars and sweeteners — hard blocked
+    "sugar", "honey", "maple syrup", "agave", "corn syrup", "molasses",
+    // Herbs and plant-derived spices (basic salt is allowed)
+    "hot sauce", "soy sauce", "worcestershire sauce", "ketchup", "bbq sauce",
+    "vinegar", "mustard", "ranch", "salad dressing",
+    // Nuts and seeds — hard blocked
+    "almonds", "walnuts", "cashews", "pecans", "pistachios", "sunflower seeds",
+    "chia seeds", "flaxseeds", "hemp seeds", "sesame seeds",
   ]
 };
 
@@ -504,7 +538,24 @@ export function buildDietPromptBlock(restrictions: string[]): string {
       `If a dish fundamentally violates this diet, reject it entirely and choose a different, naturally compliant meal.`,
       `Only return meals that are inherently compliant without requiring modifications to the core dish.`,
     );
-    if (diet === "keto") {
+    if (diet === "carnivore") {
+      baseBlock.push(
+        `CARNIVORE DIET ENFORCEMENT:`,
+        `Meals must consist ONLY of animal-based foods: meat, poultry, seafood, eggs, butter, tallow, lard, and salt.`,
+        `Dairy (cheese, heavy cream, butter) is ALLOWED by default.`,
+        `NO vegetables, fruits, grains, legumes, plant oils, nuts, seeds, or plant-derived sauces of any kind.`,
+        `Herbs and plant-based spices are NOT allowed — use only salt for seasoning.`,
+        `If a requested dish cannot exist without plant ingredients (e.g., a salad), choose a different carnivore-compliant meal instead.`,
+        `CARNIVORE NAMING RULE: If the user's concept uses a misleading word (salad, wrap, bowl, sandwich, smoothie, stir fry, burger), reinterpret the name using the actual animal ingredients only.`,
+        `EXAMPLES OF CORRECT CARNIVORE RENAMING:`,
+        `  "Chicken Salad" → "Sliced Chicken Breast with Egg and Beef Tallow"`,
+        `  "Berry Smoothie" → "Whipped Cream and Egg Yolk Drink"`,
+        `  "Salmon Bowl" → "Pan-Seared Salmon with Butter"`,
+        `  "Carnivore Burger" → "Pan-Seared Beef Patty with Fried Egg and Bacon"`,
+        `The final meal name must reflect what is ACTUALLY on the plate — no plant food references in the name ever.`,
+        `CARNIVORE TONE RULE: Never describe plant foods as beneficial or necessary. Focus on protein quality, animal fats, and simplicity. Avoid any language suggesting vegetables or fiber are needed.`,
+      );
+    } else if (diet === "keto") {
       baseBlock.push(
         `KETO TONE RULE: Never describe carbohydrates as beneficial. Focus on protein, healthy fats, satiety, and stable blood sugar. Avoid phrases like "provides energy from carbs" or "carbs for fuel."`,
       );

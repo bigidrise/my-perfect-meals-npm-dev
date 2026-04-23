@@ -29,6 +29,7 @@ import {
   Refrigerator,
   Star,
   ShoppingCart,
+  Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
@@ -506,6 +507,64 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
         {
           heading: "Your List Syncs Automatically",
           text: "Once items are sent to your shopping list, they sync to your account instantly. You will see the same list whether you are on your phone, tablet, or another device.",
+        },
+      ],
+    },
+  },
+  {
+    id: "biometrics-tracking",
+    title: "My Biometrics — Every Feature Explained",
+    subtitle: "Macros, scanning, body stats, labs, and water tracking",
+    icon: Activity,
+    content: {
+      sections: [
+        {
+          heading: "What This Page Is For",
+          text: "My Biometrics is your feedback system — not where you plan meals, but where you see how everything is working. It brings together your daily macros, food logging, calorie trends, body measurements, lab values, and water intake in one place.",
+        },
+        {
+          heading: "Today's Macros",
+          text: "At the top of the page you will see your macro targets — protein, carbs, fat, and calories — pulled directly from your Macro Calculator. These numbers stay in place until you update your calculator or a coach adjusts them for you. Your logged totals for the day update here in real time as you add entries.",
+        },
+        {
+          heading: "MacroScan — Log From a Photo",
+          text: "Tap MacroScan to open your camera and point it at any nutrition label. The system reads the label and extracts protein, carbs, fat, and calories automatically. This is the fastest way to log packaged foods, restaurant items, or anything with a printed label. No manual typing required.",
+        },
+        {
+          heading: "Just Describe It — AI Logging",
+          text: "No label? No problem. Tap Just Describe It, type or say what you ate — 'a grilled chicken sandwich with fries' or 'two scrambled eggs and toast' — and the AI estimates your macros. It is not as precise as a label scan, but it is accurate enough for everyday tracking and far better than skipping the log entirely.",
+        },
+        {
+          heading: "Manual Macro Entry",
+          text: "If you already know your numbers, you can enter protein, carbs, fat, and calories directly. Type in the values and tap Add to include them in your daily total. This works well when you have exact macro data from a restaurant app, a meal plan, or a nutrition guide.",
+        },
+        {
+          heading: "Calorie Tracker — Up to 30 Days",
+          text: "Below your daily totals you will find a calorie history graph. Switch between Today, 7-day, and 30-day views to see how your intake is trending over time. This is where patterns become visible — consistent days, high days, low logging weeks — so you can have honest conversations with yourself or your coach about what is actually happening.",
+        },
+        {
+          heading: "Body Stats — Up to One Year",
+          text: "Log your weight here by entering a number and tapping Save. The app stores your weight history and displays it as a trend over time, with views going back up to one year. Weekly weigh-ins give you the most reliable picture — daily fluctuations from water, food volume, and sodium are normal and misleading. Look at the direction of the line, not any single point.",
+        },
+        {
+          heading: "Body Composition",
+          text: "Track your estimated body fat percentage using the U.S. Navy Body Fat Formula — a validated method that uses simple tape measurements like waist, neck, height, and hips. You can log these measurements directly in the app and watch your body composition trend over time. If you have more accurate readings from a DEXA scan, InBody, or another source, you can enter those too. You can also set a body fat goal and track your progress toward it.",
+        },
+        {
+          heading: "Clinical Labs",
+          text: "The clinical labs section lets you log your lab values — blood glucose, HbA1c, cholesterol, triglycerides, and other markers — so everything lives in one place. If you are working with a physician or coach through ProCare, they can see these values and factor them into your plan. Logging labs is optional, but it gives you a more complete picture of how nutrition is affecting your health over time.",
+        },
+        {
+          heading: "Water Log — Daily Hydration Tracker",
+          text: "The water log tracks your daily fluid intake in ounces. Tap +8 oz or +16 oz each time you drink, and the ring at the center fills as you go toward your goal. Your status updates in real time — Below Target, On Track, or Goal Reached.",
+          list: [
+            "Your daily goal is calculated automatically from your logged body weight using the formula: weight (lbs) × 0.67 = daily oz target",
+            "Log a new body weight and your water goal updates automatically — no manual target to set",
+            "The bar chart below the ring shows your past 7 days so you can see hydration consistency over the week",
+            "Blue bars mean you hit at least 80% of your goal that day — faint bars show days you fell short",
+            "Tap Reset to clear today's count and start over at any point",
+            "Carnivore and keto users see rotating hydration coaching tips throughout the day, since high-protein eating increases hydration needs",
+          ],
         },
       ],
     },

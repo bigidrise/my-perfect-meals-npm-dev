@@ -15,7 +15,7 @@ const router = express.Router();
 // 1 retry with simplified prompt on failure — never crashes the card
 // ─────────────────────────────────────────────
 router.post("/generate-image", async (req: any, res) => {
-  const { mealName, mealType = "dinner" } = req.body || {};
+  const { mealName, mealType = "dinner", dietType, ingredients } = req.body || {};
   if (!mealName) return res.status(400).json({ imageUrl: null });
 
   const { genImageFast } = await import("../utils/openaiSafe");
@@ -28,12 +28,42 @@ router.post("/generate-image", async (req: any, res) => {
     dessert: "soft overhead shot, pastel tones, inviting warm lighting, stylized plating",
   };
   const style = promptStyles[mealType as keyof typeof promptStyles] || "professional food photography, overhead shot, clean plate presentation, natural lighting";
-  const fullPrompt = `${mealName}, healthy ${mealType} dish, ${style}, photorealistic, appetizing`;
+
+  const isCarnivore = dietType === "carnivore";
+
+  // Build ingredient phrase from actual ingredients when available — 
+  // this anchors the image to what's really in the dish, not just the concept name.
+  let subjectPhrase = mealName;
+  if (Array.isArray(ingredients) && ingredients.length > 0) {
+    const topIngredients = ingredients
+      .slice(0, 4)
+      .map((ing: any) => {
+        const raw = typeof ing === "string" ? ing : (ing?.name ?? "");
+        return raw
+          .replace(/\d+[\d./]*\s*(oz|g|lb|lbs|cup|cups|tbsp|tsp|ml|kg)\.?/gi, "")
+          .replace(/\(.*?\)/g, "")
+          .replace(/,.*$/, "")
+          .trim();
+      })
+      .filter(Boolean);
+    if (topIngredients.length > 0) {
+      subjectPhrase = topIngredients.join(", ");
+    }
+  }
+
+  const carnivoreConstraint = isCarnivore
+    ? ". STRICT RULES: animal-based foods only on plate. Absolutely NO green elements, NO vegetables, NO leaves, NO garnish, NO herbs, NO parsley, NO lettuce, NO salad, NO fruit, NO plant-based sides, NO seeds, NO nuts. Plate must show only meat, fish, eggs, or animal fat. No green color anywhere on the plate."
+    : "";
+
+  const fullPrompt = `${subjectPhrase}, ${mealType} dish, ${style}, photorealistic, appetizing${carnivoreConstraint}`;
   let imageUrl: string | null = (await genImageFast(fullPrompt)) ?? null;
 
   if (!imageUrl) {
     console.log(`🔄 [generate-image] Retry for "${mealName}"`);
-    imageUrl = (await genImageFast(`${mealName}, food photography, fresh ingredients, appetizing presentation`)) ?? null;
+    const retryPrompt = isCarnivore
+      ? `${subjectPhrase}, food photography, pure animal-based meal with only meat fish or eggs, zero plants zero garnish zero green color, appetizing plating`
+      : `${mealName}, food photography, fresh ingredients, appetizing presentation`;
+    imageUrl = (await genImageFast(retryPrompt)) ?? null;
   }
 
   return res.json({ imageUrl });

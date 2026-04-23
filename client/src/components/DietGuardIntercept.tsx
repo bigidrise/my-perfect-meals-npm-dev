@@ -23,6 +23,7 @@ function capitalizeDiet(diet: string | null): string {
 function getProtocolColor(diet: string | null): string {
   if (diet === "kosher") return "text-amber-400";
   if (diet === "halal") return "text-teal-400";
+  if (diet === "carnivore") return "text-red-400";
   return "text-green-400";
 }
 
@@ -30,6 +31,7 @@ function getProtocolColor(diet: string | null): string {
 function getIconBgClass(diet: string | null): string {
   if (diet === "kosher") return "bg-amber-900/40";
   if (diet === "halal") return "bg-teal-900/40";
+  if (diet === "carnivore") return "bg-red-900/40";
   return "bg-neutral-700/50";
 }
 
@@ -151,8 +153,8 @@ export function DietAdaptedNotice({
   className = "",
 }: DietAdaptedNoticeProps) {
   const isCultural = diet === "kosher" || diet === "halal";
-  const iconColor = diet === "kosher" ? "text-amber-400" : diet === "halal" ? "text-teal-400" : "text-green-400";
-  const borderColor = diet === "kosher" ? "border-amber-500/30" : diet === "halal" ? "border-teal-500/30" : "border-green-500/30";
+  const iconColor = diet === "kosher" ? "text-amber-400" : diet === "halal" ? "text-teal-400" : diet === "carnivore" ? "text-red-400" : "text-green-400";
+  const borderColor = diet === "kosher" ? "border-amber-500/30" : diet === "halal" ? "border-teal-500/30" : diet === "carnivore" ? "border-red-500/30" : "border-green-500/30";
 
   return (
     <span
