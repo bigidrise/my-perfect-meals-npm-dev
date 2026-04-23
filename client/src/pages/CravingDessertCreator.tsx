@@ -861,7 +861,7 @@ export default function DessertCreator() {
                       >
                         {emoji}
                       </button>
-                      <span className="text-[10px] text-white/60 leading-tight text-center">{label}</span>
+                      <span className="text-[10px] text-white leading-tight text-center">{label}</span>
                     </div>
                   ))}
                 </div>
