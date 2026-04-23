@@ -4,6 +4,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useMealImages } from "@/hooks/useMealImages";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
+import { PillButton } from "@/components/ui/pill-button";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import ThinkingDots from "@/components/ThinkingDots";
 import { motion } from "framer-motion";
@@ -981,17 +982,13 @@ const FridgeRescuePage = () => {
                       { label: "No-Cook", emoji: "🥗" },
                     ].map(({ label, emoji }) => (
                       <div key={label} className="flex flex-col items-center gap-1">
-                        <button
-                          type="button"
+                        <PillButton
+                          active={cookMethod === label}
+                          variant="amber"
                           onClick={() => setCookMethod(cookMethod === label ? "" : label)}
-                          className={`px-3 py-1.5 rounded-full text-xl border transition ${
-                            cookMethod === label
-                              ? "bg-orange-600 border-orange-500"
-                              : "bg-black/40 border-white/20 hover:border-white/40"
-                          }`}
                         >
                           {emoji}
-                        </button>
+                        </PillButton>
                         <span className="text-[10px] text-white leading-tight text-center">{label}</span>
                       </div>
                     ))}
