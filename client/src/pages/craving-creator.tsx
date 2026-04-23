@@ -58,6 +58,7 @@ import {
 import { post } from "@/lib/api";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import TranslateToggle from "@/components/TranslateToggle";
 import { ProDietaryDirectives } from "@/components/ProDietaryDirectives";
 import PhaseGate from "@/components/PhaseGate";
@@ -781,6 +782,10 @@ export default function CravingCreator() {
           className={`max-w-2xl mx-auto px-4 ${generatedMeals.length > 0 ? "pb-32" : "pb-8"}`}
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          <div className="flex justify-start mb-3">
+            <HowThisWorksLink videoUrl="https://youtube.com/placeholder3" label="How this works" />
+          </div>
+
           <div className="flex items-center justify-between mb-6">
             {/* Spacer for layout */}
 

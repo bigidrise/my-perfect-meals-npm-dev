@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -817,6 +818,10 @@ export default function WeeklyMealBoard() {
         className="max-w-[1600px] mx-auto px-4 space-y-6"
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isProCareMode ? '9rem' : '6rem'})` }}
       >
+        <div className="flex justify-start mb-2">
+          <HowThisWorksLink videoUrl="https://youtube.com/placeholder4" label="How this works" />
+        </div>
+
         <NutritionBudgetBanner className="mb-2" userId={effectiveUserId} />
       <div className="mb-6 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl">
         <div className="px-4 py-4 flex flex-col gap-3">
