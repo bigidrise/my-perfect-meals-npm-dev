@@ -984,7 +984,7 @@ const FridgeRescuePage = () => {
                         <button
                           type="button"
                           onClick={() => setCookMethod(cookMethod === label ? "" : label)}
-                          className={`w-12 h-12 rounded-xl text-xl flex items-center justify-center border transition ${
+                          className={`px-3 py-1.5 rounded-full text-xl border transition ${
                             cookMethod === label
                               ? "bg-orange-600 border-orange-500"
                               : "bg-black/40 border-white/20 hover:border-white/40"

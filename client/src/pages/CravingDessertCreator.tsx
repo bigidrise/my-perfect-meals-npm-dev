@@ -849,18 +849,20 @@ export default function DessertCreator() {
                     { label: "Air Fryer", emoji: "💨" },
                     { label: "No-Bake", emoji: "❄️" },
                   ].map(({ label, emoji }) => (
-                    <button
-                      key={label}
-                      type="button"
-                      onClick={() => setCookMethod(cookMethod === label ? "" : label)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition flex items-center gap-1.5 ${
-                        cookMethod === label
-                          ? "bg-orange-600 border-orange-500 text-white"
-                          : "bg-black/40 border-white/20 text-white hover:border-white/40"
-                      }`}
-                    >
-                      {emoji} {label}
-                    </button>
+                    <div key={label} className="flex flex-col items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setCookMethod(cookMethod === label ? "" : label)}
+                        className={`px-3 py-1.5 rounded-full text-xl border transition ${
+                          cookMethod === label
+                            ? "bg-orange-600 border-orange-500"
+                            : "bg-black/40 border-white/20 hover:border-white/40"
+                        }`}
+                      >
+                        {emoji}
+                      </button>
+                      <span className="text-[10px] text-white leading-tight text-center">{label}</span>
+                    </div>
                   ))}
                 </div>
               </div>
