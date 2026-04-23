@@ -8,9 +8,11 @@ import {
   preCheckRequest, 
   extractSafetyProfile, 
   getSafeSubstitute,
-  logSafetyEnforcement 
+  logSafetyEnforcement,
+  getPrimaryDiet
 } from "../services/allergyGuardrails";
 import { runEnforcement } from "../services/enforcementGateway";
+import { sanitizeMealName } from "../utils/mealNameSanitizer";
 
 const router = express.Router();
 
@@ -147,6 +149,21 @@ router.post('/generate', requireAuth, async (req, res) => {
           suggestion: postCheck.primaryBlock.suggestedSubstitute,
           retryable: true,
         });
+      }
+    }
+
+    // ── Name consistency check (post-generation) ─────────────────────────────
+    // If the AI returned a name with misleading concept words that conflict with
+    // the user's diet (e.g. "Chicken Salad" for a carnivore), rename it now.
+    const userDiet = getPrimaryDiet((user?.dietaryRestrictions as string[]) || []);
+    if (userDiet) {
+      const ingredientNames = (generatedMeal.ingredients || []).map((ing: any) =>
+        typeof ing === "string" ? ing : ing?.name || ""
+      );
+      const sanitized = sanitizeMealName(generatedMeal.name, userDiet, ingredientNames);
+      if (sanitized !== generatedMeal.name) {
+        console.log(`✏️ [NameSanitizer] "${generatedMeal.name}" → "${sanitized}" (diet: ${userDiet})`);
+        (generatedMeal as any).name = sanitized;
       }
     }
 
