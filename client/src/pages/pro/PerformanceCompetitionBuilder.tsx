@@ -908,10 +908,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         className="px-4"
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${mode === "procare" ? '9rem' : '6rem'})` }}
       >
-        <div className="flex justify-start mb-2">
-          <HowThisWorksLink videoUrl="https://youtube.com/placeholder5" label="How builders work" />
-        </div>
-
         <NutritionBudgetBanner className="mb-2" userId={clientId || user?.id} />
         {/* Header - Week Navigation */}
         <div className="mb-6 border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl">
@@ -1001,6 +997,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                   "Save Plan"
                 )}
               </Button>
+
+              <HowThisWorksLink videoUrl="https://youtube.com/placeholder5" label="How builders work" />
 
               <button
                 type="button"
