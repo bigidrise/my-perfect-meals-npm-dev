@@ -110,6 +110,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
 import { TrialBanner } from "@/components/TrialBanner";
 
@@ -1218,6 +1219,8 @@ export default function DiabeticMenuBuilder() {
                   "Save Plan"
                 )}
               </Button>
+
+              <HowThisWorksLink videoUrl="https://youtube.com/placeholder-diabetic" label="How builders work" />
 
               {/* Duplicate (RIGHT) */}
               <button

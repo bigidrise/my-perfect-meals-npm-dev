@@ -110,6 +110,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
 import { TrialBanner } from "@/components/TrialBanner";
 import type { ClinicalMode } from "../../../../shared/schema/weeklyBoard";
@@ -1345,6 +1346,8 @@ export default function AntiInflammatoryMenuBuilder() {
                   "Save Plan"
                 )}
               </Button>
+
+              <HowThisWorksLink videoUrl="https://youtube.com/placeholder-antiinflammatory" label="How builders work" />
 
               <button
                 type="button"

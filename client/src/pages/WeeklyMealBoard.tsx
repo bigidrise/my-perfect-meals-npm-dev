@@ -13,6 +13,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { PillButton } from "@/components/ui/pill-button";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { useLocation, useRoute } from "wouter";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { MealCard, Meal } from "@/components/MealCard";
@@ -1408,6 +1409,8 @@ export default function WeeklyMealBoard() {
                   "Save Plan"
                 )}
               </Button>
+
+              <HowThisWorksLink videoUrl="https://youtube.com/placeholder2" label="How builders work" />
 
               <button
                 type="button"

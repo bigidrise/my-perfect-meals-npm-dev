@@ -107,6 +107,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
 import { TrialBanner } from "@/components/TrialBanner";
 
@@ -1094,6 +1095,8 @@ export default function GLP1MealBuilder() {
                 "Save Plan"
               )}
             </Button>
+
+            <HowThisWorksLink videoUrl="https://youtube.com/placeholder-glp1" label="How builders work" />
 
             <button
               type="button"

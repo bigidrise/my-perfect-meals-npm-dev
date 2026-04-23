@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -903,6 +904,8 @@ export default function WeeklyMealBoard() {
                 "Save Plan"
               )}
             </Button>
+
+            <HowThisWorksLink videoUrl="https://youtube.com/placeholder4" label="How builders work" />
 
             <button
               type="button"

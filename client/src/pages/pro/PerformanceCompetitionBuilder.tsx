@@ -3,6 +3,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -996,6 +997,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                   "Save Plan"
                 )}
               </Button>
+
+              <HowThisWorksLink videoUrl="https://youtube.com/placeholder5" label="How builders work" />
 
               <button
                 type="button"
