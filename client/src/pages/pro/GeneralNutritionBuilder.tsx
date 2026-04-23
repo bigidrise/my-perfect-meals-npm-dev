@@ -819,7 +819,7 @@ export default function WeeklyMealBoard() {
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isProCareMode ? '9rem' : '6rem'})` }}
       >
         <div className="flex justify-start mb-2">
-          <HowThisWorksLink videoUrl="https://youtube.com/placeholder4" label="How this works" />
+          <HowThisWorksLink videoUrl="https://youtube.com/placeholder4" label="How builders work" />
         </div>
 
         <NutritionBudgetBanner className="mb-2" userId={effectiveUserId} />
