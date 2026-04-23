@@ -546,6 +546,13 @@ export function buildDietPromptBlock(restrictions: string[]): string {
         `NO vegetables, fruits, grains, legumes, plant oils, nuts, seeds, or plant-derived sauces of any kind.`,
         `Herbs and plant-based spices are NOT allowed — use only salt for seasoning.`,
         `If a requested dish cannot exist without plant ingredients (e.g., a salad), choose a different carnivore-compliant meal instead.`,
+        `CARNIVORE NAMING RULE: If the user's concept uses a misleading word (salad, wrap, bowl, sandwich, smoothie, stir fry, burger), reinterpret the name using the actual animal ingredients only.`,
+        `EXAMPLES OF CORRECT CARNIVORE RENAMING:`,
+        `  "Chicken Salad" → "Sliced Chicken Breast with Egg and Beef Tallow"`,
+        `  "Berry Smoothie" → "Whipped Cream and Egg Yolk Drink"`,
+        `  "Salmon Bowl" → "Pan-Seared Salmon with Butter"`,
+        `  "Carnivore Burger" → "Pan-Seared Beef Patty with Fried Egg and Bacon"`,
+        `The final meal name must reflect what is ACTUALLY on the plate — no plant food references in the name ever.`,
         `CARNIVORE TONE RULE: Never describe plant foods as beneficial or necessary. Focus on protein quality, animal fats, and simplicity. Avoid any language suggesting vegetables or fiber are needed.`,
       );
     } else if (diet === "keto") {

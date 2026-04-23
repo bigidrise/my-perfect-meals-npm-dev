@@ -4,7 +4,7 @@ import { getAuthHeaders } from "@/lib/auth";
 
 export function useChefMealImage() {
   const fetchImageForMeal = useCallback(async (
-    meal: { id: string; name: string },
+    meal: { id: string; name: string; ingredients?: any[] },
     mealType: string,
     onImageReady: (mealId: string, imageUrl: string) => void,
     dietType?: string
@@ -14,7 +14,12 @@ export function useChefMealImage() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ mealName: meal.name, mealType, dietType }),
+        body: JSON.stringify({
+          mealName: meal.name,
+          mealType,
+          dietType,
+          ingredients: meal.ingredients || [],
+        }),
       });
       const data = await res.json();
       if (data.imageUrl) {
