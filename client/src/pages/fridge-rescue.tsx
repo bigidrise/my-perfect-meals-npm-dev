@@ -4,6 +4,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useMealImages } from "@/hooks/useMealImages";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
+import { PillButton } from "@/components/ui/pill-button";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import ThinkingDots from "@/components/ThinkingDots";
 import { motion } from "framer-motion";
@@ -204,6 +205,7 @@ const FridgeRescuePage = () => {
   // Flavor preference toggle - Personal = use user's palate, Neutral = for others
   const [flavorPersonal, setFlavorPersonal] = useState(true);
   const [keepItSimple, setKeepItSimple] = useState(false);
+  const [cookMethod, setCookMethod] = useState("");
 
   // 🔐 SafetyGuard preflight system
   const {
@@ -447,6 +449,7 @@ const FridgeRescuePage = () => {
           strictMode: keepItSimple,
           dietAdaptOverride,
           userDietOverride,
+          cookMethod: cookMethod || undefined,
         }),
       });
 
@@ -965,6 +968,33 @@ const FridgeRescuePage = () => {
                   </p>
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Cooking method <span className="text-white/40 font-normal">(optional)</span>
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { label: "Stovetop", emoji: "🍳" },
+                      { label: "Oven", emoji: "🔥" },
+                      { label: "Air Fryer", emoji: "💨" },
+                      { label: "Grill", emoji: "🥩" },
+                      { label: "Slow Cooker", emoji: "🫕" },
+                      { label: "No-Cook", emoji: "🥗" },
+                    ].map(({ label, emoji }) => (
+                      <div key={label} className="flex flex-col items-center gap-1">
+                        <PillButton
+                          active={cookMethod === label}
+                          variant="amber"
+                          onClick={() => setCookMethod(cookMethod === label ? "" : label)}
+                        >
+                          {emoji}
+                        </PillButton>
+                        <span className="text-[10px] text-white leading-tight text-center">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 {isLoading || safetyChecking ? (
                   <div className="flex justify-center">
                     <ThinkingDots label={safetyChecking ? "Checking safety…" : "Rescuing your meal…"} />
@@ -1393,6 +1423,7 @@ const FridgeRescuePage = () => {
                                   ingredients: meal.ingredients || [],
                                   instructions: meal.instructions,
                                   imageUrl: meal.imageUrl,
+                                  cookMethod: cookMethod || undefined,
                                 };
                                 localStorage.setItem(
                                   "mpm_chefs_kitchen_meal",

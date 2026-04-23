@@ -25,6 +25,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { GlassButton } from "@/components/glass";
+import { PillButton } from "@/components/ui/pill-button";
 import {
   Select,
   SelectContent,
@@ -422,6 +423,7 @@ export default function CravingCreator() {
   // Flavor preference toggle - Personal = use user's palate, Neutral = for others
   const [flavorPersonal, setFlavorPersonal] = useState(true);
   const [keepItSimple, setKeepItSimple] = useState(false);
+  const [cookMethod, setCookMethod] = useState("");
   // Generation mode: 'meal' = macro-first (default), 'recipe' = culinary-ratio-first
   const [generationMode, setGenerationMode] = useState<'meal' | 'recipe'>('meal');
 
@@ -564,6 +566,7 @@ export default function CravingCreator() {
           generationMode,
           dietAdaptOverride,
           userDietOverride,
+          cookMethod: cookMethod || undefined,
         }),
       });
 
@@ -1138,6 +1141,33 @@ export default function CravingCreator() {
                     </p>
                   </div>
 
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Cooking method <span className="text-white/40 font-normal">(optional)</span>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { label: "Stovetop", emoji: "🍳" },
+                        { label: "Oven", emoji: "🔥" },
+                        { label: "Air Fryer", emoji: "💨" },
+                        { label: "Grill", emoji: "🥩" },
+                        { label: "Slow Cooker", emoji: "🫕" },
+                        { label: "No-Cook", emoji: "🥗" },
+                      ].map(({ label, emoji }) => (
+                        <div key={label} className="flex flex-col items-center gap-1">
+                          <PillButton
+                            active={cookMethod === label}
+                            variant="amber"
+                            onClick={() => setCookMethod(cookMethod === label ? "" : label)}
+                          >
+                            {emoji}
+                          </PillButton>
+                          <span className="text-[10px] text-white leading-tight text-center">{label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   {isGenerating ? (
                     <div className="max-w-md mx-auto mb-4 flex justify-center">
                       <ThinkingDots label="Creating your craving…" />
@@ -1586,6 +1616,7 @@ export default function CravingCreator() {
                                 ingredients: meal.ingredients || [],
                                 instructions: meal.instructions,
                                 imageUrl: meal.imageUrl,
+                                cookMethod: cookMethod || undefined,
                               };
                               localStorage.setItem(
                                 "mpm_chefs_kitchen_meal",
