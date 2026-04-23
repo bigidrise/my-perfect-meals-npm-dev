@@ -29,6 +29,7 @@ import { enforceSafetyProfile } from "./services/safetyProfileService";
 import { runEnforcement, toRouteResponse } from "./services/enforcementGateway";
 import { scanForHiddenDietaryViolations, AVOIDANCE_EXPANSION, getPrimaryDiet } from "./services/allergyGuardrails";
 import { sanitizeMealName } from "./utils/mealNameSanitizer";
+import { buildChefAdaptationBlock } from "./utils/chefAdaptationBlock";
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol, buildGuestEnvelope, scanGeneratedOutput, buildComplianceSection, buildMealComplianceBundle } from "./services/protocolEnvelope";
 import { 
   hasUserSetPin, 
@@ -258,6 +259,7 @@ function enforceMeasuredIngredients(ings: Array<{ name: string; amount: any }>):
 function hasUnmeasured(ings: Array<{ name: string; amount: string }>): boolean {
   return ings.some(i => !i.amount || /^\d+(\.\d+)?$/.test(i.amount));
 }
+
 
 export async function registerRoutes(app: Express): Promise<Server> {
   console.log("🔧 registerRoutes called - starting route registration");
@@ -3404,15 +3406,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode, dietAdaptOverride, userDietOverride } = req.body;
 
-      // When the user chose "Let Chef Adapt", inject a pareve/adaptation instruction
-      // so the AI knows to substitute restricted elements with compliant alternatives.
-      // When the user chose "Continue Anyway", inject a soft override that keeps the
-      // requested ingredient but controls its portion and keeps everything else aligned.
-      const cravingInput = dietAdaptOverride === true
-        ? `${rawCravingInput} [CHEF ADAPTATION MODE: The user has explicitly requested this dish be adapted for their dietary law. Preserve the intent and texture. Replace any dairy elements (cream, butter, milk, cheese) with certified pareve or non-dairy alternatives ONLY: coconut cream, cashew cream, oat-based cream, or pareve margarine. The final dish MUST contain zero dairy. Use non-dairy alternatives throughout.]`
-        : userDietOverride === true
-        ? `${rawCravingInput} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`
-        : rawCravingInput;
+      // Adaptation block is built AFTER user is fetched (so we know their actual diet).
+      // Start with the raw input — the safety check at line 3441 runs on clean input.
+      let cravingInput = rawCravingInput;
 
       // Fix A: Resolve authenticated user from session/token (server-authoritative).
       // Never rely solely on client-sent userId — client may not send it at all.
@@ -3483,6 +3479,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (error) {
           console.log("Could not fetch user for meal personalization:", error);
         }
+      }
+
+      // ── Build diet-aware adaptation / override block ──────────────────────
+      // NOW we know the user's actual diet — build the right block, never
+      // cross-contaminating carnivore with pareve, vegan with meat, etc.
+      if (dietAdaptOverride === true) {
+        const userDietRestrictions = (user?.dietaryRestrictions as string[]) || [];
+        const chefDiet = getPrimaryDiet(userDietRestrictions);
+        cravingInput = `${rawCravingInput} ${buildChefAdaptationBlock(chefDiet)}`;
+      } else if (userDietOverride === true) {
+        cravingInput = `${rawCravingInput} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`;
       }
 
       // 🎲 VARIETY ENGINE: Always generate 3 distinct options (Layers 1-4)
