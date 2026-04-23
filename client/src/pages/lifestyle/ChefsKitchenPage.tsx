@@ -57,7 +57,43 @@ import {
   KITCHEN_TIMER_DONE,
   KITCHEN_PLATING,
   KITCHEN_COOK_SETUP,
+  EQUIPMENT_BY_METHOD,
 } from "@/components/copilot/scripts/kitchenStudioScripts";
+
+const GENERIC_EQUIPMENT = [
+  "Knife",
+  "Cutting board",
+  "Mixing bowl",
+  "Measuring cups and spoons",
+];
+
+function inferCookMethod(instructions: string | string[]): string | null {
+  const text = Array.isArray(instructions)
+    ? instructions.join(" ")
+    : instructions || "";
+  const t = text.toLowerCase();
+  if (t.includes("air fryer")) return "Air Fryer";
+  if (t.includes("oven") || t.includes("bake") || t.includes("baking") || t.includes("roast")) return "Oven";
+  if (t.includes("grill")) return "Grill";
+  if (t.includes("pan") || t.includes("skillet") || t.includes("stovetop") || t.includes("sauté") || t.includes("saute")) return "Stovetop";
+  return null;
+}
+
+function normalizeMethodKey(method: string): string {
+  const m = method.toLowerCase();
+  if (m.includes("air") || m.includes("fryer")) return "Air Fryer";
+  if (m.includes("oven") || m.includes("bak") || m.includes("roast")) return "Oven";
+  if (m.includes("grill")) return "Grill";
+  return "Stovetop";
+}
+
+function resolveEquipment(cookMethodState: string, meal: GeneratedMeal): string[] {
+  const explicit = cookMethodState || (meal as any).cookMethod;
+  const method = explicit
+    ? normalizeMethodKey(explicit)
+    : (inferCookMethod(meal.instructions) ?? "Stovetop");
+  return EQUIPMENT_BY_METHOD[method] ?? GENERIC_EQUIPMENT;
+}
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
@@ -1154,6 +1190,18 @@ export default function ChefsKitchenPage() {
                           <li key={i} className="text-sm text-white/70 flex items-center gap-2">
                             <span className="text-lime-500">•</span>
                             {ing.amount ?? ing.quantity} {ing.unit} {ing.name}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-900/20 p-3">
+                      <p className="text-sm font-semibold text-amber-300 mb-2">You'll need</p>
+                      <ul className="space-y-1">
+                        {resolveEquipment(cookMethod, generatedMeal).map((item, i) => (
+                          <li key={i} className="text-sm text-white/70 flex items-center gap-2">
+                            <span className="text-amber-400">•</span>
+                            {item}
                           </li>
                         ))}
                       </ul>
