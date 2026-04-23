@@ -892,6 +892,33 @@ const FridgeRescuePage = () => {
                   className="mt-3"
                 />
 
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Cooking method <span className="text-white/40 font-normal">(optional)</span>
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { label: "Stovetop", emoji: "🍳" },
+                      { label: "Oven", emoji: "🔥" },
+                      { label: "Air Fryer", emoji: "💨" },
+                      { label: "Grill", emoji: "🥩" },
+                      { label: "Slow Cooker", emoji: "🫕" },
+                      { label: "No-Cook", emoji: "🥗" },
+                    ].map(({ label, emoji }) => (
+                      <div key={label} className="flex flex-col items-center gap-1">
+                        <PillButton
+                          active={cookMethod === label}
+                          variant="amber"
+                          onClick={() => setCookMethod(cookMethod === label ? "" : label)}
+                        >
+                          {emoji}
+                        </PillButton>
+                        <span className="text-[10px] text-white leading-tight text-center">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Meal Safety Section */}
                 <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
                   <span className="text-xs text-white/60 block mb-2">
@@ -966,33 +993,6 @@ const FridgeRescuePage = () => {
                       ? "Single serving"
                       : `${servings} servings — great for ${servings <= 2 ? "a couple" : "the family"}`}
                   </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Cooking method <span className="text-white/40 font-normal">(optional)</span>
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { label: "Stovetop", emoji: "🍳" },
-                      { label: "Oven", emoji: "🔥" },
-                      { label: "Air Fryer", emoji: "💨" },
-                      { label: "Grill", emoji: "🥩" },
-                      { label: "Slow Cooker", emoji: "🫕" },
-                      { label: "No-Cook", emoji: "🥗" },
-                    ].map(({ label, emoji }) => (
-                      <div key={label} className="flex flex-col items-center gap-1">
-                        <PillButton
-                          active={cookMethod === label}
-                          variant="amber"
-                          onClick={() => setCookMethod(cookMethod === label ? "" : label)}
-                        >
-                          {emoji}
-                        </PillButton>
-                        <span className="text-[10px] text-white leading-tight text-center">{label}</span>
-                      </div>
-                    ))}
-                  </div>
                 </div>
 
                 {isLoading || safetyChecking ? (
