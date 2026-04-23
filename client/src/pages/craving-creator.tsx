@@ -422,6 +422,7 @@ export default function CravingCreator() {
   // Flavor preference toggle - Personal = use user's palate, Neutral = for others
   const [flavorPersonal, setFlavorPersonal] = useState(true);
   const [keepItSimple, setKeepItSimple] = useState(false);
+  const [cookMethod, setCookMethod] = useState("");
   // Generation mode: 'meal' = macro-first (default), 'recipe' = culinary-ratio-first
   const [generationMode, setGenerationMode] = useState<'meal' | 'recipe'>('meal');
 
@@ -564,6 +565,7 @@ export default function CravingCreator() {
           generationMode,
           dietAdaptOverride,
           userDietOverride,
+          cookMethod: cookMethod || undefined,
         }),
       });
 
@@ -1138,6 +1140,28 @@ export default function CravingCreator() {
                     </p>
                   </div>
 
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Cooking method <span className="text-white/40 font-normal">(optional)</span>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {["Stovetop", "Oven", "Air Fryer", "Grill", "Slow Cooker", "No-Cook"].map((method) => (
+                        <button
+                          key={method}
+                          type="button"
+                          onClick={() => setCookMethod(cookMethod === method ? "" : method)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
+                            cookMethod === method
+                              ? "bg-orange-600 border-orange-500 text-white"
+                              : "bg-black/40 border-white/20 text-white/70 hover:border-white/40"
+                          }`}
+                        >
+                          {method}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   {isGenerating ? (
                     <div className="max-w-md mx-auto mb-4 flex justify-center">
                       <ThinkingDots label="Creating your craving…" />
@@ -1586,6 +1610,7 @@ export default function CravingCreator() {
                                 ingredients: meal.ingredients || [],
                                 instructions: meal.instructions,
                                 imageUrl: meal.imageUrl,
+                                cookMethod: cookMethod || undefined,
                               };
                               localStorage.setItem(
                                 "mpm_chefs_kitchen_meal",

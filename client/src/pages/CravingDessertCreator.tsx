@@ -213,6 +213,7 @@ export default function DessertCreator() {
   // Flavor preference toggle - Personal = use user's palate, Neutral = for others
   const [flavorPersonal, setFlavorPersonal] = useState(true);
   const [keepItSimple, setKeepItSimple] = useState(false);
+  const [cookMethod, setCookMethod] = useState("");
 
   // SafetyGuard preflight hook
   const {
@@ -382,6 +383,7 @@ export default function DessertCreator() {
           customDessertDescription: customDessertDescription.trim() || undefined,
           dietAdaptOverride,
           userDietOverride,
+          cookMethod: cookMethod || undefined,
         }),
       });
 
@@ -836,6 +838,28 @@ export default function DessertCreator() {
                 </p>
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">
+                  Cooking method <span className="text-white/40 font-normal">(optional)</span>
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {["Oven", "Stovetop", "Air Fryer", "No-Bake"].map((method) => (
+                    <button
+                      key={method}
+                      type="button"
+                      onClick={() => setCookMethod(cookMethod === method ? "" : method)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
+                        cookMethod === method
+                          ? "bg-orange-600 border-orange-500 text-white"
+                          : "bg-black/40 border-white/20 text-white/70 hover:border-white/40"
+                      }`}
+                    >
+                      {method}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {isGenerating || safetyChecking ? (
                 <div className="max-w-md mx-auto mb-4 flex justify-center">
                   <ThinkingDots label={safetyChecking ? "Checking safety…" : "Creating your dessert…"} />
@@ -1117,6 +1141,7 @@ export default function DessertCreator() {
                             ingredients: generatedDessert.ingredients || [],
                             instructions: generatedDessert.instructions,
                             imageUrl: generatedDessert.imageUrl,
+                            cookMethod: cookMethod || undefined,
                           };
                           localStorage.setItem(
                             "mpm_chefs_kitchen_meal",
