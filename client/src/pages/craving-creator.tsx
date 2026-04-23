@@ -905,6 +905,33 @@ export default function CravingCreator() {
                     </p>
                   </div>
 
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Cooking method <span className="text-white/40 font-normal">(optional)</span>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { label: "Stovetop", emoji: "🍳" },
+                        { label: "Oven", emoji: "🔥" },
+                        { label: "Air Fryer", emoji: "💨" },
+                        { label: "Grill", emoji: "🥩" },
+                        { label: "Slow Cooker", emoji: "🫕" },
+                        { label: "No-Cook", emoji: "🥗" },
+                      ].map(({ label, emoji }) => (
+                        <div key={label} className="flex flex-col items-center gap-1">
+                          <PillButton
+                            active={cookMethod === label}
+                            variant="amber"
+                            onClick={() => setCookMethod(cookMethod === label ? "" : label)}
+                          >
+                            {emoji}
+                          </PillButton>
+                          <span className="text-[10px] text-white leading-tight text-center">{label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Dietary Preferences with clear support */}
                   <div>
                     <label className="block text-md mb-1 text-white">
@@ -1139,33 +1166,6 @@ export default function CravingCreator() {
                         ? 'Chef-first: uses real culinary ratios — ideal for breads, baked goods & traditional dishes'
                         : 'Nutrition-first: optimized for your macro and diet targets'}
                     </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-white mb-2">
-                      Cooking method <span className="text-white/40 font-normal">(optional)</span>
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        { label: "Stovetop", emoji: "🍳" },
-                        { label: "Oven", emoji: "🔥" },
-                        { label: "Air Fryer", emoji: "💨" },
-                        { label: "Grill", emoji: "🥩" },
-                        { label: "Slow Cooker", emoji: "🫕" },
-                        { label: "No-Cook", emoji: "🥗" },
-                      ].map(({ label, emoji }) => (
-                        <div key={label} className="flex flex-col items-center gap-1">
-                          <PillButton
-                            active={cookMethod === label}
-                            variant="amber"
-                            onClick={() => setCookMethod(cookMethod === label ? "" : label)}
-                          >
-                            {emoji}
-                          </PillButton>
-                          <span className="text-[10px] text-white leading-tight text-center">{label}</span>
-                        </div>
-                      ))}
-                    </div>
                   </div>
 
                   {isGenerating ? (
