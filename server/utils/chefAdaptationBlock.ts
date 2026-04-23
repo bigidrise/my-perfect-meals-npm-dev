@@ -10,7 +10,28 @@
 export function buildChefAdaptationBlock(diet: string | null): string {
   switch (diet) {
     case "carnivore":
-      return `[CHEF ADAPTATION MODE — CARNIVORE: Transform this concept into a purely animal-based version using ONLY: meat, poultry, seafood, eggs, butter, heavy cream, tallow, lard, cheese, or salt. If the original structure cannot exist without plants (e.g. a fruit smoothie → make it a cream-and-egg drink; a salad → make it a meat-and-egg plate; a wrap → use an egg or meat wrapper), change the structure completely while keeping the satisfaction intent. ZERO vegetables, fruits, grains, legumes, nuts, seeds, plant oils, or plant-based seasonings. No coconut, no oat, no cashew. Only animal foods.]`;
+      return `[CHEF ADAPTATION MODE — CARNIVORE: Transform this concept into a purely animal-based version. Use ONLY: meat, poultry, seafood, eggs, butter, heavy cream, tallow, lard, cheese, or salt. ZERO plant-based ingredients — no vegetables, fruits, grains, legumes, nuts, seeds, plant oils, coconut, oat, or cashew.
+
+STRUCTURE PRESERVATION RULES:
+- If the original request was a smoothie, shake, or drink: KEEP IT AS A DRINK. Do NOT convert it to a meal.
+- If the original was a salad: make it a meat-and-egg plate.
+- If the original was a wrap: use an egg or meat wrapper.
+- Preserve the satisfaction intent of the original structure where possible.
+
+SMOOTHIE / DRINK QUALITY RULES (apply whenever the result is a beverage):
+- The result MUST be smooth, drinkable, and emulsified — it must resemble a shake or drink, not a paste or melted fat.
+- PRIMARY BASES (use these as the foundation): egg yolks, whole eggs, heavy cream.
+- SECONDARY ADD-INS (small amounts only): butter, light cheese.
+- DO NOT use tallow, lard, or rendered fat as the primary ingredient of a drink — these are cooking fats, not beverage bases.
+- DO NOT blend straight butter alone — small amounts may be added for richness, not as the main component.
+- The result must have a texture a person would actually drink willingly.
+
+NAMING RULES:
+- Name the result based on what it actually is, not what was requested.
+- Good examples: "Creamy Egg Yolk Shake", "Rich Carnivore Cream Drink", "Whipped Egg and Cream Smoothie".
+- Bad examples: "Beef Tallow Smoothie", "Butter Smoothie", "Carnivore Berry Smoothie".
+
+FINAL CHECK: Ensure the result is a smooth, drinkable, emulsified beverage if a drink was requested. It must feel intentional and realistic — something a human would actually make and enjoy.]`;
 
     case "vegan":
       return `[CHEF ADAPTATION MODE — VEGAN: Transform this concept into a fully plant-based version. Remove all meat, poultry, seafood, eggs, dairy, and animal-derived products. Replace with whole food plant alternatives: legumes, tofu, tempeh, nuts, seeds, plant milks, vegetables, fruits, and grains. Preserve the flavor profile and texture intent of the original dish.]`;
