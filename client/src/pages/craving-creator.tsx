@@ -783,7 +783,7 @@ export default function CravingCreator() {
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
           <div className="flex justify-start mb-3">
-            <HowThisWorksLink videoUrl="https://youtube.com/placeholder3" label="How this works" />
+            <HowThisWorksLink videoUrl="https://youtube.com/placeholder3" label="How builders work" />
           </div>
 
           <div className="flex items-center justify-between mb-6">
