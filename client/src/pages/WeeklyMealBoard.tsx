@@ -1328,10 +1328,6 @@ export default function WeeklyMealBoard() {
         className="max-w-[1600px] mx-auto px-4 space-y-6"
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${proClientId ? '9rem' : '6rem'})` }}
       >
-        <div className="flex justify-start mb-2">
-          <HowThisWorksLink videoUrl="https://youtube.com/placeholder2" label="How this works" />
-        </div>
-
         {/* Nutrition Budget Banner - Phase 1: Read-only awareness */}
         <NutritionBudgetBanner className="mb-2" userId={effectiveUserId} />
 
@@ -1413,6 +1409,8 @@ export default function WeeklyMealBoard() {
                   "Save Plan"
                 )}
               </Button>
+
+              <HowThisWorksLink videoUrl="https://youtube.com/placeholder2" label="How this works" />
 
               <button
                 type="button"
