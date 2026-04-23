@@ -150,14 +150,14 @@ interface GeneratedMeal {
   dietClassification?: import("@/components/MealClassificationPill").DietClassification | null;
 }
 
-const COOK_METHODS = [
-  "Stovetop",
-  "Oven",
-  "Air Fryer",
-  "Grill",
-  "Instant Pot",
-  "Slow Cooker",
-  "No-Cook",
+const COOK_METHODS: { label: string; emoji: string }[] = [
+  { label: "Stovetop", emoji: "🍳" },
+  { label: "Oven", emoji: "🔥" },
+  { label: "Air Fryer", emoji: "💨" },
+  { label: "Grill", emoji: "🥩" },
+  { label: "Instant Pot", emoji: "⚡" },
+  { label: "Slow Cooker", emoji: "🫕" },
+  { label: "No-Cook", emoji: "🥗" },
 ];
 
 export default function ChefsKitchenPage() {
@@ -663,18 +663,21 @@ export default function ChefsKitchenPage() {
                       Cooking method <span className="text-white/40 font-normal">(optional)</span>
                     </label>
                     <div className="flex flex-wrap gap-2">
-                      {COOK_METHODS.map((method) => (
-                        <button
-                          key={method}
-                          onClick={() => setCookMethod(cookMethod === method ? "" : method)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
-                            cookMethod === method
-                              ? "bg-orange-600 border-orange-500 text-white"
-                              : "bg-black/40 border-white/20 text-white/70 hover:border-white/40"
-                          }`}
-                        >
-                          {method}
-                        </button>
+                      {COOK_METHODS.map(({ label, emoji }) => (
+                        <div key={label} className="flex flex-col items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setCookMethod(cookMethod === label ? "" : label)}
+                            className={`w-12 h-12 rounded-xl text-xl flex items-center justify-center border transition ${
+                              cookMethod === label
+                                ? "bg-orange-600 border-orange-500"
+                                : "bg-black/40 border-white/20 hover:border-white/40"
+                            }`}
+                          >
+                            {emoji}
+                          </button>
+                          <span className="text-[10px] text-white/60 leading-tight text-center">{label}</span>
+                        </div>
                       ))}
                     </div>
                   </div>
