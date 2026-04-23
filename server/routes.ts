@@ -27,7 +27,8 @@ import { generateCravingMeal, generateWeeklyMeals } from "./services/stableMealG
 import { generateCravingMealWithProfile } from "./services/generators/cravingCreatorWrapped";
 import { enforceSafetyProfile } from "./services/safetyProfileService";
 import { runEnforcement, toRouteResponse } from "./services/enforcementGateway";
-import { scanForHiddenDietaryViolations, AVOIDANCE_EXPANSION } from "./services/allergyGuardrails";
+import { scanForHiddenDietaryViolations, AVOIDANCE_EXPANSION, getPrimaryDiet } from "./services/allergyGuardrails";
+import { sanitizeMealName } from "./utils/mealNameSanitizer";
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol, buildGuestEnvelope, scanGeneratedOutput, buildComplianceSection, buildMealComplianceBundle } from "./services/protocolEnvelope";
 import { 
   hasUserSetPin, 
@@ -803,6 +804,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return { ...m, complianceSection, dietClassification };
           });
         }
+      }
+
+      // ── Part 5 — Final Consistency Check ─────────────────────────────────
+      // Sanitize meal name(s) to match the user's detected diet before sending.
+      // Catches any concept-word mismatches the AI might have slipped through.
+      if (result.success && userId) {
+        try {
+          const [unifiedUserRow] = await db
+            .select({ dietaryRestrictions: users.dietaryRestrictions })
+            .from(users).where(eq(users.id, userId)).limit(1);
+          const unifiedDiet = getPrimaryDiet((unifiedUserRow?.dietaryRestrictions as string[]) || []);
+          if (unifiedDiet) {
+            if (result.meal) {
+              const ingNames = ((result.meal.ingredients as any[]) || []).map((ing: any) =>
+                typeof ing === "string" ? ing : ing?.name || ""
+              );
+              const sanitized = sanitizeMealName(result.meal.name, unifiedDiet, ingNames);
+              if (sanitized !== result.meal.name) {
+                console.log(`✏️ [ConsistencyCheck/unified] "${result.meal.name}" → "${sanitized}" (${unifiedDiet})`);
+                result.meal = { ...result.meal, name: sanitized };
+              }
+            }
+            if (result.meals?.length) {
+              result.meals = (result.meals as any[]).map((m: any) => {
+                const ingNames = (m.ingredients || []).map((ing: any) =>
+                  typeof ing === "string" ? ing : ing?.name || ""
+                );
+                const sanitized = sanitizeMealName(m.name, unifiedDiet, ingNames);
+                if (sanitized !== m.name) {
+                  console.log(`✏️ [ConsistencyCheck/unified-batch] "${m.name}" → "${sanitized}" (${unifiedDiet})`);
+                  return { ...m, name: sanitized };
+                }
+                return m;
+              });
+            }
+          }
+        } catch { }
       }
 
       res.json(result);
@@ -3974,7 +4012,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw new Error("Failed to generate meal");
       }
       
-      const generatedMeal = {
+      const generatedMeal: any = {
         id: result.meal.id,
         name: result.meal.name,
         description: result.meal.description,
@@ -3990,6 +4028,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         imageUrl: result.meal.imageUrl,
         servingSize: "1 serving"
       };
+
+      // ── Part 5 — Final Consistency Check ─────────────────────────────────
+      // Verify meal name matches diet before sending to client.
+      // Catches anything the AI prompt missed.
+      if (userId) {
+        try {
+          const [aiCreatorUserRow] = await db
+            .select({ dietaryRestrictions: users.dietaryRestrictions })
+            .from(users).where(eq(users.id, userId)).limit(1);
+          const aiCreatorDiet = getPrimaryDiet((aiCreatorUserRow?.dietaryRestrictions as string[]) || []);
+          if (aiCreatorDiet) {
+            const ingNames = (result.meal.ingredients || []).map((ing: any) =>
+              typeof ing === "string" ? ing : ing?.name || ""
+            );
+            const sanitized = sanitizeMealName(generatedMeal.name, aiCreatorDiet, ingNames);
+            if (sanitized !== generatedMeal.name) {
+              console.log(`✏️ [ConsistencyCheck/ai-creator] "${generatedMeal.name}" → "${sanitized}" (${aiCreatorDiet})`);
+              generatedMeal.name = sanitized;
+            }
+          }
+        } catch { }
+      }
 
       console.log("🤖 AI meal creator generated:", generatedMeal.name);
       console.log("📊 Generation source:", result.source);
@@ -4026,7 +4086,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw new Error("Failed to regenerate meal");
       }
       
-      const generatedMeal = {
+      const generatedMeal: any = {
         id: result.meal.id,
         name: result.meal.name,
         description: result.meal.description,
@@ -4042,6 +4102,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         imageUrl: result.meal.imageUrl,
         servingSize: "1 serving"
       };
+
+      // ── Part 5 — Final Consistency Check ─────────────────────────────────
+      if (userId) {
+        try {
+          const [regenUserRow] = await db
+            .select({ dietaryRestrictions: users.dietaryRestrictions })
+            .from(users).where(eq(users.id, userId)).limit(1);
+          const regenDiet = getPrimaryDiet((regenUserRow?.dietaryRestrictions as string[]) || []);
+          if (regenDiet) {
+            const ingNames = (result.meal.ingredients || []).map((ing: any) =>
+              typeof ing === "string" ? ing : ing?.name || ""
+            );
+            const sanitized = sanitizeMealName(generatedMeal.name, regenDiet, ingNames);
+            if (sanitized !== generatedMeal.name) {
+              console.log(`✏️ [ConsistencyCheck/regen] "${generatedMeal.name}" → "${sanitized}" (${regenDiet})`);
+              generatedMeal.name = sanitized;
+            }
+          }
+        } catch { }
+      }
 
       console.log("🔄 Single meal regenerated:", generatedMeal.name);
       console.log("📊 Generation source:", result.source);
