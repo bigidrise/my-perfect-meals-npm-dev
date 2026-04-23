@@ -961,10 +961,6 @@ export default function BeachBodyMealBoard() {
         className="max-w-[1600px] mx-auto px-4 space-y-6"
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${proClientId ? '9rem' : '6rem'})` }}
       >
-        <div className="flex justify-start mb-2">
-          <HowThisWorksLink videoUrl="https://youtube.com/placeholder-beachbody" label="How builders work" />
-        </div>
-
         <NutritionBudgetBanner className="mb-2" userId={effectiveUserId} />
         <div className="mb-2 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl mx-4">
           <div className="px-4 py-4 flex flex-col gap-3">
@@ -1053,6 +1049,8 @@ export default function BeachBodyMealBoard() {
                   "Save Plan"
                 )}
               </Button>
+
+              <HowThisWorksLink videoUrl="https://youtube.com/placeholder-beachbody" label="How builders work" />
 
               <button
                 type="button"
