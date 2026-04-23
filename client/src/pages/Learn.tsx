@@ -190,6 +190,10 @@ const SECTION_START_HERE: LibraryTopic[] = [
           text: "When you connect with a professional through ProCare, they can assign your meal builder, apply support systems, and adjust your plan in real time. You still own your plan. They guide it.",
         },
         {
+          heading: "How Builders Work Button",
+          text: "Every meal builder in the app includes a 'How builders work' button. Tap it to watch a short video tutorial that walks you through how to use the builder — from creating your first meal to building a full day. If you're ever unsure where to start, that button is your first stop.",
+        },
+        {
           heading: "Why This Matters",
           text: "Most apps track what you already ate. This app helps you decide what to eat before you eat it. That's where results actually happen — not in the log, but in the decision.",
         },
