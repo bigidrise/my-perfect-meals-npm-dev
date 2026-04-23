@@ -633,6 +633,31 @@ export default function DessertCreator() {
                 </Select>
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">
+                  Cooking method <span className="text-white/40 font-normal">(optional)</span>
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: "Oven", emoji: "🔥" },
+                    { label: "Stovetop", emoji: "🍳" },
+                    { label: "Air Fryer", emoji: "💨" },
+                    { label: "No-Bake", emoji: "❄️" },
+                  ].map(({ label, emoji }) => (
+                    <div key={label} className="flex flex-col items-center gap-1">
+                      <PillButton
+                        active={cookMethod === label}
+                        variant="amber"
+                        onClick={() => setCookMethod(cookMethod === label ? "" : label)}
+                      >
+                        {emoji}
+                      </PillButton>
+                      <span className="text-[10px] text-white leading-tight text-center">{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {dessertCategory === "cake" && (
                 <>
                   <div>
@@ -837,31 +862,6 @@ export default function DessertCreator() {
                     ? "AI will use only what you listed — nothing added"
                     : "AI may add complementary ingredients"}
                 </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Cooking method <span className="text-white/40 font-normal">(optional)</span>
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { label: "Oven", emoji: "🔥" },
-                    { label: "Stovetop", emoji: "🍳" },
-                    { label: "Air Fryer", emoji: "💨" },
-                    { label: "No-Bake", emoji: "❄️" },
-                  ].map(({ label, emoji }) => (
-                    <div key={label} className="flex flex-col items-center gap-1">
-                      <PillButton
-                        active={cookMethod === label}
-                        variant="amber"
-                        onClick={() => setCookMethod(cookMethod === label ? "" : label)}
-                      >
-                        {emoji}
-                      </PillButton>
-                      <span className="text-[10px] text-white leading-tight text-center">{label}</span>
-                    </div>
-                  ))}
-                </div>
               </div>
 
               {isGenerating || safetyChecking ? (
