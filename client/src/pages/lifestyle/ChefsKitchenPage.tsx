@@ -1183,6 +1183,18 @@ export default function ChefsKitchenPage() {
                       Before we start cooking, let's get everything ready.
                     </p>
 
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-900/20 p-3">
+                      <p className="text-sm font-semibold text-amber-300 mb-2">Equipment You'll Need</p>
+                      <ul className="space-y-1">
+                        {resolveEquipment(cookMethod, generatedMeal).map((item, i) => (
+                          <li key={i} className="text-sm text-white/70 flex items-center gap-2">
+                            <span className="text-amber-400">•</span>
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
                     <div className="rounded-xl border border-white/20 bg-black/40 p-3">
                       <p className="text-sm font-semibold text-white mb-2">Ingredients</p>
                       <ul className="space-y-1">
@@ -1190,18 +1202,6 @@ export default function ChefsKitchenPage() {
                           <li key={i} className="text-sm text-white/70 flex items-center gap-2">
                             <span className="text-lime-500">•</span>
                             {ing.amount ?? ing.quantity} {ing.unit} {ing.name}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="rounded-xl border border-amber-500/30 bg-amber-900/20 p-3">
-                      <p className="text-sm font-semibold text-amber-300 mb-2">You'll need</p>
-                      <ul className="space-y-1">
-                        {resolveEquipment(cookMethod, generatedMeal).map((item, i) => (
-                          <li key={i} className="text-sm text-white/70 flex items-center gap-2">
-                            <span className="text-amber-400">•</span>
-                            {item}
                           </li>
                         ))}
                       </ul>

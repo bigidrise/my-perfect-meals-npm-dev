@@ -204,6 +204,7 @@ const FridgeRescuePage = () => {
   // Flavor preference toggle - Personal = use user's palate, Neutral = for others
   const [flavorPersonal, setFlavorPersonal] = useState(true);
   const [keepItSimple, setKeepItSimple] = useState(false);
+  const [cookMethod, setCookMethod] = useState("");
 
   // 🔐 SafetyGuard preflight system
   const {
@@ -447,6 +448,7 @@ const FridgeRescuePage = () => {
           strictMode: keepItSimple,
           dietAdaptOverride,
           userDietOverride,
+          cookMethod: cookMethod || undefined,
         }),
       });
 
@@ -965,6 +967,28 @@ const FridgeRescuePage = () => {
                   </p>
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Cooking method <span className="text-white/40 font-normal">(optional)</span>
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {["Stovetop", "Oven", "Air Fryer", "Grill", "Slow Cooker", "No-Cook"].map((method) => (
+                      <button
+                        key={method}
+                        type="button"
+                        onClick={() => setCookMethod(cookMethod === method ? "" : method)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
+                          cookMethod === method
+                            ? "bg-orange-600 border-orange-500 text-white"
+                            : "bg-black/40 border-white/20 text-white/70 hover:border-white/40"
+                        }`}
+                      >
+                        {method}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {isLoading || safetyChecking ? (
                   <div className="flex justify-center">
                     <ThinkingDots label={safetyChecking ? "Checking safety…" : "Rescuing your meal…"} />
@@ -1393,6 +1417,7 @@ const FridgeRescuePage = () => {
                                   ingredients: meal.ingredients || [],
                                   instructions: meal.instructions,
                                   imageUrl: meal.imageUrl,
+                                  cookMethod: cookMethod || undefined,
                                 };
                                 localStorage.setItem(
                                   "mpm_chefs_kitchen_meal",

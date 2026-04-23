@@ -72,7 +72,7 @@ export const KITCHEN_STUDIO_OPEN_COMPLETE = "";
 // Phase 2, Cooking narration scripts
 // Kitchen Cook Setup, spoken during equipment setup
 export const KITCHEN_COOK_SETUP =
-  "Let's make sure you have everything you need before we start.";
+  "Let's make sure you have everything you need. Check your equipment, then take a look at your ingredients — and when you're ready, let's start cooking.";
 
 // Kitchen Cook Ready, spoken when meal is ready to prepare
 export const KITCHEN_COOK_READY = "Your meal is ready. Let's start cooking!";
