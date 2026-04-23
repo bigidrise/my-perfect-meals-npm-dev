@@ -25,7 +25,7 @@ export function HowThisWorksLink({
   return (
     <button
       onClick={handleClick}
-      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-white/20 bg-white/5 hover:bg-white/10 transition-colors text-xs text-white/60 hover:text-white/80 ${className}`}
+      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/10 bg-gradient-to-r from-white/10 to-white/5 hover:from-white/15 hover:to-white/10 transition-colors text-xs font-medium text-white/90 hover:text-white ${className}`}
       aria-label={`Watch tutorial: ${label}`}
     >
       <Play className="h-3 w-3 fill-current" />
