@@ -451,10 +451,16 @@ async function ensureImage(
   mealType: string,
   useFallbackOnly: boolean = false
 ): Promise<string> {
-  // 1) Respect explicitly provided image URLs
-  if (meal.imageUrl && (meal.imageUrl.startsWith("http") || meal.imageUrl.startsWith("/"))) {
-    return meal.imageUrl;
+  // 1) Trust ONLY static local image paths (templates, fallbacks, snack assets).
+  //    AI-generated S3 URLs are NOT trusted here — they bypass the cache pipeline
+  //    and may serve stale wrong images (e.g., a salad for a smoothie).
+  //    S3/AI URLs fall through to generateImageCached which validates via versioned
+  //    cache keys, regenerating only when the cached version is stale or wrong.
+  const storedUrl = meal.imageUrl;
+  if (storedUrl && storedUrl.startsWith('/images/')) {
+    return storedUrl; // static local asset — always correct, no regeneration needed
   }
+  // AI-generated URLs (S3, temp DALL-E) intentionally fall through to cache pipeline.
 
   // 2) Premades / forced fallback: neutral placeholder ONLY
   if (useFallbackOnly) {

@@ -53,8 +53,97 @@ export interface DishType {
   textureDescription: string;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// TERMINAL-WORD PRIORITY CLASSIFIER
+// The LAST word(s) of a food name defines what it is.
+// "Greenberry Power Smoothie" → last word "smoothie" → beverage (not a salad).
+// This runs BEFORE the full keyword scan to avoid false collisions.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function classifyByTerminalWords(lastWord: string, lastTwo: string): DishType | null {
+  // Beverages — always a drink no matter what comes before
+  if (['smoothie', 'shake', 'juice', 'lemonade', 'latte', 'frappe', 'coffee', 'tea', 'drink', 'beverage', 'agua', 'tonic', 'cider', 'kombucha'].includes(lastWord)) {
+    return { type: "beverage", presentation: "in a tall glass", textureDescription: "blended or chilled beverage with vibrant color, finished and ready to drink" };
+  }
+  // Salads
+  if (lastWord === 'salad' || lastTwo === 'grain salad' || lastTwo === 'kale salad' || lastTwo === 'chopped salad') {
+    return { type: "salad", presentation: "wide bowl or plate with fresh layered ingredients", textureDescription: "fresh, vibrant, crisp vegetables and toppings, finished dish" };
+  }
+  // Soups
+  if (['soup', 'bisque', 'chowder', 'broth', 'ramen', 'pho', 'gazpacho'].includes(lastWord)) {
+    return { type: "bowl dish", presentation: "bowl filled with soup and steam rising", textureDescription: "hot liquid-based dish with vegetables and protein, finished dish" };
+  }
+  // Stews / chili / curry
+  if (['stew', 'chili', 'curry', 'ragù', 'ragu'].includes(lastWord)) {
+    return { type: "bowl dish", presentation: "deep rustic bowl filled with the dish", textureDescription: "thick, hearty, spoonable dish, finished and ready to eat" };
+  }
+  // Pasta / noodles
+  if (['pasta', 'noodles', 'spaghetti', 'linguine', 'penne', 'fettuccine', 'rigatoni', 'orzo', 'udon', 'ramen'].includes(lastWord)) {
+    return { type: "pasta dish", presentation: "wide plate or bowl with pasta and sauce", textureDescription: "coated noodles with sauce, protein, and herbs, finished dish" };
+  }
+  // Baked goods — cookies
+  if (['cookies', 'cookie', 'biscotti', 'shortbread'].includes(lastWord)) {
+    return { type: "baked dessert", presentation: "freshly baked cookies arranged on a plate or cooling rack", textureDescription: "golden brown baked cookies, finished dessert" };
+  }
+  // Baked goods — brownies / bars
+  if (['brownies', 'brownie', 'blondies', 'blondie', 'bars', 'bar'].includes(lastWord)) {
+    return { type: "baked dessert", presentation: "cut squares arranged on a plate", textureDescription: "fudgy baked bars, finished dessert" };
+  }
+  // Baked goods — muffins / cupcakes
+  if (['muffins', 'muffin', 'cupcakes', 'cupcake'].includes(lastWord)) {
+    return { type: "baked dessert", presentation: "freshly baked muffins on a plate", textureDescription: "domed golden-topped baked goods, finished dessert" };
+  }
+  // Baked goods — bread / loaf
+  if (['bread', 'loaf', 'rolls', 'roll', 'baguette', 'scone', 'scones'].includes(lastWord) || lastTwo === 'banana bread' || lastTwo === 'corn bread') {
+    return { type: "baked good", presentation: "sliced loaf on a cutting board or plate", textureDescription: "golden-crusted bread with moist interior, finished baked good" };
+  }
+  // Cake / pie / tart
+  if (['cake', 'cheesecake', 'pie', 'tart', 'cobbler', 'crisp', 'crumble', 'galette', 'torte'].includes(lastWord)) {
+    return { type: "baked dessert", presentation: "sliced or whole dessert served on a plate", textureDescription: "golden pastry with visible filling, finished dessert" };
+  }
+  // Sandwiches / wraps / handheld
+  if (['sandwich', 'wrap', 'taco', 'tacos', 'burrito', 'quesadilla', 'sub', 'hoagie', 'panini'].includes(lastWord)) {
+    return { type: "handheld", presentation: "on a plate, sliced or folded", textureDescription: "filled handheld food with visible ingredients, finished dish" };
+  }
+  // Burger
+  if (lastWord === 'burger' || lastTwo === 'burger bowl') {
+    return { type: "burger", presentation: "on a plate or board", textureDescription: "stacked burger with visible layers, finished dish" };
+  }
+  // Bowl
+  if (lastWord === 'bowl') {
+    return { type: "bowl dish", presentation: "served in a bowl", textureDescription: "composed bowl with protein, grains, and vegetables, finished dish" };
+  }
+  // Pizza
+  if (lastWord === 'pizza' || lastWord === 'flatbread') {
+    return { type: "pizza", presentation: "flat circular pizza on a wooden board or plate", textureDescription: "topped pizza with melted cheese and toppings, finished dish" };
+  }
+  // Stir fry
+  if (lastWord === 'fry' && lastTwo === 'stir fry') {
+    return { type: "stir-fry", presentation: "plate or shallow bowl with sautéed ingredients", textureDescription: "sautéed ingredients with slight gloss, finished dish" };
+  }
+  // Oatmeal / porridge
+  if (['oatmeal', 'porridge', 'oats', 'congee'].includes(lastWord)) {
+    return { type: "bowl dish", presentation: "bowl of oatmeal with toppings", textureDescription: "creamy thick porridge with visible toppings, finished dish" };
+  }
+  // Pudding / mousse
+  if (['pudding', 'mousse', 'custard', 'flan', 'parfait'].includes(lastWord)) {
+    return { type: "dessert", presentation: "served in a glass or bowl, garnished", textureDescription: "creamy set dessert, finished and plated" };
+  }
+
+  return null;
+}
+
 export function detectDishType(name: string): DishType {
   const lower = name.toLowerCase();
+
+  // ── TERMINAL-WORD PRIORITY (right-to-left) ──────────────────────────────────
+  // The last word(s) of a dish name define its type. Run this FIRST.
+  const words = lower.trim().split(/\s+/).filter(Boolean);
+  const lastWord = words[words.length - 1] || '';
+  const lastTwo = words.slice(-2).join(' ');
+  const terminalResult = classifyByTerminalWords(lastWord, lastTwo);
+  if (terminalResult) return terminalResult;
+  // ── FALLBACK: keyword-anywhere scan ─────────────────────────────────────────
 
   if (lower.includes("chili")) {
     return {
