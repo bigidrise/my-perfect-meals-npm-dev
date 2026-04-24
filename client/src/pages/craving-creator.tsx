@@ -48,7 +48,6 @@ import {
   isAllergyRelatedError,
   formatAllergyAlertDescription,
 } from "@/utils/allergyAlert";
-import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
@@ -771,10 +770,6 @@ export default function CravingCreator() {
             </h1>
 
             <div className="flex-grow" />
-            <QuickTourButton
-              onClick={quickTour.openTour}
-              className="flex-shrink-0"
-            />
           </div>
         </div>
         </MobileHeaderGuard>
