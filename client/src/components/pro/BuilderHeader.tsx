@@ -1,8 +1,6 @@
 import { useProClient } from "@/contexts/ProClientContext";
 import { useLocation } from "wouter";
 import { User2, LogOut } from "lucide-react";
-import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
-import { QuickTourButton } from "@/components/guided/QuickTourButton";
 
 export interface ProtocolBadge {
   label: string;
@@ -33,10 +31,6 @@ export function BuilderHeader({ title, onOpenTour, clientId, protocols }: Builde
           <h1 className="text-lg font-bold text-white flex-1 min-w-0 truncate">
             {title}
           </h1>
-          <div className="flex items-center gap-2">
-            <MedicalSourcesInfo asPillButton />
-            <QuickTourButton onClick={onOpenTour} />
-          </div>
         </div>
 
         {isInStudioClientContext && (
