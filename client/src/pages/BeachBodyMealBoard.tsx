@@ -1050,7 +1050,7 @@ export default function BeachBodyMealBoard() {
                 )}
               </Button>
 
-              <HowThisWorksLink videoUrl="https://youtube.com/placeholder-beachbody" label="How builders work" />
+              <HowThisWorksLink label="How builders work" />
 
               <button
                 type="button"
