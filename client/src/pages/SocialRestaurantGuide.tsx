@@ -57,7 +57,6 @@ import {
   getUserMedicalProfile,
 } from "@/utils/medicalPersonalization";
 import PhaseGate from "@/components/PhaseGate";
-import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { getLocation } from "@/lib/capacitorLocation";
@@ -630,10 +629,6 @@ export default function RestaurantGuidePage() {
             </h1>
 
             <div className="flex-grow" />
-            <QuickTourButton
-              onClick={quickTour.openTour}
-              className="flex-shrink-0"
-            />
           </div>
         </div>
         </MobileHeaderGuard>
