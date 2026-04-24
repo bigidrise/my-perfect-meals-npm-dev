@@ -171,6 +171,9 @@ export default function ChefsKitchenPage() {
   const [externalMeal] = useState<GeneratedMeal | null>(initialState.meal);
 
   useEffect(() => {
+    if (initialState.mode === "prepare") {
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
     localStorage.removeItem("mpm_chefs_kitchen_external_prepare");
     localStorage.removeItem("mpm_chefs_kitchen_prep");
   }, []);

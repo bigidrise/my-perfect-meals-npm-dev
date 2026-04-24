@@ -53,6 +53,7 @@ export default function MealCard({ recipe, compact = false, onSelect, onViewReci
     localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
     
     setLocation("/lifestyle/chefs-kitchen");
+    window.scrollTo({ top: 0, behavior: "instant" });
   };
   
   if (!recipe) {
