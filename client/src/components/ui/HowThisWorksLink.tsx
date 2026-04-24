@@ -1,6 +1,6 @@
 import { Play } from "lucide-react";
 
-const HOW_BUILDERS_WORK_VIDEO = "https://youtube.com/shorts/o_5zDJJ_U84?feature=share";
+const HOW_BUILDERS_WORK_VIDEO = "https://youtube.com/shorts/g85Pkiywrpk?feature=share";
 
 interface HowThisWorksLinkProps {
   videoUrl?: string;
