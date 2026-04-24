@@ -6,13 +6,6 @@ interface HowThisWorksLinkProps {
   className?: string;
 }
 
-/**
- * HowThisWorksLink
- *
- * A small, subtle pill button that opens a tutorial video in a new tab.
- * Placed just below the page title in each builder.
- * Non-intrusive — visible but never dominant.
- */
 export function HowThisWorksLink({
   videoUrl,
   label = "How this works",
@@ -25,11 +18,23 @@ export function HowThisWorksLink({
   return (
     <button
       onClick={handleClick}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/10 bg-gradient-to-r from-white/10 to-white/5 hover:from-white/15 hover:to-white/10 transition-colors text-xs font-medium text-white/90 hover:text-white ${className}`}
+      className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-full font-semibold text-sm text-white transition-all active:scale-95 ${className}`}
+      style={{
+        background: "linear-gradient(135deg, #f97316, #ea580c)",
+        boxShadow: "0 0 0 0 rgba(249,115,22,0.7)",
+        animation: "howItWorksPulse 2s ease-in-out infinite",
+      }}
       aria-label={`Watch tutorial: ${label}`}
     >
-      <Play className="h-3 w-3 fill-current" />
+      <Play className="h-3.5 w-3.5 fill-white flex-shrink-0" />
       <span>{label}</span>
+      <style>{`
+        @keyframes howItWorksPulse {
+          0%   { box-shadow: 0 0 0 0 rgba(249,115,22,0.7); }
+          60%  { box-shadow: 0 0 0 8px rgba(249,115,22,0); }
+          100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
+        }
+      `}</style>
     </button>
   );
 }
