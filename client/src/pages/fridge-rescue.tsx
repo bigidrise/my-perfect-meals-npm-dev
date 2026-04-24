@@ -56,7 +56,6 @@ import TranslateToggle from "@/components/TranslateToggle";
 import PhaseGate from "@/components/PhaseGate";
 import { LockedBuilderCard } from "@/components/upgrade/LockedBuilderCard";
 import { useCopilot } from "@/components/copilot/CopilotContext";
-import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useStarchGuardPrecheck } from "@/hooks/useStarchGuardPrecheck";
@@ -746,10 +745,6 @@ const FridgeRescuePage = () => {
             </h1>
 
             <div className="flex-grow" />
-            <QuickTourButton
-              onClick={quickTour.openTour}
-              className="flex-shrink-0"
-            />
           </div>
         </div>
         </MobileHeaderGuard>
