@@ -1096,7 +1096,7 @@ export default function GLP1MealBuilder() {
               )}
             </Button>
 
-            <HowThisWorksLink videoUrl="https://youtube.com/placeholder-glp1" label="How builders work" />
+            <HowThisWorksLink label="How builders work" />
 
             <button
               type="button"

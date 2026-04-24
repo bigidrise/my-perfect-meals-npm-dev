@@ -1347,7 +1347,7 @@ export default function AntiInflammatoryMenuBuilder() {
                 )}
               </Button>
 
-              <HowThisWorksLink videoUrl="https://youtube.com/placeholder-antiinflammatory" label="How builders work" />
+              <HowThisWorksLink label="How builders work" />
 
               <button
                 type="button"

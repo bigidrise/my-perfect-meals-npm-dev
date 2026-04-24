@@ -1615,7 +1615,7 @@ export default function MacroCounter() {
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
           <div className="flex justify-start mb-2">
-            <HowThisWorksLink videoUrl="https://youtube.com/placeholder1" label="How this works" />
+            <HowThisWorksLink label="How this works" />
           </div>
 
           {/* Scientific Sources - Apple App Store Compliance (must be visible immediately) */}

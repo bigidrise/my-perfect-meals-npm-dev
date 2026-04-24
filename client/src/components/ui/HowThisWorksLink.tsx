@@ -1,13 +1,15 @@
 import { Play } from "lucide-react";
 
+const HOW_BUILDERS_WORK_VIDEO = "https://youtube.com/shorts/o_5zDJJ_U84?feature=share";
+
 interface HowThisWorksLinkProps {
-  videoUrl: string;
+  videoUrl?: string;
   label?: string;
   className?: string;
 }
 
 export function HowThisWorksLink({
-  videoUrl,
+  videoUrl = HOW_BUILDERS_WORK_VIDEO,
   label = "How this works",
   className = "",
 }: HowThisWorksLinkProps) {

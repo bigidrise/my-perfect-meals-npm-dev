@@ -1220,7 +1220,7 @@ export default function DiabeticMenuBuilder() {
                 )}
               </Button>
 
-              <HowThisWorksLink videoUrl="https://youtube.com/placeholder-diabetic" label="How builders work" />
+              <HowThisWorksLink label="How builders work" />
 
               {/* Duplicate (RIGHT) */}
               <button
