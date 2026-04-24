@@ -12,6 +12,7 @@ import pLimit from "p-limit";
 import { convertToUserFriendlyUnits } from "../utils/unitConverter";
 import { generateMealFromPrompt } from "./universalMealGenerator";
 import { buildDishTypeHint, getSemanticFallback } from "./mealImageGenerator";
+import { normalizeMealName } from "./mealNameNormalizer";
 import { getGlycemicSettings } from "./glycemicSettingsService";
 import * as telemetry from "./aiTelemetry";
 import type { DebugMetadata } from "./aiTelemetry";
@@ -1136,9 +1137,10 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
         let imageUrl: string | null = null;
         try {
           const { generateImage } = await import("./imageService");
+          const _imageName = normalizeMealName(selected.name);
           imageUrl = await generateImage({
-            name: selected.name,
-            description: buildDishTypeHint(selected.name),
+            name: _imageName,
+            description: buildDishTypeHint(_imageName),
             type: 'meal',
             style: 'kid-friendly',
             ingredients: selected.ingredients.map(ing => ing.name),
@@ -1491,9 +1493,10 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
   let imageUrl: string | null = null;
   try {
     const { generateImage } = await import("./imageService");
+    const _imageName = normalizeMealName(selected.name);
     imageUrl = await generateImage({
-      name: selected.name,
-      description: buildDishTypeHint(selected.name),
+      name: _imageName,
+      description: buildDishTypeHint(_imageName),
       type: 'meal',
       style: isKidMeal ? 'kid-friendly' : 'homemade',
       ingredients: selected.ingredients.map(ing => ing.name),

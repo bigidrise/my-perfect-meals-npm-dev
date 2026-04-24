@@ -64,6 +64,7 @@ import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 import { macroAudit, macroAuditPrompt, macroAuditCache } from '../utils/macroAuditLogger';
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from './behavioralMemoryService';
 import { buildDishTypeHint, getSemanticFallback, buildStableCacheKey, generateMealImageUnified } from './mealImageGenerator';
+import { normalizeMealName } from './mealNameNormalizer';
 import { mealImageCache } from '../db/schema/mealImageCache';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -79,7 +80,9 @@ async function generateImageCached(
   style: string,
   extraParams?: Record<string, any>
 ): Promise<string | null> {
-  const cacheKey = buildStableCacheKey(name, ingredients);
+  // NORMALIZATION — applied before cache key derivation and prompt construction
+  const name_ = normalizeMealName(name);
+  const cacheKey = buildStableCacheKey(name_, ingredients);
 
   try {
     const [dbRow] = await db
@@ -89,20 +92,20 @@ async function generateImageCached(
       .limit(1);
 
     if (dbRow) {
-      console.log(`🗄️ [pipeline] DB cache hit for: ${name}`);
+      console.log(`🗄️ [pipeline] DB cache hit for: ${name_}`);
       return dbRow.imageUrl;
     }
   } catch (e) {
-    console.warn(`⚠️ [pipeline] DB cache read failed for "${name}":`, e);
+    console.warn(`⚠️ [pipeline] DB cache read failed for "${name_}":`, e);
   }
 
-  const dishHint = buildDishTypeHint(name);
+  const dishHint = buildDishTypeHint(name_);
 
   let imageUrl: string | null = null;
   try {
     const result = await Promise.race([
       generateImage({
-        name,
+        name: name_,
         description: dishHint,
         type,
         style,
@@ -115,20 +118,20 @@ async function generateImageCached(
     ]);
     imageUrl = result ?? null;
   } catch (e: any) {
-    console.warn(`⚠️ [pipeline] generateImage failed for "${name}": ${e.message}`);
+    console.warn(`⚠️ [pipeline] generateImage failed for "${name_}": ${e.message}`);
   }
 
   if (!imageUrl) {
-    return getSemanticFallback(name);
+    return getSemanticFallback(name_);
   }
 
   try {
     await db
       .insert(mealImageCache)
-      .values({ cacheKey, imageUrl, mealName: name, promptUsed: dishHint })
+      .values({ cacheKey, imageUrl, mealName: name_, promptUsed: dishHint })
       .onConflictDoNothing();
   } catch (e) {
-    console.warn(`⚠️ [pipeline] DB cache write failed for "${name}":`, e);
+    console.warn(`⚠️ [pipeline] DB cache write failed for "${name_}":`, e);
   }
 
   return imageUrl;

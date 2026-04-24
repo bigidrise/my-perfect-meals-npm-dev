@@ -12,8 +12,9 @@ import crypto from 'crypto';
  * - v1: Original implementation
  * - v2: Added Canva-style prompts with meal context
  * - v3: Force refresh after production cache mismatch (Dec 2024)
+ * - v4: Global image stabilization — normalization layer + baked goods detection + finished-dish prompts (Apr 2026)
  */
-export const MEAL_IMAGE_CACHE_VERSION = 'v3';
+export const MEAL_IMAGE_CACHE_VERSION = 'v4';
 
 export interface MealImageCacheKeyInput {
   name: string;

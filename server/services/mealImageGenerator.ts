@@ -15,6 +15,7 @@ import { mealImageCache } from '../db/schema/mealImageCache';
 import { eq } from 'drizzle-orm';
 import { getStaticSnackImage, isLikelySnack } from '../../shared/staticSnackMappings';
 import { ingestImageToPermanentStorage } from './imageLifecycle';
+import { normalizeMealName } from './mealNameNormalizer';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // URL TYPE HELPERS — enforce hard boundaries on what enters the cache
@@ -160,18 +161,88 @@ export function detectDishType(name: string): DishType {
       textureDescription: "blended beverage with vibrant color",
     };
   }
-  if (lower.includes("grilled") || lower.includes("roasted") || lower.includes("baked") || lower.includes("seared")) {
+  if (lower.includes("grilled") || lower.includes("roasted") || lower.includes("seared")) {
     return {
       type: "plated entree",
       presentation: "plated on a clean white plate",
       textureDescription: "cooked protein or vegetables with golden, caramelized exterior",
     };
   }
+  if (lower.includes("cookie") || lower.includes("cookies") || lower.includes("biscotti") || lower.includes("shortbread")) {
+    return {
+      type: "baked dessert",
+      presentation: "freshly baked cookies arranged on a plate or cooling rack",
+      textureDescription: "golden brown baked cookies with visible chips or texture, finished dessert",
+    };
+  }
+  if (lower.includes("brownie") || lower.includes("brownies") || lower.includes("blondie") || lower.includes("blondies")) {
+    return {
+      type: "baked dessert",
+      presentation: "cut brownie or blondie squares arranged on a plate",
+      textureDescription: "fudgy, dense baked bars with a crackly top, finished dessert",
+    };
+  }
+  if (lower.includes("muffin") || lower.includes("muffins") || lower.includes("cupcake") || lower.includes("cupcakes")) {
+    return {
+      type: "baked dessert",
+      presentation: "freshly baked muffins or cupcakes on a plate or in a tray",
+      textureDescription: "domed, golden-topped baked goods, finished and ready to eat",
+    };
+  }
+  if (lower.includes("cake") || lower.includes("cheesecake") || lower.includes("bundt") || lower.includes("torte")) {
+    return {
+      type: "baked dessert",
+      presentation: "sliced cake served on a plate",
+      textureDescription: "layered or whole cake, finished dessert, plated and ready to serve",
+    };
+  }
+  if (lower.includes("bread") || lower.includes("loaf") || lower.includes("banana bread")) {
+    return {
+      type: "baked good",
+      presentation: "sliced loaf of bread on a cutting board or plate",
+      textureDescription: "golden-crusted bread with a moist interior, finished baked good",
+    };
+  }
+  if (lower.includes("scone") || lower.includes("biscuit") || lower.includes("roll")) {
+    return {
+      type: "baked good",
+      presentation: "freshly baked scones or rolls on a plate",
+      textureDescription: "golden, flaky baked goods, finished and ready to eat",
+    };
+  }
+  if (lower.includes("pie") || lower.includes("tart") || lower.includes("cobbler") || lower.includes("crisp") || lower.includes("crumble") || lower.includes("galette")) {
+    return {
+      type: "baked dessert",
+      presentation: "sliced or whole pie or tart served on a plate",
+      textureDescription: "golden pastry crust with fruit or cream filling, finished dessert",
+    };
+  }
+  if (lower.includes("energy bar") || lower.includes("protein bar") || lower.includes("granola bar") || lower.includes("power bar")) {
+    return {
+      type: "snack bar",
+      presentation: "energy bars sliced and arranged on a plate or board",
+      textureDescription: "dense, chewy bars with visible nuts or seeds, finished snack",
+    };
+  }
+  if (lower.includes("pudding") || lower.includes("mousse") || lower.includes("custard") || lower.includes("flan") || lower.includes("panna cotta")) {
+    return {
+      type: "dessert",
+      presentation: "served in a glass or bowl, garnished",
+      textureDescription: "creamy, set dessert with smooth texture, finished and plated",
+    };
+  }
+  if (lower.includes("baked")) {
+    return {
+      type: "baked dish",
+      presentation: "plated on a clean white plate",
+      textureDescription: "oven-baked dish with golden, caramelized exterior, finished and ready to eat",
+    };
+  }
 
   return {
     type: "plated meal",
     presentation: "served on a plate",
-    textureDescription: "balanced, composed cooked meal",
+    textureDescription: "balanced, composed cooked meal, finished and ready to eat",
   };
 }
 
@@ -196,10 +267,11 @@ function buildMealImagePrompt(mealName: string, ingredients: string[]): string {
   const topIngredients = ingredients.slice(0, 5).join(", ");
 
   return `A photorealistic ${dish.presentation} of ${mealName}.
-This is a ${dish.textureDescription}.
+This is a finished dish, ready to eat, plated and served — ${dish.textureDescription}.
 Made with ${topIngredients || "fresh whole ingredients"}.
 
-The dish must clearly look like ${mealName}. Do not generate any unrelated foods such as pizza, pasta, burgers, sandwiches, or desserts unless that is what the dish actually is.
+CRITICAL: Show ONLY the finished, cooked, plated dish — NOT raw ingredients, NOT uncooked components, NOT ingredient bowls.
+The dish must clearly look like ${mealName}. Do not generate any unrelated foods.
 
 Style: cinematic, high-detail, natural lighting, realistic food photography.
 Camera: 3/4 angle or overhead depending on dish type.
@@ -248,7 +320,7 @@ export function getSemanticFallback(mealName: string): string {
 // Bump "v2", "v3" etc. to invalidate all cached images after prompt changes.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 
 export function buildStableCacheKey(mealName: string, ingredients: string[]): string {
   const normalizedName = mealName.toLowerCase().trim();
@@ -309,7 +381,10 @@ export interface GeneratedImage {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function generateMealImage(request: MealImageRequest): Promise<GeneratedImage> {
-  const { mealName, ingredients, mealType } = request;
+  // NORMALIZATION — must happen before cache key derivation and before prompt construction
+  const normalizedName = normalizeMealName(request.mealName);
+  const { ingredients, mealType } = request;
+  const mealName = normalizedName;
   const cacheKey = buildStableCacheKey(mealName, ingredients);
 
   // ── SNACK FIREWALL ──────────────────────────────────────────────────────────
@@ -562,12 +637,15 @@ export async function generateMealImageUnified(
     return getSemanticFallback("meal");
   }
 
+  // NORMALIZATION — applied before cache key and prompt construction
+  const normalizedName = normalizeMealName(mealName);
+
   const ingredientNames = ingredients
     .map(i => typeof i === "string" ? i : (i.name || i.item || ""))
     .filter(Boolean);
 
   const result = await generateMealImage({
-    mealName,
+    mealName: normalizedName,
     ingredients: ingredientNames,
   });
 
