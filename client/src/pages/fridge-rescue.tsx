@@ -62,6 +62,8 @@ import { useStarchGuardPrecheck } from "@/hooks/useStarchGuardPrecheck";
 import { StarchGuardIntercept } from "@/components/StarchGuardIntercept";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet, filterMealsByDiet } from "@/utils/dietaryFilter";
+import { getEffectiveDietPreference } from "@/utils/getEffectiveDietPreference";
+import { DietOverrideControl } from "@/components/ui/DietOverrideControl";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import MealClassificationPill from "@/components/MealClassificationPill";
 import KosherProTip from "@/components/KosherProTip";
@@ -272,6 +274,8 @@ const FridgeRescuePage = () => {
     activeDiet,
   } = useDietGuardPrecheck();
   const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(null);
+  const [dietOverrideEnabled, setDietOverrideEnabled] = useState(false);
+  const [dietOverrideValue, setDietOverrideValue] = useState("");
   const [pendingFridgeMeal, setPendingFridgeMeal] = useState<any>(null);
   const {
     alert: starchAlert,
@@ -417,8 +421,8 @@ const FridgeRescuePage = () => {
       }
     }
 
-    // 🥗 Diet Guard precheck — advisory, fires at generate time
-    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
+    // 🥗 Diet Guard precheck — skip entirely when user has explicitly overridden diet
+    if (!dietOverrideEnabled && !skipPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
       const dietOk = checkDiet(ingredients);
       if (!dietOk) {
         return; // DietGuardIntercept will show inline
@@ -441,7 +445,7 @@ const FridgeRescuePage = () => {
             .map((i) => i.trim())
             .filter((i) => i),
           servings,
-          dietaryRestrictions: normalizeDiet(user?.dietaryRestrictions),
+          dietaryRestrictions: getEffectiveDietPreference(user?.dietaryRestrictions, dietOverrideValue, dietOverrideEnabled),
           safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: hasActiveOverride ? overrideToken : undefined,
           skipPalate: !flavorPersonal,
@@ -501,11 +505,14 @@ const FridgeRescuePage = () => {
 
       // 🥗 Scenario A: server already flagged diet adaptation — accept all meals, show soft notice
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
+      const effectiveDiet = normalizeDiet(
+        getEffectiveDietPreference(user?.dietaryRestrictions, dietOverrideValue, dietOverrideEnabled)
+      );
       if (data.dietAdapted) {
-        setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
+        setDietAdaptedNotice(data.dietNotice || `Adapted for your ${effectiveDiet} diet.`);
         clearDietAlert();
-      } else if (!skipPreflight && activeDiet) {
-        // 🥗 Scenario B fallback — only fires on initial generate, never on "let chef adapt" retry
+      } else if (!dietOverrideEnabled && !skipPreflight && activeDiet) {
+        // 🥗 Scenario B fallback — only fires on initial generate when using onboarding diet
         const compliantMeals = filterMealsByDiet(userDiet, mealsArray, (m) => m);
         if (compliantMeals.length === 0) {
           stopProgressTicker();
@@ -885,6 +892,18 @@ const FridgeRescuePage = () => {
                     }
                   }}
                   className="mt-3"
+                />
+
+                {/* Diet Override — situational cooking without breaking personal plan */}
+                <DietOverrideControl
+                  overrideEnabled={dietOverrideEnabled}
+                  overrideDiet={dietOverrideValue}
+                  onToggle={(enabled) => {
+                    setDietOverrideEnabled(enabled);
+                    if (!enabled) clearDietAlert();
+                  }}
+                  onDietChange={setDietOverrideValue}
+                  className="mt-1"
                 />
 
                 <div>
