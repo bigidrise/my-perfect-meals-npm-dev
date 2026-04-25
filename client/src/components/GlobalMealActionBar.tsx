@@ -71,14 +71,17 @@ export function GlobalMealActionBar({
       )}
 
       {onFavorites && (
-        <PillButton
-          onClick={onFavorites}
-          disabled={disabled}
-          title="Pick from My Favorites"
-        >
-          <Star className="h-3 w-3 mr-1 fill-red-500 text-red-500" />
-          My Favorites
-        </PillButton>
+        <div className="inline-flex flex-col items-center gap-1">
+          <PillButton
+            onClick={onFavorites}
+            disabled={disabled}
+            title="Pick from My Favorites"
+            className="px-3"
+          >
+            <Star className="h-3 w-3 fill-red-500 text-red-500" />
+          </PillButton>
+          <span className="text-xs font-semibold text-white/70 tracking-wide">My Favorites</span>
+        </div>
       )}
 
       <AddOwnMealButton

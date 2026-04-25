@@ -1,5 +1,5 @@
 import { ChefHat } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PillButton } from "@/components/ui/pill-button";
 
 interface SnackCreatorButtonProps {
   onClick: () => void;
@@ -9,15 +9,11 @@ interface SnackCreatorButtonProps {
 
 export function SnackCreatorButton({ onClick, disabled, className }: SnackCreatorButtonProps) {
   return (
-    <Button
-      size="sm"
-      variant="ghost"
-      className={`text-white/80 hover:bg-black/50 border border-emerald-400/30 text-xs font-medium flex items-center gap-1 flash-border ${className || ''}`}
-      onClick={onClick}
-      disabled={disabled}
-    >
-      <ChefHat className="h-3 w-3" />
-      Create with Chef
-    </Button>
+    <div className={`inline-flex flex-col items-center gap-1 ${className || ""}`}>
+      <PillButton onClick={onClick} disabled={disabled} className="px-3">
+        <ChefHat className="h-3 w-3" />
+      </PillButton>
+      <span className="text-xs font-semibold text-white/70 tracking-wide">Create with Chef</span>
+    </div>
   );
 }
