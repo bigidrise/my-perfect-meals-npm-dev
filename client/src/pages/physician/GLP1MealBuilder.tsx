@@ -1096,7 +1096,7 @@ export default function GLP1MealBuilder() {
               )}
             </Button>
 
-            <HowThisWorksLink label="How builders work" />
+            <HowThisWorksLink />
 
             <button
               type="button"
