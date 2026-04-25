@@ -1050,7 +1050,7 @@ export default function BeachBodyMealBoard() {
                 )}
               </Button>
 
-              <HowThisWorksLink label="How builders work" />
+              <HowThisWorksLink />
 
               <button
                 type="button"
