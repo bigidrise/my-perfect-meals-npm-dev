@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PillButton } from "@/components/ui/pill-button";
 import { JustDescribeItModal } from "@/components/JustDescribeItModal";
 import { StarchGuardIntercept } from "@/components/StarchGuardIntercept";
 import { useStarchGuardPrecheck, StarchGuardDecision } from "@/hooks/useStarchGuardPrecheck";
@@ -116,16 +117,17 @@ export function AddOwnMealButton({ slot, onSave, onImageReady, variant = "icon",
 
   return (
     <>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setPhase("describing")}
-        className="h-6 w-6 p-0 bg-black hover:bg-zinc-900 text-white border border-white/30"
-        disabled={disabled}
-        data-testid={`button-add-own-${slot}`}
-      >
-        <Plus className="h-3 w-3" />
-      </Button>
+      <div className="inline-flex flex-col items-center gap-1">
+        <PillButton
+          onClick={() => setPhase("describing")}
+          disabled={disabled}
+          data-testid={`button-add-own-${slot}`}
+          className="px-3"
+        >
+          <Plus className="h-3 w-3" />
+        </PillButton>
+        <span className="text-xs font-semibold text-white/70 tracking-wide">Just Describe It</span>
+      </div>
 
       <Overlays
         phase={phase}
