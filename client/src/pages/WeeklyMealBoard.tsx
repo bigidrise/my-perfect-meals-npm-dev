@@ -1391,7 +1391,7 @@ export default function WeeklyMealBoard() {
                 >
                   {justSaved ? <Check className="h-3 w-3" /> : <Save className="h-3 w-3" />}
                 </PillButton>
-                <span className="text-[10px] font-medium text-white/50 tracking-wide">
+                <span className="text-xs font-semibold text-white/70 tracking-wide">
                   {saving ? "Saving…" : justSaved ? "Saved ✓" : "Save Plan"}
                 </span>
               </div>
@@ -1406,7 +1406,7 @@ export default function WeeklyMealBoard() {
                 >
                   <Calendar className="h-3 w-3" />
                 </PillButton>
-                <span className="text-[10px] font-medium text-white/50 tracking-wide">Duplicate</span>
+                <span className="text-xs font-semibold text-white/70 tracking-wide">Duplicate</span>
               </div>
             </div>
           </div>
