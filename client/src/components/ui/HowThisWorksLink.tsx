@@ -29,7 +29,7 @@ export function HowThisWorksLink({
       >
         <Play className="h-3 w-3 fill-white" />
       </PillButton>
-      <span className="text-[10px] font-medium text-white/50 tracking-wide">
+      <span className="text-xs font-semibold text-white/70 tracking-wide">
         {label}
       </span>
     </div>
