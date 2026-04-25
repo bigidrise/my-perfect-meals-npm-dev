@@ -1410,7 +1410,7 @@ export default function WeeklyMealBoard() {
                 )}
               </Button>
 
-              <HowThisWorksLink label="How builders work" />
+              <HowThisWorksLink />
 
               <button
                 type="button"

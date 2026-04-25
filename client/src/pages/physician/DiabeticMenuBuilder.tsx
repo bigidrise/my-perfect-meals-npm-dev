@@ -1220,7 +1220,7 @@ export default function DiabeticMenuBuilder() {
                 )}
               </Button>
 
-              <HowThisWorksLink label="How builders work" />
+              <HowThisWorksLink />
 
               {/* Duplicate (RIGHT) */}
               <button

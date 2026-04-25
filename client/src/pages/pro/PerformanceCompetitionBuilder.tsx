@@ -998,7 +998,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 )}
               </Button>
 
-              <HowThisWorksLink label="How builders work" />
+              <HowThisWorksLink />
 
               <button
                 type="button"

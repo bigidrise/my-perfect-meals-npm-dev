@@ -1347,7 +1347,7 @@ export default function AntiInflammatoryMenuBuilder() {
                 )}
               </Button>
 
-              <HowThisWorksLink label="How builders work" />
+              <HowThisWorksLink />
 
               <button
                 type="button"
