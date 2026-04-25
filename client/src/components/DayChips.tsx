@@ -28,7 +28,7 @@ export function DayChips({ weekDates, activeDayISO, onDayChange }: DayChipsProps
             >
               {dateShort}
             </button>
-            <span className="text-[10px] font-medium text-white/50 tracking-wide">
+            <span className="text-xs font-semibold text-white/70 tracking-wide">
               {dayName}
             </span>
           </div>
