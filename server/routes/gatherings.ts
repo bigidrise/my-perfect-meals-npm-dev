@@ -2,6 +2,12 @@
 // My Gatherings — multi-course meal generation with 4 hard guardrails
 import express, { Request, Response } from "express";
 import { z } from "zod";
+import {
+  loadUserProtocolEnvelope,
+  enforceBeforeGenerate,
+  scanGeneratedOutput,
+  buildGuestEnvelope,
+} from "../services/protocolEnvelope";
 
 const router = express.Router();
 
@@ -218,6 +224,7 @@ function buildCoursePrompt(
   alreadyGeneratedNames: string[] = [],
   alreadyGeneratedTypes: string[] = [],
   alreadyGeneratedMethods: string[] = [],
+  protocolBlock: string = "",
 ): string {
   const lines = [
     `You are generating the ${COURSE_LABELS[courseType]} for a multi-course meal.`,
@@ -227,8 +234,15 @@ function buildCoursePrompt(
     `SERVING SIZE: ${servingSize} people`,
     `FLAVOR PROFILE SEED: ${flavorSeed}`,
     ``,
-    `COURSE ROLE — MUST BE ENFORCED:`,
   ];
+
+  // Inject medical + dietary protocol block high in the prompt so it is a hard constraint
+  if (protocolBlock) {
+    lines.push(protocolBlock);
+    lines.push(``);
+  }
+
+  lines.push(`COURSE ROLE — MUST BE ENFORCED:`);
 
   if (courseType === "appetizer") lines.push(`- This is the APPETIZER: small, light, and designed to open the meal — NOT a main dish`);
   if (courseType === "main")      lines.push(`- This is the MAIN COURSE: protein-centered, substantial, the centerpiece of the entire meal`);
@@ -423,32 +437,29 @@ router.post("/generate", async (req: Request, res: Response) => {
   };
 
   console.log(
-    `🎪 [UltimateExperience] id=${experienceContext.id} | courses=[${courses.join(",")}] | ${situation}${eventType ? `/${eventType}` : ""} | serving=${servingSize} | selectedDishes=${selectedDishes.length} | familySpecialty=${!!familySpecialty}`,
+    `🎪 [Gatherings] id=${experienceContext.id} | courses=[${courses.join(",")}] | ${situation}${eventType ? `/${eventType}` : ""} | serving=${servingSize} | selectedDishes=${selectedDishes.length} | familySpecialty=${!!familySpecialty}`,
   );
 
-  // Merge user dietary profile from DB if userId provided
+  // ── Load full protocol envelope (dietary + medical + allergies + avoidances) ──
   let userDiet = [...(reqDiet || [])];
   let userAllergies = [...(reqAllergies || [])];
 
-  if (userId) {
-    try {
-      const { db } = await import("../db");
-      const { users } = await import("@shared/schema");
-      const { eq } = await import("drizzle-orm");
-      const [user] = await db
-        .select({ dietaryRestrictions: users.dietaryRestrictions })
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
-      if (user?.dietaryRestrictions) {
-        userDiet = [
-          ...new Set([...userDiet, ...(user.dietaryRestrictions as string[])]),
-        ];
-      }
-    } catch (err) {
-      console.warn("⚠️ [UltimateExperience] Could not fetch user profile:", err);
-    }
-  }
+  const gatheringsEnvelope = (userId && userId !== "1")
+    ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+    : buildGuestEnvelope();
+
+  // Merge envelope dietary identity + allergies into working arrays
+  userDiet = [...new Set([...userDiet, ...gatheringsEnvelope.dietaryIdentity])];
+  userAllergies = [...new Set([...userAllergies, ...gatheringsEnvelope.allergies])];
+
+  // Derive the combined prompt block (diet + medical hard limits + medical optimization)
+  const gatheringsProtocolBlock = enforceBeforeGenerate(gatheringsEnvelope, {
+    generatorName: "my_gatherings",
+  }).combined;
+
+  console.log(
+    `🔒 [Gatherings] Protocol enforcement active: diet=[${gatheringsEnvelope.dietaryIdentity.join(",")}] medical=[${gatheringsEnvelope.medicalHardLimits.join(",")}]`,
+  );
 
   const { generateMealFromPrompt } = await import(
     "../services/universalMealGenerator"
@@ -464,10 +475,10 @@ router.post("/generate", async (req: Request, res: Response) => {
     for (let attempt = 0; attempt < 3; attempt++) {
       const strict = attempt > 0;
       if (attempt === 1) {
-        console.log(`🔄 [UltimateExperience] Retrying ${courseType} (strict mode)`);
+        console.log(`🔄 [Gatherings] Retrying ${courseType} (strict mode)`);
       }
       if (attempt === 2) {
-        console.log(`🔄 [UltimateExperience] Retrying ${courseType} (duplicate detected — final attempt)`);
+        console.log(`🔄 [Gatherings] Retrying ${courseType} (duplicate detected — final attempt)`);
       }
 
       try {
@@ -501,6 +512,7 @@ router.post("/generate", async (req: Request, res: Response) => {
           alreadyGeneratedNames,
           alreadyGeneratedTypes,
           alreadyGeneratedMethods,
+          gatheringsProtocolBlock,
         );
 
         const meal = await generateMealFromPrompt(
@@ -511,17 +523,26 @@ router.post("/generate", async (req: Request, res: Response) => {
             dietaryRestrictions: userDiet,
             allergies: userAllergies,
             mealTypes: ["dinner"],
-            medicalFlags: [],
+            medicalFlags: gatheringsEnvelope.medicalHardLimits,
             skipPalate: !flavorPersonal,
             strictMode: keepItSimple,
             skipImage: true, // Images fetched in parallel by client after text is returned
           },
         );
 
+        // Post-generation protocol scan — reject and retry on medical/dietary violation
+        const protocolScan = scanGeneratedOutput(meal, gatheringsEnvelope, {
+          generatorName: "my_gatherings",
+        });
+        if (!protocolScan.passed) {
+          console.warn(`⚠️ [Gatherings] Protocol violation in ${courseType} (attempt ${attempt + 1}): ${protocolScan.message}`);
+          continue; // treat as failed attempt — retry with stricter prompt
+        }
+
         // Server-side duplicate detection — if AI still produced a duplicate, force another attempt
         const existingNames = generatedCourses.map((c: any) => c.name).filter(Boolean);
         if (!assignedDish && isDuplicateDish(meal.name, existingNames)) {
-          console.warn(`⚠️ [UltimateExperience] Duplicate detected: "${meal.name}" matches previous courses — retrying`);
+          console.warn(`⚠️ [Gatherings] Duplicate detected: "${meal.name}" matches previous courses — retrying`);
           continue; // trigger next attempt with stricter prompt
         }
 
@@ -538,12 +559,12 @@ router.post("/generate", async (req: Request, res: Response) => {
         };
 
         console.log(
-          `✅ [UltimateExperience] ${courseType} (${i + 1}/${courses.length}): "${meal.name}"${assignedDish ? ` [requested: ${assignedDish}]` : ""}`,
+          `✅ [Gatherings] ${courseType} (${i + 1}/${courses.length}): "${meal.name}"${assignedDish ? ` [requested: ${assignedDish}]` : ""}`,
         );
         break; // success — exit retry loop
       } catch (err) {
         console.error(
-          `❌ [UltimateExperience] ${courseType} attempt ${attempt + 1} failed:`,
+          `❌ [Gatherings] ${courseType} attempt ${attempt + 1} failed:`,
           err,
         );
       }
@@ -552,7 +573,7 @@ router.post("/generate", async (req: Request, res: Response) => {
     // GUARDRAIL #4 hard fallback — never expose "something went wrong" to the user
     if (!courseMeal) {
       console.warn(
-        `⚠️ [UltimateExperience] Both attempts failed for ${courseType} — using minimal fallback`,
+        `⚠️ [Gatherings] Both attempts failed for ${courseType} — using minimal fallback`,
       );
       courseMeal = {
         id: crypto.randomUUID(),
