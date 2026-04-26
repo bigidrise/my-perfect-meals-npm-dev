@@ -23,6 +23,8 @@ interface MealFinderRequest {
   user?: User;
   dietaryRestrictions?: string[];
   priceRange?: number[];
+  protocolBlock?: string;
+  builderBlock?: string;
 }
 
 interface RestaurantResult {
@@ -44,6 +46,7 @@ interface RestaurantResult {
     modifications: string;
     ingredients: string[];
     imageUrl?: string;
+    medicalWaiterScript?: string;
   };
   medicalBadges?: Array<{
     condition: string;
@@ -235,7 +238,7 @@ async function resolveWithFallback(
 // ─── Main export ─────────────────────────────────────────────────────────────
 
 export async function findMealsNearby(request: MealFinderRequest): Promise<RestaurantResult[]> {
-  const { mealQuery, zipCode, user, dietaryRestrictions: bodyDiet, priceRange } = request;
+  const { mealQuery, zipCode, user, dietaryRestrictions: bodyDiet, priceRange, protocolBlock, builderBlock } = request;
 
   // Merge body-supplied dietary restrictions with user's DB restrictions
   const effectiveDiet: string[] = Array.from(new Set([
@@ -278,6 +281,8 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
           user: aiUser,
           cravingContext: mealQuery,
           skipImages: true,
+          protocolBlock: protocolBlock || undefined,
+          builderBlock: builderBlock || undefined,
         });
         if (aiMeals && aiMeals.length > 0) {
           return aiMeals.slice(0, 2).map((meal) => ({
@@ -295,6 +300,7 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
               modifications: meal.modifications,
               ingredients: meal.ingredients,
               imageUrl: meal.imageUrl,
+              medicalWaiterScript: meal.medicalWaiterScript,
             },
             medicalBadges: meal.medicalBadges,
           }));
@@ -342,6 +348,8 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
         user: aiUser,
         cravingContext: mealQuery,
         skipImages: true,
+        protocolBlock: protocolBlock || undefined,
+        builderBlock: builderBlock || undefined,
       });
 
       if (aiMeals && aiMeals.length > 0) {
@@ -364,6 +372,7 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
             modifications: meal.modifications,
             ingredients: meal.ingredients,
             imageUrl: meal.imageUrl,
+            medicalWaiterScript: meal.medicalWaiterScript,
           },
           medicalBadges: meal.medicalBadges,
         }));

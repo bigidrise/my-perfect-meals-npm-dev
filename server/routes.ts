@@ -31,6 +31,7 @@ import { scanForHiddenDietaryViolations, AVOIDANCE_EXPANSION, getPrimaryDiet } f
 import { sanitizeMealName } from "./utils/mealNameSanitizer";
 import { buildChefAdaptationBlock } from "./utils/chefAdaptationBlock";
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol, buildGuestEnvelope, scanGeneratedOutput, buildComplianceSection, buildMealComplianceBundle } from "./services/protocolEnvelope";
+import { getActiveNutritionContext } from "./services/nutritionContext/getActiveNutritionContext";
 import { 
   hasUserSetPin, 
   setUserPin, 
@@ -979,9 +980,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // ── Load protocol envelope for full enforcement ────────────────────────
-      const fridgeProtocolEnvelope = await loadUserProtocolEnvelope(userId).catch(() => null)
-        ?? buildGuestEnvelope();
+      // ── Load unified nutrition context (protocol + active builder) ────────────
+      const fridgeNutritionContext = await getActiveNutritionContext(userId);
+      const fridgeProtocolEnvelope = fridgeNutritionContext.envelope;
+      console.log(`🔒 [FRIDGE] Nutrition context: diet=[${fridgeNutritionContext.diet.join(",")}] medical=[${fridgeNutritionContext.medical.length} flags] builder=${fridgeNutritionContext.builder ?? "none"}`);
 
       // Generate multiple meals with proper macros and amounts
       const meals = await generateFridgeRescueMeals({ 
@@ -993,6 +995,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         palatePrefs: palatePrefs as any,
         strictMode: strictMode === true,
         protocolEnvelope: fridgeProtocolEnvelope,
+        builderBlock: fridgeNutritionContext.builderBlock || undefined,
       });
 
       // ── Post-generation protocol scan (ingredient + instruction level) ──────
@@ -6468,8 +6471,8 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   const { default: mealsRouterShared } = await import("./routes/meals");
   app.use("/api/meals", mealsRouterShared);
 
-  const { default: experiencesRouterShared } = await import("./routes/experiences");
-  app.use("/api/experiences", requireAuth, requireActiveAccess, experiencesRouterShared);
+  const { default: gatheringsRouterShared } = await import("./routes/gatherings");
+  app.use("/api/gatherings", requireAuth, requireActiveAccess, gatheringsRouterShared);
 
   const { default: cravingCreatorRouterShared } = await import("./routes/craving-creator");
   app.use("/api/craving-creator", requireAuth, requireActiveAccess, cravingCreatorRouterShared);

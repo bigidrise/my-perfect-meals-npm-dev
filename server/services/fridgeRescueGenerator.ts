@@ -134,6 +134,8 @@ interface FridgeRescueRequest {
   /** Protocol envelope — when provided, replaces the loose diet block with full
    *  ingredient + combination + instruction-level enforcement. */
   protocolEnvelope?: UserProtocolEnvelope;
+  /** Optional additive builder guidance block to append after protocol enforcement. */
+  builderBlock?: string;
 }
 
 // Medical condition compatibility checker - using correct badge format
@@ -197,7 +199,7 @@ function getMedicalBadges(meal: any, userConditions: string[] = []): Array<{
 }
 
 export async function generateFridgeRescueMeals(request: FridgeRescueRequest): Promise<FridgeRescueMeal[]> {
-  const { fridgeItems, user, servings = 2, macroTargets, skipPalate, palatePrefs, strictMode = false, protocolEnvelope } = request;
+  const { fridgeItems, user, servings = 2, macroTargets, skipPalate, palatePrefs, strictMode = false, protocolEnvelope, builderBlock } = request;
   const userConditions = user?.healthConditions || [];
   
   // 🎨 PALATE PREFERENCES: Build flavor guidance section
@@ -261,6 +263,14 @@ export async function generateFridgeRescueMeals(request: FridgeRescueRequest): P
     if (fridgeEnforcementBlock) {
       console.log(`🥗 [FRIDGE] Fallback diet block: ${userDietaryRestrictions.join('|')}`);
     }
+  }
+
+  // ── Append active builder guidance (additive, after protocol) ─────────────
+  if (builderBlock) {
+    fridgeEnforcementBlock = fridgeEnforcementBlock
+      ? `${fridgeEnforcementBlock}\n\n${builderBlock}`
+      : builderBlock;
+    console.log(`🏗️ [FRIDGE] Builder guidance appended to enforcement block`);
   }
 
   // 🎯 Add macro targeting instructions if targets provided

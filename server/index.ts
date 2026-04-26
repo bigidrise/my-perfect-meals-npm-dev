@@ -76,7 +76,7 @@ import dessertCreatorRouter from "./routes/dessert-creator";
 import beverageCreatorRouter from "./routes/beverage-creator";
 import chefPairingsRouter from "./routes/chef-pairings";
 import holidayFeastRouter from "./routes/holiday-feast";
-import experiencesRouter from "./routes/experiences";
+import gatheringsRouter from "./routes/gatherings";
 import breakfastRouter from "./routes/breakfast";
 import lunchRouter from "./routes/lunch";
 import dinnerRouter from "./routes/dinner";
@@ -361,7 +361,7 @@ app.use("/api/meals/dessert-creator", requireAuth, requireActiveAccess, dessertC
 app.use("/api/meals/beverage-creator", requireAuth, requireActiveAccess, beverageCreatorRouter);
 app.use("/api/ai/chef-pairings", requireAuth, requireActiveAccess, chefPairingsRouter);
 app.use("/api/holiday-feast", requireAuth, requireActiveAccess, holidayFeastRouter);
-app.use("/api/experiences", requireAuth, requireActiveAccess, experiencesRouter);
+app.use("/api/gatherings", requireAuth, requireActiveAccess, gatheringsRouter);
 
 // Studio Generation Facade (LibraryEngine + QueueEngine)
 app.use("/api/studio", requireAuth, requireActiveAccess, studioGeneratorRouter);

@@ -1388,6 +1388,7 @@ export default function WeeklyMealBoard() {
                   active={justSaved}
                   variant="emerald"
                   className="px-3"
+                  glow="emerald"
                 >
                   {justSaved ? <Check className="h-3 w-3" /> : <Save className="h-3 w-3" />}
                 </PillButton>
@@ -1403,6 +1404,7 @@ export default function WeeklyMealBoard() {
                   onClick={() => setShowDuplicateDayModal(true)}
                   data-testid="duplicate-button"
                   className="px-3"
+                  glow="sky"
                 >
                   <Calendar className="h-3 w-3" />
                 </PillButton>
