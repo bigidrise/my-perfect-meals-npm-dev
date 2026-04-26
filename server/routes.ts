@@ -6468,8 +6468,8 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   const { default: mealsRouterShared } = await import("./routes/meals");
   app.use("/api/meals", mealsRouterShared);
 
-  const { default: experiencesRouterShared } = await import("./routes/experiences");
-  app.use("/api/experiences", requireAuth, requireActiveAccess, experiencesRouterShared);
+  const { default: gatheringsRouterShared } = await import("./routes/gatherings");
+  app.use("/api/gatherings", requireAuth, requireActiveAccess, gatheringsRouterShared);
 
   const { default: cravingCreatorRouterShared } = await import("./routes/craving-creator");
   app.use("/api/craving-creator", requireAuth, requireActiveAccess, cravingCreatorRouterShared);

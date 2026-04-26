@@ -147,7 +147,7 @@ import AntiInflammatoryMenuBuilder from "@/pages/physician/AntiInflammatoryMenuB
 // Craving pages
 import ChefsKitchenPage from "@/pages/lifestyle/ChefsKitchenPage";
 import CreateDishPage from "@/pages/lifestyle/CreateDishPage";
-import UltimateExperiencesPage from "@/pages/lifestyle/UltimateExperiencesPage";
+import GatheringsPage from "@/pages/lifestyle/GatheringsPage";
 import CravingCreatorLanding from "@/pages/CravingCreatorLanding";
 import CravingDessertCreator from "@/pages/CravingDessertCreator";
 import BeverageCreator from "@/pages/BeverageCreator";
@@ -410,8 +410,8 @@ export default function Router() {
         <Route path="/lifestyle" component={LifestyleLandingPage} />
         {/* DELETED: /healthy-kids-meals, /kids-meals, /toddler-meals routes (Phase 1 cleanup) */}
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
-        <Route path="/lifestyle/my-perfect-gatherings" component={UltimateExperiencesPage} />
-        <Route path="/lifestyle/ultimate-experiences" component={UltimateExperiencesPage} />
+        <Route path="/lifestyle/my-perfect-gatherings" component={GatheringsPage} />
+        <Route path="/lifestyle/ultimate-experiences" component={GatheringsPage} />
         <Route path="/lifestyle/chefs-kitchen" component={withGate(ChefsKitchenPage, 'chefsKitchen')} />
         <Route path="/lifestyle/create-a-dish" component={withGate(CreateDishPage, 'chefsKitchen')} />
         <Route path="/lifestyle/beverage-creator" component={BeverageCreator} />
