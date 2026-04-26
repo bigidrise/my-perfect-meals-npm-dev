@@ -1806,7 +1806,7 @@ export default function WeeklyMealBoard() {
                   {!proClientId && <RemainingMacrosFooter
                     userId={effectiveUserId}
                     consumedOverride={consumed}
-                    showSaveButton={Boolean(isDay) && !dayAlreadyLocked}
+                    showSaveButton={false}
                     layoutMode={isDay ? "inline" : "sticky"}
                     onSaveDay={
                       isDay

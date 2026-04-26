@@ -1386,7 +1386,7 @@ export default function GLP1MealBuilder() {
               <div className="col-span-full mb-6">
                 <RemainingMacrosFooter
                   consumedOverride={consumed}
-                  showSaveButton={!dayAlreadyLocked}
+                  showSaveButton={false}
                   layoutMode="inline"
                   onSaveDay={async () => {
                     const raw = getMacroTargets(effectiveUserId);

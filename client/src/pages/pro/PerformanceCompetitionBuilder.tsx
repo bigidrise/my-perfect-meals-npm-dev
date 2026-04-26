@@ -1445,7 +1445,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 <div className="col-span-full mb-6">
                   <RemainingMacrosFooter
                     consumedOverride={consumed}
-                    showSaveButton={!dayAlreadyLocked}
+                    showSaveButton={false}
                     layoutMode="inline"
                     onSaveDay={async () => {
                       const targets = {
