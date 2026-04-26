@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
+import { PillButton } from "@/components/ui/pill-button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -82,6 +83,7 @@ import {
   Target,
   ChefHat,
   Lock,
+  Save,
 } from "lucide-react";
 import {
   Popover,
@@ -975,51 +977,34 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             {/* ROW 5: Bottom Actions */}
             <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
 
-              <Button
-                onClick={handleSave}
-                disabled={saving || justSaved}
-                size="sm"
-                className={`${
-                  justSaved
-                    ? "bg-emerald-500 hover:bg-emerald-600 text-white"
-                    : "bg-emerald-600/80 hover:bg-emerald-600 text-white"
-                } text-xs px-3 py-1 rounded-xl transition-all duration-200`}
-                data-wt="wmb-save-week-button"
-              >
-                {justSaved ? (
-                  <>
-                    <Check className="h-3 w-3 mr-1" />
-                    Saved ✓
-                  </>
-                ) : saving ? (
-                  "Saving…"
-                ) : (
-                  "Save Plan"
-                )}
-              </Button>
+              <div className="inline-flex flex-col items-center gap-1">
+                <PillButton
+                  onClick={handleSave}
+                  disabled={saving || justSaved}
+                  active={justSaved}
+                  variant="emerald"
+                  className="px-3 border-emerald-400/70"
+                  data-wt="wmb-save-week-button"
+                >
+                  {justSaved ? <Check className="h-3 w-3" /> : <Save className="h-3 w-3" />}
+                </PillButton>
+                <span className="text-xs font-semibold text-white/70 tracking-wide">
+                  {saving ? "Saving…" : justSaved ? "Saved ✓" : "Save Plan"}
+                </span>
+              </div>
 
               <HowThisWorksLink />
 
-              <button
-                type="button"
-                onClick={() => setShowDuplicateDayModal(true)}
-                data-testid="duplicate-button"
-                className="
-                  inline-flex items-center justify-center
-                  rounded-2xl
-                  px-4 py-2
-                  text-sm font-semibold
-                  text-white/90
-                  bg-black/20
-                  border border-white/15
-                  backdrop-blur-lg
-                  hover:bg-white/10 hover:border-white/25
-                  transition-all
-                "
-                style={{ minHeight: 36 }}
-              >
-                Duplicate 📅
-              </button>
+              <div className="inline-flex flex-col items-center gap-1">
+                <PillButton
+                  onClick={() => setShowDuplicateDayModal(true)}
+                  data-testid="duplicate-button"
+                  className="px-3 border-sky-400/70"
+                >
+                  <Calendar className="h-3 w-3" />
+                </PillButton>
+                <span className="text-xs font-semibold text-white/70 tracking-wide">Duplicate</span>
+              </div>
 
             </div>
           </div>
