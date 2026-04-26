@@ -8,7 +8,7 @@ import { coordsToZip } from "../services/zipToCoordsService";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope } from "../services/protocolEnvelope";
+import { getActiveNutritionContext } from "../services/nutritionContext/getActiveNutritionContext";
 import { scoreRestaurantsForDiet, buildDietQuery } from "../services/restaurantScorer";
 import { zipToCoordinates } from "../services/zipToCoordsService";
 
@@ -94,11 +94,10 @@ router.post("/guide", async (req, res) => {
       aiUser = { ...(user || {}), dietaryRestrictions: merged } as any;
     }
 
-    // ── Protocol envelope: enforce dietary identity before generation ──────────
-    const guideEnvelope = userId
-      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
-      : buildGuestEnvelope();
-    const guideProtocolBlock = enforceBeforeGenerate(guideEnvelope, { generatorName: 'restaurant_guide' }).combined;
+    // ── Unified nutrition context (protocol + active builder) ─────────────────
+    const guideContext = await getActiveNutritionContext(userId);
+    const guideProtocolBlock = guideContext.combinedBlock;
+    console.log(`🔒 [GUIDE] Nutrition context: diet=[${guideContext.diet.join(",")}] medical=[${guideContext.medical.length} flags] builder=${guideContext.builder ?? "none"}`);
 
     // Step 2: Generate AI meal recommendations for this restaurant
     const recommendations = await generateRestaurantMealsAI({
@@ -107,7 +106,8 @@ router.post("/guide", async (req, res) => {
       cravingContext: craving,
       user: aiUser,
       protocolBlock: guideProtocolBlock,
-      protocolEnvelope: guideEnvelope,
+      protocolEnvelope: guideContext.envelope,
+      builderBlock: guideContext.builderBlock || undefined,
     });
 
     const generationTime = Date.now() - generationStart;
@@ -160,11 +160,10 @@ router.post("/analyze-menu", async (req, res) => {
       }
     }
     
-    // ── Protocol envelope: enforce dietary identity before generation ──────────
-    const analyzeEnvelope = userId
-      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
-      : buildGuestEnvelope();
-    const analyzeProtocolBlock = enforceBeforeGenerate(analyzeEnvelope, { generatorName: 'restaurant_analyze_menu' }).combined;
+    // ── Unified nutrition context (protocol + active builder) ─────────────────
+    const analyzeContext = await getActiveNutritionContext(userId);
+    const analyzeProtocolBlock = analyzeContext.combinedBlock;
+    console.log(`🔒 [ANALYZE-MENU] Nutrition context: diet=[${analyzeContext.diet.join(",")}] medical=[${analyzeContext.medical.length} flags] builder=${analyzeContext.builder ?? "none"}`);
 
     // Use AI generator (automatically falls back to locked generator if AI fails)
     const recommendations = await generateRestaurantMealsAI({
@@ -172,7 +171,8 @@ router.post("/analyze-menu", async (req, res) => {
       cuisine: cuisine || "International",
       user,
       protocolBlock: analyzeProtocolBlock,
-      protocolEnvelope: analyzeEnvelope,
+      protocolEnvelope: analyzeContext.envelope,
+      builderBlock: analyzeContext.builderBlock || undefined,
     });
 
     console.log(`✅ Generated ${recommendations.length} restaurant meal recommendations`);

@@ -153,6 +153,7 @@ interface MealResult {
     reason: string;
     modifications: string;
     ingredients: string[];
+    medicalWaiterScript?: string;
     imageUrl?: string;
   };
   medicalBadges?: Array<{
@@ -1035,6 +1036,18 @@ export default function MealFinder() {
                             </div>
                           );
                         })()}
+
+                        {/* Tell Your Server — medical condition waiter script */}
+                        {result.meal.medicalWaiterScript && (
+                          <div className="bg-rose-500/20 border border-rose-500/30 rounded-lg p-3 backdrop-blur-sm mb-3">
+                            <h5 className="font-medium text-rose-300 text-sm mb-1.5 flex items-center gap-1.5">
+                              🏥 Tell Your Server
+                            </h5>
+                            <p className="text-rose-200 text-sm italic">
+                              "{result.meal.medicalWaiterScript}"
+                            </p>
+                          </div>
+                        )}
 
                         {/* Action Buttons */}
                         <div className="flex flex-col gap-2">

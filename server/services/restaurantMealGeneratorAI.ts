@@ -56,6 +56,7 @@ interface RestaurantMealRequest {
   skipImages?: boolean;    // Skip server-side image generation (client ChefFlow handles it)
   protocolBlock?: string;           // Pre-built protocol enforcement block from caller
   protocolEnvelope?: UserProtocolEnvelope; // Envelope for post-gen scan
+  builderBlock?: string;            // Active meal builder guidance (additive, after protocol)
 }
 
 interface RestaurantMeal {
@@ -84,6 +85,7 @@ interface RestaurantMeal {
     modify: string[];
     swap: string[];
   };
+  medicalWaiterScript?: string;
 }
 
 // Medical condition compatibility checker
@@ -137,11 +139,111 @@ function getMedicalBadges(meal: any, userConditions: string[] = []): Array<{
 }
 
 /**
+ * Builds a per-condition medical ordering block that drives the AI's
+ * modifications, howToOrder, and medicalWaiterScript fields.
+ */
+function buildMedicalWaiterBlock(conditions: string[]): string {
+  if (!conditions || conditions.length === 0) return "User has no specified health conditions.";
+
+  const c = conditions.map(s => s.toLowerCase());
+  const hasDiabetes     = c.some(x => x.includes("diabet"));
+  const hasHypertension = c.some(x => x.includes("hypertension") || x.includes("high blood pressure"));
+  const hasCardiac      = c.some(x => x.includes("heart") || x.includes("cardiac") || x.includes("cardiovascular"));
+  const hasRenal        = c.some(x => x.includes("kidney") || x.includes("renal") || x.includes("ckd"));
+  const hasCholesterol  = c.some(x => x.includes("cholesterol") || x.includes("lipid"));
+  const hasGout         = c.some(x => x.includes("gout"));
+  const hasGERD         = c.some(x => x.includes("gerd") || x.includes("acid reflux") || x.includes("reflux"));
+
+  const rules: string[] = [];
+
+  if (hasDiabetes) {
+    rules.push(`DIABETES — required ordering behavior:
+- Only suggest meals under 30g net carbs. Never recommend pasta, white rice, battered/breaded items, sweetened sauces, or dessert-adjacent entrees.
+- In "modifications": describe exactly what the person should tell the server to keep the meal blood-sugar safe (e.g., "Ask for grilled chicken, no sweet sauce, swap white rice for extra vegetables or a side salad").
+- In "howToOrder.modify": include "no sweet glazes or sauces", "grilled not fried", "no added sugar"
+- In "howToOrder.swap": include swaps like "white rice → steamed vegetables", "bun → lettuce wrap", "regular dressing → oil and vinegar", "soda → water or unsweetened tea"
+- In "medicalWaiterScript": write the exact sentence(s) to say out loud — first person, natural speech, e.g.: "I'm managing my blood sugar. Could I get this grilled with no sweet sauces? And can I swap the rice or starch for extra vegetables?"
+- In "reason": explain blood glucose stability — avoid phrases like "provides carbohydrates for energy"`);
+  }
+
+  if (hasHypertension) {
+    rules.push(`HYPERTENSION / HIGH BLOOD PRESSURE — required ordering behavior:
+- Avoid fried, smothered, salty, heavily processed, cured, or pickled preparations.
+- In "modifications": describe what to tell the server to reduce sodium (e.g., "Ask for sauce on the side, no added salt, no cured toppings").
+- In "howToOrder.modify": include "no added salt", "sauce on the side", "no cured or smoked meats", "no pickled toppings"
+- In "howToOrder.swap": include "french fries → steamed or roasted vegetables", "regular soup → broth-based if available"
+- In "medicalWaiterScript": write the exact phrase to say — e.g.: "I have high blood pressure. Could you please hold the added salt, serve all sauces on the side, and avoid any cured or salty toppings? Thank you."
+- In "reason": focus on sodium reduction and heart-protective benefits`);
+  }
+
+  if (hasCardiac) {
+    rules.push(`HEART DISEASE / CARDIAC — required ordering behavior:
+- Prioritize lean grilled or baked proteins (fish especially), fiber-rich vegetables, and meals with fat ≤ 12g.
+- Avoid fried items, butter-basted dishes, heavy cream sauces, processed meats, organ meats.
+- In "modifications": describe what to tell the server for cardiac-safe prep (e.g., "Ask for grilled or baked only, no butter, sauce on the side").
+- In "howToOrder.modify": include "grilled or baked only", "no butter", "use olive oil if available", "sauce on the side"
+- In "howToOrder.swap": include "cream sauce → tomato or broth-based sauce", "fried sides → steamed vegetables"
+- In "medicalWaiterScript": write the exact phrase — e.g.: "I have heart disease. Please grill or bake this — no butter or frying. Could the sauce come on the side, and can I swap any fried sides for steamed vegetables?"
+- In "reason": explain lean protein and healthy fat choices; note heart-protective omega-3s if fish is selected`);
+  }
+
+  if (hasRenal) {
+    rules.push(`KIDNEY DISEASE / RENAL DISEASE / CKD — required ordering behavior:
+- Avoid or minimize high-potassium foods (tomatoes, avocado, bananas, spinach, beans, oranges) and high-phosphorus foods (dairy, nuts, whole grains, colas).
+- Prefer lower-potassium starches: white rice over brown rice, white bread over whole grain.
+- In "modifications": describe what to tell the server to protect kidney function (e.g., "Ask for no added salt, light cheese, avoid heavy tomato sauce").
+- In "howToOrder.modify": include "no added salt", "light cheese or no cheese", "no heavy tomato sauce", "no avocado"
+- In "howToOrder.swap": include "brown rice → white rice (lower potassium)", "spinach → iceberg lettuce", "bean-heavy dishes → rice or pasta based"
+- In "medicalWaiterScript": write the exact phrase — e.g.: "I have kidney disease. Please hold the added salt, go light on any cheese or dairy, avoid heavy tomato sauce, and skip the avocado if it's in there. White rice is better for me than brown rice."
+- In "reason": focus on low-potassium, low-phosphorus, low-sodium approach`);
+  }
+
+  if (hasCholesterol) {
+    rules.push(`HIGH CHOLESTEROL / HYPERLIPIDEMIA — required ordering behavior:
+- Avoid saturated fats (fried foods, butter, heavy cream, fatty/processed meats). Prefer omega-3-rich fish, lean proteins, and high-fiber options.
+- In "howToOrder.modify": include "grilled not fried", "no butter", "light on cheese"
+- In "howToOrder.swap": include "cream sauce → olive oil or tomato-based", "fried side → salad or steamed vegetables"
+- In "medicalWaiterScript": write the exact phrase — e.g.: "I'm managing my cholesterol. Could this be grilled instead of fried, with no butter? And dressings on the side please."
+- In "reason": explain reduced saturated fat and increased fiber`);
+  }
+
+  if (hasGout) {
+    rules.push(`GOUT — required ordering behavior:
+- Avoid high-purine foods: organ meats, anchovies, sardines, mackerel, scallops, large red meat portions, sugary drinks, alcohol.
+- Prefer lower-purine proteins: chicken, eggs, tofu, and dairy.
+- In "howToOrder.modify": include "no organ meats", "light on red meat", "no shellfish or anchovies"
+- In "medicalWaiterScript": write — e.g.: "I have gout, so I need to avoid organ meats, heavy red meat, and shellfish. Chicken or vegetarian options work best."
+- In "reason": explain purine reduction and uric acid management`);
+  }
+
+  if (hasGERD) {
+    rules.push(`ACID REFLUX / GERD — required ordering behavior:
+- Avoid spicy foods, citrus, heavy tomato sauces, fried high-fat dishes, chocolate, coffee, mint, and alcohol.
+- Prefer mild, lightly seasoned, grilled or baked preparations.
+- In "howToOrder.modify": include "mild spice only", "no spicy sauces", "no citrus garnish"
+- In "howToOrder.swap": include "spicy sauce → mild sauce or herb-based", "fried → grilled"
+- In "medicalWaiterScript": write — e.g.: "I have acid reflux. Could this be kept mild — no spicy sauces, nothing fried, and no citrus? Grilled and lightly seasoned is perfect."
+- In "reason": explain avoidance of common reflux triggers`);
+  }
+
+  if (rules.length === 0) {
+    return `User has these health conditions: ${conditions.join(", ")}. Consider these when suggesting modifications.`;
+  }
+
+  return `MEDICAL CONDITIONS (user has: ${conditions.join(", ")}) — CRITICAL ordering rules below. These drive the modifications, howToOrder, and medicalWaiterScript fields.
+
+${rules.join("\n\n")}
+
+UNIVERSAL RULE FOR ALL MEDICAL CONDITIONS:
+"medicalWaiterScript" MUST be a complete, natural-language sentence the user can literally say out loud to their server. Write in first person. Keep it under 2 sentences. Example format: "I have [condition]. Please [specific request]."`;
+}
+
+/**
  * Generate restaurant-specific meals using AI
  * Falls back to locked generator if AI fails
  */
 export async function generateRestaurantMealsAI(request: RestaurantMealRequest): Promise<RestaurantMeal[]> {
-  const { restaurantName, cuisine, user, cravingContext, skipImages, protocolBlock, protocolEnvelope } = request;
+  const { restaurantName, cuisine, user, cravingContext, skipImages, protocolBlock, protocolEnvelope, builderBlock } = request;
   const userConditions = user?.healthConditions || [];
 
   console.log(`🤖 AI Generator: Creating restaurant-specific meals for ${restaurantName} (${cuisine} cuisine)${cravingContext ? ` featuring ${cravingContext}` : ''}`);
@@ -166,9 +268,7 @@ export async function generateRestaurantMealsAI(request: RestaurantMealRequest):
     ? `\nUser avoids these foods: ${userAvoidedFoods.join(", ")}. Do not include them.`
     : "";
 
-  const medicalContext = userConditions.length > 0
-    ? `User has the following health conditions: ${userConditions.join(", ")}. Consider these when suggesting modifications.`
-    : "User has no specified health conditions.";
+  const medicalWaiterBlock = buildMedicalWaiterBlock(userConditions);
   
   // Build craving context for Meal Finder (different from Restaurant Meal Generator)
   const cravingInstructions = cravingContext
@@ -266,8 +366,8 @@ Adjustments go in "howToOrder.modify" and "howToOrder.swap" — NOT in the meal 
 
     // Use OpenAI to generate restaurant-specific meals
     const prompt = `You are a nutrition expert helping someone order healthy meals at "${restaurantName}", a ${cuisine} restaurant.
-${protocolBlock ? `\n${protocolBlock}\n` : ""}
-${medicalContext}${allergyContext}${dietaryContext}${avoidContext}${cravingInstructions}${dietBehaviorBlock}
+${protocolBlock ? `\n${protocolBlock}\n` : ""}${builderBlock ? `\n${builderBlock}\n` : ""}
+${medicalWaiterBlock}${allergyContext}${dietaryContext}${avoidContext}${cravingInstructions}${dietBehaviorBlock}
 ${archetypeRealism}
 
 TONE AND LANGUAGE RULES:
@@ -321,7 +421,8 @@ Return ONLY a JSON array of 3 meals with this exact structure:
       "askFor": "Exact item name to say at the counter or to the server",
       "modify": ["no mayo", "add avocado", "grilled not fried"],
       "swap": ["fries → side salad", "white rice → brown rice"]
-    }
+    },
+    "medicalWaiterScript": "Only populate if the user has medical conditions. Write the exact phrase the user should say to the server — first person, 1-2 sentences, e.g.: 'I have diabetes. Could I get this grilled with no sweet sauces and swap the rice for extra vegetables?' Leave as empty string if no medical conditions."
   }
 ]
 
@@ -339,8 +440,8 @@ Make the meals sound like something you would genuinely see on the menu at ${res
           content: prompt
         }
       ],
-      temperature: 0.7, // Lower for faster, more consistent responses
-      max_tokens: 1200, // Reduced for speed
+      temperature: 0.7,
+      max_tokens: 1800, // Increased to accommodate medicalWaiterScript per meal
     });
 
     const responseText = completion.choices[0]?.message?.content?.trim();
@@ -407,6 +508,8 @@ Make the meals sound like something you would genuinely see on the menu at ${res
         medicalBadges: getMedicalBadges(meal, userConditions),
         menuAnchorItem: meal.menuAnchorItem || undefined,
         howToOrder,
+        medicalWaiterScript: typeof meal.medicalWaiterScript === 'string' && meal.medicalWaiterScript
+          ? meal.medicalWaiterScript : undefined,
       };
     });
 

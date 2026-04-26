@@ -3,7 +3,11 @@
 // Finds nearby restaurants based on meal craving + ZIP code
 
 import express from 'express';
+import { eq } from 'drizzle-orm';
+import { db } from '../db';
+import { users } from '@shared/schema';
 import { findMealsNearby } from '../services/mealFinderService';
+import { getActiveNutritionContext } from '../services/nutritionContext/getActiveNutritionContext';
 
 const router = express.Router();
 
@@ -38,8 +42,38 @@ router.post('/meal-finder', async (req, res) => {
     
     console.log(`📍 Meal Finder request: "${mealQuery}" near ZIP ${zipCode}`);
     
-    // Get user from session (if available)
-    const user = (req as any).user;
+    // ── Resolve userId from auth token header ──────────────────────────────
+    let userId: string | undefined;
+    const authToken = req.headers['x-auth-token'] as string | undefined;
+    if (authToken) {
+      try {
+        const [tokenUser] = await db.select({ id: users.id }).from(users).where(eq(users.authToken, authToken)).limit(1);
+        if (tokenUser) userId = tokenUser.id;
+      } catch {}
+    }
+    // Fallback: session/req.user
+    if (!userId) {
+      const reqUser = (req as any).authUser || (req as any).user;
+      if (reqUser?.id && reqUser.id !== 'mock-user-id') userId = reqUser.id;
+    }
+
+    // ── Load unified nutrition context (protocol + active builder) ─────────
+    let protocolBlock: string | undefined;
+    let builderBlock: string | undefined;
+    let contextUser: any = (req as any).user;
+    if (userId) {
+      try {
+        const nutritionContext = await getActiveNutritionContext(userId);
+        protocolBlock = nutritionContext.combinedBlock || undefined;
+        builderBlock = nutritionContext.builderBlock || undefined;
+        // Use DB user object for full health conditions / dietary data
+        const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+        if (dbUser) contextUser = dbUser;
+        console.log(`🔒 [MEAL-FINDER] Nutrition context: diet=[${nutritionContext.diet.join(",")}] medical=[${nutritionContext.medical.length} flags] builder=${nutritionContext.builder ?? "none"}`);
+      } catch (err) {
+        console.warn('[MEAL-FINDER] Could not load nutrition context:', err);
+      }
+    }
     
     const bodyDietRestrictions = dietaryRestrictions
       ? (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean)
@@ -49,9 +83,11 @@ router.post('/meal-finder', async (req, res) => {
     const results = await findMealsNearby({
       mealQuery,
       zipCode,
-      user,
+      user: contextUser,
       dietaryRestrictions: bodyDietRestrictions.length > 0 ? bodyDietRestrictions : undefined,
       priceRange: Array.isArray(priceRange) && priceRange.length > 0 ? priceRange : undefined,
+      protocolBlock,
+      builderBlock,
     });
     
     return res.status(200).json({

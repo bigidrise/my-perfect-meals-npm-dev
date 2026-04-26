@@ -1217,6 +1217,18 @@ export default function RestaurantGuidePage() {
                               );
                             })()}
 
+                            {/* Tell Your Server — medical condition waiter script */}
+                            {(meal as any).medicalWaiterScript && (
+                              <div className="bg-rose-500/10 border border-rose-500/30 rounded-lg p-3 backdrop-blur-sm mb-3">
+                                <h4 className="font-medium text-rose-300 text-sm mb-1.5 flex items-center gap-1.5">
+                                  🏥 Tell Your Server
+                                </h4>
+                                <p className="text-rose-200 text-sm italic">
+                                  "{(meal as any).medicalWaiterScript}"
+                                </p>
+                              </div>
+                            )}
+
                             {/* Action Buttons */}
                             <div className="flex flex-col gap-2">
                               <Button
