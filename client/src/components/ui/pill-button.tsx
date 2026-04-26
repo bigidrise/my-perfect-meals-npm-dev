@@ -6,12 +6,14 @@ const BASE_STYLES = "!min-h-0 !min-w-0 inline-flex items-center justify-center p
 const INACTIVE_STYLES = "bg-yellow-500/20 text-white/90 active:bg-yellow-500/50 border border-yellow-400/70 active:border-yellow-400/90 shadow-[0_0_6px_rgba(234,179,8,0.25)] active:shadow-[0_0_12px_rgba(234,179,8,0.5)] animate-pill-pulse";
 
 const ACTIVE_STYLES = "bg-emerald-600/80 text-white active:bg-emerald-500/80 border border-emerald-400/60 active:border-emerald-300/80 animate-pulse-glow-green";
-
 const ACTIVE_AMBER_STYLES = "bg-amber-600/80 text-white active:bg-amber-500/80 border border-amber-400/60 active:border-amber-300/80 animate-pulse-glow-amber";
+const ACTIVE_SKY_STYLES = "bg-sky-600/80 text-white active:bg-sky-500/80 border border-sky-400/60 active:border-sky-300/80 animate-pulse-glow-blue";
+const ACTIVE_ROSE_STYLES = "bg-rose-600/80 text-white active:bg-rose-500/80 border border-rose-400/60 active:border-rose-300/80 animate-pulse-glow-rose";
+const ACTIVE_VIOLET_STYLES = "bg-violet-600/80 text-white active:bg-violet-500/80 border border-violet-400/60 active:border-violet-300/80 animate-pulse-glow-violet";
 
 export const PILL_BUTTON_STYLES = `${BASE_STYLES} ${INACTIVE_STYLES}`;
 
-export type PillButtonVariant = "emerald" | "amber";
+export type PillButtonVariant = "emerald" | "amber" | "sky" | "rose" | "violet";
 export type PillButtonGlow = "yellow" | "emerald" | "sky" | "amber" | "rose" | "violet";
 
 const GLOW_VARS: Record<PillButtonGlow, {
@@ -82,7 +84,13 @@ export const PillButton = forwardRef<HTMLButtonElement, PillButtonProps>(
 
     const getActiveStyles = () => {
       if (!active) return INACTIVE_STYLES;
-      return variant === "amber" ? ACTIVE_AMBER_STYLES : ACTIVE_STYLES;
+      switch (variant) {
+        case "amber":  return ACTIVE_AMBER_STYLES;
+        case "sky":    return ACTIVE_SKY_STYLES;
+        case "rose":   return ACTIVE_ROSE_STYLES;
+        case "violet": return ACTIVE_VIOLET_STYLES;
+        default:       return ACTIVE_STYLES;
+      }
     };
 
     const glowStyle: CSSProperties = glow && glow !== "yellow"

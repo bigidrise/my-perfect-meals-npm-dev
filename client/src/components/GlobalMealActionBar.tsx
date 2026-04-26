@@ -76,10 +76,11 @@ export function GlobalMealActionBar({
             onClick={onFavorites}
             disabled={disabled}
             title="Pick from My Favorites"
+            active={true}
+            variant="rose"
             className="px-3"
-            glow="rose"
           >
-            <Star className="h-3 w-3 fill-red-500 text-red-500" />
+            <Star className="h-3 w-3 fill-white text-white" />
           </PillButton>
           <span className="text-xs font-semibold text-white/70 tracking-wide">My Favorites</span>
         </div>
