@@ -1035,7 +1035,8 @@ export default function BeachBodyMealBoard() {
                   disabled={saving || justSaved}
                   active={justSaved}
                   variant="emerald"
-                  className="px-3 border-emerald-400/70"
+                  className="px-3"
+                  glow="emerald"
                   data-wt="wmb-save-week-button"
                 >
                   {justSaved ? <Check className="h-3 w-3" /> : <Save className="h-3 w-3" />}
@@ -1051,7 +1052,8 @@ export default function BeachBodyMealBoard() {
                 <PillButton
                   onClick={() => setShowDuplicateDayModal(true)}
                   data-testid="duplicate-button"
-                  className="px-3 border-sky-400/70"
+                  className="px-3"
+                  glow="sky"
                 >
                   <Calendar className="h-3 w-3" />
                 </PillButton>
