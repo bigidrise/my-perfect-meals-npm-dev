@@ -890,7 +890,7 @@ export default function WeeklyMealBoard() {
               <PillButton
                 onClick={handleSave}
                 disabled={saving || justSaved}
-                active={justSaved}
+                active={true}
                 variant="emerald"
                 className="px-3"
                 glow="emerald"
@@ -909,8 +909,9 @@ export default function WeeklyMealBoard() {
               <PillButton
                 onClick={() => setShowDuplicateDayModal(true)}
                 data-testid="duplicate-button"
+                active={true}
+                variant="sky"
                 className="px-3"
-                glow="sky"
               >
                 <Calendar className="h-3 w-3" />
               </PillButton>
