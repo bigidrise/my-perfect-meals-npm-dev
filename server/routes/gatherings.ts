@@ -1,5 +1,5 @@
-// server/routes/experiences.ts
-// My Perfect Gatherings — multi-course meal generation with 4 hard guardrails
+// server/routes/gatherings.ts
+// My Gatherings — multi-course meal generation with 4 hard guardrails
 import express, { Request, Response } from "express";
 import { z } from "zod";
 
@@ -382,7 +382,7 @@ function deduplicateIngredients(
 }
 
 // ─────────────────────────────────────────────
-// Route: POST /api/experiences/generate
+// Route: POST /api/gatherings/generate
 // ─────────────────────────────────────────────
 router.post("/generate", async (req: Request, res: Response) => {
   const parsed = ExperienceRequest.safeParse(req.body);

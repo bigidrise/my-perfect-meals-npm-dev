@@ -447,7 +447,7 @@ export default function UltimateExperiencesPage() {
     startProgressTicker();
 
     try {
-      const response = await fetch(apiUrl("/api/experiences/generate"), {
+      const response = await fetch(apiUrl("/api/gatherings/generate"), {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
