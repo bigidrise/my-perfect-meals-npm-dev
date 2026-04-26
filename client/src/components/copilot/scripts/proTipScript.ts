@@ -24,6 +24,10 @@ export const PRO_TIP_SECTIONS: ProTipSection[] = [
     heading: "The app learns you over time",
     text: "Here is something most people do not realize — the more you use the app and save meals, the smarter it gets about you specifically. The system tracks your patterns behind the scenes: the proteins you keep choosing, the cuisines you gravitate toward, the cooking styles that show up in your history, and whether you tend to prefer quick prep or more involved recipes. That profile is called your Taste Memory, and it gets quietly applied every time a new meal is generated for you. You do not have to do anything to set it up. The longer you use the app, the more it starts to feel like it already knows what you want before you ask.",
   },
+  {
+    heading: "Add macros to biometrics only after you eat",
+    text: "This is important for keeping your data accurate. When you finish eating a meal, open that meal card and tap Add to Macros. That logs only what you actually ate. Do not use a whole-day save before you have eaten — if you plan five meals but only eat three, all five get recorded as consumed and there is no way to remove them from your history. Your biometric totals are meant to reflect reality, not your plan. Log each meal individually the moment you finish it and your tracking will always be honest.",
+  },
 ];
 
 export const PRO_TIP_SCRIPT = PRO_TIP_SECTIONS.map(
