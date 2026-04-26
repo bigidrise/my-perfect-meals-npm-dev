@@ -10,10 +10,10 @@ interface SnackCreatorButtonProps {
 export function SnackCreatorButton({ onClick, disabled, className }: SnackCreatorButtonProps) {
   return (
     <div className={`inline-flex flex-col items-center gap-1 ${className || ""}`}>
-      <PillButton onClick={onClick} disabled={disabled} className="px-3">
+      <PillButton onClick={onClick} disabled={disabled} active={true} variant="amber" className="px-3">
         <ChefHat className="h-3 w-3" />
       </PillButton>
-      <span className="text-xs font-semibold text-white/70 tracking-wide">Create with Chef</span>
+      <span className="text-xs font-semibold text-white/70 tracking-wide">Snack Creator</span>
     </div>
   );
 }
