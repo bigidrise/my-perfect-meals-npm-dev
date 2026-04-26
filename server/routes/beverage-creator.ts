@@ -8,7 +8,8 @@ import { eq } from "drizzle-orm";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
 import { buildPalateSection, PalatePreferences } from "../services/promptBuilder";
 import { resolveDietCategoryStrategy, type DietCategoryStrategy } from "../services/allergyGuardrails";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope, buildMealComplianceBundle } from "../services/protocolEnvelope";
+import { scanGeneratedOutput, buildMealComplianceBundle } from "../services/protocolEnvelope";
+import { getActiveNutritionContext } from "../services/nutritionContext/getActiveNutritionContext";
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from "../services/behavioralMemoryService";
 
 let _openai: OpenAI | null = null;
@@ -139,14 +140,11 @@ beverageCreatorRouter.post("/", async (req, res) => {
       }
     }
 
-    // ── Load protocol envelope (drives all dietary enforcement) ───────────────
-    const beverageEnvelope = (userId && userId !== "1")
-      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
-      : buildGuestEnvelope();
-
-    const beverageProtocolBlock = enforceBeforeGenerate(beverageEnvelope, {
-      generatorName: 'beverage_creator',
-    }).combined;
+    // ── Load unified nutrition context (protocol + active builder) ────────────
+    const beverageContext = await getActiveNutritionContext(userId);
+    const beverageEnvelope = beverageContext.envelope;
+    const beverageProtocolBlock = beverageContext.combinedBlock;
+    console.log(`🔒 [BEVERAGE] Nutrition context: diet=[${beverageContext.diet.join(",")}] medical=[${beverageContext.medical.length} flags] builder=${beverageContext.builder ?? "none"}`);
 
     let palateGuidance = "\nFLAVOR STYLE: Use light, neutral flavoring suitable for serving to guests or family.";
     let dietCategoryStrategy: DietCategoryStrategy = {
