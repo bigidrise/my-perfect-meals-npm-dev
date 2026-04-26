@@ -84,12 +84,12 @@ export default {
         },
         "pill-pulse": {
           "0%, 100%": {
-            boxShadow: "0 0 4px 1px rgba(234, 179, 8, 0.2)",
-            borderColor: "rgba(250, 204, 21, 0.4)",
+            boxShadow: "0 0 4px 1px var(--pill-glow-soft, rgba(234, 179, 8, 0.2))",
+            borderColor: "var(--pill-border-low, rgba(250, 204, 21, 0.4))",
           },
           "50%": {
-            boxShadow: "0 0 12px 4px rgba(234, 179, 8, 0.5), 0 0 20px 6px rgba(234, 179, 8, 0.25)",
-            borderColor: "rgba(250, 204, 21, 0.9)",
+            boxShadow: "0 0 12px 4px var(--pill-glow-strong, rgba(234, 179, 8, 0.5)), 0 0 20px 6px var(--pill-glow-soft, rgba(234, 179, 8, 0.25))",
+            borderColor: "var(--pill-border-high, rgba(250, 204, 21, 0.9))",
           },
         },
         "pulse-glow-green": {

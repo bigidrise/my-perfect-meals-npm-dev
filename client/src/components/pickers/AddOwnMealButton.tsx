@@ -122,7 +122,8 @@ export function AddOwnMealButton({ slot, onSave, onImageReady, variant = "icon",
           onClick={() => setPhase("describing")}
           disabled={disabled}
           data-testid={`button-add-own-${slot}`}
-          className="px-3 border-violet-400/70"
+          className="px-3"
+          glow="violet"
         >
           <Plus className="h-3 w-3" />
         </PillButton>
