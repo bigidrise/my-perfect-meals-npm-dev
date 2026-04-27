@@ -6,9 +6,9 @@
 import { db } from "../../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
-import { creatorSystems, type CreatorSystem } from "./registry";
+import { creatorSystems, type CreatorSystemConfig } from "./registry";
 
-export async function resolveCreatorSystemForUser(userId: string): Promise<CreatorSystem> {
+export async function resolveCreatorSystemForUser(userId: string): Promise<CreatorSystemConfig> {
   try {
     const [row] = await db
       .select({ activeSystem: users.activeSystem })

@@ -8,7 +8,7 @@ import {
 } from "./validators";
 import { chatJson, genImage } from "../utils/openaiSafe";
 import { applyCreatorTransformation } from "./creatorSystems/applyCreatorTransformation";
-import { type CreatorSystem } from "./creatorSystems/registry";
+import { type CreatorSystemConfig } from "./creatorSystems/registry";
 
 /** ===== Types ===== */
 export type EngineSource = "weekly" | "craving" | "potluck" | "fridge-rescue";
@@ -82,9 +82,9 @@ export interface MealGenerationRequest {
     leanProteinSwap?: boolean;
     reduceButterCream?: boolean;
   };
-  // Phase 2: Creator System — resolved by the route handler, applied as a 2-pass
+  // Phase 2.2: Creator System — resolved by the route handler, applied as a 2-pass
   // transformation AFTER generation. Never touches guardrails, macros, or ingredients.
-  creatorSystem?: CreatorSystem;
+  creatorSystem?: CreatorSystemConfig;
 }
 
 export interface Meal {
