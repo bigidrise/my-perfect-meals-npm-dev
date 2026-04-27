@@ -57,6 +57,21 @@ INSTRUCTIONS:
 - CORRECT: "Sear chicken over high heat 3–4 min per side until a dark golden crust forms"
 - INCORRECT: "Cook chicken until done"
 
+PROTEIN PREPARATION (MANDATORY):
+- The primary protein MUST be prepared using a defined high-heat or technique-based method (e.g., seared, blackened, pan-crusted, roasted)
+- The cooking process MUST include at least one transformation step (e.g., searing followed by deglazing to build a sauce)
+- The protein preparation technique MUST appear in the meal name
+
+SAUCE DEVELOPMENT (MANDATORY):
+- If a sauce is present, it must be built through a process: sauté aromatics → deglaze → reduce → finish
+- Never list sauce ingredients as simply combined — show the build in the instructions
+
+TITLE ENFORCEMENT:
+- The meal name MUST start with or include the protein's cooking technique
+- CORRECT: "Pan-Seared Chicken Pasta with Sun-Dried Tomato Cream Reduction"
+- INCORRECT: "Creamy Sun-Dried Tomato Chicken Pasta" (no technique, starts with descriptor)
+- Never start a meal name with "Creamy", "Spicy", or "Delicious" without a technique word preceding it
+
 The final dish must feel like a deliberate, chef-driven creation — not a basic or neutral recipe.
 
 These rules are mandatory unless they directly conflict with medical, dietary, or macro constraints.
