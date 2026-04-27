@@ -47,7 +47,7 @@ interface RemainingMacrosFooterProps {
 export function RemainingMacrosFooter({
   userId,
   onSaveDay,
-  showSaveButton = true,
+  showSaveButton = false,
   className = "",
   consumedOverride,
   targetsOverride,

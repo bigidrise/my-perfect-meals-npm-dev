@@ -84,6 +84,7 @@ export default function DashboardNew() {
 
   const isCoach = !!(user?.professionalRole);
   const isProCareClient = !!user?.isProCare && !isCoach;
+  const hasProviderConnection = !!user?.isProCare;
   const proUnreadCount = useProUnreadCount();
   const [showWorkspaceChooser, setShowWorkspaceChooser] = useState(false);
   const [tabletOpen, setTabletOpen] = useState(false);
@@ -99,6 +100,19 @@ export default function DashboardNew() {
   const tabletScrollRef = useRef<HTMLDivElement>(null);
   const tabletTranslationCache = useRef(new Map<string, string>());
   const tabletInitialLoad = useRef(true);
+
+  // Provider inbox — completely separate from client tablet
+  const [providerOpen, setProviderOpen] = useState(false);
+  const [providerMessages, setProviderMessages] = useState<any[]>([]);
+  const [providerLoading, setProviderLoading] = useState(false);
+  const [providerError, setProviderError] = useState<string | null>(null);
+  const [providerInput, setProviderInput] = useState("");
+  const [providerSending, setProviderSending] = useState(false);
+  const [providerHasUnread, setProviderHasUnread] = useState(false);
+  const [providerTranslatingId, setProviderTranslatingId] = useState<string | null>(null);
+  const providerScrollRef = useRef<HTMLDivElement>(null);
+  const providerTranslationCache = useRef(new Map<string, string>());
+  const providerInitialLoad = useRef(true);
 
   const fetchClientTablet = useCallback(async () => {
     if (tabletInitialLoad.current) {
@@ -246,6 +260,123 @@ export default function DashboardNew() {
     }
   };
 
+  // ── Provider inbox functions (fully independent) ──────────────────────────
+  const fetchProviderTablet = useCallback(async () => {
+    if (providerInitialLoad.current) setProviderLoading(true);
+    setProviderError(null);
+    try {
+      const res = await fetch(apiUrl("/api/client/tablet"), {
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+      });
+      if (!res.ok) {
+        if (res.status === 404) setProviderError("No active provider connection");
+        else setProviderError("Failed to load messages");
+        return;
+      }
+      const data = await res.json();
+      const msgs = data.messages || [];
+      setProviderMessages((prev) => {
+        if (JSON.stringify(prev.map((m: any) => m.id)) === JSON.stringify(msgs.map((m: any) => m.id))) return prev;
+        return msgs;
+      });
+      const seenTime = parseInt(localStorage.getItem("mpm.tablet.provider.lastSeen") || "0", 10);
+      const proMsgs = msgs.filter((m: any) => m.sender === "pro");
+      if (proMsgs.length > 0) {
+        setProviderHasUnread(new Date(proMsgs[proMsgs.length - 1].createdAt).getTime() > seenTime);
+      } else {
+        setProviderHasUnread(false);
+      }
+    } catch {
+      setProviderError("Failed to load messages");
+    } finally {
+      setProviderLoading(false);
+      providerInitialLoad.current = false;
+    }
+  }, []);
+
+  const handleProviderSend = async () => {
+    if (!hasProviderConnection) return;
+    if (!providerInput.trim() || providerSending) return;
+    setProviderSending(true);
+    try {
+      const res = await fetch(apiUrl("/api/client/tablet/message"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ body: providerInput.trim() }),
+      });
+      if (!res.ok) {
+        if (res.status === 422) {
+          const errData = await res.json().catch(() => ({}));
+          setProviderError(errData.error || "Message blocked by content policy");
+          return;
+        }
+        throw new Error("Failed to send");
+      }
+      const data = await res.json();
+      setProviderMessages((prev) => [...prev, data.entry]);
+      setProviderInput("");
+    } catch {
+      setProviderError("Failed to send message");
+    } finally {
+      setProviderSending(false);
+    }
+  };
+
+  const handleProviderTranslate = async (entry: any) => {
+    if (!hasProviderConnection || providerTranslatingId) return;
+    const cacheKey = `${entry.id}_translate`;
+    if (providerTranslationCache.current.has(cacheKey)) {
+      setProviderMessages((prev) =>
+        prev.map((n: any) =>
+          n.id === entry.id
+            ? { ...n, translatedBody: n.translatedBody ? undefined : providerTranslationCache.current.get(cacheKey) }
+            : n
+        )
+      );
+      return;
+    }
+    setProviderTranslatingId(entry.id);
+    try {
+      const res = await fetch(apiUrl("/api/translate"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({
+          content: { name: "Message", description: entry.body },
+          targetLanguage: navigator.language?.split("-")[0] || "es",
+        }),
+      });
+      if (!res.ok) throw new Error("Translation failed");
+      const data = await res.json();
+      const translated = data.translated?.description || data.description || entry.body;
+      providerTranslationCache.current.set(cacheKey, translated);
+      setProviderMessages((prev) =>
+        prev.map((n: any) => n.id === entry.id ? { ...n, translatedBody: translated } : n)
+      );
+    } catch {
+      setProviderError("Translation failed");
+    } finally {
+      setProviderTranslatingId(null);
+    }
+  };
+
+  const handleProviderDelete = async (entry: any) => {
+    if (!hasProviderConnection) return;
+    try {
+      const res = await fetch(apiUrl(`/api/client/tablet/entry/${entry.id}`), {
+        method: "DELETE",
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to delete");
+      setProviderMessages((prev) => prev.filter((m: any) => m.id !== entry.id));
+    } catch {
+      setProviderError("Failed to delete message");
+    }
+  };
+
   useEffect(() => {
     if (isProCareClient && !tabletOpen) {
       fetchClientTablet();
@@ -278,6 +409,32 @@ export default function DashboardNew() {
       tabletScrollRef.current.scrollTop = tabletScrollRef.current.scrollHeight;
     }
   }, [tabletMessages]);
+
+  // Provider inbox polling effects
+  useEffect(() => {
+    if (isCoach && hasProviderConnection && !providerOpen) {
+      fetchProviderTablet();
+      const bg = setInterval(fetchProviderTablet, 30000);
+      return () => clearInterval(bg);
+    }
+  }, [isCoach, hasProviderConnection, providerOpen, fetchProviderTablet]);
+
+  useEffect(() => {
+    if (providerOpen && isCoach && hasProviderConnection) {
+      providerInitialLoad.current = true;
+      fetchProviderTablet();
+      const interval = setInterval(fetchProviderTablet, 10000);
+      localStorage.setItem("mpm.tablet.provider.lastSeen", Date.now().toString());
+      setProviderHasUnread(false);
+      return () => clearInterval(interval);
+    }
+  }, [providerOpen, isCoach, hasProviderConnection, fetchProviderTablet]);
+
+  useEffect(() => {
+    if (providerScrollRef.current) {
+      providerScrollRef.current.scrollTop = providerScrollRef.current.scrollHeight;
+    }
+  }, [providerMessages]);
 
   useEffect(() => {
     document.title = "Home | My Perfect Meals";
@@ -504,35 +661,66 @@ export default function DashboardNew() {
           transition={{ delay: 0.12, duration: 0.5 }}
           className="mb-4 space-y-3"
         >
-          {!isDesktop && isCoach ? (
-            <Card
-              className={`cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md relative ${proUnreadCount > 0 ? "border-2 border-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.55)] animate-pulse" : "border border-teal-500/30"}`}
-              onClick={() => setShowWorkspaceChooser(true)}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${proUnreadCount > 0 ? "bg-orange-500/20" : "bg-teal-500/20"}`}>
-                    <MessageSquare className={`h-5 w-5 ${proUnreadCount > 0 ? "text-orange-400" : "text-teal-400"}`} />
+          {isCoach ? (
+            <>
+              {/* Card 1: Client Messages inbox */}
+              <Card
+                className={`cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md relative ${proUnreadCount > 0 ? "border-2 border-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.55)] animate-pulse" : "border border-teal-500/30"}`}
+                onClick={() => setShowWorkspaceChooser(true)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${proUnreadCount > 0 ? "bg-orange-500/20" : "bg-teal-500/20"}`}>
+                      <MessageSquare className={`h-5 w-5 ${proUnreadCount > 0 ? "text-orange-400" : "text-teal-400"}`} />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-semibold text-white">Client Messages</h3>
+                      <p className={`text-xs ${proUnreadCount > 0 ? "text-orange-400 font-medium" : "text-white/60"}`}>
+                        {proUnreadCount > 0
+                          ? `${proUnreadCount} client${proUnreadCount > 1 ? "s" : ""} messaged you — tap to respond`
+                          : "No new messages from clients"}
+                      </p>
+                    </div>
+                    {proUnreadCount > 0 && (
+                      <span className="text-[10px] font-bold text-white bg-orange-500 rounded-full px-2 py-0.5 min-w-[1.4rem] text-center">
+                        {proUnreadCount}
+                      </span>
+                    )}
+                    <ChevronDown className={`h-4 w-4 ${proUnreadCount > 0 ? "text-orange-400/60" : "text-white/30"}`} />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-semibold text-white">
-                      Client Messages
-                    </h3>
-                    <p className={`text-xs ${proUnreadCount > 0 ? "text-orange-400 font-medium" : "text-white/60"}`}>
-                      {proUnreadCount > 0
-                        ? `${proUnreadCount} client${proUnreadCount > 1 ? "s" : ""} messaged you — tap to respond`
-                        : "No new messages from clients"}
-                    </p>
-                  </div>
-                  {proUnreadCount > 0 && (
-                    <span className="text-[10px] font-bold text-white bg-orange-500 rounded-full px-2 py-0.5 min-w-[1.4rem] text-center">
-                      {proUnreadCount}
-                    </span>
-                  )}
-                  <ChevronDown className={`h-4 w-4 ${proUnreadCount > 0 ? "text-orange-400/60" : "text-white/30"}`} />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+              {/* Card 2: Provider Messages inbox — only for coaches who are also under a provider */}
+              {hasProviderConnection && (
+                <Card
+                  className={`cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md relative ${providerHasUnread ? "border-2 border-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.55)] animate-pulse" : "border border-blue-500/30"}`}
+                  onClick={() => setProviderOpen(!providerOpen)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${providerHasUnread ? "bg-orange-500/20" : "bg-blue-500/20"}`}>
+                        <MessageSquare className={`h-5 w-5 ${providerHasUnread ? "text-orange-400" : "text-blue-400"}`} />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-sm font-semibold text-white">Provider Messages</h3>
+                        <p className={`text-xs ${providerHasUnread ? "text-orange-400 font-medium" : "text-white/60"}`}>
+                          {providerHasUnread ? "New message from your provider" : "Messages from your provider"}
+                        </p>
+                      </div>
+                      {providerHasUnread && (
+                        <span className="text-[10px] font-bold text-white bg-orange-500 rounded-full px-2 py-0.5 uppercase tracking-wide">New</span>
+                      )}
+                      {providerOpen ? (
+                        <ChevronUp className="h-4 w-4 text-white/40" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-white/40" />
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
           ) : isProCareClient ? (
             <Card
               className={`cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md relative ${tabletHasUnread ? "border-2 border-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.55)] animate-pulse" : "border border-purple-500/30"}`}
@@ -691,6 +879,102 @@ export default function DashboardNew() {
                       className="bg-purple-600 hover:bg-purple-700 px-3 self-end"
                     >
                       {tabletSending ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Send className="w-3.5 h-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Provider inbox panel — fully independent from client tablet */}
+          {providerOpen && isCoach && hasProviderConnection && (
+            <div className="bg-black/30 backdrop-blur-lg border border-blue-500/20 rounded-xl p-4 space-y-3">
+              {providerLoading && (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="w-4 h-4 animate-spin text-white/40" />
+                </div>
+              )}
+              {providerError && (
+                <p className="text-sm text-red-400">{providerError}</p>
+              )}
+              {!providerLoading && !providerError && (
+                <>
+                  <div ref={providerScrollRef} className="max-h-64 overflow-y-auto space-y-2">
+                    {providerMessages.length === 0 && (
+                      <p className="text-xs text-white/30 py-2">No messages yet</p>
+                    )}
+                    {providerMessages.map((entry: any) => (
+                      <div
+                        key={entry.id}
+                        className={`rounded-md p-2.5 border ${
+                          entry.sender === "client"
+                            ? "bg-blue-500/10 border-blue-500/20 ml-6"
+                            : "bg-white/5 border-white/5 mr-6"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] text-white/40">
+                            {entry.sender === "client" ? "You" : "Provider"}{" "}
+                            &middot;{" "}
+                            {new Date(entry.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}{" "}
+                            {new Date(entry.createdAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleProviderTranslate(entry); }}
+                              disabled={providerTranslatingId === entry.id}
+                              className="text-blue-400 p-0.5"
+                              title="Translate"
+                            >
+                              {providerTranslatingId === entry.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Globe className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleProviderDelete(entry); }}
+                              className="text-red-500 p-0.5"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-xs text-white/80 leading-relaxed whitespace-pre-wrap">
+                          {entry.translatedBody || entry.body}
+                        </p>
+                        {entry.translatedBody && (
+                          <p className="text-[10px] text-white/30 mt-1 italic">Original: {entry.body}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <textarea
+                      value={providerInput}
+                      onChange={(e) => setProviderInput(e.target.value)}
+                      placeholder="Reply to your provider..."
+                      className="flex-1 bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-white placeholder:text-white/30 resize-none focus:outline-none focus:border-blue-500/50"
+                      rows={2}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleProviderSend();
+                        }
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      disabled={!providerInput.trim() || providerSending}
+                      onClick={handleProviderSend}
+                      className="bg-blue-600 hover:bg-blue-700 px-3 self-end"
+                    >
+                      {providerSending ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
                         <Send className="w-3.5 h-3.5" />
