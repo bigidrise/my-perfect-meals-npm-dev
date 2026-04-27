@@ -69,7 +69,7 @@ export default function LifestyleLandingPage() {
       description:
         "Create smoothies, protein shakes, coffee drinks, mocktails, cocktails, and more with AI.",
       icon: Wine,
-      route: "/lifestyle/beverage-creator",
+      route: "/lifestyle/beverage-hub",
       gradient: "from-blue-500/20 to-cyan-500/20",
       testId: "card-beverage-creator",
       badge: "behavioral",
