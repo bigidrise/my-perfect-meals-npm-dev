@@ -5,6 +5,7 @@
 //   - ONLY modifies: name, description, instructions
 //   - NEVER touches: ingredients, macros, nutrition, servings, medicalBadges
 //   - Fails back to base meal on any error
+//   - Always tags result with creatorSystem id (powers catalog + analytics)
 //   - Logs every application
 
 import { chatJson } from "../../utils/openaiSafe";
@@ -15,29 +16,29 @@ export type EngineType = "meal" | "dessert" | "beverage";
 function buildCreatorPrompt(system: CreatorSystemConfig, baseMeal: any): string {
   const s = system.style;
 
-  const techniqueBlock = s.techniques.length > 0
-    ? `Use one of these techniques: ${s.techniques.join(", ")}.`
-    : "";
+  // 1. Default fallback guards — prevents empty/awkward LLM instructions
+  const techniques = s.techniques.length ? s.techniques.join(", ") : "standard cooking techniques";
+  const flavors = s.flavorProfiles.length ? s.flavorProfiles.join(", ") : "balanced flavors";
+  const bias = s.ingredientBias.length ? s.ingredientBias.join(", ") : "no specific ingredient bias";
 
-  const flavorBlock = s.flavorProfiles.length > 0
-    ? `Emphasize these flavor profiles: ${s.flavorProfiles.join(", ")}.`
-    : "";
+  // 2. Naming pattern enforcement — explicit instruction based on config
+  const namingPatternInstruction = s.naming.pattern === "technique-first"
+    ? `The dish name MUST start with the cooking technique (e.g., "Pan-Seared...", "Charred...", "Roasted..."). The technique word must be the first word.`
+    : `The dish name should lead with the dominant flavor identity (e.g., "Smoky...", "Citrus-Forward...", "Bold...").`;
 
-  const ingredientBlock = s.ingredientBias.length > 0
-    ? `Prefer these ingredients where applicable: ${s.ingredientBias.join(", ")}.`
-    : "";
+  const sauceInstruction = s.naming.includeSauce
+    ? `Include a sauce, glaze, or finishing element in the dish name (e.g., "...with Garlic Pan Sauce", "...with Honey-Ginger Glaze").`
+    : `Sauce in name is optional.`;
 
-  const namingBlock = [
-    `Naming pattern: ${s.naming.pattern}.`,
-    s.naming.includeSauce ? "Include a sauce, glaze, or finishing element in the dish name." : "Sauce in name is optional.",
-    s.naming.maxLength ? `Keep name under ${s.naming.maxLength} characters.` : "",
-  ].filter(Boolean).join(" ");
+  const maxLengthInstruction = s.naming.maxLength
+    ? `Keep the dish name under ${s.naming.maxLength} characters.`
+    : "";
 
   const instructionLines = [
     s.instructionRules.requireHighHeatProtein ? "- MUST include a high-heat protein step (sear, char, or roast) with time and visual cue." : "",
     s.instructionRules.requireSauceBuild ? "- MUST include a sauce-building step (deglaze → reduce → emulsify/finish)." : "",
     s.instructionRules.requireLayering ? "- MUST show flavor layering sequence (aromatics → liquid → finish)." : "",
-  ].filter(Boolean).join("\n");
+  ].filter(Boolean).join("\n") || "- Standard instruction quality.";
 
   const forbidBlock = s.description.forbidWords.length > 0
     ? `Forbidden words in description: ${s.description.forbidWords.join(", ")}.`
@@ -48,19 +49,21 @@ Return a JSON object with exactly three keys: "name", "description", "instructio
 "instructions" must match the same format as in the original meal (array or string).
 
 COOKING TECHNIQUES:
-${techniqueBlock || "No specific technique required."}
+Use one of these techniques: ${techniques}.
 
 FLAVOR PROFILE:
-${flavorBlock || "No specific flavor profile required."}
+Emphasize these flavor profiles: ${flavors}.
 
 INGREDIENT BIAS:
-${ingredientBlock || "No ingredient bias."}
+Prefer these ingredients where applicable: ${bias}.
 
 NAMING:
-${namingBlock}
+${namingPatternInstruction}
+${sauceInstruction}
+${maxLengthInstruction}
 
 INSTRUCTIONS:
-${instructionLines || "Standard instruction quality."}
+${instructionLines}
 
 DESCRIPTION:
 - Tone: ${s.description.tone}
@@ -80,13 +83,16 @@ export async function applyCreatorTransformation(
   system: CreatorSystemConfig,
   engineType: EngineType
 ): Promise<any> {
-  // Skip default system — no transformation needed
-  if (!system || system.id === "default") return baseMeal;
+  // 3. Always tag with creatorSystem id — even on early returns (powers catalog + analytics)
+  const tag = (meal: any) => ({ ...meal, creatorSystem: system.id });
+
+  // Skip default system — no style transformation needed
+  if (!system || system.id === "default") return tag(baseMeal);
 
   // Capability check — only apply where system supports it
-  if (engineType === "meal" && !system.supports.meals) return baseMeal;
-  if (engineType === "dessert" && !system.supports.desserts) return baseMeal;
-  if (engineType === "beverage" && !system.supports.beverages) return baseMeal;
+  if (engineType === "meal" && !system.supports.meals) return tag(baseMeal);
+  if (engineType === "dessert" && !system.supports.desserts) return tag(baseMeal);
+  if (engineType === "beverage" && !system.supports.beverages) return tag(baseMeal);
 
   try {
     const prompt = buildCreatorPrompt(system, baseMeal);
@@ -95,22 +101,21 @@ export async function applyCreatorTransformation(
 
     if (!styled || typeof styled !== "object") {
       console.warn(`[CreatorSystem] "${system.name}" returned invalid response — using base meal`);
-      return baseMeal;
+      return tag(baseMeal);
     }
 
-    const result = {
+    const result = tag({
       ...baseMeal,
       name: (styled.name && typeof styled.name === "string") ? styled.name : baseMeal.name,
       description: (styled.description && typeof styled.description === "string") ? styled.description : (baseMeal.description ?? ""),
       instructions: styled.instructions != null ? styled.instructions : (baseMeal.instructions ?? baseMeal.steps ?? []),
-      creatorSystem: system.id,
-    };
+    });
 
     console.log(`[CreatorSystem] Applied "${system.name}" transformation: "${baseMeal.name}" → "${result.name}"`);
     return result;
 
   } catch (err) {
     console.error(`[CreatorSystem] Transformation failed for "${system.name}" — returning base meal:`, err);
-    return baseMeal;
+    return tag(baseMeal);
   }
 }
