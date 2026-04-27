@@ -661,7 +661,7 @@ export default function DashboardNew() {
           transition={{ delay: 0.12, duration: 0.5 }}
           className="mb-4 space-y-3"
         >
-          {!isDesktop && isCoach ? (
+          {isCoach ? (
             <>
               {/* Card 1: Client Messages inbox */}
               <Card
