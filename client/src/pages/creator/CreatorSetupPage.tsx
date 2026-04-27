@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChefHat, ArrowRight, ArrowLeft, Check } from "lucide-react";
+import { ChefHat, ArrowRight, ArrowLeft, Check, Plus, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -56,6 +56,85 @@ function PillSelect({ options, selected, onToggle, single }: {
           </button>
         );
       })}
+    </div>
+  );
+}
+
+function PillSelectWithCustom({ presets, selected, onToggle, placeholder }: {
+  presets: string[];
+  selected: string[];
+  onToggle: (v: string) => void;
+  placeholder: string;
+}) {
+  const [custom, setCustom] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function addCustom() {
+    const trimmed = custom.trim();
+    if (!trimmed) return;
+    const normalized = trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+    if (!selected.includes(normalized)) onToggle(normalized);
+    setCustom("");
+    inputRef.current?.focus();
+  }
+
+  const customSelected = selected.filter(s => !presets.includes(s));
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2">
+        {presets.map((opt) => {
+          const isSelected = selected.includes(opt);
+          return (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => onToggle(opt)}
+              className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
+                isSelected
+                  ? "bg-orange-600 border-orange-500 text-white"
+                  : "bg-white/5 border-white/15 text-white/70 hover:border-white/30 hover:text-white"
+              }`}
+            >
+              {opt}
+            </button>
+          );
+        })}
+        {customSelected.map((opt) => (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onToggle(opt)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border bg-orange-600 border-orange-500 text-white transition-all"
+          >
+            {opt}
+            <X className="h-3 w-3 opacity-70" />
+          </button>
+        ))}
+      </div>
+
+      <div className="flex gap-2 mt-1">
+        <input
+          ref={inputRef}
+          type="text"
+          value={custom}
+          onChange={e => setCustom(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addCustom())}
+          placeholder={placeholder}
+          className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/15 text-white placeholder-white/30 focus:outline-none focus:border-orange-500/40 text-sm"
+          maxLength={40}
+        />
+        <button
+          type="button"
+          onClick={addCustom}
+          disabled={!custom.trim()}
+          className="flex items-center gap-1 px-3 py-2 rounded-lg bg-white/10 border border-white/15 text-white/70 hover:text-white hover:bg-white/15 transition-all text-sm disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Add
+        </button>
+      </div>
+      <p className="text-[10px] text-white/30">Not seeing yours? Type it in and press Add.</p>
     </div>
   );
 }
@@ -224,23 +303,25 @@ export default function CreatorSetupPage() {
     },
     {
       title: "How do you cook?",
-      subtitle: "Select your go-to cooking techniques.",
+      subtitle: "Select your techniques — or type in your own.",
       content: (
-        <PillSelect
-          options={TECHNIQUES}
+        <PillSelectWithCustom
+          presets={TECHNIQUES}
           selected={form.techniques}
           onToggle={v => toggleMulti("techniques", v)}
+          placeholder="e.g. Smoking, Wok cooking, Fermenting…"
         />
       ),
     },
     {
       title: "What's your flavor style?",
-      subtitle: "Choose the profiles that define your food.",
+      subtitle: "Choose from the list — or add your own.",
       content: (
-        <PillSelect
-          options={FLAVORS}
+        <PillSelectWithCustom
+          presets={FLAVORS}
           selected={form.flavors}
           onToggle={v => toggleMulti("flavors", v)}
+          placeholder="e.g. Earthy, Tangy, Herbaceous…"
         />
       ),
     },
@@ -249,13 +330,17 @@ export default function CreatorSetupPage() {
       subtitle: "What do you reach for most? (optional)",
       content: (
         <div className="space-y-4">
-          <input
-            type="text"
-            value={form.ingredients}
-            onChange={e => setForm(f => ({ ...f, ingredients: e.target.value }))}
-            placeholder="garlic, olive oil, citrus, herbs…"
-            className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/15 text-white placeholder-white/30 focus:outline-none focus:border-orange-500/60 text-sm"
-          />
+          <div>
+            <label className="text-xs text-white/60 font-medium uppercase tracking-wider block mb-2">Type them in, separated by commas</label>
+            <input
+              type="text"
+              value={form.ingredients}
+              onChange={e => setForm(f => ({ ...f, ingredients: e.target.value }))}
+              placeholder="garlic, olive oil, citrus, herbs, miso…"
+              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/15 text-white placeholder-white/30 focus:outline-none focus:border-orange-500/60 text-sm"
+            />
+            <p className="text-[10px] text-white/30 mt-1.5">These bias the ingredient suggestions toward your kitchen's identity.</p>
+          </div>
           <div>
             <label className="text-xs text-white/60 font-medium uppercase tracking-wider block mb-2">Dish naming style</label>
             <PillSelect
@@ -320,7 +405,10 @@ export default function CreatorSetupPage() {
       <div className="px-6 pt-12 max-w-lg mx-auto">
 
         <div className="flex items-center gap-3 mb-8">
-          <button onClick={() => step > 0 ? setStep(s => s - 1) : setLocation("/creator/start")} className="p-2 rounded-lg bg-white/5 text-white/60 hover:text-white transition-colors">
+          <button
+            onClick={() => step > 0 ? setStep(s => s - 1) : setLocation("/creator/start")}
+            className="p-2 rounded-lg bg-white/5 text-white/60 hover:text-white transition-colors"
+          >
             <ArrowLeft className="h-4 w-4" />
           </button>
           <div className="flex-1 bg-white/10 rounded-full h-1.5">
