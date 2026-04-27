@@ -358,10 +358,22 @@ export default function AthleteBeverageCreator() {
       >
         <Card className="shadow-2xl bg-black/30 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto mb-6">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg text-white">
-              <Zap className="h-5 w-5 text-orange-400" />
-              Build Your Performance Drink
-            </CardTitle>
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="flex items-center gap-2 text-lg text-white">
+                <Zap className="h-5 w-5 text-orange-400" />
+                Build Your Performance Drink
+              </CardTitle>
+              <button
+                onClick={() => {
+                  setLastResponse({ title: PRO_TIPS_SCRIPT.title, description: PRO_TIPS_SCRIPT.description, spokenText: PRO_TIPS_SCRIPT.spokenText, autoClose: PRO_TIPS_SCRIPT.autoClose });
+                  openCopilot();
+                }}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/20 border border-orange-500/30 text-orange-200 text-xs font-semibold active:bg-orange-500/30 transition-colors shrink-0"
+              >
+                <Lightbulb className="h-3 w-3" />
+                How it Works
+              </button>
+            </div>
           </CardHeader>
 
           <CardContent className="space-y-4">
