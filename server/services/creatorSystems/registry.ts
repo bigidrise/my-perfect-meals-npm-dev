@@ -26,11 +26,15 @@ export const creatorSystems: Record<string, CreatorSystem> = {
     name: "Test System",
     type: "chef",
     stylePrompt: `
-Bold flavors, high seasoning, and layered taste profiles.
-Emphasize grilling, searing, and rich sauces.
-Prefer hearty portions with distinct, confident seasoning.
-Meals should feel like they came from a skilled chef's kitchen — intentional, flavorful, not bland.
-Apply this style without violating any dietary, medical, or macro constraints already set.
+You MUST apply the following style characteristics to this meal:
+
+- Use bold, layered flavors with confident, intentional seasoning profiles
+- Favor grilling, searing, or high-heat cooking methods when appropriate
+- Include rich sauces, marinades, or seasoning blends where compatible with constraints
+- Avoid bland, minimal, or under-seasoned output unless required by medical or dietary rules
+- Meals should feel like they came from a skilled chef's kitchen — assertive, flavorful, purposeful
+
+These style rules are mandatory unless they directly conflict with medical, dietary, or macro constraints already set.
     `.trim(),
   },
 };
