@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
-import { ArrowLeft, Brain, Fish } from "lucide-react";
+import { ArrowLeft, Brain, Fish, Lightbulb } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
@@ -51,6 +51,14 @@ import TrashButton from "@/components/ui/TrashButton";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
+import { useCopilot } from "@/components/copilot/CopilotContext";
+
+const SUSHI_PRO_TIPS = {
+  title: "Sushi Creator — How It Works",
+  description: "Traditional Japanese sushi built fresh with your dietary profile — clean proteins, functional ingredients, no shortcuts.",
+  spokenText: "Here's how the Sushi Creator works. You describe what you're craving — a specific roll, a style like nigiri or temaki, or a protein like salmon or tuna — and the system builds a complete sushi recipe optimized for your nutrition goals. Every recipe is built around your active dietary profile. Vegan? The system uses plant proteins like tofu and avocado. Anti-inflammatory? Ingredients are chosen to reduce inflammation, not spike it. Allergies? Your allergy list travels with every request. The safety guard and diet guard run before every generation. And after your recipe appears, a dish image loads automatically so you can see exactly what you're about to make.",
+  autoClose: false,
+};
 
 const SUSHI_STYLES = [
   { value: "nigiri", label: "Nigiri", emoji: "🍱" },
@@ -80,6 +88,7 @@ export default function SushiCreator() {
   const { toast } = useToast();
   const { user } = useAuth();
   const userId = user?.id || "";
+  const { open: openCopilot, setLastResponse } = useCopilot();
 
   // Input state
   const [cravingInput, setCravingInput] = useState("");
@@ -93,6 +102,7 @@ export default function SushiCreator() {
 
   // Result state
   const [generatedMeal, setGeneratedMeal] = useState<any | null>(null);
+  const [mealImageLoading, setMealImageLoading] = useState(false);
   const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(null);
   const [instructionsExpanded, setInstructionsExpanded] = useState(false);
   const [activeStep, setActiveStep] = useState<number | null>(null);
@@ -239,6 +249,19 @@ export default function SushiCreator() {
 
       stopProgressTicker();
       setGeneratedMeal(meal);
+
+      // Fire image generation async — non-blocking
+      setMealImageLoading(true);
+      fetch(apiUrl("/api/meals/generate-image"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mealId: meal.id, mealName: meal.name, mealType: "sushi", ingredients: meal.ingredients }),
+      })
+        .then((r) => r.json())
+        .then((d) => { if (d.imageUrl) setGeneratedMeal((prev: any) => prev ? { ...prev, imageUrl: d.imageUrl } : prev); })
+        .catch(() => {})
+        .finally(() => setMealImageLoading(false));
+
       toast({ title: "🍣 Sushi Created!", description: `${meal.name} is ready.` });
     } catch (err: any) {
       stopProgressTicker();
@@ -287,9 +310,16 @@ export default function SushiCreator() {
                 Sushi Creator
               </h1>
               <div className="flex-grow" />
-              <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30 shrink-0">
-                Admin Preview
-              </span>
+              <button
+                onClick={() => {
+                  setLastResponse({ title: SUSHI_PRO_TIPS.title, description: SUSHI_PRO_TIPS.description, spokenText: SUSHI_PRO_TIPS.spokenText, autoClose: SUSHI_PRO_TIPS.autoClose });
+                  openCopilot();
+                }}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-500/20 border border-teal-500/30 text-teal-200 text-xs font-semibold active:bg-teal-500/30 transition-colors shrink-0"
+              >
+                <Lightbulb className="h-3 w-3" />
+                How it Works
+              </button>
             </div>
           </div>
         </MobileHeaderGuard>
@@ -302,10 +332,22 @@ export default function SushiCreator() {
           <div className="w-full max-w-4xl mx-auto">
             <Card className="shadow-2xl bg-black/30 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto">
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-xl text-white">
-                  <Fish className="h-5 w-5 text-teal-400" />
-                  What sushi are you craving?
-                </CardTitle>
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="flex items-center gap-2 text-xl text-white">
+                    <Fish className="h-5 w-5 text-teal-400" />
+                    What sushi are you craving?
+                  </CardTitle>
+                  <button
+                    onClick={() => {
+                      setLastResponse({ title: SUSHI_PRO_TIPS.title, description: SUSHI_PRO_TIPS.description, spokenText: SUSHI_PRO_TIPS.spokenText, autoClose: SUSHI_PRO_TIPS.autoClose });
+                      openCopilot();
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-500/20 border border-teal-500/30 text-teal-200 text-xs font-semibold active:bg-teal-500/30 transition-colors shrink-0"
+                  >
+                    <Lightbulb className="h-3 w-3" />
+                    How it Works
+                  </button>
+                </div>
               </CardHeader>
 
               <CardContent className="space-y-3">
@@ -511,7 +553,7 @@ export default function SushiCreator() {
 
                   <p className="text-white/90 mb-4">{generatedMeal.description}</p>
 
-                  <MealImageSlot imageUrl={generatedMeal.imageUrl} mealName={generatedMeal.name} isLoading={false} />
+                  <MealImageSlot imageUrl={generatedMeal.imageUrl} mealName={generatedMeal.name} isLoading={mealImageLoading} />
 
                   {generatedMeal.servingSize && (
                     <div className="mb-4 p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-lg">
