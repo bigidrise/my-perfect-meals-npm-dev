@@ -62,7 +62,7 @@ router.post("/meal-engine/generate", requireAuth, async (req, res) => {
     
     const meal = await engine.generateSingleMeal({
       ...req.body,
-      creatorStylePrompt: system.stylePrompt,
+      creatorSystem: system,
     });
     // Wrap response for client consistency (client expects { meal: ... })
     res.json({ meal });
