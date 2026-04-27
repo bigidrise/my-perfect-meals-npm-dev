@@ -366,21 +366,40 @@ async function llmGenerateMeal(
   // The model reads creator rules FIRST, then the base prompt fills in formatting details.
   // Constraint blocks (medical, diet, macros, allergies) still apply — they are woven into the base.
   let systemPrompt = sys.system;
+  let userPrompt = sys.user;
+
   if (request.creatorStylePrompt) {
+    // 1. Build the creator block that goes at the TOP of the system prompt
     const creatorBlock = `=== CREATOR SYSTEM — PRIMARY GENERATION CONTRACT ===
 ${request.creatorStylePrompt}
 
 These rules define the required structure and approach for this meal.
 The base instructions below handle formatting, units, and macro compliance.
-When the two conflict on style or technique: the creator system rules WIN.
+When the two conflict on style, naming, or technique: the CREATOR SYSTEM RULES WIN.
 === END CREATOR SYSTEM ===
 
 `;
     systemPrompt = creatorBlock + systemPrompt;
+
+    // 2. Override the base prompt's "no fluff / straightforward" lines which conflict with
+    //    chef-level instruction depth required by the creator system.
+    systemPrompt = systemPrompt.replace(
+      "Use straightforward, kitchen-ready instructions only. No fluff, no tips, no equipment essays.",
+      "Follow the CREATOR SYSTEM rules above for instruction structure, depth, and technique detail."
+    );
+
+    // 3. Reinforce creator requirements in the USER message — the model's direct response target.
+    userPrompt = userPrompt + `
+
+CREATOR SYSTEM REMINDER (REQUIRED IN YOUR RESPONSE):
+- Meal name MUST begin with the protein's cooking technique (Pan-Seared, Blackened, Charred, Roasted)
+- Instructions MUST include: (a) explicit sear/roast step with time+visual cue, (b) sauce-building step (deglaze → reduce → finish)
+- Description MUST describe technique and flavor result — NOT use words like "refreshing", "vibrant", "zesty", "delicious", "satisfying"
+A response that does not follow these three rules is invalid and must be rewritten before submitting.`;
   }
 
   try {
-    const parsed = await chatJson({ system: systemPrompt, user: sys.user });
+    const parsed = await chatJson({ system: systemPrompt, user: userPrompt });
     const meal: Meal = {
       id: cryptoRandomId(),
       name: parsed.name,
