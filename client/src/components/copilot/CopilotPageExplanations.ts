@@ -79,6 +79,16 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
+  "/lifestyle/athlete-beverage-creator": {
+    pageId: "athlete-beverage-creator",
+    title: "Athletes Beverage Creator",
+    description:
+      "Performance drinks built for athletes — clean, functional, and tuned to your training phase. No dyes, no fillers. Every drink respects your dietary profile.",
+    spokenText:
+      "Welcome to the Athletes Beverage Creator. This system is built for serious performance — UFC fighters, NBA players, endurance athletes, and anyone who trains hard and eats clean. Every drink is designed around your training phase. Pre-workout drinks focus on energy and focus. Intra-workout drinks prioritize hydration and endurance. Post-workout drinks are built for recovery and rebuilding muscle. Ingredients are chosen for function — protein timing, electrolytes, creatine support, and clean energy. No artificial dyes, no fillers, nothing your body doesn't need. And your dietary profile always travels with you. If you're vegan, anti-inflammatory, or have any food restrictions, this system respects all of that automatically. The same guardrails that protect every meal in this app are active here too. Select your training phase, your goal, and your preferred drink format, then tap Build Performance Drink.",
+    autoClose: true,
+  },
+
   "/lifestyle/beverage-creator": {
     pageId: "beverage-creator",
     title: "Beverage Creator",
