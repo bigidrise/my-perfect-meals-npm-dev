@@ -312,9 +312,10 @@ export default function LifestyleLandingPage() {
                       We're bringing trusted experts into My Perfect Meals to offer guided systems to our users. Turn your philosophy into a program your audience can follow.
                     </p>
                     <a
-                      href="mailto:support@myperfectmeals.com"
+                      href="mailto:support@myperfectmeals.com?subject=Creator Partnership Inquiry — My Perfect Meals"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 mt-3 text-xs text-orange-400 hover:text-orange-300 transition-colors underline underline-offset-2"
-                      onClick={(e) => e.stopPropagation()}
                     >
                       Partner With Us — Early Access
                     </a>
