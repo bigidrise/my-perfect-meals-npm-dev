@@ -63,6 +63,15 @@ export { savedMeals } from "../server/db/schema/savedMeals";
 export { studioTypeEnum, mealLibraryItems, mealLibraryUsage, mealGenerationJobs } from "../server/db/schema/mealLibrary";
 export type { MealLibraryItem, InsertMealLibraryItem, MealLibraryUsage, MealGenerationJob } from "../server/db/schema/mealLibrary";
 
+export { creatorStatusEnum, creatorTierEnum, creators } from "../server/db/schema/creators";
+export type { Creator, InsertCreator } from "../server/db/schema/creators";
+export { creatorSystemConfigs } from "../server/db/schema/creatorSystemConfigs";
+export type { CreatorSystemConfigRow, InsertCreatorSystemConfig } from "../server/db/schema/creatorSystemConfigs";
+export { creatorOnboardingSubmissions } from "../server/db/schema/creatorOnboardingSubmissions";
+export type { CreatorOnboardingSubmission, InsertCreatorOnboardingSubmission } from "../server/db/schema/creatorOnboardingSubmissions";
+export { creatorMeals } from "../server/db/schema/creatorMeals";
+export type { CreatorMeal, InsertCreatorMeal } from "../server/db/schema/creatorMeals";
+
 export { 
   professionalSpaceTypeEnum, noteTypeEnum, noteVisibilityEnum, activityActionEnum,
   studios, studioBilling, studioMemberships, studioInvites, clientSubscriptions, clientNotes, clientActivityLog,
@@ -406,10 +415,21 @@ export const users = pgTable("users", {
   // Coach / Provider Availability — controlled from Care Team page (professionals only)
   availabilityStatus: text("availability_status").$type<"available"|"busy"|"away"|"offline">().default("available"),
   backAt: timestamp("back_at", { withTimezone: true }), // optional return date when not available
+  // Creator System Layer — which branded system this user has activated (default = MPM standard)
+  activeSystem: text("active_system").default("default"),
 }, (t) => ({
   resetTokenIdx: index("idx_reset_token_lookup").on(t.resetTokenHash, t.resetTokenExpires),
   authTokenIdx: uniqueIndex("idx_auth_token_lookup").on(t.authToken),
 }));
+
+// Creator System — product code redemption log (future revenue tracking)
+export const productCodeRedemptions = pgTable("product_code_redemptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  code: text("code").notNull(),
+  system: text("system").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
 
 // Pantry Items for Fridge Rescue
 export const pantryItems = pgTable("pantry_items", {

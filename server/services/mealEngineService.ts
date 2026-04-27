@@ -7,6 +7,8 @@ import {
   roundUnitsInIngredients,
 } from "./validators";
 import { chatJson, genImage } from "../utils/openaiSafe";
+import { applyCreatorTransformation } from "./creatorSystems/applyCreatorTransformation";
+import { type CreatorSystemConfig } from "./creatorSystems/registry";
 
 /** ===== Types ===== */
 export type EngineSource = "weekly" | "craving" | "potluck" | "fridge-rescue";
@@ -80,6 +82,9 @@ export interface MealGenerationRequest {
     leanProteinSwap?: boolean;
     reduceButterCream?: boolean;
   };
+  // Phase 2.2: Creator System — resolved by the route handler, applied as a 2-pass
+  // transformation AFTER generation. Never touches guardrails, macros, or ingredients.
+  creatorSystem?: CreatorSystemConfig;
 }
 
 export interface Meal {
@@ -392,6 +397,13 @@ async function llmGenerateMeal(
         unitsStandardized: false,
       },
     };
+
+    // 2-pass Creator System transformation — runs AFTER base generation.
+    // Only fires when a non-default system is active. Failsafe returns original meal.
+    if (request.creatorSystem && request.creatorSystem.id !== "default") {
+      return await applyCreatorTransformation(meal, request.creatorSystem, "meal") as Meal;
+    }
+
     return meal;
   } catch (e) {
     tripBreaker();

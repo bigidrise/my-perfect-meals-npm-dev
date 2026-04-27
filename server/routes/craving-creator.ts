@@ -13,6 +13,8 @@ import {
 } from "../services/allergyGuardrails";
 import { runEnforcement } from "../services/enforcementGateway";
 import { sanitizeMealName } from "../utils/mealNameSanitizer";
+import { resolveActiveSystem } from "../services/creatorSystems/resolver";
+import { applyCreatorTransformation } from "../services/creatorSystems/applyCreatorTransformation";
 
 const router = express.Router();
 
@@ -165,6 +167,13 @@ router.post('/generate', requireAuth, async (req, res) => {
         console.log(`✏️ [NameSanitizer] "${generatedMeal.name}" → "${sanitized}" (diet: ${userDiet})`);
         (generatedMeal as any).name = sanitized;
       }
+    }
+
+    // Creator System 2-pass transformation — runs AFTER all safety/avoidance checks.
+    // Uses the already-fetched user object to resolve system — no extra DB query.
+    if (user) {
+      const creatorSystem = resolveActiveSystem(user);
+      generatedMeal = await applyCreatorTransformation(generatedMeal, creatorSystem, "meal");
     }
 
     // Add servings info to the meal response
