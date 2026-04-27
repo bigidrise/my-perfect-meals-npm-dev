@@ -3555,6 +3555,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let scannedOptions = cleanOptions;
 
+      // Creator System 2-pass transformation — applied AFTER all safety/protocol filters.
+      // Modifies only name, description, instructions. Macros, ingredients, servings untouched.
+      if (user) {
+        try {
+          const { resolveActiveSystem } = await import("./services/creatorSystems/resolver");
+          const { applyCreatorTransformation } = await import("./services/creatorSystems/applyCreatorTransformation");
+          const creatorSystem = resolveActiveSystem(user);
+          if (creatorSystem.id !== "default" && creatorSystem.stylePrompt) {
+            scannedOptions = await Promise.all(
+              scannedOptions.map(meal => applyCreatorTransformation(meal, creatorSystem, "meal"))
+            );
+          }
+        } catch (err) {
+          console.error("[CreatorSystem] Transformation failed in craving-creator — using base options:", err);
+        }
+      }
+
       // Format and optionally scale each option
       const formattedOptions = scannedOptions.map(meal => {
         const { complianceSection, dietClassification } = buildMealComplianceBundle(
