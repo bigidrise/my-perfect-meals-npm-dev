@@ -413,10 +413,10 @@ export default function Router() {
         {/* DELETED: AffiliatesPage, FoundersPage, FoundersSubmit, Changelog routes */}
         {/* DELETED: MealPlanning, LowGlycemicCarbPage, AiMealCreatorPage, MealPlanningHubRevised routes */}
         <Route path="/lifestyle" component={LifestyleLandingPage} />
-        {/* Creator Studio */}
-        <Route path="/creator/start" component={CreatorStartPage} />
-        <Route path="/creator/setup" component={CreatorSetupPage} />
-        <Route path="/creator/studio" component={CreatorStudioPage} />
+        {/* Creator Studio — admin-only during beta */}
+        <Route path="/creator/start" component={() => <CoachingAdminGate component={CreatorStartPage} />} />
+        <Route path="/creator/setup" component={() => <CoachingAdminGate component={CreatorSetupPage} />} />
+        <Route path="/creator/studio" component={() => <CoachingAdminGate component={CreatorStudioPage} />} />
         {/* DELETED: /healthy-kids-meals, /kids-meals, /toddler-meals routes (Phase 1 cleanup) */}
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
         <Route path="/lifestyle/my-perfect-gatherings" component={GatheringsPage} />

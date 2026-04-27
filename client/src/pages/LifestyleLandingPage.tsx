@@ -29,11 +29,14 @@ interface AIFeature {
   badge?: "emotion" | "behavioral";
 }
 
+const CREATOR_BETA_ADMIN_ID = "6796ce88-dff8-4336-adcb-e53986830f3f";
+
 export default function LifestyleLandingPage() {
   const [, setLocation] = useLocation();
   const isDesktop = useIsDesktop();
   const { isFree, showLockModal, lockMessage, guardAction, closeLockModal } = useFreeLock();
   const { user } = useAuth();
+  const isCreatorBetaAdmin = user?.id === CREATOR_BETA_ADMIN_ID;
 
   useEffect(() => {
     document.title = "Lifestyle | My Perfect Meals";
@@ -288,7 +291,8 @@ export default function LifestyleLandingPage() {
               );
             })}
           </div>
-          {/* Creator Studio Card — conditional on creator status */}
+          {/* Creator Studio Card — admin-only during beta */}
+          {isCreatorBetaAdmin && (
           <div data-testid="card-creator-system-teaser" className="relative mt-2">
             {user?.isCreator ? (
               <Card
@@ -351,6 +355,7 @@ export default function LifestyleLandingPage() {
               </Card>
             )}
           </div>
+          )}
         </div>
       </div>
 
