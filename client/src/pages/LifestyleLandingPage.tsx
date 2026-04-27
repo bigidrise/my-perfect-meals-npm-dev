@@ -285,35 +285,35 @@ export default function LifestyleLandingPage() {
               );
             })}
           </div>
-          {/* Creator System Teaser — bottom of page, de-emphasized */}
+          {/* Creator System Teaser — bottom of page */}
           <div
             data-testid="card-creator-system-teaser"
             className="relative mt-2"
           >
-            <Card className="relative rounded-xl shadow-sm overflow-hidden bg-black/20 backdrop-blur-lg border border-white/8 opacity-80">
+            <Card className="relative rounded-xl shadow-sm overflow-hidden bg-black/30 backdrop-blur-lg border border-white/15">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-white/8 mt-0.5 flex-shrink-0">
-                    <Briefcase className="h-4 w-4 text-white/50" />
+                  <div className="p-2 rounded-lg bg-orange-500/20 mt-0.5 flex-shrink-0">
+                    <Briefcase className="h-4 w-4 text-orange-400" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-semibold text-white/70">
+                      <h3 className="text-sm font-semibold text-white">
                         Build Your Own System
                       </h3>
-                      <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-white/10 text-white/40 border border-white/10">
+                      <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">
                         Early Access
                       </span>
                     </div>
-                    <p className="text-[11px] text-white/40 mt-0.5 font-medium">
+                    <p className="text-[11px] text-white/70 mt-0.5 font-medium">
                       For chefs, coaches, and professionals
                     </p>
-                    <p className="text-xs text-white/50 mt-1.5 leading-relaxed">
+                    <p className="text-xs text-white/80 mt-1.5 leading-relaxed">
                       We're bringing trusted experts into My Perfect Meals to offer guided systems to our users. Turn your philosophy into a program your audience can follow.
                     </p>
                     <a
-                      href="mailto:partnerships@myperfectmeals.com"
-                      className="inline-flex items-center gap-1.5 mt-3 text-xs text-white/50 hover:text-white/70 transition-colors underline underline-offset-2"
+                      href="mailto:support@myperfectmeals.com"
+                      className="inline-flex items-center gap-1.5 mt-3 text-xs text-orange-400 hover:text-orange-300 transition-colors underline underline-offset-2"
                       onClick={(e) => e.stopPropagation()}
                     >
                       Partner With Us — Early Access
