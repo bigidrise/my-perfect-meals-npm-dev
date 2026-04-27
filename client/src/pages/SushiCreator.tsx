@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
-import { ArrowLeft, Brain, Fish, Lightbulb } from "lucide-react";
+import { ArrowLeft, Brain, Fish, Play } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
@@ -51,14 +51,8 @@ import TrashButton from "@/components/ui/TrashButton";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
-import { useCopilot } from "@/components/copilot/CopilotContext";
 
-const SUSHI_PRO_TIPS = {
-  title: "Sushi Creator — How It Works",
-  description: "Traditional Japanese sushi built fresh with your dietary profile — clean proteins, functional ingredients, no shortcuts.",
-  spokenText: "Here's how the Sushi Creator works. You describe what you're craving — a specific roll, a style like nigiri or temaki, or a protein like salmon or tuna — and the system builds a complete sushi recipe optimized for your nutrition goals. Every recipe is built around your active dietary profile. Vegan? The system uses plant proteins like tofu and avocado. Anti-inflammatory? Ingredients are chosen to reduce inflammation, not spike it. Allergies? Your allergy list travels with every request. The safety guard and diet guard run before every generation. And after your recipe appears, a dish image loads automatically so you can see exactly what you're about to make.",
-  autoClose: false,
-};
+const SUSHI_HOW_IT_WORKS_VIDEO = "https://youtube.com/shorts/g85Pkiywrpk?feature=share";
 
 const SUSHI_STYLES = [
   { value: "nigiri", label: "Nigiri", emoji: "🍱" },
@@ -88,7 +82,6 @@ export default function SushiCreator() {
   const { toast } = useToast();
   const { user } = useAuth();
   const userId = user?.id || "";
-  const { open: openCopilot, setLastResponse } = useCopilot();
 
   // Input state
   const [cravingInput, setCravingInput] = useState("");
@@ -310,16 +303,17 @@ export default function SushiCreator() {
                 Sushi Creator
               </h1>
               <div className="flex-grow" />
-              <button
-                onClick={() => {
-                  setLastResponse({ title: SUSHI_PRO_TIPS.title, description: SUSHI_PRO_TIPS.description, spokenText: SUSHI_PRO_TIPS.spokenText, autoClose: SUSHI_PRO_TIPS.autoClose });
-                  openCopilot();
-                }}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-500/20 border border-teal-500/30 text-teal-200 text-xs font-semibold active:bg-teal-500/30 transition-colors shrink-0"
-              >
-                <Lightbulb className="h-3 w-3" />
-                How it Works
-              </button>
+              <div className="flex flex-col items-center gap-1">
+                <PillButton
+                  active
+                  variant="emerald"
+                  onClick={() => window.open(SUSHI_HOW_IT_WORKS_VIDEO, "_blank", "noopener,noreferrer")}
+                  aria-label="Watch how Sushi Creator works"
+                >
+                  <Play className="h-3 w-3 fill-white" />
+                </PillButton>
+                <span className="text-[10px] text-white/70 leading-tight text-center">How it Works</span>
+              </div>
             </div>
           </div>
         </MobileHeaderGuard>
@@ -337,16 +331,17 @@ export default function SushiCreator() {
                     <Fish className="h-5 w-5 text-teal-400" />
                     What sushi are you craving?
                   </CardTitle>
-                  <button
-                    onClick={() => {
-                      setLastResponse({ title: SUSHI_PRO_TIPS.title, description: SUSHI_PRO_TIPS.description, spokenText: SUSHI_PRO_TIPS.spokenText, autoClose: SUSHI_PRO_TIPS.autoClose });
-                      openCopilot();
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-500/20 border border-teal-500/30 text-teal-200 text-xs font-semibold active:bg-teal-500/30 transition-colors shrink-0"
-                  >
-                    <Lightbulb className="h-3 w-3" />
-                    How it Works
-                  </button>
+                  <div className="flex flex-col items-center gap-1">
+                    <PillButton
+                      active
+                      variant="emerald"
+                      onClick={() => window.open(SUSHI_HOW_IT_WORKS_VIDEO, "_blank", "noopener,noreferrer")}
+                      aria-label="Watch how Sushi Creator works"
+                    >
+                      <Play className="h-3 w-3 fill-white" />
+                    </PillButton>
+                    <span className="text-[10px] text-white/70 leading-tight text-center">How it Works</span>
+                  </div>
                 </div>
               </CardHeader>
 
