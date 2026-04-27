@@ -406,10 +406,21 @@ export const users = pgTable("users", {
   // Coach / Provider Availability — controlled from Care Team page (professionals only)
   availabilityStatus: text("availability_status").$type<"available"|"busy"|"away"|"offline">().default("available"),
   backAt: timestamp("back_at", { withTimezone: true }), // optional return date when not available
+  // Creator System Layer — which branded system this user has activated (default = MPM standard)
+  activeSystem: text("active_system").default("default"),
 }, (t) => ({
   resetTokenIdx: index("idx_reset_token_lookup").on(t.resetTokenHash, t.resetTokenExpires),
   authTokenIdx: uniqueIndex("idx_auth_token_lookup").on(t.authToken),
 }));
+
+// Creator System — product code redemption log (future revenue tracking)
+export const productCodeRedemptions = pgTable("product_code_redemptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  code: text("code").notNull(),
+  system: text("system").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
 
 // Pantry Items for Fridge Rescue
 export const pantryItems = pgTable("pantry_items", {

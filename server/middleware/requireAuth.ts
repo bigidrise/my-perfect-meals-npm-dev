@@ -18,6 +18,7 @@ export interface AuthenticatedUser {
   accessTier: AccessTier;
   trialDaysRemaining: number | null;
   hasHadTrial: boolean;
+  activeSystem: string;
 }
 
 export interface AuthenticatedRequest extends Request {
@@ -48,6 +49,7 @@ function buildAuthUser(user: any): AuthenticatedUser {
     accessTier,
     trialDaysRemaining,
     hasHadTrial,
+    activeSystem: user.activeSystem || "default",
   };
 }
 
