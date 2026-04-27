@@ -386,6 +386,40 @@ Ultimate Experiences is a $14.99/mo add-on (not a tier). Stripe billing deferred
 ### Fast Food Feature (queued for next session)
 Fast Food = Restaurant Guide engine + `mode: "fast_food"` flag. No brand grid, no hardcoded restaurants, no new API. Works globally — user in US gets McDonald's suggestions, user in UK gets Greggs/Nando's. Entry point: SocializingHub button next to Guide/Find Meals. Banner at top: "Fast Food Mode — Smart fast food choices that match your diet."
 
+## Creator System Layer (Phase 3 — April 2026)
+
+### Architecture
+Branded "kitchens" that allow chefs/coaches to style meal generation output (name, description, instructions) without touching medical/dietary guardrails.
+
+**Config schema:** `server/services/creatorSystems/registry.ts` — `CreatorSystemConfig` (structured fields: techniques, flavorProfiles, ingredientBias, naming, instructionRules, description). Registry is now a fallback/seed only.
+
+**Transformer:** `server/services/creatorSystems/applyCreatorTransformation.ts` — 2-pass: build prompt from config → call LLM → merge name/description/instructions back. Always tags output with `creatorSystem: system.id`.
+
+**Resolver (DB-first):** `server/services/creatorSystems/resolveCreatorSystemForUser.ts` — reads `users.active_system` → looks up `creator_system_configs` via `creators.slug` → falls back to registry → falls back to default.
+
+**Questionnaire mapper:** `server/services/creatorSystems/mapQuestionnaireToSystemConfig.ts` — deterministic function that converts onboarding answers to `CreatorSystemConfig`. No AI used here.
+
+**Hooks:** Craving Creator (`server/routes.ts` ~line 3559), Dessert Creator (`server/routes/dessert-creator.ts`), Beverage Creator (`server/routes/beverage-creator.ts`).
+
+### Database Tables
+- `creators` — one per creator user; `slug`, `display_name`, `type`, `status` (not_started → invited → intake_submitted → active → rejected), `tier` (self_serve | gifted), `is_active`
+- `creator_system_configs` — one per creator; `config_json` (full CreatorSystemConfig), `version`, `published_at`
+- `creator_onboarding_submissions` — raw questionnaire answers per creator
+- `creator_meals` — signature catalog; `creator_id`, `creator_system_id`, `meal_json`, `is_published`
+
+### Build Order (per architect)
+1. ✅ Phase 2.2 — Structured config + 2-pass transformer
+2. ✅ Phase 3 data model — 4 tables + DB-first resolver
+3. Next: Self-serve onboarding API + Lifestyle card entry point
+4. Then: Signature catalog save/fetch flow + Creator Studio UI (light)
+
+### Key Rules
+- `registry.ts` is read-only fallback — all new creators live in DB
+- `users.active_system` stores the creator slug — same as `creators.slug`
+- Creator endpoints must enforce `creator.user_id === auth.user.id` (no cross-creator access)
+- Config is validated against `CreatorSystemConfig` shape before writing to DB
+- Catalog is `is_published` flag only — no ratings/comments/likes yet
+
 ## External Dependencies
 -   **PostgreSQL**: Primary database.
 -   **OpenAI API**: AI-powered features.
