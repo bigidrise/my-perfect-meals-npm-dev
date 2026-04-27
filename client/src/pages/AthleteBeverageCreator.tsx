@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
-import { ArrowLeft, Brain, Wine, Zap, Lightbulb, Wheat } from "lucide-react";
+import { ArrowLeft, Brain, Wine, Zap, Lightbulb, Wheat, Play } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
@@ -84,6 +84,8 @@ const PRO_TIPS_SCRIPT = {
   spokenText: "Here's what this system is designed to do. Every drink is built around your training phase. Pre-workout drinks prioritize energy and mental focus — clean caffeine, adaptogens, and fast-acting carbs. Intra-workout drinks focus on hydration and endurance — electrolytes, BCAAs, and light sugars to keep you going. Post-workout drinks are built for recovery — protein timing, anti-inflammatory ingredients, and muscle repair support. No artificial dyes. No cheap fillers. Every ingredient serves a specific purpose in your body. And your dietary profile travels with every request. If you're vegan, anti-inflammatory, or have food allergies, the same guardrails that protect every other meal in this app are active here too.",
   autoClose: false,
 };
+
+const HOW_IT_WORKS_VIDEO = "https://youtube.com/shorts/g85Pkiywrpk?feature=share";
 
 export default function AthleteBeverageCreator() {
   const [, setLocation] = useLocation();
@@ -363,16 +365,17 @@ export default function AthleteBeverageCreator() {
                 <Zap className="h-5 w-5 text-orange-400" />
                 Build Your Performance Drink
               </CardTitle>
-              <button
-                onClick={() => {
-                  setLastResponse({ title: PRO_TIPS_SCRIPT.title, description: PRO_TIPS_SCRIPT.description, spokenText: PRO_TIPS_SCRIPT.spokenText, autoClose: PRO_TIPS_SCRIPT.autoClose });
-                  openCopilot();
-                }}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/20 border border-orange-500/30 text-orange-200 text-xs font-semibold active:bg-orange-500/30 transition-colors shrink-0"
-              >
-                <Lightbulb className="h-3 w-3" />
-                How it Works
-              </button>
+              <div className="flex flex-col items-center gap-1">
+                <PillButton
+                  active
+                  variant="emerald"
+                  onClick={() => window.open(HOW_IT_WORKS_VIDEO, "_blank", "noopener,noreferrer")}
+                  aria-label="Watch how Performance Creator works"
+                >
+                  <Play className="h-3 w-3 fill-white" />
+                </PillButton>
+                <span className="text-[10px] text-white/70 leading-tight text-center">How it Works</span>
+              </div>
             </div>
           </CardHeader>
 
