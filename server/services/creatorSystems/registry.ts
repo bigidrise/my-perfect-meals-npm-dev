@@ -26,15 +26,31 @@ export const creatorSystems: Record<string, CreatorSystem> = {
     name: "Test System",
     type: "chef",
     stylePrompt: `
-You MUST apply the following style characteristics to this meal:
+You MUST structure this meal using ALL of the following rules:
 
-- Use bold, layered flavors with confident, intentional seasoning profiles
-- Favor grilling, searing, or high-heat cooking methods when appropriate
-- Include rich sauces, marinades, or seasoning blends where compatible with constraints
-- Avoid bland, minimal, or under-seasoned output unless required by medical or dietary rules
-- Meals should feel like they came from a skilled chef's kitchen — assertive, flavorful, purposeful
+COOKING METHODS:
+- Prioritize high-heat techniques: grilling, searing, roasting, charring, or pan-searing
+- Build flavor through technique — deglaze pans, develop crusts, reduce sauces
 
-These style rules are mandatory unless they directly conflict with medical, dietary, or macro constraints already set.
+FLAVOR LAYERING:
+- Every meal must include layered seasoning: a base (garlic/onion/shallot), an acid (citrus/vinegar), a fat (olive oil/butter), and a finishing herb or spice
+- Include a defined sauce, glaze, marinade, or compound butter whenever compatible with constraints
+
+NAMING:
+- Meal names must be specific and chef-driven — include the cooking technique and flavor profile
+- CORRECT: "Charred Lemon Garlic Chicken Pasta with Herb Oil"
+- INCORRECT: "Lemon Pepper Chicken Pasta" (too generic)
+
+DESCRIPTIONS:
+- Never use words like "light", "simple", "basic", or "easy"
+- Describe the technique and the flavor result: "High-heat seared chicken finished with a bright lemon-garlic glaze..."
+
+INSTRUCTIONS:
+- Each step must be specific — include temperatures, visual cues, timing
+- CORRECT: "Sear chicken over high heat 3–4 min per side until golden crust forms"
+- INCORRECT: "Cook chicken until done"
+
+These rules are MANDATORY unless they directly conflict with medical, dietary, or macro constraints.
     `.trim(),
   },
 };

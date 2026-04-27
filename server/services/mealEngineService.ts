@@ -360,10 +360,20 @@ async function llmGenerateMeal(
 
   const sys = buildMealPrompt(profile, request, unitPrefs);
 
-  // Phase 2: Creator System style injection — appended AFTER all constraints, never before.
-  const systemPrompt = request.creatorStylePrompt
-    ? `${sys.system}\n\n--- CREATOR SYSTEM STYLE ---\n${request.creatorStylePrompt}`
-    : sys.system;
+  // Phase 2: Creator System style injection.
+  // Inserted BEFORE "OUTPUT FORMAT:" so the model processes style direction
+  // before deciding tone, naming, and structure — not as an afterthought.
+  let systemPrompt = sys.system;
+  if (request.creatorStylePrompt) {
+    const marker = "OUTPUT FORMAT:";
+    const idx = systemPrompt.indexOf(marker);
+    const styleBlock = `\n--- CREATOR SYSTEM STYLE (MANDATORY) ---\n${request.creatorStylePrompt}\n\n`;
+    if (idx !== -1) {
+      systemPrompt = systemPrompt.slice(0, idx) + styleBlock + systemPrompt.slice(idx);
+    } else {
+      systemPrompt = styleBlock + systemPrompt;
+    }
+  }
 
   try {
     const parsed = await chatJson({ system: systemPrompt, user: sys.user });
