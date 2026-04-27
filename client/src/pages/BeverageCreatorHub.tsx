@@ -83,7 +83,7 @@ export default function BeverageCreatorHub() {
           {/* Hero Image */}
           <div className="relative h-40 rounded-xl overflow-hidden">
             <img
-              src="/images/lifestyle-hero.png"
+              src="/images/beverage-hub-hero.png"
               alt="Beverage Creator"
               className="w-full h-full object-cover"
               onError={(e) => {
