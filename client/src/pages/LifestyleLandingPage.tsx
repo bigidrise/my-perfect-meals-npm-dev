@@ -11,10 +11,12 @@ import {
   Lock,
   Star,
   Briefcase,
+  ArrowRight,
 } from "lucide-react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useFreeLock } from "@/hooks/useFreeLock";
 import { UpgradeLockModal } from "@/components/upgrade/UpgradeLockModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AIFeature {
   title: string;
@@ -31,6 +33,7 @@ export default function LifestyleLandingPage() {
   const [, setLocation] = useLocation();
   const isDesktop = useIsDesktop();
   const { isFree, showLockModal, lockMessage, guardAction, closeLockModal } = useFreeLock();
+  const { user } = useAuth();
 
   useEffect(() => {
     document.title = "Lifestyle | My Perfect Meals";
@@ -285,44 +288,68 @@ export default function LifestyleLandingPage() {
               );
             })}
           </div>
-          {/* Creator System Teaser — bottom of page */}
-          <div
-            data-testid="card-creator-system-teaser"
-            className="relative mt-2"
-          >
-            <Card className="relative rounded-xl shadow-sm overflow-hidden bg-black/30 backdrop-blur-lg border border-white/15">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-orange-500/20 mt-0.5 flex-shrink-0">
-                    <Briefcase className="h-4 w-4 text-orange-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-semibold text-white">
-                        Build Your Own System
-                      </h3>
-                      <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">
-                        Early Access
-                      </span>
+          {/* Creator Studio Card — conditional on creator status */}
+          <div data-testid="card-creator-system-teaser" className="relative mt-2">
+            {user?.isCreator ? (
+              <Card
+                className="relative rounded-xl shadow-md overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 hover:scale-[1.02] bg-gradient-to-r from-black via-orange-950/40 to-black backdrop-blur-lg border border-orange-400/30 hover:shadow-[0_0_30px_rgba(251,146,60,0.3)] hover:border-orange-500/50"
+                onClick={() => setLocation("/creator/studio")}
+                data-testid="card-creator-studio"
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-orange-500/20 flex-shrink-0">
+                      <ChefHat className="h-4 w-4 text-orange-400" />
                     </div>
-                    <p className="text-[11px] text-white/70 mt-0.5 font-medium">
-                      For chefs, coaches, and professionals
-                    </p>
-                    <p className="text-xs text-white/80 mt-1.5 leading-relaxed">
-                      We're bringing trusted experts into My Perfect Meals to offer guided systems to our users. Turn your philosophy into a program your audience can follow.
-                    </p>
-                    <a
-                      href="mailto:support@myperfectmeals.com?subject=Creator Partnership Inquiry — My Perfect Meals"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 mt-3 text-xs text-orange-400 hover:text-orange-300 transition-colors underline underline-offset-2"
-                    >
-                      Partner With Us — Early Access
-                    </a>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-white truncate">
+                          {user.creatorDisplayName || "My Studio"}
+                        </h3>
+                        <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30 flex-shrink-0">
+                          Active
+                        </span>
+                      </div>
+                      <p className="text-xs text-white/60 mt-0.5">Your creator studio — tap to enter</p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-orange-400 flex-shrink-0" />
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card
+                className="relative rounded-xl shadow-sm overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 hover:scale-[1.02] bg-black/30 backdrop-blur-lg border border-white/15 hover:border-orange-500/30"
+                onClick={() => setLocation("/creator/start")}
+                data-testid="card-build-system"
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-orange-500/20 mt-0.5 flex-shrink-0">
+                      <Briefcase className="h-4 w-4 text-orange-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-sm font-semibold text-white">
+                          Build Your Own System
+                        </h3>
+                        <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                          Early Access
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-white/70 mt-0.5 font-medium">
+                        For chefs, coaches, and professionals
+                      </p>
+                      <p className="text-xs text-white/60 mt-1.5 leading-relaxed">
+                        Turn your cooking or coaching style into a system your audience can actually use.
+                      </p>
+                      <div className="flex items-center gap-1 mt-2.5 text-xs text-orange-400 font-medium">
+                        Start Creator Setup <ArrowRight className="h-3 w-3" />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

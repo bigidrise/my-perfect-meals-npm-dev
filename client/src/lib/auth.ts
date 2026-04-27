@@ -129,6 +129,10 @@ export interface User {
   backAt?: string | null;
   // Oncology support onboarding intent (NOT a clinical protocol toggle)
   oncologySupportIntent?: "own_provider" | "request_support" | "self_directed" | null;
+  // Creator Studio
+  activeSystem?: string | null;
+  isCreator?: boolean;
+  creatorDisplayName?: string | null;
 }
 
 export function getAuthToken(): string | null {

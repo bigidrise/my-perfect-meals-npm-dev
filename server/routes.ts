@@ -7,13 +7,14 @@ import { uploadsRouter } from "./routes/uploads";
 import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
+import { registerCreatorRoutes } from "./routes/creator";
 import { requireAuth, AuthenticatedRequest } from "./middleware/requireAuth";
 import { getAuthUserId } from "./utils/getAuthUserId";
 import { checkDailyQuota, checkAndIncrementQuota, incrementDailyUsage, AiFeature } from "./services/aiQuotaService";
 import { requireActiveAccess } from "./middleware/requireActiveAccess";
 import { requirePremiumAccess } from "./middleware/requirePremiumAccess";
 import { requireMacroProfile } from "./middleware/requireMacroProfile";
-import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems, savedMeals as savedMealsTable } from "@shared/schema";
+import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems, savedMeals as savedMealsTable, creators } from "@shared/schema";
 import { studioMemberships, studios } from "./db/schema/studio";
 import { db } from "./db";
 import { and, eq, gte, lte, desc, sql } from "drizzle-orm";
@@ -1662,6 +1663,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Object Storage routes (presigned URL uploads)
   registerObjectStorageRoutes(app);
 
+  // Creator Studio routes
+  registerCreatorRoutes(app);
+
   // Profile photo update endpoint - supports both session and token auth
   app.put("/api/users/profile-photo", async (req, res) => {
     try {
@@ -2049,6 +2053,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }
 
+      // Creator status lookup
+      let isCreator = false;
+      const [creatorRow] = await db
+        .select({ isActive: creators.isActive, displayName: creators.displayName })
+        .from(creators)
+        .where(eq(creators.userId, userId))
+        .limit(1);
+      if (creatorRow?.isActive) isCreator = true;
+
       res.json({
         id: user.id,
         email: user.email,
@@ -2116,6 +2129,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         specialtyCondition: user.specialtyCondition ?? null,
         // Protocol Ownership Model: expose context to user so UI can show source/lock state
         oncologySupportContext: user.oncologySupportContext ?? null,
+        activeSystem: user.activeSystem || null,
+        isCreator,
+        creatorDisplayName: creatorRow?.displayName || null,
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);

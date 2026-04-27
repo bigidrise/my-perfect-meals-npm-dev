@@ -144,6 +144,11 @@ import GLP1Hub from "@/pages/physician/GLP1Hub";
 import GLP1MealBuilder from "@/pages/physician/GLP1MealBuilder";
 import AntiInflammatoryMenuBuilder from "@/pages/physician/AntiInflammatoryMenuBuilder";
 
+// Creator Studio pages
+import CreatorStartPage from "@/pages/creator/CreatorStartPage";
+import CreatorSetupPage from "@/pages/creator/CreatorSetupPage";
+import CreatorStudioPage from "@/pages/creator/CreatorStudioPage";
+
 // Craving pages
 import ChefsKitchenPage from "@/pages/lifestyle/ChefsKitchenPage";
 import CreateDishPage from "@/pages/lifestyle/CreateDishPage";
@@ -408,6 +413,10 @@ export default function Router() {
         {/* DELETED: AffiliatesPage, FoundersPage, FoundersSubmit, Changelog routes */}
         {/* DELETED: MealPlanning, LowGlycemicCarbPage, AiMealCreatorPage, MealPlanningHubRevised routes */}
         <Route path="/lifestyle" component={LifestyleLandingPage} />
+        {/* Creator Studio */}
+        <Route path="/creator/start" component={CreatorStartPage} />
+        <Route path="/creator/setup" component={CreatorSetupPage} />
+        <Route path="/creator/studio" component={CreatorStudioPage} />
         {/* DELETED: /healthy-kids-meals, /kids-meals, /toddler-meals routes (Phase 1 cleanup) */}
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
         <Route path="/lifestyle/my-perfect-gatherings" component={GatheringsPage} />
