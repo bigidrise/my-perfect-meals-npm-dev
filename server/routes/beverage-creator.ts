@@ -11,6 +11,8 @@ import { resolveDietCategoryStrategy, type DietCategoryStrategy } from "../servi
 import { scanGeneratedOutput, buildMealComplianceBundle } from "../services/protocolEnvelope";
 import { getActiveNutritionContext } from "../services/nutritionContext/getActiveNutritionContext";
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from "../services/behavioralMemoryService";
+import { resolveCreatorSystemForUser } from "../services/creatorSystems/resolveCreatorSystemForUser";
+import { applyCreatorTransformation } from "../services/creatorSystems/applyCreatorTransformation";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -457,6 +459,12 @@ INCORRECT (NEVER DO THIS):
 
     // Image is generated client-side in parallel via /api/meals/generate-image
     const imageUrl = null;
+
+    // Creator System 2-pass transformation — applied after all safety checks and normalization.
+    if (userId && userId !== "1") {
+      const creatorSystem = await resolveCreatorSystemForUser(userId);
+      meal = await applyCreatorTransformation(meal, creatorSystem, "beverage");
+    }
 
     if (isDev) console.log("[BEVERAGE] Sending response (image handled client-side)...");
     const { complianceSection: bevCompliance, dietClassification: bevDietClass } =

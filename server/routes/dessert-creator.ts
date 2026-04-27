@@ -15,6 +15,8 @@ import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, b
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from "../services/behavioralMemoryService";
 import { getPrimaryDiet } from "../services/allergyGuardrails";
 import { buildChefAdaptationBlock } from "../utils/chefAdaptationBlock";
+import { resolveCreatorSystemForUser } from "../services/creatorSystems/resolveCreatorSystemForUser";
+import { applyCreatorTransformation } from "../services/creatorSystems/applyCreatorTransformation";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -418,6 +420,12 @@ INCORRECT (NEVER DO THIS):
 
     // Image is generated client-side in parallel via /api/meals/generate-image
     const imageUrl = null;
+
+    // Creator System 2-pass transformation — applied after all safety checks and normalization.
+    if (userId && userId !== "1") {
+      const creatorSystem = await resolveCreatorSystemForUser(userId);
+      meal = await applyCreatorTransformation(meal, creatorSystem, "dessert");
+    }
 
     if (isDev) console.log("[DESSERT] Sending response (image handled client-side)...");
     const { complianceSection: dessertCompliance, dietClassification: dessertDietClass } =

@@ -7,6 +7,8 @@ import {
   roundUnitsInIngredients,
 } from "./validators";
 import { chatJson, genImage } from "../utils/openaiSafe";
+import { applyCreatorTransformation } from "./creatorSystems/applyCreatorTransformation";
+import { type CreatorSystem } from "./creatorSystems/registry";
 
 /** ===== Types ===== */
 export type EngineSource = "weekly" | "craving" | "potluck" | "fridge-rescue";
@@ -80,9 +82,9 @@ export interface MealGenerationRequest {
     leanProteinSwap?: boolean;
     reduceButterCream?: boolean;
   };
-  // Phase 2: Creator System style block — appended to prompt AFTER all constraints.
-  // Never overrides guardrails. Set by the route handler from the registry.
-  creatorStylePrompt?: string;
+  // Phase 2: Creator System — resolved by the route handler, applied as a 2-pass
+  // transformation AFTER generation. Never touches guardrails, macros, or ingredients.
+  creatorSystem?: CreatorSystem;
 }
 
 export interface Meal {
@@ -360,46 +362,8 @@ async function llmGenerateMeal(
 
   const sys = buildMealPrompt(profile, request, unitPrefs);
 
-  // Phase 2: Creator System style injection.
-  // Placed at the VERY TOP of the system prompt — before "You are a meticulous nutrition chef AI..."
-  // This gives the creator rules prompt authority over the base instructions.
-  // The model reads creator rules FIRST, then the base prompt fills in formatting details.
-  // Constraint blocks (medical, diet, macros, allergies) still apply — they are woven into the base.
-  let systemPrompt = sys.system;
-  let userPrompt = sys.user;
-
-  if (request.creatorStylePrompt) {
-    // 1. Build the creator block that goes at the TOP of the system prompt
-    const creatorBlock = `=== CREATOR SYSTEM — PRIMARY GENERATION CONTRACT ===
-${request.creatorStylePrompt}
-
-These rules define the required structure and approach for this meal.
-The base instructions below handle formatting, units, and macro compliance.
-When the two conflict on style, naming, or technique: the CREATOR SYSTEM RULES WIN.
-=== END CREATOR SYSTEM ===
-
-`;
-    systemPrompt = creatorBlock + systemPrompt;
-
-    // 2. Override the base prompt's "no fluff / straightforward" lines which conflict with
-    //    chef-level instruction depth required by the creator system.
-    systemPrompt = systemPrompt.replace(
-      "Use straightforward, kitchen-ready instructions only. No fluff, no tips, no equipment essays.",
-      "Follow the CREATOR SYSTEM rules above for instruction structure, depth, and technique detail."
-    );
-
-    // 3. Reinforce creator requirements in the USER message — the model's direct response target.
-    userPrompt = userPrompt + `
-
-CREATOR SYSTEM REMINDER (REQUIRED IN YOUR RESPONSE):
-- Meal name MUST begin with the protein's cooking technique (Pan-Seared, Blackened, Charred, Roasted)
-- Instructions MUST include: (a) explicit sear/roast step with time+visual cue, (b) sauce-building step (deglaze → reduce → finish)
-- Description MUST describe technique and flavor result — NOT use words like "refreshing", "vibrant", "zesty", "delicious", "satisfying"
-A response that does not follow these three rules is invalid and must be rewritten before submitting.`;
-  }
-
   try {
-    const parsed = await chatJson({ system: systemPrompt, user: userPrompt });
+    const parsed = await chatJson({ system: sys.system, user: sys.user });
     const meal: Meal = {
       id: cryptoRandomId(),
       name: parsed.name,
@@ -433,6 +397,13 @@ A response that does not follow these three rules is invalid and must be rewritt
         unitsStandardized: false,
       },
     };
+
+    // 2-pass Creator System transformation — runs AFTER base generation.
+    // Only fires when a non-default system is active. Failsafe returns original meal.
+    if (request.creatorSystem && request.creatorSystem.id !== "default") {
+      return await applyCreatorTransformation(meal, request.creatorSystem, "meal") as Meal;
+    }
+
     return meal;
   } catch (e) {
     tripBreaker();
