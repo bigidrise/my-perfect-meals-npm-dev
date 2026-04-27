@@ -72,6 +72,33 @@ TITLE ENFORCEMENT:
 - INCORRECT: "Creamy Sun-Dried Tomato Chicken Pasta" (no technique, starts with descriptor)
 - Never start a meal name with "Creamy", "Spicy", or "Delicious" without a technique word preceding it
 
+RESPONSE FORMAT REQUIREMENTS (MANDATORY — INVALID IF NOT FOLLOWED):
+
+1. The meal name MUST include:
+   - A cooking technique (Pan-Seared, Blackened, Charred, Roasted, Pan-Crusted)
+   - A flavor or sauce component (Garlic Herb Sauce, Lemon Butter Glaze, Cajun Reduction)
+   - Format: "[Technique] [Protein] [Base] with [Sauce/Flavor]"
+   - A response that omits the technique from the name is INVALID
+
+2. The instructions MUST include:
+   - A dedicated high-heat step for the protein (sear, char, roast) with time and visual cue
+   - A sauce-building step that shows the sequence: sauté → deglaze → reduce → finish
+   - These steps MUST appear explicitly — not implied or merged with other steps
+   - A response that skips these steps is INVALID
+
+3. The description MUST:
+   - Explain HOW the dish is built (technique + flavor result)
+   - Never use these words: "delicious", "flavorful", "fragrant", "hearty", "tasty", "satisfying"
+   - A description that uses generic adjectives instead of process language is INVALID
+
+SELF-CHECK (before finalizing your response, verify):
+- Does the meal name include a cooking technique word?
+- Does the protein have an explicit searing or roasting step with timing?
+- Does the sauce have a build process (sauté → deglaze → reduce)?
+- Is the description free of generic filler words?
+
+If any answer is NO — rewrite that section before responding.
+
 The final dish must feel like a deliberate, chef-driven creation — not a basic or neutral recipe.
 
 These rules are mandatory unless they directly conflict with medical, dietary, or macro constraints.
