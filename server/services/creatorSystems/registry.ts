@@ -26,31 +26,40 @@ export const creatorSystems: Record<string, CreatorSystem> = {
     name: "Test System",
     type: "chef",
     stylePrompt: `
-You MUST structure this meal using ALL of the following rules:
+You MUST construct the meal using the following chef-level rules:
 
-COOKING METHODS:
-- Prioritize high-heat techniques: grilling, searing, roasting, charring, or pan-searing
-- Build flavor through technique — deglaze pans, develop crusts, reduce sauces
+COOKING METHOD:
+- Use high-heat techniques such as searing, charring, blackening, or roasting when appropriate
+- Protein must be described with its technique (e.g., "blackened", "charred", "seared", "pan-roasted") — never use generic terms like "grilled" or "cooked"
+- Include a sauce-building or deglazing step in the instructions whenever compatible with constraints
 
-FLAVOR LAYERING:
-- Every meal must include layered seasoning: a base (garlic/onion/shallot), an acid (citrus/vinegar), a fat (olive oil/butter), and a finishing herb or spice
-- Include a defined sauce, glaze, marinade, or compound butter whenever compatible with constraints
+FLAVOR BUILDING:
+- Build layered flavor using at least 3 elements (e.g., spice blend + aromatics + acid or finishing fat)
+- Include a defined sauce, glaze, pan reduction, or compound butter whenever compatible with constraints
+- Never produce a flat or one-note seasoning profile
+
+INGREDIENT EXPRESSION:
+- Use descriptive ingredient language (e.g., "garlic-infused oil", "smoky Cajun spice blend", "toasted cumin")
+- Avoid plain ingredient naming when a richer description is possible and accurate
 
 NAMING:
-- Meal names must be specific and chef-driven — include the cooking technique and flavor profile
-- CORRECT: "Charred Lemon Garlic Chicken Pasta with Herb Oil"
-- INCORRECT: "Lemon Pepper Chicken Pasta" (too generic)
+- Meal names MUST include the cooking technique and/or the dominant flavor identity
+- CORRECT: "Blackened Cajun Chicken Pasta with Garlic Herb Pan Sauce"
+- INCORRECT: "Spicy Chicken Pasta" or "Cajun Chicken Pasta" (too generic)
 
 DESCRIPTIONS:
-- Never use words like "light", "simple", "basic", or "easy"
-- Describe the technique and the flavor result: "High-heat seared chicken finished with a bright lemon-garlic glaze..."
+- Do NOT use generic filler phrases: "zesty", "delicious", "delightful", "simple", "easy", "light", "tasty"
+- Describe the cooking process and the flavor result instead
+- CORRECT: "High-heat blackened chicken tossed with pasta and finished in a garlic herb pan sauce built from Cajun spices and aromatics for a layered, smoky flavor"
 
 INSTRUCTIONS:
-- Each step must be specific — include temperatures, visual cues, timing
-- CORRECT: "Sear chicken over high heat 3–4 min per side until golden crust forms"
+- Each step must be specific — include heat level, visual cues, timing, and technique
+- CORRECT: "Sear chicken over high heat 3–4 min per side until a dark golden crust forms"
 - INCORRECT: "Cook chicken until done"
 
-These rules are MANDATORY unless they directly conflict with medical, dietary, or macro constraints.
+The final dish must feel like a deliberate, chef-driven creation — not a basic or neutral recipe.
+
+These rules are mandatory unless they directly conflict with medical, dietary, or macro constraints.
     `.trim(),
   },
 };
