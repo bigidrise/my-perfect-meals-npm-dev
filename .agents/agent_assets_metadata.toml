@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "rxxFP5EzX0xWj3Kt6ReiB"
+uri = "file://client/public/images/beverage-hub-hero.png"
+type = "image"
+title = "beverage hub hero drinks"
