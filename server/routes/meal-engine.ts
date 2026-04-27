@@ -2,6 +2,8 @@
 import express from "express";
 import { z } from "zod";
 import { generateMeal } from "../services/mealEngineService";
+import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
+import { resolveActiveSystem } from "../services/creatorSystems/resolver";
 
 const router = express.Router();
 
@@ -55,7 +57,11 @@ const GenerateMealRequest = z.object({
     .default({}),
 });
 
-router.post("/api/meal-engine/generate", async (req, res) => {
+router.post("/api/meal-engine/generate", requireAuth, async (req, res) => {
+  const authReq = req as AuthenticatedRequest;
+  const system = resolveActiveSystem(authReq.authUser);
+  console.log(`[CreatorSystem] active system: ${system.name} (${system.id}) for user ${authReq.authUser.id}`);
+
   const parsed = GenerateMealRequest.safeParse(req.body);
   if (!parsed.success) {
     return res
