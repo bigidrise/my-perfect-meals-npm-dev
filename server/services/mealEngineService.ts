@@ -361,18 +361,22 @@ async function llmGenerateMeal(
   const sys = buildMealPrompt(profile, request, unitPrefs);
 
   // Phase 2: Creator System style injection.
-  // Inserted BEFORE "OUTPUT FORMAT:" so the model processes style direction
-  // before deciding tone, naming, and structure — not as an afterthought.
+  // Placed at the VERY TOP of the system prompt — before "You are a meticulous nutrition chef AI..."
+  // This gives the creator rules prompt authority over the base instructions.
+  // The model reads creator rules FIRST, then the base prompt fills in formatting details.
+  // Constraint blocks (medical, diet, macros, allergies) still apply — they are woven into the base.
   let systemPrompt = sys.system;
   if (request.creatorStylePrompt) {
-    const marker = "OUTPUT FORMAT:";
-    const idx = systemPrompt.indexOf(marker);
-    const styleBlock = `\n--- CREATOR SYSTEM STYLE (MANDATORY) ---\n${request.creatorStylePrompt}\n\n`;
-    if (idx !== -1) {
-      systemPrompt = systemPrompt.slice(0, idx) + styleBlock + systemPrompt.slice(idx);
-    } else {
-      systemPrompt = styleBlock + systemPrompt;
-    }
+    const creatorBlock = `=== CREATOR SYSTEM — PRIMARY GENERATION CONTRACT ===
+${request.creatorStylePrompt}
+
+These rules define the required structure and approach for this meal.
+The base instructions below handle formatting, units, and macro compliance.
+When the two conflict on style or technique: the creator system rules WIN.
+=== END CREATOR SYSTEM ===
+
+`;
+    systemPrompt = creatorBlock + systemPrompt;
   }
 
   try {
