@@ -63,6 +63,15 @@ export { savedMeals } from "../server/db/schema/savedMeals";
 export { studioTypeEnum, mealLibraryItems, mealLibraryUsage, mealGenerationJobs } from "../server/db/schema/mealLibrary";
 export type { MealLibraryItem, InsertMealLibraryItem, MealLibraryUsage, MealGenerationJob } from "../server/db/schema/mealLibrary";
 
+export { creatorStatusEnum, creatorTierEnum, creators } from "../server/db/schema/creators";
+export type { Creator, InsertCreator } from "../server/db/schema/creators";
+export { creatorSystemConfigs } from "../server/db/schema/creatorSystemConfigs";
+export type { CreatorSystemConfigRow, InsertCreatorSystemConfig } from "../server/db/schema/creatorSystemConfigs";
+export { creatorOnboardingSubmissions } from "../server/db/schema/creatorOnboardingSubmissions";
+export type { CreatorOnboardingSubmission, InsertCreatorOnboardingSubmission } from "../server/db/schema/creatorOnboardingSubmissions";
+export { creatorMeals } from "../server/db/schema/creatorMeals";
+export type { CreatorMeal, InsertCreatorMeal } from "../server/db/schema/creatorMeals";
+
 export { 
   professionalSpaceTypeEnum, noteTypeEnum, noteVisibilityEnum, activityActionEnum,
   studios, studioBilling, studioMemberships, studioInvites, clientSubscriptions, clientNotes, clientActivityLog,
