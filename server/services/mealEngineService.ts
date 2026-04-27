@@ -80,6 +80,9 @@ export interface MealGenerationRequest {
     leanProteinSwap?: boolean;
     reduceButterCream?: boolean;
   };
+  // Phase 2: Creator System style block — appended to prompt AFTER all constraints.
+  // Never overrides guardrails. Set by the route handler from the registry.
+  creatorStylePrompt?: string;
 }
 
 export interface Meal {
@@ -357,8 +360,13 @@ async function llmGenerateMeal(
 
   const sys = buildMealPrompt(profile, request, unitPrefs);
 
+  // Phase 2: Creator System style injection — appended AFTER all constraints, never before.
+  const systemPrompt = request.creatorStylePrompt
+    ? `${sys.system}\n\n--- CREATOR SYSTEM STYLE ---\n${request.creatorStylePrompt}`
+    : sys.system;
+
   try {
-    const parsed = await chatJson({ system: sys.system, user: sys.user });
+    const parsed = await chatJson({ system: systemPrompt, user: sys.user });
     const meal: Meal = {
       id: cryptoRandomId(),
       name: parsed.name,
