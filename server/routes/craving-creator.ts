@@ -108,7 +108,7 @@ router.post('/generate', requireAuth, async (req, res) => {
       ? `${craving} (for ${servings} servings)` 
       : craving;
     
-    const generatedMeal = await generateCravingMeal(
+    let generatedMeal = await generateCravingMeal(
       mealType,
       cravingWithServings,
       {
