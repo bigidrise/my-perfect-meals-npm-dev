@@ -122,16 +122,16 @@ const BEVERAGE_TOUR_STEPS: TourStep[] = [
       "Optional. Choose things like low sugar, dairy-free, high protein, vegan, or no alcohol.",
   },
   {
-    title: "Create Your Drink",
+    title: "Create Your Performance Drink",
     description:
-      "Tap Create and the AI will design a drink that matches your flavor preferences and respects your nutrition goals.",
+      "Tap Create and the AI will design a performance drink that matches your training needs and nutrition goals.",
   },
 ];
 
-export default function BeverageCreator() {
+export default function AthleteBeverageCreator() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const quickTour = useQuickTour("beverage-creator");
+  const quickTour = useQuickTour("athlete-beverage-creator");
   const { user } = useAuth();
   const userId = user?.id || "";
 
@@ -146,7 +146,7 @@ export default function BeverageCreator() {
   const [activeStep, setActiveStep] = useState<number | null>(null);
   const [generatedBeverage, setGeneratedBeverage] = useState<any | null>(() => {
     try {
-      const saved = localStorage.getItem("mpm_beverage_creator_result");
+      const saved = localStorage.getItem("mpm_athlete_beverage_result");
       if (!saved) return null;
       const parsed = JSON.parse(saved);
       // Strip server-computed diet fields — they can go stale if user settings change
@@ -228,7 +228,7 @@ export default function BeverageCreator() {
   useCopilotPageExplanation();
 
   useEffect(() => {
-    document.title = "Beverage Creator | My Perfect Meals";
+    document.title = "Athlete Beverage Creator | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
@@ -236,7 +236,7 @@ export default function BeverageCreator() {
     if (generatedBeverage) {
       try {
         localStorage.setItem(
-          "mpm_beverage_creator_result",
+          "mpm_athlete_beverage_result",
           JSON.stringify(generatedBeverage),
         );
       } catch {}
@@ -406,7 +406,7 @@ export default function BeverageCreator() {
         .finally(() => setBeverageImageLoading(false));
 
       toast({
-        title: "✨ Drink Created!",
+        title: "✨ Performance Drink Created!",
         description: `${meal.name} is ready for you.`,
       });
     } catch (err: any) {
@@ -442,7 +442,7 @@ export default function BeverageCreator() {
   }
 
   return (
-    <PhaseGate phase="PHASE_1_CORE" feature="beverage-creator">
+    <PhaseGate phase="PHASE_1_CORE" feature="athlete-beverage-creator">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -458,14 +458,14 @@ export default function BeverageCreator() {
             <button
               onClick={() => setLocation("/lifestyle")}
               className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
-              data-testid="beveragecreator-back"
+              data-testid="athletebeveragecreator-back"
             >
               <ArrowLeft className="h-5 w-5" />
               <span className="text-sm font-medium">Back</span>
             </button>
 
             <h1 className="text-lg font-bold text-white truncate min-w-0">
-              Beverage Creator
+              Athlete Beverage Creator
             </h1>
 
             <div className="flex-grow" />
@@ -481,7 +481,7 @@ export default function BeverageCreator() {
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg text-white">
                 <Wine className="h-5 w-5 text-blue-400" />
-                Create Your Drink
+                Create Your Performance Drink
               </CardTitle>
             </CardHeader>
 
@@ -498,7 +498,7 @@ export default function BeverageCreator() {
                   <textarea
                     value={customBeverageDescription}
                     onChange={(e) => setCustomBeverageDescription(e.target.value)}
-                    placeholder='e.g. "A frozen mango margarita with tajin rim" or "Iced lavender oat milk latte"'
+                    placeholder='e.g. "Post-workout protein shake with banana and peanut butter" or "Pre-workout green tea energy drink"'
                     rows={3}
                     className="w-full rounded-lg bg-black/60 border border-blue-400/40 text-white placeholder-white/30 text-sm px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-400/60 resize-none"
                   />
@@ -672,7 +672,7 @@ export default function BeverageCreator() {
 
               {isGenerating || safetyChecking ? (
                 <div className="max-w-md mx-auto mb-4 flex justify-center">
-                  <ThinkingDots label={safetyChecking ? "Checking safety…" : "Creating your beverage…"} />
+                  <ThinkingDots label={safetyChecking ? "Checking safety…" : "Creating your performance drink…"} />
                 </div>
               ) : (
                 <GlassButton
@@ -1004,7 +1004,7 @@ export default function BeverageCreator() {
         <QuickTourModal
           isOpen={quickTour.shouldShow}
           onClose={quickTour.closeTour}
-          title="How to Use Beverage Creator"
+          title="How to Use Athlete Beverage Creator"
           steps={BEVERAGE_TOUR_STEPS}
           onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
