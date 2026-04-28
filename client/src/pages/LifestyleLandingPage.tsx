@@ -65,7 +65,7 @@ export default function LifestyleLandingPage() {
       badge: "emotion",
     },
     {
-      title: "Beverage Creator",
+      title: "Beverage Creator Hub",
       description:
         "Create smoothies, protein shakes, coffee drinks, mocktails, cocktails, and more with AI.",
       icon: Wine,
