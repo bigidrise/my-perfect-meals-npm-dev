@@ -34,7 +34,7 @@ const HUB_CARDS: HubCard[] = [
     icon: Zap,
     route: "/lifestyle/athlete-beverage-creator",
     testId: "beveragehub-athlete",
-    adminOnly: true,
+    adminOnly: false,
     featured: false,
   },
 ];
