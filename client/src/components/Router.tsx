@@ -430,6 +430,7 @@ export default function Router() {
         <Route path="/lifestyle/beverage-hub" component={BeverageCreatorHub} />
         <Route path="/lifestyle/athlete-beverage-creator" component={AthleteBeverageCreator} />
         <Route path="/lifestyle/sushi-creator" component={SushiCreator} />
+        <Route path="/sushi-creator" component={SushiCreator} />
         <Route path="/lifestyle/chef-pairings" component={ChefPairings} />
         <Route path="/lifestyle/pairings-hub" component={PairingsHub} />
         <Route path="/lifestyle/pairings-ai" component={PairingsAI} />
