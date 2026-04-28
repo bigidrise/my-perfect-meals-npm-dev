@@ -25,7 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
 import {
   Brain,
   Target,
@@ -52,7 +51,6 @@ import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
 import { ProDietaryDirectives } from "@/components/ProDietaryDirectives";
-import PhaseGate from "@/components/PhaseGate";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import DietStyleBadge from "@/components/DietStyleBadge";
@@ -221,9 +219,6 @@ export default function SushiCreator() {
   const [declinedMealDate, setDeclinedMealDate] = useState("");
   const [declinedMealName, setDeclinedMealName] = useState("");
   const [replacingMeal, setReplacingMeal] = useState<any>(null);
-  // 🔋 Progress bar state (real-time ticker like Restaurant Guide)
-  const [progress, setProgress] = useState(0);
-  const tickerRef = useRef<number | null>(null);
   const continueAnywayRef = useRef(false);
   // 🥗 Diet guard — hook-based precheck (mirrors StarchGuard)
   const {
@@ -342,28 +337,6 @@ export default function SushiCreator() {
     }
   }, []);
 
-  // 🔋 Progress ticker functions (same as Restaurant Guide)
-  const startProgressTicker = () => {
-    if (tickerRef.current) return;
-    setProgress(0); // Reset progress
-    tickerRef.current = window.setInterval(() => {
-      setProgress((p) => {
-        if (p < 90) {
-          const next = p + Math.max(1, Math.floor((90 - p) * 0.07));
-          return Math.min(next, 90);
-        }
-        return p;
-      });
-    }, 150);
-  };
-
-  const stopProgressTicker = () => {
-    if (tickerRef.current) {
-      clearInterval(tickerRef.current);
-      tickerRef.current = null;
-    }
-    setProgress(100); // Complete progress
-  };
 
   // Handle meal saving
   const handleSaveMeal = async (
@@ -534,7 +507,6 @@ export default function SushiCreator() {
       hasOverrideToken: !!overrideToken,
     });
     setIsGenerating(true);
-    startProgressTicker();
 
     try {
       const url = apiUrl("/api/meals/craving-creator");
@@ -562,10 +534,10 @@ export default function SushiCreator() {
       });
 
       const data = await response.json();
+      console.log("🔥 SUSHI RESPONSE:", data);
 
       // Check for safety blocks/ambiguous - show banner instead of error
       if (data.safetyBlocked || data.safetyAmbiguous) {
-        stopProgressTicker();
         setIsGenerating(false);
         setSafetyAlert({
           show: true,
@@ -591,7 +563,6 @@ export default function SushiCreator() {
       }
       // 🎲 Multi-option response from variety engine — show selection panel
       if (data.meals && Array.isArray(data.meals) && data.meals.length > 0) {
-        stopProgressTicker();
         setIsGenerating(false);
         const userDiet = normalizeDiet(user?.dietaryRestrictions);
         if (data.dietAdapted) {
@@ -602,7 +573,13 @@ export default function SushiCreator() {
         return;
       }
 
-      const meal = data.meal || data; // Handle single-meal fallback
+      const meal = data.meal || data.meals?.[0];
+
+      if (!meal || !meal.name) {
+        console.error("❌ Invalid SushiCreator meal response:", data);
+        setIsGenerating(false);
+        return;
+      }
 
       // 🥗 Scenario A: server already flagged diet adaptation — accept the meal, show soft notice
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
@@ -611,14 +588,18 @@ export default function SushiCreator() {
         clearDietAlert();
       } else if (!skipPreflight && activeDiet && !mealMatchesDiet(userDiet, meal)) {
         // 🥗 Scenario B fallback — only fires on initial generate, not on "let chef adapt" retry
-        stopProgressTicker();
         setIsGenerating(false);
         triggerDietAlert([], `This meal may not fully match your ${userDiet} diet.`);
         return;
       }
 
-      stopProgressTicker();
       setGeneratedMeals([meal]);
+
+      if (!meal?.name) {
+        console.error("❌ Missing meal.name before sushi image hydration:", meal);
+        setIsGenerating(false);
+        return;
+      }
       hydrateImages([meal]);
 
       // Immediately cache the new meal so it survives navigation/refresh
@@ -643,7 +624,6 @@ export default function SushiCreator() {
         window.dispatchEvent(event);
       }, 500);
     } catch (error: any) {
-      stopProgressTicker();
       const errorMsg = error.message || "";
       if (isAllergyRelatedError(errorMsg)) {
         toast({
@@ -732,8 +712,7 @@ export default function SushiCreator() {
   }
 
   return (
-    <PhaseGate phase="PHASE_1_CORE" feature="sushi-creator">
-      <motion.div
+    <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
@@ -1672,7 +1651,6 @@ export default function SushiCreator() {
           steps={CRAVING_TOUR_STEPS}
           onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
-      </motion.div>
-    </PhaseGate>
+    </motion.div>
   );
 }
