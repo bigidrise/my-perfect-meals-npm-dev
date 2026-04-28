@@ -81,6 +81,7 @@ import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 
 const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
   {
@@ -824,8 +825,12 @@ const FridgeRescuePage = () => {
 
           <div className="bg-black/10 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl p-8 max-w-2xl mx-auto">
             <div className="space-y-2">
-              <div className="mb-4">
+              <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-xl font-bold text-white">Quick Create</h2>
+                <HowThisWorksLink
+                  videoUrl="https://youtube.com/shorts/FRIDGE_RESCUE_VIDEO"
+                  label="How It Works"
+                />
               </div>
 
               <div className="space-y-4">

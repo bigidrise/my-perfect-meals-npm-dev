@@ -428,7 +428,9 @@ export default function Router() {
         <Route path="/lifestyle/create-a-dish" component={withGate(CreateDishPage, 'chefsKitchen')} />
         <Route path="/lifestyle/beverage-creator" component={BeverageCreator} />
         <Route path="/lifestyle/beverage-hub" component={BeverageCreatorHub} />
-        <Route path="/lifestyle/athlete-beverage-creator" component={() => <CoachingAdminGate component={AthleteBeverageCreator} />} />
+        <Route path="/lifestyle/athlete-beverage-creator" component={AthleteBeverageCreator} />
+        <Route path="/lifestyle/sushi-creator" component={SushiCreator} />
+        <Route path="/sushi-creator" component={SushiCreator} />
         <Route path="/lifestyle/chef-pairings" component={ChefPairings} />
         <Route path="/lifestyle/pairings-hub" component={PairingsHub} />
         <Route path="/lifestyle/pairings-ai" component={PairingsAI} />
@@ -555,7 +557,6 @@ export default function Router() {
           component={CravingCreatorLanding}
         />
         <Route path="/craving-desserts" component={CravingDessertCreator} />
-        <Route path="/sushi-creator" component={() => <CoachingAdminGate component={SushiCreator} />} />
         {/* RETIRED: /craving-studio, /dessert-studio, /fridge-rescue-studio — Studio features decommissioned */}
         {/* DELETED: /craving-presets, /alcohol-hub, /alcohol/lean-and-social, /alcohol-smart-sips, /mocktails-low-cal-mixers, /alcohol-log (Phase 1 cleanup) */}
         {/* DELETED: /beer-pairing, /bourbon-spirits, /meal-pairing-ai, /wine-pairing (replaced by /lifestyle/pairings-ai) */}

@@ -50,6 +50,7 @@ import {
 import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import TrashButton from "@/components/ui/TrashButton";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 
@@ -482,6 +483,11 @@ export default function BeverageCreator() {
               <CardTitle className="flex items-center gap-2 text-lg text-white">
                 <Wine className="h-5 w-5 text-blue-400" />
                 Create Your Drink
+                <div className="flex-grow" />
+                <HowThisWorksLink
+                  videoUrl="https://youtube.com/shorts/BEVERAGE_CREATOR_VIDEO"
+                  label="How It Works"
+                />
               </CardTitle>
             </CardHeader>
 

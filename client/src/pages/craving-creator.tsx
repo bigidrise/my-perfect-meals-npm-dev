@@ -129,6 +129,7 @@ import TrashButton from "@/components/ui/TrashButton";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
@@ -862,6 +863,11 @@ export default function CravingCreator() {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-xl text-white">
                     Quick Create
+                    <div className="flex-grow" />
+                    <HowThisWorksLink
+                      videoUrl="https://youtube.com/shorts/CRAVING_CREATOR_VIDEO"
+                      label="How It Works"
+                    />
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
