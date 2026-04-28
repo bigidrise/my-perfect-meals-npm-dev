@@ -52,16 +52,16 @@ import TrashButton from "@/components/ui/TrashButton";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 
 const BEVERAGE_CATEGORIES = [
-  { value: "surprise", label: "Surprise Me!" },
-  { value: "cocktail", label: "Cocktail" },
-  { value: "mocktail", label: "Mocktail" },
-  { value: "smoothie", label: "Smoothie" },
   { value: "protein-shake", label: "Protein Shake" },
-  { value: "milkshake", label: "Milkshake" },
-  { value: "coffee", label: "Coffee Drink" },
-  { value: "tea", label: "Tea Drink" },
-  { value: "frozen", label: "Frozen Drink" },
+  { value: "pre-workout", label: "Pre-Workout Drink" },
+  { value: "recovery", label: "Recovery Drink" },
   { value: "hydration", label: "Hydration Drink" },
+  { value: "intra-workout", label: "Intra-Workout Drink" },
+  { value: "meal-replacement", label: "Meal Replacement Shake" },
+  { value: "fat-loss", label: "Fat Loss Drink" },
+  { value: "energy", label: "Energy Drink" },
+  { value: "smoothie", label: "Smoothie" },
+  { value: "electrolyte", label: "Electrolyte Drink" },
 ];
 
 const FLAVOR_FAMILIES = [
@@ -97,7 +97,7 @@ const BEVERAGE_TOUR_STEPS: TourStep[] = [
   {
     title: "Choose Drink Type",
     description:
-      "Pick what kind of drink you want — cocktails, smoothies, protein shakes, coffee drinks, frozen drinks, and more.",
+      "Pick your performance drink type — protein shakes, pre-workout, recovery drinks, hydration, and more.",
   },
   {
     title: "Choose a Flavor Direction",
@@ -303,9 +303,10 @@ export default function AthleteBeverageCreator() {
               customBeverageDescription.trim() ||
               [beverageCategory, flavorFamily, specificDrink].filter(Boolean).join(" ");
             const goalContext = trainingGoal
-              ? `${trainingGoal} performance drink focused on ${trainingGoal}`
-              : "high-protein performance drink for recovery and hydration";
-            return `${goalContext}. ${baseDescription}`.trim();
+              ? `${trainingGoal} performance drink`
+              : "high-protein performance drink for fitness and recovery";
+            const categoryContext = beverageCategory ? `${beverageCategory}` : "";
+            return `${goalContext}. ${categoryContext}. ${baseDescription}`.trim();
           })(),
           servingSize,
           dietaryPreferences: [
