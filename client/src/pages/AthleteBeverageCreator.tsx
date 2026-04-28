@@ -51,20 +51,27 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import TrashButton from "@/components/ui/TrashButton";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 
-const BEVERAGE_CATEGORIES = [
-  { value: "protein-shake", label: "Protein Shake" },
-  { value: "pre-workout", label: "Pre-Workout Drink" },
-  { value: "recovery", label: "Recovery Drink" },
-  { value: "hydration", label: "Hydration Drink" },
-  { value: "intra-workout", label: "Intra-Workout Drink" },
-  { value: "meal-replacement", label: "Meal Replacement Shake" },
-  { value: "fat-loss", label: "Fat Loss Drink" },
-  { value: "energy", label: "Energy Drink" },
-  { value: "smoothie", label: "Smoothie" },
-  { value: "electrolyte", label: "Electrolyte Drink" },
+const PERFORMANCE_GOALS = [
+  { value: "post-workout-recovery", label: "Post-Workout Recovery" },
+  { value: "pre-workout-energy", label: "Pre-Workout Energy" },
+  { value: "hydration-electrolytes", label: "Hydration & Electrolytes" },
+  { value: "muscle-gain", label: "Muscle Gain / Bulking" },
+  { value: "fat-loss", label: "Fat Loss / Cutting" },
+  { value: "endurance", label: "Endurance Support" },
+  { value: "general-performance", label: "General Performance" },
 ];
 
-const FLAVOR_FAMILIES = [
+const DRINK_TYPES = [
+  { value: "protein-shake", label: "Protein Shake" },
+  { value: "recovery-shake", label: "Recovery Shake" },
+  { value: "electrolyte-drink", label: "Electrolyte Drink" },
+  { value: "pre-workout-drink", label: "Pre-Workout Drink" },
+  { value: "intra-workout-drink", label: "Intra-Workout Drink" },
+  { value: "meal-replacement", label: "Meal Replacement" },
+  { value: "smoothie", label: "Smoothie" },
+];
+
+const FLAVOR_PROFILES = [
   { value: "no-preference", label: "No Preference" },
   { value: "citrus", label: "Citrus" },
   { value: "berry", label: "Berry" },
@@ -74,7 +81,6 @@ const FLAVOR_FAMILIES = [
   { value: "coffee", label: "Coffee" },
   { value: "caramel", label: "Caramel" },
   { value: "herbal", label: "Herbal" },
-  { value: "spicy", label: "Spicy" },
 ];
 
 const SERVING_SIZES = [
@@ -133,9 +139,9 @@ export default function AthleteBeverageCreator() {
   const { user } = useAuth();
   const userId = user?.id || "";
 
-  const [trainingGoal, setTrainingGoal] = useState("");
-  const [beverageCategory, setBeverageCategory] = useState("");
-  const [flavorFamily, setFlavorFamily] = useState("");
+  const [performanceGoal, setPerformanceGoal] = useState("");
+  const [drinkType, setDrinkType] = useState("");
+  const [flavorProfile, setFlavorProfile] = useState("");
   const [specificDrink, setSpecificDrink] = useState("");
   const [customBeverageDescription, setCustomBeverageDescription] = useState("");
   const [servingSize, setServingSize] = useState("single");
@@ -244,19 +250,19 @@ export default function AthleteBeverageCreator() {
   async function handleGenerateBeverage(skipDietPreflight = false, overrideToken?: string, dietAdaptOverride = false, userDietOverride = false) {
     const hasCustomDesc = customBeverageDescription.trim().length > 0;
 
-    if (!hasCustomDesc && !beverageCategory) {
+    if (!performanceGoal) {
       toast({
         title: "Missing Information",
-        description: "Select a drink type or describe your own idea above.",
+        description: "Select a performance goal to get started.",
         variant: "destructive",
       });
       return;
     }
 
-    if (!hasCustomDesc && !flavorFamily) {
+    if (!drinkType) {
       toast({
         title: "Missing Information",
-        description: "Select a flavor family or describe your idea above.",
+        description: "Select a drink type to get started.",
         variant: "destructive",
       });
       return;
@@ -264,7 +270,7 @@ export default function AthleteBeverageCreator() {
 
     if (safetyEnabled && !hasActiveOverride && !overrideToken) {
       const requestDescription =
-        `${beverageCategory} ${flavorFamily} ${specificDrink}`.trim();
+        `${drinkType} ${flavorProfile} ${specificDrink}`.trim();
       const isSafe = await checkSafety(requestDescription, "beverage-creator");
       if (!isSafe) {
         return;
@@ -273,15 +279,16 @@ export default function AthleteBeverageCreator() {
 
     // 🥗 DietGuard preflight — advisory, skipped on "Let Chef Adapt" retry
     if (!skipDietPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
-      const dietInput = customBeverageDescription.trim() || `${beverageCategory} ${flavorFamily} ${specificDrink}`.trim();
+      const dietInput = customBeverageDescription.trim() || `${drinkType} ${flavorProfile} ${specificDrink}`.trim();
       const dietOk = checkDiet(dietInput);
       if (!dietOk) return;
     }
 
     setIsGenerating(true);
     console.log("🍹 [BEVERAGE] Starting generation...", {
-      beverageCategory,
-      flavorFamily,
+      performanceGoal,
+      drinkType,
+      flavorProfile,
       specificDrink,
       servingSize,
       safetyEnabled,
@@ -295,18 +302,16 @@ export default function AthleteBeverageCreator() {
         credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({
-          beverageCategory,
-          flavorFamily,
+          beverageCategory: drinkType,
+          flavorFamily: flavorProfile,
           specificDrink,
           customBeverageDescription: (() => {
-            const baseDescription =
-              customBeverageDescription.trim() ||
-              [beverageCategory, flavorFamily, specificDrink].filter(Boolean).join(" ");
-            const goalContext = trainingGoal
-              ? `${trainingGoal} performance drink`
-              : "high-protein performance drink for fitness and recovery";
-            const categoryContext = beverageCategory ? `${beverageCategory}` : "";
-            return `${goalContext}. ${categoryContext}. ${baseDescription}`.trim();
+            const baseDescription = customBeverageDescription.trim() || "";
+            const performanceContext = `Performance goal: ${performanceGoal || "general performance"}.
+Drink type: ${drinkType || "performance drink"}.
+${flavorProfile ? `Flavor profile: ${flavorProfile}.` : ""}
+Create a science-backed performance beverage. Include appropriate protein levels for recovery or growth, electrolytes for hydration, carbohydrates for energy when needed, and optional supplements like creatine or amino acids if relevant. Ensure the drink aligns with the selected performance goal.`;
+            return `${performanceContext} ${baseDescription}`.trim();
           })(),
           servingSize,
           dietaryPreferences: [
@@ -506,43 +511,19 @@ export default function AthleteBeverageCreator() {
 
               <div>
                 <label className="block text-md font-medium text-white mb-1">
-                  Training Goal (Optional)
+                  Performance Goal <span className="text-blue-400">*</span>
                 </label>
                 <Select
-                  value={trainingGoal || "__none__"}
-                  onValueChange={(v) => setTrainingGoal(v === "__none__" ? "" : v)}
+                  value={performanceGoal}
+                  onValueChange={setPerformanceGoal}
                 >
                   <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
-                    <SelectValue placeholder="Select training goal" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">No preference</SelectItem>
-                    <SelectItem value="pre-workout">Pre-Workout Energy</SelectItem>
-                    <SelectItem value="post-workout">Post-Workout Recovery</SelectItem>
-                    <SelectItem value="hydration">Hydration</SelectItem>
-                    <SelectItem value="endurance">Endurance Support</SelectItem>
-                    <SelectItem value="muscle-recovery">Muscle Recovery</SelectItem>
-                    <SelectItem value="weight-cut">Weight Cut / Lean</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="block text-md font-medium text-white mb-1">
-                  Beverage Category{" "}
-                  {!customBeverageDescription.trim() && <span className="text-blue-400">*</span>}
-                </label>
-                <Select
-                  value={beverageCategory}
-                  onValueChange={setBeverageCategory}
-                >
-                  <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
-                    <SelectValue placeholder="Select drink type" />
+                    <SelectValue placeholder="Select performance goal" />
                   </SelectTrigger>
                   <SelectContent position="popper" side="bottom" sideOffset={4} className="max-h-60 overflow-y-auto">
-                    {BEVERAGE_CATEGORIES.map((cat) => (
-                      <SelectItem key={cat.value} value={cat.value}>
-                        {cat.label}
+                    {PERFORMANCE_GOALS.map((g) => (
+                      <SelectItem key={g.value} value={g.value}>
+                        {g.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -551,17 +532,38 @@ export default function AthleteBeverageCreator() {
 
               <div>
                 <label className="block text-md font-medium text-white mb-1">
-                  Flavor Family{" "}
-                  {!customBeverageDescription.trim() && <span className="text-blue-400">*</span>}
+                  Drink Type <span className="text-blue-400">*</span>
                 </label>
-                <Select value={flavorFamily} onValueChange={setFlavorFamily}>
+                <Select
+                  value={drinkType}
+                  onValueChange={setDrinkType}
+                >
+                  <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
+                    <SelectValue placeholder="Select drink type" />
+                  </SelectTrigger>
+                  <SelectContent position="popper" side="bottom" sideOffset={4} className="max-h-60 overflow-y-auto">
+                    {DRINK_TYPES.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>
+                        {t.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-md font-medium text-white mb-1">
+                  Flavor Profile{" "}
+                  <span className="text-white/40 font-normal text-sm">(optional)</span>
+                </label>
+                <Select value={flavorProfile} onValueChange={setFlavorProfile}>
                   <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
                     <SelectValue placeholder="Select flavor" />
                   </SelectTrigger>
                   <SelectContent position="popper" side="bottom" sideOffset={4} className="max-h-60 overflow-y-auto">
-                    {FLAVOR_FAMILIES.map((flavor) => (
-                      <SelectItem key={flavor.value} value={flavor.value}>
-                        {flavor.label}
+                    {FLAVOR_PROFILES.map((f) => (
+                      <SelectItem key={f.value} value={f.value}>
+                        {f.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -637,7 +639,7 @@ export default function AthleteBeverageCreator() {
 
               <SafetyGuardBanner
                 alert={safetyAlert}
-                mealRequest={`${beverageCategory} ${flavorFamily} ${specificDrink}`.trim()}
+                mealRequest={`${drinkType} ${flavorProfile} ${specificDrink}`.trim()}
                 onDismiss={clearSafetyAlert}
                 onOverrideSuccess={(token) =>
                   handleSafetyOverride(false, token)
