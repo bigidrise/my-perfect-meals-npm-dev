@@ -875,25 +875,29 @@ export default function SushiCreator() {
                   </div>
 
                   <div>
-                    <label className="block text-md font-medium text-white mb-1">
-                      Sushi Style (Optional)
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Sushi Style <span className="text-white/40 font-normal">(optional)</span>
                     </label>
-                    <Select
-                      value={sushiStyle || "__none__"}
-                      onValueChange={(v) => setSushiStyle(v === "__none__" ? "" : v)}
-                    >
-                      <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
-                        <SelectValue placeholder="Select sushi style" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">No preference</SelectItem>
-                        <SelectItem value="roll">Roll</SelectItem>
-                        <SelectItem value="nigiri">Nigiri</SelectItem>
-                        <SelectItem value="sashimi">Sashimi</SelectItem>
-                        <SelectItem value="sushi bowl">Sushi Bowl</SelectItem>
-                        <SelectItem value="chef choice">Chef's Choice</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { label: "Roll", value: "roll", emoji: "🌀" },
+                        { label: "Nigiri", value: "nigiri", emoji: "🍣" },
+                        { label: "Sashimi", value: "sashimi", emoji: "🐟" },
+                        { label: "Sushi Bowl", value: "sushi bowl", emoji: "🍚" },
+                        { label: "Chef's Choice", value: "chef choice", emoji: "👨‍🍳" },
+                      ].map(({ label, value, emoji }) => (
+                        <div key={value} className="flex flex-col items-center gap-1">
+                          <PillButton
+                            active={sushiStyle === value}
+                            variant="amber"
+                            onClick={() => setSushiStyle(sushiStyle === value ? "" : value)}
+                          >
+                            {emoji}
+                          </PillButton>
+                          <span className="text-[10px] text-white leading-tight text-center">{label}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Dietary Preferences with clear support */}
@@ -1076,59 +1080,6 @@ export default function SushiCreator() {
                       {flavorPersonal
                         ? "Using your palate preferences"
                         : "Neutral seasoning for others"}
-                    </p>
-                  </div>
-
-                  {/* Keep It Simple Section */}
-                  <div className="mt-2 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
-                    <span className="text-xs text-white/60 block mb-2">
-                      Ingredient Control
-                    </span>
-                    <KeepItSimpleToggle
-                      keepItSimple={keepItSimple}
-                      onToggle={setKeepItSimple}
-                      disabled={isGenerating}
-                    />
-                    <p className="text-xs text-white/40 mt-1">
-                      {keepItSimple
-                        ? "AI will use only what you listed — nothing added"
-                        : "AI may add complementary ingredients"}
-                    </p>
-                  </div>
-
-                  {/* Generation Mode Toggle */}
-                  <div className="mt-2 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
-                    <span className="text-xs text-white/60 block mb-2">
-                      Generation Mode
-                    </span>
-                    <div className="flex rounded-lg overflow-hidden border border-white/20">
-                      <button
-                        onClick={() => setGenerationMode('meal')}
-                        disabled={isGenerating}
-                        className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                          generationMode === 'meal'
-                            ? 'bg-lime-600 text-white'
-                            : 'bg-black/40 text-white/50 hover:text-white/80'
-                        }`}
-                      >
-                        Meal Mode
-                      </button>
-                      <button
-                        onClick={() => setGenerationMode('recipe')}
-                        disabled={isGenerating}
-                        className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                          generationMode === 'recipe'
-                            ? 'bg-orange-600 text-white'
-                            : 'bg-black/40 text-white/50 hover:text-white/80'
-                        }`}
-                      >
-                        Recipe Mode
-                      </button>
-                    </div>
-                    <p className="text-xs text-white/40 mt-1">
-                      {generationMode === 'recipe'
-                        ? 'Chef-first: uses real culinary ratios — ideal for breads, baked goods & traditional dishes'
-                        : 'Nutrition-first: optimized for your macro and diet targets'}
                     </p>
                   </div>
 
