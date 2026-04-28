@@ -1,14 +1,6 @@
-// 🔒🔒🔒 CRAVING CREATOR FINAL LOCKDOWN (JANUARY 3, 2025) - DO NOT MODIFY
-// Complete system lockdown per user command: API endpoints, JSX structure, macro logging, medical badges, image generation
-// Zero-tolerance policy for modifications - system working perfectly for production deployment
-// STABLE VERSION - Craving Creator (January 8, 2025)
-// This is the working version with:
-// - Enhanced craving matching logic (prevents incorrect partial matches)
-// - GPT-4 fallback for complex requests (chicken burrito, chocolate chip cookies)
-// - Disabled shopping list integration (Under Construction)
-// - Removed food log functionality from Accept button
-// - Accurate meal generation for any craving
-// DO NOT MODIFY WITHOUT USER APPROVAL
+// 🍣 SUSHI CREATOR — Cloned from CravingCreator (locked source)
+// DO NOT MODIFY the API pipeline, response handling, image generation, or loading states.
+// Allowed changes: labels, page title, default input values, cache key, feature flag.
 
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
@@ -134,7 +126,7 @@ import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 
 // ---- Persist the generated meal so it never "disappears" ----
-const CACHE_KEY = "cravingCreator.cache.v1";
+const CACHE_KEY = "sushiCreator.cache.v1";
 
 type CachedCravingState = {
   generatedMeal: MealData | null;
@@ -199,11 +191,11 @@ const CRAVING_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-export default function CravingCreator() {
+export default function SushiCreator() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { startWalkthrough } = useCopilot();
-  const quickTour = useQuickTour("craving-creator");
+  const quickTour = useQuickTour("sushi-creator");
   const [useOnboarding, setUseOnboarding] = useState(true); // ENFORCED: Always use onboarding for medical safety
   const [cravingInput, setCravingInput] = useState("");
   const [dietaryRestrictions, setDietaryRestrictions] = useState("");
@@ -252,13 +244,13 @@ export default function CravingCreator() {
   // 🎯 Auto-start walkthrough on first visit
   useEffect(() => {
     const hasSeenWalkthrough = localStorage.getItem(
-      "walkthrough-seen-craving-creator",
+      "walkthrough-seen-sushi-creator",
     );
     if (!hasSeenWalkthrough) {
       // Small delay to ensure page is fully rendered
       const timer = setTimeout(() => {
-        startWalkthrough("craving-creator");
-        localStorage.setItem("walkthrough-seen-craving-creator", "true");
+        startWalkthrough("sushi-creator");
+        localStorage.setItem("walkthrough-seen-sushi-creator", "true");
       }, 800);
       return () => clearTimeout(timer);
     }
@@ -740,7 +732,7 @@ export default function CravingCreator() {
   }
 
   return (
-    <PhaseGate phase="PHASE_1_CORE" feature="craving-creator">
+    <PhaseGate phase="PHASE_1_CORE" feature="sushi-creator">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -756,9 +748,9 @@ export default function CravingCreator() {
           <div className="px-4 py-3 flex items-center gap-2 flex-nowrap overflow-hidden">
             {/* Back Button */}
             <button
-              onClick={() => setLocation("/craving-creator-landing")}
+              onClick={() => setLocation("/lifestyle")}
               className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
-              data-testid="button-back-to-hub"
+              data-testid="sushicreator-back"
             >
               <ArrowLeft className="h-5 w-5" />
               <span className="text-sm font-medium">Back</span>
@@ -766,7 +758,7 @@ export default function CravingCreator() {
 
             {/* Title */}
             <h1 className="text-lg font-bold text-white truncate min-w-0">
-              Craving Creator
+              Sushi Creator
             </h1>
 
             <div className="flex-grow" />
@@ -861,7 +853,7 @@ export default function CravingCreator() {
               <Card className="shadow-2xl bg-black/30 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-xl text-white">
-                    Quick Create
+                    Create Your Sushi
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -877,7 +869,7 @@ export default function CravingCreator() {
                         data-wt="cc-description-input"
                         value={cravingInput}
                         onChange={(e) => setCravingInput(e.target.value)}
-                        placeholder="e.g., I want something creamy chocolate with peanut butter swirl and crunchy topping - BE SPECIFIC and describe what you crave!"
+                        placeholder="e.g., spicy tuna roll with sriracha mayo, dragon roll with mango avocado, salmon sashimi - describe your ideal sushi!"
                         className="w-full px-3 py-2 pr-10 bg-black text-white placeholder:text-white/50 border border-white/30 rounded-lg h-20 resize-none text-sm"
                         maxLength={300}
                       />
@@ -1165,7 +1157,7 @@ export default function CravingCreator() {
 
                   {isGenerating ? (
                     <div className="max-w-md mx-auto mb-4 flex justify-center">
-                      <ThinkingDots label="Creating your craving…" />
+                      <ThinkingDots label="Creating your sushi…" />
                     </div>
                   ) : (
                     <GlassButton
@@ -1177,7 +1169,7 @@ export default function CravingCreator() {
                     >
                       {safetyChecking
                         ? "Checking Safety..."
-                        : "Create My Craving"}
+                        : "Create My Sushi"}
                     </GlassButton>
                   )}
                 </CardContent>
@@ -1256,7 +1248,7 @@ export default function CravingCreator() {
                         <div className="flex items-center justify-between">
                           <FavoriteButton
                             title={meal.name}
-                            sourceType="craving-creator"
+                            sourceType="sushi-creator"
                             mealData={meal}
                           />
                           <button
