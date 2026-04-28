@@ -52,8 +52,8 @@ import TrashButton from "@/components/ui/TrashButton";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 
 const PERFORMANCE_GOALS = [
-  { value: "post-workout-recovery", label: "Post-Workout Recovery" },
   { value: "pre-workout-energy", label: "Pre-Workout Energy" },
+  { value: "post-workout-recovery", label: "Post-Workout Recovery" },
   { value: "hydration-electrolytes", label: "Hydration & Electrolytes" },
   { value: "muscle-gain", label: "Muscle Gain / Bulking" },
   { value: "fat-loss", label: "Fat Loss / Cutting" },
@@ -63,12 +63,15 @@ const PERFORMANCE_GOALS = [
 
 const DRINK_TYPES = [
   { value: "protein-shake", label: "Protein Shake" },
-  { value: "recovery-shake", label: "Recovery Shake" },
+  { value: "clear-protein-drink", label: "Clear Protein Drink" },
   { value: "electrolyte-drink", label: "Electrolyte Drink" },
-  { value: "pre-workout-drink", label: "Pre-Workout Drink" },
-  { value: "intra-workout-drink", label: "Intra-Workout Drink" },
-  { value: "meal-replacement", label: "Meal Replacement" },
+  { value: "creatine-drink", label: "Creatine Drink" },
+  { value: "pre-workout-style-drink", label: "Pre-Workout Style Drink" },
+  { value: "recovery-shake", label: "Recovery Shake" },
+  { value: "meal-replacement-shake", label: "Meal Replacement Shake" },
   { value: "smoothie", label: "Smoothie" },
+  { value: "coffee-green-tea-performance", label: "Coffee / Green Tea Performance Drink" },
+  { value: "frozen-performance-drink", label: "Frozen Performance Drink" },
 ];
 
 const FLAVOR_PROFILES = [
@@ -319,10 +322,21 @@ export default function AthleteBeverageCreator() {
           specificDrink,
           customBeverageDescription: (() => {
             const baseDescription = customBeverageDescription.trim() || "";
+            const macroTargets: Record<string, string> = {
+              "pre-workout-energy": "light drink, carbs 20–40g, optional caffeine from natural sources, low fat, minimal protein",
+              "post-workout-recovery": "protein 25–40g, carbs 30–60g, moderate electrolytes (sodium, potassium, magnesium)",
+              "hydration-electrolytes": "high electrolytes, low protein, carbs 0–20g, prioritize sodium, potassium, and magnesium",
+              "muscle-gain": "protein 30–50g, carbs 40–80g, higher calories, leucine-rich sources preferred",
+              "fat-loss": "protein 25–40g, low calorie, carbs 0–20g, avoid added sugars",
+              "endurance": "carbs 40–80g, high electrolytes, light protein 10–15g, easy on the stomach",
+              "general-performance": "protein 20–30g, carbs 20–40g, moderate electrolytes, balanced macros",
+            };
+            const macroGuide = macroTargets[performanceGoal] || macroTargets["general-performance"];
             const performanceContext = `Performance goal: ${performanceGoal || "general performance"}.
-Drink type: ${drinkType || "performance drink"}.
-${flavorProfile ? `Flavor profile: ${flavorProfile}.` : ""}
-Create a science-backed performance beverage. Include appropriate protein levels for recovery or growth, electrolytes for hydration, carbohydrates for energy when needed, and optional supplements like creatine or amino acids if relevant. Ensure the drink aligns with the selected performance goal.`;
+Drink format: ${drinkType || "performance drink"}.
+${flavorProfile && flavorProfile !== "no-preference" ? `Flavor direction: ${flavorProfile}.` : ""}
+Nutrition targets: ${macroGuide}.
+Build a homemade version of a market-style ${drinkType || "performance drink"} using whole food and supplement ingredients. Make it taste like something an athlete would actually buy, not a generic smoothie. Prioritize the macro targets above.`;
             return `${performanceContext} ${baseDescription}`.trim();
           })(),
           servingSize,
