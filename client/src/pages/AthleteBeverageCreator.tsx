@@ -480,10 +480,6 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
             </h1>
 
             <div className="flex-grow" />
-            <HowThisWorksLink
-              videoUrl="https://youtube.com/shorts/ATHLETE_BEVERAGE_VIDEO"
-              label="How It Works"
-            />
           </div>
         </div>
         </MobileHeaderGuard>
@@ -496,7 +492,12 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg text-white">
                 <Wine className="h-5 w-5 text-blue-400" />
-                Create Your Performance Drink
+                Create Your Drink
+                <div className="flex-grow" />
+                <HowThisWorksLink
+                  videoUrl="https://youtube.com/shorts/ATHLETE_BEVERAGE_VIDEO"
+                  label="How It Works"
+                />
               </CardTitle>
             </CardHeader>
 

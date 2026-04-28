@@ -560,10 +560,6 @@ export default function CreateDishPage() {
               </h1>
 
               <div className="flex-grow" />
-              <HowThisWorksLink
-                videoUrl="https://youtube.com/shorts/CREATE_DISH_VIDEO"
-                label="How It Works"
-              />
             </div>
           </div>
         </MobileHeaderGuard>
@@ -577,6 +573,11 @@ export default function CreateDishPage() {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-xl text-white">
                     Create a Dish
+                    <div className="flex-grow" />
+                    <HowThisWorksLink
+                      videoUrl="https://youtube.com/shorts/CREATE_DISH_VIDEO"
+                      label="How It Works"
+                    />
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">

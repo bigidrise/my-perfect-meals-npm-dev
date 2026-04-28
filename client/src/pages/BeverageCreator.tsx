@@ -470,10 +470,6 @@ export default function BeverageCreator() {
             </h1>
 
             <div className="flex-grow" />
-            <HowThisWorksLink
-              videoUrl="https://youtube.com/shorts/BEVERAGE_CREATOR_VIDEO"
-              label="How It Works"
-            />
           </div>
         </div>
         </MobileHeaderGuard>
@@ -487,6 +483,11 @@ export default function BeverageCreator() {
               <CardTitle className="flex items-center gap-2 text-lg text-white">
                 <Wine className="h-5 w-5 text-blue-400" />
                 Create Your Drink
+                <div className="flex-grow" />
+                <HowThisWorksLink
+                  videoUrl="https://youtube.com/shorts/BEVERAGE_CREATOR_VIDEO"
+                  label="How It Works"
+                />
               </CardTitle>
             </CardHeader>
 
