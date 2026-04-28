@@ -771,10 +771,6 @@ export default function CravingCreator() {
             </h1>
 
             <div className="flex-grow" />
-            <HowThisWorksLink
-              videoUrl="https://youtube.com/shorts/CRAVING_CREATOR_VIDEO"
-              label="How It Works"
-            />
           </div>
         </div>
         </MobileHeaderGuard>
@@ -867,6 +863,11 @@ export default function CravingCreator() {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-xl text-white">
                     Quick Create
+                    <div className="flex-grow" />
+                    <HowThisWorksLink
+                      videoUrl="https://youtube.com/shorts/CRAVING_CREATOR_VIDEO"
+                      label="How It Works"
+                    />
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">

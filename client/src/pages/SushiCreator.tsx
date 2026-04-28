@@ -745,10 +745,6 @@ export default function SushiCreator() {
             </h1>
 
             <div className="flex-grow" />
-            <HowThisWorksLink
-              videoUrl="https://youtube.com/shorts/SUSHI_CREATOR_VIDEO"
-              label="How It Works"
-            />
           </div>
         </div>
         </MobileHeaderGuard>
@@ -841,6 +837,11 @@ export default function SushiCreator() {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-xl text-white">
                     Create Your Sushi
+                    <div className="flex-grow" />
+                    <HowThisWorksLink
+                      videoUrl="https://youtube.com/shorts/SUSHI_CREATOR_VIDEO"
+                      label="How It Works"
+                    />
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
