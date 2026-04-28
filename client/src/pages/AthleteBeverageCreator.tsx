@@ -83,6 +83,18 @@ const FLAVOR_PROFILES = [
   { value: "herbal", label: "Herbal" },
 ];
 
+function normalizeBeverageImageName(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower.includes("smoothie")) return name;
+  if (lower.includes("shake")) return name;
+  if (lower.includes("juice")) return name;
+  if (lower.includes("electrolyte")) return `${name} Drink`;
+  if (lower.includes("hydration")) return `${name} Drink`;
+  if (lower.includes("recovery")) return `${name} Protein Shake`;
+  if (lower.includes("pre-workout")) return `${name} Drink`;
+  return `${name} Protein Shake`;
+}
+
 const SERVING_SIZES = [
   { value: "single", label: "Single Drink" },
   { value: "two", label: "Two Drinks" },
@@ -382,7 +394,7 @@ Create a science-backed performance beverage. Include appropriate protein levels
       fetch(apiUrl("/api/meals/generate-image"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mealId: meal.id, mealName: meal.name, mealType: "beverages", ingredients: meal.ingredients }),
+        body: JSON.stringify({ mealId: meal.id, mealName: normalizeBeverageImageName(meal.name), mealType: "beverages", ingredients: meal.ingredients }),
       })
         .then((r) => r.json())
         .then((d) => {
