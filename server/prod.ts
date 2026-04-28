@@ -99,9 +99,14 @@ if (fs.existsSync(clientDistEarly)) {
     }
   }));
   // SPA fallback for all non-API GET routes — catches /sushi-creator, /lifestyle/*, etc.
-  app.get(/^(?!\/api(?:\/|$))/, (_req, res) => {
-    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-    res.sendFile(path.join(clientDistEarly, "index.html"));
+  // Uses app.use() (middleware, not a named route) to avoid breaking Express route audits
+  // that call .startsWith() on route paths — RegExp paths don't support .startsWith().
+  app.use((req, res, next) => {
+    if (req.method === "GET" && !req.path.startsWith("/api")) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      return res.sendFile(path.join(clientDistEarly, "index.html"));
+    }
+    next();
   });
   console.log("✅ [BOOT] Early static + SPA fallback registered");
 }

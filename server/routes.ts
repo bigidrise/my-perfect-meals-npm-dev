@@ -6675,7 +6675,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   console.log("📋 [ROUTE AUDIT] Critical route parity check:");
   for (const route of CRITICAL_ROUTES) {
     const found = stack.some((layer: any) => {
-      if (layer.route?.path && (layer.route.path === route || layer.route.path.startsWith(route + "/"))) return true;
+      if (layer.route?.path && typeof layer.route.path === "string" && (layer.route.path === route || layer.route.path.startsWith(route + "/"))) return true;
       if (layer.name === "router" && layer.regexp) {
         const src = layer.regexp.source;
         const routeEscaped = route.replace(/\//g, "\\/");
