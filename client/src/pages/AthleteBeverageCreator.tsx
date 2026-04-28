@@ -48,6 +48,7 @@ import {
 import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import TrashButton from "@/components/ui/TrashButton";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 
@@ -479,6 +480,10 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
             </h1>
 
             <div className="flex-grow" />
+            <HowThisWorksLink
+              videoUrl="https://youtube.com/shorts/ATHLETE_BEVERAGE_VIDEO"
+              label="How It Works"
+            />
           </div>
         </div>
         </MobileHeaderGuard>

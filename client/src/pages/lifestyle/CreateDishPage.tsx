@@ -51,6 +51,7 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import TrashButton from "@/components/ui/TrashButton";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import PhaseGate from "@/components/PhaseGate";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
@@ -559,6 +560,10 @@ export default function CreateDishPage() {
               </h1>
 
               <div className="flex-grow" />
+              <HowThisWorksLink
+                videoUrl="https://youtube.com/shorts/CREATE_DISH_VIDEO"
+                label="How It Works"
+              />
             </div>
           </div>
         </MobileHeaderGuard>
