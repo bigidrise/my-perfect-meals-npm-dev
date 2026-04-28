@@ -15,7 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
 import { Sparkles, ArrowLeft, Brain, Wine } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -23,7 +22,6 @@ import {
   formatAllergyAlertDescription,
 } from "@/utils/allergyAlert";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
-import PhaseGate from "@/components/PhaseGate";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
@@ -157,8 +155,6 @@ export default function AthleteBeverageCreator() {
     }
   });
 
-  const [progress, setProgress] = useState(0);
-  const tickerRef = useRef<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [beverageImageLoading, setBeverageImageLoading] = useState(false);
 
@@ -243,27 +239,6 @@ export default function AthleteBeverageCreator() {
     }
   }, [generatedBeverage]);
 
-  const startProgressTicker = () => {
-    if (tickerRef.current) return;
-    setProgress(0);
-    tickerRef.current = window.setInterval(() => {
-      setProgress((p) => {
-        if (p < 90) {
-          const next = p + Math.max(1, Math.floor((90 - p) * 0.07));
-          return Math.min(next, 90);
-        }
-        return p;
-      });
-    }, 150);
-  };
-
-  const stopProgressTicker = () => {
-    if (tickerRef.current) {
-      clearInterval(tickerRef.current);
-      tickerRef.current = null;
-    }
-    setProgress(100);
-  };
 
   async function handleGenerateBeverage(skipDietPreflight = false, overrideToken?: string, dietAdaptOverride = false, userDietOverride = false) {
     const hasCustomDesc = customBeverageDescription.trim().length > 0;
@@ -303,7 +278,6 @@ export default function AthleteBeverageCreator() {
     }
 
     setIsGenerating(true);
-    startProgressTicker();
     console.log("🍹 [BEVERAGE] Starting generation...", {
       beverageCategory,
       flavorFamily,
@@ -346,7 +320,6 @@ export default function AthleteBeverageCreator() {
       const data = await res.json().catch(() => null);
 
       if (data?.safetyBlocked || data?.safetyAmbiguous) {
-        stopProgressTicker();
         setIsGenerating(false);
         setSafetyAlert({
           show: true,
@@ -383,13 +356,11 @@ export default function AthleteBeverageCreator() {
         clearDietAlert();
       } else if (!skipDietPreflight && activeDiet && !mealMatchesDiet(userDiet, meal)) {
         // 🥗 Scenario B fallback — only fires on initial generate, never on "let chef adapt" retry
-        stopProgressTicker();
         setIsGenerating(false);
         triggerDietAlert([], `This drink may not fully match your ${userDiet} diet.`);
         return;
       }
 
-      stopProgressTicker();
       setGeneratedBeverage(meal);
       // Fire image async — non-blocking
       setBeverageImageLoading(true);
@@ -411,7 +382,6 @@ export default function AthleteBeverageCreator() {
       });
     } catch (err: any) {
       console.error("🍹 [BEVERAGE] Generation error:", err);
-      stopProgressTicker();
       const errorMsg = err?.message || String(err) || "";
       if (isAllergyRelatedError(errorMsg)) {
         toast({
@@ -442,8 +412,7 @@ export default function AthleteBeverageCreator() {
   }
 
   return (
-    <PhaseGate phase="PHASE_1_CORE" feature="athlete-beverage-creator">
-      <motion.div
+    <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
@@ -1008,7 +977,6 @@ export default function AthleteBeverageCreator() {
           steps={BEVERAGE_TOUR_STEPS}
           onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
-      </motion.div>
-    </PhaseGate>
+    </motion.div>
   );
 }
