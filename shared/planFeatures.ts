@@ -73,6 +73,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "Dessert Creator (healthy versions of your favorite desserts)",
       "Fridge Rescue (turn what you have into full custom meals)",
       "Beverage Creator",
+      "Sushi Creator (rolls, nigiri, sashimi & bowls)",
       "Spirits & Wine Pairing Hub",
       "Restaurant Guide",
       "Find Meals Near Me",
@@ -98,6 +99,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
     tier: "ultimate",
     displayFeatures: [
       "Everything in Premium",
+      "Athlete Beverage Creator (performance drinks for training phases)",
       "Physicians Care Team / Pro Access",
       "Trainers Care Team / Pro Access",
       "Beach Body / Hard Body Meal Builder",
@@ -143,6 +145,7 @@ export const IOS_DISPLAY_FEATURES: Record<string, string[]> = {
     "Dessert Creator",
     "Fridge Rescue",
     "Beverage Creator",
+    "Sushi Creator",
     "Spirits & Wine Pairing Hub",
     "Restaurant Guide",
     "Find Meals Near Me",
@@ -152,6 +155,7 @@ export const IOS_DISPLAY_FEATURES: Record<string, string[]> = {
   ],
   ultimate: [
     "Everything in Premium, plus:",
+    "Athlete Beverage Creator",
     "Pro Care Team Access",
     "Beach Body Meal Builder",
     "Competition Prep Builder",
