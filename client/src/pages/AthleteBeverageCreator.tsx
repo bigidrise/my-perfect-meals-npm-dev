@@ -133,6 +133,7 @@ export default function AthleteBeverageCreator() {
   const { user } = useAuth();
   const userId = user?.id || "";
 
+  const [trainingGoal, setTrainingGoal] = useState("");
   const [beverageCategory, setBeverageCategory] = useState("");
   const [flavorFamily, setFlavorFamily] = useState("");
   const [specificDrink, setSpecificDrink] = useState("");
@@ -297,7 +298,15 @@ export default function AthleteBeverageCreator() {
           beverageCategory,
           flavorFamily,
           specificDrink,
-          customBeverageDescription: customBeverageDescription.trim() || undefined,
+          customBeverageDescription: (() => {
+            const baseDescription =
+              customBeverageDescription.trim() ||
+              [beverageCategory, flavorFamily, specificDrink].filter(Boolean).join(" ");
+            const goalContext = trainingGoal
+              ? `${trainingGoal} performance drink focused on ${trainingGoal}`
+              : "high-protein performance drink for recovery and hydration";
+            return `${goalContext}. ${baseDescription}`.trim();
+          })(),
           servingSize,
           dietaryPreferences: [
             ...(dietaryPreference && dietaryPreference !== "none"
@@ -492,6 +501,29 @@ export default function AthleteBeverageCreator() {
                 <div className="flex-1 h-px bg-white/10" />
                 <span className="text-xs">or choose from options below</span>
                 <div className="flex-1 h-px bg-white/10" />
+              </div>
+
+              <div>
+                <label className="block text-md font-medium text-white mb-1">
+                  Training Goal (Optional)
+                </label>
+                <Select
+                  value={trainingGoal || "__none__"}
+                  onValueChange={(v) => setTrainingGoal(v === "__none__" ? "" : v)}
+                >
+                  <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
+                    <SelectValue placeholder="Select training goal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">No preference</SelectItem>
+                    <SelectItem value="pre-workout">Pre-Workout Energy</SelectItem>
+                    <SelectItem value="post-workout">Post-Workout Recovery</SelectItem>
+                    <SelectItem value="hydration">Hydration</SelectItem>
+                    <SelectItem value="endurance">Endurance Support</SelectItem>
+                    <SelectItem value="muscle-recovery">Muscle Recovery</SelectItem>
+                    <SelectItem value="weight-cut">Weight Cut / Lean</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
