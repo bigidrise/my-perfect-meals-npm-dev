@@ -390,6 +390,7 @@ export default function SushiCreator() {
   const [cookMethod, setCookMethod] = useState("");
   // Generation mode: 'meal' = macro-first (default), 'recipe' = culinary-ratio-first
   const [generationMode, setGenerationMode] = useState<'meal' | 'recipe'>('meal');
+  const [sushiStyle, setSushiStyle] = useState("");
 
   // 🔐 SafetyGuard preflight system
   const {
@@ -516,7 +517,9 @@ export default function SushiCreator() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           targetMealType: "snacks",
-          cravingInput,
+          cravingInput: sushiStyle
+            ? `${sushiStyle}: ${cravingInput}`
+            : cravingInput,
           dietaryRestrictions: selectedDiet || dietaryRestrictions,
           userId: userId,
           servings: servings,
@@ -872,30 +875,25 @@ export default function SushiCreator() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-white mb-2">
-                      Cooking method <span className="text-white/40 font-normal">(optional)</span>
+                    <label className="block text-md font-medium text-white mb-1">
+                      Sushi Style (Optional)
                     </label>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        { label: "Stovetop", emoji: "🍳" },
-                        { label: "Oven", emoji: "🔥" },
-                        { label: "Air Fryer", emoji: "💨" },
-                        { label: "Grill", emoji: "🥩" },
-                        { label: "Slow Cooker", emoji: "🫕" },
-                        { label: "No-Cook", emoji: "🥗" },
-                      ].map(({ label, emoji }) => (
-                        <div key={label} className="flex flex-col items-center gap-1">
-                          <PillButton
-                            active={cookMethod === label}
-                            variant="amber"
-                            onClick={() => setCookMethod(cookMethod === label ? "" : label)}
-                          >
-                            {emoji}
-                          </PillButton>
-                          <span className="text-[10px] text-white leading-tight text-center">{label}</span>
-                        </div>
-                      ))}
-                    </div>
+                    <Select
+                      value={sushiStyle || "__none__"}
+                      onValueChange={(v) => setSushiStyle(v === "__none__" ? "" : v)}
+                    >
+                      <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
+                        <SelectValue placeholder="Select sushi style" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">No preference</SelectItem>
+                        <SelectItem value="roll">Roll</SelectItem>
+                        <SelectItem value="nigiri">Nigiri</SelectItem>
+                        <SelectItem value="sashimi">Sashimi</SelectItem>
+                        <SelectItem value="sushi bowl">Sushi Bowl</SelectItem>
+                        <SelectItem value="chef choice">Chef's Choice</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* Dietary Preferences with clear support */}
