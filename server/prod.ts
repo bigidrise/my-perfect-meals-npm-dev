@@ -4,6 +4,7 @@ import express from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from 'url';
 import pg from "pg";
 
@@ -81,6 +82,29 @@ const server = app.listen(port, "0.0.0.0", () => {
 server.on('error', (err) => {
   console.error('🚨 [BOOT] Server error:', err);
 });
+
+// EARLY: Register static files and SPA fallback immediately so client routes
+// work during the background initialization window. API routes (/api/*) are
+// excluded here and will be handled once initializeApp() registers them.
+const clientDistEarly = path.resolve(__dirname, "../client/dist");
+if (fs.existsSync(clientDistEarly)) {
+  // Serve static assets (JS bundles, CSS, images, etc.)
+  app.use(express.static(clientDistEarly, {
+    setHeaders: (res, filePath) => {
+      if (/\.(js|css)$/i.test(filePath) && /[\.\-][a-f0-9]{8,}\./.test(filePath)) {
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      } else if (/index\.html$/i.test(filePath)) {
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      }
+    }
+  }));
+  // SPA fallback for all non-API GET routes — catches /sushi-creator, /lifestyle/*, etc.
+  app.get(/^(?!\/api(?:\/|$))/, (_req, res) => {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.sendFile(path.join(clientDistEarly, "index.html"));
+  });
+  console.log("✅ [BOOT] Early static + SPA fallback registered");
+}
 
 // Initialize application in background AFTER server is listening
 async function initializeApp() {
