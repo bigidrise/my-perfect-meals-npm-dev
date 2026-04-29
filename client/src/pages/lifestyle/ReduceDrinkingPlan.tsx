@@ -11,6 +11,7 @@ import { getAuthHeaders } from "@/lib/auth";
 import PhaseGate from "@/components/PhaseGate";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 
 type Pace = "gentle" | "standard" | "custom";
 
@@ -118,6 +119,11 @@ export default function ReduceDrinkingPlan() {
                 <CardTitle className="flex items-center gap-2 text-lg text-white">
                   <HeartPulse className="h-5 w-5 text-orange-400" />
                   Build Your Plan
+                  <div className="flex-grow" />
+                  <HowThisWorksLink
+                    videoUrl="https://youtube.com/shorts/REDUCE_DRINKING_VIDEO"
+                    label="How It Works"
+                  />
                 </CardTitle>
               </CardHeader>
 
