@@ -17,6 +17,7 @@ import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import PairingResultCard from "@/components/pairings/PairingResultCard";
 import { PillButton } from "@/components/ui/pill-button";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import {
   isAllergyRelatedError,
   formatAllergyAlertDescription,
@@ -237,6 +238,11 @@ export default function PairingsAI() {
                 <CardTitle className="flex items-center gap-2 text-lg text-white">
                   <Sparkles className="h-5 w-5 text-orange-400" />
                   What would you like to do?
+                  <div className="flex-grow" />
+                  <HowThisWorksLink
+                    videoUrl="https://youtube.com/shorts/PAIRINGS_AI_VIDEO"
+                    label="How It Works"
+                  />
                 </CardTitle>
               </CardHeader>
 
