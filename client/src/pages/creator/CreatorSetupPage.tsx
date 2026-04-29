@@ -217,6 +217,18 @@ export default function CreatorSetupPage() {
   }
 
   async function submit() {
+    if (form.name.trim().length < 2) {
+      setError("A studio name is required before creating your studio.");
+      return;
+    }
+    if (form.techniques.length === 0) {
+      setError("Please select at least one cooking technique before creating your studio.");
+      return;
+    }
+    if (form.flavors.length === 0) {
+      setError("Please select at least one flavor style before creating your studio.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
