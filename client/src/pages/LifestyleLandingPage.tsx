@@ -55,9 +55,9 @@ export default function LifestyleLandingPage() {
       badge: "emotion",
     },
     {
-      title: "Craving Creator Hub",
+      title: "Cravings, Sushi & Desserts Hub",
       description:
-        "Your craving-focused hub — home of the original Craving Creator that started it all.",
+        "Craving Creator, Sushi Creator, and Dessert Creator — all in one place.",
       icon: Sparkles,
       route: "/craving-creator-landing",
       gradient: "from-orange-500/20 to-red-500/20",

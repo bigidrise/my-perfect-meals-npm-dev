@@ -4,10 +4,6 @@ import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Brain, Sparkles, Fish } from "lucide-react";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
-import { useAuth } from "@/contexts/AuthContext";
-
-const ADMIN_ID = "6796ce88-dff8-4336-adcb-e53986830f3f";
-
 interface CravingFeature {
   title: string;
   description: string;
@@ -18,11 +14,9 @@ interface CravingFeature {
 
 export default function CravingCreatorLanding() {
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
-  const isAdmin = user?.id === ADMIN_ID;
 
   useEffect(() => {
-    document.title = "Craving Creator Hub | My Perfect Meals";
+    document.title = "Cravings, Sushi & Desserts Hub | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
     
     // Phase C.7: Emit "opened" event for hub walkthrough
@@ -49,13 +43,13 @@ export default function CravingCreatorLanding() {
       route: "/craving-desserts",
       testId: "cravinghub-desserts",
     },
-    ...(isAdmin ? [{
+    {
       title: "Sushi Creator",
       description: "Japanese-inspired sushi and rice bowls — macros tracked, health goals respected",
       icon: Fish,
       route: "/sushi-creator",
       testId: "cravinghub-sushi",
-    }] : []),
+    },
   ];
 
   const handleCardClick = (route: string) => {
@@ -87,7 +81,7 @@ export default function CravingCreatorLanding() {
           <Sparkles className="h-6 w-6 text-orange-500" />
 
           {/* Title */}
-          <h1 className="text-lg font-bold text-white">Craving Creator Hub</h1>
+          <h1 className="text-lg font-bold text-white">Cravings, Sushi & Desserts Hub</h1>
 
           
         </div>
