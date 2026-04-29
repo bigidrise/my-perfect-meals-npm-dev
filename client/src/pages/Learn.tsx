@@ -31,6 +31,7 @@ import {
   ShoppingCart,
   Activity,
   Fish,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
@@ -570,6 +571,45 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
             "Tap Reset to clear today's count and start over at any point",
             "Carnivore and keto users see rotating hydration coaching tips throughout the day, since high-protein eating increases hydration needs",
           ],
+        },
+      ],
+    },
+  },
+  {
+    id: "culture-intelligence",
+    title: "Culture Intelligence System",
+    subtitle: "How your food culture shapes every part of the app",
+    icon: Globe,
+    content: {
+      sections: [
+        {
+          heading: "What It Is",
+          text: "Your food is more than macros — it's culture, habit, and identity. The Culture Intelligence System allows My Perfect Meals to understand how you actually eat by using your preferred cuisine as a foundation across the entire app.",
+        },
+        {
+          heading: "How It Works",
+          text: "When you select a cuisine in your profile, the system automatically shapes your meals, snacks, desserts, beverages, and cooking styles to feel familiar to you — while still matching your goals, dietary preferences, and health needs.",
+        },
+        {
+          heading: "Where It Applies",
+          list: [
+            "Meals and recipes — ingredient choices, spice profiles, and cooking methods reflect your culture",
+            "Snacks and desserts — familiar flavors are prioritized when the AI builds options",
+            "Beverages and alcohol pairings — pairing style and cultural beverage context are honored",
+            "Cooking styles — techniques and preparation methods that fit your culinary background",
+          ],
+        },
+        {
+          heading: "What It Does Not Do",
+          text: "This system does not restrict you. It guides your food experience. You can always explore other cuisines at any time from within any feature — but your default experience will reflect the way you naturally eat.",
+        },
+        {
+          heading: "Setting Your Culture",
+          text: "Go to your profile and look for the Cuisine Identity section. Select a cuisine, then choose how strongly you want it applied — Light (subtle influence), Balanced (recognizable style), or Authentic (full cultural identity with traditional spices and techniques).",
+        },
+        {
+          heading: "Why This Matters",
+          text: "Without this system, every user gets the same generic output. With it, your meals feel like yours — less guessing, more satisfaction, and food that fits the way you actually eat.",
         },
       ],
     },

@@ -940,6 +940,10 @@ export default function OnboardingStandalone() {
               />
             </div>
 
+            <p className="text-white/50 text-xs mt-1">
+              We'll use this to shape meals, snacks, drinks, and recipes across the app.
+            </p>
+
             {data.cuisinePreference && (
               <div className="space-y-3">
                 <label className="text-white/90 text-sm font-medium flex items-center gap-2">

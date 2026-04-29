@@ -15,6 +15,7 @@ import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
+import CultureBadge from "@/components/CultureBadge";
 import PairingResultCard from "@/components/pairings/PairingResultCard";
 
 const STORAGE_KEY = "mpm_wine_list_helper_results";
@@ -196,6 +197,7 @@ export default function WineListHelper() {
                     label="How It Works"
                   />
                 </CardTitle>
+                <CultureBadge className="mt-1" />
               </CardHeader>
 
               <CardContent className="space-y-4">
