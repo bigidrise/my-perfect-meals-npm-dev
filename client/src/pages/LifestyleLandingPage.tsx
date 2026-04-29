@@ -55,7 +55,7 @@ export default function LifestyleLandingPage() {
       badge: "emotion",
     },
     {
-      title: "Cravings, Sushi & Desserts",
+      title: "Cravings, Sushi & Desserts Hub",
       description:
         "Craving Creator, Sushi Creator, and Dessert Creator — all in one place.",
       icon: Sparkles,
