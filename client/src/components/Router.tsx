@@ -65,9 +65,8 @@ import PrivacySecurity from "@/pages/privacy";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
 import DeleteAccount from "@/pages/DeleteAccount";
-// Onboarding V3 - 5-page safety-first flow
+// Onboarding V3 - active onboarding (OnboardingV3 is the ONLY onboarding — do not reference onboarding-standalone.tsx)
 import OnboardingV3 from "@/pages/OnboardingV3";
-import OnboardingStandalone from "@/pages/onboarding-standalone";
 import ExtendedOnboarding from "@/pages/onboarding/ExtendedOnboarding";
 import Welcome from "@/pages/Welcome";
 import GuestBuilder from "@/pages/GuestBuilder";
@@ -206,7 +205,6 @@ const PerformanceCompetitionBuilderProCare = (_props: any) => (
 
 const SafeOnboarding = withPageErrorBoundary(OnboardingV3, "Onboarding");
 const SafeOnboardingV2 = withPageErrorBoundary(OnboardingV3, "Onboarding V2");
-const SafeOnboardingLegacy = withPageErrorBoundary(OnboardingStandalone, "Onboarding");
 const SafeDashboard = withPageErrorBoundary(DashboardNew, "Dashboard");
 const SafeMacroCounter = withPageErrorBoundary(MacroCounter, "Macro Counter");
 const SafeMyBiometrics = withPageErrorBoundary(MyBiometrics, "My Biometrics");
@@ -265,7 +263,6 @@ export default function Router() {
     "/reset-password",
     "/onboarding",
     "/onboarding-v2",
-    "/onboarding-legacy",
     "/pricing",
     "/checkout/success",
     "/consumer-welcome",
@@ -305,7 +302,7 @@ export default function Router() {
     "/", "/auth", "/welcome", "/login", "/signup",
     "/guest-builder", "/guest-suite",
     "/forgot-password", "/reset-password",
-    "/onboarding", "/onboarding-v2", "/onboarding-legacy", "/onboarding/extended",
+    "/onboarding", "/onboarding-v2", "/onboarding/extended",
     "/pricing", "/paywall", "/apply-guidance",
     "/checkout/success",
     "/consumer-welcome", "/procare-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation",
@@ -401,7 +398,6 @@ export default function Router() {
         {/* DELETED: CommunityTestPage, CommunityPage routes */}
         <Route path="/onboarding" component={SafeOnboarding} />
         <Route path="/onboarding-v2" component={SafeOnboardingV2} />
-        <Route path="/onboarding-legacy" component={SafeOnboardingLegacy} />
         <Route path="/dashboard" component={SafeDashboard} />
         <Route path="/tutorials" component={TutorialHub} />
         <Route path="/learn" component={Learn} />
