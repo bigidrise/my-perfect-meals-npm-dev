@@ -914,6 +914,18 @@ export default function CravingCreator() {
                     </p>
                   </div>
 
+                  <DietCuisineControlRow
+                    savedCuisine={user?.cuisinePreference}
+                    dietOverrideEnabled={dietOverrideEnabled}
+                    dietOverrideValue={dietOverrideValue}
+                    onDietToggle={setDietOverrideEnabled}
+                    onDietChange={setDietOverrideValue}
+                    cuisineOverrideEnabled={cuisineOverrideEnabled}
+                    cuisineOverrideValue={cuisineOverrideValue}
+                    onCuisineToggle={setCuisineOverrideEnabled}
+                    onCuisineChange={setCuisineOverrideValue}
+                  />
+
                   <div>
                     <label className="block text-sm font-medium text-white mb-2">
                       Cooking method <span className="text-white/40 font-normal">(optional)</span>
@@ -1176,19 +1188,6 @@ export default function CravingCreator() {
                         : 'Nutrition-first: optimized for your macro and diet targets'}
                     </p>
                   </div>
-
-                  {/* Diet & Cuisine Controls */}
-                  <DietCuisineControlRow
-                    savedCuisine={user?.cuisinePreference}
-                    dietOverrideEnabled={dietOverrideEnabled}
-                    dietOverrideValue={dietOverrideValue}
-                    onDietToggle={setDietOverrideEnabled}
-                    onDietChange={setDietOverrideValue}
-                    cuisineOverrideEnabled={cuisineOverrideEnabled}
-                    cuisineOverrideValue={cuisineOverrideValue}
-                    onCuisineToggle={setCuisineOverrideEnabled}
-                    onCuisineChange={setCuisineOverrideValue}
-                  />
 
                   {isGenerating ? (
                     <div className="max-w-md mx-auto mb-4 flex justify-center">

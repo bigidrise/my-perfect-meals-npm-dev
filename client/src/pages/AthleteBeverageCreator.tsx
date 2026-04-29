@@ -506,19 +506,6 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
                   label="How It Works"
                 />
               </CardTitle>
-              <div className="mt-2 space-y-2">
-                <DietCuisineControlRow
-                  savedCuisine={user?.cuisinePreference}
-                  dietOverrideEnabled={dietOverrideEnabled}
-                  dietOverrideValue={dietOverrideValue}
-                  onDietToggle={setDietOverrideEnabled}
-                  onDietChange={setDietOverrideValue}
-                  cuisineOverrideEnabled={cuisineOverrideEnabled}
-                  cuisineOverrideValue={cuisineOverrideValue}
-                  onCuisineToggle={setCuisineOverrideEnabled}
-                  onCuisineChange={setCuisineOverrideValue}
-                />
-              </div>
             </CardHeader>
 
             <CardContent className="space-y-4">
@@ -554,6 +541,18 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
                   </p>
                 )}
               </div>
+
+              <DietCuisineControlRow
+                savedCuisine={user?.cuisinePreference}
+                dietOverrideEnabled={dietOverrideEnabled}
+                dietOverrideValue={dietOverrideValue}
+                onDietToggle={setDietOverrideEnabled}
+                onDietChange={setDietOverrideValue}
+                cuisineOverrideEnabled={cuisineOverrideEnabled}
+                cuisineOverrideValue={cuisineOverrideValue}
+                onCuisineToggle={setCuisineOverrideEnabled}
+                onCuisineChange={setCuisineOverrideValue}
+              />
 
               <div className="flex items-center gap-2 text-white/30">
                 <div className="flex-1 h-px bg-white/10" />

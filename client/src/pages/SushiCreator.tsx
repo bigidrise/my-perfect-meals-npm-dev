@@ -851,19 +851,6 @@ export default function SushiCreator() {
                       label="How It Works"
                     />
                   </CardTitle>
-                  <div className="mt-2 space-y-2">
-                    <DietCuisineControlRow
-                      savedCuisine={user?.cuisinePreference}
-                      dietOverrideEnabled={dietOverrideEnabled}
-                      dietOverrideValue={dietOverrideValue}
-                      onDietToggle={setDietOverrideEnabled}
-                      onDietChange={setDietOverrideValue}
-                      cuisineOverrideEnabled={cuisineOverrideEnabled}
-                      cuisineOverrideValue={cuisineOverrideValue}
-                      onCuisineToggle={setCuisineOverrideEnabled}
-                      onCuisineChange={setCuisineOverrideValue}
-                    />
-                  </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>
@@ -900,6 +887,18 @@ export default function SushiCreator() {
                       {cravingInput.length}/300
                     </p>
                   </div>
+
+                  <DietCuisineControlRow
+                    savedCuisine={user?.cuisinePreference}
+                    dietOverrideEnabled={dietOverrideEnabled}
+                    dietOverrideValue={dietOverrideValue}
+                    onDietToggle={setDietOverrideEnabled}
+                    onDietChange={setDietOverrideValue}
+                    cuisineOverrideEnabled={cuisineOverrideEnabled}
+                    cuisineOverrideValue={cuisineOverrideValue}
+                    onCuisineToggle={setCuisineOverrideEnabled}
+                    onCuisineChange={setCuisineOverrideValue}
+                  />
 
                   <div>
                     <label className="block text-sm font-medium text-white mb-2">

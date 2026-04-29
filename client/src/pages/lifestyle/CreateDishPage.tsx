@@ -619,6 +619,18 @@ export default function CreateDishPage() {
                     </p>
                   </div>
 
+                  <DietCuisineControlRow
+                    savedCuisine={user?.cuisinePreference}
+                    dietOverrideEnabled={dietOverrideEnabled}
+                    dietOverrideValue={dietOverrideValue}
+                    onDietToggle={setDietOverrideEnabled}
+                    onDietChange={setDietOverrideValue}
+                    cuisineOverrideEnabled={cuisineOverrideEnabled}
+                    cuisineOverrideValue={cuisineOverrideValue}
+                    onCuisineToggle={setCuisineOverrideEnabled}
+                    onCuisineChange={setCuisineOverrideValue}
+                  />
+
                   <div>
                     <label className="block text-sm font-medium mb-2 text-white">
                       Servings (1–12)
@@ -777,17 +789,6 @@ export default function CreateDishPage() {
                     </div>
                   )}
 
-                  <DietCuisineControlRow
-                    savedCuisine={user?.cuisinePreference}
-                    dietOverrideEnabled={dietOverrideEnabled}
-                    dietOverrideValue={dietOverrideValue}
-                    onDietToggle={setDietOverrideEnabled}
-                    onDietChange={setDietOverrideValue}
-                    cuisineOverrideEnabled={cuisineOverrideEnabled}
-                    cuisineOverrideValue={cuisineOverrideValue}
-                    onCuisineToggle={setCuisineOverrideEnabled}
-                    onCuisineChange={setCuisineOverrideValue}
-                  />
                   {!isGenerating ? (
                     <GlassButton
                       onClick={() => handleGenerateDish()}

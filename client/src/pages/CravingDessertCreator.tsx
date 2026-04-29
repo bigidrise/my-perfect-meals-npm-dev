@@ -608,6 +608,18 @@ export default function DessertCreator() {
                 )}
               </div>
 
+              <DietCuisineControlRow
+                savedCuisine={user?.cuisinePreference}
+                dietOverrideEnabled={dietOverrideEnabled}
+                dietOverrideValue={dietOverrideValue}
+                onDietToggle={setDietOverrideEnabled}
+                onDietChange={setDietOverrideValue}
+                cuisineOverrideEnabled={cuisineOverrideEnabled}
+                cuisineOverrideValue={cuisineOverrideValue}
+                onCuisineToggle={setCuisineOverrideEnabled}
+                onCuisineChange={setCuisineOverrideValue}
+              />
+
               <div className="flex items-center gap-2 text-white/30">
                 <div className="flex-1 h-px bg-white/10" />
                 <span className="text-xs">or choose from options below</span>
@@ -865,19 +877,6 @@ export default function DessertCreator() {
                     : "AI may add complementary ingredients"}
                 </p>
               </div>
-
-              {/* Diet & Cuisine Controls */}
-              <DietCuisineControlRow
-                savedCuisine={user?.cuisinePreference}
-                dietOverrideEnabled={dietOverrideEnabled}
-                dietOverrideValue={dietOverrideValue}
-                onDietToggle={setDietOverrideEnabled}
-                onDietChange={setDietOverrideValue}
-                cuisineOverrideEnabled={cuisineOverrideEnabled}
-                cuisineOverrideValue={cuisineOverrideValue}
-                onCuisineToggle={setCuisineOverrideEnabled}
-                onCuisineChange={setCuisineOverrideValue}
-              />
 
               {isGenerating || safetyChecking ? (
                 <div className="max-w-md mx-auto mb-4 flex justify-center">

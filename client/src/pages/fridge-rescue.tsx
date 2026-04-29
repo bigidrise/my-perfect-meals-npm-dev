@@ -871,6 +871,21 @@ const FridgeRescuePage = () => {
                   </p>
                 </div>
 
+                <DietCuisineControlRow
+                  savedCuisine={user?.cuisinePreference}
+                  dietOverrideEnabled={dietOverrideEnabled}
+                  dietOverrideValue={dietOverrideValue}
+                  onDietToggle={(enabled) => {
+                    setDietOverrideEnabled(enabled);
+                    if (!enabled) clearDietAlert();
+                  }}
+                  onDietChange={setDietOverrideValue}
+                  cuisineOverrideEnabled={cuisineOverrideEnabled}
+                  cuisineOverrideValue={cuisineOverrideValue}
+                  onCuisineToggle={setCuisineOverrideEnabled}
+                  onCuisineChange={setCuisineOverrideValue}
+                />
+
                 {/* SafetyGuard Preflight Banner - Black/Yellow Alert */}
                 <SafetyGuardBanner
                   alert={safetyAlert}
@@ -900,23 +915,6 @@ const FridgeRescuePage = () => {
                     }
                   }}
                   className="mt-3"
-                />
-
-                {/* Diet & Cuisine Controls */}
-                <DietCuisineControlRow
-                  savedCuisine={user?.cuisinePreference}
-                  dietOverrideEnabled={dietOverrideEnabled}
-                  dietOverrideValue={dietOverrideValue}
-                  onDietToggle={(enabled) => {
-                    setDietOverrideEnabled(enabled);
-                    if (!enabled) clearDietAlert();
-                  }}
-                  onDietChange={setDietOverrideValue}
-                  cuisineOverrideEnabled={cuisineOverrideEnabled}
-                  cuisineOverrideValue={cuisineOverrideValue}
-                  onCuisineToggle={setCuisineOverrideEnabled}
-                  onCuisineChange={setCuisineOverrideValue}
-                  className="mt-1"
                 />
 
                 <div>
