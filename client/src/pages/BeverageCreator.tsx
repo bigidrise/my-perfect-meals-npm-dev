@@ -53,6 +53,7 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import TrashButton from "@/components/ui/TrashButton";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
+import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 
 const BEVERAGE_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -167,6 +168,11 @@ export default function BeverageCreator() {
   const [pendingGeneration, setPendingGeneration] = useState(false);
 
   const [flavorPersonal, setFlavorPersonal] = useState(true);
+
+  const [dietOverrideEnabled, setDietOverrideEnabled] = useState(false);
+  const [dietOverrideValue, setDietOverrideValue] = useState("");
+  const [cuisineOverrideEnabled, setCuisineOverrideEnabled] = useState(false);
+  const [cuisineOverrideValue, setCuisineOverrideValue] = useState("");
 
   const {
     checking: safetyChecking,
@@ -339,6 +345,8 @@ export default function BeverageCreator() {
           skipPalate: !flavorPersonal,
           dietAdaptOverride,
           userDietOverride,
+          dietOverride: dietOverrideEnabled && dietOverrideValue ? dietOverrideValue : undefined,
+          cuisineOverride: cuisineOverrideEnabled && cuisineOverrideValue ? cuisineOverrideValue : undefined,
         }),
       });
 
@@ -524,6 +532,18 @@ export default function BeverageCreator() {
                   </p>
                 )}
               </div>
+
+              <DietCuisineControlRow
+                savedCuisine={user?.cuisinePreference}
+                dietOverrideEnabled={dietOverrideEnabled}
+                dietOverrideValue={dietOverrideValue}
+                onDietToggle={setDietOverrideEnabled}
+                onDietChange={setDietOverrideValue}
+                cuisineOverrideEnabled={cuisineOverrideEnabled}
+                cuisineOverrideValue={cuisineOverrideValue}
+                onCuisineToggle={setCuisineOverrideEnabled}
+                onCuisineChange={setCuisineOverrideValue}
+              />
 
               <div className="flex items-center gap-2 text-white/30">
                 <div className="flex-1 h-px bg-white/10" />

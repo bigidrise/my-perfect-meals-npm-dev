@@ -49,7 +49,7 @@ import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
-import CultureBadge from "@/components/CultureBadge";
+import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import TrashButton from "@/components/ui/TrashButton";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 
@@ -163,6 +163,10 @@ export default function AthleteBeverageCreator() {
   const [customBeverageDescription, setCustomBeverageDescription] = useState("");
   const [servingSize, setServingSize] = useState("single");
   const [dietaryPreference, setDietaryPreference] = useState("");
+  const [dietOverrideEnabled, setDietOverrideEnabled] = useState(false);
+  const [dietOverrideValue, setDietOverrideValue] = useState("");
+  const [cuisineOverrideEnabled, setCuisineOverrideEnabled] = useState(false);
+  const [cuisineOverrideValue, setCuisineOverrideValue] = useState("");
   const [customDietary, setCustomDietary] = useState("");
   const [instructionsExpanded, setInstructionsExpanded] = useState(false);
   const [activeStep, setActiveStep] = useState<number | null>(null);
@@ -343,6 +347,7 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
           })(),
           servingSize,
           dietaryPreferences: [
+            ...(dietOverrideEnabled && dietOverrideValue ? [dietOverrideValue] : []),
             ...(dietaryPreference && dietaryPreference !== "none"
               ? [dietaryPreference]
               : []),
@@ -355,6 +360,7 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
           skipPalate: !flavorPersonal,
           dietAdaptOverride,
           userDietOverride,
+          ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
         }),
       });
 
@@ -500,7 +506,6 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
                   label="How It Works"
                 />
               </CardTitle>
-              <CultureBadge className="mt-1" />
             </CardHeader>
 
             <CardContent className="space-y-4">
@@ -536,6 +541,18 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
                   </p>
                 )}
               </div>
+
+              <DietCuisineControlRow
+                savedCuisine={user?.cuisinePreference}
+                dietOverrideEnabled={dietOverrideEnabled}
+                dietOverrideValue={dietOverrideValue}
+                onDietToggle={setDietOverrideEnabled}
+                onDietChange={setDietOverrideValue}
+                cuisineOverrideEnabled={cuisineOverrideEnabled}
+                cuisineOverrideValue={cuisineOverrideValue}
+                onCuisineToggle={setCuisineOverrideEnabled}
+                onCuisineChange={setCuisineOverrideValue}
+              />
 
               <div className="flex items-center gap-2 text-white/30">
                 <div className="flex-1 h-px bg-white/10" />

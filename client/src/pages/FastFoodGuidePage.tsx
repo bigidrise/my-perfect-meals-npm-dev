@@ -78,6 +78,7 @@ import {
 import { ChefHat } from "lucide-react";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 
 // Guided flow step type - step-by-step wizard
@@ -346,6 +347,10 @@ export default function FastFoodGuidePage() {
   );
 
   const [cravingInput, setCravingInput] = useState("");
+  const [dietOverrideEnabled, setDietOverrideEnabled] = useState(false);
+  const [dietOverrideValue, setDietOverrideValue] = useState("");
+  const [cuisineOverrideEnabled, setCuisineOverrideEnabled] = useState(false);
+  const [cuisineOverrideValue, setCuisineOverrideValue] = useState("");
   const [restaurantInput, setRestaurantInput] = useState("");
   const [zipCode, setZipCode] = useState("");
   const [isGettingLocation, setIsGettingLocation] = useState(false);
@@ -463,7 +468,10 @@ export default function FastFoodGuidePage() {
           cuisine: params.cuisine,
           zipCode: params.zipCode,
           userId: localStorage.getItem("userId") || "1",
-          dietaryRestrictions: normalizeDiet(user?.dietaryRestrictions),
+          dietaryRestrictions: dietOverrideEnabled && dietOverrideValue
+            ? dietOverrideValue
+            : normalizeDiet(user?.dietaryRestrictions),
+          ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cuisineOverride: cuisineOverrideValue } : {}),
         }),
       });
     },
@@ -746,6 +754,17 @@ export default function FastFoodGuidePage() {
                       </button>
                     )}
                   </div>
+                  <DietCuisineControlRow
+                    savedCuisine={user?.cuisinePreference}
+                    dietOverrideEnabled={dietOverrideEnabled}
+                    dietOverrideValue={dietOverrideValue}
+                    onDietToggle={setDietOverrideEnabled}
+                    onDietChange={setDietOverrideValue}
+                    cuisineOverrideEnabled={cuisineOverrideEnabled}
+                    cuisineOverrideValue={cuisineOverrideValue}
+                    onCuisineToggle={setCuisineOverrideEnabled}
+                    onCuisineChange={setCuisineOverrideValue}
+                  />
                   <Button
                     onClick={() => advanceGuided("step2")}
                     disabled={!cravingInput.trim()}

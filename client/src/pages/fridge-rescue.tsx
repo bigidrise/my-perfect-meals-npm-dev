@@ -63,7 +63,7 @@ import { StarchGuardIntercept } from "@/components/StarchGuardIntercept";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet, filterMealsByDiet } from "@/utils/dietaryFilter";
 import { getEffectiveDietPreference } from "@/utils/getEffectiveDietPreference";
-import { DietOverrideControl } from "@/components/ui/DietOverrideControl";
+import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import MealClassificationPill from "@/components/MealClassificationPill";
 import KosherProTip from "@/components/KosherProTip";
@@ -82,7 +82,6 @@ import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
-import CultureBadge from "@/components/CultureBadge";
 
 const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
   {
@@ -278,6 +277,8 @@ const FridgeRescuePage = () => {
   const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(null);
   const [dietOverrideEnabled, setDietOverrideEnabled] = useState(false);
   const [dietOverrideValue, setDietOverrideValue] = useState("");
+  const [cuisineOverrideEnabled, setCuisineOverrideEnabled] = useState(false);
+  const [cuisineOverrideValue, setCuisineOverrideValue] = useState("");
   const [pendingFridgeMeal, setPendingFridgeMeal] = useState<any>(null);
   const {
     alert: starchAlert,
@@ -455,6 +456,7 @@ const FridgeRescuePage = () => {
           dietAdaptOverride,
           userDietOverride,
           cookMethod: cookMethod || undefined,
+          ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
         }),
       });
 
@@ -833,7 +835,6 @@ const FridgeRescuePage = () => {
                   label="How It Works"
                 />
               </div>
-              <CultureBadge className="-mt-2 mb-3" />
 
               <div className="space-y-4">
                 <div className="space-y-3">
@@ -870,6 +871,21 @@ const FridgeRescuePage = () => {
                   </p>
                 </div>
 
+                <DietCuisineControlRow
+                  savedCuisine={user?.cuisinePreference}
+                  dietOverrideEnabled={dietOverrideEnabled}
+                  dietOverrideValue={dietOverrideValue}
+                  onDietToggle={(enabled) => {
+                    setDietOverrideEnabled(enabled);
+                    if (!enabled) clearDietAlert();
+                  }}
+                  onDietChange={setDietOverrideValue}
+                  cuisineOverrideEnabled={cuisineOverrideEnabled}
+                  cuisineOverrideValue={cuisineOverrideValue}
+                  onCuisineToggle={setCuisineOverrideEnabled}
+                  onCuisineChange={setCuisineOverrideValue}
+                />
+
                 {/* SafetyGuard Preflight Banner - Black/Yellow Alert */}
                 <SafetyGuardBanner
                   alert={safetyAlert}
@@ -899,18 +915,6 @@ const FridgeRescuePage = () => {
                     }
                   }}
                   className="mt-3"
-                />
-
-                {/* Diet Override — situational cooking without breaking personal plan */}
-                <DietOverrideControl
-                  overrideEnabled={dietOverrideEnabled}
-                  overrideDiet={dietOverrideValue}
-                  onToggle={(enabled) => {
-                    setDietOverrideEnabled(enabled);
-                    if (!enabled) clearDietAlert();
-                  }}
-                  onDietChange={setDietOverrideValue}
-                  className="mt-1"
                 />
 
                 <div>

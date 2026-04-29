@@ -133,6 +133,7 @@ import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
+import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 
 // ---- Persist the generated meal so it never "disappears" ----
 const CACHE_KEY = "cravingCreator.cache.v1";
@@ -245,6 +246,10 @@ export default function CravingCreator() {
     activeDiet,
   } = useDietGuardPrecheck();
   const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(null);
+  const [dietOverrideEnabled, setDietOverrideEnabled] = useState(false);
+  const [dietOverrideValue, setDietOverrideValue] = useState("");
+  const [cuisineOverrideEnabled, setCuisineOverrideEnabled] = useState(false);
+  const [cuisineOverrideValue, setCuisineOverrideValue] = useState("");
   // Get actual user ID from auth context for medical safety
   const { user } = useAuth();
   const sweetenerPreferences = user?.sweetenerPreferences || [];
@@ -554,7 +559,9 @@ export default function CravingCreator() {
         body: JSON.stringify({
           targetMealType: "snacks",
           cravingInput,
-          dietaryRestrictions: selectedDiet || dietaryRestrictions,
+          dietaryRestrictions: dietOverrideEnabled && dietOverrideValue
+            ? dietOverrideValue
+            : (selectedDiet || dietaryRestrictions),
           userId: userId,
           servings: servings,
           sweetenerPreferences,
@@ -567,6 +574,7 @@ export default function CravingCreator() {
           dietAdaptOverride,
           userDietOverride,
           cookMethod: cookMethod || undefined,
+          ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
         }),
       });
 
@@ -905,6 +913,18 @@ export default function CravingCreator() {
                       {cravingInput.length}/300
                     </p>
                   </div>
+
+                  <DietCuisineControlRow
+                    savedCuisine={user?.cuisinePreference}
+                    dietOverrideEnabled={dietOverrideEnabled}
+                    dietOverrideValue={dietOverrideValue}
+                    onDietToggle={setDietOverrideEnabled}
+                    onDietChange={setDietOverrideValue}
+                    cuisineOverrideEnabled={cuisineOverrideEnabled}
+                    cuisineOverrideValue={cuisineOverrideValue}
+                    onCuisineToggle={setCuisineOverrideEnabled}
+                    onCuisineChange={setCuisineOverrideValue}
+                  />
 
                   <div>
                     <label className="block text-sm font-medium text-white mb-2">

@@ -54,6 +54,7 @@ import {
 import { ChefHat } from "lucide-react";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 
 const DIET_PILL_CONFIG: Record<string, { label: string; color: string }> = {
   kosher:        { label: "Kosher Certified", color: "bg-amber-500/20 border-amber-400/40 text-amber-300" },
@@ -236,6 +237,10 @@ export default function MealFinder() {
   const [zipCode, setZipCode] = useState("");
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [priceFilter, setPriceFilter] = useState<PriceFilter>('any');
+  const [dietOverrideEnabled, setDietOverrideEnabled] = useState(false);
+  const [dietOverrideValue, setDietOverrideValue] = useState("");
+  const [cuisineOverrideEnabled, setCuisineOverrideEnabled] = useState(false);
+  const [cuisineOverrideValue, setCuisineOverrideValue] = useState("");
   const [results, setResults] = useState<MealResult[]>([]);
 
   const chefFlowMeals = useMemo(
@@ -290,8 +295,11 @@ export default function MealFinder() {
           method: "POST",
           body: JSON.stringify({
             ...data,
-            dietaryRestrictions: normalizeDiet(user?.dietaryRestrictions),
+            dietaryRestrictions: dietOverrideEnabled && dietOverrideValue
+              ? dietOverrideValue
+              : normalizeDiet(user?.dietaryRestrictions),
             priceRange: selectedPrice && selectedPrice.range.length > 0 ? selectedPrice.range : undefined,
+            ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cuisineOverride: cuisineOverrideValue } : {}),
           }),
           headers: { "Content-Type": "application/json" },
         });
@@ -532,6 +540,17 @@ export default function MealFinder() {
                       </button>
                     )}
                   </div>
+                  <DietCuisineControlRow
+                    savedCuisine={user?.cuisinePreference}
+                    dietOverrideEnabled={dietOverrideEnabled}
+                    dietOverrideValue={dietOverrideValue}
+                    onDietToggle={setDietOverrideEnabled}
+                    onDietChange={setDietOverrideValue}
+                    cuisineOverrideEnabled={cuisineOverrideEnabled}
+                    cuisineOverrideValue={cuisineOverrideValue}
+                    onCuisineToggle={setCuisineOverrideEnabled}
+                    onCuisineChange={setCuisineOverrideValue}
+                  />
                   <Button
                     onClick={() => advanceGuided("step2")}
                     disabled={!mealQuery.trim()}

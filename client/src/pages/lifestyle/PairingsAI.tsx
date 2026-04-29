@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { ArrowLeft, Sparkles, Wine, Beer } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import CultureOverridePanel from "@/components/CultureOverridePanel";
+import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassButton } from "@/components/glass";
 import CometBar from "@/components/CometBar";
@@ -58,7 +58,10 @@ export default function PairingsAI() {
   useCopilotPageExplanation();
 
   const persisted = loadPersistedResults();
-  const [cultureOverride, setCultureOverride] = useState<string | null>(null);
+  const [cuisineOverrideEnabled, setCuisineOverrideEnabled] = useState(false);
+  const [cuisineOverrideValue, setCuisineOverrideValue] = useState("");
+  const [dietOverrideEnabled, setDietOverrideEnabled] = useState(false);
+  const [dietOverrideValue, setDietOverrideValue] = useState("");
 
   const [mode, setMode] = useState<Mode>(persisted?.mode ?? "pairing");
   const [category, setCategory] = useState<Category>(persisted?.category ?? "both");
@@ -146,7 +149,8 @@ export default function PairingsAI() {
           category,
           input: input.trim(),
           ...(overrideToken ? { safetyMode: "CUSTOM_AUTHENTICATED", overrideToken } : {}),
-          ...(cultureOverride ? { cultureOverride } : {}),
+          ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
+          ...(dietOverrideEnabled && dietOverrideValue ? { dietaryRestrictions: [dietOverrideValue] } : {}),
         }),
       });
 
@@ -309,10 +313,16 @@ export default function PairingsAI() {
                   onOverrideSuccess={(token) => handleGenerate(true, token)}
                 />
 
-                <CultureOverridePanel
+                <DietCuisineControlRow
                   savedCuisine={user?.cuisinePreference}
-                  onOverrideChange={setCultureOverride}
-                  suggestionChips={["Mexican beer", "Jamaican rum", "Japanese sake", "Italian wine", "German beer", "Caribbean cocktails"]}
+                  dietOverrideEnabled={dietOverrideEnabled}
+                  dietOverrideValue={dietOverrideValue}
+                  onDietToggle={setDietOverrideEnabled}
+                  onDietChange={setDietOverrideValue}
+                  cuisineOverrideEnabled={cuisineOverrideEnabled}
+                  cuisineOverrideValue={cuisineOverrideValue}
+                  onCuisineToggle={setCuisineOverrideEnabled}
+                  onCuisineChange={setCuisineOverrideValue}
                 />
 
                 <div className="py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">

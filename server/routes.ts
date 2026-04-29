@@ -889,7 +889,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("🥕 Fridge Rescue route hit - generating 3 meals");
 
       const userId = getAuthUserId(req);
-      const { fridgeItems, servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken, skipPalate, strictMode, dietAdaptOverride, userDietOverride } = req.body;
+      const { fridgeItems, servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken, skipPalate, strictMode, dietAdaptOverride, userDietOverride, cultureOverride } = req.body;
 
       if (!fridgeItems || !Array.isArray(fridgeItems) || fridgeItems.length === 0) {
         console.error("[FRIDGE] validation error: invalid fridgeItems", fridgeItems);
@@ -984,6 +984,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // ── Load unified nutrition context (protocol + active builder) ────────────
       const fridgeNutritionContext = await getActiveNutritionContext(userId);
       const fridgeProtocolEnvelope = fridgeNutritionContext.envelope;
+
+      // 🌍 Apply cuisine override (session-only — does not persist)
+      if (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) {
+        fridgeProtocolEnvelope.cuisinePreference = cultureOverride.trim();
+      }
       console.log(`🔒 [FRIDGE] Nutrition context: diet=[${fridgeNutritionContext.diet.join(",")}] medical=[${fridgeNutritionContext.medical.length} flags] builder=${fridgeNutritionContext.builder ?? "none"}`);
 
       // Generate multiple meals with proper macros and amounts
@@ -2236,6 +2241,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         goalTarget,
         goalTimelineWeeks,
         goalStartDate,
+        cuisinePreference,
+        cuisineIntensity,
       } = req.body;
       
       // Build update object with only provided fields
@@ -2270,6 +2277,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (goalTarget !== undefined) updateData.goalTarget = goalTarget;
       if (goalTimelineWeeks !== undefined) updateData.goalTimelineWeeks = goalTimelineWeeks;
       if (goalStartDate !== undefined) updateData.goalStartDate = goalStartDate ? new Date(goalStartDate) : null;
+      if (cuisinePreference !== undefined) updateData.cuisinePreference = cuisinePreference;
+      if (cuisineIntensity !== undefined) updateData.cuisineIntensity = cuisineIntensity;
       
       if (allergies !== undefined) {
         const [currentUser] = await db.select({ allergies: users.allergies, safetyPinHash: users.safetyPinHash })
@@ -3423,7 +3432,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/meals/craving-creator", async (req, res) => {
     try {
-      const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode, dietAdaptOverride, userDietOverride } = req.body;
+      const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode, dietAdaptOverride, userDietOverride, cultureOverride } = req.body;
 
       // Adaptation block is built AFTER user is fetched (so we know their actual diet).
       // Start with the raw input — the safety check at line 3441 runs on clean input.
@@ -3509,6 +3518,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cravingInput = `${rawCravingInput} ${buildChefAdaptationBlock(chefDiet)}`;
       } else if (userDietOverride === true) {
         cravingInput = `${rawCravingInput} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`;
+      }
+
+      // 🌍 Apply cuisine override to cravingInput so the variety engine picks it up
+      if (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) {
+        cravingInput = `${cravingInput} [Prepare in ${cultureOverride.trim()} style with authentic flavors and techniques]`;
       }
 
       // 🎲 VARIETY ENGINE: Always generate 3 distinct options (Layers 1-4)

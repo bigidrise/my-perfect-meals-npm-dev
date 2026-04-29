@@ -53,6 +53,7 @@ import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import CultureBadge from "@/components/CultureBadge";
+import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import PhaseGate from "@/components/PhaseGate";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
@@ -330,6 +331,10 @@ export default function CreateDishPage() {
     setProgress(100);
   };
 
+  const [dietOverrideEnabled, setDietOverrideEnabled] = useState(false);
+  const [dietOverrideValue, setDietOverrideValue] = useState("");
+  const [cuisineOverrideEnabled, setCuisineOverrideEnabled] = useState(false);
+  const [cuisineOverrideValue, setCuisineOverrideValue] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [stepsExpanded, setStepsExpanded] = useState<Record<string, boolean>>(
     {},
@@ -445,7 +450,9 @@ export default function CreateDishPage() {
         body: JSON.stringify({
           targetMealType: "dinner",
           cravingInput: prompt,
-          dietaryRestrictions: normalizeDiet(user?.dietaryRestrictions),
+          dietaryRestrictions: dietOverrideEnabled && dietOverrideValue
+            ? dietOverrideValue
+            : normalizeDiet(user?.dietaryRestrictions),
           userId,
           servings,
           sweetenerPreferences,
@@ -454,6 +461,7 @@ export default function CreateDishPage() {
           strictMode: keepItSimple,
           dietAdaptOverride,
           userDietOverride,
+          ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
         }),
       });
 
@@ -580,7 +588,6 @@ export default function CreateDishPage() {
                       label="How It Works"
                     />
                   </CardTitle>
-                  <CultureBadge className="mt-1" />
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
@@ -611,6 +618,18 @@ export default function CreateDishPage() {
                       {dishInput.length}/300
                     </p>
                   </div>
+
+                  <DietCuisineControlRow
+                    savedCuisine={user?.cuisinePreference}
+                    dietOverrideEnabled={dietOverrideEnabled}
+                    dietOverrideValue={dietOverrideValue}
+                    onDietToggle={setDietOverrideEnabled}
+                    onDietChange={setDietOverrideValue}
+                    cuisineOverrideEnabled={cuisineOverrideEnabled}
+                    cuisineOverrideValue={cuisineOverrideValue}
+                    onCuisineToggle={setCuisineOverrideEnabled}
+                    onCuisineChange={setCuisineOverrideValue}
+                  />
 
                   <div>
                     <label className="block text-sm font-medium mb-2 text-white">
