@@ -16,24 +16,28 @@ const router = express.Router();
 // ─────────────────────────────────────────────
 router.post("/generate-image", async (req: any, res) => {
   const { mealName, mealType = "dinner", dietType, ingredients } = req.body || {};
-  if (!mealName) return res.status(400).json({ imageUrl: null });
+
+  // SAFEGUARD: meal name is required and must be meaningful
+  if (!mealName || mealName.trim().length < 3) {
+    return res.status(400).json({ imageUrl: null });
+  }
 
   const { genImageFast } = await import("../utils/openaiSafe");
 
-  const promptStyles: Record<string, string> = {
-    breakfast: "warm morning light, rustic wooden table, side-angle shot, vibrant colors",
-    lunch: "bright natural daylight, casual fresh setting, 45-degree angle, colorful",
-    dinner: "warm evening ambiance, elegant plating, soft directional lighting, rich tones",
-    snack: "close-up macro shot, natural light, vibrant fresh ingredients, clean white background",
-    dessert: "soft overhead shot, pastel tones, inviting warm lighting, stylized plating",
-  };
-  const style = promptStyles[mealType as keyof typeof promptStyles] || "professional food photography, overhead shot, clean plate presentation, natural lighting";
-
   const isCarnivore = dietType === "carnivore";
 
-  // Build ingredient phrase from actual ingredients when available — 
-  // this anchors the image to what's really in the dish, not just the concept name.
-  let subjectPhrase = mealName;
+  // ─────────────────────────────────────────────────────────
+  // LAYER 1 — PRIMARY SUBJECT (LOCKED, NEVER REPLACED)
+  // The meal name is always the anchor. No exceptions.
+  // ─────────────────────────────────────────────────────────
+  const subject = mealName.trim();
+
+  // ─────────────────────────────────────────────────────────
+  // LAYER 2 — CONTROLLED CONTEXT (SUPPORT, NOT REPLACEMENT)
+  // Ingredients become descriptive context appended after the
+  // dish name — they never replace it.
+  // ─────────────────────────────────────────────────────────
+  let ingredientContext = "";
   if (Array.isArray(ingredients) && ingredients.length > 0) {
     const topIngredients = ingredients
       .slice(0, 4)
@@ -47,22 +51,41 @@ router.post("/generate-image", async (req: any, res) => {
       })
       .filter(Boolean);
     if (topIngredients.length > 0) {
-      subjectPhrase = topIngredients.join(", ");
+      ingredientContext = ` with ${topIngredients.join(", ")}`;
     }
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // LAYER 3 — VISUAL DIRECTIVE (DISH-TYPE AWARE)
+  // Classify the dish so the photography style matches the food.
+  // ─────────────────────────────────────────────────────────
+  const nameLower = subject.toLowerCase();
+  const isDessert = /cake|pie|cookie|brownie|pudding|ice cream|cheesecake|tart|mousse|cupcake|donut|pastry|eclair|macaron|tiramisu|gelato|sorbet|sundae|fudge|truffle|crepe|waffle|pancake|parfait|cobbler/.test(nameLower);
+  const isDrink = /smoothie|shake|juice|latte|coffee|tea|cocktail|mocktail|drink|beverage|lemonade|beer|wine|soda|protein shake|matcha|espresso|frappe/.test(nameLower);
+
+  let visualDirective: string;
+  if (isDrink) {
+    visualDirective = "in elegant glassware, professional drink photography, natural lighting, realistic, appetizing";
+  } else if (isDessert) {
+    visualDirective = "plated finished dessert, soft warm lighting, professional food photography, realistic, appetizing";
+  } else {
+    visualDirective = "plated finished dish, professional food photography, natural lighting, realistic, appetizing";
   }
 
   const carnivoreConstraint = isCarnivore
     ? ". STRICT RULES: animal-based foods only on plate. Absolutely NO green elements, NO vegetables, NO leaves, NO garnish, NO herbs, NO parsley, NO lettuce, NO salad, NO fruit, NO plant-based sides, NO seeds, NO nuts. Plate must show only meat, fish, eggs, or animal fat. No green color anywhere on the plate."
     : "";
 
-  const fullPrompt = `${subjectPhrase}, ${mealType} dish, ${style}, photorealistic, appetizing${carnivoreConstraint}`;
+  // SAFEGUARD: prompt must always lead with the dish name
+  const fullPrompt = `${subject}${ingredientContext}, ${visualDirective}${carnivoreConstraint}`;
+
   let imageUrl: string | null = (await genImageFast(fullPrompt)) ?? null;
 
   if (!imageUrl) {
     console.log(`🔄 [generate-image] Retry for "${mealName}"`);
     const retryPrompt = isCarnivore
-      ? `${subjectPhrase}, food photography, pure animal-based meal with only meat fish or eggs, zero plants zero garnish zero green color, appetizing plating`
-      : `${mealName}, food photography, fresh ingredients, appetizing presentation`;
+      ? `${subject}, food photography, pure animal-based meal with only meat fish or eggs, zero plants zero garnish zero green color, appetizing plating`
+      : `${subject}, food photography, plated finished dish, appetizing presentation, realistic`;
     imageUrl = (await genImageFast(retryPrompt)) ?? null;
   }
 
