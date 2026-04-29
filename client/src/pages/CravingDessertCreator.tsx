@@ -55,7 +55,8 @@ import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
-import CultureOverridePanel from "@/components/CultureOverridePanel";
+import { CuisineOverrideControl } from "@/components/ui/CuisineOverrideControl";
+import { DietOverrideControl } from "@/components/ui/DietOverrideControl";
 
 const DESSERT_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -165,7 +166,10 @@ export default function DessertCreator() {
   const { user } = useAuth();
   const userId = user?.id || "";
 
-  const [cultureOverride, setCultureOverride] = useState<string | null>(null);
+  const [cuisineOverrideEnabled, setCuisineOverrideEnabled] = useState(false);
+  const [cuisineOverrideValue, setCuisineOverrideValue] = useState("");
+  const [dietOverrideEnabled, setDietOverrideEnabled] = useState(false);
+  const [dietOverrideValue, setDietOverrideValue] = useState("");
   const [customDessertDescription, setCustomDessertDescription] = useState("");
   const [dessertCategory, setDessertCategory] = useState("");
   const [flavorFamily, setFlavorFamily] = useState("");
@@ -386,7 +390,8 @@ export default function DessertCreator() {
           dietAdaptOverride,
           userDietOverride,
           cookMethod: cookMethod || undefined,
-          ...(cultureOverride ? { cultureOverride } : {}),
+          ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
+          ...(dietOverrideEnabled && dietOverrideValue ? { dietAdaptOverride: true, userDietOverride: dietOverrideValue } : {}),
         }),
       });
 
@@ -862,11 +867,19 @@ export default function DessertCreator() {
                 </p>
               </div>
 
-              {/* Culture Override */}
-              <CultureOverridePanel
+              {/* Diet & Cuisine Controls */}
+              <DietOverrideControl
+                overrideEnabled={dietOverrideEnabled}
+                overrideDiet={dietOverrideValue}
+                onToggle={setDietOverrideEnabled}
+                onDietChange={setDietOverrideValue}
+              />
+              <CuisineOverrideControl
                 savedCuisine={user?.cuisinePreference}
-                onOverrideChange={setCultureOverride}
-                suggestionChips={["Mexican desserts", "Filipino desserts", "Indian sweets", "Japanese desserts", "Southern desserts"]}
+                overrideEnabled={cuisineOverrideEnabled}
+                overrideCuisine={cuisineOverrideValue}
+                onToggle={setCuisineOverrideEnabled}
+                onCuisineChange={setCuisineOverrideValue}
               />
 
               {isGenerating || safetyChecking ? (

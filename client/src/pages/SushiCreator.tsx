@@ -120,7 +120,8 @@ import { useCopilot } from "@/components/copilot/CopilotContext";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
-import CultureBadge from "@/components/CultureBadge";
+import { DietOverrideControl } from "@/components/ui/DietOverrideControl";
+import { CuisineOverrideControl } from "@/components/ui/CuisineOverrideControl";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
@@ -216,6 +217,10 @@ export default function SushiCreator() {
     } catch {}
   };
   const [selectedDiet, setSelectedDiet] = useState<string>("");
+  const [dietOverrideEnabled, setDietOverrideEnabled] = useState(false);
+  const [dietOverrideValue, setDietOverrideValue] = useState("");
+  const [cuisineOverrideEnabled, setCuisineOverrideEnabled] = useState(false);
+  const [cuisineOverrideValue, setCuisineOverrideValue] = useState("");
   const [servings, setServings] = useState<number>(1); // NEW: Serving size support (1-10)
   const [isDeclinedMeal, setIsDeclinedMeal] = useState(false);
   const [declinedMealDate, setDeclinedMealDate] = useState("");
@@ -522,7 +527,9 @@ export default function SushiCreator() {
           cravingInput: sushiStyle
             ? `${sushiStyle}: ${cravingInput}`
             : cravingInput,
-          dietaryRestrictions: selectedDiet || dietaryRestrictions,
+          dietaryRestrictions: dietOverrideEnabled && dietOverrideValue
+            ? dietOverrideValue
+            : (selectedDiet || dietaryRestrictions),
           userId: userId,
           servings: servings,
           sweetenerPreferences,
@@ -535,6 +542,7 @@ export default function SushiCreator() {
           dietAdaptOverride,
           userDietOverride,
           cookMethod: cookMethod || undefined,
+          ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
         }),
       });
 
@@ -844,7 +852,21 @@ export default function SushiCreator() {
                       label="How It Works"
                     />
                   </CardTitle>
-                  <CultureBadge className="mt-1" />
+                  <div className="mt-2 space-y-2">
+                    <DietOverrideControl
+                      overrideEnabled={dietOverrideEnabled}
+                      overrideDiet={dietOverrideValue}
+                      onToggle={setDietOverrideEnabled}
+                      onDietChange={setDietOverrideValue}
+                    />
+                    <CuisineOverrideControl
+                      savedCuisine={user?.cuisinePreference}
+                      overrideEnabled={cuisineOverrideEnabled}
+                      overrideCuisine={cuisineOverrideValue}
+                      onToggle={setCuisineOverrideEnabled}
+                      onCuisineChange={setCuisineOverrideValue}
+                    />
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>

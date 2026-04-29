@@ -1,4 +1,4 @@
-import { CREATOR_DIET_OPTIONS } from "@/utils/getEffectiveDietPreference";
+import { CREATOR_CUISINE_OPTIONS } from "@/utils/getEffectiveDietPreference";
 import { PillButton } from "@/components/ui/pill-button";
 import {
   Select,
@@ -8,30 +8,31 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-interface DietOverrideControlProps {
+interface CuisineOverrideControlProps {
+  savedCuisine?: string | null;
   overrideEnabled: boolean;
-  overrideDiet: string;
+  overrideCuisine: string;
   onToggle: (enabled: boolean) => void;
-  onDietChange: (diet: string) => void;
+  onCuisineChange: (cuisine: string) => void;
   className?: string;
 }
 
 /**
- * DietOverrideControl
+ * CuisineOverrideControl
  *
- * Pill-button pair + conditional diet selector for creator features.
- * Default: "My Diet" active → uses onboarding diet.
- * "Different Diet" active: reveals diet selector for situational cooking.
+ * Pill-button pair + conditional cuisine selector for creator features.
+ * Default: "My Cuisine" active → uses onboarding cuisine.
+ * "Different Cuisine" active: reveals cuisine selector for this generation only.
  *
  * No global state. No localStorage. Component state only.
  */
-export function DietOverrideControl({
+export function CuisineOverrideControl({
   overrideEnabled,
-  overrideDiet,
+  overrideCuisine,
   onToggle,
-  onDietChange,
+  onCuisineChange,
   className = "",
-}: DietOverrideControlProps) {
+}: CuisineOverrideControlProps) {
   return (
     <div className={`space-y-2 ${className}`}>
       <div className="flex items-center gap-2">
@@ -40,25 +41,25 @@ export function DietOverrideControl({
           variant="emerald"
           onClick={() => onToggle(false)}
         >
-          My Diet
+          My Cuisine
         </PillButton>
         <PillButton
           active={overrideEnabled}
           variant="amber"
           onClick={() => onToggle(true)}
         >
-          Different Diet
+          Different Cuisine
         </PillButton>
       </div>
 
       {overrideEnabled && (
-        <Select value={overrideDiet || "__none__"} onValueChange={(v) => onDietChange(v === "__none__" ? "" : v)}>
+        <Select value={overrideCuisine || "__none__"} onValueChange={(v) => onCuisineChange(v === "__none__" ? "" : v)}>
           <SelectTrigger className="bg-white/5 border-white/10 text-white rounded-xl">
-            <SelectValue placeholder="Select dietary style" />
+            <SelectValue placeholder="Select cuisine style" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="__none__">No specific preference</SelectItem>
-            {CREATOR_DIET_OPTIONS.map((opt) => (
+            {CREATOR_CUISINE_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
               </SelectItem>

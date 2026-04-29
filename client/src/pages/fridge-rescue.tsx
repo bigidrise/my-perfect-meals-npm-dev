@@ -82,7 +82,7 @@ import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
-import CultureBadge from "@/components/CultureBadge";
+import { CuisineOverrideControl } from "@/components/ui/CuisineOverrideControl";
 
 const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
   {
@@ -278,6 +278,8 @@ const FridgeRescuePage = () => {
   const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(null);
   const [dietOverrideEnabled, setDietOverrideEnabled] = useState(false);
   const [dietOverrideValue, setDietOverrideValue] = useState("");
+  const [cuisineOverrideEnabled, setCuisineOverrideEnabled] = useState(false);
+  const [cuisineOverrideValue, setCuisineOverrideValue] = useState("");
   const [pendingFridgeMeal, setPendingFridgeMeal] = useState<any>(null);
   const {
     alert: starchAlert,
@@ -455,6 +457,7 @@ const FridgeRescuePage = () => {
           dietAdaptOverride,
           userDietOverride,
           cookMethod: cookMethod || undefined,
+          ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
         }),
       });
 
@@ -833,7 +836,6 @@ const FridgeRescuePage = () => {
                   label="How It Works"
                 />
               </div>
-              <CultureBadge className="-mt-2 mb-3" />
 
               <div className="space-y-4">
                 <div className="space-y-3">
@@ -901,7 +903,7 @@ const FridgeRescuePage = () => {
                   className="mt-3"
                 />
 
-                {/* Diet Override — situational cooking without breaking personal plan */}
+                {/* Diet & Cuisine Controls */}
                 <DietOverrideControl
                   overrideEnabled={dietOverrideEnabled}
                   overrideDiet={dietOverrideValue}
@@ -911,6 +913,14 @@ const FridgeRescuePage = () => {
                   }}
                   onDietChange={setDietOverrideValue}
                   className="mt-1"
+                />
+                <CuisineOverrideControl
+                  savedCuisine={user?.cuisinePreference}
+                  overrideEnabled={cuisineOverrideEnabled}
+                  overrideCuisine={cuisineOverrideValue}
+                  onToggle={setCuisineOverrideEnabled}
+                  onCuisineChange={setCuisineOverrideValue}
+                  className="mt-2"
                 />
 
                 <div>
