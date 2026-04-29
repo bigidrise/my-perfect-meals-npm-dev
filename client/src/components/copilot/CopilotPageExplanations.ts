@@ -60,7 +60,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
 
   "/craving-creator-landing": {
     pageId: "craving-creator-landing",
-    title: "Craving Creator Hub",
+    title: "Cravings, Sushi & Desserts",
     description:
       "The original craving-based experience. Create custom cravings, explore ready-made favorites, or build healthier desserts, all from one place.",
     spokenText:
