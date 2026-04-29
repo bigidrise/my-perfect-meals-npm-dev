@@ -1107,7 +1107,7 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
         },
         {
           heading: "Where to Find It",
-          list: ["Lifestyle → Cravings, Sushi & Desserts"],
+          list: ["Lifestyle → Cravings, Sushi & Desserts Hub"],
         },
       ],
     },

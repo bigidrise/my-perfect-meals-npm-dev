@@ -22,7 +22,7 @@ export default function CravingCreatorLanding() {
   const isAdmin = user?.id === ADMIN_ID;
 
   useEffect(() => {
-    document.title = "Cravings, Sushi & Desserts | My Perfect Meals";
+    document.title = "Cravings, Sushi & Desserts Hub | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
     
     // Phase C.7: Emit "opened" event for hub walkthrough
@@ -87,7 +87,7 @@ export default function CravingCreatorLanding() {
           <Sparkles className="h-6 w-6 text-orange-500" />
 
           {/* Title */}
-          <h1 className="text-lg font-bold text-white">Cravings, Sushi & Desserts</h1>
+          <h1 className="text-lg font-bold text-white">Cravings, Sushi & Desserts Hub</h1>
 
           
         </div>
