@@ -53,8 +53,7 @@ import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import CultureBadge from "@/components/CultureBadge";
-import { DietOverrideControl } from "@/components/ui/DietOverrideControl";
-import { CuisineOverrideControl } from "@/components/ui/CuisineOverrideControl";
+import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import PhaseGate from "@/components/PhaseGate";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
@@ -778,17 +777,15 @@ export default function CreateDishPage() {
                     </div>
                   )}
 
-                  <DietOverrideControl
-                    overrideEnabled={dietOverrideEnabled}
-                    overrideDiet={dietOverrideValue}
-                    onToggle={setDietOverrideEnabled}
-                    onDietChange={setDietOverrideValue}
-                  />
-                  <CuisineOverrideControl
+                  <DietCuisineControlRow
                     savedCuisine={user?.cuisinePreference}
-                    overrideEnabled={cuisineOverrideEnabled}
-                    overrideCuisine={cuisineOverrideValue}
-                    onToggle={setCuisineOverrideEnabled}
+                    dietOverrideEnabled={dietOverrideEnabled}
+                    dietOverrideValue={dietOverrideValue}
+                    onDietToggle={setDietOverrideEnabled}
+                    onDietChange={setDietOverrideValue}
+                    cuisineOverrideEnabled={cuisineOverrideEnabled}
+                    cuisineOverrideValue={cuisineOverrideValue}
+                    onCuisineToggle={setCuisineOverrideEnabled}
                     onCuisineChange={setCuisineOverrideValue}
                   />
                   {!isGenerating ? (

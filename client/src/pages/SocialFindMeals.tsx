@@ -54,8 +54,7 @@ import {
 import { ChefHat } from "lucide-react";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
-import { DietOverrideControl } from "@/components/ui/DietOverrideControl";
-import { CuisineOverrideControl } from "@/components/ui/CuisineOverrideControl";
+import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 
 const DIET_PILL_CONFIG: Record<string, { label: string; color: string }> = {
   kosher:        { label: "Kosher Certified", color: "bg-amber-500/20 border-amber-400/40 text-amber-300" },
@@ -541,17 +540,15 @@ export default function MealFinder() {
                       </button>
                     )}
                   </div>
-                  <DietOverrideControl
-                    overrideEnabled={dietOverrideEnabled}
-                    overrideDiet={dietOverrideValue}
-                    onToggle={setDietOverrideEnabled}
-                    onDietChange={setDietOverrideValue}
-                  />
-                  <CuisineOverrideControl
+                  <DietCuisineControlRow
                     savedCuisine={user?.cuisinePreference}
-                    overrideEnabled={cuisineOverrideEnabled}
-                    overrideCuisine={cuisineOverrideValue}
-                    onToggle={setCuisineOverrideEnabled}
+                    dietOverrideEnabled={dietOverrideEnabled}
+                    dietOverrideValue={dietOverrideValue}
+                    onDietToggle={setDietOverrideEnabled}
+                    onDietChange={setDietOverrideValue}
+                    cuisineOverrideEnabled={cuisineOverrideEnabled}
+                    cuisineOverrideValue={cuisineOverrideValue}
+                    onCuisineToggle={setCuisineOverrideEnabled}
                     onCuisineChange={setCuisineOverrideValue}
                   />
                   <Button

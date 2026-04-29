@@ -3,8 +3,7 @@ import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { ArrowLeft, Sparkles, Wine, Beer } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { CuisineOverrideControl } from "@/components/ui/CuisineOverrideControl";
-import { DietOverrideControl } from "@/components/ui/DietOverrideControl";
+import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassButton } from "@/components/glass";
 import CometBar from "@/components/CometBar";
@@ -314,17 +313,15 @@ export default function PairingsAI() {
                   onOverrideSuccess={(token) => handleGenerate(true, token)}
                 />
 
-                <DietOverrideControl
-                  overrideEnabled={dietOverrideEnabled}
-                  overrideDiet={dietOverrideValue}
-                  onToggle={setDietOverrideEnabled}
-                  onDietChange={setDietOverrideValue}
-                />
-                <CuisineOverrideControl
+                <DietCuisineControlRow
                   savedCuisine={user?.cuisinePreference}
-                  overrideEnabled={cuisineOverrideEnabled}
-                  overrideCuisine={cuisineOverrideValue}
-                  onToggle={setCuisineOverrideEnabled}
+                  dietOverrideEnabled={dietOverrideEnabled}
+                  dietOverrideValue={dietOverrideValue}
+                  onDietToggle={setDietOverrideEnabled}
+                  onDietChange={setDietOverrideValue}
+                  cuisineOverrideEnabled={cuisineOverrideEnabled}
+                  cuisineOverrideValue={cuisineOverrideValue}
+                  onCuisineToggle={setCuisineOverrideEnabled}
                   onCuisineChange={setCuisineOverrideValue}
                 />
 

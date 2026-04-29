@@ -133,8 +133,7 @@ import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
-import { DietOverrideControl } from "@/components/ui/DietOverrideControl";
-import { CuisineOverrideControl } from "@/components/ui/CuisineOverrideControl";
+import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 
 // ---- Persist the generated meal so it never "disappears" ----
 const CACHE_KEY = "cravingCreator.cache.v1";
@@ -1179,17 +1178,15 @@ export default function CravingCreator() {
                   </div>
 
                   {/* Diet & Cuisine Controls */}
-                  <DietOverrideControl
-                    overrideEnabled={dietOverrideEnabled}
-                    overrideDiet={dietOverrideValue}
-                    onToggle={setDietOverrideEnabled}
-                    onDietChange={setDietOverrideValue}
-                  />
-                  <CuisineOverrideControl
+                  <DietCuisineControlRow
                     savedCuisine={user?.cuisinePreference}
-                    overrideEnabled={cuisineOverrideEnabled}
-                    overrideCuisine={cuisineOverrideValue}
-                    onToggle={setCuisineOverrideEnabled}
+                    dietOverrideEnabled={dietOverrideEnabled}
+                    dietOverrideValue={dietOverrideValue}
+                    onDietToggle={setDietOverrideEnabled}
+                    onDietChange={setDietOverrideValue}
+                    cuisineOverrideEnabled={cuisineOverrideEnabled}
+                    cuisineOverrideValue={cuisineOverrideValue}
+                    onCuisineToggle={setCuisineOverrideEnabled}
                     onCuisineChange={setCuisineOverrideValue}
                   />
 
