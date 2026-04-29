@@ -49,6 +49,7 @@ import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
+import CultureBadge from "@/components/CultureBadge";
 import TrashButton from "@/components/ui/TrashButton";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 
@@ -499,6 +500,7 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
                   label="How It Works"
                 />
               </CardTitle>
+              <CultureBadge className="mt-1" />
             </CardHeader>
 
             <CardContent className="space-y-4">

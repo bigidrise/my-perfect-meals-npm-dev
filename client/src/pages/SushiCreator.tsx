@@ -120,6 +120,7 @@ import { useCopilot } from "@/components/copilot/CopilotContext";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
+import CultureBadge from "@/components/CultureBadge";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
@@ -843,6 +844,7 @@ export default function SushiCreator() {
                       label="How It Works"
                     />
                   </CardTitle>
+                  <CultureBadge className="mt-1" />
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>
