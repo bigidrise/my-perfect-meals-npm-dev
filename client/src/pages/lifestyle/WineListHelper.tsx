@@ -192,7 +192,7 @@ export default function WineListHelper() {
                   Translate a Wine List
                   <div className="flex-grow" />
                   <HowThisWorksLink
-                    videoUrl="https://youtube.com/shorts/WINE_LIST_HELPER_VIDEO"
+                    videoUrl="https://youtube.com/shorts/7DToPay8jEg"
                     label="How It Works"
                   />
                 </CardTitle>
