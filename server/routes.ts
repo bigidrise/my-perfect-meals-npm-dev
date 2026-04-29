@@ -2236,6 +2236,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         goalTarget,
         goalTimelineWeeks,
         goalStartDate,
+        cuisinePreference,
+        cuisineIntensity,
       } = req.body;
       
       // Build update object with only provided fields
@@ -2270,6 +2272,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (goalTarget !== undefined) updateData.goalTarget = goalTarget;
       if (goalTimelineWeeks !== undefined) updateData.goalTimelineWeeks = goalTimelineWeeks;
       if (goalStartDate !== undefined) updateData.goalStartDate = goalStartDate ? new Date(goalStartDate) : null;
+      if (cuisinePreference !== undefined) updateData.cuisinePreference = cuisinePreference;
+      if (cuisineIntensity !== undefined) updateData.cuisineIntensity = cuisineIntensity;
       
       if (allergies !== undefined) {
         const [currentUser] = await db.select({ allergies: users.allergies, safetyPinHash: users.safetyPinHash })
