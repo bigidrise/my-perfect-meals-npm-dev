@@ -865,7 +865,7 @@ export default function CravingCreator() {
                     Quick Create
                     <div className="flex-grow" />
                     <HowThisWorksLink
-                      videoUrl="https://youtube.com/shorts/CRAVING_CREATOR_VIDEO"
+                      videoUrl="https://youtube.com/shorts/C3kZCNC1tq8?feature=share"
                       label="How It Works"
                     />
                   </CardTitle>
