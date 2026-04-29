@@ -92,6 +92,8 @@ type EditProfilePayload = {
   goalTarget?: string | null;
   goalTimelineWeeks?: number | null;
   goalStartDate?: string | null;
+  cuisinePreference?: string | null;
+  cuisineIntensity?: "light" | "balanced" | "authentic" | null;
 };
 
 function StepShell({
@@ -222,6 +224,8 @@ export default function EditProfilePage() {
       sweetenerPreferences: Array.isArray(u?.sweetenerPreferences)
         ? u.sweetenerPreferences
         : [],
+      cuisinePreference: (u as any)?.cuisinePreference || null,
+      cuisineIntensity: ((u as any)?.cuisineIntensity as "light" | "balanced" | "authentic" | null) || null,
     };
   }, [user]);
 
@@ -252,6 +256,12 @@ export default function EditProfilePage() {
     Array.isArray((user as any)?.avoidedFoods) ? (user as any).avoidedFoods : []
   );
   const [avoidedFoodInput, setAvoidedFoodInput] = useState("");
+  const CUISINE_PILLS = ["American", "Mexican", "Italian", "Indian", "Chinese", "Japanese", "Mediterranean", "Thai", "Korean", "Middle Eastern"];
+  const [customCuisineInput, setCustomCuisineInput] = useState(
+    CUISINE_PILLS.map(c => c.toLowerCase()).includes((form.cuisinePreference || "").toLowerCase())
+      ? ""
+      : (form.cuisinePreference || "")
+  );
 
   const [specialtyCondition, setSpecialtyCondition] = useState<string | null>(
     (user as any)?.specialtyCondition ?? null
@@ -1002,6 +1012,76 @@ export default function EditProfilePage() {
                   Your PIN protects your allergies and allows meal overrides.
                 </p>
                 <SafetyPinSettings />
+              </div>
+
+              {/* Cuisine Identity Section */}
+              <div className="rounded-xl border border-orange-500/20 bg-orange-950/10 p-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">🌍</span>
+                  <span className="text-orange-200 font-semibold text-sm">Cuisine Identity</span>
+                </div>
+                <p className="text-white/60 text-xs mb-4">
+                  Every feature honors your cuisine style — meals, pairings, and more. Works alongside your diet, not instead of it.
+                </p>
+
+                <div className="space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    {CUISINE_PILLS.map((cuisine) => (
+                      <PillButton
+                        key={cuisine}
+                        active={form.cuisinePreference === cuisine.toLowerCase()}
+                        onClick={() => {
+                          if (form.cuisinePreference === cuisine.toLowerCase()) {
+                            setForm((p) => ({ ...p, cuisinePreference: null }));
+                          } else {
+                            setForm((p) => ({ ...p, cuisinePreference: cuisine.toLowerCase() }));
+                            setCustomCuisineInput("");
+                          }
+                        }}
+                      >
+                        {cuisine}
+                      </PillButton>
+                    ))}
+                    <PillButton
+                      active={!!customCuisineInput || (!CUISINE_PILLS.map(c => c.toLowerCase()).includes(form.cuisinePreference || "") && !!form.cuisinePreference)}
+                      onClick={() => {}}
+                    >
+                      Something else…
+                    </PillButton>
+                  </div>
+
+                  <input
+                    type="text"
+                    placeholder="e.g. Armenian, Ethiopian, Caribbean, Filipino…"
+                    value={customCuisineInput}
+                    onChange={(e) => {
+                      setCustomCuisineInput(e.target.value);
+                      setForm((p) => ({ ...p, cuisinePreference: e.target.value.toLowerCase().trim() || null }));
+                    }}
+                    className="w-full bg-black/40 text-white border border-white/20 px-3 py-2 rounded-lg text-sm placeholder:text-white/40"
+                  />
+
+                  {form.cuisinePreference && (
+                    <div className="space-y-2">
+                      <label className="text-white/80 text-xs">How strongly should we follow this style?</label>
+                      <div className="flex flex-wrap gap-2">
+                        {([
+                          ["light", "Light Influence"],
+                          ["balanced", "Balanced"],
+                          ["authentic", "Authentic"],
+                        ] as const).map(([value, label]) => (
+                          <PillButton
+                            key={value}
+                            active={form.cuisineIntensity === value}
+                            onClick={() => setForm((p) => ({ ...p, cuisineIntensity: value }))}
+                          >
+                            {label}
+                          </PillButton>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Palate Preferences Section */}

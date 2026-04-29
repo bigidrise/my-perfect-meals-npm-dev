@@ -139,6 +139,9 @@ export interface PalatePreferences {
   flavorPreference?: string | null;  // bold-spicy, bold-flavorful, comfort, mediterranean, balanced, unsure
   heatPreference?: string | null;    // none, mild, medium, hot, very-hot, unsure
   medicalConditions?: string[];      // used to cap heat when clinical context demands it
+  // Cuisine Identity
+  cuisinePreference?: string | null;
+  cuisineIntensity?: "light" | "balanced" | "authentic" | null;
 }
 
 // Medical conditions that require heat to be capped at mild regardless of user preference

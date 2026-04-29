@@ -95,6 +95,8 @@ interface OnboardingData {
   palateSpiceTolerance: "none" | "mild" | "medium" | "hot";
   palateSeasoningIntensity: "light" | "balanced" | "bold";
   palateFlavorStyle: "classic" | "herb" | "savory" | "bright";
+  cuisinePreference: string;
+  cuisineIntensity: "light" | "balanced" | "authentic";
 }
 
 const TOTAL_STEPS = 4;
@@ -139,6 +141,7 @@ export default function OnboardingStandalone() {
   const [customAllergyInput, setCustomAllergyInput] = useState("");
   const [customMedicalInput, setCustomMedicalInput] = useState("");
   const [customDietaryInput, setCustomDietaryInput] = useState("");
+  const [customCuisineInput, setCustomCuisineInput] = useState("");
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
   const [disclaimerError, setDisclaimerError] = useState(false);
@@ -175,6 +178,8 @@ export default function OnboardingStandalone() {
     palateSpiceTolerance: "mild",
     palateSeasoningIntensity: "balanced",
     palateFlavorStyle: "classic",
+    cuisinePreference: "",
+    cuisineIntensity: "balanced",
   });
 
   useEffect(() => {
@@ -351,6 +356,8 @@ export default function OnboardingStandalone() {
               palateSpiceTolerance: data.palateSpiceTolerance,
               palateSeasoningIntensity: data.palateSeasoningIntensity,
               palateFlavorStyle: data.palateFlavorStyle,
+              cuisinePreference: data.cuisinePreference || null,
+              cuisineIntensity: data.cuisinePreference ? data.cuisineIntensity : null,
               activeBuilder: selectedBuilder, // Save selected builder
             },
             userId: user?.id, // Pass userId to sync to Edit Profile
@@ -883,6 +890,83 @@ export default function OnboardingStandalone() {
                 <span className="text-sm">{option}</span>
               </label>
             ))}
+          </div>
+        </div>
+
+        {/* Cuisine Identity Section */}
+        <div className="pt-6 border-t border-white/10">
+          <h3 className="text-xl font-semibold mb-2">What cuisine feels like home? (Optional)</h3>
+          <p className="text-white/70 text-sm mb-6">
+            Every feature in the app will honor your cuisine style — just like it honors vegan or keto. You can change this anytime.
+          </p>
+
+          <div className="space-y-6">
+            <div className="flex flex-wrap gap-2">
+              {["American", "Mexican", "Italian", "Indian", "Chinese", "Japanese", "Mediterranean", "Thai", "Korean", "Middle Eastern"].map((cuisine) => (
+                <PillButton
+                  key={cuisine}
+                  active={data.cuisinePreference === cuisine.toLowerCase()}
+                  onClick={() => {
+                    if (data.cuisinePreference === cuisine.toLowerCase()) {
+                      updateData({ cuisinePreference: "" });
+                    } else {
+                      updateData({ cuisinePreference: cuisine.toLowerCase() });
+                      setCustomCuisineInput("");
+                    }
+                  }}
+                >
+                  {cuisine}
+                </PillButton>
+              ))}
+              <PillButton
+                active={!!customCuisineInput || (!["american","mexican","italian","indian","chinese","japanese","mediterranean","thai","korean","middle eastern"].includes(data.cuisinePreference) && !!data.cuisinePreference)}
+                onClick={() => {}}
+              >
+                Something else…
+              </PillButton>
+            </div>
+
+            {/* Free text input for other cuisines */}
+            <div>
+              <input
+                type="text"
+                placeholder="e.g. Armenian, Ethiopian, Caribbean, Filipino…"
+                value={customCuisineInput}
+                onChange={(e) => {
+                  setCustomCuisineInput(e.target.value);
+                  updateData({ cuisinePreference: e.target.value.toLowerCase().trim() });
+                }}
+                className="w-full bg-black/40 text-white border border-white/20 px-3 py-2 rounded-lg text-sm placeholder:text-white/40"
+              />
+            </div>
+
+            {data.cuisinePreference && (
+              <div className="space-y-3">
+                <label className="text-white/90 text-sm font-medium flex items-center gap-2">
+                  <span className="text-lg">🎚️</span> How strongly should we follow this style?
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    ["light", "Light Influence", "Subtle — familiar ingredients, mild spice hints"],
+                    ["balanced", "Balanced", "Recognizable style, approachable for everyone"],
+                    ["authentic", "Authentic", "Full cultural identity — traditional spices & techniques"],
+                  ] as const).map(([value, label, desc]) => (
+                    <button
+                      key={value}
+                      onClick={() => updateData({ cuisineIntensity: value })}
+                      className={`flex flex-col items-start px-4 py-3 rounded-xl border text-left transition-all ${
+                        data.cuisineIntensity === value
+                          ? "bg-orange-600/30 border-orange-400 text-white"
+                          : "bg-white/5 border-white/20 text-white/70 hover:bg-white/10"
+                      }`}
+                    >
+                      <span className="text-sm font-medium">{label}</span>
+                      <span className="text-xs text-white/50 mt-0.5">{desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

@@ -25,6 +25,8 @@ const UpdateProfileSchema = z.object({
   palateSpiceTolerance: z.enum(["none", "mild", "medium", "hot"]).optional(),
   palateSeasoningIntensity: z.enum(["light", "balanced", "bold"]).optional(),
   palateFlavorStyle: z.enum(["classic", "herb", "savory", "bright"]).optional(),
+  cuisinePreference: z.string().max(120).optional().nullable(),
+  cuisineIntensity: z.enum(["light", "balanced", "authentic"]).optional().nullable(),
   fontSizePreference: z.enum(["standard", "large", "xl"]).optional(),
   sweetenerPreferences: z.array(z.string()).optional(),
   avoidedFoods: z.array(z.string()).optional(),
@@ -81,6 +83,8 @@ router.put("/profile", requireAuth, async (req, res) => {
     if (patch.palateSpiceTolerance !== undefined) updateData.palateSpiceTolerance = patch.palateSpiceTolerance;
     if (patch.palateSeasoningIntensity !== undefined) updateData.palateSeasoningIntensity = patch.palateSeasoningIntensity;
     if (patch.palateFlavorStyle !== undefined) updateData.palateFlavorStyle = patch.palateFlavorStyle;
+    if (patch.cuisinePreference !== undefined) updateData.cuisinePreference = patch.cuisinePreference;
+    if (patch.cuisineIntensity !== undefined) updateData.cuisineIntensity = patch.cuisineIntensity;
     if (patch.fontSizePreference !== undefined) updateData.fontSizePreference = patch.fontSizePreference;
     if (patch.sweetenerPreferences !== undefined) updateData.sweetenerPreferences = patch.sweetenerPreferences;
     if (patch.avoidedFoods !== undefined) updateData.avoidedFoods = patch.avoidedFoods;

@@ -35,6 +35,9 @@ export async function mergeStepIntoPreferences(userId: string, stepKey: string, 
       if (data?.palateSpiceTolerance) update.palateSpiceTolerance = data.palateSpiceTolerance;
       if (data?.palateSeasoningIntensity) update.palateSeasoningIntensity = data.palateSeasoningIntensity;
       if (data?.palateFlavorStyle) update.palateFlavorStyle = data.palateFlavorStyle;
+      // Cuisine Identity (stylistic layer)
+      if (data?.cuisinePreference !== undefined) update.cuisinePreference = data.cuisinePreference;
+      if (data?.cuisineIntensity !== undefined) update.cuisineIntensity = data.cuisineIntensity;
       // CRITICAL: Mark onboarding as complete and set active builder
       update.onboardingCompletedAt = new Date();
       if (data?.activeBuilder) {
