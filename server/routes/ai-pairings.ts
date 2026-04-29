@@ -130,6 +130,12 @@ router.post("/", async (req, res) => {
 
     // ── Protocol envelope: add identity-level enforcement above profile constraints ──
     const pairingsEnvelope = await loadUserProtocolEnvelope(userId).catch(() => null) ?? buildGuestEnvelope();
+    // Apply per-request culture override if provided (overrides saved cuisine profile for this generation only)
+    const cultureOverride = req.body?.cultureOverride?.trim() || null;
+    if (cultureOverride) {
+      pairingsEnvelope.cuisinePreference = cultureOverride;
+      pairingsEnvelope.cuisineIntensity = "balanced";
+    }
     const pairingsProtocolBlock = enforceBeforeGenerate(pairingsEnvelope, { generatorName: 'pairings_ai' }).combined;
     const augmentedConstraints = pairingsProtocolBlock
       ? { ...constraints, fullConstraintBlock: `${pairingsProtocolBlock}\n${constraints.fullConstraintBlock}` }
