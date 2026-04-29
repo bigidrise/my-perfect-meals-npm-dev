@@ -839,7 +839,7 @@ export default function SushiCreator() {
                     Create Your Sushi
                     <div className="flex-grow" />
                     <HowThisWorksLink
-                      videoUrl="https://youtube.com/shorts/SUSHI_CREATOR_VIDEO"
+                      videoUrl="https://youtube.com/shorts/bfIZsTFD_jc?feature=share"
                       label="How It Works"
                     />
                   </CardTitle>
