@@ -575,7 +575,7 @@ export default function CreateDishPage() {
                     Create a Dish
                     <div className="flex-grow" />
                     <HowThisWorksLink
-                      videoUrl="https://youtube.com/shorts/CREATE_DISH_VIDEO"
+                      videoUrl="https://youtube.com/shorts/OxdqoAYQpsA?feature=share"
                       label="How It Works"
                     />
                   </CardTitle>
