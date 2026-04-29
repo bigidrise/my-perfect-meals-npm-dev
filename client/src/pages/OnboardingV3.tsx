@@ -11,7 +11,14 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { useToast } from "@/hooks/use-toast";
 import { PillButton } from "@/components/ui/pill-button";
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 9;
+
+const CUISINE_OPTIONS = [
+  "American", "Mexican", "Italian", "Indian", "Chinese",
+  "Japanese", "Mediterranean", "Thai", "Korean", "Middle Eastern",
+];
+
+const PRESET_CUISINES_LOWER = CUISINE_OPTIONS.map(c => c.toLowerCase());
 
 const GOAL_OPTIONS = [
   { label: "Lose Weight", value: "lose", emoji: "🔥" },
@@ -152,6 +159,9 @@ export default function OnboardingV3() {
   const [goalTarget, setGoalTarget] = useState("");
   const [goalTimelineWeeks, setGoalTimelineWeeks] = useState<number | null>(null);
   const [selectedBuilder, setSelectedBuilder] = useState("");
+  const [cuisinePreference, setCuisinePreference] = useState("");
+  const [cuisineIntensity, setCuisineIntensity] = useState<"light" | "balanced" | "authentic">("balanced");
+  const [customCuisineInput, setCustomCuisineInput] = useState("");
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [showPin, setShowPin] = useState(false);
@@ -350,6 +360,12 @@ export default function OnboardingV3() {
             heatPreference: heatPreference || "unsure",
             sweetenerPreferences
           }, "flavor");
+          break;
+        case 8:
+          await saveProfile({
+            cuisinePreference: cuisinePreference || null,
+            cuisineIntensity: cuisinePreference ? cuisineIntensity : null,
+          }, "cuisine");
           break;
       }
       setStep((s) => s + 1);
@@ -952,6 +968,87 @@ export default function OnboardingV3() {
         );
 
       case 8:
+        return (
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="text-center space-y-2">
+              <h1 className="text-2xl font-bold text-white">What cuisine feels like home?</h1>
+              <p className="text-white/60 text-sm">Optional — every feature in the app will honor your food culture automatically.</p>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-2 max-w-sm mx-auto">
+              {CUISINE_OPTIONS.map((cuisine) => (
+                <PillButton
+                  key={cuisine}
+                  active={cuisinePreference === cuisine.toLowerCase()}
+                  onClick={() => {
+                    if (cuisinePreference === cuisine.toLowerCase()) {
+                      setCuisinePreference("");
+                    } else {
+                      setCuisinePreference(cuisine.toLowerCase());
+                      setCustomCuisineInput("");
+                    }
+                  }}
+                >
+                  {cuisine}
+                </PillButton>
+              ))}
+              <PillButton
+                active={!!customCuisineInput || (!PRESET_CUISINES_LOWER.includes(cuisinePreference) && !!cuisinePreference)}
+                onClick={() => {}}
+              >
+                Something else…
+              </PillButton>
+            </div>
+
+            <div className="max-w-sm mx-auto">
+              <input
+                type="text"
+                placeholder="e.g. Armenian, Ethiopian, Caribbean, Filipino…"
+                value={customCuisineInput}
+                onChange={(e) => {
+                  setCustomCuisineInput(e.target.value);
+                  setCuisinePreference(e.target.value.toLowerCase().trim());
+                }}
+                className="w-full bg-black/40 border border-white/20 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/60 placeholder:text-white/30"
+              />
+              <p className="text-white/40 text-xs mt-2 text-center">
+                We'll use this to shape meals, snacks, drinks, and recipes across the app.
+              </p>
+            </div>
+
+            {cuisinePreference && (
+              <div className="max-w-sm mx-auto space-y-3">
+                <label className="text-white/90 text-sm font-medium flex items-center gap-2">
+                  <span className="text-base">🎚️</span> How strongly should we follow this style?
+                </label>
+                <div className="flex flex-col gap-2">
+                  {([
+                    ["light", "Light Influence", "Subtle — familiar ingredients, mild hints"],
+                    ["balanced", "Balanced", "Recognizable style, approachable for everyone"],
+                    ["authentic", "Authentic", "Full cultural identity — traditional spices and techniques"],
+                  ] as const).map(([value, label, desc]) => (
+                    <button
+                      key={value}
+                      onClick={() => setCuisineIntensity(value)}
+                      className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-left transition-all ${
+                        cuisineIntensity === value
+                          ? "bg-orange-500/20 border-orange-500 text-white"
+                          : "bg-white/5 border-white/20 text-white/80 hover:border-white/30"
+                      }`}
+                    >
+                      <div>
+                        <p className="text-sm font-medium">{label}</p>
+                        <p className="text-xs text-white/50 mt-0.5">{desc}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
+      case 9:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
