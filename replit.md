@@ -58,6 +58,16 @@ If a regression is found: stop feature work, fix the regression first, ship the 
 #### Rule 5: One ticket at a time
 Fix one bug → verify Golden Path → commit and deploy → then start the next bug. No stacking.
 
+## DEAD CODE — DO NOT TOUCH OR REFERENCE
+
+The following files exist in the codebase but are completely disconnected and must NEVER be used, edited, or referenced:
+
+| File | Status | Why it still exists |
+|---|---|---|
+| `client/src/pages/onboarding-standalone.tsx` | **DEAD — no route, no import** | Legacy standalone build, replaced entirely by `OnboardingV3.tsx`. Has been incorrectly used as the target for onboarding changes multiple times. Ignore it completely. |
+
+**The ONLY active onboarding is `client/src/pages/OnboardingV3.tsx`** — mounted at `/onboarding` and `/onboarding-v2`. Any onboarding change goes there and nowhere else.
+
 ## Page Name Glossary (MANDATORY — never confuse these)
 
 This section exists because page feature names have evolved. Always use these exact names and file paths.
