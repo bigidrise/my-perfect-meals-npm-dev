@@ -4,8 +4,8 @@ import { useLocation } from "wouter";
 import { ArrowLeft, HeartPulse, AlertTriangle, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassButton } from "@/components/glass";
-import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import CometBar from "@/components/CometBar";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import PhaseGate from "@/components/PhaseGate";
@@ -26,24 +26,12 @@ export default function ReduceDrinkingPlan() {
   const [pace, setPace] = useState<Pace>("standard");
   const [customReductionPct, setCustomReductionPct] = useState(20);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [plan, setPlan] = useState<any>(null);
 
   useEffect(() => {
     document.title = "Reduce Drinking Plan | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isGenerating) {
-      setProgress(0);
-      interval = setInterval(() => {
-        setProgress((prev) => (prev >= 90 ? prev : prev + Math.random() * 10));
-      }, 400);
-    }
-    return () => clearInterval(interval);
-  }, [isGenerating]);
 
   async function handleGenerate() {
     setIsGenerating(true);
@@ -68,7 +56,6 @@ export default function ReduceDrinkingPlan() {
       }
 
       const data = await res.json();
-      setProgress(100);
       setPlan(data);
     } catch (err: any) {
       toast({ title: err.message || "Something went wrong", variant: "destructive" });
@@ -196,12 +183,8 @@ export default function ReduceDrinkingPlan() {
                 </div>
 
                 {isGenerating ? (
-                  <div className="max-w-md mx-auto mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-white/80">Creating Your Plan</span>
-                      <span className="text-sm text-white/80">{Math.round(progress)}%</span>
-                    </div>
-                    <Progress value={progress} className="h-3 bg-black/30 border border-white/20" />
+                  <div className="max-w-md mx-auto mb-4 flex justify-center">
+                    <CometBar label="Creating Your Plan…" />
                   </div>
                 ) : (
                   <GlassButton
