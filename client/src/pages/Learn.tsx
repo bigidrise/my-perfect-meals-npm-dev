@@ -637,6 +637,7 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
           heading: "Where You'll Find Them",
           list: [
             "Craving Creator — before generating a meal",
+            "Create a Dish — before creating your custom dish",
             "Fridge Rescue — before scanning your fridge",
             "Sushi Creator — before building your sushi spread",
             "Athlete Beverage Creator — before generating a drink plan",
