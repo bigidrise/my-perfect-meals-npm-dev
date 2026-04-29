@@ -415,6 +415,12 @@ export interface UserProtocolEnvelope {
    * Examples: Mediterranean flavors, simple prep, no raw onion, low spice. */
   preferences: string[];
 
+  /** Cuisine Identity — stylistic cultural layer (below all safety/diet tiers).
+   * Guides flavor profiles, ingredients, and cooking techniques.
+   * NEVER overrides diet, allergies, or medical rules. */
+  cuisinePreference: string | null;
+  cuisineIntensity: "light" | "balanced" | "authentic" | null;
+
   /**
    * Procedural layer — derived from dietaryIdentity.
    * Covers preparation, storage, equipment, instruction constraints,
@@ -533,6 +539,8 @@ export async function loadUserProtocolEnvelope(
         avoidedFoods: users.avoidedFoods,
         likedFoods: users.likedFoods,
         preferredSweeteners: users.preferredSweeteners,
+        cuisinePreference: users.cuisinePreference,
+        cuisineIntensity: users.cuisineIntensity,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -565,6 +573,8 @@ export async function loadUserProtocolEnvelope(
       avoidances,
       preferences,
       procedural,
+      cuisinePreference: user.cuisinePreference ?? null,
+      cuisineIntensity: (user.cuisineIntensity as "light" | "balanced" | "authentic" | null) ?? null,
     };
   } catch (error) {
     console.error("[ProtocolEnvelope] Failed to load envelope:", error);
@@ -586,6 +596,8 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     avoidances: [],
     preferences: [],
     procedural: deriveProcedureRules([]),
+    cuisinePreference: null,
+    cuisineIntensity: null,
   };
 }
 
@@ -722,6 +734,23 @@ The user has marked these as foods they do not eat: ${avoidList}
     const prefList = envelope.preferences.join(", ");
     layers.preferences = `\n✅ PREFERENCES (apply last, only within all constraints above):
 When possible, incorporate: ${prefList}.`;
+  }
+
+  // ── CUISINE IDENTITY (stylistic layer — below all safety/diet tiers) ───────
+  if (envelope.cuisinePreference) {
+    const intensity = envelope.cuisineIntensity ?? "balanced";
+    const intensityMap: Record<string, string> = {
+      light: "subtle influence — use familiar flavors and mild spice signatures from this cuisine without full authenticity",
+      balanced: "recognizable style — apply characteristic spices, ingredients, and techniques while remaining approachable",
+      authentic: "full cultural identity — use traditional spices, cooking techniques, and authentic flavor profiles",
+    };
+    const intensityInstruction = intensityMap[intensity] || intensityMap["balanced"];
+    layers.preferences = (layers.preferences || "") + `\n\n🌍 CUISINE IDENTITY (stylistic guide — never overrides diet, allergy, or medical rules):
+Primary cuisine: ${envelope.cuisinePreference}
+Intensity: ${intensity} — ${intensityInstruction}
+- Use authentic flavor profiles, spices, and cooking techniques from ${envelope.cuisinePreference} cuisine as the primary stylistic anchor
+- If a traditional ${envelope.cuisinePreference} ingredient conflicts with dietary/medical constraints, substitute with a compliant alternative — NEVER reject the dish
+- Maintain full compliance with all dietary restrictions, allergies, and medical rules above`;
   }
 
   const combined = [
