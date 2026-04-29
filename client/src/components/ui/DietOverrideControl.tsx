@@ -21,7 +21,7 @@ interface DietOverrideControlProps {
  *
  * Pill-button pair + conditional diet selector for creator features.
  * Default: "My Diet" active → uses onboarding diet.
- * "Cook Different" active: reveals diet selector for situational cooking.
+ * "Different Diet" active: reveals diet selector for situational cooking.
  *
  * No global state. No localStorage. Component state only.
  */
@@ -47,7 +47,7 @@ export function DietOverrideControl({
           variant="amber"
           onClick={() => onToggle(true)}
         >
-          Cook Different
+          Different Diet
         </PillButton>
       </div>
 

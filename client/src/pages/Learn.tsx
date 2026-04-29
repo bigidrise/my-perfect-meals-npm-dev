@@ -614,6 +614,49 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
       ],
     },
   },
+  {
+    id: "diet-cuisine-controls",
+    title: "How Diet & Cuisine Controls Work",
+    subtitle: "Override your saved preferences on any creator page",
+    icon: ChefHat,
+    content: {
+      sections: [
+        {
+          heading: "What These Controls Are",
+          text: "Every creator and lifestyle page in the app shows two pill-toggle controls: My Diet / Different Diet and My Cuisine / Different Cuisine. These let you override your saved profile settings for a single session without changing your profile.",
+        },
+        {
+          heading: "My Diet / Different Diet",
+          text: "When set to My Diet, the AI uses the dietary restriction saved in your profile — vegan, keto, gluten-free, and so on. Tap Different Diet to reveal a dropdown where you can pick any other diet for just this request. Your profile setting stays unchanged.",
+        },
+        {
+          heading: "My Cuisine / Different Cuisine",
+          text: "When set to My Cuisine, the AI uses the cuisine identity from your profile. Tap Different Cuisine to choose any of the 15 supported cuisine styles for just this session — Mexican, Japanese, Mediterranean, West African, and more.",
+        },
+        {
+          heading: "Where You'll Find Them",
+          list: [
+            "Craving Creator — before generating a meal",
+            "Fridge Rescue — before scanning your fridge",
+            "Sushi Creator — before building your sushi spread",
+            "Athlete Beverage Creator — before generating a drink plan",
+            "Dessert Creator — before generating your dessert",
+            "Pairings AI — before generating drink pairings",
+            "Social Find Me Meals — in Step 1, before advancing to location",
+            "Fast Food Guide — in Step 1, before advancing to restaurant",
+          ],
+        },
+        {
+          heading: "Why This Is Useful",
+          text: "Sometimes you are cooking for someone else, following a temporary eating plan, or just in the mood for a different cuisine than usual. These controls let you get the right output for the moment without touching your profile settings.",
+        },
+        {
+          heading: "Session-Only Override",
+          text: "These selections are temporary. When you leave the page or start a new session, the controls reset to your saved profile preferences. Nothing you set here affects your profile, your history, or your long-term data.",
+        },
+      ],
+    },
+  },
 ];
 
 const SECTION_NUTRITION_STRATEGY: LibraryTopic[] = [

@@ -39,3 +39,21 @@ export const CREATOR_DIET_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "halal", label: "Halal" },
   { value: "carnivore", label: "Carnivore" },
 ];
+
+export const CREATOR_CUISINE_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "american", label: "American" },
+  { value: "mexican", label: "Mexican" },
+  { value: "italian", label: "Italian" },
+  { value: "indian", label: "Indian" },
+  { value: "chinese", label: "Chinese" },
+  { value: "japanese", label: "Japanese" },
+  { value: "mediterranean", label: "Mediterranean" },
+  { value: "thai", label: "Thai" },
+  { value: "korean", label: "Korean" },
+  { value: "middle eastern", label: "Middle Eastern" },
+  { value: "greek", label: "Greek" },
+  { value: "french", label: "French" },
+  { value: "caribbean", label: "Caribbean" },
+  { value: "vietnamese", label: "Vietnamese" },
+  { value: "ethiopian", label: "Ethiopian" },
+];

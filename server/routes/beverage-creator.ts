@@ -95,6 +95,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
       skipPalate,
       dietAdaptOverride,
       userDietOverride,
+      cultureOverride,
     } = req.body ?? {};
 
     if (isDev) console.log("[BEVERAGE] Request params:", { beverageCategory, flavorFamily, servingSize, hasCustomDesc: typeof customBeverageDescription === "string" && customBeverageDescription.trim().length > 0 });
@@ -288,10 +289,14 @@ beverageCreatorRouter.post("/", async (req, res) => {
       }
     }
 
+    const cuisineOverrideBlock = cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()
+      ? `\n🌍 CUISINE STYLE OVERRIDE: The user has requested ${cultureOverride.trim()} style. Infuse authentic ${cultureOverride.trim()} flavors, spices, and cultural ingredients into this beverage. Adapt names and flavor notes accordingly.\n`
+      : "";
+
     const prompt = `
 You are a professional mixologist, nutritionist, and beverage chef inside the My Perfect Meals system.
 Generate a FULL structured beverage recipe.
-${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${beverageBehavioralMemorySection ? `\n${beverageBehavioralMemorySection}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}${softOverrideBlock}
+${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${cuisineOverrideBlock}${beverageBehavioralMemorySection ? `\n${beverageBehavioralMemorySection}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}${softOverrideBlock}
 The result MUST be a drink. Never generate solid food, meals, or desserts.
 
 Return JSON ONLY, following this exact schema:
