@@ -12,7 +12,6 @@ import {
   Star,
   Briefcase,
   ArrowRight,
-  Fish,
 } from "lucide-react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useFreeLock } from "@/hooks/useFreeLock";
@@ -63,16 +62,6 @@ export default function LifestyleLandingPage() {
       route: "/craving-creator-landing",
       gradient: "from-orange-500/20 to-red-500/20",
       testId: "card-craving-creator",
-      badge: "emotion",
-    },
-    {
-      title: "Sushi Creator",
-      description:
-        "Build custom sushi — rolls, nigiri, sashimi, or bowls — tailored to your diet and macros.",
-      icon: Fish,
-      route: "/lifestyle/sushi-creator",
-      gradient: "from-teal-500/20 to-cyan-500/20",
-      testId: "card-sushi-creator",
       badge: "emotion",
     },
     {
