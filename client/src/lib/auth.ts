@@ -133,6 +133,9 @@ export interface User {
   activeSystem?: string | null;
   isCreator?: boolean;
   creatorDisplayName?: string | null;
+  // Culture Intelligence
+  cuisinePreference?: string | null;
+  cuisineIntensity?: string | null;
 }
 
 export function getAuthToken(): string | null {

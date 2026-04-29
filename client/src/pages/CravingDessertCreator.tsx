@@ -55,6 +55,7 @@ import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
+import CultureOverridePanel from "@/components/CultureOverridePanel";
 
 const DESSERT_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -164,6 +165,7 @@ export default function DessertCreator() {
   const { user } = useAuth();
   const userId = user?.id || "";
 
+  const [cultureOverride, setCultureOverride] = useState<string | null>(null);
   const [customDessertDescription, setCustomDessertDescription] = useState("");
   const [dessertCategory, setDessertCategory] = useState("");
   const [flavorFamily, setFlavorFamily] = useState("");
@@ -384,6 +386,7 @@ export default function DessertCreator() {
           dietAdaptOverride,
           userDietOverride,
           cookMethod: cookMethod || undefined,
+          ...(cultureOverride ? { cultureOverride } : {}),
         }),
       });
 
@@ -858,6 +861,13 @@ export default function DessertCreator() {
                     : "AI may add complementary ingredients"}
                 </p>
               </div>
+
+              {/* Culture Override */}
+              <CultureOverridePanel
+                savedCuisine={user?.cuisinePreference}
+                onOverrideChange={setCultureOverride}
+                suggestionChips={["Mexican desserts", "Filipino desserts", "Indian sweets", "Japanese desserts", "Southern desserts"]}
+              />
 
               {isGenerating || safetyChecking ? (
                 <div className="max-w-md mx-auto mb-4 flex justify-center">

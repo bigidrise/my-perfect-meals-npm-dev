@@ -159,6 +159,13 @@ dessertCreatorRouter.post("/", async (req, res) => {
       ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
       : buildGuestEnvelope();
 
+    // Apply per-request culture override if provided (overrides saved cuisine profile for this generation only)
+    const cultureOverride = req.body?.cultureOverride?.trim() || null;
+    if (cultureOverride) {
+      dessertEnvelope.cuisinePreference = cultureOverride;
+      dessertEnvelope.cuisineIntensity = "balanced";
+    }
+
     const dessertProtocolBlock = enforceBeforeGenerate(dessertEnvelope, {
       generatorName: 'dessert_creator',
     }).combined;
