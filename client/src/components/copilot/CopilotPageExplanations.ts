@@ -83,9 +83,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "athlete-beverage-creator",
     title: "Athletes Beverage Creator",
     description:
-      "Performance drinks built for athletes — clean, functional, and tuned to your training phase. No dyes, no fillers. Every drink respects your dietary profile.",
+      "Performance drinks built for athletes, clean, functional, and tuned to your training phase. No dyes, no fillers. Every drink respects your dietary profile.",
     spokenText:
-      "Welcome to the Athletes Beverage Creator. This system is built for serious performance — UFC fighters, NBA players, endurance athletes, and anyone who trains hard and eats clean. Every drink is designed around your training phase. Pre-workout drinks focus on energy and focus. Intra-workout drinks prioritize hydration and endurance. Post-workout drinks are built for recovery and rebuilding muscle. Ingredients are chosen for function — protein timing, electrolytes, creatine support, and clean energy. No artificial dyes, no fillers, nothing your body doesn't need. And your dietary profile always travels with you. If you're vegan, anti-inflammatory, or have any food restrictions, this system respects all of that automatically. The same guardrails that protect every meal in this app are active here too. Select your training phase, your goal, and your preferred drink format, then tap Build Performance Drink.",
+      "Welcome to the Athletes Beverage Creator. This system is built for serious performance, for UFC fighters, NBA players, endurance athletes, and anyone who trains hard and eats clean. Every drink is designed around your training phase. Pre-workout drinks focus on energy and mental focus. Intra-workout drinks prioritize hydration and endurance. Post-workout drinks are built for recovery and rebuilding muscle. Ingredients are chosen for function, covering protein timing, electrolytes, creatine support, and clean energy. No artificial dyes, no fillers, nothing your body does not need. Your dietary profile always travels with you here too. If you are vegan, anti-inflammatory, or have any food restrictions, this system respects all of that automatically. The same guardrails that protect every meal in this app are active here too. Select your training phase, your goal, and your preferred drink format, then tap Build Performance Drink.",
     autoClose: true,
   },
 
@@ -617,7 +617,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Learn how the app works, discover Taste Memory and how the app personalizes over time, and explore Copilot walkthroughs.",
     spokenText:
-      "Welcome to the App Library. This is the brain of My Perfect Meals, where every system in the app is explained in a way that helps you understand how everything works together. If something ever feels unclear or you want to know why the app is guiding you a certain way, this is where you come to find the answer. A great place to start is the first topic, Why My Perfect Meals Exists, which walks you through the thinking behind the app and why it was built differently. From there, you can explore topics like Starch Guard and how it manages high glycemic carbs, SafetyGuard and how allergy protection works, GlucoseGuard for blood sugar control, the Nutrition Budget and how it tracks what you have left in your day, Keep It Simple for tighter ingredient control, Palate Preferences for dialing in flavor, ProCare for working with coaches and professionals, and more. One topic I especially want you to find is Taste Memory, which explains how the app learns your preferences over time and uses them to personalize every meal it generates for you. The more you save and log, the more the app starts to feel like it already knows what you want before you ask. Every section includes both a Read and Listen option, so you can either go through it at your own pace, or have it narrated to you, making it easy to learn without stopping what you are doing. This is not a page about tracking food. This is where you learn why the system works, so you can trust it and use it with confidence.",
+      "Welcome to the App Library. This is the brain of My Perfect Meals, where every system in the app is explained in a way that helps you understand how everything works together. If something ever feels unclear or you want to know why the app is guiding you a certain way, this is where you come to find the answer. A great place to start is the first topic, Why My Perfect Meals Exists, which walks you through the thinking behind the app and why it was built differently. From there, you can explore topics like Starch Guard and how it manages high glycemic carbs, SafetyGuard and how allergy protection works, GlucoseGuard for blood sugar control, the Nutrition Budget and how it tracks what you have left in your day, Keep It Simple for tighter ingredient control, Palate Preferences for dialing in flavor, the Culture Intelligence System and how your food culture shapes every meal and drink the app creates for you, ProCare for working with coaches and professionals, and more. One topic I especially want you to find is Taste Memory, which explains how the app learns your preferences over time and uses them to personalize every meal it generates for you. The more you save and log, the more the app starts to feel like it already knows what you want before you ask. Every section includes both a Read and Listen option, so you can either go through it at your own pace, or have it narrated to you, making it easy to learn without stopping what you are doing. This is not a page about tracking food. This is where you learn why the system works, so you can trust it and use it with confidence.",
     autoClose: true,
   },
 
@@ -656,6 +656,26 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
       "A creative, hands-on cooking experience where you build a dish from idea to plate with step-by-step guidance.",
     spokenText:
       "Hey, welcome to my kitchen. Come on in. This is where we stop worrying about labels, rules, or perfect diets and just have fun with food. You bring the idea, the craving, or even just the mood, and we'll build something real together. I'll walk you through it step by step: what you're making, how you want to cook it, how many people you're cooking for and how much time you want to spend. And here's the signature move, you can do this hands-free. Tap the floating Chef and just talk. I'll guide you step by step and cook the meal with you.",
+    autoClose: true,
+  },
+
+  "/lifestyle/sushi-creator": {
+    pageId: "sushi-creator",
+    title: "Sushi Creator",
+    description:
+      "Build healthier sushi rolls, bowls, and Japanese-inspired dishes tailored to your nutrition goals and dietary profile.",
+    spokenText:
+      "Welcome to the Sushi Creator. This is where you build healthier versions of the sushi and Japanese dishes you love. Whether you are craving a classic roll, a poke bowl, or something more creative, just describe what you want and the system takes care of the rest. Every creation is built around your nutrition goals, so macros, calories, and protein are all part of the equation. Your dietary profile travels with you here, so allergies, restrictions, and health settings are all respected automatically. If you have saved a food culture in your profile, it will guide the ingredient choices and cooking style the app uses. You can adjust your servings, save anything you enjoy, and add it straight to your meal plan or shopping list. Just describe your craving, set your servings, and tap Create.",
+    autoClose: true,
+  },
+
+  "/sushi-creator": {
+    pageId: "sushi-creator-alt",
+    title: "Sushi Creator",
+    description:
+      "Build healthier sushi rolls, bowls, and Japanese-inspired dishes tailored to your nutrition goals and dietary profile.",
+    spokenText:
+      "Welcome to the Sushi Creator. This is where you build healthier versions of the sushi and Japanese dishes you love. Whether you are craving a classic roll, a poke bowl, or something more creative, just describe what you want and the system takes care of the rest. Every creation is built around your nutrition goals, so macros, calories, and protein are all part of the equation. Your dietary profile travels with you here, so allergies, restrictions, and health settings are all respected automatically. If you have saved a food culture in your profile, it will guide the ingredient choices and cooking style the app uses. You can adjust your servings, save anything you enjoy, and add it straight to your meal plan or shopping list. Just describe your craving, set your servings, and tap Create.",
     autoClose: true,
   },
 };

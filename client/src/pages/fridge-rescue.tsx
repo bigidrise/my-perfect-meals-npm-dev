@@ -82,6 +82,7 @@ import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
+import CultureBadge from "@/components/CultureBadge";
 
 const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
   {
@@ -832,6 +833,7 @@ const FridgeRescuePage = () => {
                   label="How It Works"
                 />
               </div>
+              <CultureBadge className="-mt-2 mb-3" />
 
               <div className="space-y-4">
                 <div className="space-y-3">

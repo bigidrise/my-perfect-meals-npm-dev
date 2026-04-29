@@ -14,6 +14,8 @@ import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
+import CultureBadge from "@/components/CultureBadge";
 import PairingResultCard from "@/components/pairings/PairingResultCard";
 
 const STORAGE_KEY = "mpm_wine_list_helper_results";
@@ -189,7 +191,13 @@ export default function WineListHelper() {
                 <CardTitle className="flex items-center gap-2 text-lg text-white">
                   <BookOpen className="h-5 w-5 text-orange-400" />
                   Translate a Wine List
+                  <div className="flex-grow" />
+                  <HowThisWorksLink
+                    videoUrl="https://youtube.com/shorts/7DToPay8jEg"
+                    label="How It Works"
+                  />
                 </CardTitle>
+                <CultureBadge className="mt-1" />
               </CardHeader>
 
               <CardContent className="space-y-4">

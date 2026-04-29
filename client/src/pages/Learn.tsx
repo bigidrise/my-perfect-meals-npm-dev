@@ -30,6 +30,8 @@ import {
   Star,
   ShoppingCart,
   Activity,
+  Fish,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
@@ -569,6 +571,45 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
             "Tap Reset to clear today's count and start over at any point",
             "Carnivore and keto users see rotating hydration coaching tips throughout the day, since high-protein eating increases hydration needs",
           ],
+        },
+      ],
+    },
+  },
+  {
+    id: "culture-intelligence",
+    title: "Culture Intelligence System",
+    subtitle: "How your food culture shapes every part of the app",
+    icon: Globe,
+    content: {
+      sections: [
+        {
+          heading: "What It Is",
+          text: "Your food is more than macros — it's culture, habit, and identity. The Culture Intelligence System allows My Perfect Meals to understand how you actually eat by using your preferred cuisine as a foundation across the entire app.",
+        },
+        {
+          heading: "How It Works",
+          text: "When you select a cuisine in your profile, the system automatically shapes your meals, snacks, desserts, beverages, and cooking styles to feel familiar to you — while still matching your goals, dietary preferences, and health needs.",
+        },
+        {
+          heading: "Where It Applies",
+          list: [
+            "Meals and recipes — ingredient choices, spice profiles, and cooking methods reflect your culture",
+            "Snacks and desserts — familiar flavors are prioritized when the AI builds options",
+            "Beverages and alcohol pairings — pairing style and cultural beverage context are honored",
+            "Cooking styles — techniques and preparation methods that fit your culinary background",
+          ],
+        },
+        {
+          heading: "What It Does Not Do",
+          text: "This system does not restrict you. It guides your food experience. You can always explore other cuisines at any time from within any feature — but your default experience will reflect the way you naturally eat.",
+        },
+        {
+          heading: "Setting Your Culture",
+          text: "Go to your profile and look for the Cuisine Identity section. Select a cuisine, then choose how strongly you want it applied — Light (subtle influence), Balanced (recognizable style), or Authentic (full cultural identity with traditional spices and techniques).",
+        },
+        {
+          heading: "Why This Matters",
+          text: "Without this system, every user gets the same generic output. With it, your meals feel like yours — less guessing, more satisfaction, and food that fits the way you actually eat.",
         },
       ],
     },
@@ -1444,6 +1485,96 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
         {
           heading: "Tell Your Trainer or Doctor",
           text: "ProCare works best when your professional knows about it. Share the app with your trainer, physician, dietitian, or nutritionist — they can sign up, connect with you using an access code, and start managing your nutrition plan from their own professional workspace inside the app.",
+        },
+      ],
+    },
+  },
+  {
+    id: "sushi-creator",
+    title: "Sushi Creator",
+    subtitle: "Japanese-inspired sushi and bowls — macros tracked, goals respected",
+    icon: Fish,
+    content: {
+      sections: [
+        {
+          heading: "Why It Exists",
+          text: "Sushi is one of the most misunderstood foods in nutrition. It can be an incredibly clean, high-protein meal — or a hidden sugar and sodium bomb depending on how it's built. Sushi Creator gives you full control over every roll, nigiri, sashimi plate, or bowl so you know exactly what you're eating.",
+        },
+        {
+          heading: "The Moment",
+          text: "You want sushi — but you want to know it actually fits your macros. Or you want to recreate a restaurant favorite at home with better ingredients. This is built for both.",
+        },
+        {
+          heading: "How It Works",
+          text: "Describe the sushi you want, choose your style — roll, nigiri, sashimi, or sushi bowl — and the app builds a complete recipe with ingredients, preparation steps, and full nutritional breakdown. Every result is aligned with your dietary preferences and macro targets.",
+        },
+        {
+          heading: "Style Options",
+          list: [
+            "Roll — classic maki and specialty rolls",
+            "Nigiri — hand-pressed rice with fish or protein",
+            "Sashimi — clean protein slices, no rice",
+            "Sushi Bowl — deconstructed bowl with all the flavors",
+            "Chef's Choice — let the AI decide based on your goals",
+          ],
+        },
+        {
+          heading: "What It Respects",
+          list: [
+            "Your macro targets and calorie budget",
+            "Your dietary preferences and restrictions",
+            "SafetyGuard allergy protections",
+            "Health conditions and guardrails",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: ["Lifestyle → Cravings, Sushi & Desserts Hub → Sushi Creator"],
+        },
+      ],
+    },
+  },
+  {
+    id: "athlete-beverage-creator",
+    title: "Athlete Beverage Creator",
+    subtitle: "Performance drinks built for your training phase",
+    icon: Activity,
+    content: {
+      sections: [
+        {
+          heading: "Why It Exists",
+          text: "Most sports drinks are built for general audiences — not for your body, your training phase, or your actual performance goals. Athlete Beverage Creator builds performance drinks that are specific to how you train, when you train, and what you need to recover.",
+        },
+        {
+          heading: "The Moment",
+          text: "You're about to train, mid-workout, or recovering — and you want a drink that's actually built for that exact moment. Not a generic protein shake, but something calibrated to your phase and goals.",
+        },
+        {
+          heading: "How It Works",
+          text: "Describe what you need — a pre-workout energizer, an intra-workout hydration drink, a post-workout recovery shake, or anything performance-related. The app builds a custom beverage recipe with ingredients, preparation instructions, and a full nutritional breakdown aligned to your training goals.",
+        },
+        {
+          heading: "What It's Built For",
+          list: [
+            "Pre-workout — energy and focus without the crash",
+            "Intra-workout — hydration and electrolyte balance",
+            "Post-workout — recovery, protein synthesis, and replenishment",
+            "Endurance training — sustained fuel for long sessions",
+            "Strength and hypertrophy — protein and creatine-forward builds",
+          ],
+        },
+        {
+          heading: "What It Respects",
+          list: [
+            "Your macro targets and performance goals",
+            "Your dietary preferences and restrictions",
+            "SafetyGuard allergy protections",
+            "Your active training phase",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: ["Lifestyle → Beverage Creator Hub → Athlete Beverage Creator"],
         },
       ],
     },
