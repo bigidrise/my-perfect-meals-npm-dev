@@ -120,8 +120,7 @@ import { useCopilot } from "@/components/copilot/CopilotContext";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
-import { DietOverrideControl } from "@/components/ui/DietOverrideControl";
-import { CuisineOverrideControl } from "@/components/ui/CuisineOverrideControl";
+import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
@@ -853,17 +852,15 @@ export default function SushiCreator() {
                     />
                   </CardTitle>
                   <div className="mt-2 space-y-2">
-                    <DietOverrideControl
-                      overrideEnabled={dietOverrideEnabled}
-                      overrideDiet={dietOverrideValue}
-                      onToggle={setDietOverrideEnabled}
-                      onDietChange={setDietOverrideValue}
-                    />
-                    <CuisineOverrideControl
+                    <DietCuisineControlRow
                       savedCuisine={user?.cuisinePreference}
-                      overrideEnabled={cuisineOverrideEnabled}
-                      overrideCuisine={cuisineOverrideValue}
-                      onToggle={setCuisineOverrideEnabled}
+                      dietOverrideEnabled={dietOverrideEnabled}
+                      dietOverrideValue={dietOverrideValue}
+                      onDietToggle={setDietOverrideEnabled}
+                      onDietChange={setDietOverrideValue}
+                      cuisineOverrideEnabled={cuisineOverrideEnabled}
+                      cuisineOverrideValue={cuisineOverrideValue}
+                      onCuisineToggle={setCuisineOverrideEnabled}
                       onCuisineChange={setCuisineOverrideValue}
                     />
                   </div>

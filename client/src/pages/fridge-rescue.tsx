@@ -63,7 +63,7 @@ import { StarchGuardIntercept } from "@/components/StarchGuardIntercept";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet, filterMealsByDiet } from "@/utils/dietaryFilter";
 import { getEffectiveDietPreference } from "@/utils/getEffectiveDietPreference";
-import { DietOverrideControl } from "@/components/ui/DietOverrideControl";
+import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import MealClassificationPill from "@/components/MealClassificationPill";
 import KosherProTip from "@/components/KosherProTip";
@@ -82,7 +82,6 @@ import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
-import { CuisineOverrideControl } from "@/components/ui/CuisineOverrideControl";
 
 const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
   {
@@ -904,23 +903,20 @@ const FridgeRescuePage = () => {
                 />
 
                 {/* Diet & Cuisine Controls */}
-                <DietOverrideControl
-                  overrideEnabled={dietOverrideEnabled}
-                  overrideDiet={dietOverrideValue}
-                  onToggle={(enabled) => {
+                <DietCuisineControlRow
+                  savedCuisine={user?.cuisinePreference}
+                  dietOverrideEnabled={dietOverrideEnabled}
+                  dietOverrideValue={dietOverrideValue}
+                  onDietToggle={(enabled) => {
                     setDietOverrideEnabled(enabled);
                     if (!enabled) clearDietAlert();
                   }}
                   onDietChange={setDietOverrideValue}
-                  className="mt-1"
-                />
-                <CuisineOverrideControl
-                  savedCuisine={user?.cuisinePreference}
-                  overrideEnabled={cuisineOverrideEnabled}
-                  overrideCuisine={cuisineOverrideValue}
-                  onToggle={setCuisineOverrideEnabled}
+                  cuisineOverrideEnabled={cuisineOverrideEnabled}
+                  cuisineOverrideValue={cuisineOverrideValue}
+                  onCuisineToggle={setCuisineOverrideEnabled}
                   onCuisineChange={setCuisineOverrideValue}
-                  className="mt-2"
+                  className="mt-1"
                 />
 
                 <div>

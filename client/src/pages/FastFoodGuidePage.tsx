@@ -78,8 +78,7 @@ import {
 import { ChefHat } from "lucide-react";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
-import { DietOverrideControl } from "@/components/ui/DietOverrideControl";
-import { CuisineOverrideControl } from "@/components/ui/CuisineOverrideControl";
+import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 
 // Guided flow step type - step-by-step wizard
@@ -755,17 +754,15 @@ export default function FastFoodGuidePage() {
                       </button>
                     )}
                   </div>
-                  <DietOverrideControl
-                    overrideEnabled={dietOverrideEnabled}
-                    overrideDiet={dietOverrideValue}
-                    onToggle={setDietOverrideEnabled}
-                    onDietChange={setDietOverrideValue}
-                  />
-                  <CuisineOverrideControl
+                  <DietCuisineControlRow
                     savedCuisine={user?.cuisinePreference}
-                    overrideEnabled={cuisineOverrideEnabled}
-                    overrideCuisine={cuisineOverrideValue}
-                    onToggle={setCuisineOverrideEnabled}
+                    dietOverrideEnabled={dietOverrideEnabled}
+                    dietOverrideValue={dietOverrideValue}
+                    onDietToggle={setDietOverrideEnabled}
+                    onDietChange={setDietOverrideValue}
+                    cuisineOverrideEnabled={cuisineOverrideEnabled}
+                    cuisineOverrideValue={cuisineOverrideValue}
+                    onCuisineToggle={setCuisineOverrideEnabled}
                     onCuisineChange={setCuisineOverrideValue}
                   />
                   <Button

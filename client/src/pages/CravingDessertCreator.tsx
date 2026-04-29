@@ -55,8 +55,7 @@ import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
-import { CuisineOverrideControl } from "@/components/ui/CuisineOverrideControl";
-import { DietOverrideControl } from "@/components/ui/DietOverrideControl";
+import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 
 const DESSERT_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -868,17 +867,15 @@ export default function DessertCreator() {
               </div>
 
               {/* Diet & Cuisine Controls */}
-              <DietOverrideControl
-                overrideEnabled={dietOverrideEnabled}
-                overrideDiet={dietOverrideValue}
-                onToggle={setDietOverrideEnabled}
-                onDietChange={setDietOverrideValue}
-              />
-              <CuisineOverrideControl
+              <DietCuisineControlRow
                 savedCuisine={user?.cuisinePreference}
-                overrideEnabled={cuisineOverrideEnabled}
-                overrideCuisine={cuisineOverrideValue}
-                onToggle={setCuisineOverrideEnabled}
+                dietOverrideEnabled={dietOverrideEnabled}
+                dietOverrideValue={dietOverrideValue}
+                onDietToggle={setDietOverrideEnabled}
+                onDietChange={setDietOverrideValue}
+                cuisineOverrideEnabled={cuisineOverrideEnabled}
+                cuisineOverrideValue={cuisineOverrideValue}
+                onCuisineToggle={setCuisineOverrideEnabled}
                 onCuisineChange={setCuisineOverrideValue}
               />
 
