@@ -878,27 +878,29 @@ export default function DessertCreator() {
             <div className="space-y-6">
               <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl">
                 <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <Sparkles className="h-6 w-6 text-yellow-500" />
-                      <h3 className="text-xl font-bold text-white">
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="h-5 w-5 text-yellow-500 shrink-0" />
+                      <h3 className="text-xl font-bold text-white truncate leading-tight">
                         {generatedDessert.name}
                       </h3>
+                    </div>
+                    <div className="flex items-center justify-between">
                       <FavoriteButton
                         title={generatedDessert.name}
                         sourceType="dessert-creator"
                         mealData={generatedDessert}
                       />
+                      <button
+                        onClick={() => {
+                          setGeneratedDessert(null);
+                          localStorage.removeItem("mpm_dessert_creator_result");
+                        }}
+                        className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
+                      >
+                        Create New
+                      </button>
                     </div>
-                    <button
-                      onClick={() => {
-                        setGeneratedDessert(null);
-                        localStorage.removeItem("mpm_dessert_creator_result");
-                      }}
-                      className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
-                    >
-                      Create New
-                    </button>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 mb-3">
