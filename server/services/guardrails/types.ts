@@ -16,6 +16,7 @@ export type BuilderMode = 'lifestyle' | 'targeted' | 'hybrid';
 
 export type DietType = 
   | 'anti-inflammatory'
+  | 'oncology-support'
   | 'liver-support'
   | 'diabetic'
   | 'glp1'
