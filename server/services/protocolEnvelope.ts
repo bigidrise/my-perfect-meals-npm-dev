@@ -682,7 +682,18 @@ This is a hard stop — not a preference.`;
     layers.medicalHardLimits = `\n⚕️ MEDICAL HARD LIMITS (apply inside the dietary identity container):
 This user has: ${limitList}.
 Respect the medical constraints for these conditions while staying inside the dietary identity.
-Example: if diabetic + vegan, optimize carbs WITHIN vegan-safe foods only — never add animal products.`;
+Example: if diabetic + vegan, optimize carbs WITHIN vegan-safe foods only — never add animal products.
+
+CONSTRAINT ADAPTATION RULE (REQUIRED when cuisine preference is set):
+When a traditional cultural dish or ingredient conflicts with medical or dietary constraints, DO NOT abandon the cuisine. Adapt inside the cuisine using this sequence:
+1. Keep the dish archetype and core flavor profile (herbs, spices, sauces, preparation method).
+2. Replace ONLY the non-compliant components with culturally local compliant alternatives — not Western substitutes.
+3. Control glycemic load through portioning and fiber/protein pairing, not by removing the dish entirely.
+4. Preserve culturally plausible naming and plating — the meal must still feel like the cuisine.
+5. Only if NO compliant version of the dish exists, select a different authentic dish from the same cuisine — NEVER default to a Western alternative.
+
+For diabetic users specifically: treat high-GI cultural staples (rice, injera, rice noodles) as "portion-limited with fiber/protein pairing" before considering full removal. A smaller portion of injera paired with extra lentils and greens is correct. A "low-carb bowl" with no cultural identity is NOT correct.
+For vegan users: all substitutions must remain fully plant-based — no exceptions even when adapting for medical constraints.`;
   }
 
   // ── PROCEDURAL LAYER ──────────────────────────────────────────────────────
@@ -760,7 +771,7 @@ GENERATION RULES:
 - Do NOT start from a Western meal template and add cultural elements on top
 - Do NOT produce hybrid meals unless required by dietary or medical constraints
 - Prefer culturally authentic proteins, starches, and vegetables — avoid substituting culturally foreign ingredients (e.g., ground turkey in Cambodian food, quinoa in traditional cuisines) unless the user's diet/medical rules require it
-- If a conflict exists between cultural authenticity and dietary/medical/allergy constraints, safety and diet always win — but find the nearest culturally plausible compliant alternative, not the nearest Western alternative
+- If a conflict exists between cultural authenticity and dietary/medical/allergy constraints, safety and diet always win — but find the nearest culturally plausible compliant alternative, not the nearest Western alternative. Adapt the dish inside the cuisine: keep the flavor profile, adjust the components. Examples of correct adaptation: Vietnamese diabetic vegan → Gỏi Chay (tofu/herb salad with fish sauce substitute + lime) instead of pho with rice noodles; Ethiopian diabetic → smaller injera portion with extra Misir Wat and Gomen instead of a full injera platter; Japanese diabetic → half-portion rice with extra protein and seaweed instead of a full donburi. The meal must still feel like the cuisine to someone who grew up eating it.
 
 REJECTION RULE:
 If the meal you are about to generate resembles a Western template (scramble, wrap, sandwich, yogurt bowl, quinoa bowl, oatmeal) with minor cultural additions — DISCARD it and rebuild using the cultural framework above.
