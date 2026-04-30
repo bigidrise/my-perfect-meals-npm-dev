@@ -665,7 +665,7 @@ export default function DashboardNew() {
             <>
               {/* Card 1: Client Messages inbox */}
               <Card
-                className={`cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md relative ${proUnreadCount > 0 ? "border-2 border-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.55)] animate-pulse" : "border border-teal-500/30"}`}
+                className={`cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md relative ${proUnreadCount > 0 ? "border-2 border-orange-400 shadow-[0_0_0_3px_rgba(249,115,22,0.25),0_0_28px_rgba(249,115,22,0.8)]" : "border border-teal-500/30"}`}
                 onClick={() => setShowWorkspaceChooser(true)}
               >
                 <CardContent className="p-4">
@@ -694,7 +694,7 @@ export default function DashboardNew() {
               {/* Card 2: Provider Messages inbox — only for coaches who are also under a provider */}
               {hasProviderConnection && (
                 <Card
-                  className={`cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md relative ${providerHasUnread ? "border-2 border-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.55)] animate-pulse" : "border border-blue-500/30"}`}
+                  className={`cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md relative ${providerHasUnread ? "border-2 border-orange-400 shadow-[0_0_0_3px_rgba(249,115,22,0.25),0_0_28px_rgba(249,115,22,0.8)]" : "border border-blue-500/30"}`}
                   onClick={() => setProviderOpen(!providerOpen)}
                 >
                   <CardContent className="p-4">
@@ -723,7 +723,7 @@ export default function DashboardNew() {
             </>
           ) : isProCareClient ? (
             <Card
-              className={`cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md relative ${tabletHasUnread ? "border-2 border-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.55)] animate-pulse" : "border border-purple-500/30"}`}
+              className={`cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md relative ${tabletHasUnread ? "border-2 border-orange-400 shadow-[0_0_0_3px_rgba(249,115,22,0.25),0_0_28px_rgba(249,115,22,0.8)]" : "border border-purple-500/30"}`}
               onClick={() => setTabletOpen(!tabletOpen)}
             >
               <CardContent className="p-4">

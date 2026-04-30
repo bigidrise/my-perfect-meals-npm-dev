@@ -88,16 +88,70 @@ function getPrimaryMacro(ingredientName: string, nutrition: any): { macro: strin
  * - "8 oz yams"
  * - "1 tbsp olive oil"
  */
+const PROTEIN_KEYWORDS = [
+  'chicken', 'beef', 'steak', 'pork', 'fish', 'salmon', 'tuna', 'shrimp',
+  'turkey', 'lamb', 'duck', 'bacon', 'sausage', 'ham', 'tilapia', 'cod',
+  'halibut', 'ribeye', 'sirloin', 'filet', 'tenderloin', 'brisket',
+  'thigh', 'breast', 'drumstick', 'wing', 'ground beef', 'ground turkey',
+  'tofu', 'tempeh', 'seitan', 'lentil', 'chickpea',
+];
+
+function isProteinItem(name: string): boolean {
+  const lower = name.toLowerCase();
+  return PROTEIN_KEYWORDS.some(p => lower.includes(p));
+}
+
+function formatAmount(num: number): string {
+  if (num === 0) return '0';
+  const fractions: Record<number, string> = {
+    0.25: '1/4', 0.33: '1/3', 0.5: '1/2', 0.67: '2/3', 0.75: '3/4',
+  };
+  const whole = Math.floor(num);
+  const decimal = num - whole;
+  const rounded = Math.round(decimal * 100) / 100;
+  for (const [key, frac] of Object.entries(fractions)) {
+    if (Math.abs(rounded - parseFloat(key)) < 0.05) {
+      return whole > 0 ? `${whole} ${frac}` : frac;
+    }
+  }
+  if (decimal === 0) return whole.toString();
+  return num.toFixed(1).replace(/\.0$/, '');
+}
+
+function convertMetricToUS(rawAmount: string | number, rawUnit: string, itemName: string): { amount: string; unit: string } {
+  const lower = rawUnit.toLowerCase().trim();
+  const num = typeof rawAmount === 'number' ? rawAmount : parseFloat(String(rawAmount)) || 0;
+
+  if (lower === 'g' || lower === 'gram' || lower === 'grams') {
+    const oz = num * 0.035274;
+    if (oz >= 16) return { amount: formatAmount(oz / 16), unit: 'lb' };
+    return { amount: formatAmount(oz), unit: 'oz' };
+  }
+  if (lower === 'kg' || lower === 'kilogram' || lower === 'kilograms') {
+    const lb = num * 2.20462;
+    return { amount: formatAmount(lb), unit: 'lb' };
+  }
+  if (lower === 'ml' || lower === 'milliliter' || lower === 'milliliters') {
+    const floz = num * 0.033814;
+    if (floz >= 8) return { amount: formatAmount(floz / 8), unit: 'cup' };
+    return { amount: formatAmount(floz), unit: 'fl oz' };
+  }
+  if (lower === 'l' || lower === 'liter' || lower === 'liters') {
+    return { amount: formatAmount(num * 4.22675), unit: 'cup' };
+  }
+
+  return { amount: typeof rawAmount === 'number' ? formatAmount(rawAmount) : String(rawAmount), unit: rawUnit };
+}
+
 export function formatIngredientWithGrams(
   amount: string | number,
   unit: string,
   item: string
 ): string {
-  // Skip if no amount/unit
   if (!amount || !unit) {
     return `${amount || ''} ${unit || ''} ${item}`.trim();
   }
-  
-  // Return formatted ingredient without macro suffix
-  return `${amount} ${unit} ${item}`;
+
+  const { amount: displayAmount, unit: displayUnit } = convertMetricToUS(amount, unit, item);
+  return `${displayAmount} ${displayUnit} ${item}`;
 }

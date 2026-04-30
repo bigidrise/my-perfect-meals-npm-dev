@@ -85,6 +85,70 @@ function looksLikeIngredientList(name: string): boolean {
 }
 
 /**
+ * culturalNameTransform
+ *
+ * Post-generation name cleanup for cuisine-active meals.
+ * The AI tends to package culturally authentic dishes inside generic modern format
+ * labels ("Bowl", "Wrap") even when the ingredients and structure are correct.
+ * This strips those labels and removes the "-Style" suffix from cuisine prefixes.
+ *
+ * Applied after AI generation, only when a cuisinePreference is set.
+ *
+ * @param name    - Raw AI-generated meal name
+ * @param cuisine - The active cuisine preference (e.g. "Cambodian", "Ethiopian")
+ * @returns Name with generic format labels and "-Style" suffix removed
+ */
+// Compound dish names that legitimately contain a generic format word.
+// These must be preserved even in cuisine mode.
+const PROTECTED_COMPOUNDS = [
+  'poke bowl',
+  'buddha bowl',
+  'burrito bowl',   // Mexican — bowl IS the format for this specific dish
+];
+
+export function culturalNameTransform(name: string, cuisine?: string): string {
+  if (!name || !name.trim() || !cuisine) return name;
+
+  let result = name.trim();
+
+  // "Cambodian-Style …" → "Cambodian …"
+  result = result.replace(/-Style\b/gi, '');
+
+  // Strip generic format words ANYWHERE in the name when cuisine is active.
+  // Pattern: replace the word + surrounding spaces with a single space,
+  // then trim and normalise — so mid-string removals don't collapse words together.
+  // e.g. "Breakfast Rice Bowl with Chicken" → "Breakfast Rice with Chicken"
+  //      "Chicken Rice Bowl"                → "Chicken Rice"
+  const formatWords = [
+    { word: 'bowl',  pattern: /\s*\bbowl\b\s*/gi },
+    { word: 'wrap',  pattern: /\s*\bwrap\b\s*/gi },
+    { word: 'salad', pattern: /\s*\bsalad\b\s*/gi },
+  ];
+
+  const lowerResult = result.toLowerCase();
+
+  for (const { word, pattern } of formatWords) {
+    // Guard: don't strip if the word is part of a protected compound dish name
+    const isProtected = PROTECTED_COMPOUNDS.some(
+      compound => compound.includes(word) && lowerResult.includes(compound)
+    );
+    if (isProtected) continue;
+
+    // Replace with a single space so words on either side don't collide,
+    // then trim will clean up any leading/trailing space.
+    result = result.replace(pattern, ' ');
+  }
+
+  // "Balanced Plate" as a phrase
+  result = result.replace(/\bbalanced\s+plate\b/gi, '');
+
+  // Normalise whitespace created by removals
+  result = result.replace(/\s{2,}/g, ' ').trim();
+
+  return result || name.trim();
+}
+
+/**
  * normalizeMealName
  *
  * Converts ingredient-sounding meal names into proper dish names before image generation.

@@ -64,7 +64,7 @@ import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 import { macroAudit, macroAuditPrompt, macroAuditCache } from '../utils/macroAuditLogger';
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from './behavioralMemoryService';
 import { buildDishTypeHint, getSemanticFallback, buildStableCacheKey, generateMealImageUnified } from './mealImageGenerator';
-import { normalizeMealName } from './mealNameNormalizer';
+import { normalizeMealName, culturalNameTransform } from './mealNameNormalizer';
 import { mealImageCache } from '../db/schema/mealImageCache';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -699,9 +699,11 @@ Every ingredient MUST use a precise, measurable quantity:
 - Potatoes/yams: ALWAYS oz — e.g. "5 oz sweet potato" (NEVER "1 potato" or "each")
 - Rice/grains: cooked weight in oz — e.g. "4 oz cooked rice"
 - Eggs: MUST include size — e.g. "3 large eggs" (NEVER just "2 eggs")
+- Garlic: ALWAYS cloves — e.g. "4 cloves garlic" (NEVER "units", "each", "medium")
+- Onions / shallots: ALWAYS cup — e.g. "1 cup diced onion" (NEVER "1 medium onion")
 - Oils/sauces: tbsp or tsp — e.g. "1 tbsp olive oil"
 - Liquids: cup or fl oz — e.g. "8 fl oz almond milk"
-FORBIDDEN: "each", "piece", "serving", "handful"
+FORBIDDEN: "each", "piece", "serving", "handful", "unit", "units", "medium", "large", "small" as units
 
 CARB CLASSIFICATION RULES (CRITICAL):
 - starchyCarbs: Energy-dense carbs from rice, pasta, bread, potatoes, grains, beans, corn, peas
@@ -1114,6 +1116,47 @@ function buildKosherViolationHint(
 }
 
 /** Build the hierarchy-enforcing prompt for the variety engine */
+function buildCuisineGroundingBlock(cuisine: string): string {
+  return `\n🌍 CULTURAL GROUNDING — CUISINE OVERRIDE ACTIVE:
+Cuisine: ${cuisine}
+
+BEFORE GENERATING EACH OPTION, determine all four of the following:
+1. EATING PATTERN — What do people in ${cuisine} cuisine actually eat at the requested meal time? Do NOT default to Western breakfast/lunch/dinner patterns (no scrambles, oatmeal, wraps, sandwiches). Identify the real-world eating pattern for this culture.
+2. DISH FORMAT — What is the culturally appropriate dish structure? (e.g., rice bowl, soup, grilled plate, stir-fry, porridge, flatbread with sides) — must match how this cuisine is actually served.
+3. CORE INGREDIENT SET — What proteins, starches, and vegetables are typical in ${cuisine} cuisine? Prefer culturally authentic ingredients; only substitute when required by dietary/allergy constraints.
+4. FLAVOR SYSTEM — What defines the flavor architecture of this cuisine? Apply this flavor system — not a generic "exotic spice" approximation.
+
+GENERATION RULES:
+- Build each option ONLY from the cultural framework above
+- Do NOT take a Western meal template and add cultural elements on top
+- Prefer culturally authentic proteins, starches, and vegetables
+- If constraints require substitution, find the nearest culturally plausible compliant alternative — NEVER default to a Western substitute. Adapt the dish inside the cuisine: keep the flavor profile, adjust only the non-compliant components. Examples of correct adaptation: Vietnamese diabetic vegan → Gỏi Chay (tofu/herb salad with fish sauce substitute + lime) instead of pho; Ethiopian diabetic → smaller injera portion with extra Misir Wat and Gomen; Japanese diabetic → half-portion rice with extra protein and seaweed. The output must still feel like the cuisine to someone who grew up eating it.
+
+REJECTION RULE: If any option resembles a Western template (scramble, wrap, sandwich, yogurt bowl, quinoa bowl, oatmeal) with minor cultural additions — DISCARD it and rebuild from the cultural framework.
+
+STRUCTURAL ENFORCEMENT RULE: The dish format for each option MUST match a real, commonly consumed meal structure within ${cuisine} cuisine at the requested meal time. Do NOT assume a format common in nearby cuisines is automatically correct for ${cuisine}. Ask: do people in ${cuisine} actually eat this dish format at this meal time? If the answer is no or uncertain — REJECT the format and rebuild using a structure that is genuinely typical for ${cuisine} at this meal time.
+
+FORMAT AUTHENTICITY RULE: Do NOT default to globally generic formats such as "salad", "bowl", "wrap", or "balanced plate" unless those formats are clearly and commonly part of ${cuisine} cuisine specifically. These are universal AI fallbacks — they signal the AI is unsure and reached for a safe container instead of thinking culturally. If the format is globally common but not culturally specific to ${cuisine}, treat it as invalid and rebuild using a format distinctly found in ${cuisine} food traditions.
+
+INGREDIENT AUTHENTICITY RULE: Avoid generic "healthy" vegetables (broccoli, red bell pepper, kale, spinach, zucchini) UNLESS they are commonly used in ${cuisine} cuisine. These ingredients signal a generic health-food default. Prefer vegetables, herbs, proteins, and starches genuinely found in ${cuisine} home cooking. When in doubt, choose the more culturally specific ingredient.
+
+FLAVOR COMPLETENESS RULE: Ensure the core flavor components of ${cuisine} cuisine are present in the meal. Do NOT strip out foundational condiments, sauces, or seasoning agents in an attempt to "clean up" a dish — these are the flavor identity of the cuisine. Examples of non-negotiable flavor elements that MUST be included when the dish calls for them: Vietnamese dishes require fish sauce and citrus (lime); Japanese dishes require dashi, soy sauce, or mirin as appropriate; Ethiopian dishes require berbere and/or niter kibbeh; Cambodian dishes require fish sauce, lemongrass, and galangal; Mexican dishes require chiles and lime. If the dish you are generating traditionally includes these elements, they MUST appear in the ingredients — omitting them produces an inauthentic, flavorless version of the dish.
+
+DISH CONTEXT RULE: If referencing a known or named cultural dish (e.g., Amok, Pho, Injera, Rendang, Bobotie, Mole, etc.), that dish MUST be used in the correct cultural context — the meal type must match how that dish is typically consumed in ${cuisine} culture. Do NOT borrow a real cultural dish name and apply it to a different meal time or format (e.g., Amok is a Cambodian lunch/dinner dish, NOT a breakfast preparation). If a named dish does not genuinely fit the requested meal time, DO NOT use it — generate a different culturally appropriate meal instead.
+
+DISH COMPOSITION RULE: If a known or named cultural dish is being generated, preserve its traditional composition exactly. Do NOT modify core ingredients or add new primary components to satisfy fitness or nutritional goals (e.g., adding chicken breast to Firfir, adding quinoa to a traditional stew, adding lean protein to a dish that does not traditionally contain it). Nutritional goals MUST be achieved through portioning or the dish's existing ingredients only — NOT by altering the dish's fundamental identity. The dish must remain what it is, not what the AI decides it should be. Additionally, preserve the traditional protein type, cut, and preparation method exactly — this is a hard requirement, not a suggestion. Do NOT substitute bone-in cuts with boneless, do NOT swap traditional cuts for "lean" alternatives (e.g., chicken breast in place of bone-in thighs/drumsticks in Doro Wat), do NOT replace fatty or skin-on cuts with trimmed versions. The protein cut is part of the dish's cultural identity. If the dish traditionally uses bone-in chicken, you MUST use bone-in chicken — fitness goals do not override this.
+
+STRICT DISH EXECUTION RULE: When a known cultural dish is being generated (e.g., Firfir, Doro Wat, Pho, Rendang, Injera-based dish), generate it exactly as it is traditionally prepared. Do NOT modify it, reinterpret it, "enhance" it, or create a variation of it. Do NOT add new primary ingredients, create a wrap version, bowl version, or "twist." If the output deviates from the traditional form in any way — REJECT it and rebuild the dish exactly as it is known. Creativity is NOT permitted when executing a named traditional dish. Do NOT describe known cultural dishes using modern nutrition language — words like "healthy", "balanced", "nutritious", "light", "clean", or "twist" are BANNED when describing a named traditional dish. Present the dish as it is traditionally understood, not as a nutrition-app product. Do NOT assign Western meal-time labels (breakfast, lunch, dinner) to a dish unless that label is culturally accurate for how the dish is actually eaten in its cuisine of origin. Many traditional dishes are not meal-time-specific — do not force them into a Western eating structure.
+
+CUISINE BOUNDARY RULE: All ingredients, dishes, and preparations must originate from or be commonly used within ${cuisine} cuisine. Do NOT combine elements from different cuisines (e.g., Egyptian ful medames with Ethiopian injera, Japanese miso with Indian roti). Do NOT introduce globally common dishes unless they are also genuinely part of ${cuisine} cuisine specifically. If any component does not belong to the selected cuisine — REJECT and rebuild using only ingredients and preparations authentic to ${cuisine}.
+
+SERVING CONTEXT RULE: Meals must reflect how they are traditionally served and consumed in ${cuisine} cuisine. If a dish is typically served with a specific base or delivery medium, that element MUST be included — Doro Wat requires injera, sushi requires rice, tacos require tortillas. Do NOT reinterpret meals as generic "main + sides" if the cuisine does not follow that plating structure. Prefer authentic serving formats: shared platters, layered dishes, wrapped preparations, or communal formats as appropriate. If the serving structure is incomplete or wrong, reject and rebuild.
+
+DISH NAMING COMMITMENT RULE: When the generated meal clearly corresponds to a known or widely recognized dish within ${cuisine} cuisine, use the authentic dish name. Optionally include a short English descriptor in parentheses if helpful (e.g., "Gỏi Gà (Vietnamese Chicken Salad)", "Doro Wat (Ethiopian Chicken Stew) with Injera"). Do NOT default to generic descriptive names like "Herb Salad", "Flatbread Plate", or "Fish Rice Meal" when a specific dish identity is apparent. Commit to the real name. NEVER use hedging qualifiers such as "inspired", "style", "influenced", or "based" (e.g., "Ethiopian-Inspired Stew" is WRONG — if it is Doro Wat, name it Doro Wat).
+
+ALL 3 options must be authentically ${cuisine} preparations, with culturally correct formats, ingredients, AND flavor systems.\n`;
+}
+
 function buildVarietyPrompt(
   cravingInput: string,
   validMealType: string,
@@ -1124,7 +1167,8 @@ function buildVarietyPrompt(
   excludeClause: string,
   allergyBlock: string = '',
   strictMode: boolean = false,
-  avoidanceBlock: string = ''
+  avoidanceBlock: string = '',
+  cuisineGroundingBlock: string = ''
 ): string {
   const primaryDiet = getPrimaryDiet(dietRestrictions);
   const dietLine = primaryDiet
@@ -1138,7 +1182,7 @@ function buildVarietyPrompt(
     : `\nCATEGORY LOCK: This is a ${category.toUpperCase()} request. Stay within this food category.`;
 
   return `You are a precision chef AI. Your ONLY job is to generate 3 distinct variations of the same dish type.
-${allergyBlock ? allergyBlock + '\n' : ''}${avoidanceBlock ? avoidanceBlock + '\n' : ''}
+${allergyBlock ? allergyBlock + '\n' : ''}${avoidanceBlock ? avoidanceBlock + '\n' : ''}${cuisineGroundingBlock}
 ═══════════════════════════════════════
 HIERARCHY (follow in this EXACT order):
 ═══════════════════════════════════════
@@ -1186,7 +1230,7 @@ OUTPUT FORMAT — ONLY valid JSON, no markdown:
   ]
 }
 
-INGREDIENT MEASUREMENT RULES (NON-NEGOTIABLE): Use oz for proteins/potatoes/grains (e.g. "6 oz chicken", "5 oz sweet potato", "4 oz cooked rice"). Eggs must include size (e.g. "3 large eggs"). Oils use tbsp/tsp. Liquids use cup/fl oz. NEVER use "each", "piece", "serving", "handful", or metric units.
+INGREDIENT MEASUREMENT RULES (NON-NEGOTIABLE): Use oz for proteins/potatoes/grains (e.g. "6 oz chicken", "5 oz sweet potato", "4 oz cooked rice"). Garlic: always cloves (e.g. "4 cloves garlic"). Onions: always cup (e.g. "1 cup diced onion"). Eggs must include size (e.g. "3 large eggs"). Oils use tbsp/tsp. Liquids use cup/fl oz. NEVER use "each", "piece", "serving", "handful", "unit", "units", "medium", "large", "small" as units, or metric units.
 MEAL TYPE context: ${validMealType}
 ${strictMode ? `\n${buildStrictModeBlock(cravingInput)}` : ""}`;
 }
@@ -1201,7 +1245,8 @@ function buildRecipeVarietyPrompt(
   excludeClause: string,
   allergyBlock: string = '',
   strictMode: boolean = false,
-  avoidanceBlock: string = ''
+  avoidanceBlock: string = '',
+  cuisineGroundingBlock: string = ''
 ): string {
   const primaryDiet = getPrimaryDiet(dietRestrictions);
   const dietLine = primaryDiet
@@ -1209,7 +1254,7 @@ function buildRecipeVarietyPrompt(
     : `DIET: None set.`;
 
   return `You are a professional chef generating real-world recipes. Think like a cook, NOT a nutrition calculator.
-${allergyBlock ? '\n' + allergyBlock + '\n' : ''}${avoidanceBlock ? avoidanceBlock + '\n' : ''}
+${allergyBlock ? '\n' + allergyBlock + '\n' : ''}${avoidanceBlock ? avoidanceBlock + '\n' : ''}${cuisineGroundingBlock}
 ═══════════════════════════════════════
 RECIPE MODE — CULINARY-FIRST RULES:
 ═══════════════════════════════════════
@@ -1257,7 +1302,7 @@ OUTPUT FORMAT — ONLY valid JSON, no markdown:
   ]
 }
 
-INGREDIENT MEASUREMENT RULES (NON-NEGOTIABLE): Use oz for proteins/potatoes/grains (e.g. "6 oz chicken", "5 oz sweet potato", "4 oz cooked rice"). Eggs must include size (e.g. "3 large eggs"). Oils use tbsp/tsp. Liquids use cup/fl oz. NEVER use "each", "piece", "serving", "handful", or metric units.
+INGREDIENT MEASUREMENT RULES (NON-NEGOTIABLE): Use oz for proteins/potatoes/grains (e.g. "6 oz chicken", "5 oz sweet potato", "4 oz cooked rice"). Garlic: always cloves (e.g. "4 cloves garlic"). Onions: always cup (e.g. "1 cup diced onion"). Eggs must include size (e.g. "3 large eggs"). Oils use tbsp/tsp. Liquids use cup/fl oz. NEVER use "each", "piece", "serving", "handful", "unit", "units", "medium", "large", "small" as units, or metric units.
 CRITICAL SANITY CHECK: Before outputting, verify your ingredient counts are physically realistic for ${cravingInput}. A dozen rolls does not require 5 dozen eggs.
 MEAL TYPE context: ${validMealType}
 ${strictMode ? `\n${buildStrictModeBlock(cravingInput)}` : ""}`;
@@ -1339,7 +1384,8 @@ export async function generateCravingMealOptions(
   dietaryRestrictionsOverride?: string[],
   excludeMeals?: string[],
   strictMode: boolean = false,
-  generationMode: 'meal' | 'recipe' = 'meal'
+  generationMode: 'meal' | 'recipe' = 'meal',
+  cuisineOverride?: string
 ): Promise<UnifiedMeal[]> {
   const validMealType = normalizeMealType(mealType);
   const category = inferCravingCategory(cravingInput, validMealType);
@@ -1431,11 +1477,19 @@ export async function generateCravingMealOptions(
     console.log(`🍳 [RECIPE MODE] Using culinary-ratio prompt for "${cravingInput}"`);
   }
 
+  const cuisineGroundingBlock = cuisineOverride && cuisineOverride.trim()
+    ? buildCuisineGroundingBlock(cuisineOverride.trim())
+    : '';
+
+  if (cuisineGroundingBlock) {
+    console.log(`🌍 [VARIETY ENGINE] Cultural grounding active: ${cuisineOverride}`);
+  }
+
   /** One attempt at calling AI and parsing result */
   const attempt = async (stricterMode: boolean, violationHint?: string): Promise<any[]> => {
     const prompt = isRecipeMode
-      ? buildRecipeVarietyPrompt(cravingInput, validMealType, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock)
-      : buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock);
+      ? buildRecipeVarietyPrompt(cravingInput, validMealType, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock, cuisineGroundingBlock)
+      : buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock, cuisineGroundingBlock);
     const stricter = stricterMode
       ? `\n\nSECOND ATTEMPT — STRICT MODE: The previous response drifted from the dish family. You MUST generate 3 options that are clearly recognizable variations of "${dishFamily}". No exceptions.`
       : "";
@@ -1498,7 +1552,11 @@ export async function generateCravingMealOptions(
 
   const finalOptions = rawOptions.slice(0, 3);
   console.log(`✅ [VARIETY ENGINE] ${finalOptions.length} options: ${finalOptions.map((o: any) => o?.name).join(" | ")}`);
-  return finalOptions.map((opt, idx) => mapToUnifiedMeal(opt, idx, cravingInput, validMealType));
+  return finalOptions.map((opt, idx) => {
+    const meal = mapToUnifiedMeal(opt, idx, cravingInput, validMealType);
+    if (cuisineOverride) meal.name = culturalNameTransform(meal.name, cuisineOverride);
+    return meal;
+  });
 }
 
 /**
@@ -1617,23 +1675,33 @@ export async function generateFridgeRescueUnified(
   // Step 2: Use the REAL Fridge Rescue generator (OpenAI-powered, proven stable)
   // This is the same system that works perfectly on Fridge Rescue page
   console.log(`🧊 Unified Pipeline: Using Fridge Rescue AI generator for: ${fridgeItems.join(', ')}`);
+
+  // ── Load protocol envelope (same pattern as create-with-chef / craving / snack) ─
+  // Passes diet identity, medical rules, and cuisine preferences into the AI prompt.
+  const fridgeEnvelope = userId
+    ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+    : buildGuestEnvelope();
+  if (fridgeEnvelope.dietaryIdentity.length > 0) {
+    console.log(`🔒 [FRIDGE/Unified] Envelope loaded: identity=[${fridgeEnvelope.dietaryIdentity.join(',')}]`);
+  }
   
   try {
     const fridgeRescueMeals = await generateFridgeRescueMeals({
       fridgeItems,
-      macroTargets
+      macroTargets,
+      protocolEnvelope: fridgeEnvelope,
     });
     
-    // Convert to UnifiedMeal format
+    // Convert to UnifiedMeal format + normalize ingredients to US units
     const resultMeals: UnifiedMeal[] = fridgeRescueMeals.slice(0, count).map(meal => ({
       id: meal.id,
       name: meal.name,
       description: meal.description,
-      ingredients: meal.ingredients.map(ing => ({
+      ingredients: normalizeIngredients(meal.ingredients.map(ing => ({
         name: ing.name,
         quantity: String(ing.quantity),
         unit: ing.unit
-      })),
+      }))),
       instructions: meal.instructions,
       calories: meal.calories,
       protein: meal.protein,
@@ -1647,10 +1715,78 @@ export async function generateFridgeRescueUnified(
       medicalBadges: meal.medicalBadges || [],
       source: 'ai' as const
     }));
-    
+
+    // ── Dietary identity validation (Step 4) ────────────────────────────────────
+    // Reject and regenerate any meal that violates the user's diet (vegan, kosher, etc.)
+    // Mirrors the compliance loop already in create-with-chef and craving paths.
+    const fridgeDietIdentity: string[] = fridgeEnvelope.dietaryIdentity;
+    if (fridgeDietIdentity.length > 0 && resultMeals.length > 0) {
+      const cleanMeals: UnifiedMeal[] = [];
+      const violatingMeals: UnifiedMeal[] = [];
+      for (const meal of resultMeals) {
+        const mealText = [
+          meal.name,
+          ...((meal.ingredients as any[]).map((i: any) => i.name || ''))
+        ].join(' ');
+        const { violates, reasons } = violatesDietaryConstraints(mealText, fridgeDietIdentity);
+        if (violates) {
+          console.warn(`⚠️ [FRIDGE/Compliance] "${meal.name}" violates ${fridgeDietIdentity.join('|')}: [${reasons.join(', ')}] — regenerating`);
+          violatingMeals.push(meal);
+        } else {
+          cleanMeals.push(meal);
+        }
+      }
+      if (violatingMeals.length > 0) {
+        console.log(`🔄 [FRIDGE/Compliance] ${violatingMeals.length} violation(s) — running strict retry`);
+        try {
+          const retryMeals = await generateFridgeRescueMeals({
+            fridgeItems,
+            macroTargets,
+            protocolEnvelope: fridgeEnvelope,
+            strictMode: true,
+          });
+          const retryConverted: UnifiedMeal[] = retryMeals.slice(0, violatingMeals.length).map(meal => ({
+            id: meal.id,
+            name: meal.name,
+            description: meal.description,
+            ingredients: normalizeIngredients(meal.ingredients.map(ing => ({
+              name: ing.name,
+              quantity: String(ing.quantity),
+              unit: ing.unit
+            }))),
+            instructions: meal.instructions,
+            calories: meal.calories,
+            protein: meal.protein,
+            carbs: meal.carbs,
+            starchyCarbs: meal.starchyCarbs || 0,
+            fibrousCarbs: meal.fibrousCarbs || 0,
+            fat: meal.fat,
+            cookingTime: meal.cookingTime,
+            difficulty: meal.difficulty,
+            imageUrl: meal.imageUrl || getFallbackImage(validMealType),
+            medicalBadges: meal.medicalBadges || [],
+            source: 'ai' as const
+          }));
+          // Accept only clean retries; discard any that still violate
+          for (const retryMeal of retryConverted) {
+            const mealText = [retryMeal.name, ...((retryMeal.ingredients as any[]).map((i: any) => i.name || ''))].join(' ');
+            const { violates } = violatesDietaryConstraints(mealText, fridgeDietIdentity);
+            if (!violates) cleanMeals.push(retryMeal);
+            else console.warn(`⚠️ [FRIDGE/Compliance] Retry meal "${retryMeal.name}" still violates — discarded`);
+          }
+        } catch (retryErr) {
+          console.warn('[FRIDGE/Compliance] Strict retry failed:', retryErr);
+        }
+        // Replace resultMeals with only validated clean meals
+        resultMeals.length = 0;
+        resultMeals.push(...cleanMeals);
+        console.log(`✅ [FRIDGE/Compliance] ${resultMeals.length} clean meal(s) after validation`);
+      }
+    }
+
     console.log(`✅ Fridge Rescue AI generated ${resultMeals.length} complete meals`);
     
-    // Cache the results for future use
+    // Cache the results for future use (only cache clean meals)
     await cacheMeals(signature, resultMeals, validMealType, 'ai');
     
     return {
@@ -1867,12 +2003,16 @@ Every ingredient MUST use a precise, measurable quantity. No vague units. No gue
 - Potatoes / yams / sweet potatoes: ALWAYS oz — e.g. "5 oz sweet potato" (NEVER "1 potato" or "each")
 - Rice / grains / pasta: cooked weight in oz — e.g. "4 oz cooked jasmine rice"
 - Eggs: MUST include size — e.g. "3 large eggs" (NEVER just "2 eggs")
+- Garlic: ALWAYS cloves — e.g. "4 cloves garlic" (NEVER "units", "each", or "medium")
+- Onions / shallots: ALWAYS cup — e.g. "1 cup diced yellow onion" (NEVER "1 medium onion")
 - Dense vegetables (broccoli, asparagus, green beans): oz — e.g. "4 oz broccoli florets"
 - Leafy greens: cup — e.g. "3 cup mixed greens"
-- Light vegetables (peppers, zucchini, spinach): cup — e.g. "1 cup sliced zucchini"
+- Light vegetables (zucchini, spinach, peppers when sliced): cup — e.g. "1 cup sliced zucchini"
+- Whole peppers used as vessels (stuffed): whole — e.g. "4 whole bell peppers"
 - Oils / condiments / sauces: tbsp or tsp — e.g. "1 tbsp olive oil"
 - Liquids (milk, broth, beverages): cup or fl oz — e.g. "8 fl oz almond milk"
-FORBIDDEN UNITS — NEVER use: "each", "piece", "pieces", "serving", "servings", "handful"
+- Spices / seasonings: tsp — e.g. "1 tsp cumin"
+FORBIDDEN UNITS — NEVER use: "each", "piece", "pieces", "serving", "servings", "handful", "unit", "units", "medium", "large", "small" as a unit
 NEVER use grams (g), milliliters (ml), or any metric unit
 
 FORMAT: Return as JSON object:
@@ -1994,7 +2134,7 @@ Create the recipe for: "${description}"`;
       
       let tempMeal: UnifiedMeal = {
         id: `chef-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        name: mealData.name,
+        name: culturalNameTransform(mealData.name, chefEnvelope.cuisinePreference),
         description: mealData.description,
         ingredients: (mealData.ingredients || []).map((ing: any) => ({
           name: ing.name,
@@ -2303,13 +2443,15 @@ INGREDIENT MEASUREMENT RULES (NON-NEGOTIABLE):
 Every ingredient MUST use a precise, measurable quantity:
 - Proteins: ALWAYS oz — e.g. "4 oz turkey slices"
 - Eggs: MUST include size — e.g. "2 large eggs" (NEVER just "2 eggs")
+- Garlic: ALWAYS cloves — e.g. "2 cloves garlic" (NEVER "units", "each", "medium")
+- Onions / shallots: ALWAYS cup — e.g. "0.5 cup diced onion" (NEVER "1 medium onion")
 - Nuts/seeds: oz or tbsp — e.g. "1 oz almonds", "2 tbsp sunflower seeds"
-- Fruits: cup — e.g. "1 cup berries" (not "1 apple" — use "1 medium apple (5 oz)" if needed)
+- Fruits: cup or oz — e.g. "1 cup berries", "5 oz apple slices" (NEVER "1 apple")
 - Vegetables: cup — e.g. "1 cup carrot sticks"
 - Yogurt/dairy: cup or oz — e.g. "1 cup Greek yogurt"
 - Oils/dressings: tbsp or tsp — e.g. "1 tbsp almond butter"
 - Liquids: cup or fl oz — e.g. "8 fl oz almond milk"
-FORBIDDEN: "each", "piece", "serving", "handful" — NEVER use these units
+FORBIDDEN: "each", "piece", "serving", "handful", "unit", "units", "medium", "large", "small" as units
 
 FORMAT: Return as JSON object:
 {

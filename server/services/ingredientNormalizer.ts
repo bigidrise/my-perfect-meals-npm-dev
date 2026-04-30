@@ -37,6 +37,18 @@ const EGG_SIZE_PATTERN = /\b(large|medium|small|jumbo|extra-large|xl)\b/i;
 // Potato/yam keywords
 const POTATO_PATTERN = /\b(potato|potatoes|yam|yams|sweet potato|sweet potatoes)\b/i;
 
+// Onion / shallot / aromatic keywords — convert size-described counts to cup
+const ONION_PATTERN = /\b(onion|onions|shallot|shallots|leek|leeks)\b/i;
+
+// Garlic
+const GARLIC_PATTERN = /\bgarlic\b/i;
+
+// Bell pepper / whole vegetable that stays whole (stuffed context)
+const WHOLE_VEG_PATTERN = /\b(bell pepper|bell peppers|pepper|peppers)\b/i;
+
+// Size qualifier words — strip these from unit field
+const SIZE_UNIT_PATTERN = /^(medium|large|small|whole)$/i;
+
 // Vague unit set
 const VAGUE_UNITS = new Set(['serving', 'servings', 'handful', 'handfuls']);
 
@@ -137,8 +149,56 @@ function convertUnit(amount: number, unit: string, ingredientName: string): { am
     return { amount: formatAmount(amount * 4), unit: 'oz' };
   }
 
-  // "each" — only valid for small items; for potatoes/proteins convert to oz
+  // "unit"/"units" — forbidden by prompt rules; treat same as "each"
+  if (lowerUnit === 'unit' || lowerUnit === 'units') {
+    if (GARLIC_PATTERN.test(ingredientName)) {
+      return { amount: formatAmount(amount), unit: 'cloves' };
+    }
+    if (ONION_PATTERN.test(ingredientName)) {
+      // 1 medium onion ≈ 0.5 cup diced
+      return { amount: formatAmount(amount * 0.5), unit: 'cup' };
+    }
+    if (isProtein(ingredientName)) {
+      return { amount: formatAmount(amount * 6), unit: 'oz' };
+    }
+    if (isPotato(ingredientName)) {
+      return { amount: formatAmount(amount * 5), unit: 'oz' };
+    }
+    if (WHOLE_VEG_PATTERN.test(ingredientName)) {
+      return { amount: formatAmount(amount), unit: 'whole' };
+    }
+    return { amount: formatAmount(amount), unit: 'each' };
+  }
+
+  // "medium"/"large"/"small"/"whole" as the unit field — size descriptor leaked into unit
+  if (SIZE_UNIT_PATTERN.test(lowerUnit)) {
+    if (GARLIC_PATTERN.test(ingredientName)) {
+      return { amount: formatAmount(amount), unit: 'cloves' };
+    }
+    if (ONION_PATTERN.test(ingredientName)) {
+      return { amount: formatAmount(amount * 0.5), unit: 'cup' };
+    }
+    if (isProtein(ingredientName)) {
+      return { amount: formatAmount(amount * 6), unit: 'oz' };
+    }
+    if (isPotato(ingredientName)) {
+      return { amount: formatAmount(amount * 5), unit: 'oz' };
+    }
+    if (WHOLE_VEG_PATTERN.test(ingredientName)) {
+      return { amount: formatAmount(amount), unit: 'whole' };
+    }
+    return { amount: formatAmount(amount), unit: 'each' };
+  }
+
+  // "each" — route by ingredient type
   if (lowerUnit === 'each') {
+    if (GARLIC_PATTERN.test(ingredientName)) {
+      return { amount: formatAmount(amount), unit: 'cloves' };
+    }
+    if (ONION_PATTERN.test(ingredientName)) {
+      // 1 medium onion ≈ 0.5 cup diced
+      return { amount: formatAmount(amount * 0.5), unit: 'cup' };
+    }
     if (isProtein(ingredientName)) {
       return { amount: formatAmount(amount * 6), unit: 'oz' };
     }
@@ -146,7 +206,9 @@ function convertUnit(amount: number, unit: string, ingredientName: string): { am
       // 1 medium potato ≈ 5 oz
       return { amount: formatAmount(amount * 5), unit: 'oz' };
     }
-    // Leave "each" for legitimately countable small items (e.g. garlic cloves)
+    if (WHOLE_VEG_PATTERN.test(ingredientName)) {
+      return { amount: formatAmount(amount), unit: 'whole' };
+    }
     return { amount: formatAmount(amount), unit: 'each' };
   }
 
@@ -164,7 +226,7 @@ function convertUnit(amount: number, unit: string, ingredientName: string): { am
     return { amount: formatAmount(amount), unit: 'oz' };
   }
   
-  const validUnits = ['oz', 'lb', 'cup', 'cups', 'tbsp', 'tsp', 'fl oz'];
+  const validUnits = ['oz', 'lb', 'cup', 'cups', 'tbsp', 'tsp', 'fl oz', 'cloves', 'whole'];
   if (validUnits.includes(lowerUnit) || lowerUnit === 'tablespoon' || lowerUnit === 'teaspoon') {
     let normalizedUnit = lowerUnit;
     if (lowerUnit === 'cups') normalizedUnit = 'cup';
@@ -176,22 +238,32 @@ function convertUnit(amount: number, unit: string, ingredientName: string): { am
   return { amount: formatAmount(amount), unit: lowerUnit };
 }
 
+// Size words that should be stripped from ingredient names
+const NAME_SIZE_PREFIX = /\b(medium|large|small|extra large|xl)\s+/gi;
+
 /**
  * Layer 3 failsafe: normalize ingredient name for precision.
  * - Eggs missing size qualifier → prefix "large" to name
  * - Potatoes with "each" or no weight unit → handled in convertUnit
+ * - Size words in name (e.g. "medium yellow onion") → stripped to "yellow onion"
  */
 function normalizeName(name: string, unit: string): string {
-  const lowerUnit = unit.toLowerCase().trim();
-
   // Eggs: if name has no size qualifier, add "large" as default
   if (isEgg(name) && !hasEggSize(name)) {
-    // Insert "large" before "egg"/"eggs" in the name
     return name.replace(EGG_PATTERN, (match) =>
       match.toLowerCase().startsWith('eggs') || match.endsWith('s')
         ? 'large eggs'
         : 'large egg'
     );
+  }
+
+  // Strip leading size descriptors from non-egg ingredients
+  // "medium yellow onion" → "yellow onion", "large garlic cloves" → "garlic cloves"
+  if (!isEgg(name)) {
+    const stripped = name.replace(NAME_SIZE_PREFIX, '').trim();
+    if (stripped && stripped !== name) {
+      return stripped;
+    }
   }
 
   return name;

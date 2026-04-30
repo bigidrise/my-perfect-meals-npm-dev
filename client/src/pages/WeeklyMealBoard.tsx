@@ -30,6 +30,7 @@ import {
   cloneDayLists,
   updateMealImageInBoard,
   getMealImageUrl,
+  mergeImageUrlsOnly,
 } from "@/lib/boardApi";
 import { useChefMealImage } from "@/hooks/useChefMealImage";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
@@ -331,6 +332,13 @@ export default function WeeklyMealBoard() {
         return;
       }
       if (skipServerSync()) {
+        // Block full content sync — but still upgrade any expiring OpenAI temp URLs
+        // to permanent S3 URLs. This prevents "shimmer loop" when a subsequent save
+        // re-sends an expired temp URL and the server can no longer ingest it.
+        setBoard(prev => {
+          if (!prev) return prev;
+          return mergeImageUrlsOnly(prev, hookBoard);
+        });
         return;
       }
       if (!Object.is(boardRef.current, hookBoard)) {

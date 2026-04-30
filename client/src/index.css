@@ -1385,3 +1385,65 @@ button, a, [role="button"], .interactive {
     animation-duration: 2s !important;
   }
 }
+
+/* ============================================
+   ACCESSIBILITY: GLOBAL ANIMATION SUPPRESSION
+   Continuous pulsing/glowing borders are
+   disorienting for users with ADHD/ADD.
+   All ambient animation classes are silenced
+   here. Static glow values replace them so
+   buttons still look visually distinct.
+
+   To KEEP animate-pulse on a specific element,
+   add the `pulse-keep` class alongside it.
+   Reserved for: voice recording, copilot audio,
+   loading skeletons, and critical medical alerts.
+   ============================================ */
+
+/* ── Tailwind animate-pulse ── */
+.animate-pulse:not(.pulse-keep) {
+  animation: none !important;
+}
+.animate-pulse.pulse-keep {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+}
+
+/* ── flash-border (aiButtonPulse) ── */
+/* Freeze at a static mid-glow — no movement */
+.flash-border {
+  animation: none !important;
+  box-shadow: 0 0 10px 3px rgba(249, 115, 22, 0.28);
+  border-color: rgba(249, 115, 22, 0.55);
+}
+
+/* ── Pill button inactive glow (pill-pulse) ── */
+/* Freeze at soft base state */
+.animate-pill-pulse {
+  animation: none !important;
+  box-shadow: 0 0 6px 2px var(--pill-glow-soft, rgba(234, 179, 8, 0.2));
+  border-color: var(--pill-border-low, rgba(250, 204, 21, 0.45));
+}
+
+/* ── Active pill button glow variants ── */
+/* Freeze at a visible but calm static glow */
+.animate-pulse-glow-green {
+  animation: none !important;
+  box-shadow: 0 0 10px 3px rgba(52, 211, 153, 0.5), 0 0 18px 5px rgba(16, 185, 129, 0.25);
+  border-color: rgba(110, 231, 183, 0.85);
+}
+.animate-pulse-glow-amber {
+  animation: none !important;
+  box-shadow: 0 0 10px 3px rgba(245, 158, 11, 0.5), 0 0 18px 5px rgba(217, 119, 6, 0.25);
+  border-color: rgba(251, 191, 36, 0.85);
+}
+.animate-pulse-glow-orange {
+  animation: none !important;
+  box-shadow: 0 0 12px 4px rgba(249, 115, 22, 0.45), 0 0 22px 7px rgba(234, 88, 12, 0.2);
+  border-color: rgba(251, 146, 60, 0.85);
+}
+.animate-pulse-glow-blue {
+  animation: none !important;
+  box-shadow: 0 0 10px 3px rgba(59, 130, 246, 0.45), 0 0 18px 5px rgba(37, 99, 235, 0.2);
+  border-color: rgba(96, 165, 250, 0.85);
+}
+

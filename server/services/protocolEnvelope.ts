@@ -682,7 +682,34 @@ This is a hard stop — not a preference.`;
     layers.medicalHardLimits = `\n⚕️ MEDICAL HARD LIMITS (apply inside the dietary identity container):
 This user has: ${limitList}.
 Respect the medical constraints for these conditions while staying inside the dietary identity.
-Example: if diabetic + vegan, optimize carbs WITHIN vegan-safe foods only — never add animal products.`;
+Example: if diabetic + vegan, optimize carbs WITHIN vegan-safe foods only — never add animal products.
+
+MULTI-CONSTRAINT ADAPTATION RULE (REQUIRED — enforces the exact priority hierarchy):
+When multiple constraints are present (medical condition + diet identity + cultural cuisine), resolve them in this exact order:
+  1. MEDICAL SAFETY FIRST — diabetic carb control, renal limits, GLP-1 considerations, cardiac, oncology, allergies. These are not suggestions. They cannot be overridden.
+  2. DIET IDENTITY SECOND — vegan, vegetarian, pescatarian, kosher, halal. These must not be broken under any circumstance, including medical adaptation.
+  3. CULTURAL CUISINE THIRD — Korean, Vietnamese, Ethiopian, Cambodian, Japanese, Mexican. Preserve the cultural dish structure and flavor system inside layers 1 and 2.
+  4. PREFERENCE LAST — spice level, taste, simple meals, favorite foods.
+
+When conflicts occur between cultural authenticity and constraints 1 or 2:
+  - Keep the original cultural dish archetype and core flavor profile
+  - Replace or adjust ONLY the non-compliant components — using culturally local alternatives, not Western substitutes
+  - Control glycemic load through portioning and fiber/protein pairing, not by eliminating the dish
+  - Do NOT default to Western meals or generic "healthy bowls" — this is always wrong
+  - Do NOT eliminate culturally essential staples — instead reduce portions or balance them with protein/fiber
+
+If a traditional dish absolutely cannot be safely adapted within all constraints:
+  → Select a different authentic dish from that same cuisine that satisfies all constraints
+  → NEVER default to a Western alternative
+
+CULTURAL STAPLE CARB RULE: For staple carbohydrates tied to a cuisine (rice, injera, rice noodles, tortillas, bread):
+  - Allow in controlled portions — do NOT hard-ban them for diabetic users
+  - Pair with protein, fiber, or fat to reduce glycemic impact
+  - Ensure total meal carbs stay within the diabetic limit
+  - Prefer lower-glycemic preparation when possible (e.g., cooled rice has lower GI than hot)
+  - A smaller injera portion with extra lentils and greens is CORRECT. A "low-carb bowl" replacing the entire cultural base is NOT.
+
+For vegan users: all adaptations must remain fully plant-based — no exceptions even when adapting for medical constraints.`;
   }
 
   // ── PROCEDURAL LAYER ──────────────────────────────────────────────────────
@@ -736,21 +763,69 @@ The user has marked these as foods they do not eat: ${avoidList}
 When possible, incorporate: ${prefList}.`;
   }
 
-  // ── CUISINE IDENTITY (stylistic layer — below all safety/diet tiers) ───────
+  // ── CUISINE CULTURAL GROUNDING (culture-first generation — below all safety/diet tiers) ───
   if (envelope.cuisinePreference) {
     const intensity = envelope.cuisineIntensity ?? "balanced";
-    const intensityMap: Record<string, string> = {
-      light: "subtle influence — use familiar flavors and mild spice signatures from this cuisine without full authenticity",
-      balanced: "recognizable style — apply characteristic spices, ingredients, and techniques while remaining approachable",
-      authentic: "full cultural identity — use traditional spices, cooking techniques, and authentic flavor profiles",
+    const intensityDepth: Record<string, string> = {
+      light: "Apply subtle cultural influence — use recognizable flavors and mild spice signatures from this cuisine. Some familiar formats are acceptable but should lean toward cultural patterns.",
+      balanced: "Apply full cultural structure — meal format, ingredients, and flavor system must reflect how people in this cuisine actually eat. Avoid Western defaults.",
+      authentic: "Apply strict cultural authenticity — every element (dish format, proteins, starches, vegetables, seasoning) must be drawn from this cuisine's real food traditions. No Western templates.",
     };
-    const intensityInstruction = intensityMap[intensity] || intensityMap["balanced"];
-    layers.preferences = (layers.preferences || "") + `\n\n🌍 CUISINE IDENTITY (stylistic guide — never overrides diet, allergy, or medical rules):
-Primary cuisine: ${envelope.cuisinePreference}
-Intensity: ${intensity} — ${intensityInstruction}
-- Use authentic flavor profiles, spices, and cooking techniques from ${envelope.cuisinePreference} cuisine as the primary stylistic anchor
-- If a traditional ${envelope.cuisinePreference} ingredient conflicts with dietary/medical constraints, substitute with a compliant alternative — NEVER reject the dish
-- Maintain full compliance with all dietary restrictions, allergies, and medical rules above`;
+    const depthInstruction = intensityDepth[intensity] || intensityDepth["balanced"];
+    layers.preferences = (layers.preferences || "") + `\n\n🌍 CULTURAL GROUNDING — REQUIRED (never overrides diet, allergy, or medical rules):
+Cuisine: ${envelope.cuisinePreference}
+Intensity: ${intensity} — ${depthInstruction}
+
+BEFORE GENERATING THE MEAL, internally determine all four of the following:
+1. EATING PATTERN — What do people in ${envelope.cuisinePreference} cuisine actually eat at the requested meal time? Do NOT assume Western breakfast/lunch/dinner patterns. Identify the real-world eating pattern for this culture (e.g., rice porridge for breakfast, noodle soup, grilled meat with rice — not scrambled eggs or oatmeal).
+2. DISH FORMAT — What is the culturally appropriate dish structure? (e.g., bowl, soup, grilled plate, stir-fry, wrapped dish, porridge, flatbread with sides) — the format must match how this cuisine is typically served, not a generic Western container.
+3. CORE INGREDIENT SET — What proteins, starches, and vegetables are commonly used in ${envelope.cuisinePreference} cuisine? Prefer culturally authentic ingredients. Only substitute when required by dietary, allergy, or medical constraints.
+4. FLAVOR SYSTEM — What defines the flavor architecture of this cuisine? (e.g., fish sauce + lime + palm sugar + garlic for Southeast Asian; miso + dashi + soy for Japanese; berbere + niter kibbeh for Ethiopian) Apply this flavor system, not a generic "exotic spice" approximation.
+
+GENERATION RULES:
+- Build the meal ONLY from the cultural framework determined above
+- Do NOT start from a Western meal template and add cultural elements on top
+- Do NOT produce hybrid meals unless required by dietary or medical constraints
+- Prefer culturally authentic proteins, starches, and vegetables — avoid substituting culturally foreign ingredients (e.g., ground turkey in Cambodian food, quinoa in traditional cuisines) unless the user's diet/medical rules require it
+- If a conflict exists between cultural authenticity and dietary/medical/allergy constraints, safety and diet always win — but find the nearest culturally plausible compliant alternative, not the nearest Western alternative. Adapt the dish inside the cuisine: keep the flavor profile, adjust the components. Examples of correct adaptation: Vietnamese diabetic vegan → Gỏi Chay (tofu/herb salad with fish sauce substitute + lime) instead of pho with rice noodles; Ethiopian diabetic → smaller injera portion with extra Misir Wat and Gomen instead of a full injera platter; Japanese diabetic → half-portion rice with extra protein and seaweed instead of a full donburi. The meal must still feel like the cuisine to someone who grew up eating it.
+
+REJECTION RULE:
+If the meal you are about to generate resembles a Western template (scramble, wrap, sandwich, yogurt bowl, quinoa bowl, oatmeal) with minor cultural additions — DISCARD it and rebuild using the cultural framework above.
+
+STRUCTURAL ENFORCEMENT RULE:
+The dish format MUST match a real, commonly consumed meal structure within ${envelope.cuisinePreference} cuisine at the requested meal time. Do NOT assume that a format common in other cuisines (e.g., stir-fry for Southeast Asian breakfast, congee for all East Asian cuisines, curry for all South Asian cuisines) is automatically correct for this specific cuisine. Ask: do people in ${envelope.cuisinePreference} actually eat this dish format at this meal time? If the answer is no or uncertain — REJECT the format and rebuild using a structure that is genuinely typical for this cuisine and meal time.
+
+FORMAT AUTHENTICITY RULE:
+Do NOT default to globally generic formats such as "salad", "bowl", "wrap", or "balanced plate" unless those formats are clearly and commonly part of ${envelope.cuisinePreference} cuisine specifically. These formats are universal AI fallbacks — they signal that the AI is unsure and chose a safe container instead of thinking culturally. If the format you are considering is globally common but not culturally specific to ${envelope.cuisinePreference}, treat it as invalid and rebuild using a format that is distinctly and commonly found in that cuisine's real food traditions.
+
+INGREDIENT AUTHENTICITY RULE:
+Avoid generic "healthy" vegetables (e.g., broccoli, red bell pepper, kale, spinach, zucchini) UNLESS they are commonly used in ${envelope.cuisinePreference} cuisine. These ingredients signal that the AI defaulted to a generic health-food template instead of thinking culturally. Prefer vegetables, herbs, proteins, and starches that are genuinely and commonly found in ${envelope.cuisinePreference} home cooking and restaurants. When in doubt, choose the more culturally specific ingredient over the generically "healthy" one.
+
+FLAVOR COMPLETENESS RULE:
+Ensure the core flavor components of ${envelope.cuisinePreference} cuisine are present in the meal. Do NOT strip out foundational condiments, sauces, or seasoning agents in an attempt to "clean up" a dish — these are the flavor identity of the cuisine. Examples of non-negotiable flavor elements that MUST be included when the dish calls for them: Vietnamese dishes require fish sauce and citrus (lime); Japanese dishes require dashi, soy sauce, or mirin as appropriate; Ethiopian dishes require berbere and/or niter kibbeh; Cambodian dishes require fish sauce, lemongrass, and galangal; Mexican dishes require chiles and lime. If the dish you are generating traditionally includes these elements, they MUST appear in the ingredients — omitting them produces an inauthentic, flavorless version of the dish.
+
+DISH CONTEXT RULE:
+If referencing a known or named cultural dish (e.g., Amok, Pho, Injera, Rendang, Bobotie, Mole, etc.), that dish MUST be used in the correct cultural context: (a) the meal type must match how that dish is typically consumed in ${envelope.cuisinePreference} culture, and (b) the format and ingredients must match how that dish is actually prepared. Do NOT borrow a real cultural dish name and apply it to a different meal time or format — for example, Amok is a Cambodian steamed curry eaten at lunch or dinner, NOT a breakfast dish. If a known dish does not fit the requested meal time or context, DO NOT use it. Generate a different culturally appropriate meal that genuinely fits the meal time instead.
+
+DISH COMPOSITION RULE:
+If a known or named cultural dish is being generated, preserve its traditional composition exactly. Do NOT modify core ingredients or add new primary components to satisfy fitness or nutritional goals (e.g., adding chicken breast to Firfir, adding quinoa to a traditional stew, adding lean protein to a dish that does not traditionally contain it). Nutritional goals MUST be achieved through portioning or the dish's existing ingredients only — NOT by altering the dish's fundamental identity. The dish must remain what it is, not what the AI decides it should be.
+Additionally, preserve the traditional protein type, cut, and preparation method exactly — this is a hard requirement, not a suggestion. Do NOT substitute bone-in cuts with boneless, do NOT swap traditional cuts for "lean" alternatives (e.g., chicken breast in place of bone-in thighs/drumsticks in Doro Wat), do NOT replace fatty or skin-on cuts with trimmed versions. The protein cut is part of the dish's cultural identity. If the dish traditionally uses bone-in chicken, you MUST use bone-in chicken — fitness goals do not override this.
+
+STRICT DISH EXECUTION RULE:
+When a known cultural dish is being generated (e.g., Firfir, Doro Wat, Pho, Rendang, Injera-based dish), generate it exactly as it is traditionally prepared. Do NOT modify it, reinterpret it, "enhance" it, or create a variation of it. Do NOT add new primary ingredients, create a wrap version, bowl version, or "twist." If the output deviates from the traditional form in any way — REJECT it and rebuild the dish exactly as it is known. Creativity is NOT permitted when executing a named traditional dish.
+Do NOT describe known cultural dishes using modern nutrition language — words like "healthy", "balanced", "nutritious", "light", "clean", or "twist" are BANNED when describing a named traditional dish. Present the dish as it is traditionally understood, not as a nutrition-app product.
+Do NOT assign Western meal-time labels (breakfast, lunch, dinner) to a dish unless that label is culturally accurate for how the dish is actually eaten in its cuisine of origin. Many traditional dishes are not meal-time-specific — do not force them into a Western eating structure.
+
+CUISINE BOUNDARY RULE:
+All ingredients, dishes, and preparations must originate from or be commonly used within ${envelope.cuisinePreference} cuisine. Do NOT combine elements from different cuisines (e.g., Egyptian ful medames with Ethiopian injera, Japanese miso with Indian roti). Do NOT introduce globally common dishes unless they are also genuinely part of ${envelope.cuisinePreference} cuisine specifically. If any component does not belong to the selected cuisine — REJECT and rebuild using only ingredients and preparations authentic to ${envelope.cuisinePreference}.
+
+SERVING CONTEXT RULE:
+Meals must reflect how they are traditionally served and consumed in ${envelope.cuisinePreference} cuisine. If a dish is typically served with a specific base or delivery medium, that element MUST be included — for example, Doro Wat requires injera (not "vegetable sides"), sushi requires rice, tacos require tortillas. Do NOT reinterpret meals as generic "main + sides" if the cuisine does not follow that plating structure. Prefer authentic serving formats: shared platters, layered dishes, wrapped preparations, or communal formats as appropriate for the cuisine. If the serving structure is incomplete or wrong, reject and rebuild.
+
+DISH NAMING COMMITMENT RULE:
+When the generated meal clearly corresponds to a known or widely recognized dish within ${envelope.cuisinePreference} cuisine, use the authentic dish name. Optionally include a short English descriptor in parentheses if helpful for clarity (e.g., "Gỏi Gà (Vietnamese Chicken Salad)", "Doro Wat (Ethiopian Chicken Stew) with Injera"). Do NOT default to generic descriptive names like "Herb Salad", "Flatbread Plate", or "Fish Rice Meal" when a specific dish identity is apparent. Commit to the real name. NEVER use hedging qualifiers such as "inspired", "style", "influenced", or "based" (e.g., "Ethiopian-Inspired Stew" is WRONG — if it is Doro Wat, name it Doro Wat).
+
+SELF-CHECK before responding: Verify the meal reflects at least 3 of these authentic signals — (a) culturally appropriate dish format for this cuisine AND this meal time, (b) culturally typical protein or starch (not a generic fitness substitute), (c) culturally authentic vegetables or herbs (not generic health vegetables), (d) correct flavor system for this cuisine. If fewer than 3 signals are present, revise before returning.`;
   }
 
   const combined = [

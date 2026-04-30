@@ -112,7 +112,7 @@ export default function HealthBadgePopup({
                 data-testid={`badge-row-${item.key}`}
               >
                 <span
-                  className={`inline-flex h-2 w-2 rounded-full ${isCritical(item.key) ? "bg-red-400 animate-pulse" : "bg-yellow-400"} mt-1.5 flex-shrink-0`}
+                  className={`inline-flex h-2 w-2 rounded-full ${isCritical(item.key) ? "bg-red-400 animate-pulse pulse-keep" : "bg-yellow-400"} mt-1.5 flex-shrink-0`}
                 />
                 <div>
                   <div

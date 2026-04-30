@@ -81,31 +81,49 @@ export default function DisclaimerModal({ onAccept }: DisclaimerModalProps) {
               </h3>
 
               <p className="text-blue-700">
-                My Perfect Meals is designed to work like a real nutrition coach.
+                My Perfect Meals is designed to work like a real nutrition coach — one that
+                understands your medical reality, respects your lifestyle, and honors your culture.
               </p>
 
               <p className="text-blue-700 mt-2">
-                During setup we’ll ask a few questions about your goals, eating habits,
-                lifestyle, and any health considerations that may affect how you should eat.
-                This information allows the system to calculate your personal nutrition
-                targets and guide your food decisions.
+                During setup we ask about your goals, eating habits, health considerations, and
+                cultural food preferences. This lets the system calculate your personal nutrition
+                targets and generate meals that are right for you — not just generically healthy.
               </p>
 
-              <p className="text-blue-700 mt-2">
-                For people managing real health concerns such as diabetes, inflammation,
-                digestive sensitivities, or other dietary restrictions, the system includes
-                built-in guardrails designed to help filter and guide food choices more
-                responsibly.
+              <p className="text-blue-700 mt-3 font-semibold">
+                The AI resolves every meal in this exact priority order:
               </p>
 
-              <p className="text-blue-700 mt-2">
-                Instead of simply logging food after you eat it, My Perfect Meals helps guide
-                what to eat before you eat it.
+              <ol className="mt-2 space-y-2 text-blue-700 text-sm list-none pl-0">
+                <li className="flex items-start gap-2">
+                  <span className="font-bold text-blue-900 min-w-[20px]">1.</span>
+                  <span><strong>Medical safety</strong> — Diabetes, renal, cardiac, GLP-1, oncology, and allergies are enforced first. These are not suggestions.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-bold text-blue-900 min-w-[20px]">2.</span>
+                  <span><strong>Diet identity</strong> — Vegan, vegetarian, pescatarian, kosher, halal. These are never broken, even when adapting for medical needs.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-bold text-blue-900 min-w-[20px]">3.</span>
+                  <span><strong>Cultural cuisine</strong> — Korean, Vietnamese, Ethiopian, Japanese, Mexican, and more. The system preserves your cultural dish structure and flavor identity inside your medical and diet rules — not by replacing your food with Western alternatives.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-bold text-blue-900 min-w-[20px]">4.</span>
+                  <span><strong>Personal preference</strong> — Spice level, taste, simple meals, and favorites are honored last.</span>
+                </li>
+              </ol>
+
+              <p className="text-blue-700 mt-3">
+                This means a diabetic Vietnamese vegan user does not get a generic low-carb bowl.
+                They get something closer to Goi Chay — a real Vietnamese herb salad with tofu,
+                cabbage, and lime — with glucose-safe portions. An Ethiopian diabetic user does
+                not lose injera. They get a controlled injera portion paired with extra lentils and greens.
               </p>
 
               <p className="text-blue-700 mt-2 font-medium">
-                Think of it as a nutrition coach in your pocket helping you make smarter food
-                decisions wherever you eat.
+                My Perfect Meals is the AI coach in your pocket — one that protects your body,
+                respects your diet, and never asks you to abandon your culture.
               </p>
 
             </div>

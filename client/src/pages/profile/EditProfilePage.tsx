@@ -256,7 +256,7 @@ export default function EditProfilePage() {
     Array.isArray((user as any)?.avoidedFoods) ? (user as any).avoidedFoods : []
   );
   const [avoidedFoodInput, setAvoidedFoodInput] = useState("");
-  const CUISINE_PILLS = ["American", "Mexican", "Italian", "Indian", "Chinese", "Japanese", "Mediterranean", "Thai", "Korean", "Middle Eastern"];
+  const CUISINE_PILLS = ["American", "Soul Food", "Mexican", "Italian", "Indian", "Chinese", "Japanese", "Mediterranean", "Thai", "Korean", "Middle Eastern"];
   const [customCuisineInput, setCustomCuisineInput] = useState(
     CUISINE_PILLS.map(c => c.toLowerCase()).includes((form.cuisinePreference || "").toLowerCase())
       ? ""
@@ -593,7 +593,14 @@ export default function EditProfilePage() {
                 />
               </div>
 
-              <div className="flex gap-2 pt-3">
+              <div className="space-y-2 pt-3">
+                <Button
+                  className="w-full bg-zinc-700 text-white"
+                  disabled={!canContinueStep1 || saving}
+                  onClick={handleSave}
+                >
+                  {saving ? "Saving..." : "Save & Exit"}
+                </Button>
                 <Button
                   className="w-full bg-lime-600 text-white"
                   disabled={!canContinueStep1}
@@ -697,21 +704,30 @@ export default function EditProfilePage() {
                 )}
               </div>
 
-              <div className="flex gap-2 pt-3">
+              <div className="space-y-2 pt-3">
                 <Button
-                  variant="outline"
-                  className="w-1/2 bg-black text-white"
-                  onClick={() => setStep(1)}
+                  className="w-full bg-zinc-700 text-white"
+                  disabled={saving}
+                  onClick={handleSave}
                 >
-                  Back
+                  {saving ? "Saving..." : "Save & Exit"}
                 </Button>
-                <Button
-                  className="flex-1 bg-lime-600 text-white"
-                  disabled={!canContinueStep2}
-                  onClick={() => setStep(3)}
-                >
-                  Continue
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 bg-black text-white"
+                    onClick={() => setStep(1)}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    className="flex-1 bg-lime-600 text-white"
+                    disabled={!canContinueStep2}
+                    onClick={() => setStep(3)}
+                  >
+                    Continue
+                  </Button>
+                </div>
               </div>
             </div>
           </StepShell>
@@ -1197,21 +1213,30 @@ export default function EditProfilePage() {
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-3">
+              <div className="space-y-2 pt-3">
                 <Button
-                  variant="outline"
-                  className="flex-1 bg-black text-white"
-                  onClick={() => setStep(2)}
+                  className="w-full bg-zinc-700 text-white"
+                  disabled={saving}
+                  onClick={handleSave}
                 >
-                  Back
+                  {saving ? "Saving..." : "Save & Exit"}
                 </Button>
-                <Button
-                  className="flex-1 bg-lime-600 text-white"
-                  disabled={!canContinueStep3}
-                  onClick={() => setStep(4)}
-                >
-                  Continue
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 bg-black text-white"
+                    onClick={() => setStep(2)}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    className="flex-1 bg-lime-600 text-white"
+                    disabled={!canContinueStep3}
+                    onClick={() => setStep(4)}
+                  >
+                    Continue
+                  </Button>
+                </div>
               </div>
             </div>
           </StepShell>
@@ -1348,17 +1373,10 @@ export default function EditProfilePage() {
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-3">
+              <div className="space-y-2 pt-3">
                 <Button
-                  variant="outline"
-                  className="flex-1 bg-black text-white"
-                  onClick={() => setStep(3)}
-                >
-                  Back
-                </Button>
-                <Button
-                  className="flex-1 bg-lime-600 text-white"
-                  disabled={glycemicSaving}
+                  className="w-full bg-zinc-700 text-white"
+                  disabled={saving || glycemicSaving}
                   onClick={async () => {
                     await saveGlycemic({
                       ...glycemicData,
@@ -1366,11 +1384,35 @@ export default function EditProfilePage() {
                       midRangeCarbs,
                       highRangeCarbs,
                     });
-                    setStep(5);
+                    await handleSave();
                   }}
                 >
-                  {glycemicSaving ? "Saving..." : "Continue"}
+                  {(saving || glycemicSaving) ? "Saving..." : "Save & Exit"}
                 </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 bg-black text-white"
+                    onClick={() => setStep(3)}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    className="flex-1 bg-lime-600 text-white"
+                    disabled={glycemicSaving}
+                    onClick={async () => {
+                      await saveGlycemic({
+                        ...glycemicData,
+                        lowRangeCarbs,
+                        midRangeCarbs,
+                        highRangeCarbs,
+                      });
+                      setStep(5);
+                    }}
+                  >
+                    {glycemicSaving ? "Saving..." : "Continue"}
+                  </Button>
+                </div>
               </div>
             </div>
           </StepShell>
@@ -1432,6 +1474,15 @@ export default function EditProfilePage() {
                 </p>
                 <p className="text-white/80 text-xs">
                   Glucose Carb Choices: {[...new Set([...lowRangeCarbs, ...midRangeCarbs, ...highRangeCarbs])].length > 0 ? `${[...new Set([...lowRangeCarbs, ...midRangeCarbs, ...highRangeCarbs])].length} foods selected across ranges` : "None selected"}
+                </p>
+                <p className="text-white/80 text-xs">
+                  Heat Preference: {heatPreference === "none" ? "No Heat" : heatPreference === "mild" ? "Mild" : heatPreference === "medium" ? "Medium" : heatPreference === "hot" ? "Hot" : heatPreference === "very-hot" ? "Very Hot" : "Not Sure"}
+                </p>
+                <p className="text-white/80 text-xs">
+                  Cuisine Identity: {form.cuisinePreference ? `${form.cuisinePreference.charAt(0).toUpperCase() + form.cuisinePreference.slice(1)} — ${form.cuisineIntensity || "balanced"}` : "Not set"}
+                </p>
+                <p className="text-white/80 text-xs">
+                  Special Protocol: {specialtyCondition === "renal" ? "Kidney / Renal Disease" : specialtyCondition === "cardiac" ? "Cardiac / Heart Disease" : specialtyCondition === "liver-disease" ? "Liver Disease" : specialtyCondition === "liver-support" ? "Liver Support" : specialtyCondition === "oncology-support" ? "Cancer / Oncology Support" : "None"}
                 </p>
               </div>
 
