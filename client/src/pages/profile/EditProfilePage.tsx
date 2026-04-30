@@ -256,7 +256,7 @@ export default function EditProfilePage() {
     Array.isArray((user as any)?.avoidedFoods) ? (user as any).avoidedFoods : []
   );
   const [avoidedFoodInput, setAvoidedFoodInput] = useState("");
-  const CUISINE_PILLS = ["American", "Mexican", "Italian", "Indian", "Chinese", "Japanese", "Mediterranean", "Thai", "Korean", "Middle Eastern"];
+  const CUISINE_PILLS = ["American", "Soul Food", "Mexican", "Italian", "Indian", "Chinese", "Japanese", "Mediterranean", "Thai", "Korean", "Middle Eastern"];
   const [customCuisineInput, setCustomCuisineInput] = useState(
     CUISINE_PILLS.map(c => c.toLowerCase()).includes((form.cuisinePreference || "").toLowerCase())
       ? ""
