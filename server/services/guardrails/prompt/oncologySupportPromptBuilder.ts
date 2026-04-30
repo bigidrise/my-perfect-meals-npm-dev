@@ -74,6 +74,42 @@ const MANDATORY_SAFETY_DISCLAIMER =
   "never clinical or treatment-focused in tone.";
 
 /**
+ * Hard-blocked ingredients for Cancer Support Nutrition.
+ * These must NEVER appear in any generated meal while this protocol is active.
+ * The post-generation validator (oncologySupportValidator.ts) also enforces this list.
+ */
+export const ONCOLOGY_HARD_BLOCKED_INGREDIENTS = [
+  "bacon",
+  "turkey bacon",
+  "canadian bacon",
+  "pork belly",
+  "sausage",
+  "breakfast sausage",
+  "italian sausage",
+  "chorizo",
+  "pepperoni",
+  "salami",
+  "prosciutto",
+  "pancetta",
+  "ham",
+  "deli meat",
+  "lunch meat",
+  "hot dog",
+  "bratwurst",
+  "kielbasa",
+  "bologna",
+  "mortadella",
+  "spam",
+  "beef jerky",
+  "pork rinds",
+  "lard",
+  "margarine",
+  "shortening",
+  "hydrogenated oil",
+  "partially hydrogenated",
+];
+
+/**
  * Build the oncology support overlay prompt section.
  * This is injected AFTER the anti-inflammatory base prompt.
  *
@@ -91,27 +127,60 @@ export function buildOncologySupportPrompt(context: OncologySupportContext): str
     "",
     MANDATORY_SAFETY_DISCLAIMER,
     "",
+    "=== HARD BLOCK — NEVER INCLUDE ANY OF THESE ===",
+    "The following ingredients are STRICTLY FORBIDDEN and must NEVER appear in any meal,",
+    "ingredient list, cooking instruction, or suggestion while Cancer Support Nutrition is active.",
+    "No exceptions. No substitution logic. Simply do not use them:",
+    "",
+    "PROCESSED AND CURED MEATS (ALL FORMS): bacon, turkey bacon, Canadian bacon, pork belly,",
+    "sausage (all types: breakfast sausage, Italian sausage, chorizo, bratwurst, kielbasa),",
+    "pepperoni, salami, prosciutto, pancetta, ham, deli meats, lunch meats, hot dogs, bologna,",
+    "mortadella, spam, beef jerky.",
+    "",
+    "HEAVILY PROCESSED FATS: lard, margarine, shortening, hydrogenated oils, partially hydrogenated",
+    "oils, trans fat-containing spreads. Use olive oil, avocado oil, or small amounts of butter only.",
+    "",
+    "REFINED WHITE CARBS AS PRIMARY STARCH: white bread (toast included), white pasta, refined",
+    "crackers, white bagels. If bread or toast is a component, upgrade to whole grain, sprouted grain,",
+    "or sweet potato. If pasta is requested, default to whole wheat or legume-based pasta.",
+    "",
+    "CHARRED OR HEAVILY CHARRED PREPARATIONS: no blackened meats, no charcoal-grilled to blackening,",
+    "no heavily charred skin. Grilling and broiling are allowed — just not to the point of charring.",
+    "",
+    "=== PRIORITY FOODS — ACTIVELY INCLUDE THESE ===",
+    "When building meals under this protocol, lean into these ingredients and food groups.",
+    "They should appear regularly across the meal plan:",
+    "",
+    "LEAFY GREENS: spinach, kale, arugula, Swiss chard, collard greens, romaine.",
+    "CRUCIFEROUS VEGETABLES: broccoli, cauliflower, Brussels sprouts, cabbage, bok choy.",
+    "MUSHROOMS: shiitake, cremini, portobello, maitake — anti-inflammatory and nutrient-dense.",
+    "BERRIES: blueberries, strawberries, raspberries, blackberries — antioxidant-rich.",
+    "TOMATOES: fresh, roasted, or cooked in sauces (unless mouth_sensitivity is active).",
+    "ALLIUMS (if gi_sensitivity is NOT active): garlic, onions, leeks, shallots.",
+    "HEALTHY FATS: olive oil, avocado, nuts (walnuts, almonds), seeds (flaxseed, chia).",
+    "HIGH-FIBER COMPLEX CARBS: oats, quinoa, sweet potatoes, lentils, chickpeas, black beans,",
+    "farro, barley, brown rice, whole grain bread.",
+    "CLEAN PROTEINS: eggs, salmon, sardines, white fish (cod, tilapia, halibut), chicken breast,",
+    "turkey breast, Greek yogurt, cottage cheese, silken tofu, tempeh, edamame.",
+    "",
+    "=== CORE APPROACH ===",
+    "- Anti-inflammatory foundation applies (all anti-inflammatory rules remain active)",
+    "- Gentle, nutrient-dense, appetite-friendly meal design",
+    "- Practical and easy to tolerate",
+    "- Red meat is allowed in small portions (4–6 oz lean cuts: sirloin, tenderloin, flank) but",
+    "  should not be the primary protein more than once per day. Fish, eggs, and plant proteins",
+    "  are preferred defaults.",
+    "",
   ];
 
-  lines.push("CORE APPROACH:");
-  lines.push("- Anti-inflammatory foundation applies (all anti-inflammatory rules remain active)");
-  lines.push("- Gentle, nutrient-dense, appetite-friendly meal design");
-  lines.push("- Practical and easy to tolerate");
-  lines.push("");
-  lines.push("RED MEAT DEFAULT RULE:");
-  lines.push("When beef, steak, lamb, or pork is included and the user has not named a specific cut, default to a lean cut — rotate through: sirloin, tenderloin, eye of round, flank steak, or filet mignon (vary the cut, do not always pick the same one). Default portion is 4–6 oz.");
-  lines.push("If the user explicitly names a cut (e.g., 'ribeye', 'T-bone'), use that cut — do not substitute it. Naming a cut only overrides the cut choice, NOT the portion. Portion still defaults to 4–6 oz regardless of the cut, unless the user also specifies a different amount (e.g., '12 oz ribeye'). Optimize preparation method (grilled or broiled preferred) and pair with appropriate sides.");
-  lines.push("If any requested ingredient conflicts with this protocol, include it — but optimize preparation method, portion, and pairing to reduce impact where possible.");
-  lines.push("");
-
   if (context.emphasis.highProteinNutrientDensity) {
-    lines.push("PROTEIN & NUTRIENT DENSITY EMPHASIS:");
+    lines.push("=== PROTEIN & NUTRIENT DENSITY EMPHASIS ===");
     lines.push(PROTEIN_EMPHASIS_GUIDANCE);
     lines.push("");
   }
 
   if (context.symptoms.length > 0) {
-    lines.push("ACTIVE SYMPTOM GUIDANCE:");
+    lines.push("=== ACTIVE SYMPTOM GUIDANCE ===");
     lines.push("The following symptom-aware rules are active and must be respected:");
     lines.push("");
     for (const symptom of context.symptoms) {
@@ -122,7 +191,7 @@ export function buildOncologySupportPrompt(context: OncologySupportContext): str
     }
   }
 
-  lines.push("MEAL FORMAT GUIDANCE:");
+  lines.push("=== MEAL FORMAT GUIDANCE ===");
   lines.push("- Prefer smaller, manageable portions over large plates");
   lines.push("- Soft textures unless mouth sensitivity is not active");
   lines.push("- Minimal prep effort unless fatigue is not active");
