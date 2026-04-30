@@ -1128,7 +1128,7 @@ GENERATION RULES:
 - Build each option ONLY from the cultural framework above
 - Do NOT take a Western meal template and add cultural elements on top
 - Prefer culturally authentic proteins, starches, and vegetables
-- If constraints require substitution, find the nearest culturally plausible compliant alternative
+- If constraints require substitution, find the nearest culturally plausible compliant alternative — NEVER default to a Western substitute. Adapt the dish inside the cuisine: keep the flavor profile, adjust only the non-compliant components. Examples of correct adaptation: Vietnamese diabetic vegan → Gỏi Chay (tofu/herb salad with fish sauce substitute + lime) instead of pho; Ethiopian diabetic → smaller injera portion with extra Misir Wat and Gomen; Japanese diabetic → half-portion rice with extra protein and seaweed. The output must still feel like the cuisine to someone who grew up eating it.
 
 REJECTION RULE: If any option resembles a Western template (scramble, wrap, sandwich, yogurt bowl, quinoa bowl, oatmeal) with minor cultural additions — DISCARD it and rebuild from the cultural framework.
 
