@@ -231,6 +231,98 @@ export function getMealImageUrl(board: WeekBoard, mealId: string): string | null
   return undefined;
 }
 
+/**
+ * Merge only permanent S3 imageUrls from serverBoard into localBoard.
+ * Guardrails enforced:
+ *   1. Only touches meal.imageUrl — nothing else.
+ *   2. Only upgrades to an S3 URL (must include "s3").
+ *   3. Never downgrades: will not overwrite an existing S3 URL.
+ *   4. Returns the same object reference when nothing changed (avoids re-render).
+ */
+export function mergeImageUrlsOnly(localBoard: WeekBoard, serverBoard: WeekBoard): WeekBoard {
+  const isS3 = (url: string | undefined | null): url is string =>
+    typeof url === 'string' && url.includes('s3');
+
+  // Build mealId → s3Url map from serverBoard (both days and lists)
+  const s3Map = new Map<string, string>();
+  const slots = ['breakfast', 'lunch', 'dinner', 'snacks', 'meal4', 'meal5', 'meal6'] as const;
+
+  const collectFromLists = (lists: any) => {
+    if (!lists) return;
+    for (const slot of slots) {
+      const arr = lists[slot];
+      if (Array.isArray(arr)) {
+        for (const m of arr) {
+          if (m?.id && isS3(m.imageUrl)) {
+            s3Map.set(m.id, m.imageUrl);
+          }
+        }
+      }
+    }
+  };
+
+  collectFromLists(serverBoard.lists);
+  if (serverBoard.days) {
+    for (const dayLists of Object.values(serverBoard.days)) {
+      collectFromLists(dayLists);
+    }
+  }
+
+  if (s3Map.size === 0) return localBoard;
+
+  // Apply upgrades — only when local meal lacks an S3 URL and server has one
+  const upgradeMealList = (meals: any[]): any[] => {
+    if (!Array.isArray(meals)) return meals;
+    let listChanged = false;
+    const upgraded = meals.map((m: any) => {
+      if (!m?.id) return m;
+      const serverS3 = s3Map.get(m.id);
+      if (!serverS3) return m;
+      if (isS3(m.imageUrl)) return m; // already S3 — never downgrade
+      listChanged = true;
+      return { ...m, imageUrl: serverS3 };
+    });
+    return listChanged ? upgraded : meals;
+  };
+
+  const upgradeDayLists = (dayLists: any): any => {
+    if (!dayLists) return dayLists;
+    let dayChanged = false;
+    const result: any = {};
+    for (const slot of slots) {
+      const before = dayLists[slot];
+      const after = upgradeMealList(before || []);
+      result[slot] = after;
+      if (after !== before) dayChanged = true;
+    }
+    return dayChanged ? { ...dayLists, ...result } : dayLists;
+  };
+
+  const newLists = { ...localBoard.lists };
+  let listsChanged = false;
+  for (const slot of slots) {
+    const before = (localBoard.lists as any)[slot];
+    const after = upgradeMealList(before || []);
+    if (after !== before) { (newLists as any)[slot] = after; listsChanged = true; }
+  }
+
+  let newDays = localBoard.days;
+  let daysChanged = false;
+  if (localBoard.days) {
+    const upgraded: Record<string, any> = {};
+    for (const [dateKey, dayLists] of Object.entries(localBoard.days)) {
+      const after = upgradeDayLists(dayLists);
+      upgraded[dateKey] = after;
+      if (after !== dayLists) daysChanged = true;
+    }
+    if (daysChanged) newDays = upgraded;
+  }
+
+  if (!listsChanged && !daysChanged) return localBoard;
+
+  return { ...localBoard, lists: newLists, days: newDays };
+}
+
 /** Safe deep-clone for environments without structuredClone */
 export function structuredCloneSafe<T>(obj: T): T {
   if (typeof globalThis.structuredClone === 'function') {
