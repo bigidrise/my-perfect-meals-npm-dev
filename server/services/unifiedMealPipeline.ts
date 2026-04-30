@@ -1114,6 +1114,27 @@ function buildKosherViolationHint(
 }
 
 /** Build the hierarchy-enforcing prompt for the variety engine */
+function buildCuisineGroundingBlock(cuisine: string): string {
+  return `\n🌍 CULTURAL GROUNDING — CUISINE OVERRIDE ACTIVE:
+Cuisine: ${cuisine}
+
+BEFORE GENERATING EACH OPTION, determine all four of the following:
+1. EATING PATTERN — What do people in ${cuisine} cuisine actually eat at the requested meal time? Do NOT default to Western breakfast/lunch/dinner patterns (no scrambles, oatmeal, wraps, sandwiches). Identify the real-world eating pattern for this culture.
+2. DISH FORMAT — What is the culturally appropriate dish structure? (e.g., rice bowl, soup, grilled plate, stir-fry, porridge, flatbread with sides) — must match how this cuisine is actually served.
+3. CORE INGREDIENT SET — What proteins, starches, and vegetables are typical in ${cuisine} cuisine? Prefer culturally authentic ingredients; only substitute when required by dietary/allergy constraints.
+4. FLAVOR SYSTEM — What defines the flavor architecture of this cuisine? Apply this flavor system — not a generic "exotic spice" approximation.
+
+GENERATION RULES:
+- Build each option ONLY from the cultural framework above
+- Do NOT take a Western meal template and add cultural elements on top
+- Prefer culturally authentic proteins, starches, and vegetables
+- If constraints require substitution, find the nearest culturally plausible compliant alternative
+
+REJECTION RULE: If any option resembles a Western template (scramble, wrap, sandwich, yogurt bowl, quinoa bowl, oatmeal) with minor cultural additions — DISCARD it and rebuild from the cultural framework.
+
+ALL 3 options must be authentically ${cuisine} preparations.\n`;
+}
+
 function buildVarietyPrompt(
   cravingInput: string,
   validMealType: string,
@@ -1124,7 +1145,8 @@ function buildVarietyPrompt(
   excludeClause: string,
   allergyBlock: string = '',
   strictMode: boolean = false,
-  avoidanceBlock: string = ''
+  avoidanceBlock: string = '',
+  cuisineGroundingBlock: string = ''
 ): string {
   const primaryDiet = getPrimaryDiet(dietRestrictions);
   const dietLine = primaryDiet
@@ -1138,7 +1160,7 @@ function buildVarietyPrompt(
     : `\nCATEGORY LOCK: This is a ${category.toUpperCase()} request. Stay within this food category.`;
 
   return `You are a precision chef AI. Your ONLY job is to generate 3 distinct variations of the same dish type.
-${allergyBlock ? allergyBlock + '\n' : ''}${avoidanceBlock ? avoidanceBlock + '\n' : ''}
+${allergyBlock ? allergyBlock + '\n' : ''}${avoidanceBlock ? avoidanceBlock + '\n' : ''}${cuisineGroundingBlock}
 ═══════════════════════════════════════
 HIERARCHY (follow in this EXACT order):
 ═══════════════════════════════════════
@@ -1201,7 +1223,8 @@ function buildRecipeVarietyPrompt(
   excludeClause: string,
   allergyBlock: string = '',
   strictMode: boolean = false,
-  avoidanceBlock: string = ''
+  avoidanceBlock: string = '',
+  cuisineGroundingBlock: string = ''
 ): string {
   const primaryDiet = getPrimaryDiet(dietRestrictions);
   const dietLine = primaryDiet
@@ -1209,7 +1232,7 @@ function buildRecipeVarietyPrompt(
     : `DIET: None set.`;
 
   return `You are a professional chef generating real-world recipes. Think like a cook, NOT a nutrition calculator.
-${allergyBlock ? '\n' + allergyBlock + '\n' : ''}${avoidanceBlock ? avoidanceBlock + '\n' : ''}
+${allergyBlock ? '\n' + allergyBlock + '\n' : ''}${avoidanceBlock ? avoidanceBlock + '\n' : ''}${cuisineGroundingBlock}
 ═══════════════════════════════════════
 RECIPE MODE — CULINARY-FIRST RULES:
 ═══════════════════════════════════════
@@ -1339,7 +1362,8 @@ export async function generateCravingMealOptions(
   dietaryRestrictionsOverride?: string[],
   excludeMeals?: string[],
   strictMode: boolean = false,
-  generationMode: 'meal' | 'recipe' = 'meal'
+  generationMode: 'meal' | 'recipe' = 'meal',
+  cuisineOverride?: string
 ): Promise<UnifiedMeal[]> {
   const validMealType = normalizeMealType(mealType);
   const category = inferCravingCategory(cravingInput, validMealType);
@@ -1431,11 +1455,19 @@ export async function generateCravingMealOptions(
     console.log(`🍳 [RECIPE MODE] Using culinary-ratio prompt for "${cravingInput}"`);
   }
 
+  const cuisineGroundingBlock = cuisineOverride && cuisineOverride.trim()
+    ? buildCuisineGroundingBlock(cuisineOverride.trim())
+    : '';
+
+  if (cuisineGroundingBlock) {
+    console.log(`🌍 [VARIETY ENGINE] Cultural grounding active: ${cuisineOverride}`);
+  }
+
   /** One attempt at calling AI and parsing result */
   const attempt = async (stricterMode: boolean, violationHint?: string): Promise<any[]> => {
     const prompt = isRecipeMode
-      ? buildRecipeVarietyPrompt(cravingInput, validMealType, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock)
-      : buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock);
+      ? buildRecipeVarietyPrompt(cravingInput, validMealType, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock, cuisineGroundingBlock)
+      : buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock, cuisineGroundingBlock);
     const stricter = stricterMode
       ? `\n\nSECOND ATTEMPT — STRICT MODE: The previous response drifted from the dish family. You MUST generate 3 options that are clearly recognizable variations of "${dishFamily}". No exceptions.`
       : "";

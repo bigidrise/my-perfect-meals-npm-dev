@@ -3520,11 +3520,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cravingInput = `${rawCravingInput} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`;
       }
 
-      // 🌍 Apply cuisine override to cravingInput so the variety engine picks it up
-      if (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) {
-        cravingInput = `${cravingInput} [Prepare in ${cultureOverride.trim()} style with authentic flavors and techniques]`;
-      }
-
       // 🎲 VARIETY ENGINE: Always generate 3 distinct options (Layers 1-4)
       const { generateCravingMealOptions, generateSingleCompliantFallback } = await import("./services/unifiedMealPipeline");
 
@@ -3542,7 +3537,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bodyDietRestrictions,
         excludeMeals,
         strictMode === true,
-        (generationMode === 'recipe' ? 'recipe' : 'meal')
+        (generationMode === 'recipe' ? 'recipe' : 'meal'),
+        (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) ? cultureOverride.trim() : undefined
       );
 
       if (!mealOptions || mealOptions.length === 0) {
