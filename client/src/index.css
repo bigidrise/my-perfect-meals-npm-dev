@@ -1385,3 +1385,25 @@ button, a, [role="button"], .interactive {
     animation-duration: 2s !important;
   }
 }
+
+/* ============================================
+   ACCESSIBILITY: GLOBAL PULSE SUPPRESSION
+   Ambient pulsing borders and decorative dots
+   are disorienting for users with ADHD/ADD.
+   This rule silences ALL animate-pulse globally.
+
+   To KEEP pulse on a specific element, add the
+   `pulse-keep` class alongside `animate-pulse`.
+   Reserved for: unread message borders, active
+   voice recording state, copilot audio indicator,
+   loading skeletons, and critical medical alerts.
+   ============================================ */
+.animate-pulse:not(.pulse-keep) {
+  animation: none !important;
+}
+
+/* Restore the standard Tailwind pulse keyframe for kept elements */
+.animate-pulse.pulse-keep {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+}
+
