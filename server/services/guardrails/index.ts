@@ -114,7 +114,13 @@ export function applyGuardrails(
         `legumes, whole grains (oats/quinoa/brown rice), sweet potato, berries, or cruciferous vegetables.\n` +
         `Spinach alone does not count as a fiber anchor.\n\n` +
         `PRIORITY FOODS: fresh salmon, eggs, leafy greens, berries, cruciferous vegetables, ` +
-        `legumes, nuts, seeds, olive oil, turmeric, ginger, and other anti-cancer whole foods.\n`;
+        `legumes, nuts, seeds, olive oil, turmeric, ginger, and other anti-cancer whole foods.\n\n` +
+        `QUALITY CHECKLIST — every meal MUST include ALL FIVE or it will be rejected:\n` +
+        `1. PROTEIN ≥ 20g — fresh salmon/chicken/eggs/lentils/tofu as the anchor (not a side)\n` +
+        `2. FIBER ANCHOR — quinoa, oats, lentils, sweet potato, brown rice, or berries (greens alone don't count)\n` +
+        `3. ANTI-INFLAMMATORY VEGETABLE — broccoli, kale, mushrooms, bell peppers, or Brussels sprouts\n` +
+        `4. HEALTHY FAT — olive oil, avocado, tahini, walnuts, or almonds\n` +
+        `5. THERAPEUTIC BOOSTER — garlic, turmeric, ginger, lemon, or fresh herbs\n`;
       appliedRules.push('oncology-anti-inflammatory-base');
       appliedRules.push('oncology-processed-meat-hard-block');
       appliedRules.push('oncology-priority-foods');

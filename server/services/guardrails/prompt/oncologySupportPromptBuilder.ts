@@ -230,6 +230,32 @@ export function buildOncologySupportPrompt(context: OncologySupportContext): str
     }
   }
 
+  lines.push("=== QUALITY CHECKLIST — EVERY MEAL MUST HIT ALL FIVE ===");
+  lines.push("Before finalizing the meal, verify it passes each of these:");
+  lines.push("");
+  lines.push("✅ PROTEIN ≥ 20g — Must use a green-tier protein as the anchor ingredient.");
+  lines.push("   Acceptable: fresh salmon (5–6 oz), chicken breast (5 oz), 3 eggs,");
+  lines.push("   1 cup lentils or chickpeas, 6 oz tofu or tempeh. Snacks/sides alone do not count.");
+  lines.push("");
+  lines.push("✅ FIBER ANCHOR — Must include one real fiber source beyond leafy greens.");
+  lines.push("   Acceptable: quinoa, oats, lentils, chickpeas, sweet potato, brown rice,");
+  lines.push("   farro, barley, black beans, or berries as a side.");
+  lines.push("   Spinach or mixed greens alone do NOT satisfy this requirement.");
+  lines.push("");
+  lines.push("✅ ANTI-INFLAMMATORY VEGETABLES — Must include at least one cruciferous or");
+  lines.push("   high-value vegetable: broccoli, cauliflower, kale, Brussels sprouts, mushrooms,");
+  lines.push("   bell peppers, or asparagus. Basic iceberg or cucumber salads do not count.");
+  lines.push("");
+  lines.push("✅ HEALTHY FAT — Must include olive oil, avocado, tahini, walnuts, or almonds.");
+  lines.push("   These support nutrient absorption and provide anti-inflammatory benefits.");
+  lines.push("");
+  lines.push("✅ THERAPEUTIC BOOSTER — Must include at least one: garlic, turmeric, ginger,");
+  lines.push("   lemon/lemon zest, blueberries/raspberries, fresh herbs (parsley, basil, cilantro),");
+  lines.push("   or spices (cumin, cinnamon). These add functional nutrition at no prep cost.");
+  lines.push("");
+  lines.push("If any item above is missing, the meal will be rejected and regenerated.");
+  lines.push("Build meals that pass all five checks on the first attempt.");
+  lines.push("");
   lines.push("=== MEAL FORMAT GUIDANCE ===");
   lines.push("- Prefer smaller, manageable portions over large plates");
   lines.push("- Soft textures unless mouth sensitivity is not active");
