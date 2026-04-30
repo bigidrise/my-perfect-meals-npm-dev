@@ -1433,6 +1433,15 @@ export default function EditProfilePage() {
                 <p className="text-white/80 text-xs">
                   Glucose Carb Choices: {[...new Set([...lowRangeCarbs, ...midRangeCarbs, ...highRangeCarbs])].length > 0 ? `${[...new Set([...lowRangeCarbs, ...midRangeCarbs, ...highRangeCarbs])].length} foods selected across ranges` : "None selected"}
                 </p>
+                <p className="text-white/80 text-xs">
+                  Heat Preference: {heatPreference === "none" ? "No Heat" : heatPreference === "mild" ? "Mild" : heatPreference === "medium" ? "Medium" : heatPreference === "hot" ? "Hot" : heatPreference === "very-hot" ? "Very Hot" : "Not Sure"}
+                </p>
+                <p className="text-white/80 text-xs">
+                  Cuisine Identity: {form.cuisinePreference ? `${form.cuisinePreference.charAt(0).toUpperCase() + form.cuisinePreference.slice(1)} — ${form.cuisineIntensity || "balanced"}` : "Not set"}
+                </p>
+                <p className="text-white/80 text-xs">
+                  Special Protocol: {specialtyCondition === "renal" ? "Kidney / Renal Disease" : specialtyCondition === "cardiac" ? "Cardiac / Heart Disease" : specialtyCondition === "liver-disease" ? "Liver Disease" : specialtyCondition === "liver-support" ? "Liver Support" : specialtyCondition === "oncology-support" ? "Cancer / Oncology Support" : "None"}
+                </p>
               </div>
 
               <div className="flex gap-2 pt-3">
