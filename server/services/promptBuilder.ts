@@ -295,6 +295,7 @@ ${getBaselineMacroPrompt({ dietType: diet, mealType: req.mealType })}
 - LUNCH: Appropriate foods include sandwiches, salads, soups, wraps, grain bowls, light pasta dishes, burgers, lighter proteins.
 - DINNER: Appropriate foods include hearty proteins (steak, chicken thighs, salmon), pasta dishes, casseroles, stir-fries, roasts, full entrees. NEVER assign breakfast items like parfait, yogurt bowls, smoothies, or cereal to dinner.
 - SNACK: Appropriate foods include nuts, fruits, crackers, small portions, energy bites, veggie sticks with dip. NEVER assign full meals to snack time.
+⚠️ CUISINE EXCEPTION — MEAL TYPE IS CUISINE-CONDITIONAL: When a cuisine preference is specified, the above Western examples are NOT universal defaults. Do NOT apply Western breakfast/lunch/dinner templates to non-Western cuisines. Many cultures eat rice, soup, grilled meat, or porridge for breakfast; noodle dishes for any meal; or have no concept of "breakfast food." When a cuisine is set, defer to that cuisine's actual meal patterns — not the Western examples listed above.
 🚨 EXAMPLES OF INCORRECT ASSIGNMENTS TO AVOID:
 - "Nutty Fruit Parfait" as DINNER (this is a breakfast/snack item)
 - "Greek Yogurt Bowl" as DINNER (this is breakfast)
