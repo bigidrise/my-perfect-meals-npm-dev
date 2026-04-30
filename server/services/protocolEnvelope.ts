@@ -777,6 +777,9 @@ Avoid generic "healthy" vegetables (e.g., broccoli, red bell pepper, kale, spina
 DISH CONTEXT RULE:
 If referencing a known or named cultural dish (e.g., Amok, Pho, Injera, Rendang, Bobotie, Mole, etc.), that dish MUST be used in the correct cultural context: (a) the meal type must match how that dish is typically consumed in ${envelope.cuisinePreference} culture, and (b) the format and ingredients must match how that dish is actually prepared. Do NOT borrow a real cultural dish name and apply it to a different meal time or format — for example, Amok is a Cambodian steamed curry eaten at lunch or dinner, NOT a breakfast dish. If a known dish does not fit the requested meal time or context, DO NOT use it. Generate a different culturally appropriate meal that genuinely fits the meal time instead.
 
+DISH NAMING COMMITMENT RULE:
+When the generated meal clearly corresponds to a known or widely recognized dish within ${envelope.cuisinePreference} cuisine, use the authentic dish name. Optionally include a short English descriptor in parentheses if helpful for clarity (e.g., "Gỏi Gà (Vietnamese Chicken Salad)", "Doro Wat (Ethiopian Chicken Stew)"). Do NOT default to generic descriptive names like "Herb Salad", "Flatbread Plate", or "Fish Rice Meal" when a specific dish identity is apparent. Commit to the real name.
+
 SELF-CHECK before responding: Verify the meal reflects at least 3 of these authentic signals — (a) culturally appropriate dish format for this cuisine AND this meal time, (b) culturally typical protein or starch (not a generic fitness substitute), (c) culturally authentic vegetables or herbs (not generic health vegetables), (d) correct flavor system for this cuisine. If fewer than 3 signals are present, revise before returning.`;
   }
 
