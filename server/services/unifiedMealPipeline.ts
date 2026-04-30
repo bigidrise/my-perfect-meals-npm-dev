@@ -63,6 +63,8 @@ import OpenAI from 'openai';
 import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 import { macroAudit, macroAuditPrompt, macroAuditCache } from '../utils/macroAuditLogger';
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from './behavioralMemoryService';
+import { buildOncologySupportPrompt, isOncologySupportEnabled, type OncologySupportContext } from './guardrails/prompt/oncologySupportPromptBuilder';
+import { validateOncologyMealSafety } from './guardrails/validators/oncologySupportValidator';
 import { buildDishTypeHint, getSemanticFallback, buildStableCacheKey, generateMealImageUnified } from './mealImageGenerator';
 import { normalizeMealName, culturalNameTransform } from './mealNameNormalizer';
 import { mealImageCache } from '../db/schema/mealImageCache';
@@ -1973,6 +1975,35 @@ export async function generateFromDescriptionUnified(
       }
     }
 
+    // ── Load oncology-support context if active ─────────────────────────────
+    let oncologyCtx: OncologySupportContext | null = null;
+    let oncologyPromptSection = "";
+    if (dietType === 'oncology-support' && userId) {
+      try {
+        const [oncologyUser] = await db.select({ oncologySupportContext: users.oncologySupportContext })
+          .from(users).where(eq(users.id, userId)).limit(1);
+        const rawCtx = oncologyUser?.oncologySupportContext as OncologySupportContext | null ?? null;
+        if (rawCtx?.enabled) {
+          oncologyCtx = rawCtx;
+          oncologyPromptSection = buildOncologySupportPrompt(rawCtx);
+          console.log(`🔬 [CREATE-WITH-CHEF] Oncology-support context loaded — symptoms: ${rawCtx.symptoms?.join(', ') || 'none'}`);
+        } else {
+          // No DB context but diet type is oncology-support: apply default hard-block
+          oncologyPromptSection = buildOncologySupportPrompt({
+            enabled: true,
+            symptoms: [],
+            emphasis: { highProteinNutrientDensity: true },
+            source: "self",
+            updatedBy: null,
+            updatedAt: null,
+          });
+          console.log(`🔬 [CREATE-WITH-CHEF] Oncology-support active (default context — no DB record)`);
+        }
+      } catch (err) {
+        console.warn("⚠️ [CREATE-WITH-CHEF] Could not load oncology context:", err);
+      }
+    }
+
     const OpenAI = (await import('openai')).default;
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     
@@ -1982,7 +2013,7 @@ export async function generateFromDescriptionUnified(
     }
 
     let basePrompt = `You are a professional chef creating a personalized meal recipe.
-${chefProtocolBlock ? `\n${chefProtocolBlock}\n` : ""}${behavioralMemorySection ? `\n${behavioralMemorySection}\n` : ""}
+${chefProtocolBlock ? `\n${chefProtocolBlock}\n` : ""}${oncologyPromptSection ? `\n${oncologyPromptSection}\n` : ""}${behavioralMemorySection ? `\n${behavioralMemorySection}\n` : ""}
 TASK: Create a complete ${validMealType} recipe based on this request: "${description}"
 
 REQUIREMENTS:
@@ -2244,6 +2275,31 @@ Create the recipe for: "${description}"`;
           source: 'error',
           error: chefScan.message,
         };
+      }
+
+      // ── Oncology hard-block post-gen scan ────────────────────────────────
+      if (dietType === 'oncology-support') {
+        const oncologyValidation = validateOncologyMealSafety({
+          name: tempMeal.name,
+          ingredients: tempMeal.ingredients,
+        });
+        if (!oncologyValidation.isValid) {
+          console.warn(`🚨 [ONCOLOGY GUARD] Blocked ingredient detected (attempt ${attemptCount}): ${oncologyValidation.violations.join(', ')}`);
+          if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
+            lastFixHint = `CANCER SUPPORT PROTOCOL VIOLATION: The following ingredients are strictly forbidden: ${oncologyValidation.violations.join(', ')}. ` +
+              `These are processed/cured meats that are prohibited under this cancer nutrition protocol. ` +
+              `Regenerate the meal using safe alternatives like wild salmon, chicken breast, eggs, legumes, or tofu. ` +
+              `Do NOT include bacon, sausage, ham, deli meats, or any processed pork products.`;
+            continue;
+          }
+          console.error(`❌ [ONCOLOGY GUARD] Unsafe meal could not be fixed after ${attemptCount} attempts — rejecting`);
+          return {
+            success: false,
+            source: 'error',
+            error: `This meal contains ingredients not permitted under the Cancer Support Nutrition protocol (${oncologyValidation.violations.join(', ')}). Please try a different description.`,
+          };
+        }
+        console.log(`✅ [ONCOLOGY GUARD] Meal cleared — no blocked ingredients detected`);
       }
 
       const substitutionNotes = Array.isArray(mealData.substitutionNotes) && mealData.substitutionNotes.length > 0

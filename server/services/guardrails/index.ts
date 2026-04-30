@@ -33,6 +33,7 @@ import { validateProCareMeal, validateProCareSnack } from './validators/procareV
 import { liverSupportRules } from './rules/liverSupportRules';
 import { buildLiverSupportPrompt, buildLiverSupportSnackPrompt, getLiverSupportSystemPrompt } from './prompt/liverSupportPromptBuilder';
 import { validateLiverSupportMeal } from './validators/liverSupportValidator';
+import { buildOncologySupportPrompt, ONCOLOGY_HARD_BLOCKED_INGREDIENTS } from './prompt/oncologySupportPromptBuilder';
 
 /**
  * Builds a mode-aware macro budget block to append to non-BeachBody prompts.
@@ -93,6 +94,27 @@ export function applyGuardrails(
   let modifiedPrompt = basePrompt;
 
   switch (dietType) {
+    case 'oncology-support': {
+      // Cancer protocol: build on anti-inflammatory base + inject forbidden ingredient hard-block
+      const antiInflamBase = mealType === 'snack'
+        ? buildAntiInflammatorySnackPrompt(basePrompt)
+        : buildAntiInflammatoryPrompt(basePrompt);
+      const forbiddenList = ONCOLOGY_HARD_BLOCKED_INGREDIENTS.join(', ');
+      modifiedPrompt = antiInflamBase +
+        `\n\nCANCER SUPPORT NUTRITION — HARD RULES (NON-NEGOTIABLE):\n` +
+        `The following ingredients are STRICTLY FORBIDDEN and must NEVER appear in any meal name, ingredient list, or instruction:\n` +
+        `${forbiddenList}\n` +
+        `This includes ALL processed meats, cured meats, deli meats, and pork products. ` +
+        `No exceptions. If the user's description mentions any forbidden item, substitute a safe alternative silently.\n` +
+        `PRIORITY FOODS: wild salmon, sardines, leafy greens, berries, turmeric, ginger, ` +
+        `legumes, nuts, seeds, olive oil, cruciferous vegetables, and other anti-cancer whole foods.\n`;
+      appliedRules.push('oncology-anti-inflammatory-base');
+      appliedRules.push('oncology-processed-meat-hard-block');
+      appliedRules.push('oncology-priority-foods');
+      console.log(`🔬 Guardrails: Applied oncology-support rules for ${mealType}`);
+      break;
+    }
+
     case 'anti-inflammatory':
       if (mealType === 'snack') {
         modifiedPrompt = buildAntiInflammatorySnackPrompt(basePrompt);
