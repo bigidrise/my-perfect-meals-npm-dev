@@ -25,6 +25,7 @@ export interface OncologyScoreBreakdown {
   healthyFats: number;          // 0–15
   processingLevel: number;      // 0–15
   therapeuticBoosters: number;  // 0–10
+  caps: string[];               // active hard-cap reasons (e.g. "no-fiber-anchor")
 }
 
 export interface OncologyQualityResult {
@@ -307,6 +308,7 @@ export function scoreOncologyMealQuality(meal: ScoredMeal): OncologyQualityResul
       healthyFats,
       processingLevel,
       therapeuticBoosters,
+      caps,
     },
     missingRequirements,
     regenerationHint,
