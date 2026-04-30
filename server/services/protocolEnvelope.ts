@@ -736,21 +736,36 @@ The user has marked these as foods they do not eat: ${avoidList}
 When possible, incorporate: ${prefList}.`;
   }
 
-  // ── CUISINE IDENTITY (stylistic layer — below all safety/diet tiers) ───────
+  // ── CUISINE CULTURAL GROUNDING (culture-first generation — below all safety/diet tiers) ───
   if (envelope.cuisinePreference) {
     const intensity = envelope.cuisineIntensity ?? "balanced";
-    const intensityMap: Record<string, string> = {
-      light: "subtle influence — use familiar flavors and mild spice signatures from this cuisine without full authenticity",
-      balanced: "recognizable style — apply characteristic spices, ingredients, and techniques while remaining approachable",
-      authentic: "full cultural identity — use traditional spices, cooking techniques, and authentic flavor profiles",
+    const intensityDepth: Record<string, string> = {
+      light: "Apply subtle cultural influence — use recognizable flavors and mild spice signatures from this cuisine. Some familiar formats are acceptable but should lean toward cultural patterns.",
+      balanced: "Apply full cultural structure — meal format, ingredients, and flavor system must reflect how people in this cuisine actually eat. Avoid Western defaults.",
+      authentic: "Apply strict cultural authenticity — every element (dish format, proteins, starches, vegetables, seasoning) must be drawn from this cuisine's real food traditions. No Western templates.",
     };
-    const intensityInstruction = intensityMap[intensity] || intensityMap["balanced"];
-    layers.preferences = (layers.preferences || "") + `\n\n🌍 CUISINE IDENTITY (stylistic guide — never overrides diet, allergy, or medical rules):
-Primary cuisine: ${envelope.cuisinePreference}
-Intensity: ${intensity} — ${intensityInstruction}
-- Use authentic flavor profiles, spices, and cooking techniques from ${envelope.cuisinePreference} cuisine as the primary stylistic anchor
-- If a traditional ${envelope.cuisinePreference} ingredient conflicts with dietary/medical constraints, substitute with a compliant alternative — NEVER reject the dish
-- Maintain full compliance with all dietary restrictions, allergies, and medical rules above`;
+    const depthInstruction = intensityDepth[intensity] || intensityDepth["balanced"];
+    layers.preferences = (layers.preferences || "") + `\n\n🌍 CULTURAL GROUNDING — REQUIRED (never overrides diet, allergy, or medical rules):
+Cuisine: ${envelope.cuisinePreference}
+Intensity: ${intensity} — ${depthInstruction}
+
+BEFORE GENERATING THE MEAL, internally determine all four of the following:
+1. EATING PATTERN — What do people in ${envelope.cuisinePreference} cuisine actually eat at the requested meal time? Do NOT assume Western breakfast/lunch/dinner patterns. Identify the real-world eating pattern for this culture (e.g., rice porridge for breakfast, noodle soup, grilled meat with rice — not scrambled eggs or oatmeal).
+2. DISH FORMAT — What is the culturally appropriate dish structure? (e.g., bowl, soup, grilled plate, stir-fry, wrapped dish, porridge, flatbread with sides) — the format must match how this cuisine is typically served, not a generic Western container.
+3. CORE INGREDIENT SET — What proteins, starches, and vegetables are commonly used in ${envelope.cuisinePreference} cuisine? Prefer culturally authentic ingredients. Only substitute when required by dietary, allergy, or medical constraints.
+4. FLAVOR SYSTEM — What defines the flavor architecture of this cuisine? (e.g., fish sauce + lime + palm sugar + garlic for Southeast Asian; miso + dashi + soy for Japanese; berbere + niter kibbeh for Ethiopian) Apply this flavor system, not a generic "exotic spice" approximation.
+
+GENERATION RULES:
+- Build the meal ONLY from the cultural framework determined above
+- Do NOT start from a Western meal template and add cultural elements on top
+- Do NOT produce hybrid meals unless required by dietary or medical constraints
+- Prefer culturally authentic proteins, starches, and vegetables — avoid substituting culturally foreign ingredients (e.g., ground turkey in Cambodian food, quinoa in traditional cuisines) unless the user's diet/medical rules require it
+- If a conflict exists between cultural authenticity and dietary/medical/allergy constraints, safety and diet always win — but find the nearest culturally plausible compliant alternative, not the nearest Western alternative
+
+REJECTION RULE:
+If the meal you are about to generate resembles a Western template (scramble, wrap, sandwich, yogurt bowl, quinoa bowl, oatmeal) with minor cultural additions — DISCARD it and rebuild using the cultural framework above.
+
+SELF-CHECK before responding: Verify the meal reflects at least 2 of these authentic signals — (a) culturally appropriate dish format, (b) culturally typical protein or starch, (c) culturally authentic flavor elements. If fewer than 2 signals are present, revise before returning.`;
   }
 
   const combined = [
