@@ -10,6 +10,7 @@ import HealthBadgesPopover from "./badges/HealthBadgesPopover";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import BuilderSourcePill from "@/components/BuilderSourcePill";
+import { getClinicalCoachingLine } from "@/utils/clinicalCoachingLine";
 
 interface WeeklyMealCardProps {
   dateISO: string;
@@ -170,7 +171,7 @@ export default function WeeklyMealCard({ dateISO, slot, meal, time, onRegenerate
       {/* Coaching line */}
       <div className="px-4 pt-3 pb-0">
         <p className="text-xs text-white/55 leading-relaxed border-l-2 border-white/20 pl-2.5">
-          Built for your current plan and targets.
+          {getClinicalCoachingLine(builderType || meal?.builderType)}
         </p>
       </div>
 

@@ -2,6 +2,7 @@
 import * as React from "react";
 import { getMealFallbackImage } from "@/lib/mealFallbackImage";
 import { BarChart3 } from "lucide-react";
+import { getClinicalCoachingLine } from "@/utils/clinicalCoachingLine";
 import { generateMedicalBadges, getUserMedicalProfile, type MedicalBadge } from "@/utils/medicalBadges";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import { useToast } from "@/hooks/use-toast";
@@ -187,7 +188,7 @@ export function MealCard({
       {/* Coaching confirmation line — specific line from builder, or universal fallback */}
       <div className="px-4 pt-3 pb-0">
         <p className="text-xs text-white/55 leading-relaxed border-l-2 border-white/20 pl-2.5">
-          {coachingLine || "Built for your current plan and targets."}
+          {coachingLine || getClinicalCoachingLine(builderType)}
         </p>
       </div>
 
