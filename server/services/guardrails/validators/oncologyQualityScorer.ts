@@ -198,15 +198,16 @@ export function scoreOncologyMealQuality(meal: ScoredMeal): OncologyQualityResul
   if (!hasVegetables) missingRequirements.push("vegetables");
 
   // ── Tier logic ───────────────────────────────────────────────────────────
+  // Cancer Protocol standard: only 85+ is cleared for display.
+  // 70-84 triggers auto-improvement (not shown to user).
+  // <70 or missing required minimums → reject.
   const minimumsFailed = missingRequirements.length > 0;
   let tier: OncologyQualityTier;
 
-  if (minimumsFailed || total < 50) {
+  if (minimumsFailed || total < 70) {
     tier = "reject";
-  } else if (total < 70) {
-    tier = "improve";
   } else if (total < 85) {
-    tier = "approved";
+    tier = "improve";
   } else {
     tier = "premium";
   }
@@ -256,13 +257,11 @@ export function scoreOncologyMealQuality(meal: ScoredMeal): OncologyQualityResul
   const scoreLabel =
     tier === "premium"
       ? `Optimized for Cancer Support (${total}/100)`
-      : tier === "approved"
-      ? `Cancer Support Approved (${total}/100)`
       : tier === "improve"
       ? `Needs quality improvement (${total}/100)`
       : `Below cancer protocol standard (${total}/100)`;
 
-  const approvedForDisplay = tier === "premium" || tier === "approved";
+  const approvedForDisplay = tier === "premium";
 
   return {
     total,

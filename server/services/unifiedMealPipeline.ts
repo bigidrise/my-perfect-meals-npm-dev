@@ -2311,6 +2311,17 @@ Create the recipe for: "${description}"`;
 
         console.log(`📊 [ONCOLOGY QUALITY] Score: ${qualityScore.total}/100 (${qualityScore.tier}) — ${qualityScore.scoreLabel}`);
 
+        // ── Protein gram minimum ──────────────────────────────────────────
+        const mealProteinG = tempMeal.protein ?? 0;
+        const ONCOLOGY_MIN_PROTEIN_G = 20;
+        if (mealProteinG < ONCOLOGY_MIN_PROTEIN_G && attemptCount < MAX_REGENERATION_ATTEMPTS) {
+          console.warn(`🔬 [ONCOLOGY PROTEIN] Only ${mealProteinG}g protein — minimum is ${ONCOLOGY_MIN_PROTEIN_G}g — regenerating`);
+          lastFixHint = `PROTEIN MINIMUM NOT MET: This meal only has ${mealProteinG}g of protein. Cancer Support Protocol requires at least ${ONCOLOGY_MIN_PROTEIN_G}g of clean protein per meal. ` +
+            `Increase the protein source: use 5–6 oz fresh salmon or chicken breast, 3 whole eggs, 1 cup lentils or chickpeas, ` +
+            `or combine 2 eggs + Greek yogurt. Ensure protein is the anchoring ingredient of this meal.`;
+          continue;
+        }
+
         if (!qualityScore.approvedForDisplay && attemptCount < MAX_REGENERATION_ATTEMPTS) {
           lastFixHint = qualityScore.regenerationHint ||
             "QUALITY IMPROVEMENT REQUIRED: Regenerate with a green-tier protein, real fiber anchor (quinoa/lentils/sweet potato), anti-inflammatory vegetables, and healthy fats (olive oil/avocado). Add garlic, turmeric, or ginger as therapeutic boosters.";
