@@ -105,9 +105,16 @@ export function applyGuardrails(
         `The following ingredients are STRICTLY FORBIDDEN and must NEVER appear in any meal name, ingredient list, or instruction:\n` +
         `${forbiddenList}\n` +
         `This includes ALL processed meats, cured meats, deli meats, and pork products. ` +
-        `No exceptions. If the user's description mentions any forbidden item, substitute a safe alternative silently.\n` +
-        `PRIORITY FOODS: wild salmon, sardines, leafy greens, berries, turmeric, ginger, ` +
-        `legumes, nuts, seeds, olive oil, cruciferous vegetables, and other anti-cancer whole foods.\n`;
+        `No exceptions. If the user's description mentions any forbidden item, substitute a safe alternative silently.\n\n` +
+        `INGREDIENT TIER SYSTEM:\n` +
+        `GREEN TIER (default — use freely): fresh fish, eggs, chicken breast, turkey breast, legumes, tofu, Greek yogurt.\n` +
+        `YELLOW TIER (occasional only — do NOT default to these): smoked salmon, canned fish, aged cheese.\n` +
+        `Always prefer fresh over smoked/cured/preserved. Never use smoked salmon as a default protein.\n\n` +
+        `MANDATORY FIBER ANCHOR: Every meal must include at least one meaningful fiber source:\n` +
+        `legumes, whole grains (oats/quinoa/brown rice), sweet potato, berries, or cruciferous vegetables.\n` +
+        `Spinach alone does not count as a fiber anchor.\n\n` +
+        `PRIORITY FOODS: fresh salmon, eggs, leafy greens, berries, cruciferous vegetables, ` +
+        `legumes, nuts, seeds, olive oil, turmeric, ginger, and other anti-cancer whole foods.\n`;
       appliedRules.push('oncology-anti-inflammatory-base');
       appliedRules.push('oncology-processed-meat-hard-block');
       appliedRules.push('oncology-priority-foods');
