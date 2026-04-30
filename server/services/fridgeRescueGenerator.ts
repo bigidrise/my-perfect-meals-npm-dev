@@ -337,13 +337,16 @@ Every ingredient MUST use a precise, measurable quantity. No vague units. No gue
 - Potatoes / yams / sweet potatoes: ALWAYS oz — e.g. {"name": "sweet potato", "amount": 5, "unit": "oz"} (NEVER "1 potato" or "each")
 - Rice / grains / pasta: cooked weight in oz — e.g. {"name": "cooked rice", "amount": 4, "unit": "oz"}
 - Eggs: MUST include size — e.g. {"name": "large eggs", "amount": 3, "unit": "whole"} (NEVER just "2 eggs")
+- Garlic: ALWAYS cloves — e.g. {"name": "garlic", "amount": 4, "unit": "cloves"} (NEVER "units", "each", or "medium")
+- Onions / shallots: ALWAYS cup — e.g. {"name": "diced yellow onion", "amount": 1, "unit": "cup"} (NEVER "1 medium onion")
 - Dense vegetables (broccoli, asparagus, green beans): oz — e.g. {"name": "broccoli florets", "amount": 4, "unit": "oz"}
 - Leafy greens: cup — e.g. {"name": "mixed greens", "amount": 3, "unit": "cup"}
-- Light vegetables (peppers, zucchini, spinach): cup — e.g. {"name": "sliced zucchini", "amount": 1, "unit": "cup"}
+- Light vegetables (zucchini, spinach, peppers when sliced): cup — e.g. {"name": "sliced zucchini", "amount": 1, "unit": "cup"}
+- Whole peppers used as vessels (stuffed): whole — e.g. {"name": "bell peppers", "amount": 4, "unit": "whole"}
 - Oils / condiments / sauces: tbsp or tsp — e.g. {"name": "olive oil", "amount": 1, "unit": "tbsp"}
 - Liquids (milk, broth, beverages): cup or fl oz — e.g. {"name": "chicken broth", "amount": 8, "unit": "fl oz"}
 - Spices / seasonings: tsp — e.g. {"name": "garlic powder", "amount": 0.5, "unit": "tsp"}
-FORBIDDEN UNITS — NEVER use: "each", "piece", "pieces", "serving", "servings", "handful"
+FORBIDDEN UNITS — NEVER use: "each", "piece", "pieces", "serving", "servings", "handful", "unit", "units", "medium", "large", "small" as a unit
 NEVER use grams (g), milliliters (ml), or any metric unit
 
 CARB CLASSIFICATION RULES (CRITICAL):

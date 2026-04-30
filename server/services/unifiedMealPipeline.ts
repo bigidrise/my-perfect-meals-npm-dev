@@ -699,9 +699,11 @@ Every ingredient MUST use a precise, measurable quantity:
 - Potatoes/yams: ALWAYS oz — e.g. "5 oz sweet potato" (NEVER "1 potato" or "each")
 - Rice/grains: cooked weight in oz — e.g. "4 oz cooked rice"
 - Eggs: MUST include size — e.g. "3 large eggs" (NEVER just "2 eggs")
+- Garlic: ALWAYS cloves — e.g. "4 cloves garlic" (NEVER "units", "each", "medium")
+- Onions / shallots: ALWAYS cup — e.g. "1 cup diced onion" (NEVER "1 medium onion")
 - Oils/sauces: tbsp or tsp — e.g. "1 tbsp olive oil"
 - Liquids: cup or fl oz — e.g. "8 fl oz almond milk"
-FORBIDDEN: "each", "piece", "serving", "handful"
+FORBIDDEN: "each", "piece", "serving", "handful", "unit", "units", "medium", "large", "small" as units
 
 CARB CLASSIFICATION RULES (CRITICAL):
 - starchyCarbs: Energy-dense carbs from rice, pasta, bread, potatoes, grains, beans, corn, peas
@@ -1228,7 +1230,7 @@ OUTPUT FORMAT — ONLY valid JSON, no markdown:
   ]
 }
 
-INGREDIENT MEASUREMENT RULES (NON-NEGOTIABLE): Use oz for proteins/potatoes/grains (e.g. "6 oz chicken", "5 oz sweet potato", "4 oz cooked rice"). Eggs must include size (e.g. "3 large eggs"). Oils use tbsp/tsp. Liquids use cup/fl oz. NEVER use "each", "piece", "serving", "handful", or metric units.
+INGREDIENT MEASUREMENT RULES (NON-NEGOTIABLE): Use oz for proteins/potatoes/grains (e.g. "6 oz chicken", "5 oz sweet potato", "4 oz cooked rice"). Garlic: always cloves (e.g. "4 cloves garlic"). Onions: always cup (e.g. "1 cup diced onion"). Eggs must include size (e.g. "3 large eggs"). Oils use tbsp/tsp. Liquids use cup/fl oz. NEVER use "each", "piece", "serving", "handful", "unit", "units", "medium", "large", "small" as units, or metric units.
 MEAL TYPE context: ${validMealType}
 ${strictMode ? `\n${buildStrictModeBlock(cravingInput)}` : ""}`;
 }
@@ -1300,7 +1302,7 @@ OUTPUT FORMAT — ONLY valid JSON, no markdown:
   ]
 }
 
-INGREDIENT MEASUREMENT RULES (NON-NEGOTIABLE): Use oz for proteins/potatoes/grains (e.g. "6 oz chicken", "5 oz sweet potato", "4 oz cooked rice"). Eggs must include size (e.g. "3 large eggs"). Oils use tbsp/tsp. Liquids use cup/fl oz. NEVER use "each", "piece", "serving", "handful", or metric units.
+INGREDIENT MEASUREMENT RULES (NON-NEGOTIABLE): Use oz for proteins/potatoes/grains (e.g. "6 oz chicken", "5 oz sweet potato", "4 oz cooked rice"). Garlic: always cloves (e.g. "4 cloves garlic"). Onions: always cup (e.g. "1 cup diced onion"). Eggs must include size (e.g. "3 large eggs"). Oils use tbsp/tsp. Liquids use cup/fl oz. NEVER use "each", "piece", "serving", "handful", "unit", "units", "medium", "large", "small" as units, or metric units.
 CRITICAL SANITY CHECK: Before outputting, verify your ingredient counts are physically realistic for ${cravingInput}. A dozen rolls does not require 5 dozen eggs.
 MEAL TYPE context: ${validMealType}
 ${strictMode ? `\n${buildStrictModeBlock(cravingInput)}` : ""}`;
@@ -2001,12 +2003,16 @@ Every ingredient MUST use a precise, measurable quantity. No vague units. No gue
 - Potatoes / yams / sweet potatoes: ALWAYS oz — e.g. "5 oz sweet potato" (NEVER "1 potato" or "each")
 - Rice / grains / pasta: cooked weight in oz — e.g. "4 oz cooked jasmine rice"
 - Eggs: MUST include size — e.g. "3 large eggs" (NEVER just "2 eggs")
+- Garlic: ALWAYS cloves — e.g. "4 cloves garlic" (NEVER "units", "each", or "medium")
+- Onions / shallots: ALWAYS cup — e.g. "1 cup diced yellow onion" (NEVER "1 medium onion")
 - Dense vegetables (broccoli, asparagus, green beans): oz — e.g. "4 oz broccoli florets"
 - Leafy greens: cup — e.g. "3 cup mixed greens"
-- Light vegetables (peppers, zucchini, spinach): cup — e.g. "1 cup sliced zucchini"
+- Light vegetables (zucchini, spinach, peppers when sliced): cup — e.g. "1 cup sliced zucchini"
+- Whole peppers used as vessels (stuffed): whole — e.g. "4 whole bell peppers"
 - Oils / condiments / sauces: tbsp or tsp — e.g. "1 tbsp olive oil"
 - Liquids (milk, broth, beverages): cup or fl oz — e.g. "8 fl oz almond milk"
-FORBIDDEN UNITS — NEVER use: "each", "piece", "pieces", "serving", "servings", "handful"
+- Spices / seasonings: tsp — e.g. "1 tsp cumin"
+FORBIDDEN UNITS — NEVER use: "each", "piece", "pieces", "serving", "servings", "handful", "unit", "units", "medium", "large", "small" as a unit
 NEVER use grams (g), milliliters (ml), or any metric unit
 
 FORMAT: Return as JSON object:
@@ -2437,13 +2443,15 @@ INGREDIENT MEASUREMENT RULES (NON-NEGOTIABLE):
 Every ingredient MUST use a precise, measurable quantity:
 - Proteins: ALWAYS oz — e.g. "4 oz turkey slices"
 - Eggs: MUST include size — e.g. "2 large eggs" (NEVER just "2 eggs")
+- Garlic: ALWAYS cloves — e.g. "2 cloves garlic" (NEVER "units", "each", "medium")
+- Onions / shallots: ALWAYS cup — e.g. "0.5 cup diced onion" (NEVER "1 medium onion")
 - Nuts/seeds: oz or tbsp — e.g. "1 oz almonds", "2 tbsp sunflower seeds"
-- Fruits: cup — e.g. "1 cup berries" (not "1 apple" — use "1 medium apple (5 oz)" if needed)
+- Fruits: cup or oz — e.g. "1 cup berries", "5 oz apple slices" (NEVER "1 apple")
 - Vegetables: cup — e.g. "1 cup carrot sticks"
 - Yogurt/dairy: cup or oz — e.g. "1 cup Greek yogurt"
 - Oils/dressings: tbsp or tsp — e.g. "1 tbsp almond butter"
 - Liquids: cup or fl oz — e.g. "8 fl oz almond milk"
-FORBIDDEN: "each", "piece", "serving", "handful" — NEVER use these units
+FORBIDDEN: "each", "piece", "serving", "handful", "unit", "units", "medium", "large", "small" as units
 
 FORMAT: Return as JSON object:
 {
