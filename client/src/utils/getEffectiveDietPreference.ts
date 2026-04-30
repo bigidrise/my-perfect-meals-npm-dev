@@ -42,6 +42,7 @@ export const CREATOR_DIET_OPTIONS: Array<{ value: string; label: string }> = [
 
 export const CREATOR_CUISINE_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "american", label: "American" },
+  { value: "soul food", label: "Soul Food" },
   { value: "mexican", label: "Mexican" },
   { value: "italian", label: "Italian" },
   { value: "indian", label: "Indian" },
