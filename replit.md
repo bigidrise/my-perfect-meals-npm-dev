@@ -260,8 +260,11 @@ Symptoms: `low_appetite | nausea | mouth_sensitivity | fatigue_low_prep | gi_sen
 `stableMealGenerator.ts` loads `oncologySupportContext` from DB alongside palate prefs. 
 `buildOncologySupportPrompt()` is injected after existing hub context (diabetes/GLP-1/anti-inflammatory).
 
+### Hard-blocked ingredients (ENFORCED AT PROMPT + POST-GENERATION)
+`ONCOLOGY_HARD_BLOCKED_INGREDIENTS` (exported from `oncologySupportPromptBuilder.ts`) is the canonical list. Includes: all processed/cured meats (bacon, turkey bacon, sausage, chorizo, pepperoni, salami, prosciutto, pancetta, ham, deli meats, hot dogs, bologna, mortadella, spam, beef jerky), lard, margarine, shortening, hydrogenated oils. White bread/toast and charred preparations are also blocked at the prompt level. Priority foods (leafy greens, cruciferous vegetables, mushrooms, berries, healthy fats, high-fiber carbs, clean proteins) are actively injected into every generation. These blocks were added 2024-04-30 after the system generated a "Classic American Breakfast Plate" with bacon for a cancer protocol user — the prompt was labeling but not enforcing.
+
 ### Safety validator (mandatory)
-`filterOncologySafeMeals()` / `validateOncologyMealSafety()` — scans generated meal names, descriptions, and instructions for forbidden patterns (cure claims, treatment language, supplement dosing). Rejection is logged.
+`filterOncologySafeMeals()` / `validateOncologyMealSafety()` — two-check post-generation validator: (1) scans meal text (name, description, instructions) for forbidden clinical/treatment language (cure claims, chemotherapy references, supplement dosing); (2) scans ingredient list AND meal name against `ONCOLOGY_HARD_BLOCKED_INGREDIENTS` and rejects any meal containing a blocked item. Rejected meals are logged with the specific violation. Both checks must pass for a meal to be returned to the client.
 
 ### Safety wording — non-negotiable
 No treatment claims, cure claims, diagnosis recommendations, or medication/supplement directives. Prompt includes: "nutrition support only — not medical treatment — follow oncology team guidance."
