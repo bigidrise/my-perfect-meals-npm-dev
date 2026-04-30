@@ -595,8 +595,7 @@ export default function EditProfilePage() {
 
               <div className="space-y-2 pt-3">
                 <Button
-                  variant="outline"
-                  className="w-full border-white/20 text-white/70 hover:text-white hover:bg-white/10"
+                  className="w-full bg-zinc-700 text-white"
                   disabled={!canContinueStep1 || saving}
                   onClick={handleSave}
                 >
@@ -707,8 +706,7 @@ export default function EditProfilePage() {
 
               <div className="space-y-2 pt-3">
                 <Button
-                  variant="outline"
-                  className="w-full border-white/20 text-white/70 hover:text-white hover:bg-white/10"
+                  className="w-full bg-zinc-700 text-white"
                   disabled={saving}
                   onClick={handleSave}
                 >
@@ -1217,8 +1215,7 @@ export default function EditProfilePage() {
 
               <div className="space-y-2 pt-3">
                 <Button
-                  variant="outline"
-                  className="w-full border-white/20 text-white/70 hover:text-white hover:bg-white/10"
+                  className="w-full bg-zinc-700 text-white"
                   disabled={saving}
                   onClick={handleSave}
                 >
@@ -1378,8 +1375,7 @@ export default function EditProfilePage() {
 
               <div className="space-y-2 pt-3">
                 <Button
-                  variant="outline"
-                  className="w-full border-white/20 text-white/70 hover:text-white hover:bg-white/10"
+                  className="w-full bg-zinc-700 text-white"
                   disabled={saving || glycemicSaving}
                   onClick={async () => {
                     await saveGlycemic({
