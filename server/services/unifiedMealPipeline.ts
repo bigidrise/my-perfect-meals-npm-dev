@@ -1673,23 +1673,33 @@ export async function generateFridgeRescueUnified(
   // Step 2: Use the REAL Fridge Rescue generator (OpenAI-powered, proven stable)
   // This is the same system that works perfectly on Fridge Rescue page
   console.log(`🧊 Unified Pipeline: Using Fridge Rescue AI generator for: ${fridgeItems.join(', ')}`);
+
+  // ── Load protocol envelope (same pattern as create-with-chef / craving / snack) ─
+  // Passes diet identity, medical rules, and cuisine preferences into the AI prompt.
+  const fridgeEnvelope = userId
+    ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+    : buildGuestEnvelope();
+  if (fridgeEnvelope.dietaryIdentity.length > 0) {
+    console.log(`🔒 [FRIDGE/Unified] Envelope loaded: identity=[${fridgeEnvelope.dietaryIdentity.join(',')}]`);
+  }
   
   try {
     const fridgeRescueMeals = await generateFridgeRescueMeals({
       fridgeItems,
-      macroTargets
+      macroTargets,
+      protocolEnvelope: fridgeEnvelope,
     });
     
-    // Convert to UnifiedMeal format
+    // Convert to UnifiedMeal format + normalize ingredients to US units
     const resultMeals: UnifiedMeal[] = fridgeRescueMeals.slice(0, count).map(meal => ({
       id: meal.id,
       name: meal.name,
       description: meal.description,
-      ingredients: meal.ingredients.map(ing => ({
+      ingredients: normalizeIngredients(meal.ingredients.map(ing => ({
         name: ing.name,
         quantity: String(ing.quantity),
         unit: ing.unit
-      })),
+      }))),
       instructions: meal.instructions,
       calories: meal.calories,
       protein: meal.protein,
@@ -1703,10 +1713,78 @@ export async function generateFridgeRescueUnified(
       medicalBadges: meal.medicalBadges || [],
       source: 'ai' as const
     }));
-    
+
+    // ── Dietary identity validation (Step 4) ────────────────────────────────────
+    // Reject and regenerate any meal that violates the user's diet (vegan, kosher, etc.)
+    // Mirrors the compliance loop already in create-with-chef and craving paths.
+    const fridgeDietIdentity: string[] = fridgeEnvelope.dietaryIdentity;
+    if (fridgeDietIdentity.length > 0 && resultMeals.length > 0) {
+      const cleanMeals: UnifiedMeal[] = [];
+      const violatingMeals: UnifiedMeal[] = [];
+      for (const meal of resultMeals) {
+        const mealText = [
+          meal.name,
+          ...((meal.ingredients as any[]).map((i: any) => i.name || ''))
+        ].join(' ');
+        const { violates, reasons } = violatesDietaryConstraints(mealText, fridgeDietIdentity);
+        if (violates) {
+          console.warn(`⚠️ [FRIDGE/Compliance] "${meal.name}" violates ${fridgeDietIdentity.join('|')}: [${reasons.join(', ')}] — regenerating`);
+          violatingMeals.push(meal);
+        } else {
+          cleanMeals.push(meal);
+        }
+      }
+      if (violatingMeals.length > 0) {
+        console.log(`🔄 [FRIDGE/Compliance] ${violatingMeals.length} violation(s) — running strict retry`);
+        try {
+          const retryMeals = await generateFridgeRescueMeals({
+            fridgeItems,
+            macroTargets,
+            protocolEnvelope: fridgeEnvelope,
+            strictMode: true,
+          });
+          const retryConverted: UnifiedMeal[] = retryMeals.slice(0, violatingMeals.length).map(meal => ({
+            id: meal.id,
+            name: meal.name,
+            description: meal.description,
+            ingredients: normalizeIngredients(meal.ingredients.map(ing => ({
+              name: ing.name,
+              quantity: String(ing.quantity),
+              unit: ing.unit
+            }))),
+            instructions: meal.instructions,
+            calories: meal.calories,
+            protein: meal.protein,
+            carbs: meal.carbs,
+            starchyCarbs: meal.starchyCarbs || 0,
+            fibrousCarbs: meal.fibrousCarbs || 0,
+            fat: meal.fat,
+            cookingTime: meal.cookingTime,
+            difficulty: meal.difficulty,
+            imageUrl: meal.imageUrl || getFallbackImage(validMealType),
+            medicalBadges: meal.medicalBadges || [],
+            source: 'ai' as const
+          }));
+          // Accept only clean retries; discard any that still violate
+          for (const retryMeal of retryConverted) {
+            const mealText = [retryMeal.name, ...((retryMeal.ingredients as any[]).map((i: any) => i.name || ''))].join(' ');
+            const { violates } = violatesDietaryConstraints(mealText, fridgeDietIdentity);
+            if (!violates) cleanMeals.push(retryMeal);
+            else console.warn(`⚠️ [FRIDGE/Compliance] Retry meal "${retryMeal.name}" still violates — discarded`);
+          }
+        } catch (retryErr) {
+          console.warn('[FRIDGE/Compliance] Strict retry failed:', retryErr);
+        }
+        // Replace resultMeals with only validated clean meals
+        resultMeals.length = 0;
+        resultMeals.push(...cleanMeals);
+        console.log(`✅ [FRIDGE/Compliance] ${resultMeals.length} clean meal(s) after validation`);
+      }
+    }
+
     console.log(`✅ Fridge Rescue AI generated ${resultMeals.length} complete meals`);
     
-    // Cache the results for future use
+    // Cache the results for future use (only cache clean meals)
     await cacheMeals(signature, resultMeals, validMealType, 'ai');
     
     return {
