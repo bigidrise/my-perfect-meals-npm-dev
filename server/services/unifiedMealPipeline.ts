@@ -66,6 +66,7 @@ import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from './b
 import { buildOncologySupportPrompt, isOncologySupportEnabled, type OncologySupportContext } from './guardrails/prompt/oncologySupportPromptBuilder';
 import { validateOncologyMealSafety } from './guardrails/validators/oncologySupportValidator';
 import { scoreOncologyMealQuality } from './guardrails/validators/oncologyQualityScorer';
+import { scoreOncologySnackQuality } from './guardrails/validators/oncologySnackScorer';
 import { buildDishTypeHint, getSemanticFallback, buildStableCacheKey, generateMealImageUnified } from './mealImageGenerator';
 import { normalizeMealName, culturalNameTransform } from './mealNameNormalizer';
 import { mealImageCache } from '../db/schema/mealImageCache';
@@ -864,6 +865,81 @@ Respond with ONLY valid JSON in this exact format:
         unifiedMeal = { ...unifiedMeal, dietaryComplianceVerified: cravingDietaryComplianceVerified };
         if (cravingDietaryComplianceVerified) {
           console.log(`🌿 [DIET GUARD] ${cravingPrimaryDiet} badge authorized for craving: ${unifiedMeal.name}`);
+        }
+      }
+
+      // ── Oncology quality gate for craving creator ─────────────────────────
+      // When the user is on the Cancer Support protocol, run the same quality
+      // scorer used by Create With Chef. If the meal fails, make one correction
+      // attempt with a specific quality hint before serving.
+      if (cravingDietRestrictions.includes('oncology-support')) {
+        const cravingQuality = scoreOncologyMealQuality({
+          name: unifiedMeal.name,
+          ingredients: unifiedMeal.ingredients,
+          description: unifiedMeal.description,
+          protein: unifiedMeal.protein,
+        });
+
+        console.log(`🧬 [ONCOLOGY CRAVING] Score: ${cravingQuality.total}/100 — tier: ${cravingQuality.tier}`);
+
+        if (!cravingQuality.approvedForDisplay) {
+          const qualityHint =
+            "CANCER SUPPORT QUALITY REQUIRED. " +
+            (cravingQuality.regenerationHint || "") +
+            ` Original craving: "${cravingInput}". Keep the spirit of the request but ensure: ` +
+            "green-tier protein (≥20g), real fiber anchor (quinoa/oats/lentils/sweet potato — not just greens), " +
+            "anti-inflammatory vegetables, healthy fat, and a therapeutic booster (garlic/turmeric/ginger/herbs).";
+
+          console.warn(`🔄 [ONCOLOGY CRAVING] Score ${cravingQuality.total}/100 — attempting quality correction`);
+          try {
+            const openai = getOpenAI();
+            const correctionResponse = await openai.chat.completions.create({
+              model: "gpt-4o",
+              messages: [
+                { role: 'user', content: prompt },
+                { role: 'assistant', content: JSON.stringify({ name: unifiedMeal.name, description: unifiedMeal.description }) },
+                { role: 'user', content: `QUALITY CORRECTION REQUIRED: ${qualityHint}` },
+              ],
+              response_format: { type: "json_object" },
+              max_tokens: 1500,
+            });
+            const corrContent = correctionResponse.choices?.[0]?.message?.content;
+            if (corrContent) {
+              const corrMeal = JSON.parse(corrContent);
+              const corrNormalized = normalizeIngredients(corrMeal.ingredients || []);
+              const corrStarchy = corrMeal.starchyCarbs ?? 0;
+              const corrFibrous = corrMeal.fibrousCarbs ?? 0;
+              const corrCarbs = resolveAICarbsStrict(corrMeal);
+              const corrRaw: UnifiedMeal = {
+                ...unifiedMeal,
+                name: corrMeal.name || unifiedMeal.name,
+                description: corrMeal.description || unifiedMeal.description,
+                ingredients: corrNormalized,
+                instructions: corrMeal.instructions || unifiedMeal.instructions,
+                protein: corrMeal.protein ?? unifiedMeal.protein,
+                calories: corrMeal.calories ?? unifiedMeal.calories,
+                carbs: corrCarbs,
+                starchyCarbs: corrStarchy,
+                fibrousCarbs: corrFibrous,
+                fat: corrMeal.fat ?? unifiedMeal.fat,
+              };
+              const corrQuality = scoreOncologyMealQuality({
+                name: corrRaw.name,
+                ingredients: corrRaw.ingredients,
+                description: corrRaw.description,
+                protein: corrRaw.protein,
+              });
+              if (corrQuality.approvedForDisplay) {
+                console.log(`✅ [ONCOLOGY CRAVING] Quality correction succeeded — score ${corrQuality.total}/100`);
+                unifiedMeal = enforceCarbs(corrRaw);
+              } else {
+                console.warn(`⚠️ [ONCOLOGY CRAVING] Quality correction still ${corrQuality.total}/100 — serving corrected version as-is`);
+                unifiedMeal = enforceCarbs(corrRaw);
+              }
+            }
+          } catch (corrErr) {
+            console.warn(`⚠️ [ONCOLOGY CRAVING] Quality correction attempt failed — serving original:`, corrErr);
+          }
         }
       }
 
@@ -1788,7 +1864,28 @@ export async function generateFridgeRescueUnified(
     }
 
     console.log(`✅ Fridge Rescue AI generated ${resultMeals.length} complete meals`);
-    
+
+    // ── Oncology quality gate for fridge rescue ─────────────────────────────
+    // Fridge rescue is ingredient-constrained (meals must use what the user has).
+    // We score each meal and tag it — we don't hard-block or re-generate from scratch
+    // because that would violate the fridge-rescue contract. However, we log every
+    // meal's oncology quality so the team can see the distribution.
+    if (fridgeEnvelope.dietaryIdentity.includes('oncology-support') || fridgePrimaryDiet === 'oncology-support') {
+      for (let i = 0; i < resultMeals.length; i++) {
+        const fridgeMealQuality = scoreOncologyMealQuality({
+          name: resultMeals[i].name,
+          ingredients: resultMeals[i].ingredients,
+          description: resultMeals[i].description,
+          protein: resultMeals[i].protein,
+        });
+        const status = fridgeMealQuality.approvedForDisplay
+          ? `premium_${fridgeMealQuality.total}`
+          : `fridge_suboptimal_${fridgeMealQuality.total}`;
+        (resultMeals[i] as any).qualityStatus = status;
+        console.log(`🧬 [ONCOLOGY FRIDGE] Meal ${i + 1} "${resultMeals[i].name}" — Score: ${fridgeMealQuality.total}/100 — ${fridgeMealQuality.tier} — caps: [${fridgeMealQuality.breakdown.caps?.join(', ') ?? ''}]`);
+      }
+    }
+
     // Cache the results for future use (only cache clean meals)
     await cacheMeals(signature, resultMeals, validMealType, 'ai');
     
@@ -2760,7 +2857,39 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
         };
       }
 
-      finalSnackData = { ...snackData, snackStarchyCarbs, snackFibrousCarbs, snackTotalCarbs, tempSnackIngredients: tempSnack.ingredients };
+      // ── Oncology snack quality gate ───────────────────────────────────────
+      // Applies when user is on the Cancer Support protocol.
+      // Threshold: 70+ (lighter than the 85+ meal standard).
+      const isOncologySnack =
+        dietType === 'oncology-support' ||
+        snackEnvelope.dietaryIdentity.includes('oncology-support');
+
+      if (isOncologySnack) {
+        const snackQuality = scoreOncologySnackQuality({
+          name: tempSnack.name,
+          ingredients: tempSnack.ingredients,
+          description: tempSnack.description,
+          protein: tempSnack.protein,
+        });
+
+        console.log(`🧬 [ONCOLOGY SNACK] Score: ${snackQuality.total}/100 — tier: ${snackQuality.tier} — caps: [${snackQuality.breakdown.caps.join(', ') || 'none'}]`);
+
+        if (!snackQuality.approvedForDisplay && snackAttemptCount < SNACK_MAX_REGENERATION_ATTEMPTS) {
+          snackLastFixHint = snackQuality.regenerationHint ||
+            "CANCER SUPPORT SNACK: Include a clean protein (Greek yogurt/nuts/seeds/hummus), an anti-inflammatory ingredient (berries/dark chocolate/turmeric), and a healthy fat/fiber source (almonds/chia/avocado). Avoid processed foods.";
+          console.warn(`🔄 [ONCOLOGY SNACK] Score ${snackQuality.total}/100 — regenerating with quality hint`);
+          continue;
+        }
+
+        if (!snackQuality.approvedForDisplay) {
+          console.warn(`⚠️ [ONCOLOGY SNACK] Score ${snackQuality.total}/100 after ${snackAttemptCount} attempts — serving as-is (safe but suboptimal)`);
+          (tempSnack as any).qualityStatus = "snack_fallback_safe";
+        } else {
+          (tempSnack as any).qualityStatus = `snack_approved_${snackQuality.total}`;
+        }
+      }
+
+      finalSnackData = { ...snackData, snackStarchyCarbs, snackFibrousCarbs, snackTotalCarbs, tempSnackIngredients: tempSnack.ingredients, qualityStatus: (tempSnack as any).qualityStatus ?? undefined };
       break;
     }
     
