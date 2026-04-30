@@ -509,7 +509,7 @@ const TapToRecordButton: React.FC = () => {
       <div className="relative">
         <Button 
           onClick={stopRecording} 
-          className="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 shadow-lg transition-all animate-pulse"
+          className="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 shadow-lg transition-all animate-pulse pulse-keep"
           title="Stop recording"
           size="sm"
         >

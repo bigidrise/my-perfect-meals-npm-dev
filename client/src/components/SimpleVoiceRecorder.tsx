@@ -236,7 +236,7 @@ export const SimpleVoiceRecorder = () => {
           <CardContent className="p-4 text-center">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <Mic className="w-6 h-6 text-red-500 animate-pulse" />
+                <Mic className="w-6 h-6 text-red-500 animate-pulse pulse-keep" />
                 <div>
                   <h4 className="font-bold text-red-600">Recording</h4>
                   <p className="text-xs text-gray-600">Say "Hey Chef" + command</p>

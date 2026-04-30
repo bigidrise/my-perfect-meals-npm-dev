@@ -105,7 +105,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onTranscriptReceiv
 
         {isRecording && (
           <div className="mt-4 text-center">
-            <div className="animate-pulse text-red-500">Recording... Speak now</div>
+            <div className="animate-pulse pulse-keep text-red-500">Recording... Speak now</div>
           </div>
         )}
 

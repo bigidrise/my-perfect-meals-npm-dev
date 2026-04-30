@@ -469,7 +469,7 @@ export const CopilotSheet: React.FC = () => {
                     <div className="rounded-xl bg-orange-500/10 border border-orange-400/30 px-3 py-2 flex items-center justify-between">
                       <p className="text-xs text-orange-300/90">
                         {isAudioPlaying
-                          ? <span className="animate-pulse">🔊 Playing...</span>
+                          ? <span className="animate-pulse pulse-keep">🔊 Playing...</span>
                           : <span>⏸ Paused</span>
                         }
                       </p>
@@ -582,7 +582,7 @@ export const CopilotSheet: React.FC = () => {
                               className={`text-xs px-2 py-1 rounded-full transition-all ${
                                 isAudioPlaying || userPaused
                                   ? "bg-orange-500/50 text-white opacity-60 cursor-not-allowed"
-                                  : "bg-orange-500/40 text-white border-2 border-orange-400 hover:bg-orange-500/60 animate-pulse"
+                                  : "bg-orange-500/40 text-white border-2 border-orange-400 hover:bg-orange-500/60 animate-pulse pulse-keep"
                               }`}
                               title="Listen to response"
                             >
