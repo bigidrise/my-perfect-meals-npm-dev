@@ -2137,6 +2137,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         activeSystem: user.activeSystem || null,
         isCreator,
         creatorDisplayName: creatorRow?.displayName || null,
+        cuisinePreference: user.cuisinePreference || null,
+        cuisineIntensity: user.cuisineIntensity || null,
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);
