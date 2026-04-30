@@ -593,7 +593,15 @@ export default function EditProfilePage() {
                 />
               </div>
 
-              <div className="flex gap-2 pt-3">
+              <div className="space-y-2 pt-3">
+                <Button
+                  variant="outline"
+                  className="w-full border-white/20 text-white/70 hover:text-white hover:bg-white/10"
+                  disabled={!canContinueStep1 || saving}
+                  onClick={handleSave}
+                >
+                  {saving ? "Saving..." : "Save & Exit"}
+                </Button>
                 <Button
                   className="w-full bg-lime-600 text-white"
                   disabled={!canContinueStep1}
@@ -697,21 +705,31 @@ export default function EditProfilePage() {
                 )}
               </div>
 
-              <div className="flex gap-2 pt-3">
+              <div className="space-y-2 pt-3">
                 <Button
                   variant="outline"
-                  className="w-1/2 bg-black text-white"
-                  onClick={() => setStep(1)}
+                  className="w-full border-white/20 text-white/70 hover:text-white hover:bg-white/10"
+                  disabled={saving}
+                  onClick={handleSave}
                 >
-                  Back
+                  {saving ? "Saving..." : "Save & Exit"}
                 </Button>
-                <Button
-                  className="flex-1 bg-lime-600 text-white"
-                  disabled={!canContinueStep2}
-                  onClick={() => setStep(3)}
-                >
-                  Continue
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 bg-black text-white"
+                    onClick={() => setStep(1)}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    className="flex-1 bg-lime-600 text-white"
+                    disabled={!canContinueStep2}
+                    onClick={() => setStep(3)}
+                  >
+                    Continue
+                  </Button>
+                </div>
               </div>
             </div>
           </StepShell>
@@ -1197,21 +1215,31 @@ export default function EditProfilePage() {
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-3">
+              <div className="space-y-2 pt-3">
                 <Button
                   variant="outline"
-                  className="flex-1 bg-black text-white"
-                  onClick={() => setStep(2)}
+                  className="w-full border-white/20 text-white/70 hover:text-white hover:bg-white/10"
+                  disabled={saving}
+                  onClick={handleSave}
                 >
-                  Back
+                  {saving ? "Saving..." : "Save & Exit"}
                 </Button>
-                <Button
-                  className="flex-1 bg-lime-600 text-white"
-                  disabled={!canContinueStep3}
-                  onClick={() => setStep(4)}
-                >
-                  Continue
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 bg-black text-white"
+                    onClick={() => setStep(2)}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    className="flex-1 bg-lime-600 text-white"
+                    disabled={!canContinueStep3}
+                    onClick={() => setStep(4)}
+                  >
+                    Continue
+                  </Button>
+                </div>
               </div>
             </div>
           </StepShell>
@@ -1348,17 +1376,11 @@ export default function EditProfilePage() {
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-3">
+              <div className="space-y-2 pt-3">
                 <Button
                   variant="outline"
-                  className="flex-1 bg-black text-white"
-                  onClick={() => setStep(3)}
-                >
-                  Back
-                </Button>
-                <Button
-                  className="flex-1 bg-lime-600 text-white"
-                  disabled={glycemicSaving}
+                  className="w-full border-white/20 text-white/70 hover:text-white hover:bg-white/10"
+                  disabled={saving || glycemicSaving}
                   onClick={async () => {
                     await saveGlycemic({
                       ...glycemicData,
@@ -1366,11 +1388,35 @@ export default function EditProfilePage() {
                       midRangeCarbs,
                       highRangeCarbs,
                     });
-                    setStep(5);
+                    await handleSave();
                   }}
                 >
-                  {glycemicSaving ? "Saving..." : "Continue"}
+                  {(saving || glycemicSaving) ? "Saving..." : "Save & Exit"}
                 </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 bg-black text-white"
+                    onClick={() => setStep(3)}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    className="flex-1 bg-lime-600 text-white"
+                    disabled={glycemicSaving}
+                    onClick={async () => {
+                      await saveGlycemic({
+                        ...glycemicData,
+                        lowRangeCarbs,
+                        midRangeCarbs,
+                        highRangeCarbs,
+                      });
+                      setStep(5);
+                    }}
+                  >
+                    {glycemicSaving ? "Saving..." : "Continue"}
+                  </Button>
+                </div>
               </div>
             </div>
           </StepShell>
