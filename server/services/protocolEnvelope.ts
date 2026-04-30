@@ -684,16 +684,32 @@ This user has: ${limitList}.
 Respect the medical constraints for these conditions while staying inside the dietary identity.
 Example: if diabetic + vegan, optimize carbs WITHIN vegan-safe foods only — never add animal products.
 
-CONSTRAINT ADAPTATION RULE (REQUIRED when cuisine preference is set):
-When a traditional cultural dish or ingredient conflicts with medical or dietary constraints, DO NOT abandon the cuisine. Adapt inside the cuisine using this sequence:
-1. Keep the dish archetype and core flavor profile (herbs, spices, sauces, preparation method).
-2. Replace ONLY the non-compliant components with culturally local compliant alternatives — not Western substitutes.
-3. Control glycemic load through portioning and fiber/protein pairing, not by removing the dish entirely.
-4. Preserve culturally plausible naming and plating — the meal must still feel like the cuisine.
-5. Only if NO compliant version of the dish exists, select a different authentic dish from the same cuisine — NEVER default to a Western alternative.
+MULTI-CONSTRAINT ADAPTATION RULE (REQUIRED — enforces the exact priority hierarchy):
+When multiple constraints are present (medical condition + diet identity + cultural cuisine), resolve them in this exact order:
+  1. MEDICAL SAFETY FIRST — diabetic carb control, renal limits, GLP-1 considerations, cardiac, oncology, allergies. These are not suggestions. They cannot be overridden.
+  2. DIET IDENTITY SECOND — vegan, vegetarian, pescatarian, kosher, halal. These must not be broken under any circumstance, including medical adaptation.
+  3. CULTURAL CUISINE THIRD — Korean, Vietnamese, Ethiopian, Cambodian, Japanese, Mexican. Preserve the cultural dish structure and flavor system inside layers 1 and 2.
+  4. PREFERENCE LAST — spice level, taste, simple meals, favorite foods.
 
-For diabetic users specifically: treat high-GI cultural staples (rice, injera, rice noodles) as "portion-limited with fiber/protein pairing" before considering full removal. A smaller portion of injera paired with extra lentils and greens is correct. A "low-carb bowl" with no cultural identity is NOT correct.
-For vegan users: all substitutions must remain fully plant-based — no exceptions even when adapting for medical constraints.`;
+When conflicts occur between cultural authenticity and constraints 1 or 2:
+  - Keep the original cultural dish archetype and core flavor profile
+  - Replace or adjust ONLY the non-compliant components — using culturally local alternatives, not Western substitutes
+  - Control glycemic load through portioning and fiber/protein pairing, not by eliminating the dish
+  - Do NOT default to Western meals or generic "healthy bowls" — this is always wrong
+  - Do NOT eliminate culturally essential staples — instead reduce portions or balance them with protein/fiber
+
+If a traditional dish absolutely cannot be safely adapted within all constraints:
+  → Select a different authentic dish from that same cuisine that satisfies all constraints
+  → NEVER default to a Western alternative
+
+CULTURAL STAPLE CARB RULE: For staple carbohydrates tied to a cuisine (rice, injera, rice noodles, tortillas, bread):
+  - Allow in controlled portions — do NOT hard-ban them for diabetic users
+  - Pair with protein, fiber, or fat to reduce glycemic impact
+  - Ensure total meal carbs stay within the diabetic limit
+  - Prefer lower-glycemic preparation when possible (e.g., cooled rice has lower GI than hot)
+  - A smaller injera portion with extra lentils and greens is CORRECT. A "low-carb bowl" replacing the entire cultural base is NOT.
+
+For vegan users: all adaptations must remain fully plant-based — no exceptions even when adapting for medical constraints.`;
   }
 
   // ── PROCEDURAL LAYER ──────────────────────────────────────────────────────
