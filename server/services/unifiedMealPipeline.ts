@@ -65,6 +65,7 @@ import { macroAudit, macroAuditPrompt, macroAuditCache } from '../utils/macroAud
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from './behavioralMemoryService';
 import { buildOncologySupportPrompt, isOncologySupportEnabled, type OncologySupportContext } from './guardrails/prompt/oncologySupportPromptBuilder';
 import { validateOncologyMealSafety } from './guardrails/validators/oncologySupportValidator';
+import { scoreOncologyMealQuality } from './guardrails/validators/oncologyQualityScorer';
 import { buildDishTypeHint, getSemanticFallback, buildStableCacheKey, generateMealImageUnified } from './mealImageGenerator';
 import { normalizeMealName, culturalNameTransform } from './mealNameNormalizer';
 import { mealImageCache } from '../db/schema/mealImageCache';
@@ -2300,6 +2301,29 @@ Create the recipe for: "${description}"`;
           };
         }
         console.log(`✅ [ONCOLOGY GUARD] Meal cleared — no blocked ingredients detected`);
+
+        // ── Quality scoring ───────────────────────────────────────────────
+        const qualityScore = scoreOncologyMealQuality({
+          name: tempMeal.name,
+          description: mealData.description,
+          ingredients: tempMeal.ingredients,
+        });
+
+        console.log(`📊 [ONCOLOGY QUALITY] Score: ${qualityScore.total}/100 (${qualityScore.tier}) — ${qualityScore.scoreLabel}`);
+
+        if (!qualityScore.approvedForDisplay && attemptCount < MAX_REGENERATION_ATTEMPTS) {
+          lastFixHint = qualityScore.regenerationHint ||
+            "QUALITY IMPROVEMENT REQUIRED: Regenerate with a green-tier protein, real fiber anchor (quinoa/lentils/sweet potato), anti-inflammatory vegetables, and healthy fats (olive oil/avocado). Add garlic, turmeric, or ginger as therapeutic boosters.";
+          console.warn(`🔄 [ONCOLOGY QUALITY] Score ${qualityScore.total}/100 below threshold — regenerating with hint`);
+          continue;
+        }
+
+        if (!qualityScore.approvedForDisplay) {
+          // Exhausted retries — log but don't reject, we already passed safety.
+          // A below-threshold meal is still safe; just not optimal. Prefer serving
+          // over blocking when the user is waiting.
+          console.warn(`⚠️ [ONCOLOGY QUALITY] Score ${qualityScore.total}/100 after ${attemptCount} attempts — serving as-is (safe but suboptimal)`);
+        }
       }
 
       const substitutionNotes = Array.isArray(mealData.substitutionNotes) && mealData.substitutionNotes.length > 0
