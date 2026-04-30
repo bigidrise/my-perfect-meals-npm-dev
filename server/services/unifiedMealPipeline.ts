@@ -1134,6 +1134,8 @@ REJECTION RULE: If any option resembles a Western template (scramble, wrap, sand
 
 STRUCTURAL ENFORCEMENT RULE: The dish format for each option MUST match a real, commonly consumed meal structure within ${cuisine} cuisine at the requested meal time. Do NOT assume a format common in nearby cuisines is automatically correct for ${cuisine}. Ask: do people in ${cuisine} actually eat this dish format at this meal time? If the answer is no or uncertain — REJECT the format and rebuild using a structure that is genuinely typical for ${cuisine} at this meal time.
 
+FORMAT AUTHENTICITY RULE: Do NOT default to globally generic formats such as "salad", "bowl", "wrap", or "balanced plate" unless those formats are clearly and commonly part of ${cuisine} cuisine specifically. These are universal AI fallbacks — they signal the AI is unsure and reached for a safe container instead of thinking culturally. If the format is globally common but not culturally specific to ${cuisine}, treat it as invalid and rebuild using a format distinctly found in ${cuisine} food traditions.
+
 INGREDIENT AUTHENTICITY RULE: Avoid generic "healthy" vegetables (broccoli, red bell pepper, kale, spinach, zucchini) UNLESS they are commonly used in ${cuisine} cuisine. These ingredients signal a generic health-food default. Prefer vegetables, herbs, proteins, and starches genuinely found in ${cuisine} home cooking. When in doubt, choose the more culturally specific ingredient.
 
 ALL 3 options must be authentically ${cuisine} preparations, with culturally correct formats, ingredients, AND flavor systems.\n`;
