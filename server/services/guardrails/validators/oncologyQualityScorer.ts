@@ -145,11 +145,16 @@ export function scoreOncologyMealQuality(meal: ScoredMeal): OncologyQualityResul
   else if (contains(text, CLEAN_PROTEIN_MINIMAL)) cleanProtein = 10;
 
   // 2. Fiber Anchor (0–20)
+  // IMPORTANT: Only FIBER_ANCHOR_STRONG (quinoa/oats/lentils/beans/sweet potato/grains)
+  // scores here. Leafy greens and light vegetables do NOT satisfy the fiber anchor gate.
+  // They contribute to vegetable score below, never to fiber score.
+  const hasStrongFiberAnchor = contains(text, FIBER_ANCHOR_STRONG);
   let fiberAnchor = 0;
-  if (contains(text, FIBER_ANCHOR_STRONG)) fiberAnchor = 20;
-  else if (contains(text, FIBER_ANCHOR_LIGHT)) fiberAnchor = 10;
+  if (hasStrongFiberAnchor) fiberAnchor = 20;
+  // Note: deliberately no "else if FIBER_ANCHOR_LIGHT" — greens ≠ fiber anchor
 
   // 3. Anti-Inflammatory Vegetables (0–20)
+  // Leafy greens still contribute here (vegetable presence), just not to fiber.
   let antiInflamVegetables = 0;
   if (contains(text, CRUCIFEROUS_VEGETABLES)) antiInflamVegetables = 20;
   else if (contains(text, ANTI_INFLAM_VEGETABLES)) antiInflamVegetables = 15;
@@ -173,9 +178,16 @@ export function scoreOncologyMealQuality(meal: ScoredMeal): OncologyQualityResul
   }
 
   // 6. Therapeutic Boosters (0–10)
-  const therapeuticBoosters = contains(text, THERAPEUTIC_BOOSTERS) ? 10 : 0;
+  const hasTherapeuticBooster = contains(text, THERAPEUTIC_BOOSTERS);
+  const therapeuticBoosters = hasTherapeuticBooster ? 10 : 0;
 
-  const total =
+  // ── Green-tier protein flag ───────────────────────────────────────────────
+  // Premium protein = fish, eggs, plant protein (cleanProtein === 20)
+  // Good protein = lean poultry (cleanProtein === 15)
+  // Both are green tier. Minimal (10) is borderline.
+  const hasGreenTierProtein = cleanProtein >= 15;
+
+  let rawTotal =
     cleanProtein +
     fiberAnchor +
     antiInflamVegetables +
@@ -183,18 +195,40 @@ export function scoreOncologyMealQuality(meal: ScoredMeal): OncologyQualityResul
     processingLevel +
     therapeuticBoosters;
 
+  // ── Hard caps (enforce that specific quality pillars are truly present) ───
+  // A meal that lacks a real fiber anchor, therapeutic booster, or green-tier
+  // protein cannot score 85+ regardless of how well it does elsewhere.
+  // Vegetables alone do NOT satisfy the fiber anchor cap.
+  let cappedTotal = rawTotal;
+  const caps: string[] = [];
+
+  if (!hasStrongFiberAnchor) {
+    cappedTotal = Math.min(cappedTotal, 84);
+    caps.push("no-fiber-anchor");
+  }
+  if (!hasTherapeuticBooster) {
+    cappedTotal = Math.min(cappedTotal, 84);
+    caps.push("no-therapeutic-booster");
+  }
+  if (!hasGreenTierProtein) {
+    cappedTotal = Math.min(cappedTotal, 84);
+    caps.push("no-green-tier-protein");
+  }
+
+  const total = cappedTotal;
+
   // ── Required minimums ────────────────────────────────────────────────────
   const missingRequirements: string[] = [];
 
   const hasProtein = cleanProtein > 0;
-  const hasFiber = fiberAnchor > 0;
+  const hasFiber = hasStrongFiberAnchor; // greens alone do NOT satisfy this
   const hasVegetables =
     contains(text, CRUCIFEROUS_VEGETABLES) ||
     contains(text, ANTI_INFLAM_VEGETABLES) ||
     contains(text, FIBER_ANCHOR_LIGHT);
 
   if (!hasProtein) missingRequirements.push("clean protein");
-  if (!hasFiber) missingRequirements.push("fiber source");
+  if (!hasFiber) missingRequirements.push("real fiber anchor (quinoa/oats/lentils/sweet potato — not just greens)");
   if (!hasVegetables) missingRequirements.push("vegetables");
 
   // ── Tier logic ───────────────────────────────────────────────────────────

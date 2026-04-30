@@ -2323,17 +2323,35 @@ Create the recipe for: "${description}"`;
         }
 
         if (!qualityScore.approvedForDisplay && attemptCount < MAX_REGENERATION_ATTEMPTS) {
-          lastFixHint = qualityScore.regenerationHint ||
-            "QUALITY IMPROVEMENT REQUIRED: Regenerate with a green-tier protein, real fiber anchor (quinoa/lentils/sweet potato), anti-inflammatory vegetables, and healthy fats (olive oil/avocado). Add garlic, turmeric, or ginger as therapeutic boosters.";
-          console.warn(`🔄 [ONCOLOGY QUALITY] Score ${qualityScore.total}/100 below threshold — regenerating with hint`);
+          // Smart escalation: attempt 1 → specific component hints;
+          // final attempt → force a proven structural template so the AI can't drift
+          if (attemptCount === 1) {
+            lastFixHint = qualityScore.regenerationHint ||
+              "QUALITY IMPROVEMENT REQUIRED: Regenerate with a green-tier protein (≥20g), real fiber anchor (quinoa/lentils/oats/sweet potato — not just greens), anti-inflammatory vegetables (broccoli/kale/mushrooms), healthy fats (olive oil/avocado), and therapeutic boosters (garlic/turmeric/ginger/herbs).";
+          } else {
+            // Last attempt: abandon original approach and force a reliable structural pattern
+            lastFixHint =
+              "STRUCTURAL RESET REQUIRED. Do not try to improve the previous meal. " +
+              "Build a completely new meal using this proven Cancer Support template: " +
+              "PROTEIN: 5–6 oz fresh salmon OR 3 eggs OR 1 cup lentils. " +
+              "FIBER: 3/4 cup cooked quinoa OR 1/2 cup oats OR 1 cup black beans or chickpeas. " +
+              "VEGETABLES: 1 cup broccoli or kale or mushrooms or bell peppers. " +
+              "FAT: 1 tbsp olive oil OR 1/4 avocado OR 1 tbsp tahini. " +
+              "BOOSTERS: garlic clove + turmeric + lemon juice + fresh parsley or cilantro. " +
+              "This template guarantees protein ≥20g, real fiber, anti-inflammatory vegetables, and therapeutic boosters. " +
+              `User's original request was: "${description}". Adapt the template to match the spirit of the request while keeping all five quality pillars.`;
+          }
+          console.warn(`🔄 [ONCOLOGY QUALITY] Score ${qualityScore.total}/100 — attempt ${attemptCount} escalation triggered`);
           continue;
         }
 
         if (!qualityScore.approvedForDisplay) {
-          // Exhausted retries — log but don't reject, we already passed safety.
-          // A below-threshold meal is still safe; just not optimal. Prefer serving
-          // over blocking when the user is waiting.
+          // Exhausted retries — log but don't reject. A below-threshold meal is still
+          // safe (passed hard-block gate). Prefer serving over blocking.
           console.warn(`⚠️ [ONCOLOGY QUALITY] Score ${qualityScore.total}/100 after ${attemptCount} attempts — serving as-is (safe but suboptimal)`);
+          (tempMeal as any).qualityStatus = "fallback_safe";
+        } else {
+          (tempMeal as any).qualityStatus = `premium_${qualityScore.total}`;
         }
       }
 
@@ -2342,7 +2360,7 @@ Create the recipe for: "${description}"`;
         : undefined;
       // IMPORTANT: use tempMeal.ingredients (not mealData.ingredients) so that any
       // dietary substitutions applied during validation are persisted to the response.
-      finalMealData = { ...mealData, ingredients: tempMeal.ingredients, starchyCarbs, fibrousCarbs, totalCarbs, substitutionNotes };
+      finalMealData = { ...mealData, ingredients: tempMeal.ingredients, starchyCarbs, fibrousCarbs, totalCarbs, substitutionNotes, qualityStatus: (tempMeal as any).qualityStatus ?? undefined };
       break;
     }
     
