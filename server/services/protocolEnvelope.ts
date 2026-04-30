@@ -765,7 +765,13 @@ GENERATION RULES:
 REJECTION RULE:
 If the meal you are about to generate resembles a Western template (scramble, wrap, sandwich, yogurt bowl, quinoa bowl, oatmeal) with minor cultural additions — DISCARD it and rebuild using the cultural framework above.
 
-SELF-CHECK before responding: Verify the meal reflects at least 2 of these authentic signals — (a) culturally appropriate dish format, (b) culturally typical protein or starch, (c) culturally authentic flavor elements. If fewer than 2 signals are present, revise before returning.`;
+STRUCTURAL ENFORCEMENT RULE:
+The dish format MUST match a real, commonly consumed meal structure within ${envelope.cuisinePreference} cuisine at the requested meal time. Do NOT assume that a format common in other cuisines (e.g., stir-fry for Southeast Asian breakfast, congee for all East Asian cuisines, curry for all South Asian cuisines) is automatically correct for this specific cuisine. Ask: do people in ${envelope.cuisinePreference} actually eat this dish format at this meal time? If the answer is no or uncertain — REJECT the format and rebuild using a structure that is genuinely typical for this cuisine and meal time.
+
+INGREDIENT AUTHENTICITY RULE:
+Avoid generic "healthy" vegetables (e.g., broccoli, red bell pepper, kale, spinach, zucchini) UNLESS they are commonly used in ${envelope.cuisinePreference} cuisine. These ingredients signal that the AI defaulted to a generic health-food template instead of thinking culturally. Prefer vegetables, herbs, proteins, and starches that are genuinely and commonly found in ${envelope.cuisinePreference} home cooking and restaurants. When in doubt, choose the more culturally specific ingredient over the generically "healthy" one.
+
+SELF-CHECK before responding: Verify the meal reflects at least 3 of these authentic signals — (a) culturally appropriate dish format for this cuisine AND this meal time, (b) culturally typical protein or starch (not a generic fitness substitute), (c) culturally authentic vegetables or herbs (not generic health vegetables), (d) correct flavor system for this cuisine. If fewer than 3 signals are present, revise before returning.`;
   }
 
   const combined = [

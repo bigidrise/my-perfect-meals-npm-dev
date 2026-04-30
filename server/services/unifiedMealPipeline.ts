@@ -1132,7 +1132,11 @@ GENERATION RULES:
 
 REJECTION RULE: If any option resembles a Western template (scramble, wrap, sandwich, yogurt bowl, quinoa bowl, oatmeal) with minor cultural additions — DISCARD it and rebuild from the cultural framework.
 
-ALL 3 options must be authentically ${cuisine} preparations.\n`;
+STRUCTURAL ENFORCEMENT RULE: The dish format for each option MUST match a real, commonly consumed meal structure within ${cuisine} cuisine at the requested meal time. Do NOT assume a format common in nearby cuisines is automatically correct for ${cuisine}. Ask: do people in ${cuisine} actually eat this dish format at this meal time? If the answer is no or uncertain — REJECT the format and rebuild using a structure that is genuinely typical for ${cuisine} at this meal time.
+
+INGREDIENT AUTHENTICITY RULE: Avoid generic "healthy" vegetables (broccoli, red bell pepper, kale, spinach, zucchini) UNLESS they are commonly used in ${cuisine} cuisine. These ingredients signal a generic health-food default. Prefer vegetables, herbs, proteins, and starches genuinely found in ${cuisine} home cooking. When in doubt, choose the more culturally specific ingredient.
+
+ALL 3 options must be authentically ${cuisine} preparations, with culturally correct formats, ingredients, AND flavor systems.\n`;
 }
 
 function buildVarietyPrompt(
