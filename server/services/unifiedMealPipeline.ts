@@ -64,7 +64,7 @@ import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 import { macroAudit, macroAuditPrompt, macroAuditCache } from '../utils/macroAuditLogger';
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from './behavioralMemoryService';
 import { buildDishTypeHint, getSemanticFallback, buildStableCacheKey, generateMealImageUnified } from './mealImageGenerator';
-import { normalizeMealName } from './mealNameNormalizer';
+import { normalizeMealName, culturalNameTransform } from './mealNameNormalizer';
 import { mealImageCache } from '../db/schema/mealImageCache';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1536,7 +1536,11 @@ export async function generateCravingMealOptions(
 
   const finalOptions = rawOptions.slice(0, 3);
   console.log(`✅ [VARIETY ENGINE] ${finalOptions.length} options: ${finalOptions.map((o: any) => o?.name).join(" | ")}`);
-  return finalOptions.map((opt, idx) => mapToUnifiedMeal(opt, idx, cravingInput, validMealType));
+  return finalOptions.map((opt, idx) => {
+    const meal = mapToUnifiedMeal(opt, idx, cravingInput, validMealType);
+    if (cuisineOverride) meal.name = culturalNameTransform(meal.name, cuisineOverride);
+    return meal;
+  });
 }
 
 /**
@@ -2032,7 +2036,7 @@ Create the recipe for: "${description}"`;
       
       let tempMeal: UnifiedMeal = {
         id: `chef-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        name: mealData.name,
+        name: culturalNameTransform(mealData.name, chefEnvelope.cuisinePreference),
         description: mealData.description,
         ingredients: (mealData.ingredients || []).map((ing: any) => ({
           name: ing.name,

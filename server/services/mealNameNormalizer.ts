@@ -85,6 +85,47 @@ function looksLikeIngredientList(name: string): boolean {
 }
 
 /**
+ * culturalNameTransform
+ *
+ * Post-generation name cleanup for cuisine-active meals.
+ * The AI tends to package culturally authentic dishes inside generic modern format
+ * labels ("Bowl", "Wrap") even when the ingredients and structure are correct.
+ * This strips those labels and removes the "-Style" suffix from cuisine prefixes.
+ *
+ * Applied after AI generation, only when a cuisinePreference is set.
+ *
+ * @param name    - Raw AI-generated meal name
+ * @param cuisine - The active cuisine preference (e.g. "Cambodian", "Ethiopian")
+ * @returns Name with generic format labels and "-Style" suffix removed
+ */
+export function culturalNameTransform(name: string, cuisine?: string): string {
+  if (!name || !name.trim() || !cuisine) return name;
+
+  let result = name.trim();
+
+  // "Cambodian-Style …" → "Cambodian …"
+  // The "-Style" suffix signals the AI couldn't commit to authenticity
+  result = result.replace(/-Style\b/gi, '');
+
+  // Strip trailing generic format words that the AI uses as safe containers.
+  // These are nearly never part of a genuine dish name in any cultural tradition.
+  // Trailing position only (end of string, optional punctuation) — avoids
+  // stripping "bowl" from legitimate dish names like "Bún bò Huế bowl soup".
+  const genericSuffixes = [
+    /\s+Bowl\s*$/i,
+    /\s+Wrap\s*$/i,
+  ];
+  for (const pattern of genericSuffixes) {
+    result = result.replace(pattern, '');
+  }
+
+  // Clean up any double spaces created by the removals
+  result = result.replace(/\s{2,}/g, ' ').trim();
+
+  return result || name.trim();
+}
+
+/**
  * normalizeMealName
  *
  * Converts ingredient-sounding meal names into proper dish names before image generation.
