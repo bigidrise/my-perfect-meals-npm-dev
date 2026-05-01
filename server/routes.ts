@@ -958,9 +958,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Fetch user health conditions and palate preferences from database
       let userHealthConditions: string[] = [];
       let palatePrefs: { palateSpiceTolerance?: string; palateSeasoningIntensity?: string; palateFlavorStyle?: string } | undefined = undefined;
+      let fridgeDbUser: any = null;
       {
         try {
           const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+          fridgeDbUser = dbUser ?? null;
           if (dbUser?.healthConditions && Array.isArray(dbUser.healthConditions)) {
             userHealthConditions = dbUser.healthConditions;
             console.log("[FRIDGE] User medical profile loaded");
@@ -991,6 +993,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.log(`🔒 [FRIDGE] Nutrition context: diet=[${fridgeNutritionContext.diet.join(",")}] medical=[${fridgeNutritionContext.medical.length} flags] builder=${fridgeNutritionContext.builder ?? "none"}`);
 
+      // ── Oncology smart enhancement layer ──────────────────────────────────────
+      // Detect gaps in the user's fridge items and inject mandatory therapeutic
+      // additions so every oncology-support meal includes a fiber anchor + boosters.
+      let oncologyFridgeBlock: string | undefined;
+      const isOncologyRoute = (fridgeProtocolEnvelope.dietaryIdentity ?? []).includes('oncology-support')
+        || fridgeNutritionContext.diet.includes('oncology-support')
+        || fridgeDbUser?.specialtyCondition === 'oncology-support';
+
+      if (isOncologyRoute) {
+        const fridgeText = fridgeItems.join(' ').toLowerCase();
+        const FIBER_ANCHOR_TERMS = ['quinoa','oat','lentil','bean','chickpea','sweet potato','brown rice','barley','farro','bulgur','edamame','pea'];
+        const BOOSTER_TERMS = ['garlic','turmeric','ginger','herb','parsley','cilantro','basil','thyme','rosemary','cumin','cinnamon','flax','chia'];
+        const hasFiberAnchor = FIBER_ANCHOR_TERMS.some(t => fridgeText.includes(t));
+        const hasBooster = BOOSTER_TERMS.some(t => fridgeText.includes(t));
+        const additions: string[] = [];
+        if (!hasFiberAnchor) {
+          additions.push(
+            '• FIBER ANCHOR (REQUIRED): Add ½ cup cooked quinoa, lentils, or black beans to every meal. ' +
+            'These are standard pantry staples. If quinoa is unavailable, use lentils or chickpeas. ' +
+            'Do NOT omit — meals without a fiber anchor fail the oncology quality gate.'
+          );
+        }
+        if (!hasBooster) {
+          additions.push(
+            '• THERAPEUTIC BOOSTERS (REQUIRED): Add 1–2 minced garlic cloves AND ¼ tsp turmeric to every ' +
+            'meal during cooking. Finish with fresh herbs (parsley, basil, or cilantro). ' +
+            'These anti-inflammatory compounds are non-negotiable for oncology-support protocol.'
+          );
+        }
+        if (additions.length > 0) {
+          oncologyFridgeBlock = [
+            '🧬 ONCOLOGY-SUPPORT SMART ENHANCEMENT (MANDATORY — DO NOT IGNORE):',
+            'This user is on the Oncology Support medical protocol. You MUST add these therapeutic',
+            'ingredients to every meal even if not in the fridge list — they are essential pantry staples:',
+            '',
+            ...additions,
+            '',
+            'Build meals around the user\'s listed ingredients FIRST, then layer in the above cohesively.',
+            'Every meal MUST include both a fiber anchor and a therapeutic booster to meet clinical standards.',
+          ].join('\n');
+          console.log(`🧬 [ONCOLOGY FRIDGE ROUTE] Gaps: ${!hasFiberAnchor ? 'NO FIBER ANCHOR ' : ''}${!hasBooster ? 'NO BOOSTER' : ''}. Enhancement injected.`);
+        } else {
+          console.log(`🧬 [ONCOLOGY FRIDGE ROUTE] Fridge items already cover fiber anchor + booster — no injection needed.`);
+        }
+      }
+
+      // Combine enhancement with any existing builder block from nutrition context
+      const combinedBuilderBlock = [
+        fridgeNutritionContext.builderBlock || '',
+        oncologyFridgeBlock || '',
+      ].filter(Boolean).join('\n\n') || undefined;
+
       // Generate multiple meals with proper macros and amounts
       const meals = await generateFridgeRescueMeals({ 
         fridgeItems, 
@@ -1001,7 +1055,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         palatePrefs: palatePrefs as any,
         strictMode: strictMode === true,
         protocolEnvelope: fridgeProtocolEnvelope,
-        builderBlock: fridgeNutritionContext.builderBlock || undefined,
+        builderBlock: combinedBuilderBlock,
       });
 
       // ── Post-generation protocol scan (ingredient + instruction level) ──────

@@ -24,7 +24,7 @@ import {
 } from "./hubCoupling";
 import { buildPalateSection, PalatePreferences } from "./promptBuilder";
 import { AVOIDANCE_EXPANSION } from "./allergyGuardrails";
-import { buildOncologySupportPrompt, isOncologySupportEnabled, type OncologySupportContext } from "./guardrails/prompt/oncologySupportPromptBuilder";
+import { buildOncologySupportPrompt, isOncologySupportEnabled, ONCOLOGY_HARD_BLOCKED_INGREDIENTS, type OncologySupportContext } from "./guardrails/prompt/oncologySupportPromptBuilder";
 import { filterOncologySafeMeals } from "./guardrails/validators/oncologySupportValidator";
 import { db } from "../db";
 import { users } from "@shared/schema";
@@ -1083,6 +1083,38 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
       console.log(`🌿 Applied anti-inflammatory filtering: ${filtered.length}/${originalCount} meals meet guardrails`);
     } else {
       console.log(`⚠️ No meals meet anti-inflammatory guardrails, keeping best options`);
+    }
+  }
+
+  // 🎗️ CANCER SUPPORT NUTRITION: Hard-block forbidden ingredients from catalog
+  // This runs on every path — catalog selection AND AI generation fallback.
+  // filterOncologySafeMeals is the post-generation validator; here we do the same
+  // check inline on the catalog Skeletons before any meal is selected.
+  const _oncologyCtxForCatalog = (userPrefs as any)?._oncologySupportContext as OncologySupportContext | null;
+  if (isOncologySupportEnabled() && _oncologyCtxForCatalog?.enabled) {
+    const preOncologyCount = filtered.length;
+    filtered = filtered.filter((meal) => {
+      const mealNameLower = meal.name.toLowerCase();
+      for (const blocked of ONCOLOGY_HARD_BLOCKED_INGREDIENTS) {
+        if (mealNameLower.includes(blocked.toLowerCase())) {
+          return false;
+        }
+      }
+      for (const ing of meal.ingredients) {
+        const ingNameLower = ing.name.toLowerCase();
+        for (const blocked of ONCOLOGY_HARD_BLOCKED_INGREDIENTS) {
+          if (ingNameLower.includes(blocked.toLowerCase())) {
+            return false;
+          }
+        }
+      }
+      return true;
+    });
+    if (filtered.length < preOncologyCount) {
+      console.log(`🎗️ [CANCER SUPPORT] Removed ${preOncologyCount - filtered.length} catalog meals containing blocked ingredients. ${filtered.length} remain.`);
+    }
+    if (filtered.length === 0) {
+      console.log(`🎗️ [CANCER SUPPORT] All catalog meals were blocked — will fall through to AI generation.`);
     }
   }
 

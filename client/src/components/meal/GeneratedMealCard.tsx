@@ -15,6 +15,7 @@ import FavoriteButton from "@/components/FavoriteButton";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import MealClassificationPill, { type DietClassification } from "@/components/MealClassificationPill";
 import BuilderSourcePill from "@/components/BuilderSourcePill";
+import { getClinicalCoachingLine } from "@/utils/clinicalCoachingLine";
 
 export interface GeneratedMealData {
   id: string;
@@ -158,16 +159,7 @@ export default function GeneratedMealCard({
   const coachingLine = (() => {
     const src = (source || "").toLowerCase();
     const flagsList = (generatedMeal.flags || []).join(" ").toLowerCase();
-    if (src.includes("glp1") || src.includes("glp-1") || flagsList.includes("glp1") || flagsList.includes("glp-1")) {
-      return "Built for your GLP-1 phase — small portion, protein-first, easy to digest.";
-    }
-    if (src.includes("diabet") || flagsList.includes("diabet")) {
-      return "Built to keep you within your glucose target range.";
-    }
-    if (src.includes("anti") || src.includes("inflammatory") || flagsList.includes("anti")) {
-      return "Built around anti-inflammatory principles — whole foods, clean carbs, low-inflammatory fats.";
-    }
-    return "Built for your current plan and targets.";
+    return getClinicalCoachingLine(`${src} ${flagsList}`);
   })();
 
   const totalProtein = generatedMeal.nutrition?.protein || generatedMeal.protein || 0;

@@ -18,13 +18,16 @@ interface AddToMealPlanButtonProps {
   onSuccess?: () => void;
 }
 
-type Slot = "breakfast" | "lunch" | "dinner" | "snacks";
+type Slot = "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6" | "snacks";
 
 const SLOT_OPTIONS: { value: Slot; label: string; emoji: string }[] = [
-  { value: "breakfast", label: "Breakfast", emoji: "🌅" },
-  { value: "lunch",     label: "Lunch",     emoji: "☀️" },
-  { value: "dinner",    label: "Dinner",    emoji: "🌙" },
-  { value: "snacks",    label: "Snack",     emoji: "🍎" },
+  { value: "breakfast", label: "Meal 1", emoji: "1️⃣" },
+  { value: "lunch",     label: "Meal 2", emoji: "2️⃣" },
+  { value: "dinner",    label: "Meal 3", emoji: "3️⃣" },
+  { value: "meal4",     label: "Meal 4", emoji: "4️⃣" },
+  { value: "meal5",     label: "Meal 5", emoji: "5️⃣" },
+  { value: "meal6",     label: "Meal 6", emoji: "6️⃣" },
+  { value: "snacks",    label: "Snack",  emoji: "🍎" },
 ];
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
