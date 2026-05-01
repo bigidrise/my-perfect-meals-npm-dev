@@ -1777,32 +1777,41 @@ export async function generateFridgeRescueUnified(
     }
   }
   const fridgePrimaryDiet = getPrimaryDiet(fridgeDietRestrictions) || "none";
+
+  // Detect oncology protocol early (before cache) so we can bypass stale cache
+  const isOncologyFridge = fridgePrimaryDiet === 'oncology-support'
+    || fridgeDietRestrictions.includes('oncology-support');
   
   // Step 1: Check diet-aware cache (includes primaryDiet to prevent cross-diet contamination)
+  // Oncology-support bypasses cache — enhancement logic must run fresh every time so
+  // old non-enhanced cached meals don't reach oncology users.
   const signature = createIngredientSignature({
     ingredients: fridgeItems,
     mealType: validMealType,
     primaryDiet: fridgePrimaryDiet
   });
   
-  const cached = await getCachedMeals(signature);
-  if (cached && cached.meals.length >= count) {
-    // Validate cached meals have BOTH imageUrl AND ingredients - if not, regenerate
-    const hasValidData = cached.meals.slice(0, count).every(m => 
-      m.imageUrl && m.imageUrl.length > 0 && 
-      m.ingredients && Array.isArray(m.ingredients) && m.ingredients.length > 0
-    );
-    if (hasValidData) {
-      console.log(`🚀 Cache hit for fridge rescue: ${fridgeItems.join(', ')} (source: ${cached.source})`);
-      return {
-        success: true,
-        meals: cached.meals.slice(0, count),
-        meal: cached.meals[0],
-        source: cached.meals[0].source === 'ai' ? 'ai' : 'catalog'
-      };
-    } else {
-      console.log(`⚠️ Cache has stale entries without imageUrl/ingredients - regenerating: ${fridgeItems.join(', ')}`);
+  if (!isOncologyFridge) {
+    const cached = await getCachedMeals(signature);
+    if (cached && cached.meals.length >= count) {
+      const hasValidData = cached.meals.slice(0, count).every(m => 
+        m.imageUrl && m.imageUrl.length > 0 && 
+        m.ingredients && Array.isArray(m.ingredients) && m.ingredients.length > 0
+      );
+      if (hasValidData) {
+        console.log(`🚀 Cache hit for fridge rescue: ${fridgeItems.join(', ')} (source: ${cached.source})`);
+        return {
+          success: true,
+          meals: cached.meals.slice(0, count),
+          meal: cached.meals[0],
+          source: cached.meals[0].source === 'ai' ? 'ai' : 'catalog'
+        };
+      } else {
+        console.log(`⚠️ Cache has stale entries without imageUrl/ingredients - regenerating: ${fridgeItems.join(', ')}`);
+      }
     }
+  } else {
+    console.log(`🧬 [ONCOLOGY FRIDGE] Cache bypassed — oncology enhancement must run fresh.`);
   }
 
   // Step 2: Use the REAL Fridge Rescue generator (OpenAI-powered, proven stable)
@@ -1817,12 +1826,76 @@ export async function generateFridgeRescueUnified(
   if (fridgeEnvelope.dietaryIdentity.length > 0) {
     console.log(`🔒 [FRIDGE/Unified] Envelope loaded: identity=[${fridgeEnvelope.dietaryIdentity.join(',')}]`);
   }
-  
+
+  // ── Oncology smart enhancement layer ──────────────────────────────────────────
+  // Philosophy: "Use what they gave + intelligently support it"
+  // Before generation we detect oncology-critical gaps in the user's ingredient list
+  // and inject a mandatory builderBlock that instructs the AI to add those items.
+  // This turns a "clean meal" into a therapeutically optimized oncology meal.
+  let oncologyFridgeEnhancement: string | undefined;
+  if (isOncologyFridge) {
+    const fridgeText = fridgeItems.join(' ').toLowerCase();
+
+    // Fiber anchor check — same terms as oncologyQualityScorer FIBER_ANCHOR_STRONG
+    const FIBER_ANCHOR_TERMS = [
+      'quinoa', 'oat', 'lentil', 'bean', 'chickpea', 'sweet potato',
+      'brown rice', 'barley', 'farro', 'bulgur', 'edamame', 'pea',
+    ];
+    const hasFiberAnchor = FIBER_ANCHOR_TERMS.some(t => fridgeText.includes(t));
+
+    // Therapeutic booster check — same terms as THERAPEUTIC_BOOSTERS in scorer
+    const BOOSTER_TERMS = [
+      'garlic', 'turmeric', 'ginger', 'herb', 'parsley', 'cilantro',
+      'basil', 'thyme', 'rosemary', 'cumin', 'cinnamon', 'flax', 'chia',
+      'green tea', 'olive oil',
+    ];
+    const hasBooster = BOOSTER_TERMS.some(t => fridgeText.includes(t));
+
+    const enhancements: string[] = [];
+
+    if (!hasFiberAnchor) {
+      enhancements.push(
+        '• FIBER ANCHOR (REQUIRED): Add ½ cup cooked quinoa, lentils, or black beans to every meal. ' +
+        'These are standard pantry staples. If quinoa is unavailable, use lentils or chickpeas. ' +
+        'Do NOT skip this — meals without a fiber anchor fail the oncology quality gate.'
+      );
+    }
+
+    if (!hasBooster) {
+      enhancements.push(
+        '• THERAPEUTIC BOOSTERS (REQUIRED): Add 1–2 minced garlic cloves AND ¼ tsp turmeric to every ' +
+        'meal during cooking. Finish with fresh herbs (parsley, basil, or cilantro). ' +
+        'These anti-inflammatory compounds are non-negotiable for oncology-support protocol.'
+      );
+    }
+
+    if (enhancements.length > 0) {
+      oncologyFridgeEnhancement = [
+        '🧬 ONCOLOGY-SUPPORT SMART ENHANCEMENT (MANDATORY — DO NOT IGNORE):',
+        'This user is on the Oncology Support medical protocol. You MUST add these therapeutic',
+        'ingredients to every meal even if not in the fridge list — they are essential pantry staples:',
+        '',
+        ...enhancements,
+        '',
+        'Build meals around the user\'s listed ingredients FIRST, then layer in the above. The result',
+        'should taste cohesive and complete — not like random additions. Every meal MUST include both',
+        'a fiber anchor and a therapeutic booster to meet clinical quality standards.',
+      ].join('\n');
+      console.log(
+        `🧬 [ONCOLOGY FRIDGE ENHANCE] Gaps detected — ${!hasFiberAnchor ? 'NO FIBER ANCHOR' : 'fiber ok'}` +
+        ` / ${!hasBooster ? 'NO BOOSTER' : 'booster ok'}. Enhancement block injected.`
+      );
+    } else {
+      console.log(`🧬 [ONCOLOGY FRIDGE ENHANCE] Fridge items already contain fiber anchor + booster — no injection needed.`);
+    }
+  }
+
   try {
     const fridgeRescueMeals = await generateFridgeRescueMeals({
       fridgeItems,
       macroTargets,
       protocolEnvelope: fridgeEnvelope,
+      builderBlock: oncologyFridgeEnhancement,
     });
     
     // Convert to UnifiedMeal format + normalize ingredients to US units
@@ -1877,6 +1950,7 @@ export async function generateFridgeRescueUnified(
             macroTargets,
             protocolEnvelope: fridgeEnvelope,
             strictMode: true,
+            builderBlock: oncologyFridgeEnhancement,
           });
           const retryConverted: UnifiedMeal[] = retryMeals.slice(0, violatingMeals.length).map(meal => ({
             id: meal.id,
