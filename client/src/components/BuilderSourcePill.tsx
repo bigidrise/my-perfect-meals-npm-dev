@@ -1,13 +1,14 @@
 // client/src/components/BuilderSourcePill.tsx
 //
-// Builder identity badge — shows which medical/dietary builder generated this meal.
-// Source of truth: builderType prop OR pattern-matched source string.
+// Builder identity badge — shows which medical/dietary protocol applies to this meal.
+// Source of truth: builderType prop → pattern-matched source string → user's dietary restrictions.
 // Rules:
 //   - One pill per meal card.
 //   - Never infers from ingredients or nutrition values.
 //   - Never mixes with the medical safety shield (HealthBadgesPopover).
 
 import { useProClient } from "@/contexts/ProClientContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Config {
   label: string;
@@ -42,6 +43,7 @@ interface BuilderSourcePillProps {
   /**
    * Canonical builder key (e.g. "diabetic", "glp1") OR a free-form source
    * string (e.g. "Diabetic Meal Plan (Week of Apr 13)"). Both are accepted.
+   * When omitted, falls back to the user's active dietary restrictions.
    */
   source?: string | null;
   className?: string;
@@ -49,10 +51,25 @@ interface BuilderSourcePillProps {
 
 export default function BuilderSourcePill({ source, className = "" }: BuilderSourcePillProps) {
   const { isProCareMode } = useProClient();
+  const { user } = useAuth();
 
-  if (isProCareMode || !source) return null;
+  if (isProCareMode) return null;
 
-  const key = BUILDER_CONFIG[source] ? source : resolveBuilderKey(source);
+  // 1) Try explicit prop first
+  let resolvedSource = source ?? null;
+
+  // 2) Fall back to user's active dietary restrictions so every card shows the
+  //    correct protocol pill — not just builder-specific pages.
+  if (!resolvedSource) {
+    const restrictions: string[] = (user as any)?.dietaryRestrictions ?? [];
+    for (const r of restrictions) {
+      if (resolveBuilderKey(r)) { resolvedSource = r; break; }
+    }
+  }
+
+  if (!resolvedSource) return null;
+
+  const key = BUILDER_CONFIG[resolvedSource] ? resolvedSource : resolveBuilderKey(resolvedSource);
   if (!key) return null;
 
   const { label, color } = BUILDER_CONFIG[key];
