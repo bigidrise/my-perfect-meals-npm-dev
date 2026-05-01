@@ -1446,4 +1446,14 @@ button, a, [role="button"], .interactive {
   box-shadow: 0 0 10px 3px rgba(59, 130, 246, 0.45), 0 0 18px 5px rgba(37, 99, 235, 0.2);
   border-color: rgba(96, 165, 250, 0.85);
 }
+.animate-pulse-glow-rose {
+  animation: none !important;
+  box-shadow: 0 0 10px 3px rgba(244, 63, 94, 0.45), 0 0 18px 5px rgba(225, 29, 72, 0.2);
+  border-color: rgba(253, 164, 175, 0.85);
+}
+.animate-pulse-glow-violet {
+  animation: none !important;
+  box-shadow: 0 0 10px 3px rgba(139, 92, 246, 0.45), 0 0 18px 5px rgba(109, 40, 217, 0.2);
+  border-color: rgba(196, 181, 253, 0.85);
+}
 
