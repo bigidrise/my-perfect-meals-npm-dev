@@ -707,9 +707,9 @@ export default function weekBoardRoutes(app: Express) {
         return res.status(400).json({ error: "Invalid or missing dateISO (YYYY-MM-DD format required)" });
       }
 
-      const validSlots = ["breakfast", "lunch", "dinner", "snacks"];
+      const validSlots = ["breakfast", "lunch", "dinner", "meal4", "meal5", "meal6", "snacks"];
       if (!slot || !validSlots.includes(slot)) {
-        return res.status(400).json({ error: "Invalid slot. Must be breakfast, lunch, dinner, or snacks" });
+        return res.status(400).json({ error: "Invalid slot. Must be one of: breakfast, lunch, dinner, meal4, meal5, meal6, or snacks" });
       }
 
       if (!meal || typeof meal !== "object") {
@@ -742,7 +742,7 @@ export default function weekBoardRoutes(app: Express) {
 
       // Ensure the day exists
       if (!board.days[dateISO]) {
-        board.days[dateISO] = { breakfast: [], lunch: [], dinner: [], snacks: [] };
+        board.days[dateISO] = { breakfast: [], lunch: [], dinner: [], snacks: [], meal4: [], meal5: [], meal6: [] };
       }
 
       // Generate a unique ID for the meal if not provided
@@ -771,17 +771,18 @@ export default function weekBoardRoutes(app: Express) {
       };
 
       // Check occupancy before replacing
-      const existingMeals = board.days[dateISO][slot as "breakfast" | "lunch" | "dinner" | "snacks"] || [];
+      type MealSlot = "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6" | "snacks";
+      const existingMeals = (board.days[dateISO] as any)[slot] || [];
       const wasOccupied = slot !== "snacks" && existingMeals.length > 0;
       const previousMealTitle = wasOccupied ? (existingMeals[0]?.title || existingMeals[0]?.name || null) : null;
 
-      // Replace existing meal in slot (single meal per slot for breakfast/lunch/dinner)
+      // Replace existing meal in slot (single meal per slot for all meal slots; snacks can stack)
       if (slot === "snacks") {
         // Snacks can have multiple, append
         board.days[dateISO].snacks.push(mealToAdd);
       } else {
-        // Breakfast/lunch/dinner: replace (enforced here — no stacking)
-        board.days[dateISO][slot as "breakfast" | "lunch" | "dinner"] = [mealToAdd];
+        // All meal slots (Meal 1-6): replace (single meal per slot — no stacking)
+        (board.days[dateISO] as any)[slot] = [mealToAdd];
       }
 
       // Update metadata
