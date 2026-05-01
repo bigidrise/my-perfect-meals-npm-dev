@@ -361,10 +361,12 @@ Made with ${topIngredients || "fresh whole ingredients"}.
 
 CRITICAL: Show ONLY the finished, cooked, plated dish — NOT raw ingredients, NOT uncooked components, NOT ingredient bowls.
 The dish must clearly look like ${mealName}. Do not generate any unrelated foods.
+ABSOLUTE RULE: NO HUMANS. NO PEOPLE. NO PERSONS. NO HANDS. NO ARMS. NO BODIES. NO FACES. NO MODELS. Food only — zero human presence of any kind.
 
 Style: cinematic, high-detail, natural lighting, realistic food photography.
 Camera: 3/4 angle or overhead depending on dish type.
-Background: clean, minimal, neutral surface, no clutter, no text, no logos, no people, no hands.`;
+Subject: the food dish alone, centered on a clean surface. No hands holding it, no person serving it, no lifestyle scene.
+Background: clean, minimal, neutral surface, no clutter, no text, no logos, no humans, no people, no hands.`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

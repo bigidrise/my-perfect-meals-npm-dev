@@ -958,9 +958,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Fetch user health conditions and palate preferences from database
       let userHealthConditions: string[] = [];
       let palatePrefs: { palateSpiceTolerance?: string; palateSeasoningIntensity?: string; palateFlavorStyle?: string } | undefined = undefined;
+      let fridgeDbUser: any = null;
       {
         try {
           const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+          fridgeDbUser = dbUser ?? null;
           if (dbUser?.healthConditions && Array.isArray(dbUser.healthConditions)) {
             userHealthConditions = dbUser.healthConditions;
             console.log("[FRIDGE] User medical profile loaded");
@@ -996,12 +998,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // additions so every oncology-support meal includes a fiber anchor + boosters.
       let oncologyFridgeBlock: string | undefined;
       const isOncologyRoute = (fridgeProtocolEnvelope.dietaryIdentity ?? []).includes('oncology-support')
-        || fridgeNutritionContext.diet.includes('oncology-support');
+        || fridgeNutritionContext.diet.includes('oncology-support')
+        || fridgeDbUser?.specialtyCondition === 'oncology-support';
 
       if (isOncologyRoute) {
         const fridgeText = fridgeItems.join(' ').toLowerCase();
         const FIBER_ANCHOR_TERMS = ['quinoa','oat','lentil','bean','chickpea','sweet potato','brown rice','barley','farro','bulgur','edamame','pea'];
-        const BOOSTER_TERMS = ['garlic','turmeric','ginger','herb','parsley','cilantro','basil','thyme','rosemary','cumin','cinnamon','flax','chia','olive oil'];
+        const BOOSTER_TERMS = ['garlic','turmeric','ginger','herb','parsley','cilantro','basil','thyme','rosemary','cumin','cinnamon','flax','chia'];
         const hasFiberAnchor = FIBER_ANCHOR_TERMS.some(t => fridgeText.includes(t));
         const hasBooster = BOOSTER_TERMS.some(t => fridgeText.includes(t));
         const additions: string[] = [];

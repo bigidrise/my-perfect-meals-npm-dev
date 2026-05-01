@@ -67,6 +67,12 @@ export default function BuilderSourcePill({ source, className = "" }: BuilderSou
     }
   }
 
+  // 3) Also check specialtyCondition — oncology-support is stored there, not in dietaryRestrictions
+  if (!resolvedSource) {
+    const sc: string | null = (user as any)?.specialtyCondition ?? null;
+    if (sc && resolveBuilderKey(sc)) resolvedSource = sc;
+  }
+
   if (!resolvedSource) return null;
 
   const key = BUILDER_CONFIG[resolvedSource] ? resolvedSource : resolveBuilderKey(resolvedSource);

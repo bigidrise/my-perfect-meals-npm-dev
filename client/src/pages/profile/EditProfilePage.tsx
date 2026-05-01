@@ -310,6 +310,12 @@ export default function EditProfilePage() {
     // NOTE: intentionally NOT resetting allergiesUnlocked / allergyEditToken here
     // so that a background user-data refresh doesn't wipe the PIN unlock mid-flow
   }, [initial]);
+
+  // Sync specialtyCondition from user object — handles async load and protocol persistence
+  useEffect(() => {
+    const sc = (user as any)?.specialtyCondition ?? null;
+    setSpecialtyCondition(sc);
+  }, [(user as any)?.specialtyCondition]);
   
   const verifyPinForAllergies = async () => {
     if (pinInput.length !== 4) {
