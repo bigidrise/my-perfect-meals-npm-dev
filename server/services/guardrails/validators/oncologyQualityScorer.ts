@@ -103,6 +103,28 @@ const PROCESSED_INDICATORS = [
   "processed cheese", "american cheese", "velveeta", "spray",
 ];
 
+// ── Refined carb / added sugar detection ─────────────────────────────────────
+// These are hard-cap triggers. A meal anchored in all-purpose flour or
+// granulated sugar cannot score 85+ under the Cancer Support protocol.
+// They indicate the AI generated a standard dessert / comfort food rather
+// than a clinical-quality transformation.
+
+const REFINED_CARB_PRIMARY = [
+  "all-purpose flour", "all purpose flour", "white flour",
+  "refined flour", "cake flour", "pastry flour",
+  "white rice", "white bread", "white pasta",
+  "cornstarch", "corn starch",
+];
+
+const ADDED_SUGAR_HIGH = [
+  "granulated sugar", "white sugar", "cane sugar", "powdered sugar",
+  "confectioners sugar", "icing sugar",
+  "corn syrup", "high fructose", "simple syrup",
+  "maple syrup",     // permitted in tiny amounts but flagged here for cap
+  "agave syrup", "agave nectar",
+  "brown sugar",
+];
+
 // ─── Helper ──────────────────────────────────────────────────────────────────
 
 function ingredientText(meal: ScoredMeal): string {
@@ -216,6 +238,18 @@ export function scoreOncologyMealQuality(meal: ScoredMeal): OncologyQualityResul
     caps.push("no-green-tier-protein");
   }
 
+  // Refined carb / added sugar hard cap — score drops below 70 (forces reject tier + retry).
+  // A meal built on all-purpose flour or granulated sugar is a standard dessert,
+  // not a clinical-quality Cancer Support transformation. The AI must be forced to
+  // rebuild using oats, almond flour, protein powder, or naturally sweet ingredients.
+  const hasRefinedCarbPrimary = contains(text, REFINED_CARB_PRIMARY);
+  const hasAddedSugarHigh = contains(text, ADDED_SUGAR_HIGH);
+  if (hasRefinedCarbPrimary || hasAddedSugarHigh) {
+    cappedTotal = Math.min(cappedTotal, 69);
+    if (hasRefinedCarbPrimary) caps.push("refined-carb-primary");
+    if (hasAddedSugarHigh)     caps.push("added-sugar-high");
+  }
+
   const total = cappedTotal;
 
   // ── Required minimums ────────────────────────────────────────────────────
@@ -283,6 +317,16 @@ export function scoreOncologyMealQuality(meal: ScoredMeal): OncologyQualityResul
     if (therapeuticBoosters === 0) {
       hints.push(
         "BOOSTERS: Add therapeutic ingredients — garlic, turmeric, ginger, lemon, or fresh herbs."
+      );
+    }
+
+    if (hasRefinedCarbPrimary || hasAddedSugarHigh) {
+      hints.push(
+        "CRITICAL — REFINED CARB/SUGAR DETECTED: This meal uses all-purpose flour or granulated sugar which is NOT acceptable for Cancer Support protocol. " +
+        "TRANSFORM IT: Replace all-purpose flour with oats, almond flour, or protein powder. Replace granulated sugar with mashed banana, berries, or dates. " +
+        "Examples: 'pancakes' → protein oat pancakes with eggs + oats + banana + berries. " +
+        "'cake' → Greek yogurt parfait with berries and nuts. " +
+        "The spirit of the craving must be honored, but the base ingredients must be clinically safe."
       );
     }
 

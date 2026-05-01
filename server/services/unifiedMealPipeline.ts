@@ -686,9 +686,31 @@ export async function generateCravingMealUnified(
 
     try {
       const openai = getOpenAI();
+
+      // When the user is on the Cancer Support protocol, inject a clinical
+      // transformation block so the AI targets quality ingredients from the start.
+      const isOncologyCraving = cravingDietRestrictions.includes('oncology-support');
+      const oncologyCravingBlock = isOncologyCraving
+        ? `\nCANCER SUPPORT PROTOCOL — MANDATORY CRAVING TRANSFORMATION:
+You are NOT generating a standard meal. You are transforming the user's craving into a clinically-safe, anti-cancer version.
+TRANSFORMATION RULES (follow ALL of them):
+- "pancakes" or "cake" or "pastry" → Use rolled oats, eggs, and mashed banana or berries. NEVER all-purpose flour or granulated sugar.
+- "cookies" or "brownies" or "dessert" → Greek yogurt or cottage cheese base with berries, walnuts, dark chocolate (70%+), chia seeds.
+- "pizza" → Egg-based or cauliflower crust with vegetables and lean protein.
+- "pasta" → Zucchini noodles, spaghetti squash, or quinoa base.
+- "fried food" → Oven-baked or air-fried with almond flour or oats coating.
+FORBIDDEN INGREDIENTS: all-purpose flour, white flour, granulated sugar, powdered sugar, corn syrup, white bread, white rice.
+REQUIRED STRUCTURE FOR EVERY MEAL:
+1. PROTEIN: ≥20g from eggs, chicken, salmon, Greek yogurt, tofu, lentils, or chickpeas
+2. FIBER ANCHOR: quinoa, oats, lentils, chickpeas, sweet potato, or brown rice
+3. ANTI-INFLAMMATORY VEG: broccoli, kale, spinach, mushrooms, or bell peppers
+4. HEALTHY FAT: olive oil, avocado, tahini, or nuts
+5. THERAPEUTIC BOOSTER: garlic, turmeric, ginger, berries, lemon, or fresh herbs
+`
+        : '';
       
       const prompt = `You are a creative chef helping someone satisfy their food craving.
-${cravingDietBlock ? `\n${cravingDietBlock}\n` : ""}${strictMode ? `\n${buildStrictModeBlock(cravingInput)}\n` : ""}
+${cravingDietBlock ? `\n${cravingDietBlock}\n` : ""}${oncologyCravingBlock}${strictMode ? `\n${buildStrictModeBlock(cravingInput)}\n` : ""}
 CRAVING: "${cravingInput}"
 MEAL TYPE: ${validMealType}
 
@@ -868,37 +890,66 @@ Respond with ONLY valid JSON in this exact format:
         }
       }
 
-      // ── Oncology quality gate for craving creator ─────────────────────────
-      // When the user is on the Cancer Support protocol, run the same quality
-      // scorer used by Create With Chef. If the meal fails, make one correction
-      // attempt with a specific quality hint before serving.
+      // ── Oncology quality gate for craving creator — 2-retry escalation ────
+      // Matches the same standard as Create With Chef: 85+ to display.
+      // Attempt 1: specific component correction hints.
+      // Attempt 2: structural reset — transform the craving into a proven template.
       if (cravingDietRestrictions.includes('oncology-support')) {
-        const cravingQuality = scoreOncologyMealQuality({
-          name: unifiedMeal.name,
-          ingredients: unifiedMeal.ingredients,
-          description: unifiedMeal.description,
-          protein: unifiedMeal.protein,
-        });
+        const ONCOLOGY_CRAVING_MAX_RETRIES = 2;
+        let oncologyCravingAttempt = 0;
+        let currentMeal = unifiedMeal;
 
-        console.log(`🧬 [ONCOLOGY CRAVING] Score: ${cravingQuality.total}/100 — tier: ${cravingQuality.tier}`);
+        while (oncologyCravingAttempt < ONCOLOGY_CRAVING_MAX_RETRIES) {
+          const cravingQuality = scoreOncologyMealQuality({
+            name: currentMeal.name,
+            ingredients: currentMeal.ingredients,
+            description: currentMeal.description,
+            protein: currentMeal.protein,
+          });
 
-        if (!cravingQuality.approvedForDisplay) {
-          const qualityHint =
-            "CANCER SUPPORT QUALITY REQUIRED. " +
-            (cravingQuality.regenerationHint || "") +
-            ` Original craving: "${cravingInput}". Keep the spirit of the request but ensure: ` +
-            "green-tier protein (≥20g), real fiber anchor (quinoa/oats/lentils/sweet potato — not just greens), " +
-            "anti-inflammatory vegetables, healthy fat, and a therapeutic booster (garlic/turmeric/ginger/herbs).";
+          console.log(`🧬 [ONCOLOGY CRAVING] Attempt ${oncologyCravingAttempt + 1} — Score: ${cravingQuality.total}/100 — tier: ${cravingQuality.tier} — caps: [${cravingQuality.breakdown.caps.join(', ') || 'none'}]`);
 
-          console.warn(`🔄 [ONCOLOGY CRAVING] Score ${cravingQuality.total}/100 — attempting quality correction`);
+          if (cravingQuality.approvedForDisplay) {
+            // Passed — use this meal
+            unifiedMeal = currentMeal;
+            break;
+          }
+
+          // Score too low — build escalating correction hint
+          let correctionHint: string;
+          if (oncologyCravingAttempt === 0) {
+            // Attempt 1: specific component hints from the scorer
+            correctionHint =
+              "CANCER SUPPORT QUALITY CORRECTION (Attempt 1). " +
+              (cravingQuality.regenerationHint || "") +
+              ` Original craving: "${cravingInput}". Honor the spirit of the craving with a healthy transformation. ` +
+              "NEVER use all-purpose flour, granulated sugar, or refined carbs. " +
+              "Use oats, almond flour, or protein powder instead of flour. Use banana, berries, or dates instead of sugar.";
+          } else {
+            // Attempt 2: structural reset — stop trying to adjust, build from scratch
+            correctionHint =
+              "STRUCTURAL RESET — FINAL ATTEMPT. The previous version failed Cancer Support standards. " +
+              "Do NOT try to fix the previous meal. BUILD A NEW MEAL that satisfies the craving concept safely. " +
+              `Craving: "${cravingInput}". ` +
+              "TRANSFORMATION RULES: " +
+              "'pancakes' or 'cake' → protein oat pancakes: 3 large eggs + 1/2 cup rolled oats + 1 mashed banana + blueberries + cinnamon. " +
+              "'cookies' or 'brownies' → Greek yogurt parfait: 1 cup Greek yogurt + berries + walnuts + chia seeds + cacao nibs. " +
+              "'pizza' → open-face egg white omelet with vegetables and herbs. " +
+              "'pasta' → zucchini noodles or quinoa base with salmon and vegetables. " +
+              "REQUIRED STRUCTURE: protein (eggs/Greek yogurt/salmon) + fiber anchor (oats/quinoa/lentils) + vegetables + healthy fat + therapeutic booster (garlic/turmeric/berries/herbs). " +
+              "NO all-purpose flour. NO granulated sugar. NO refined carbs.";
+          }
+
+          console.warn(`🔄 [ONCOLOGY CRAVING] Score ${cravingQuality.total}/100 — escalation attempt ${oncologyCravingAttempt + 1}`);
+
           try {
             const openai = getOpenAI();
             const correctionResponse = await openai.chat.completions.create({
               model: "gpt-4o",
               messages: [
                 { role: 'user', content: prompt },
-                { role: 'assistant', content: JSON.stringify({ name: unifiedMeal.name, description: unifiedMeal.description }) },
-                { role: 'user', content: `QUALITY CORRECTION REQUIRED: ${qualityHint}` },
+                { role: 'assistant', content: JSON.stringify({ name: currentMeal.name, description: currentMeal.description }) },
+                { role: 'user', content: correctionHint },
               ],
               response_format: { type: "json_object" },
               max_tokens: 1500,
@@ -907,39 +958,42 @@ Respond with ONLY valid JSON in this exact format:
             if (corrContent) {
               const corrMeal = JSON.parse(corrContent);
               const corrNormalized = normalizeIngredients(corrMeal.ingredients || []);
-              const corrStarchy = corrMeal.starchyCarbs ?? 0;
-              const corrFibrous = corrMeal.fibrousCarbs ?? 0;
-              const corrCarbs = resolveAICarbsStrict(corrMeal);
-              const corrRaw: UnifiedMeal = {
-                ...unifiedMeal,
-                name: corrMeal.name || unifiedMeal.name,
-                description: corrMeal.description || unifiedMeal.description,
+              currentMeal = enforceCarbs({
+                ...currentMeal,
+                name: corrMeal.name || currentMeal.name,
+                description: corrMeal.description || currentMeal.description,
                 ingredients: corrNormalized,
-                instructions: corrMeal.instructions || unifiedMeal.instructions,
-                protein: corrMeal.protein ?? unifiedMeal.protein,
-                calories: corrMeal.calories ?? unifiedMeal.calories,
-                carbs: corrCarbs,
-                starchyCarbs: corrStarchy,
-                fibrousCarbs: corrFibrous,
-                fat: corrMeal.fat ?? unifiedMeal.fat,
-              };
-              const corrQuality = scoreOncologyMealQuality({
-                name: corrRaw.name,
-                ingredients: corrRaw.ingredients,
-                description: corrRaw.description,
-                protein: corrRaw.protein,
+                instructions: corrMeal.instructions || currentMeal.instructions,
+                protein: corrMeal.protein ?? currentMeal.protein,
+                calories: corrMeal.calories ?? currentMeal.calories,
+                carbs: resolveAICarbsStrict(corrMeal),
+                starchyCarbs: corrMeal.starchyCarbs ?? 0,
+                fibrousCarbs: corrMeal.fibrousCarbs ?? 0,
+                fat: corrMeal.fat ?? currentMeal.fat,
               });
-              if (corrQuality.approvedForDisplay) {
-                console.log(`✅ [ONCOLOGY CRAVING] Quality correction succeeded — score ${corrQuality.total}/100`);
-                unifiedMeal = enforceCarbs(corrRaw);
-              } else {
-                console.warn(`⚠️ [ONCOLOGY CRAVING] Quality correction still ${corrQuality.total}/100 — serving corrected version as-is`);
-                unifiedMeal = enforceCarbs(corrRaw);
-              }
             }
           } catch (corrErr) {
-            console.warn(`⚠️ [ONCOLOGY CRAVING] Quality correction attempt failed — serving original:`, corrErr);
+            console.warn(`⚠️ [ONCOLOGY CRAVING] Correction attempt ${oncologyCravingAttempt + 1} failed:`, corrErr);
+            break;
           }
+
+          oncologyCravingAttempt++;
+        }
+
+        // After retries exhausted, use the best version we have
+        if (currentMeal !== unifiedMeal) {
+          const finalQuality = scoreOncologyMealQuality({
+            name: currentMeal.name,
+            ingredients: currentMeal.ingredients,
+            description: currentMeal.description,
+            protein: currentMeal.protein,
+          });
+          if (finalQuality.approvedForDisplay) {
+            console.log(`✅ [ONCOLOGY CRAVING] Quality gate passed after retries — score ${finalQuality.total}/100`);
+          } else {
+            console.warn(`⚠️ [ONCOLOGY CRAVING] Serving best available after ${ONCOLOGY_CRAVING_MAX_RETRIES} retries — score ${finalQuality.total}/100`);
+          }
+          unifiedMeal = currentMeal;
         }
       }
 
