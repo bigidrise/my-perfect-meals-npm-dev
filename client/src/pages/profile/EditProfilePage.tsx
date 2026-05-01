@@ -264,11 +264,11 @@ export default function EditProfilePage() {
   );
 
   const [specialtyCondition, setSpecialtyCondition] = useState<string | null>(
-    (user as any)?.specialtyCondition ?? null
+    user?.specialtyCondition ?? null
   );
 
   // Protocol Ownership Model — physician-set oncology context (read from server)
-  const oncologyCtx = (user as any)?.oncologySupportContext ?? null;
+  const oncologyCtx = user?.oncologySupportContext ?? null;
   const physicianOncologyActive = !!(oncologyCtx?.enabled && oncologyCtx?.source === "physician");
   const physicianOncologyLocked = physicianOncologyActive && !!(user?.isProCare);
   const [physicianProtocolClearing, setPhysicianProtocolClearing] = useState(false);
@@ -313,9 +313,8 @@ export default function EditProfilePage() {
 
   // Sync specialtyCondition from user object — handles async load and protocol persistence
   useEffect(() => {
-    const sc = (user as any)?.specialtyCondition ?? null;
-    setSpecialtyCondition(sc);
-  }, [(user as any)?.specialtyCondition]);
+    setSpecialtyCondition(user?.specialtyCondition ?? null);
+  }, [user?.specialtyCondition]);
   
   const verifyPinForAllergies = async () => {
     if (pinInput.length !== 4) {

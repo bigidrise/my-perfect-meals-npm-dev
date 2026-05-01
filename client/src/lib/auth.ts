@@ -129,6 +129,11 @@ export interface User {
   backAt?: string | null;
   // Oncology support onboarding intent (NOT a clinical protocol toggle)
   oncologySupportIntent?: "own_provider" | "request_support" | "self_directed" | null;
+  // Self-selected specialty health protocol (edit profile page)
+  specialtyCondition?: string | null;
+  // Physician-set oncology context (Protocol Ownership Model)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  oncologySupportContext?: any | null;
   // Creator Studio
   activeSystem?: string | null;
   isCreator?: boolean;
