@@ -1767,20 +1767,24 @@ export async function generateFridgeRescueUnified(
 
   // Fetch dietary restrictions FIRST to ensure diet-aware cache key
   let fridgeDietRestrictions: string[] = [];
+  let fridgeSpecialtyCondition: string | null = null;
   if (userId) {
     try {
-      const [fridgeUser] = await db.select({ dietaryRestrictions: users.dietaryRestrictions })
+      const [fridgeUser] = await db.select({ dietaryRestrictions: users.dietaryRestrictions, specialtyCondition: users.specialtyCondition })
         .from(users).where(eq(users.id, userId)).limit(1);
       fridgeDietRestrictions = (fridgeUser?.dietaryRestrictions as string[]) || [];
+      fridgeSpecialtyCondition = (fridgeUser?.specialtyCondition as string | null) ?? null;
     } catch (err) {
       console.warn("[FRIDGE] Could not fetch dietary restrictions for cache key:", err);
     }
   }
   const fridgePrimaryDiet = getPrimaryDiet(fridgeDietRestrictions) || "none";
 
-  // Detect oncology protocol early (before cache) so we can bypass stale cache
+  // Detect oncology protocol early (before cache) so we can bypass stale cache.
+  // Check both dietaryRestrictions AND specialtyCondition — oncology-support may be stored in either.
   const isOncologyFridge = fridgePrimaryDiet === 'oncology-support'
-    || fridgeDietRestrictions.includes('oncology-support');
+    || fridgeDietRestrictions.includes('oncology-support')
+    || fridgeSpecialtyCondition === 'oncology-support';
   
   // Step 1: Check diet-aware cache (includes primaryDiet to prevent cross-diet contamination)
   // Oncology-support bypasses cache — enhancement logic must run fresh every time so
@@ -1847,7 +1851,7 @@ export async function generateFridgeRescueUnified(
     const BOOSTER_TERMS = [
       'garlic', 'turmeric', 'ginger', 'herb', 'parsley', 'cilantro',
       'basil', 'thyme', 'rosemary', 'cumin', 'cinnamon', 'flax', 'chia',
-      'green tea', 'olive oil',
+      'green tea',
     ];
     const hasBooster = BOOSTER_TERMS.some(t => fridgeText.includes(t));
 
