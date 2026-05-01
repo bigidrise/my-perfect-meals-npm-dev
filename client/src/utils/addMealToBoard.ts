@@ -11,7 +11,7 @@ import {
   cloneDayLists,
 } from "@/lib/boardApi";
 
-export type ListType = "breakfast" | "lunch" | "dinner" | "snacks";
+export type ListType = "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6" | "snacks";
 
 export type AddMealParams = {
   sourceMeal: BoardMeal | {
@@ -85,7 +85,7 @@ export async function addMealToBoard(params: AddMealParams) {
     board = setDayLists(board, dateISO, updatedForDay);
   } else {
     // Legacy single-day path
-    const lists = board.lists ?? { breakfast: [], lunch: [], dinner: [], snacks: [] };
+    const lists = board.lists ?? { breakfast: [], lunch: [], dinner: [], snacks: [], meal4: [], meal5: [], meal6: [] };
     board = {
       ...board,
       lists: {
