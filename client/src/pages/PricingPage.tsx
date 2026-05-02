@@ -1158,17 +1158,22 @@ export default function PricingPage() {
         <div className="mb-12 space-y-6">
           {/* Subscription Terms - Apple Required */}
           <div className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl p-4 text-center space-y-3">
-            <p className="text-white/90 text-sm font-medium">
-              7-Day Free Trial, then $14.99/month (Basic), $24.99/month
-              (Premium), or $34.99/month (Ultimate)
+            <p className="text-white/90 text-sm font-bold">
+              Start Free. Upgrade When You're Ready.
+            </p>
+            <p className="text-white/70 text-xs leading-relaxed">
+              My Perfect Meals includes a free tier so you can explore the platform before upgrading.
+              The free tier gives you access to core features. Paid plans unlock advanced AI coaching,
+              personalized meal systems, and full platform capabilities.
             </p>
             <p className="text-white/60 text-xs leading-relaxed">
-              Payment will be charged to your account at confirmation of
-              purchase. Subscription automatically renews unless canceled at
-              least 24 hours before the end of the current period. Your account
-              will be charged for renewal within 24 hours prior to the end of
-              the current period. You can manage and cancel your subscription in
-              your account settings.
+              Unlock full access with a subscription: Basic – $14.99/month · Premium – $24.99/month · Ultimate – $34.99/month
+            </p>
+            <p className="text-white/50 text-xs leading-relaxed">
+              Payment will be charged to your account at confirmation of purchase.
+              Subscriptions automatically renew unless canceled at least 24 hours before the end of the current billing period.
+              Your account will be charged for renewal within 24 hours prior to the end of the current period.
+              You can manage or cancel your subscription in your account settings.
             </p>
             <div className="flex justify-center gap-4 text-xs">
               <button
@@ -1252,18 +1257,22 @@ export default function PricingPage() {
           {/* Apple App Store Compliance Section */}
           <div className="mb-12 space-y-6">
             <div className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl p-4 text-center space-y-3">
-              <p className="text-white/90 text-sm font-medium">
-                Free Plan available. Premium subscriptions include a 7-Day Free Trial,
-                then $14.99/month (Basic), $24.99/month (Premium), or $34.99/month
-                (Ultimate).
+              <p className="text-white/90 text-sm font-bold">
+                Start Free. Upgrade When You're Ready.
+              </p>
+              <p className="text-white/70 text-xs leading-relaxed">
+                My Perfect Meals includes a free tier so you can explore the platform before upgrading.
+                The free tier gives you access to core features. Paid plans unlock advanced AI coaching,
+                personalized meal systems, and full platform capabilities.
               </p>
               <p className="text-white/60 text-xs leading-relaxed">
-                Payment will be charged to your Apple account at confirmation of
-                purchase. Subscriptions automatically renew unless auto-renew is turned
-                off at least 24 hours before the end of the current billing period. Your
-                account will be charged for renewal within 24 hours prior to the end of
-                the current period. You can manage or cancel your subscription at any
-                time in your App Store account settings.
+                Unlock full access with a subscription: Basic – $14.99/month · Premium – $24.99/month · Ultimate – $34.99/month
+              </p>
+              <p className="text-white/50 text-xs leading-relaxed">
+                Payment will be charged to your account at confirmation of purchase.
+                Subscriptions automatically renew unless canceled at least 24 hours before the end of the current billing period.
+                Your account will be charged for renewal within 24 hours prior to the end of the current period.
+                You can manage or cancel your subscription in your account settings.
               </p>
             </div>
           </div>
