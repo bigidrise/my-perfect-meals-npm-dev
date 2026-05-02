@@ -20,6 +20,7 @@ import {
   Target,
   Check,
   Calendar,
+  CalendarCheck,
   LayoutGrid,
   Trophy,
   Dumbbell,
@@ -839,24 +840,6 @@ export default function ClinicianClientDashboard() {
               />
             </div>
 
-            <div className="flex items-center gap-3">
-              <label className="text-sm text-white/70">Follow-up</label>
-              <select
-                className="bg-black/30 border border-white/30 text-white rounded-lg px-3 py-1.5 text-sm"
-                value={ctx.followupWeeks || ""}
-                onChange={(e) => updateCtx({ ...ctx, followupWeeks: e.target.value ? (Number(e.target.value) as 4 | 8 | 12) : undefined })}
-              >
-                <option value="">Select</option>
-                <option value="4">4 weeks</option>
-                <option value="8">8 weeks</option>
-                <option value="12">12 weeks</option>
-              </select>
-              <Button onClick={scheduleFollowUp} className="bg-blue-600 text-white text-sm active:scale-[0.98]">
-                <Calendar className="h-4 w-4 mr-1" />
-                Schedule
-              </Button>
-            </div>
-
             <Button onClick={saveContext} className="bg-lime-600 border border-white/20 text-white active:scale-[0.98]">
               Save Clinical Context
             </Button>
@@ -983,36 +966,79 @@ export default function ClinicianClientDashboard() {
           </CardContent>
         </Card>
 
-        {upcomingCheckIns.length > 0 && (
-          <Card className="bg-white/5 border border-blue-500/30">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
-                <Calendar className="h-5 w-5 text-blue-400" /> Upcoming Check-Ins
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {upcomingCheckIns.map((ci) => (
-                <div key={ci.id} className="flex items-center gap-3 p-3 rounded-xl bg-blue-900/20 border border-blue-400/30">
-                  <Calendar className="h-4 w-4 text-blue-400 shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-white">
-                      {new Date(ci.dueAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-                    </p>
-                    <p className="text-xs text-white/50">with {ci.coachDisplayName}</p>
+        {/* Schedule Follow-Up */}
+        <Card className="bg-white/5 border border-blue-500/30">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
+              <CalendarCheck className="h-5 w-5 text-blue-400" /> Schedule Follow-Up
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {upcomingCheckIns.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-blue-400 font-semibold uppercase tracking-wide">Upcoming Appointments</p>
+                {upcomingCheckIns.map((ci) => (
+                  <div key={ci.id} className="flex items-center gap-3 p-3 rounded-xl bg-blue-900/20 border border-blue-400/30">
+                    <CalendarCheck className="h-4 w-4 text-blue-400 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-white">
+                        {new Date(ci.dueAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                      </p>
+                      <p className="text-xs text-white/50">with {ci.coachDisplayName}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => cancelCheckIn(ci.id)}
+                      className="shrink-0 p-1.5 rounded-lg text-red-400/60 hover:text-red-400 hover:bg-red-900/30 transition-colors"
+                      title="Cancel appointment"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
+                ))}
+              </div>
+            )}
+            <p className="text-white/70 text-sm">
+              Set a follow-up appointment for this patient. Select how many weeks out and tap Schedule.
+            </p>
+            <div>
+              <p className="text-xs text-white/50 mb-2">Weeks until follow-up</p>
+              <div className="grid grid-cols-3 gap-2">
+                {([4, 8, 12] as const).map((w) => (
                   <button
+                    key={w}
                     type="button"
-                    onClick={() => cancelCheckIn(ci.id)}
-                    className="shrink-0 p-1.5 rounded-lg text-red-400/60 hover:text-red-400 hover:bg-red-900/30 transition-colors"
-                    title="Cancel check-in"
+                    onClick={() => setCtx({ ...ctx, followupWeeks: w })}
+                    className={`py-2 rounded-xl border text-sm font-semibold transition-all active:scale-[0.97] ${
+                      ctx.followupWeeks === w
+                        ? "bg-blue-600 border-blue-400 text-white"
+                        : "bg-black/30 border-white/20 text-white/70"
+                    }`}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    {w}w
                   </button>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-white/50 mb-1">Notes for this appointment</p>
+              <textarea
+                value={ctx.patientNote || ""}
+                onChange={(e) => setCtx({ ...ctx, patientNote: e.target.value })}
+                placeholder="Goals, focus areas, or session notes..."
+                className="w-full bg-white/5 border border-white/20 rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/30 resize-none"
+                rows={3}
+              />
+            </div>
+            <Button
+              onClick={scheduleFollowUp}
+              className="bg-blue-600 border border-blue-400/30 text-white active:scale-[0.98]"
+            >
+              <CalendarCheck className="h-4 w-4 mr-2" />
+              Schedule Follow-Up
+            </Button>
+          </CardContent>
+        </Card>
 
         <Card className={`bg-white/5 border ${boardControl === 'professional' ? 'border-red-500/50' : 'border-white/20'}`}>
           <CardHeader>
