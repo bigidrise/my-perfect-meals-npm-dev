@@ -7,7 +7,7 @@ import { Router, Request, Response } from "express";
 import { db } from "../db";
 import { checkInSchedules, checkInAlertPrefs, studios, clientNotes, studioMemberships } from "../db/schema/studio";
 import { users } from "../../shared/schema";
-import { eq, and, gt, gte, isNull, or } from "drizzle-orm";
+import { eq, and, gt, gte, isNull, or, ne } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { randomUUID } from "crypto";
 
@@ -54,18 +54,46 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
     return res.status(403).json({ error: "Client not authorized for this studio" });
   }
 
-  const [created] = await db
-    .insert(checkInSchedules)
-    .values({
-      studioId,
-      clientUserId,
-      proUserId,
-      dueAt: new Date(dueAt),
-      note: note?.trim() || null,
-      done: false,
-      alertsSent: {},
-    })
-    .returning();
+  // Replace any existing pending check-in for this client/coach pair
+  // so "Schedule" always means "set the date", never stacks duplicates.
+  const [existing] = await db
+    .select({ id: checkInSchedules.id })
+    .from(checkInSchedules)
+    .where(
+      and(
+        eq(checkInSchedules.studioId, studioId),
+        eq(checkInSchedules.clientUserId, clientUserId),
+        eq(checkInSchedules.proUserId, proUserId),
+        eq(checkInSchedules.done, false),
+      )
+    )
+    .limit(1);
+
+  let created;
+  if (existing) {
+    [created] = await db
+      .update(checkInSchedules)
+      .set({
+        dueAt: new Date(dueAt),
+        note: note?.trim() || null,
+        alertsSent: {},
+      })
+      .where(eq(checkInSchedules.id, existing.id))
+      .returning();
+  } else {
+    [created] = await db
+      .insert(checkInSchedules)
+      .values({
+        studioId,
+        clientUserId,
+        proUserId,
+        dueAt: new Date(dueAt),
+        note: note?.trim() || null,
+        done: false,
+        alertsSent: {},
+      })
+      .returning();
+  }
 
   // Immediate confirmation: post a shared message so the client sees it right away
   try {
@@ -83,6 +111,7 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
       year: "numeric",
     });
 
+    const action = existing ? "rescheduled" : "scheduled";
     await db.insert(clientNotes).values({
       studioId,
       clientUserId,
@@ -91,15 +120,15 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
       visibility: "shared_with_client",
       entryType: "message",
       sender: "pro",
-      title: "Check-in Scheduled",
-      body: `📅 Your check-in with ${coachName} is scheduled for ${dateStr}.`,
+      title: existing ? "Check-in Rescheduled" : "Check-in Scheduled",
+      body: `📅 Your check-in with ${coachName} has been ${action} for ${dateStr}.`,
       tags: ["system:check_in_scheduled"],
     });
   } catch (err) {
     console.warn("[CheckIn] Non-fatal: could not post confirmation message", err);
   }
 
-  res.status(201).json({ schedule: created });
+  res.status(existing ? 200 : 201).json({ schedule: created, updated: !!existing });
 });
 
 // ─── GET /api/check-in-schedules/all ─────────────────────────────────────────
