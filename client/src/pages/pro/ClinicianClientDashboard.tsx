@@ -347,7 +347,7 @@ export default function ClinicianClientDashboard() {
       proStore.scheduleFollowUp(clientId, ctx.followupWeeks, ctx.patientNote || "Follow-up scheduled");
       fetchUpcomingCheckIns();
       toast({ title: "Follow-up scheduled", description: `${ctx.followupWeeks}-week follow-up added. Patient has been notified.` });
-      setCtx({ ...ctx, followupWeeks: undefined });
+      setCtx({ ...ctx, followupWeeks: undefined, patientNote: undefined });
     } catch (err) {
       toast({
         title: "Scheduling failed",
