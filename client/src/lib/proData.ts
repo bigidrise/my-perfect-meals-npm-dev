@@ -488,19 +488,6 @@ export const proStore = {
     };
     state.followups.unshift(item);
     saveState(state);
-
-    // Persist to server so the background alert job can fire reminders
-    Promise.all([
-      import("@/lib/auth"),
-      import("@/lib/resolveApiBase"),
-    ]).then(([{ getAuthHeaders }, { apiUrl }]) => {
-      fetch(apiUrl("/api/check-in-schedules"), {
-        method: "POST",
-        headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({ clientUserId: clientId, dueAt: due.toISOString(), note }),
-      }).catch(() => {});
-    }).catch(() => {});
-
     return item;
   },
 

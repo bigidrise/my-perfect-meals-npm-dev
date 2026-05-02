@@ -7,9 +7,10 @@ import { Router, Request, Response } from "express";
 import { db } from "../db";
 import { checkInSchedules, checkInAlertPrefs, studios, clientNotes, studioMemberships } from "../db/schema/studio";
 import { users } from "../../shared/schema";
-import { eq, and, gt, isNull, or } from "drizzle-orm";
+import { eq, and, gt, gte, isNull, or, ne } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { randomUUID } from "crypto";
+import { sendEmail } from "../services/email";
 
 const router = Router();
 
@@ -54,18 +55,46 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
     return res.status(403).json({ error: "Client not authorized for this studio" });
   }
 
-  const [created] = await db
-    .insert(checkInSchedules)
-    .values({
-      studioId,
-      clientUserId,
-      proUserId,
-      dueAt: new Date(dueAt),
-      note: note?.trim() || null,
-      done: false,
-      alertsSent: {},
-    })
-    .returning();
+  // Replace any existing pending check-in for this client/coach pair
+  // so "Schedule" always means "set the date", never stacks duplicates.
+  const [existing] = await db
+    .select({ id: checkInSchedules.id })
+    .from(checkInSchedules)
+    .where(
+      and(
+        eq(checkInSchedules.studioId, studioId),
+        eq(checkInSchedules.clientUserId, clientUserId),
+        eq(checkInSchedules.proUserId, proUserId),
+        eq(checkInSchedules.done, false),
+      )
+    )
+    .limit(1);
+
+  let created;
+  if (existing) {
+    [created] = await db
+      .update(checkInSchedules)
+      .set({
+        dueAt: new Date(dueAt),
+        note: note?.trim() || null,
+        alertsSent: {},
+      })
+      .where(eq(checkInSchedules.id, existing.id))
+      .returning();
+  } else {
+    [created] = await db
+      .insert(checkInSchedules)
+      .values({
+        studioId,
+        clientUserId,
+        proUserId,
+        dueAt: new Date(dueAt),
+        note: note?.trim() || null,
+        done: false,
+        alertsSent: {},
+      })
+      .returning();
+  }
 
   // Immediate confirmation: post a shared message so the client sees it right away
   try {
@@ -91,19 +120,64 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
       visibility: "shared_with_client",
       entryType: "message",
       sender: "pro",
-      title: "Check-in Scheduled",
-      body: `📅 Your check-in with ${coachName} is scheduled for ${dateStr}.`,
+      title: existing ? "Check-in Rescheduled" : "Check-in Scheduled",
+      body: `Your check-in with ${coachName} is scheduled for ${dateStr}.`,
       tags: ["system:check_in_scheduled"],
     });
   } catch (err) {
     console.warn("[CheckIn] Non-fatal: could not post confirmation message", err);
   }
 
-  res.status(201).json({ schedule: created });
+  res.status(existing ? 200 : 201).json({ schedule: created, updated: !!existing });
+});
+
+// ─── GET /api/check-in-schedules/all ─────────────────────────────────────────
+// List all pending (not done) check-in schedules across every client in the
+// coach's studio, sorted by due date ascending.
+router.get("/all", requireAuth, async (req: Request, res: Response) => {
+  const proUserId = (req as AuthenticatedRequest).authUser?.id;
+  if (!proUserId) return res.status(401).json({ error: "Unauthorized" });
+
+  const studioId = await getStudioForPro(proUserId);
+  if (!studioId) return res.status(404).json({ error: "No studio found for this professional" });
+
+  const rows = await db
+    .select({
+      id: checkInSchedules.id,
+      clientUserId: checkInSchedules.clientUserId,
+      dueAt: checkInSchedules.dueAt,
+      note: checkInSchedules.note,
+      done: checkInSchedules.done,
+      clientFirstName: users.firstName,
+      clientNickname: users.nickname,
+      clientLastName: users.lastName,
+    })
+    .from(checkInSchedules)
+    .leftJoin(users, eq(checkInSchedules.clientUserId, users.id))
+    .where(
+      and(
+        eq(checkInSchedules.studioId, studioId),
+        eq(checkInSchedules.done, false),
+      )
+    )
+    .orderBy(checkInSchedules.dueAt);
+
+  const schedules = rows.map((r) => ({
+    id: r.id,
+    clientUserId: r.clientUserId,
+    clientName: r.clientNickname || r.clientFirstName || (r.clientLastName ? r.clientLastName : null) || "Client",
+    dueAt: r.dueAt,
+    note: r.note,
+    done: r.done,
+  }));
+
+  res.json({ schedules });
 });
 
 // ─── GET /api/check-in-schedules?clientId=xxx ────────────────────────────────
-// List all check-in schedules for a given client (coach or client can call this).
+// List upcoming (not done, not past-due) check-in schedules for a given client.
+// Access allowed if: requester IS the client, OR requester is a pro whose
+// studio has this client as a member.
 router.get("/", requireAuth, async (req: Request, res: Response) => {
   const userId = (req as AuthenticatedRequest).authUser?.id;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -111,13 +185,118 @@ router.get("/", requireAuth, async (req: Request, res: Response) => {
   const clientId = req.query.clientId as string | undefined;
   if (!clientId) return res.status(400).json({ error: "clientId query param required" });
 
+  // Authorization: allow if the requester is the client themselves
+  let authorized = userId === clientId;
+
+  // Authorization: allow if the requester is a pro whose studio has this client
+  if (!authorized) {
+    const proStudioId = await getStudioForPro(userId);
+    if (proStudioId) {
+      const [membership] = await db
+        .select({ id: studioMemberships.id })
+        .from(studioMemberships)
+        .where(
+          and(
+            eq(studioMemberships.studioId, proStudioId),
+            eq(studioMemberships.clientUserId, clientId),
+          )
+        )
+        .limit(1);
+      if (membership) authorized = true;
+    }
+  }
+
+  if (!authorized) {
+    return res.status(403).json({ error: "Not authorized to view this client's schedules" });
+  }
+
+  const now = new Date();
+
   const rows = await db
-    .select()
+    .select({
+      id: checkInSchedules.id,
+      dueAt: checkInSchedules.dueAt,
+      note: checkInSchedules.note,
+      done: checkInSchedules.done,
+      coachName: users.firstName,
+      coachNickname: users.nickname,
+    })
     .from(checkInSchedules)
-    .where(eq(checkInSchedules.clientUserId, clientId))
+    .leftJoin(users, eq(checkInSchedules.proUserId, users.id))
+    .where(
+      and(
+        eq(checkInSchedules.clientUserId, clientId),
+        eq(checkInSchedules.done, false),
+        gte(checkInSchedules.dueAt, now),
+      )
+    )
     .orderBy(checkInSchedules.dueAt);
 
-  res.json({ schedules: rows });
+  const schedules = rows.map((r) => ({
+    id: r.id,
+    dueAt: r.dueAt,
+    note: r.note,
+    done: r.done,
+    coachDisplayName: r.coachNickname || r.coachName || "Your Coach",
+  }));
+
+  res.json({ schedules });
+});
+
+// ─── DELETE /api/check-in-schedules/:id ──────────────────────────────────────
+// Cancel a pending check-in. Posts a cancellation message to the shared thread.
+router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
+  const proUserId = (req as AuthenticatedRequest).authUser?.id;
+  if (!proUserId) return res.status(401).json({ error: "Unauthorized" });
+
+  const { id } = req.params;
+
+  const [deleted] = await db
+    .delete(checkInSchedules)
+    .where(
+      and(
+        eq(checkInSchedules.id, id),
+        eq(checkInSchedules.proUserId, proUserId),
+        eq(checkInSchedules.done, false),
+      )
+    )
+    .returning();
+
+  if (!deleted) return res.status(404).json({ error: "Schedule not found or already completed" });
+
+  // In-app message + email — both non-fatal
+  try {
+    const [clientUser] = await db
+      .select({ firstName: users.firstName, nickname: users.nickname, email: users.email })
+      .from(users)
+      .where(eq(users.id, deleted.clientUserId))
+      .limit(1);
+
+    await db.insert(clientNotes).values({
+      studioId: deleted.studioId,
+      clientUserId: deleted.clientUserId,
+      authorUserId: "system",
+      noteType: "general",
+      visibility: "shared_with_client",
+      entryType: "message",
+      sender: "pro",
+      body: `❌ Your scheduled check-in has been cancelled.`,
+      tags: ["system:check_in_cancelled"],
+    });
+
+    if (clientUser?.email) {
+      const clientName = clientUser.nickname || clientUser.firstName || "there";
+      await sendEmail({
+        to: clientUser.email,
+        subject: "Your check-in has been cancelled",
+        html: `<p>Hi ${clientName},</p><p>Your upcoming check-in appointment has been cancelled by your coach.</p><p>If you have questions, reach out to your coach directly through the app.</p>`,
+      });
+    }
+  } catch (err) {
+    console.warn("[CheckIn] Non-fatal: could not send cancellation message/email", err);
+  }
+
+  res.json({ ok: true });
 });
 
 // ─── PATCH /api/check-in-schedules/:id/done ──────────────────────────────────
