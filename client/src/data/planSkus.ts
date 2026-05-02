@@ -11,7 +11,9 @@ export type LookupKey =
   | "mpm_trainer_50"
   | "mpm_physician_50"
   | "mpm_physician_150"
-  | "mpm_guidance";
+  | "mpm_guidance"
+  | "mpm_partner_chefs_kitchen"
+  | "mpm_partner_brand_feature";
 
 export type BillingCycle = "monthly";
 
@@ -225,6 +227,39 @@ export const PLAN_SKUS: PlanSku[] = [
       "Custom meal adjustments",
       "Progress monitoring",
       "Priority support",
+    ],
+  },
+
+  {
+    sku: "mpm_partner_chefs_kitchen",
+    label: "Chef's Kitchen Partnership",
+    price: 2500,
+    group: "pro",
+    hidden: true,
+    blurb: "Branded chef presence inside My Perfect Meals — custom kitchen, named recipes, and ongoing placement",
+    features: [
+      "$2,500 one-time setup (brand build-out, recipes, assets)",
+      "$750/month ongoing presence fee",
+      "Named 'Chef's Kitchen' section with full branding",
+      "Featured recipes attributed to the chef",
+      "Optional 10% rev-share on plan upgrades driven by the kitchen",
+      "Quarterly analytics report",
+    ],
+  },
+  {
+    sku: "mpm_partner_brand_feature",
+    label: "Brand Feature Placement",
+    price: 1500,
+    group: "pro",
+    hidden: true,
+    blurb: "Featured supplement or beverage product placement inside relevant meals and recipes",
+    features: [
+      "$1,500/month per product featured",
+      "Product appears in relevant meal suggestions and beverage recipes",
+      "+$500/month for exclusive category lock (no competing brand)",
+      "$5,000 flat — 90-day exclusive feature with analytics report",
+      "Approved placement copy and brand assets required",
+      "No spam, bots, or misleading claims permitted",
     ],
   },
 ];
