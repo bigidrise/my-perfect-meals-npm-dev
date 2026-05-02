@@ -30,7 +30,7 @@ import {
   Sparkles,
   Lock,
   Unlock,
-  X,
+  Trash2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuickTour } from "@/hooks/useQuickTour";
@@ -374,8 +374,10 @@ export default function TrainerClientDashboard() {
       return;
     }
 
-    const dbUserId = client?.clientUserId || client?.userId;
-    if (!dbUserId) {
+    // resolvedClientUserId falls back to clientId when the client hasn't linked;
+    // in that case it equals clientId which is a local ID, not a real DB user ID.
+    const linkedUserId = resolvedClientUserId !== clientId ? resolvedClientUserId : undefined;
+    if (!linkedUserId) {
       toast({
         title: "Client not linked",
         description: "This client must connect their account before check-ins can be scheduled.",
@@ -395,7 +397,7 @@ export default function TrainerClientDashboard() {
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
         body: JSON.stringify({
-          clientUserId: dbUserId,
+          clientUserId: linkedUserId,
           dueAt: nextDate.toISOString(),
           note: ctx.coachNote?.trim() || undefined,
         }),
@@ -1061,10 +1063,10 @@ export default function TrainerClientDashboard() {
                     <button
                       type="button"
                       onClick={() => cancelCheckIn(ci.id)}
-                      className="shrink-0 p-1.5 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-900/30 transition-colors"
+                      className="shrink-0 p-1.5 rounded-lg text-red-400/60 hover:text-red-400 hover:bg-red-900/30 transition-colors"
                       title="Cancel check-in"
                     >
-                      <X className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 ))}
