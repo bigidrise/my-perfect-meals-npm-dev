@@ -54,6 +54,12 @@ const physician150 = requirePrice("STRIPE_PRICE_PROCARE_PROFESSIONAL_150", "Phys
 const procare = requirePrice("STRIPE_PRICE_PROCARE", "ProCare");
 const guidance = requirePrice("STRIPE_PRICE_PROCARE_PROFESSIONAL", "Personal Guidance");
 
+/* Signature Kitchen */
+
+const signatureKitchenStarter = requirePrice("STRIPE_PRICE_SIGNATURE_KITCHEN_STARTER", "Signature Kitchen Starter");
+const signatureKitchenPro = requirePrice("STRIPE_PRICE_SIGNATURE_KITCHEN_PRO", "Signature Kitchen Pro");
+const signatureKitchenPartner = requirePrice("STRIPE_PRICE_SIGNATURE_KITCHEN_PARTNER", "Signature Kitchen Partner");
+
 /* Mapping must match LookupKey exactly */
 
 export const STRIPE_PRICE_IDS: Record<LookupKey, string> = {
@@ -74,4 +80,8 @@ export const STRIPE_PRICE_IDS: Record<LookupKey, string> = {
   mpm_physician_150: physician150,
 
   mpm_guidance: guidance,
+
+  signature_kitchen_starter_monthly: signatureKitchenStarter,
+  signature_kitchen_pro_monthly: signatureKitchenPro,
+  signature_kitchen_partner_monthly: signatureKitchenPartner,
 };
