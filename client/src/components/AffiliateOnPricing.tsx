@@ -20,12 +20,11 @@ export default function AffiliateOnPricing() {
       </CardHeader>
       <CardContent className="space-y-3 text-sm md:text-base text-white/90">
         <p>
-          Do you have friends and family who could benefit from this app? Share My Perfect Meals and earn
-          <span className="font-semibold"> 25% recurring commission</span> on every referral — for as long as they stay subscribed.
+          Know someone who should be using this app? Share My Perfect Meals and earn
+          <span className="font-semibold"> 25% recurring commission</span> on all active subscription plans — for as long as they stay subscribed.
         </p>
         <ul className="list-disc pl-5 space-y-1 text-white/80 text-sm">
-          <li>25% of whatever plan your referral subscribes to ($14.99–$34.99/mo)</li>
-          <li>Earn $3.75–$8.75/mo per active referral, recurring</li>
+          <li>25% recurring on any plan your referral subscribes to</li>
           <li>60-day tracking cookie</li>
           <li>Monthly payouts ($25 minimum balance)</li>
           <li>Limited to 5 affiliates during pilot</li>

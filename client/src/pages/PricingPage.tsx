@@ -1005,45 +1005,80 @@ export default function PricingPage() {
         </div>
         </div>
 
-        {/* Brand Partnerships Section */}
+        {/* Signature Kitchen Section */}
         <div className="mb-12">
           <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 bg-rose-600/20 border border-rose-500/30 rounded-full px-4 py-2 mb-4">
-              <span className="text-rose-300 text-sm font-semibold tracking-wide uppercase">
-                Brand Partnerships
+            <div className="inline-flex items-center gap-2 bg-amber-600/20 border border-amber-500/30 rounded-full px-4 py-2 mb-4">
+              <span className="text-amber-300 text-sm font-semibold tracking-wide uppercase">
+                Signature Kitchen
               </span>
             </div>
-            <h2 className="text-2xl font-bold text-white">Partner With My Perfect Meals</h2>
+            <h2 className="text-2xl font-bold text-white">Bring Your Brand Into the App</h2>
             <p className="text-white/60 text-sm mt-2 max-w-xl mx-auto">
-              Bring your brand inside the app — as a named chef, a featured ingredient, or a sponsored product in the meals your customers are already eating.
+              Your name, your recipes, your kitchen — built into My Perfect Meals. Creators, chefs, and coaches use Signature Kitchen to reach users at the moment they're deciding what to eat.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {/* Chef's Kitchen */}
-            <Card className="relative bg-black/40 backdrop-blur-lg border border-amber-400/40 ring-1 ring-amber-400/20 text-white shadow-xl flex flex-col">
-              <CardHeader className="pb-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {/* Starter */}
+            <Card className="relative bg-black/30 backdrop-blur-lg border border-white/15 text-white shadow-xl flex flex-col">
+              <CardHeader className="pb-4">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-2xl">👨‍🍳</span>
-                    <h3 className="text-xl font-bold">Chef's Kitchen</h3>
-                  </div>
-                  <p className="text-white/70 text-sm">
-                    Your brand, your name, your recipes — built into the app as a dedicated kitchen. Users discover and follow your cooking style inside My Perfect Meals.
-                  </p>
-                  <div className="flex items-baseline gap-2 pt-1">
-                    <span className="text-2xl font-bold text-amber-300">$2,500</span>
-                    <span className="text-white/50 text-sm">setup + $750/mo</span>
+                  <h3 className="text-xl font-bold">Starter</h3>
+                  <p className="text-white/60 text-sm">Get your kitchen in the app and start building your audience.</p>
+                  <div className="flex items-baseline gap-1 pt-1">
+                    <span className="text-3xl font-bold">$99</span>
+                    <span className="text-white/50 text-sm">/ month</span>
                   </div>
                 </div>
               </CardHeader>
               <Separator className="bg-white/10" />
               <CardContent className="pt-5 flex-1 space-y-2.5">
                 {[
-                  "Named Chef's Kitchen section with full branding",
-                  "Featured recipes attributed to you",
-                  "Brand assets, photos, and bio integrated",
-                  "Optional 10% rev-share on plan upgrades you drive",
+                  "Your kitchen, your name, your recipes in the app",
+                  "Up to 10 featured recipes",
+                  "Basic brand profile (photo, bio, links)",
+                  "Monthly analytics snapshot",
+                ].map((f, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-white/90">{f}</span>
+                  </div>
+                ))}
+              </CardContent>
+              <Separator className="bg-white/10" />
+              <div className="p-5">
+                <Button
+                  className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 font-semibold"
+                  onClick={() => window.location.href = "mailto:partnerships@myperfectmeals.com?subject=Signature%20Kitchen%20Starter"}
+                >
+                  Get Started
+                </Button>
+              </div>
+            </Card>
+
+            {/* Pro */}
+            <Card className="relative bg-black/40 backdrop-blur-lg border-2 border-amber-400/50 ring-2 ring-amber-400/20 text-white shadow-xl flex flex-col">
+              <Badge className="absolute top-3 right-3 bg-amber-500/80 text-white backdrop-blur-sm border border-white/10">
+                Most Popular
+              </Badge>
+              <CardHeader className="pb-4">
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold">Pro</h3>
+                  <p className="text-white/60 text-sm">Full brand integration with priority placement and deeper analytics.</p>
+                  <div className="flex items-baseline gap-1 pt-1">
+                    <span className="text-3xl font-bold text-amber-300">$199</span>
+                    <span className="text-white/50 text-sm">/ month</span>
+                  </div>
+                </div>
+              </CardHeader>
+              <Separator className="bg-white/10" />
+              <CardContent className="pt-5 flex-1 space-y-2.5">
+                {[
+                  "Everything in Starter",
+                  "Up to 30 featured recipes",
+                  "Full brand integration (colors, assets, story)",
+                  "Priority placement in discovery",
                   "Quarterly analytics report",
                 ].map((f, i) => (
                   <div key={i} className="flex items-start gap-2">
@@ -1055,42 +1090,38 @@ export default function PricingPage() {
               <Separator className="bg-white/10" />
               <div className="p-5">
                 <Button
-                  className="w-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 font-semibold"
-                  onClick={() => window.location.href = "mailto:partnerships@myperfectmeals.com?subject=Chef%27s%20Kitchen%20Partnership"}
+                  className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-semibold"
+                  onClick={() => window.location.href = "mailto:partnerships@myperfectmeals.com?subject=Signature%20Kitchen%20Pro"}
                 >
-                  Inquire About Chef's Kitchen
+                  Get Started
                 </Button>
               </div>
             </Card>
 
-            {/* Brand Feature Placement */}
-            <Card className="relative bg-black/40 backdrop-blur-lg border border-rose-400/40 ring-1 ring-rose-400/20 text-white shadow-xl flex flex-col">
-              <CardHeader className="pb-3">
+            {/* Partner */}
+            <Card className="relative bg-black/30 backdrop-blur-lg border border-white/15 text-white shadow-xl flex flex-col">
+              <CardHeader className="pb-4">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-2xl">🧴</span>
-                    <h3 className="text-xl font-bold">Brand Feature Placement</h3>
-                  </div>
-                  <p className="text-white/70 text-sm">
-                    Your supplement, protein, or beverage appears in the meals and recipes users are already building. Deep, native integration — not a banner ad.
-                  </p>
-                  <div className="flex items-baseline gap-2 pt-1">
-                    <span className="text-2xl font-bold text-rose-300">$1,500</span>
-                    <span className="text-white/50 text-sm">/mo per product</span>
+                  <h3 className="text-xl font-bold">Partner</h3>
+                  <p className="text-white/60 text-sm">Full co-branded kitchen with onboarding placement and dedicated support.</p>
+                  <div className="flex items-baseline gap-1 pt-1">
+                    <span className="text-3xl font-bold">$499</span>
+                    <span className="text-white/50 text-sm">/ month</span>
                   </div>
                 </div>
               </CardHeader>
               <Separator className="bg-white/10" />
               <CardContent className="pt-5 flex-1 space-y-2.5">
                 {[
-                  "Product featured in relevant meal suggestions and recipes",
-                  "+$500/mo for exclusive category lock (no competing brand)",
-                  "$5,000 flat — 90-day exclusive with analytics report",
-                  "Approved placement copy and brand assets required",
-                  "Reach users actively planning their nutrition daily",
+                  "Everything in Pro",
+                  "Unlimited featured recipes",
+                  "Full co-branded kitchen experience",
+                  "Featured in onboarding and meal suggestions",
+                  "Dedicated account support",
+                  "Optional rev-share on plan upgrades you drive",
                 ].map((f, i) => (
                   <div key={i} className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-rose-400 mt-0.5 flex-shrink-0" />
+                    <Check className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
                     <span className="text-sm text-white/90">{f}</span>
                   </div>
                 ))}
@@ -1098,17 +1129,23 @@ export default function PricingPage() {
               <Separator className="bg-white/10" />
               <div className="p-5">
                 <Button
-                  className="w-full bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-400/40 font-semibold"
-                  onClick={() => window.location.href = "mailto:partnerships@myperfectmeals.com?subject=Brand%20Feature%20Placement"}
+                  className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 font-semibold"
+                  onClick={() => window.location.href = "mailto:partnerships@myperfectmeals.com?subject=Signature%20Kitchen%20Partner"}
                 >
-                  Inquire About Brand Placement
+                  Get Started
                 </Button>
               </div>
             </Card>
           </div>
 
-          <p className="text-center text-white/40 text-xs mt-4">
-            All partnerships are custom agreements. Contact us to discuss fit, pricing, and availability.
+          <p className="text-center text-white/50 text-sm mt-6">
+            Looking for a full brand integration or enterprise deal?{" "}
+            <a
+              href="mailto:partnerships@myperfectmeals.com"
+              className="text-amber-400 underline hover:text-amber-300"
+            >
+              Contact us.
+            </a>
           </p>
         </div>
 
