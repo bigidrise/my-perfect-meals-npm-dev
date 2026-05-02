@@ -6723,6 +6723,10 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   const { default: abTestingMealPlansRouterShared } = await import("./routes/mealPlans");
   app.use(abTestingMealPlansRouterShared);
 
+  // Check-in schedules
+  const { default: checkInSchedulesRouter } = await import("./routes/checkInSchedules");
+  app.use("/api/check-in-schedules", checkInSchedulesRouter);
+
   const CRITICAL_ROUTES = [
     "/api/biometrics",
     "/api/ai-quota",
