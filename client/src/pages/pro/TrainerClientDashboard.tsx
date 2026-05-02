@@ -415,10 +415,10 @@ export default function TrainerClientDashboard() {
         title: "Check-in scheduled",
         description: `Next check-in set for ${label} (${weeks} weeks). Client has been notified.`,
       });
-    } catch (err: any) {
+    } catch (err) {
       toast({
         title: "Scheduling failed",
-        description: err?.message || "Could not schedule check-in. Please try again.",
+        description: err instanceof Error ? err.message : "Could not schedule check-in. Please try again.",
         variant: "destructive",
       });
     }

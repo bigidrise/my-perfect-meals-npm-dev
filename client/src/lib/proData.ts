@@ -476,7 +476,6 @@ export const proStore = {
     clientId: string,
     weeks: 4 | 8 | 12,
     note: string,
-    resolvedClientUserId?: string,
   ): FollowUp {
     const due = new Date();
     due.setDate(due.getDate() + weeks * 7);
@@ -489,22 +488,6 @@ export const proStore = {
     };
     state.followups.unshift(item);
     saveState(state);
-
-    // Persist to server so the background alert job can fire reminders.
-    // Use resolvedClientUserId (real DB user ID) when available; fall back
-    // to clientId only as a last resort (will fail server membership check).
-    const serverClientId = resolvedClientUserId || clientId;
-    Promise.all([
-      import("@/lib/auth"),
-      import("@/lib/resolveApiBase"),
-    ]).then(([{ getAuthHeaders }, { apiUrl }]) => {
-      fetch(apiUrl("/api/check-in-schedules"), {
-        method: "POST",
-        headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({ clientUserId: serverClientId, dueAt: due.toISOString(), note }),
-      }).catch(() => {});
-    }).catch(() => {});
-
     return item;
   },
 
