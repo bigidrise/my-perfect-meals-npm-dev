@@ -266,6 +266,12 @@ async function initializeApp() {
     app.use("/api", manualMacrosRouter);
     app.use("/api/biometrics/labs", clinicalLabsRouter);
     app.use("/api/translate", requireAuth, requireActiveAccess, translateRouter);
+
+    // Explicitly mount check-in-schedules BEFORE registerRoutes so the
+    // DELETE /:id handler is always present even if registerRoutes changes.
+    const checkInSchedulesRouter = (await import("./routes/checkInSchedules")).default;
+    app.use("/api/check-in-schedules", checkInSchedulesRouter);
+
     console.log("✅ [INIT] Additional routes mounted");
     
     // Register main routes
