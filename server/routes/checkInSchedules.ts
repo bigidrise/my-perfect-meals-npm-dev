@@ -243,6 +243,46 @@ router.get("/", requireAuth, async (req: Request, res: Response) => {
   res.json({ schedules });
 });
 
+// ─── DELETE /api/check-in-schedules/:id ──────────────────────────────────────
+// Cancel a pending check-in. Posts a cancellation message to the shared thread.
+router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
+  const proUserId = (req as AuthenticatedRequest).authUser?.id;
+  if (!proUserId) return res.status(401).json({ error: "Unauthorized" });
+
+  const { id } = req.params;
+
+  const [deleted] = await db
+    .delete(checkInSchedules)
+    .where(
+      and(
+        eq(checkInSchedules.id, id),
+        eq(checkInSchedules.proUserId, proUserId),
+        eq(checkInSchedules.done, false),
+      )
+    )
+    .returning();
+
+  if (!deleted) return res.status(404).json({ error: "Schedule not found or already completed" });
+
+  try {
+    await db.insert(clientNotes).values({
+      studioId: deleted.studioId,
+      clientUserId: deleted.clientUserId,
+      authorUserId: "system",
+      noteType: "general",
+      visibility: "shared_with_client",
+      entryType: "message",
+      sender: "pro",
+      body: `❌ Your scheduled check-in has been cancelled.`,
+      tags: ["system:check_in_cancelled"],
+    });
+  } catch (err) {
+    console.warn("[CheckIn] Non-fatal: could not post cancellation message", err);
+  }
+
+  res.json({ ok: true });
+});
+
 // ─── PATCH /api/check-in-schedules/:id/done ──────────────────────────────────
 // Mark a check-in as completed. Cancels future alerts automatically (alertsSent stays).
 router.patch("/:id/done", requireAuth, async (req: Request, res: Response) => {
