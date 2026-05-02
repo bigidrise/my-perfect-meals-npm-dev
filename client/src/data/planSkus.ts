@@ -11,7 +11,10 @@ export type LookupKey =
   | "mpm_trainer_50"
   | "mpm_physician_50"
   | "mpm_physician_150"
-  | "mpm_guidance";
+  | "mpm_guidance"
+  | "signature_kitchen_starter_monthly"
+  | "signature_kitchen_pro_monthly"
+  | "signature_kitchen_partner_monthly";
 
 export type BillingCycle = "monthly";
 
@@ -225,6 +228,50 @@ export const PLAN_SKUS: PlanSku[] = [
       "Custom meal adjustments",
       "Progress monitoring",
       "Priority support",
+    ],
+  },
+
+  {
+    sku: "signature_kitchen_starter_monthly",
+    label: "Signature Kitchen Starter",
+    price: 99,
+    group: "pro",
+    blurb: "Starter Kitchen — Monthly Access",
+    features: [
+      "Your kitchen, your name, your recipes in the app",
+      "Up to 10 featured recipes",
+      "Basic brand profile (photo, bio, links)",
+      "Monthly analytics snapshot",
+    ],
+  },
+  {
+    sku: "signature_kitchen_pro_monthly",
+    label: "Signature Kitchen Pro",
+    price: 199,
+    group: "pro",
+    badge: "Most Popular",
+    blurb: "Pro Kitchen — Monthly Access",
+    features: [
+      "Everything in Starter",
+      "Up to 30 featured recipes",
+      "Full brand integration (colors, assets, story)",
+      "Priority placement in discovery",
+      "Quarterly analytics report",
+    ],
+  },
+  {
+    sku: "signature_kitchen_partner_monthly",
+    label: "Signature Kitchen Partner",
+    price: 499,
+    group: "pro",
+    blurb: "Partner Kitchen — Monthly Access",
+    features: [
+      "Everything in Pro",
+      "Unlimited featured recipes",
+      "Full co-branded kitchen experience",
+      "Featured in app onboarding and meal suggestions",
+      "Dedicated account support",
+      "Optional rev-share on plan upgrades you drive",
     ],
   },
 ];
