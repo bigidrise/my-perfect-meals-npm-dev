@@ -102,6 +102,49 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
   res.status(201).json({ schedule: created });
 });
 
+// ─── GET /api/check-in-schedules/all ─────────────────────────────────────────
+// List all pending (not done) check-in schedules across every client in the
+// coach's studio, sorted by due date ascending.
+router.get("/all", requireAuth, async (req: Request, res: Response) => {
+  const proUserId = (req as AuthenticatedRequest).authUser?.id;
+  if (!proUserId) return res.status(401).json({ error: "Unauthorized" });
+
+  const studioId = await getStudioForPro(proUserId);
+  if (!studioId) return res.status(404).json({ error: "No studio found for this professional" });
+
+  const rows = await db
+    .select({
+      id: checkInSchedules.id,
+      clientUserId: checkInSchedules.clientUserId,
+      dueAt: checkInSchedules.dueAt,
+      note: checkInSchedules.note,
+      done: checkInSchedules.done,
+      clientFirstName: users.firstName,
+      clientNickname: users.nickname,
+      clientLastName: users.lastName,
+    })
+    .from(checkInSchedules)
+    .leftJoin(users, eq(checkInSchedules.clientUserId, users.id))
+    .where(
+      and(
+        eq(checkInSchedules.studioId, studioId),
+        eq(checkInSchedules.done, false),
+      )
+    )
+    .orderBy(checkInSchedules.dueAt);
+
+  const schedules = rows.map((r) => ({
+    id: r.id,
+    clientUserId: r.clientUserId,
+    clientName: r.clientNickname || r.clientFirstName || (r.clientLastName ? r.clientLastName : null) || "Client",
+    dueAt: r.dueAt,
+    note: r.note,
+    done: r.done,
+  }));
+
+  res.json({ schedules });
+});
+
 // ─── GET /api/check-in-schedules?clientId=xxx ────────────────────────────────
 // List upcoming (not done, not past-due) check-in schedules for a given client.
 // Access allowed if: requester IS the client, OR requester is a pro whose
