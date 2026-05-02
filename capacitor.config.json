@@ -3,7 +3,7 @@
   "appName": "My Perfect Meals",
   "webDir": "client/dist",
   "server": {
-    "url": "https://my-perfect-meals-npm-dev.replit.app",
+    "url": "https://my-perfect-meals-npm-dev-1.replit.app",
     "cleartext": false
   },
   "ios": {

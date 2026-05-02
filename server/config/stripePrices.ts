@@ -22,6 +22,19 @@ function requirePrice(envVarName: string, planLabel: string): string {
   return value;
 }
 
+function optionalPrice(envVarName: string, planLabel: string): string {
+  const value = process.env[envVarName]?.trim();
+
+  if (!value) {
+    console.warn(
+      `⚠️ Optional env var ${envVarName} not set — "${planLabel}" checkout will be unavailable`,
+    );
+    return "";
+  }
+
+  return value;
+}
+
 /* Consumer Plans */
 
 const basic = requirePrice("STRIPE_PRICE_BASIC", "Basic");
@@ -56,9 +69,9 @@ const guidance = requirePrice("STRIPE_PRICE_PROCARE_PROFESSIONAL", "Personal Gui
 
 /* Signature Kitchen */
 
-const signatureKitchenStarter = requirePrice("STRIPE_PRICE_SIGNATURE_KITCHEN_STARTER", "Signature Kitchen Starter");
-const signatureKitchenPro = requirePrice("STRIPE_PRICE_SIGNATURE_KITCHEN_PRO", "Signature Kitchen Pro");
-const signatureKitchenPartner = requirePrice("STRIPE_PRICE_SIGNATURE_KITCHEN_PARTNER", "Signature Kitchen Partner");
+const signatureKitchenStarter = optionalPrice("STRIPE_PRICE_SIGNATURE_KITCHEN_STARTER", "Signature Kitchen Starter");
+const signatureKitchenPro = optionalPrice("STRIPE_PRICE_SIGNATURE_KITCHEN_PRO", "Signature Kitchen Pro");
+const signatureKitchenPartner = optionalPrice("STRIPE_PRICE_SIGNATURE_KITCHEN_PARTNER", "Signature Kitchen Partner");
 
 /* Mapping must match LookupKey exactly */
 
