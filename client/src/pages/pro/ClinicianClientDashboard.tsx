@@ -25,7 +25,7 @@ import {
   Dumbbell,
   Lock,
   Unlock,
-  X,
+  Trash2,
 } from "lucide-react";
 import {
   PROFESSIONAL_BUILDER_MAP,
@@ -308,17 +308,27 @@ export default function ClinicianClientDashboard() {
     updateCtx({ ...ctx, clinicalTags: next });
   };
 
+  const resolvedClientUserId = client?.clientUserId || client?.userId || clientId;
+
   const scheduleFollowUp = () => {
     if (!ctx.followupWeeks) {
       toast({ title: "Select weeks", description: "Choose 4, 8, or 12 weeks for follow-up." });
       return;
     }
-    proStore.scheduleFollowUp(clientId, ctx.followupWeeks, ctx.patientNote || "Follow-up scheduled");
+    const linkedUserId = resolvedClientUserId !== clientId ? resolvedClientUserId : undefined;
+    if (!linkedUserId) {
+      toast({
+        title: "Client not linked",
+        description: "This patient must connect their account before check-ins can be scheduled.",
+        variant: "destructive",
+      });
+      return;
+    }
+    proStore.scheduleFollowUp(clientId, ctx.followupWeeks, ctx.patientNote || "Follow-up scheduled", linkedUserId);
+    fetchUpcomingCheckIns();
     toast({ title: "Follow-up scheduled", description: `${ctx.followupWeeks}-week follow-up added.` });
     setCtx({ ...ctx, followupWeeks: undefined });
   };
-
-  const resolvedClientUserId = client?.clientUserId || client?.userId || clientId;
 
   interface CheckInSchedule {
     id: string;
@@ -967,10 +977,10 @@ export default function ClinicianClientDashboard() {
                   <button
                     type="button"
                     onClick={() => cancelCheckIn(ci.id)}
-                    className="shrink-0 p-1.5 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-900/30 transition-colors"
+                    className="shrink-0 p-1.5 rounded-lg text-red-400/60 hover:text-red-400 hover:bg-red-900/30 transition-colors"
                     title="Cancel check-in"
                   >
-                    <X className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               ))}
