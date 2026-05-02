@@ -7,7 +7,7 @@ import { Router, Request, Response } from "express";
 import { db } from "../db";
 import { checkInSchedules, checkInAlertPrefs, studios, clientNotes, studioMemberships } from "../db/schema/studio";
 import { users } from "../../shared/schema";
-import { eq, and, gt, isNull, or } from "drizzle-orm";
+import { eq, and, gt, gte, isNull, or } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { randomUUID } from "crypto";
 
@@ -103,7 +103,9 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 });
 
 // ─── GET /api/check-in-schedules?clientId=xxx ────────────────────────────────
-// List all check-in schedules for a given client (coach or client can call this).
+// List upcoming (not done, not past-due) check-in schedules for a given client.
+// Access allowed if: requester IS the client, OR requester is a pro whose
+// studio has this client as a member.
 router.get("/", requireAuth, async (req: Request, res: Response) => {
   const userId = (req as AuthenticatedRequest).authUser?.id;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -111,13 +113,62 @@ router.get("/", requireAuth, async (req: Request, res: Response) => {
   const clientId = req.query.clientId as string | undefined;
   if (!clientId) return res.status(400).json({ error: "clientId query param required" });
 
+  // Authorization: allow if the requester is the client themselves
+  let authorized = userId === clientId;
+
+  // Authorization: allow if the requester is a pro whose studio has this client
+  if (!authorized) {
+    const proStudioId = await getStudioForPro(userId);
+    if (proStudioId) {
+      const [membership] = await db
+        .select({ id: studioMemberships.id })
+        .from(studioMemberships)
+        .where(
+          and(
+            eq(studioMemberships.studioId, proStudioId),
+            eq(studioMemberships.clientUserId, clientId),
+          )
+        )
+        .limit(1);
+      if (membership) authorized = true;
+    }
+  }
+
+  if (!authorized) {
+    return res.status(403).json({ error: "Not authorized to view this client's schedules" });
+  }
+
+  const now = new Date();
+
   const rows = await db
-    .select()
+    .select({
+      id: checkInSchedules.id,
+      dueAt: checkInSchedules.dueAt,
+      note: checkInSchedules.note,
+      done: checkInSchedules.done,
+      coachName: users.firstName,
+      coachNickname: users.nickname,
+    })
     .from(checkInSchedules)
-    .where(eq(checkInSchedules.clientUserId, clientId))
+    .leftJoin(users, eq(checkInSchedules.proUserId, users.id))
+    .where(
+      and(
+        eq(checkInSchedules.clientUserId, clientId),
+        eq(checkInSchedules.done, false),
+        gte(checkInSchedules.dueAt, now),
+      )
+    )
     .orderBy(checkInSchedules.dueAt);
 
-  res.json({ schedules: rows });
+  const schedules = rows.map((r) => ({
+    id: r.id,
+    dueAt: r.dueAt,
+    note: r.note,
+    done: r.done,
+    coachDisplayName: r.coachNickname || r.coachName || "Your Coach",
+  }));
+
+  res.json({ schedules });
 });
 
 // ─── PATCH /api/check-in-schedules/:id/done ──────────────────────────────────
