@@ -203,25 +203,49 @@ export default function ProClientDashboard() {
     });
   };
 
-  const scheduleFollowUp = () => {
+  const scheduleFollowUp = async () => {
     if (!ctx.followupWeeks) {
+      toast({ title: "Select weeks", description: "Choose 4, 8, or 12 weeks for follow-up." });
+      return;
+    }
+    const effectiveId = client?.clientUserId || client?.userId;
+    if (!effectiveId) {
       toast({
-        title: "Select weeks",
-        description: "Choose 4, 8, or 12 weeks for follow-up.",
+        title: "Client not linked",
+        description: "This client must connect their account before check-ins can be scheduled.",
+        variant: "destructive",
       });
       return;
     }
-    proStore.scheduleFollowUp(
-      clientId,
-      ctx.followupWeeks,
-      ctx.patientNote || "Follow-up scheduled",
-    );
-    toast({
-      title: "Follow-up scheduled",
-      description: `${ctx.followupWeeks}-week follow-up added.`,
-    });
-    // Clear dropdown and trigger re-render to show new follow-up
-    setCtx({ ...ctx, followupWeeks: undefined });
+
+    const due = new Date();
+    due.setDate(due.getDate() + ctx.followupWeeks * 7);
+
+    try {
+      const res = await fetch(apiUrl("/api/check-in-schedules"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({
+          clientUserId: effectiveId,
+          dueAt: due.toISOString(),
+          note: ctx.patientNote?.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error((errBody as { error?: string }).error || "Failed to schedule follow-up");
+      }
+      proStore.scheduleFollowUp(clientId, ctx.followupWeeks, ctx.patientNote || "Follow-up scheduled");
+      toast({ title: "Follow-up scheduled", description: `${ctx.followupWeeks}-week follow-up added. Client has been notified.` });
+      setCtx({ ...ctx, followupWeeks: undefined });
+    } catch (err) {
+      toast({
+        title: "Scheduling failed",
+        description: err instanceof Error ? err.message : "Could not schedule follow-up. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const toggleClinicalTag = (
