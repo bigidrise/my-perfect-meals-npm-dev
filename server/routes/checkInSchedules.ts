@@ -112,7 +112,6 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
       year: "numeric",
     });
 
-    const action = existing ? "rescheduled" : "scheduled";
     await db.insert(clientNotes).values({
       studioId,
       clientUserId,
@@ -122,7 +121,7 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
       entryType: "message",
       sender: "pro",
       title: existing ? "Check-in Rescheduled" : "Check-in Scheduled",
-      body: `📅 Your check-in with ${coachName} has been ${action} for ${dateStr}.`,
+      body: `Your check-in with ${coachName} is scheduled for ${dateStr}.`,
       tags: ["system:check_in_scheduled"],
     });
   } catch (err) {
