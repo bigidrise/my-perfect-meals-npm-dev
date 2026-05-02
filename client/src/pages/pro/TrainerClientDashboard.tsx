@@ -90,6 +90,39 @@ export default function TrainerClientDashboard() {
   const [boardControl, setBoardControl] = useState<'client' | 'professional'>('client');
   const [boardControlLoading, setBoardControlLoading] = useState(false);
 
+  interface CheckInSchedule {
+    id: string;
+    dueAt: string;
+    done: boolean;
+    note: string | null;
+    coachDisplayName: string;
+  }
+  const [upcomingCheckIns, setUpcomingCheckIns] = useState<CheckInSchedule[]>([]);
+
+  const fetchUpcomingCheckIns = useCallback(() => {
+    const uid = client?.clientUserId || client?.userId;
+    if (!uid) {
+      setUpcomingCheckIns([]);
+      return;
+    }
+    fetch(apiUrl(`/api/check-in-schedules?clientId=${encodeURIComponent(uid)}`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => {
+        if (!r.ok) { setUpcomingCheckIns([]); return null; }
+        return r.json();
+      })
+      .then((data) => {
+        setUpcomingCheckIns(data?.schedules ?? []);
+      })
+      .catch(() => { setUpcomingCheckIns([]); });
+  }, [client]);
+
+  useEffect(() => {
+    fetchUpcomingCheckIns();
+  }, [fetchUpcomingCheckIns]);
+
   useEffect(() => {
     if (!resolvedClientUserId) return;
     fetch(apiUrl(`/api/pro/clients/${resolvedClientUserId}/board-control`), {
@@ -374,6 +407,7 @@ export default function TrainerClientDashboard() {
 
       proStore.setContext(clientId, { ...ctx, nextCheckInISO: nextISO, checkInWeeks: weeks });
       setCtx({ ...ctx, nextCheckInISO: nextISO, checkInWeeks: weeks });
+      fetchUpcomingCheckIns();
       toast({
         title: "Check-in scheduled",
         description: `Next check-in set for ${label} (${weeks} weeks). Client has been notified.`,
@@ -996,12 +1030,20 @@ export default function TrainerClientDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {ctx.nextCheckInISO && (
-              <div className="p-3 rounded-xl bg-lime-900/20 border border-lime-400/30">
-                <p className="text-xs text-lime-400 font-semibold">Next Check-In</p>
-                <p className="text-sm text-white mt-0.5">
-                  {new Date(ctx.nextCheckInISO + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-                </p>
+            {upcomingCheckIns.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-lime-400 font-semibold uppercase tracking-wide">Upcoming Check-Ins</p>
+                {upcomingCheckIns.map((ci) => (
+                  <div key={ci.id} className="flex items-center gap-3 p-3 rounded-xl bg-lime-900/20 border border-lime-400/30">
+                    <CalendarCheck className="h-4 w-4 text-lime-400 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-white">
+                        {new Date(ci.dueAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                      </p>
+                      <p className="text-xs text-white/50">with {ci.coachDisplayName}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
             <p className="text-white/70 text-sm">

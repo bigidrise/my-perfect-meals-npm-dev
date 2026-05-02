@@ -319,6 +319,36 @@ export default function ClinicianClientDashboard() {
 
   const resolvedClientUserId = client?.clientUserId || client?.userId || clientId;
 
+  interface CheckInSchedule {
+    id: string;
+    dueAt: string;
+    done: boolean;
+    note: string | null;
+    coachDisplayName: string;
+  }
+  const [upcomingCheckIns, setUpcomingCheckIns] = useState<CheckInSchedule[]>([]);
+
+  useEffect(() => {
+    const c = proStore.getClient(clientId);
+    const uid = c?.clientUserId || c?.userId;
+    if (!uid) {
+      setUpcomingCheckIns([]);
+      return;
+    }
+    fetch(apiUrl(`/api/check-in-schedules?clientId=${encodeURIComponent(uid)}`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => {
+        if (!r.ok) { setUpcomingCheckIns([]); return null; }
+        return r.json();
+      })
+      .then((data) => {
+        setUpcomingCheckIns(data?.schedules ?? []);
+      })
+      .catch(() => { setUpcomingCheckIns([]); });
+  }, [clientId]);
+
   const [boardControl, setBoardControl] = useState<'client' | 'professional'>('client');
   const [boardControlLoading, setBoardControlLoading] = useState(false);
 
@@ -887,6 +917,29 @@ export default function ClinicianClientDashboard() {
             </Button>
           </CardContent>
         </Card>
+
+        {upcomingCheckIns.length > 0 && (
+          <Card className="bg-white/5 border border-blue-500/30">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
+                <Calendar className="h-5 w-5 text-blue-400" /> Upcoming Check-Ins
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {upcomingCheckIns.map((ci) => (
+                <div key={ci.id} className="flex items-center gap-3 p-3 rounded-xl bg-blue-900/20 border border-blue-400/30">
+                  <Calendar className="h-4 w-4 text-blue-400 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white">
+                      {new Date(ci.dueAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                    </p>
+                    <p className="text-xs text-white/50">with {ci.coachDisplayName}</p>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         <Card className={`bg-white/5 border ${boardControl === 'professional' ? 'border-red-500/50' : 'border-white/20'}`}>
           <CardHeader>

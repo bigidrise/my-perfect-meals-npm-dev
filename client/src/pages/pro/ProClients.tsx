@@ -32,6 +32,7 @@ import {
 import TrashButton from "@/components/ui/TrashButton";
 import ProClientFolderModal from "@/components/pro/ProClientFolderModal";
 import CheckInAlertPreferences from "@/components/pro/CheckInAlertPreferences";
+import CheckInOverviewPanel from "@/components/pro/CheckInOverviewPanel";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
 
@@ -429,6 +430,8 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <PendingActivationQueue onActivated={() => syncDbClients()} />
+
+        <CheckInOverviewPanel />
 
         {totalUnread > 0 && (
           <motion.div
