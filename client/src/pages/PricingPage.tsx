@@ -1162,9 +1162,8 @@ export default function PricingPage() {
               Start Free. Upgrade When You're Ready.
             </p>
             <p className="text-white/70 text-xs leading-relaxed">
-              My Perfect Meals includes a free tier so you can explore the platform before upgrading.
-              The free tier gives you access to core features. Paid plans unlock advanced AI coaching,
-              personalized meal systems, and full platform capabilities.
+              My Perfect Meals includes a free tier with Fridge Rescue (once a week), Macro Calculator, MacroScan, Biometrics Tracking, Copilot Voice Guidance, and Daily Journal.
+              Paid plans unlock the full platform — AI meal builders, weekly planning, specialty hubs, and more.
             </p>
             <p className="text-white/60 text-xs leading-relaxed">
               Unlock full access with a subscription: Basic – $14.99/month · Premium – $24.99/month · Ultimate – $34.99/month
@@ -1261,9 +1260,8 @@ export default function PricingPage() {
                 Start Free. Upgrade When You're Ready.
               </p>
               <p className="text-white/70 text-xs leading-relaxed">
-                My Perfect Meals includes a free tier so you can explore the platform before upgrading.
-                The free tier gives you access to core features. Paid plans unlock advanced AI coaching,
-                personalized meal systems, and full platform capabilities.
+                My Perfect Meals includes a free tier with Fridge Rescue (once a week), Macro Calculator, MacroScan, Biometrics Tracking, Copilot Voice Guidance, and Daily Journal.
+                Paid plans unlock the full platform — AI meal builders, weekly planning, specialty hubs, and more.
               </p>
               <p className="text-white/60 text-xs leading-relaxed">
                 Unlock full access with a subscription: Basic – $14.99/month · Premium – $24.99/month · Ultimate – $34.99/month
