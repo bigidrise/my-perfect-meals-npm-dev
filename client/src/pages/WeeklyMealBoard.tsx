@@ -134,6 +134,7 @@ import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
 import { TrialBanner } from "@/components/TrialBanner";
+import { useBoardLockStatus } from "@/hooks/useBoardLockStatus";
 
 // CHICAGO CALENDAR FIX v1.0: Week navigation utilities are now imported from midnight.ts
 // Using noon UTC anchor pattern to avoid day-shift bugs
@@ -352,6 +353,10 @@ export default function WeeklyMealBoard() {
   const loading = hookLoading;
 
   // Wrapper to save with idempotent IDs
+  // Board lock status — only relevant when client views their own board (not when pro is editing)
+  const { locked: _selfBoardLocked } = useBoardLockStatus();
+  const boardLockedForClient = !proClientId && _selfBoardLocked;
+
   const saveBoard = React.useCallback(
     async (updatedBoard: WeekBoard) => {
       setSaving(true);
@@ -366,13 +371,20 @@ export default function WeeklyMealBoard() {
         clearDraft();
       } catch (err) {
         console.error("Failed to save board:", err);
-        // Silent retry - no toast during decision-making flows
-        // Save will auto-retry on next user action
+        const msg = err instanceof Error ? err.message : "";
+        if (msg.includes("403")) {
+          toast({
+            title: "Board is locked",
+            description: "Your meal board is currently managed by your physician or coach. Contact them to make changes.",
+            variant: "destructive",
+          });
+        }
+        // Other errors: silent retry - no toast during decision-making flows
       } finally {
         setSaving(false);
       }
     },
-    [saveToHook, clearDraft, markClean],
+    [saveToHook, clearDraft, markClean, toast],
   );
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [pickerList, setPickerList] = React.useState<
@@ -1341,6 +1353,16 @@ export default function WeeklyMealBoard() {
       >
         {/* Nutrition Budget Banner - Phase 1: Read-only awareness */}
         <NutritionBudgetBanner className="mb-2" userId={effectiveUserId} />
+
+        {/* Professional Board Lock Badge */}
+        {boardLockedForClient && (
+          <div className="flex items-center justify-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-900/40 border border-red-500/60 text-sm font-semibold text-red-300 shadow-lg shadow-red-900/30">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Coach Controlled · Read Only
+            </div>
+          </div>
+        )}
 
         <div className="mb-6 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl">
           <div className="px-4 py-4 flex flex-col gap-3">

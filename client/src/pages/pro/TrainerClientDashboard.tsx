@@ -153,6 +153,15 @@ export default function TrainerClientDashboard() {
             ? "You now control this client's meal board. They cannot overwrite your plan."
             : "Client can now edit their own meal board.",
         });
+        const messageBody = next === 'professional'
+          ? "Your meal board is now in read-only mode. Your coach is managing your meal plan — you can view it but changes won't be saved until control is returned to you."
+          : "Good news! Your meal board is back in your hands. You can freely edit your meal plan again.";
+        fetch(apiUrl(`/api/pro/tablet/${resolvedClientUserId}/message`), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          credentials: "include",
+          body: JSON.stringify({ body: messageBody }),
+        }).catch(() => {});
       }
     } catch {
       toast({ title: "Error", description: "Could not update board control.", variant: "destructive" });
