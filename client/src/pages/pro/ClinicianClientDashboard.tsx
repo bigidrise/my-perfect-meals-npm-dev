@@ -25,6 +25,7 @@ import {
   Dumbbell,
   Lock,
   Unlock,
+  X,
 } from "lucide-react";
 import {
   PROFESSIONAL_BUILDER_MAP,
@@ -348,6 +349,34 @@ export default function ClinicianClientDashboard() {
       })
       .catch(() => { setUpcomingCheckIns([]); });
   }, [clientId]);
+
+  const fetchUpcomingCheckIns = () => {
+    const c = proStore.getClient(clientId);
+    const uid = c?.clientUserId || c?.userId;
+    if (!uid) { setUpcomingCheckIns([]); return; }
+    fetch(apiUrl(`/api/check-in-schedules?clientId=${encodeURIComponent(uid)}`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => { if (!r.ok) { setUpcomingCheckIns([]); return null; } return r.json(); })
+      .then((data) => { setUpcomingCheckIns(data?.schedules ?? []); })
+      .catch(() => { setUpcomingCheckIns([]); });
+  };
+
+  const cancelCheckIn = async (id: string) => {
+    try {
+      const res = await fetch(apiUrl(`/api/check-in-schedules/${id}`), {
+        method: "DELETE",
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to cancel");
+      setUpcomingCheckIns((prev) => prev.filter((ci) => ci.id !== id));
+      toast({ title: "Check-in cancelled", description: "The scheduled check-in has been removed." });
+    } catch {
+      toast({ title: "Error", description: "Could not cancel check-in.", variant: "destructive" });
+    }
+  };
 
   const [boardControl, setBoardControl] = useState<'client' | 'professional'>('client');
   const [boardControlLoading, setBoardControlLoading] = useState(false);
@@ -929,12 +958,20 @@ export default function ClinicianClientDashboard() {
               {upcomingCheckIns.map((ci) => (
                 <div key={ci.id} className="flex items-center gap-3 p-3 rounded-xl bg-blue-900/20 border border-blue-400/30">
                   <Calendar className="h-4 w-4 text-blue-400 shrink-0" />
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-white">
                       {new Date(ci.dueAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
                     </p>
                     <p className="text-xs text-white/50">with {ci.coachDisplayName}</p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => cancelCheckIn(ci.id)}
+                    className="shrink-0 p-1.5 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-900/30 transition-colors"
+                    title="Cancel check-in"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
               ))}
             </CardContent>

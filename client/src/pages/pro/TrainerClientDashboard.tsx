@@ -30,6 +30,7 @@ import {
   Sparkles,
   Lock,
   Unlock,
+  X,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuickTour } from "@/hooks/useQuickTour";
@@ -418,6 +419,21 @@ export default function TrainerClientDashboard() {
         description: err?.message || "Could not schedule check-in. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const cancelCheckIn = async (id: string) => {
+    try {
+      const res = await fetch(apiUrl(`/api/check-in-schedules/${id}`), {
+        method: "DELETE",
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to cancel");
+      setUpcomingCheckIns((prev) => prev.filter((ci) => ci.id !== id));
+      toast({ title: "Check-in cancelled", description: "The scheduled check-in has been removed." });
+    } catch {
+      toast({ title: "Error", description: "Could not cancel check-in.", variant: "destructive" });
     }
   };
 
@@ -1036,12 +1052,20 @@ export default function TrainerClientDashboard() {
                 {upcomingCheckIns.map((ci) => (
                   <div key={ci.id} className="flex items-center gap-3 p-3 rounded-xl bg-lime-900/20 border border-lime-400/30">
                     <CalendarCheck className="h-4 w-4 text-lime-400 shrink-0" />
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-white">
                         {new Date(ci.dueAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
                       </p>
                       <p className="text-xs text-white/50">with {ci.coachDisplayName}</p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => cancelCheckIn(ci.id)}
+                      className="shrink-0 p-1.5 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-900/30 transition-colors"
+                      title="Cancel check-in"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
                 ))}
               </div>
