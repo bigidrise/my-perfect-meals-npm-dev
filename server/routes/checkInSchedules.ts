@@ -5,7 +5,7 @@
 
 import { Router, Request, Response } from "express";
 import { db } from "../db";
-import { checkInSchedules, checkInAlertPrefs, studios, clientNotes } from "../db/schema/studio";
+import { checkInSchedules, checkInAlertPrefs, studios, clientNotes, studioMemberships } from "../db/schema/studio";
 import { users } from "../../shared/schema";
 import { eq, and, gt, isNull, or } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
@@ -38,6 +38,22 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
   const studioId = await getStudioForPro(proUserId);
   if (!studioId) return res.status(404).json({ error: "No studio found for this professional" });
 
+  // Security: verify this client actually belongs to the pro's studio
+  const [membership] = await db
+    .select({ id: studioMemberships.id })
+    .from(studioMemberships)
+    .where(
+      and(
+        eq(studioMemberships.studioId, studioId),
+        eq(studioMemberships.clientUserId, clientUserId),
+      )
+    )
+    .limit(1);
+
+  if (!membership) {
+    return res.status(403).json({ error: "Client not authorized for this studio" });
+  }
+
   const [created] = await db
     .insert(checkInSchedules)
     .values({
@@ -50,6 +66,38 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
       alertsSent: {},
     })
     .returning();
+
+  // Immediate confirmation: post a shared message so the client sees it right away
+  try {
+    const [coachUser] = await db
+      .select({ firstName: users.firstName, nickname: users.nickname })
+      .from(users)
+      .where(eq(users.id, proUserId))
+      .limit(1);
+    const coachName = coachUser?.nickname || coachUser?.firstName || "your coach";
+
+    const dateStr = new Date(dueAt).toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    await db.insert(clientNotes).values({
+      studioId,
+      clientUserId,
+      authorUserId: "system",
+      noteType: "general",
+      visibility: "shared_with_client",
+      entryType: "message",
+      sender: "pro",
+      title: "Check-in Scheduled",
+      body: `📅 Your check-in with ${coachName} is scheduled for ${dateStr}.`,
+      tags: ["system:check_in_scheduled"],
+    });
+  } catch (err) {
+    console.warn("[CheckIn] Non-fatal: could not post confirmation message", err);
+  }
 
   res.status(201).json({ schedule: created });
 });

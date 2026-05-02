@@ -333,22 +333,58 @@ export default function TrainerClientDashboard() {
     });
   };
 
-  const scheduleCheckIn = () => {
+  const scheduleCheckIn = async () => {
     const weeks = ctx.checkInWeeks;
     if (!weeks) {
       toast({ title: "Select weeks", description: "Choose 2, 4, 8, or 12 weeks for the check-in." });
       return;
     }
+
+    const dbUserId = client?.clientUserId || client?.userId;
+    if (!dbUserId) {
+      toast({
+        title: "Client not linked",
+        description: "This client must connect their account before check-ins can be scheduled.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const nextDate = new Date();
     nextDate.setDate(nextDate.getDate() + weeks * 7);
     const nextISO = nextDate.toISOString().split("T")[0];
     const label = nextDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-    proStore.setContext(clientId, { ...ctx, nextCheckInISO: nextISO, checkInWeeks: weeks });
-    setCtx({ ...ctx, nextCheckInISO: nextISO, checkInWeeks: weeks });
-    toast({
-      title: "Check-in scheduled",
-      description: `Next check-in set for ${label} (${weeks} weeks).`,
-    });
+
+    try {
+      const res = await fetch(apiUrl("/api/check-in-schedules"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({
+          clientUserId: dbUserId,
+          dueAt: nextDate.toISOString(),
+          note: ctx.coachNote?.trim() || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to schedule check-in");
+      }
+
+      proStore.setContext(clientId, { ...ctx, nextCheckInISO: nextISO, checkInWeeks: weeks });
+      setCtx({ ...ctx, nextCheckInISO: nextISO, checkInWeeks: weeks });
+      toast({
+        title: "Check-in scheduled",
+        description: `Next check-in set for ${label} (${weeks} weeks). Client has been notified.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Scheduling failed",
+        description: err?.message || "Could not schedule check-in. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const TRAINER_BUILDER_KEYS = getBuilderKeys("trainer");

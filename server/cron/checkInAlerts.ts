@@ -15,6 +15,7 @@ import {
 } from "../db/schema/studio";
 import { users } from "../../shared/schema";
 import { eq, and, gt, lte } from "drizzle-orm";
+import { sendEmail } from "../services/email";
 
 // Hours before check-in each interval represents
 const INTERVAL_HOURS: Record<string, number> = {
@@ -93,9 +94,9 @@ async function sendCheckInAlerts() {
             .limit(1);
           const coachName = coachUser?.nickname || coachUser?.firstName || "your coach";
 
-          // Load client name
+          // Load client name + email
           const [clientUser] = await db
-            .select({ firstName: users.firstName, nickname: users.nickname })
+            .select({ firstName: users.firstName, nickname: users.nickname, email: users.email })
             .from(users)
             .where(eq(users.id, s.clientUserId))
             .limit(1);
@@ -130,6 +131,22 @@ async function sendCheckInAlerts() {
             body: `📅 Reminder: Your check-in with ${coachName} is scheduled for ${dateStr}.`,
             tags: ["system:check_in_reminder", `alert:${interval}`],
           });
+
+          // ── Email reminder (if client has email and Resend is configured) ────
+          if (clientUser?.email) {
+            await sendEmail({
+              to: clientUser.email,
+              subject: "Upcoming Check-In Reminder",
+              html: `
+                <p>Hi ${clientName},</p>
+                <p>This is a reminder that you have an upcoming check-in with <strong>${coachName}</strong>.</p>
+                <p><strong>Date:</strong> ${dateStr}</p>
+                <p>Open My Perfect Meals to view your message board and prepare for your session.</p>
+                <br/>
+                <p style="color:#888;font-size:12px;">My Perfect Meals — you're receiving this because a check-in was scheduled for you.</p>
+              `,
+            });
+          }
 
           newAlertsSent[interval] = true;
           didSend = true;
