@@ -1699,7 +1699,7 @@ export default function DiabeticMenuBuilder() {
       <BuilderShoppingBar
         board={board}
         activeDayISO={activeDayISO}
-        weekDatesList={weekDatesList}
+        currentWeekStartISO={weekStartISO || ""}
         sourceSlug="diabetic-meal-board"
       />
 

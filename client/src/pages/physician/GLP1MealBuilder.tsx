@@ -1552,7 +1552,7 @@ export default function GLP1MealBuilder() {
       <BuilderShoppingBar
         board={board}
         activeDayISO={activeDayISO}
-        weekDatesList={weekDatesList}
+        currentWeekStartISO={weekStartISO || ""}
         sourceSlug="glp1-meal-board"
       />
 

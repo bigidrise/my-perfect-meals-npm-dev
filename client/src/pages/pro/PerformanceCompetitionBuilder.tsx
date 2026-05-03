@@ -1584,7 +1584,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         <BuilderShoppingBar
           board={board}
           activeDayISO={activeDayISO}
-          weekDatesList={weekDatesList}
+          currentWeekStartISO={weekStartISO || ""}
           sourceSlug="performance-competition-builder"
         />
       </div>
