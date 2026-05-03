@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getDayNameLong, formatDateShort } from "@/utils/week";
-import { getTodayISOSafe, getWeekStartFromDate } from "@/utils/midnight";
+import { getTodayISOSafe, getWeekStartFromDate, addDaysISOSafe } from "@/utils/midnight";
 
 const TZ = "America/Chicago";
 
@@ -95,9 +95,8 @@ export function DuplicateDayModal({
 
   const weekGroupLabel = (weekStart: string): string => {
     if (weekStart === sourceWeekStart) return "This Week";
-    const nextWeekMs = new Date(sourceWeekStart + "T12:00:00Z").getTime() + 7 * 86400000;
-    const nextWeekISO = new Date(nextWeekMs).toISOString().slice(0, 10);
-    if (weekStart === nextWeekISO) return "Next Week";
+    const nextWeekStart = addDaysISOSafe(sourceWeekStart, 7);
+    if (weekStart === nextWeekStart) return "Next Week";
     return `Week of ${formatDateShort(weekStart)}`;
   };
 

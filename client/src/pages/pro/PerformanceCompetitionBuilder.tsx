@@ -63,6 +63,7 @@ import {
   formatWeekLabel,
   formatDateDisplay
 } from "@/utils/midnight";
+import { getRolling14Days } from "@/utils/dateRange";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 import { BUILDER_NS } from "@shared/builderNamespaces";
@@ -1546,9 +1547,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             onClose={() => setShowDuplicateDayModal(false)}
             onConfirm={handleDuplicateDay}
             sourceDateISO={activeDayISO}
-            availableDates={weekDatesList.filter(
-              (date) => date !== activeDayISO,
-            )}
+            availableDates={getRolling14Days(activeDayISO || weekStartISO)}
           />
         )}
 
