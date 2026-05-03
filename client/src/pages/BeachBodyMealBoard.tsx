@@ -1734,7 +1734,7 @@ export default function BeachBodyMealBoard() {
         <BuilderShoppingBar
           board={board}
           activeDayISO={activeDayISO}
-          weekDatesList={weekDatesList}
+          currentWeekStartISO={weekStartISO || ""}
           sourceSlug="beach-body-meal-board"
         />
       </div>

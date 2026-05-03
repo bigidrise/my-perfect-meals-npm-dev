@@ -1358,7 +1358,7 @@ export default function WeeklyMealBoard() {
       <BuilderShoppingBar
         board={board}
         activeDayISO={activeDayISO}
-        weekDatesList={weekDatesList}
+        currentWeekStartISO={weekStartISO || ""}
         sourceSlug="weekly-meal-board"
       />
 

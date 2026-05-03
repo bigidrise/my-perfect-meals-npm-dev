@@ -1764,7 +1764,7 @@ export default function AntiInflammatoryMenuBuilder() {
         <BuilderShoppingBar
           board={board}
           activeDayISO={activeDayISO}
-          weekDatesList={weekDatesList}
+          currentWeekStartISO={weekStartISO || ""}
           sourceSlug="anti-inflammatory-meal-board"
         />
 
