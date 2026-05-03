@@ -137,6 +137,8 @@ async function initializeApp() {
       const { sql } = await import("drizzle-orm");
       await database.execute(sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS starchy_carbs numeric DEFAULT '0' NOT NULL`);
       await database.execute(sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS fibrous_carbs numeric DEFAULT '0' NOT NULL`);
+      await database.execute(sql`ALTER TABLE client_links ADD COLUMN IF NOT EXISTS meal_board_control text NOT NULL DEFAULT 'client'`);
+      await database.execute(sql`ALTER TABLE client_links ADD COLUMN IF NOT EXISTS board_control_updated_at timestamptz`);
       console.log("✅ [INIT] Column migrations complete");
     } catch (migErr) {
       console.warn("⚠️ [INIT] Column migration warning:", migErr);
