@@ -65,6 +65,7 @@ import { macroAudit, macroAuditPrompt, macroAuditCache } from '../utils/macroAud
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from './behavioralMemoryService';
 import { buildOncologySupportPrompt, isOncologySupportEnabled, type OncologySupportContext } from './guardrails/prompt/oncologySupportPromptBuilder';
 import { validateOncologyMealSafety, filterOncologySafeMeals } from './guardrails/validators/oncologySupportValidator';
+import { filterByStarchStructure, validateStarchStructure, buildStarchFixHint } from './guardrails/validators/vegetarianMacroValidator';
 import { scoreOncologyMealQuality } from './guardrails/validators/oncologyQualityScorer';
 import { scoreOncologySnackQuality } from './guardrails/validators/oncologySnackScorer';
 import { buildDishTypeHint, getSemanticFallback, buildStableCacheKey, generateMealImageUnified } from './mealImageGenerator';
@@ -1727,6 +1728,12 @@ export async function generateCravingMealOptions(
     }
   }
 
+  // ── Hard starch stacking filter (vegetarian / vegan) ─────────────────────
+  // Server-side enforcement: drops any variety card where legume + grain coexist
+  // OR where more than 1 starch source is present. Prompts alone are insufficient —
+  // this is the code-level enforcement the AI cannot bypass.
+  finalOptions = filterByStarchStructure(finalOptions, dietRestrictions);
+
   console.log(`✅ [VARIETY ENGINE] ${finalOptions.length} options: ${finalOptions.map((o: any) => o?.name).join(" | ")}`);
   return finalOptions.map((opt, idx) => {
     const meal = mapToUnifiedMeal(opt, idx, cravingInput, validMealType);
@@ -2530,6 +2537,20 @@ Create the recipe for: "${description}"`;
         } else {
           console.log(`✅ [DIET GUARD] ${chefPrimaryDiet} compliance confirmed — confidence: ${dietValidation.confidence}`);
           dietaryComplianceVerified = true;
+        }
+      }
+
+      // ── Hard starch stacking check (vegetarian / vegan) ──────────────────
+      if (chefPrimaryDiet === 'vegetarian' || chefPrimaryDiet === 'vegan') {
+        const starchCheck = validateStarchStructure(tempMeal, tempMeal.name);
+        if (!starchCheck.valid && starchCheck.reason) {
+          if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
+            lastFixHint = buildStarchFixHint(starchCheck, description || '');
+            console.warn(`🥦 [STARCH GUARD] Stacking violation on attempt ${attemptCount} — regenerating with fix hint`);
+            continue;
+          }
+          // Exhausted retries — log and continue (prefer serving over hard-blocking user)
+          console.error(`❌ [STARCH GUARD] Starch stacking unresolvable after ${attemptCount} attempts — serving as-is`);
         }
       }
 
