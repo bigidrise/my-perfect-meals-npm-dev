@@ -64,7 +64,7 @@ import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 import { macroAudit, macroAuditPrompt, macroAuditCache } from '../utils/macroAuditLogger';
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from './behavioralMemoryService';
 import { buildOncologySupportPrompt, isOncologySupportEnabled, type OncologySupportContext } from './guardrails/prompt/oncologySupportPromptBuilder';
-import { validateOncologyMealSafety } from './guardrails/validators/oncologySupportValidator';
+import { validateOncologyMealSafety, filterOncologySafeMeals } from './guardrails/validators/oncologySupportValidator';
 import { scoreOncologyMealQuality } from './guardrails/validators/oncologyQualityScorer';
 import { scoreOncologySnackQuality } from './guardrails/validators/oncologySnackScorer';
 import { buildDishTypeHint, getSemanticFallback, buildStableCacheKey, generateMealImageUnified } from './mealImageGenerator';
@@ -1599,6 +1599,36 @@ export async function generateCravingMealOptions(
     console.log(`🕍 [VARIETY ENGINE] Kosher category intent: ${varietyKosherIntent}`);
   }
 
+  // ── Oncology overlay for variety engine ──────────────────────────────────
+  // The oncology protocol prompt is normally injected only in the stable
+  // single-meal generator. For variety cards shown to oncology-support users,
+  // we must also enforce hard-blocks at the prompt level so the AI never
+  // suggests processed meats, added sugars, or vegan sausage as options.
+  const isVarietyOncology = dietRestrictions.includes('oncology-support');
+  if (isVarietyOncology) {
+    const oncologyVarietyOverlay = [
+      ``,
+      `═══ CANCER SUPPORT NUTRITION — HARD BLOCK (ALL 3 OPTIONS) ═══`,
+      `This user is under a Cancer Support Nutrition protocol. ALL 3 options MUST comply.`,
+      ``,
+      `STRICTLY FORBIDDEN — never appear in any option:`,
+      `• Processed/cured meats: bacon, sausage (ALL forms including vegan sausage, veggie sausage,`,
+      `  plant-based sausage), pepperoni, salami, ham, hot dogs, deli meat, chorizo, bratwurst`,
+      `• Added sugars: maple syrup, honey, agave, corn syrup, brown sugar, powdered sugar, refined sugar`,
+      `• Heavily processed fats: lard, margarine, shortening, hydrogenated oils`,
+      `• Refined white carbs as primary starch: white bread, white pasta — upgrade to whole grain`,
+      ``,
+      `REQUIRED in every option:`,
+      `• A green-tier protein: fresh fish, eggs, chicken breast, tofu, tempeh, lentils, chickpeas`,
+      `• At least ONE anti-inflammatory vegetable: broccoli, kale, spinach, mushrooms, bell peppers`,
+      `• A real fiber anchor: oats, quinoa, lentils, sweet potato, brown rice, or berries`,
+      `• A therapeutic booster: garlic, turmeric, ginger, lemon, or fresh herbs`,
+      `═════════════════════════════════════════════════════════════`,
+    ].join('\n');
+    dietBlock += oncologyVarietyOverlay;
+    console.log(`🧬 [VARIETY ENGINE] Oncology hard-block overlay injected`);
+  }
+
   const excludeClause = excludeMeals && excludeMeals.length > 0
     ? `ANTI-REPETITION: Do NOT generate anything resembling these recently seen options — vary the primary ingredient, preparation, and concept: ${excludeMeals.join(", ")}`
     : "";
@@ -1683,7 +1713,20 @@ export async function generateCravingMealOptions(
     }
   }
 
-  const finalOptions = rawOptions.slice(0, 3);
+  let finalOptions = rawOptions.slice(0, 3);
+
+  // ── Oncology post-generation filter ──────────────────────────────────────
+  // Second line of defense: after all retries, scan each variety card for
+  // hard-blocked ingredients. Any option containing a blocked item is dropped.
+  // If this leaves < 2 options, we serve what passed rather than blocking the user.
+  if (isVarietyOncology && finalOptions.length > 0) {
+    const beforeCount = finalOptions.length;
+    finalOptions = filterOncologySafeMeals(finalOptions);
+    if (finalOptions.length < beforeCount) {
+      console.warn(`🧬 [VARIETY ENGINE ONCOLOGY] ${beforeCount - finalOptions.length} option(s) rejected by oncology hard-block validator — serving ${finalOptions.length} clean option(s)`);
+    }
+  }
+
   console.log(`✅ [VARIETY ENGINE] ${finalOptions.length} options: ${finalOptions.map((o: any) => o?.name).join(" | ")}`);
   return finalOptions.map((opt, idx) => {
     const meal = mapToUnifiedMeal(opt, idx, cravingInput, validMealType);
