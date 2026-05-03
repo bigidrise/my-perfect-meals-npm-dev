@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
 import { ShoppingCart, CalendarDays, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { getDayLists, type WeekBoard } from "@/lib/boardApi";
 import { normalizeIngredients } from "@/utils/ingredientParser";
 import { formatDateDisplay, addDaysISOSafe, getWeekStartFromDate } from "@/utils/midnight";
+import { getRolling7Days } from "@/utils/dateRange";
+import { useWeekBoardCache } from "@/hooks/useWeekBoardCache";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { getActiveBuilderNs } from "@/lib/activeBuilderNs";
@@ -34,20 +36,35 @@ export default function BuilderShoppingBar({
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [fetchingWeeks, setFetchingWeeks] = useState(false);
 
-  const extraBoardsRef = useRef<Record<string, WeekBoard | null>>({});
+  const { getWeek, setWeek, invalidateWeeks } = useWeekBoardCache();
   const [extraBoardsVersion, setExtraBoardsVersion] = useState(0);
 
-  const anchorDateISO = activeDayISO || currentWeekStartISO;
+  const anchorDateISO = activeDayISO ?? currentWeekStartISO;
 
   const rollingDates = useMemo(() => {
     if (!anchorDateISO) return [];
-    return Array.from({ length: 7 }, (_, i) => addDaysISOSafe(anchorDateISO, i, TZ));
+    return getRolling7Days(anchorDateISO);
   }, [anchorDateISO]);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { weekStartISO?: string; dateISO?: string } | undefined;
+      if (!detail) return;
+      const affectedWeek = detail.weekStartISO ||
+        (detail.dateISO ? getWeekStartFromDate(detail.dateISO, TZ) : null);
+      if (affectedWeek && affectedWeek !== currentWeekStartISO) {
+        invalidateWeeks([affectedWeek]);
+        setExtraBoardsVersion((v) => v + 1);
+      }
+    };
+    window.addEventListener("mpm:board-slot-added", handler);
+    return () => window.removeEventListener("mpm:board-slot-added", handler);
+  }, [currentWeekStartISO, invalidateWeeks]);
 
   const fetchExtraWeeks = useCallback(async (dates: string[]) => {
     const weekStarts = [...new Set(dates.map((d) => getWeekStartFromDate(d, TZ)))];
     const missing = weekStarts.filter(
-      (ws) => ws !== currentWeekStartISO && extraBoardsRef.current[ws] === undefined
+      (ws) => ws !== currentWeekStartISO && getWeek(ws) === undefined
     );
     if (missing.length === 0) return;
 
@@ -63,13 +80,13 @@ export default function BuilderShoppingBar({
               { credentials: "include", headers: { ...getAuthHeaders() } }
             );
             if (!res.ok) {
-              extraBoardsRef.current[ws] = null;
+              setWeek(ws, null);
               return;
             }
             const json = await res.json();
-            extraBoardsRef.current[ws] = json?.week || null;
+            setWeek(ws, json?.week || null);
           } catch {
-            extraBoardsRef.current[ws] = null;
+            setWeek(ws, null);
           }
         })
       );
@@ -77,14 +94,14 @@ export default function BuilderShoppingBar({
     } finally {
       setFetchingWeeks(false);
     }
-  }, [currentWeekStartISO]);
+  }, [currentWeekStartISO, getWeek, setWeek]);
 
   function getDayListsMultiWeek(dateISO: string) {
     const ws = getWeekStartFromDate(dateISO, TZ);
     if (ws === currentWeekStartISO && board) {
       return getDayLists(board, dateISO);
     }
-    const extraBoard = extraBoardsRef.current[ws];
+    const extraBoard = getWeek(ws);
     if (extraBoard) {
       return getDayLists(extraBoard, dateISO);
     }

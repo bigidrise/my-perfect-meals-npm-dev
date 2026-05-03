@@ -15,12 +15,11 @@ import { UpgradeLockModal } from "@/components/upgrade/UpgradeLockModal";
 import {
   getTodayISOSafe,
   getWeekStartFromDate,
-  addDaysISOSafe,
   formatDateDisplay,
 } from "@/utils/midnight";
+import { getRolling14Days } from "@/utils/dateRange";
 
 const TZ = "America/Chicago";
-const ROLLING_DAYS = 14;
 
 interface AddToMealPlanButtonProps {
   meal: any;
@@ -39,12 +38,6 @@ const SLOT_OPTIONS: { value: Slot; label: string; emoji: string }[] = [
   { value: "snacks",    label: "Snack",  emoji: "🍎" },
 ];
 
-function getRollingDates(todayISO: string): string[] {
-  return Array.from({ length: ROLLING_DAYS }, (_, i) =>
-    addDaysISOSafe(todayISO, i, TZ)
-  );
-}
-
 function formatDayLabel(dateISO: string, todayISO: string): { short: string; dayNum: string; isToday: boolean } {
   return {
     short: formatDateDisplay(dateISO, { weekday: "short" }, TZ),
@@ -55,7 +48,7 @@ function formatDayLabel(dateISO: string, todayISO: string): { short: string; day
 
 export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanButtonProps) {
   const todayISO = getTodayISOSafe(TZ);
-  const rollingDates = getRollingDates(todayISO);
+  const rollingDates = getRolling14Days(todayISO);
 
   const [isOpen, setIsOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);

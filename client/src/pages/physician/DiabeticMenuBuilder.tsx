@@ -60,6 +60,7 @@ import {
   formatDateDisplay,
   todayISOInTZ,
 } from "@/utils/midnight";
+import { getRolling14Days } from "@/utils/dateRange";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -1643,7 +1644,7 @@ export default function DiabeticMenuBuilder() {
           onClose={() => setShowDuplicateDayModal(false)}
           onConfirm={handleDuplicateDay}
           sourceDateISO={activeDayISO}
-          availableDates={weekDatesList.filter((date) => date !== activeDayISO)}
+          availableDates={getRolling14Days(activeDayISO || weekStartISO)}
         />
       )}
 

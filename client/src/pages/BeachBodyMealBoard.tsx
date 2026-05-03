@@ -58,6 +58,7 @@ import {
   formatDateDisplay,
   todayISOInTZ 
 } from "@/utils/midnight";
+import { getRolling14Days } from "@/utils/dateRange";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
@@ -1635,9 +1636,7 @@ export default function BeachBodyMealBoard() {
             onClose={() => setShowDuplicateDayModal(false)}
             onConfirm={handleDuplicateDay}
             sourceDateISO={activeDayISO}
-            availableDates={weekDatesList.filter(
-              (date) => date !== activeDayISO,
-            )}
+            availableDates={getRolling14Days(activeDayISO || weekStartISO)}
           />
         )}
 
