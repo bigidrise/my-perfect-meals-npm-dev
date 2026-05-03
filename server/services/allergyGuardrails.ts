@@ -1597,6 +1597,16 @@ export function scanForHiddenDietaryViolations(
   // (which is the prompt-level list — this catches any that slipped through).
   for (const item of avoidList) {
     const key = item.trim().toLowerCase();
+
+    // Safety guard: skip the broad "vegetables" category for vegetarian / vegan users.
+    // Avoiding ALL vegetables is incompatible with a plant-based diet — if this
+    // combination exists it is almost certainly a user error, not a real preference.
+    // Specific vegetable avoidances (e.g. "mushrooms", "onions", "broccoli") are honored.
+    if (key === "vegetables" && (isVegetarian || isVegan)) {
+      console.warn(`[ProtocolEnvelope] Skipping broad "vegetables" avoidance for ${isVegan ? "vegan" : "vegetarian"} user — incompatible with plant-based diet, ignored.`);
+      continue;
+    }
+
     const expanded = AVOIDANCE_EXPANSION[key] || [key];
     for (const term of expanded) {
       const esc = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
