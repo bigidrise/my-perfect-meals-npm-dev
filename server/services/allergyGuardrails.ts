@@ -572,6 +572,39 @@ export function buildDietPromptBlock(restrictions: string[]): string {
     );
   }
 
+  // Vegetarian / vegan: inject starch-stacking prevention and protein-role rules
+  if (diet === "vegetarian" || diet === "vegan") {
+    baseBlock.push(
+      ``,
+      `VEGETARIAN MACRO STRUCTURE RULES (MANDATORY):`,
+      ``,
+      `1. ONE PRIMARY CARB RULE: Choose exactly ONE dominant starch source per meal.`,
+      `   Do NOT stack multiple starches. Forbidden combinations include:`,
+      `   - Quinoa + beans + sweet potato (3 starches)`,
+      `   - Rice + beans + potato (3 starches)`,
+      `   - Oats + banana + sweet potato (3 starches)`,
+      `   Pick ONE: quinoa, brown rice, oats, sweet potato, lentils, black beans, chickpeas, farro, or whole grain bread.`,
+      `   The other carb slots should be VEGETABLES (non-starchy): broccoli, spinach, zucchini, peppers, mushrooms, etc.`,
+      ``,
+      `2. LEGUME ROLE ASSIGNMENT: When legumes (beans, lentils, chickpeas) appear in a meal,`,
+      `   they serve as BOTH the protein anchor AND the primary carb. Do NOT add a grain on top.`,
+      `   Example: Black bean bowl → beans are the protein + carb. No quinoa, no rice needed.`,
+      `   Example: Lentil soup → lentils are protein + carb. No bread, no rice on the side.`,
+      `   Exception: A small portion (1/4 cup dry) of grain may be used as texture, not as a second starch.`,
+      ``,
+      `3. PROTEIN DENSITY: Vegetarian meals must hit ≥20g protein. Acceptable anchors:`,
+      `   - Eggs (3 whole = 18g, add Greek yogurt or cheese to hit 20g+)`,
+      `   - Greek yogurt (1 cup = 17–20g)`,
+      `   - Tofu/tempeh (5 oz firm tofu = ~18g, 4 oz tempeh = 22g)`,
+      `   - Lentils/chickpeas/black beans (1 cup cooked = 15–18g — combine with eggs or cheese to hit 20g+)`,
+      `   - Cottage cheese (1 cup = 25g)`,
+      `   Do NOT rely on quinoa alone for protein (only 8g per cup).`,
+      ``,
+      `4. NO UNNECESSARY SWEETENERS: Do not add maple syrup, honey, agave, or sugar to savory meals.`,
+      `   Sweet flavors should come from whole foods: sweet potato, fruit, or cinnamon.`,
+    );
+  }
+
   return baseBlock.join("\n");
 }
 

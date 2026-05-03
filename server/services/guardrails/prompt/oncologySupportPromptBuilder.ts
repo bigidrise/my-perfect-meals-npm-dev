@@ -107,6 +107,18 @@ export const ONCOLOGY_HARD_BLOCKED_INGREDIENTS = [
   "shortening",
   "hydrogenated oil",
   "partially hydrogenated",
+  // Added sugars — unnecessary for oncology and spike blood glucose
+  "maple syrup",
+  "honey",
+  "agave",
+  "agave nectar",
+  "agave syrup",
+  "corn syrup",
+  "high fructose corn syrup",
+  "refined sugar",
+  "brown sugar",
+  "powdered sugar",
+  "confectioners sugar",
 ];
 
 /**
@@ -146,6 +158,11 @@ export function buildOncologySupportPrompt(context: OncologySupportContext): str
     "",
     "CHARRED OR HEAVILY CHARRED PREPARATIONS: no blackened meats, no charcoal-grilled to blackening,",
     "no heavily charred skin. Grilling and broiling are allowed — just not to the point of charring.",
+    "",
+    "ADDED SUGARS & SWEETENERS — STRICTLY FORBIDDEN: maple syrup, honey, agave, agave nectar,",
+    "corn syrup, high fructose corn syrup, refined sugar, brown sugar, powdered sugar.",
+    "Natural whole-food sweetness from fruit, berries, or sweet potato is allowed.",
+    "Never add liquid or crystalline sweeteners to any Cancer Support meal.",
     "",
     "=== PRIORITY FOODS — ACTIVELY INCLUDE THESE ===",
     "When building meals under this protocol, lean into these ingredients and food groups.",
