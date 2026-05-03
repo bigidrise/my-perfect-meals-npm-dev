@@ -24,8 +24,6 @@ import {
   LayoutGrid,
   Trophy,
   Dumbbell,
-  Lock,
-  Unlock,
   Trash2,
 } from "lucide-react";
 import {
@@ -412,55 +410,6 @@ export default function ClinicianClientDashboard() {
       toast({ title: "Check-in cancelled", description: "The scheduled check-in has been removed." });
     } catch {
       toast({ title: "Error", description: "Could not cancel check-in.", variant: "destructive" });
-    }
-  };
-
-  const [boardControl, setBoardControl] = useState<'client' | 'professional'>('client');
-  const [boardControlLoading, setBoardControlLoading] = useState(false);
-
-  useEffect(() => {
-    if (!resolvedClientUserId) return;
-    fetch(apiUrl(`/api/pro/clients/${resolvedClientUserId}/board-control`), {
-      headers: { ...getAuthHeaders() },
-      credentials: "include",
-    })
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => { if (data?.control) setBoardControl(data.control); })
-      .catch(() => {});
-  }, [resolvedClientUserId]);
-
-  const toggleBoardControl = async () => {
-    const next = boardControl === 'client' ? 'professional' : 'client';
-    setBoardControlLoading(true);
-    try {
-      const res = await fetch(apiUrl(`/api/pro/clients/${resolvedClientUserId}/board-control`), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        credentials: "include",
-        body: JSON.stringify({ control: next }),
-      });
-      if (res.ok) {
-        setBoardControl(next);
-        toast({
-          title: next === 'professional' ? "Board locked" : "Board unlocked",
-          description: next === 'professional'
-            ? "You now control this patient's meal board. They cannot overwrite your plan."
-            : "Patient can now edit their own meal board.",
-        });
-        const messageBody = next === 'professional'
-          ? "Your meal board is now in read-only mode. Your physician is managing your meal plan — you can view it but changes won't be saved until control is returned to you."
-          : "Good news! Your meal board is back in your hands. You can freely edit your meal plan again.";
-        fetch(apiUrl(`/api/pro/tablet/${resolvedClientUserId}/message`), {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-          credentials: "include",
-          body: JSON.stringify({ body: messageBody }),
-        }).catch(() => {});
-      }
-    } catch {
-      toast({ title: "Error", description: "Could not update board control.", variant: "destructive" });
-    } finally {
-      setBoardControlLoading(false);
     }
   };
 
@@ -972,41 +921,6 @@ export default function ClinicianClientDashboard() {
                 ? `Open ${activeProtocolLabel} Builder`
                 : "Assign Builder First"}
             </Button>
-          </CardContent>
-        </Card>
-
-        <Card className={`bg-white/5 border ${boardControl === 'professional' ? 'border-red-500/50' : 'border-white/20'}`}>
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
-              {boardControl === 'professional'
-                ? <Lock className="h-5 w-5 text-red-400" />
-                : <Unlock className="h-5 w-5 text-white/60" />}
-              Meal Board Control
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-white/70 text-sm">
-              {boardControl === 'professional'
-                ? `You are controlling ${client?.name || "this patient"}'s meal board. They cannot edit or overwrite your plan.`
-                : `${client?.name || "This patient"} can currently edit their own meal board. Enable professional control to take over.`}
-            </p>
-            <div className={`flex items-center justify-between p-3 rounded-xl border ${boardControl === 'professional' ? 'bg-red-900/20 border-red-500/30' : 'bg-black/20 border-white/10'}`}>
-              <div>
-                <p className="text-sm font-semibold text-white">
-                  {boardControl === 'professional' ? 'Professional Controlled' : 'Client Controlled'}
-                </p>
-                <p className="text-xs text-white/50 mt-0.5">
-                  {boardControl === 'professional' ? 'Patient board is read-only' : 'Patient can edit freely'}
-                </p>
-              </div>
-              <Button
-                onClick={toggleBoardControl}
-                disabled={boardControlLoading}
-                className={`text-sm font-semibold active:scale-[0.97] ${boardControl === 'professional' ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-blue-600 text-white'}`}
-              >
-                {boardControlLoading ? "Updating..." : boardControl === 'professional' ? "Release Control" : "Take Control"}
-              </Button>
-            </div>
           </CardContent>
         </Card>
 
