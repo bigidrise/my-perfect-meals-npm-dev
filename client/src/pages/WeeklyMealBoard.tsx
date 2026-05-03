@@ -844,6 +844,13 @@ export default function WeeklyMealBoard() {
     return weekStartISO ? weekDatesInTZ(weekStartISO, "America/Chicago") : [];
   }, [weekStartISO]);
 
+  // Two-week date list for Duplicate Day modal (current + next week)
+  const twoWeekDatesList = useMemo(() => {
+    if (!weekStartISO) return weekDatesList;
+    const nextWeekStart = nextWeekISO(weekStartISO, "America/Chicago");
+    return [...weekDatesList, ...weekDatesInTZ(nextWeekStart, "America/Chicago")];
+  }, [weekStartISO, weekDatesList]);
+
   // Set initial active day when week loads
   // UX: Auto-focus on today if it's in this week, otherwise default to Monday
   // CHICAGO CALENDAR FIX v1.0: Both weekDatesInTZ and getTodayISOSafe use noon UTC anchor
@@ -1941,7 +1948,7 @@ export default function WeeklyMealBoard() {
             onClose={() => setShowDuplicateDayModal(false)}
             onConfirm={handleDuplicateDay}
             sourceDateISO={activeDayISO}
-            availableDates={weekDatesList.filter(
+            availableDates={twoWeekDatesList.filter(
               (date) => date !== activeDayISO,
             )}
           />
@@ -1969,7 +1976,7 @@ export default function WeeklyMealBoard() {
         <BuilderShoppingBar
           board={board}
           activeDayISO={activeDayISO}
-          weekDatesList={weekDatesList}
+          currentWeekStartISO={weekStartISO || ""}
           sourceSlug="weekly-meal-board"
         />
 

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
 import { ShoppingCart, CalendarDays, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,19 +7,26 @@ import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { getDayLists, type WeekBoard } from "@/lib/boardApi";
 import { normalizeIngredients } from "@/utils/ingredientParser";
-import { formatDateDisplay } from "@/utils/midnight";
+import { formatDateDisplay, addDaysISOSafe, getWeekStartFromDate } from "@/utils/midnight";
+import { getRolling7Days } from "@/utils/dateRange";
+import { useWeekBoardCache } from "@/hooks/useWeekBoardCache";
+import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
+import { getActiveBuilderNs } from "@/lib/activeBuilderNs";
+
+const TZ = "America/Chicago";
 
 type Props = {
   board: WeekBoard | null;
   activeDayISO: string | null;
-  weekDatesList: string[];
+  currentWeekStartISO: string;
   sourceSlug?: string;
 };
 
 export default function BuilderShoppingBar({
   board,
   activeDayISO,
-  weekDatesList,
+  currentWeekStartISO,
   sourceSlug,
 }: Props) {
   const [, setLocation] = useLocation();
@@ -27,29 +34,102 @@ export default function BuilderShoppingBar({
   const isDesktop = useIsDesktop();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  const [fetchingWeeks, setFetchingWeeks] = useState(false);
 
-  const dayMealCounts = useMemo(() => {
-    if (!board) return {} as Record<string, number>;
-    const counts: Record<string, number> = {};
-    weekDatesList.forEach((date) => {
+  const { getWeek, setWeek, invalidateWeeks } = useWeekBoardCache();
+  const [extraBoardsVersion, setExtraBoardsVersion] = useState(0);
+
+  const anchorDateISO = activeDayISO ?? currentWeekStartISO;
+
+  const rollingDates = useMemo(() => {
+    if (!anchorDateISO) return [];
+    return getRolling7Days(anchorDateISO);
+  }, [anchorDateISO]);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { weekStartISO?: string; dateISO?: string } | undefined;
+      if (!detail) return;
+      const affectedWeek = detail.weekStartISO ||
+        (detail.dateISO ? getWeekStartFromDate(detail.dateISO, TZ) : null);
+      if (affectedWeek && affectedWeek !== currentWeekStartISO) {
+        invalidateWeeks([affectedWeek]);
+        setExtraBoardsVersion((v) => v + 1);
+      }
+    };
+    window.addEventListener("mpm:board-slot-added", handler);
+    return () => window.removeEventListener("mpm:board-slot-added", handler);
+  }, [currentWeekStartISO, invalidateWeeks]);
+
+  const fetchExtraWeeks = useCallback(async (dates: string[]) => {
+    const weekStarts = [...new Set(dates.map((d) => getWeekStartFromDate(d, TZ)))];
+    const missing = weekStarts.filter(
+      (ws) => ws !== currentWeekStartISO && getWeek(ws) === undefined
+    );
+    if (missing.length === 0) return;
+
+    setFetchingWeeks(true);
+    try {
+      await Promise.all(
+        missing.map(async (ws) => {
+          try {
+            const ns = getActiveBuilderNs();
+            const btParam = ns ? `&bt=${encodeURIComponent(ns)}` : "";
+            const res = await fetch(
+              apiUrl(`/api/weekly-board?week=${encodeURIComponent(ws)}${btParam}`),
+              { credentials: "include", headers: { ...getAuthHeaders() } }
+            );
+            if (!res.ok) {
+              setWeek(ws, null);
+              return;
+            }
+            const json = await res.json();
+            setWeek(ws, json?.week || null);
+          } catch {
+            setWeek(ws, null);
+          }
+        })
+      );
+      setExtraBoardsVersion((v) => v + 1);
+    } finally {
+      setFetchingWeeks(false);
+    }
+  }, [currentWeekStartISO, getWeek, setWeek]);
+
+  function getDayListsMultiWeek(dateISO: string) {
+    const ws = getWeekStartFromDate(dateISO, TZ);
+    if (ws === currentWeekStartISO && board) {
+      return getDayLists(board, dateISO);
+    }
+    const extraBoard = getWeek(ws);
+    if (extraBoard) {
+      return getDayLists(extraBoard, dateISO);
+    }
+    return { breakfast: [], lunch: [], dinner: [], snacks: [], meal4: [], meal5: [], meal6: [] };
+  }
+
+  const currentWeekMealCount = useMemo(() => {
+    if (!board) return 0;
+    const weekDates = Array.from({ length: 7 }, (_, i) =>
+      addDaysISOSafe(currentWeekStartISO, i, TZ)
+    );
+    return weekDates.reduce((sum, date) => {
       const lists = getDayLists(board, date);
-      counts[date] =
-        lists.breakfast.length +
-        lists.lunch.length +
-        lists.dinner.length +
-        lists.snacks.length;
-    });
-    return counts;
-  }, [board, weekDatesList]);
+      return sum + lists.breakfast.length + lists.lunch.length + lists.dinner.length + lists.snacks.length;
+    }, 0);
+  }, [board, currentWeekStartISO]);
 
-  const totalMeals = Object.values(dayMealCounts).reduce((a, b) => a + b, 0);
+  if (!board || !activeDayISO || currentWeekMealCount === 0) return null;
 
-  if (!board || !activeDayISO || totalMeals === 0) return null;
+  const dayMealCounts = rollingDates.reduce<Record<string, number>>((acc, date) => {
+    const lists = getDayListsMultiWeek(date);
+    acc[date] = lists.breakfast.length + lists.lunch.length + lists.dinner.length + lists.snacks.length;
+    return acc;
+  }, {});
 
   function collectIngredients(days: string[]) {
-    if (!board) return [];
     const allMeals = days.flatMap((date) => {
-      const lists = getDayLists(board, date);
+      const lists = getDayListsMultiWeek(date);
       return [
         ...lists.breakfast,
         ...lists.lunch,
@@ -96,7 +176,7 @@ export default function BuilderShoppingBar({
 
   function handleSendDay() {
     if (!activeDayISO) return;
-    const dayName = formatDateDisplay(activeDayISO, { weekday: "long" });
+    const dayName = formatDateDisplay(activeDayISO, { weekday: "long" }, TZ);
     sendDays([activeDayISO], `${dayName} Meal Plan`);
   }
 
@@ -104,18 +184,27 @@ export default function BuilderShoppingBar({
     if (selectedDays.length === 0) return;
     const label =
       selectedDays.length === 1
-        ? `${formatDateDisplay(selectedDays[0], { weekday: "long" })} Meal Plan`
+        ? `${formatDateDisplay(selectedDays[0], { weekday: "long" }, TZ)} Meal Plan`
         : `${selectedDays.length}-Day Meal Plan`;
     sendDays(selectedDays, label);
   }
 
   function toggleDay(date: string) {
     setSelectedDays((prev) =>
-      prev.includes(date) ? prev.filter((d) => d !== date) : [...prev, date],
+      prev.includes(date) ? prev.filter((d) => d !== date) : [...prev, date]
     );
   }
 
-  const activeDayName = formatDateDisplay(activeDayISO, { weekday: "long" });
+  function handleOpenPicker() {
+    const nowOpen = !pickerOpen;
+    setPickerOpen(nowOpen);
+    if (nowOpen) {
+      setSelectedDays([]);
+      fetchExtraWeeks(rollingDates);
+    }
+  }
+
+  const activeDayName = formatDateDisplay(activeDayISO, { weekday: "long" }, TZ);
 
   const barStyle = isDesktop
     ? { left: 240, right: 0, bottom: 0 }
@@ -130,18 +219,21 @@ export default function BuilderShoppingBar({
       {pickerOpen && (
         <div className="bg-zinc-950/98 backdrop-blur-xl border-t border-white/20 px-4 py-4">
           <div className="container mx-auto">
-            <div className="text-white text-sm font-semibold mb-3">
-              Choose days for your shopping list (select 1–7)
+            <div className="text-white text-sm font-semibold mb-1">
+              Choose days for your shopping list
+            </div>
+            <div className="text-white/40 text-xs mb-3">
+              {fetchingWeeks ? "Loading…" : "Next 7 days from today's selected day"}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-              {weekDatesList.map((date) => {
+              {rollingDates.map((date) => {
                 const count = dayMealCounts[date] || 0;
                 const selected = selectedDays.includes(date);
                 const label = formatDateDisplay(date, {
                   weekday: "short",
                   month: "numeric",
                   day: "numeric",
-                });
+                }, TZ);
                 return (
                   <button
                     key={date}
@@ -162,9 +254,11 @@ export default function BuilderShoppingBar({
                     <div className="min-w-0">
                       <div className="font-medium truncate">{label}</div>
                       <div className="text-xs opacity-70">
-                        {count === 0
-                          ? "No meals"
-                          : `${count} meal${count !== 1 ? "s" : ""}`}
+                        {fetchingWeeks && getWeekStartFromDate(date, TZ) !== currentWeekStartISO
+                          ? "Loading…"
+                          : count === 0
+                            ? "No meals"
+                            : `${count} meal${count !== 1 ? "s" : ""}`}
                       </div>
                     </div>
                   </button>
@@ -213,10 +307,7 @@ export default function BuilderShoppingBar({
               Send {activeDayName}
             </Button>
             <Button
-              onClick={() => {
-                setPickerOpen((p) => !p);
-                if (!pickerOpen) setSelectedDays([]);
-              }}
+              onClick={handleOpenPicker}
               className={`flex-1 sm:flex-none min-h-[44px] border border-white/30 text-white ${
                 pickerOpen
                   ? "bg-emerald-700 hover:bg-emerald-800"

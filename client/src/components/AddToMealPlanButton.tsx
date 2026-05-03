@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { CalendarPlus, Lock, ChevronLeft } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -12,6 +12,14 @@ import {
 } from "@/components/ui/drawer";
 import { useFreeLock } from "@/hooks/useFreeLock";
 import { UpgradeLockModal } from "@/components/upgrade/UpgradeLockModal";
+import {
+  getTodayISOSafe,
+  getWeekStartFromDate,
+  formatDateDisplay,
+} from "@/utils/midnight";
+import { getRolling14Days } from "@/utils/dateRange";
+
+const TZ = "America/Chicago";
 
 interface AddToMealPlanButtonProps {
   meal: any;
@@ -30,44 +38,18 @@ const SLOT_OPTIONS: { value: Slot; label: string; emoji: string }[] = [
   { value: "snacks",    label: "Snack",  emoji: "🍎" },
 ];
 
-const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-function getChicagoTodayISO(): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Chicago",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
-
-function getCurrentWeekDates(): string[] {
-  const today = new Date();
-  const d = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
-  const dayNum = (d.getUTCDay() + 6) % 7; // Mon = 0
-  d.setUTCDate(d.getUTCDate() - dayNum);
-  return Array.from({ length: 7 }, (_, i) => {
-    const day = new Date(d);
-    day.setUTCDate(d.getUTCDate() + i);
-    return day.toISOString().slice(0, 10);
-  });
-}
-
-function getWeekStartISO(): string {
-  return getCurrentWeekDates()[0];
-}
-
 function formatDayLabel(dateISO: string, todayISO: string): { short: string; dayNum: string; isToday: boolean } {
-  const d = new Date(dateISO + "T00:00:00Z");
-  const dayIndex = (d.getUTCDay() + 6) % 7;
   return {
-    short: DAY_LABELS[dayIndex],
-    dayNum: String(d.getUTCDate()),
+    short: formatDateDisplay(dateISO, { weekday: "short" }, TZ),
+    dayNum: formatDateDisplay(dateISO, { day: "numeric" }, TZ),
     isToday: dateISO === todayISO,
   };
 }
 
 export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanButtonProps) {
+  const todayISO = getTodayISOSafe(TZ);
+  const rollingDates = getRolling14Days(todayISO);
+
   const [isOpen, setIsOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
@@ -75,43 +57,60 @@ export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanBu
   const [occupiedMealTitle, setOccupiedMealTitle] = useState<string | null>(null);
   const [boardDays, setBoardDays] = useState<Record<string, any> | null>(null);
   const [boardLoading, setBoardLoading] = useState(false);
-
-  const todayISO = getChicagoTodayISO();
-  const weekDates = getCurrentWeekDates();
   const [selectedDate, setSelectedDate] = useState<string>(todayISO);
+
+  const boardCache = useRef<Record<string, Record<string, any> | null>>({});
 
   const { isFree, showLockModal, lockMessage, guardAction, closeLockModal } = useFreeLock();
 
   if (!meal) return null;
 
-  const fetchBoard = useCallback(async () => {
+  const fetchBoardForWeek = useCallback(async (weekStart: string): Promise<Record<string, any> | null> => {
+    if (boardCache.current[weekStart] !== undefined) {
+      return boardCache.current[weekStart];
+    }
     setBoardLoading(true);
     try {
-      const weekStart = getWeekStartISO();
       const ns = getActiveBuilderNs();
-      const btParam = ns ? `&bt=${encodeURIComponent(ns)}` : '';
-      const res = await fetch(apiUrl(`/api/weekly-board?week=${encodeURIComponent(weekStart)}${btParam}`), {
-        credentials: "include",
-        headers: { ...getAuthHeaders() },
-      });
-      if (!res.ok) return;
+      const btParam = ns ? `&bt=${encodeURIComponent(ns)}` : "";
+      const res = await fetch(
+        apiUrl(`/api/weekly-board?week=${encodeURIComponent(weekStart)}${btParam}`),
+        { credentials: "include", headers: { ...getAuthHeaders() } }
+      );
+      if (!res.ok) return null;
       const json = await res.json();
-      setBoardDays(json?.week?.days || null);
+      const days = json?.week?.days || null;
+      boardCache.current[weekStart] = days;
+      return days;
     } catch {
+      return null;
     } finally {
       setBoardLoading(false);
     }
   }, []);
 
+  useEffect(() => {
+    if (!isOpen || !selectedDate) return;
+    const weekStart = getWeekStartFromDate(selectedDate, TZ);
+    const cached = boardCache.current[weekStart];
+    if (cached !== undefined) {
+      setBoardDays(cached);
+      return;
+    }
+    fetchBoardForWeek(weekStart).then((days) => {
+      setBoardDays(days);
+    });
+  }, [selectedDate, isOpen, fetchBoardForWeek]);
+
   const handleOpenDrawer = (e: React.MouseEvent) => {
     e.stopPropagation();
     guardAction("Add meals to your weekly plan and track your nutrition with Premium.", () => {
-      setSelectedDate(todayISO);
+      const today = getTodayISOSafe(TZ);
+      setSelectedDate(today);
       setSelectedSlot(null);
       setConfirming(false);
       setOccupiedMealTitle(null);
       setIsOpen(true);
-      fetchBoard();
     });
   };
 
@@ -181,7 +180,6 @@ export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanBu
 
       const result = await response.json();
 
-      // Dispatch instant board update event — useWeeklyBoard listens to this
       window.dispatchEvent(new CustomEvent("mpm:board-slot-added", {
         detail: {
           weekStartISO: result.weekStartISO,
@@ -191,18 +189,23 @@ export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanBu
         },
       }));
 
-      // Update local occupancy cache
       if (result.updatedDay) {
-        setBoardDays(prev => ({
+        setBoardDays((prev) => ({
           ...(prev || {}),
           [selectedDate]: result.updatedDay,
         }));
+        const weekStart = getWeekStartFromDate(selectedDate, TZ);
+        if (boardCache.current[weekStart]) {
+          boardCache.current[weekStart] = {
+            ...(boardCache.current[weekStart] || {}),
+            [selectedDate]: result.updatedDay,
+          };
+        }
       }
 
-      const slotLabel = SLOT_OPTIONS.find(s => s.value === slot)?.label || slot;
-      const dayLabel = selectedDate === todayISO
-        ? "Today"
-        : `${formatDayLabel(selectedDate, todayISO).short} ${formatDayLabel(selectedDate, todayISO).dayNum}`;
+      const slotLabel = SLOT_OPTIONS.find((s) => s.value === slot)?.label || slot;
+      const { short, dayNum, isToday } = formatDayLabel(selectedDate, todayISO);
+      const dayLabel = isToday ? "Today" : `${short} ${dayNum}`;
 
       window.dispatchEvent(new CustomEvent("show-toast", {
         detail: {
@@ -247,7 +250,6 @@ export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanBu
 
         <DrawerContent className="bg-black/95 border-t border-white/20">
           {confirming ? (
-            /* Replace confirmation screen */
             <div className="p-6 pb-10">
               <button
                 onClick={() => setConfirming(false)}
@@ -278,7 +280,6 @@ export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanBu
               </Button>
             </div>
           ) : (
-            /* Day + slot picker */
             <>
               <DrawerHeader className="text-center pb-0">
                 <DrawerTitle className="text-white text-lg">Add to Meal Plan</DrawerTitle>
@@ -288,7 +289,7 @@ export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanBu
               <div className="px-4 pt-4 pb-2">
                 <p className="text-xs text-white/40 uppercase tracking-widest mb-2">Day</p>
                 <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-                  {weekDates.map((dateISO) => {
+                  {rollingDates.map((dateISO) => {
                     const { short, dayNum, isToday } = formatDayLabel(dateISO, todayISO);
                     const active = selectedDate === dateISO;
                     return (

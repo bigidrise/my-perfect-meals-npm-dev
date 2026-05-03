@@ -58,6 +58,7 @@ import {
   formatDateDisplay,
   todayISOInTZ 
 } from "@/utils/midnight";
+import { getRolling14Days } from "@/utils/dateRange";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -1496,7 +1497,7 @@ export default function GLP1MealBuilder() {
           onClose={() => setShowDuplicateDayModal(false)}
           onConfirm={handleDuplicateDay}
           sourceDateISO={activeDayISO}
-          availableDates={weekDatesList.filter((date) => date !== activeDayISO)}
+          availableDates={getRolling14Days(activeDayISO || weekStartISO)}
         />
       )}
 
@@ -1552,7 +1553,7 @@ export default function GLP1MealBuilder() {
       <BuilderShoppingBar
         board={board}
         activeDayISO={activeDayISO}
-        weekDatesList={weekDatesList}
+        currentWeekStartISO={weekStartISO || ""}
         sourceSlug="glp1-meal-board"
       />
 
