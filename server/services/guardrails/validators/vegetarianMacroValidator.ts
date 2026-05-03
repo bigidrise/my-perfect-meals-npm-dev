@@ -36,6 +36,10 @@ export const STARCH_LEGUMES: string[] = [
 export const STARCH_GRAINS: string[] = [
   "grits", "corn grits", "stone-ground grits", "quick grits", "instant grits",
   "polenta", "cornmeal", "corn meal",
+  // cornbread is listed BEFORE "bread" so it gets an explicit match (not just via "bread" substring)
+  "cornbread", "corn bread",
+  // flour = refined grain — catches baked goods even when not named explicitly
+  "flour", "corn flour", "all-purpose flour", "wheat flour", "white flour",
   "rice", "brown rice", "white rice", "jasmine rice", "basmati rice",
   "wild rice", "long grain rice", "short grain rice", "arborio",
   "quinoa",
@@ -52,6 +56,10 @@ export const STARCH_GRAINS: string[] = [
   "naan",
   "wrap",
   "pasta", "whole wheat pasta", "noodle", "noodles",
+  // biscuit covers another common soul-food side
+  "biscuit", "biscuits",
+  // cracker / crouton
+  "cracker", "crackers", "crouton", "croutons",
 ];
 
 export const STARCH_STARCHY_VEGETABLES: string[] = [
@@ -73,8 +81,19 @@ function extractMealText(meal: unknown): string {
   const m = meal as Record<string, unknown>;
 
   const parts: string[] = [];
+
+  // Scan name — catches "Black-Eyed Peas Stew with Cornbread"
   if (typeof m.name === "string") parts.push(m.name);
 
+  // Scan description — catches "served with cornbread" side-dish loophole
+  if (typeof m.description === "string") parts.push(m.description);
+
+  // Scan sideDish field if AI emits it separately
+  if (typeof m.sideDish === "string") parts.push(m.sideDish);
+  if (typeof m.side === "string") parts.push(m.side);
+  if (typeof m.sides === "string") parts.push(m.sides);
+
+  // Scan ingredients array — handles { name } and { item } shapes
   if (Array.isArray(m.ingredients)) {
     for (const ing of m.ingredients) {
       if (typeof ing === "string") {
@@ -83,6 +102,8 @@ function extractMealText(meal: unknown): string {
         const i = ing as Record<string, unknown>;
         if (typeof i.name === "string") parts.push(i.name);
         else if (typeof i.item === "string") parts.push(i.item);
+        // Also scan any description/note on the ingredient itself
+        if (typeof i.note === "string") parts.push(i.note);
       }
     }
   }
