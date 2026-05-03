@@ -572,6 +572,63 @@ export function buildDietPromptBlock(restrictions: string[]): string {
     );
   }
 
+  // Vegetarian / vegan: inject starch-stacking prevention and protein-role rules
+  if (diet === "vegetarian" || diet === "vegan") {
+    baseBlock.push(
+      ``,
+      `VEGETARIAN MACRO STRUCTURE RULES (MANDATORY — follow these as a decision tree):`,
+      ``,
+      `━━━ STARCH HIERARCHY DECISION TREE ━━━`,
+      ``,
+      `STEP 1 — Does this meal contain legumes (beans, lentils, chickpeas, black-eyed peas, edamame)?`,
+      `  → YES: Legumes = protein anchor + primary carb. NO second starch allowed.`,
+      `         Do NOT add: grits, rice, quinoa, bread, polenta, cornmeal, oats, sweet potato, or any grain.`,
+      `         Fill all remaining slots with NON-STARCHY VEGETABLES only.`,
+      `  → NO:  Choose exactly ONE starch: quinoa, brown rice, oats, sweet potato, farro, or whole grain bread.`,
+      `         Do NOT add a second starch alongside it.`,
+      ``,
+      `STEP 2 — FORBIDDEN double-starch combinations (NEVER do any of these):`,
+      `  ❌ Black-eyed peas + grits`,
+      `  ❌ Black beans + rice`,
+      `  ❌ Lentils + bread`,
+      `  ❌ Chickpeas + quinoa`,
+      `  ❌ Any legume + any grain together as equal components`,
+      `  ❌ Quinoa + sweet potato`,
+      `  ❌ Rice + sweet potato`,
+      `  These combinations are INVALID regardless of portion size.`,
+      ``,
+      `STEP 3 — MANDATORY VEGETABLE REQUIREMENT:`,
+      `  Every meal MUST include at least ONE non-starchy vegetable:`,
+      `  spinach, kale, collard greens, broccoli, cauliflower, mushrooms, bell peppers,`,
+      `  zucchini, asparagus, arugula, Swiss chard, or similar.`,
+      `  A meal with ZERO vegetables is INVALID. Do not generate it.`,
+      ``,
+      `━━━ PROTEIN DENSITY REQUIREMENT (≥20g — hard minimum) ━━━`,
+      ``,
+      `Acceptable protein anchors and their contribution:`,
+      `  - Tempeh 4 oz = 22g ✅`,
+      `  - Cottage cheese 1 cup = 25g ✅`,
+      `  - Tofu 6 oz firm = 18g → add 1 egg or 2 oz cheese to reach 20g+ ✅`,
+      `  - Eggs 3 large = 18g → add Greek yogurt to reach 20g+ ✅`,
+      `  - Greek yogurt 1 cup = 17–20g → add cottage cheese or eggs to boost ✅`,
+      `  - Lentils/chickpeas/beans 1 cup cooked = 15–18g → combine with eggs or cheese ✅`,
+      `  Do NOT rely on quinoa alone for protein (only 8g per cup — not a protein source).`,
+      `  If the protein total will be below 20g: change the protein anchor. Do not serve the meal.`,
+      ``,
+      `━━━ PROCESSED PLANT PRODUCTS — DO NOT USE ━━━`,
+      ``,
+      `Do NOT use: vegan sausage, veggie sausage, plant-based sausage, vegan deli slices,`,
+      `mock meats, or other heavily processed plant-based meat alternatives.`,
+      `These are nutritionally inconsistent and are not appropriate for whole-food nutrition.`,
+      `Use whole-food proteins instead: tofu, tempeh, eggs, legumes, Greek yogurt, cottage cheese.`,
+      ``,
+      `━━━ NO ADDED SWEETENERS IN SAVORY MEALS ━━━`,
+      ``,
+      `Do not add maple syrup, honey, agave, corn syrup, or refined sugar to savory meals.`,
+      `Sweet flavors must come from whole foods: sweet potato, berries, fruit, or cinnamon.`,
+    );
+  }
+
   return baseBlock.join("\n");
 }
 
@@ -1540,6 +1597,16 @@ export function scanForHiddenDietaryViolations(
   // (which is the prompt-level list — this catches any that slipped through).
   for (const item of avoidList) {
     const key = item.trim().toLowerCase();
+
+    // Safety guard: skip the broad "vegetables" category for vegetarian / vegan users.
+    // Avoiding ALL vegetables is incompatible with a plant-based diet — if this
+    // combination exists it is almost certainly a user error, not a real preference.
+    // Specific vegetable avoidances (e.g. "mushrooms", "onions", "broccoli") are honored.
+    if (key === "vegetables" && (isVegetarian || isVegan)) {
+      console.warn(`[ProtocolEnvelope] Skipping broad "vegetables" avoidance for ${isVegan ? "vegan" : "vegetarian"} user — incompatible with plant-based diet, ignored.`);
+      continue;
+    }
+
     const expanded = AVOIDANCE_EXPANSION[key] || [key];
     for (const term of expanded) {
       const esc = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
