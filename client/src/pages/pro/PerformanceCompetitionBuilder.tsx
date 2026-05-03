@@ -67,7 +67,6 @@ import { getRolling14Days } from "@/utils/dateRange";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 import { BUILDER_NS } from "@shared/builderNamespaces";
-import { useBoardLockStatus } from "@/hooks/useBoardLockStatus";
 import { setActiveBuilderNs } from "@/lib/activeBuilderNs";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
@@ -196,9 +195,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   );
   const routeClientId = athleteParams?.clientId || proParams?.id;
   const proClientId = proParams?.id;
-  const { locked: boardLocked } = useBoardLockStatus(proClientId);
-  const readOnly = !proClientId && boardLocked;
-
   // In standalone mode, use current user's ID; in procare mode, use route clientId
   const clientId =
     mode === "procare" ? routeClientId : routeClientId || user?.id || null;
@@ -896,15 +892,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     >
       <BuilderHeader title="Performance Builder" onOpenTour={quickTour.openTour} clientId={mode === "procare" ? clientId : null} />
       <TrialBanner />
-
-      {readOnly && (
-        <div className="mx-4 mt-2 px-4 py-3 rounded-xl bg-red-900/30 border border-red-500/40 flex items-center gap-3">
-          <Lock className="h-4 w-4 text-red-400 flex-shrink-0" />
-          <p className="text-sm text-red-200">
-            Your meal board is managed by your professional. You can view your plan but cannot make changes.
-          </p>
-        </div>
-      )}
 
       {/* Main Content Wrapper - padding pushes content below header while gradient shows through */}
       <div
