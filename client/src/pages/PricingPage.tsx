@@ -1149,6 +1149,93 @@ export default function PricingPage() {
           </p>
         </div>
 
+        {/* Creator Studio */}
+        <div className="mb-12">
+          <div className="text-center mb-6">
+            <h2 className="text-xl font-bold text-white">Creator Studio</h2>
+            <p className="text-white/50 text-sm mt-1">We build your system — your style, your identity, inside My Perfect Meals.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Card className="relative bg-orange-950/20 backdrop-blur-lg border border-orange-500/30 text-white shadow-xl flex flex-col">
+              <CardHeader className="pb-4">
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold">Chef Studio</h3>
+                  <p className="text-white/60 text-sm">Turn your cooking identity into a system your audience can use.</p>
+                  <div className="flex items-baseline gap-1 pt-1">
+                    <span className="text-3xl font-bold">$2,500</span>
+                    <span className="text-white/50 text-sm">full build</span>
+                  </div>
+                  <p className="text-orange-300/70 text-xs">$1,250 deposit to start · $1,250 on delivery</p>
+                </div>
+              </CardHeader>
+              <Separator className="bg-white/10" />
+              <CardContent className="pt-5 flex-1 space-y-2.5">
+                {[
+                  "Your studio name & identity in the platform",
+                  "Your techniques & flavors power the AI",
+                  "Your signature meal catalog for your audience",
+                  "Product code for your community",
+                  "Reviewed and built by our team",
+                ].map((f, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-white/90">{f}</span>
+                  </div>
+                ))}
+              </CardContent>
+              <Separator className="bg-white/10" />
+              <div className="p-5">
+                <Button
+                  className="w-full bg-orange-600 hover:bg-orange-500 text-white font-semibold"
+                  onClick={() => window.location.href = "/creator-studio"}
+                >
+                  Start Your Build
+                </Button>
+              </div>
+            </Card>
+
+            <Card className="relative bg-black/30 backdrop-blur-lg border border-white/15 text-white shadow-xl flex flex-col">
+              <CardHeader className="pb-4">
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold">Brand Beverage Studio</h3>
+                  <p className="text-white/60 text-sm">Put your branded products into the supplement and beverage experience.</p>
+                  <div className="flex items-baseline gap-1 pt-1">
+                    <span className="text-2xl font-bold">Custom</span>
+                  </div>
+                  <p className="text-white/40 text-xs">Contact us for pricing</p>
+                </div>
+              </CardHeader>
+              <Separator className="bg-white/10" />
+              <CardContent className="pt-5 flex-1 space-y-2.5">
+                {[
+                  "Your product names replace generic ingredients",
+                  "Branded supplement recommendations",
+                  "Your labels throughout the nutrition experience",
+                  "Faster setup — no deep kitchen build",
+                  "Reviewed and integrated by our team",
+                ].map((f, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-white/90">{f}</span>
+                  </div>
+                ))}
+              </CardContent>
+              <Separator className="bg-white/10" />
+              <div className="p-5">
+                <Button
+                  className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 font-semibold"
+                  onClick={() => window.location.href = "mailto:partnerships@myperfectmeals.com?subject=Brand%20Beverage%20Studio%20Inquiry"}
+                >
+                  Get in Touch
+                </Button>
+              </div>
+            </Card>
+          </div>
+          <p className="text-center text-white/40 text-xs mt-5">
+            Not self-serve. Every application is reviewed and built by our team before activation.
+          </p>
+        </div>
+
         {/* Affiliate Panel */}
         <div className="mb-12">
           <AffiliateOnPricing />
