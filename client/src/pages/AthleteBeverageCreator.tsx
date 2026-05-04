@@ -271,19 +271,19 @@ export default function AthleteBeverageCreator() {
   async function handleGenerateBeverage(skipDietPreflight = false, overrideToken?: string, dietAdaptOverride = false, userDietOverride = false) {
     const hasCustomDesc = customBeverageDescription.trim().length > 0;
 
-    if (!performanceGoal) {
+    if (!hasCustomDesc && !performanceGoal) {
       toast({
         title: "Missing Information",
-        description: "Select a performance goal to get started.",
+        description: "Select a performance goal or describe your drink above.",
         variant: "destructive",
       });
       return;
     }
 
-    if (!drinkType) {
+    if (!hasCustomDesc && !drinkType) {
       toast({
         title: "Missing Information",
-        description: "Select a drink type to get started.",
+        description: "Select a drink type or describe your drink above.",
         variant: "destructive",
       });
       return;
@@ -514,7 +514,7 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
                 <label className="block text-md font-medium text-white mb-1">
                   What do you want to drink?
                   <span className="ml-2 text-xs text-blue-300 font-normal">
-                    (optional — fills in the rest)
+                    (type here to skip everything below)
                   </span>
                 </label>
                 <div className="relative">
@@ -537,7 +537,7 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
                 </div>
                 {customBeverageDescription.trim().length > 0 && (
                   <p className="text-xs text-blue-300 mt-1">
-                    Category and flavor selections below are optional — your description takes priority.
+                    We'll use your description — selections below are now optional.
                   </p>
                 )}
               </div>
@@ -556,13 +556,15 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
 
               <div className="flex items-center gap-2 text-white/30">
                 <div className="flex-1 h-px bg-white/10" />
-                <span className="text-xs">or choose from options below</span>
+                <span className="text-xs">
+                  {customBeverageDescription.trim() ? "Options below are now optional" : "Or build step-by-step below"}
+                </span>
                 <div className="flex-1 h-px bg-white/10" />
               </div>
 
               <div>
                 <label className="block text-md font-medium text-white mb-1">
-                  Performance Goal <span className="text-blue-400">*</span>
+                  Performance Goal {!customBeverageDescription.trim() && <span className="text-blue-400">*</span>}
                 </label>
                 <Select
                   value={performanceGoal}
@@ -583,7 +585,7 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
 
               <div>
                 <label className="block text-md font-medium text-white mb-1">
-                  Drink Type <span className="text-blue-400">*</span>
+                  Drink Type {!customBeverageDescription.trim() && <span className="text-blue-400">*</span>}
                 </label>
                 <Select
                   value={drinkType}

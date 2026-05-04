@@ -580,7 +580,7 @@ export default function DessertCreator() {
                 <label className="block text-md font-medium text-white mb-1">
                   What dessert do you want to make?
                   <span className="ml-2 text-xs text-orange-300 font-normal">
-                    (optional — fills in the rest)
+                    (type here to skip everything below)
                   </span>
                 </label>
                 <div className="relative">
@@ -603,7 +603,7 @@ export default function DessertCreator() {
                 </div>
                 {customDessertDescription.trim().length > 0 && (
                   <p className="text-xs text-orange-300 mt-1">
-                    Category and flavor selections below are optional — your description takes priority.
+                    We'll use your description — selections below are now optional.
                   </p>
                 )}
               </div>
@@ -622,13 +622,15 @@ export default function DessertCreator() {
 
               <div className="flex items-center gap-2 text-white/30">
                 <div className="flex-1 h-px bg-white/10" />
-                <span className="text-xs">or choose from options below</span>
+                <span className="text-xs">
+                  {customDessertDescription.trim() ? "Options below are now optional" : "Or build step-by-step below"}
+                </span>
                 <div className="flex-1 h-px bg-white/10" />
               </div>
 
               <div>
                 <label className="block text-md font-medium text-white mb-1">
-                  Dessert Category
+                  Dessert Category {!customDessertDescription.trim() && <span className="text-orange-400">*</span>}
                 </label>
                 <Select
                   value={dessertCategory}
@@ -715,7 +717,7 @@ export default function DessertCreator() {
 
               <div>
                 <label className="block text-md font-medium text-white mb-1">
-                  Flavor Family
+                  Flavor Family {!customDessertDescription.trim() && <span className="text-orange-400">*</span>}
                 </label>
                 <Select value={flavorFamily} onValueChange={setFlavorFamily}>
                   <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">

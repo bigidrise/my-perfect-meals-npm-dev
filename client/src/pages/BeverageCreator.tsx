@@ -505,7 +505,7 @@ export default function BeverageCreator() {
                 <label className="block text-md font-medium text-white mb-1">
                   What do you want to drink?
                   <span className="ml-2 text-xs text-blue-300 font-normal">
-                    (optional — fills in the rest)
+                    (type here to skip everything below)
                   </span>
                 </label>
                 <div className="relative">
@@ -528,7 +528,7 @@ export default function BeverageCreator() {
                 </div>
                 {customBeverageDescription.trim().length > 0 && (
                   <p className="text-xs text-blue-300 mt-1">
-                    Category and flavor selections below are optional — your description takes priority.
+                    We'll use your description — selections below are now optional.
                   </p>
                 )}
               </div>
@@ -547,7 +547,9 @@ export default function BeverageCreator() {
 
               <div className="flex items-center gap-2 text-white/30">
                 <div className="flex-1 h-px bg-white/10" />
-                <span className="text-xs">or choose from options below</span>
+                <span className="text-xs">
+                  {customBeverageDescription.trim() ? "Options below are now optional" : "Or build step-by-step below"}
+                </span>
                 <div className="flex-1 h-px bg-white/10" />
               </div>
 
