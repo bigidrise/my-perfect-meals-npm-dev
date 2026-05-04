@@ -69,7 +69,8 @@ export function registerCreatorRoutes(app: Express) {
       // Build config from answers (deterministic — no AI)
       const config = mapQuestionnaireToSystemConfig(answers);
 
-      // Create creator row
+      // Create creator row — intake_submitted, not auto-activated
+      // A human reviews every application before activation
       const [creator] = await db
         .insert(creators)
         .values({
@@ -77,35 +78,27 @@ export function registerCreatorRoutes(app: Express) {
           slug: answers.slug,
           displayName: answers.name,
           type: answers.type,
-          status: "active",
+          status: "intake_submitted",
           tier: "self_serve",
-          isActive: true,
-          activatedAt: new Date(),
+          isActive: false,
         })
         .returning();
 
-      // Save config to DB
+      // Save config to DB (unpublished until reviewed and activated)
       await db.insert(creatorSystemConfigs).values({
         creatorId: creator.id,
         configJson: config as any,
         version: 1,
-        publishedAt: new Date(),
       });
 
-      // Activate creator system on user account
-      await db
-        .update(users)
-        .set({ activeSystem: answers.slug })
-        .where(eq(users.id, userId));
-
-      console.log(`[Creator] New creator activated: "${answers.name}" (slug: ${answers.slug}) for userId: ${userId}`);
+      console.log(`[Creator] New application received: "${answers.name}" (slug: ${answers.slug}) for userId: ${userId}`);
 
       return res.status(201).json({
         success: true,
         creatorId: creator.id,
         slug: creator.slug,
         displayName: creator.displayName,
-        message: "Your studio is live.",
+        message: "Your application has been received. We'll be in touch within 2–3 business days.",
       });
 
     } catch (err: any) {

@@ -34,10 +34,10 @@ export default function CreatorStartPage() {
         </div>
 
         <h1 className="text-2xl font-bold text-white text-center mb-2">
-          Build Your Own System
+          Chef Studio Application
         </h1>
         <p className="text-orange-300 text-sm text-center mb-8 font-medium">
-          Early Access — Creator Beta
+          Premium Build Service — We build it for you
         </p>
 
         <div className="space-y-4 mb-10">
@@ -50,7 +50,7 @@ export default function CreatorStartPage() {
                 Your style, in the AI
               </h3>
               <p className="text-xs text-white/70 leading-relaxed">
-                Your cooking techniques, flavor philosophy, and instruction style shape how meals are generated — for every user who uses your system.
+                Your cooking techniques, flavor philosophy, and instruction style shape how meals are generated — for every user in your system.
               </p>
             </div>
           </div>
@@ -84,19 +84,25 @@ export default function CreatorStartPage() {
           </div>
         </div>
 
+        <div className="bg-white/5 rounded-xl border border-white/10 p-4 mb-6 text-center">
+          <p className="text-white/80 text-sm font-semibold">$2,500 full build</p>
+          <p className="text-white/50 text-xs mt-1">$1,250 deposit to start · $1,250 on delivery</p>
+          <p className="text-white/40 text-[10px] mt-2">Payment is collected after we review your application</p>
+        </div>
+
         <button
           onClick={() => setLocation("/creator/setup")}
           className="w-full flex items-center justify-center gap-2 py-4 px-6 rounded-xl bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white font-semibold text-base transition-colors"
         >
-          Continue Setup
+          Start Your Application
           <ArrowRight className="h-4 w-4" />
         </button>
 
         <button
-          onClick={() => setLocation("/lifestyle")}
+          onClick={() => setLocation("/creator-studio")}
           className="w-full mt-3 py-3 text-sm text-white/50 hover:text-white/80 transition-colors"
         >
-          Go back
+          Back
         </button>
 
       </div>
