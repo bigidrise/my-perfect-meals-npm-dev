@@ -1623,6 +1623,63 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
       ],
     },
   },
+  {
+    id: "creator-studio",
+    title: "Creator Studio — Build Your Own Nutrition System",
+    subtitle: "Chef Studio · Brand Beverage Studio · Custom-built for you",
+    icon: Sparkles,
+    content: {
+      sections: [
+        {
+          heading: "What This Is",
+          text: "Creator Studio is a premium build service where our team designs and delivers a fully custom nutrition system under your name. This is not a template you fill out yourself — it is a done-for-you product built by us, handed off to you, and powered by the same AI infrastructure that runs My Perfect Meals.",
+        },
+        {
+          heading: "Two Paths",
+          list: [
+            "Chef Studio — for chefs, trainers, coaches, and nutrition professionals who want their own branded meal planning system. Priced at $2,500 total ($1,250 deposit to start, $1,250 on delivery).",
+            "Brand Beverage Studio — for beverage brands, supplement companies, and product lines that want a custom AI-powered drink creator embedded in their marketing or product experience. Custom pricing based on scope.",
+          ],
+        },
+        {
+          heading: "What You Get With Chef Studio",
+          list: [
+            "A fully branded nutrition system with your name and identity",
+            "Custom AI trained on your food philosophy, cuisine style, and client needs",
+            "Meal builder logic built around your protocols and preferences",
+            "Delivered as a ready-to-use product — not a tool you configure yourself",
+          ],
+        },
+        {
+          heading: "What You Get With Brand Beverage Studio",
+          list: [
+            "A custom AI beverage creator built around your product line or brand",
+            "Recipes and formulations that reflect your brand identity and target audience",
+            "Built for marketing pages, apps, or in-product experiences",
+            "Scoped and priced based on your specific use case",
+          ],
+        },
+        {
+          heading: "How the Process Works",
+          list: [
+            "1. Apply — fill out the intake form explaining your vision, audience, and goals",
+            "2. We review — our team reads your application and confirms fit within a few business days",
+            "3. Confirm and deposit — once accepted, a 50% deposit locks in your build slot",
+            "4. We build — our team constructs your system, brand layer, and AI configuration",
+            "5. Delivered — you receive your finished product and any onboarding you need",
+          ],
+        },
+        {
+          heading: "Who This Is For",
+          text: "Any chef, coach, trainer, nutritionist, wellness brand, or beverage company that wants a custom AI-powered nutrition product without building the technology from scratch. You bring the vision, identity, and audience — we build the system.",
+        },
+        {
+          heading: "Where to Apply",
+          list: ["Lifestyle → Creator Studio → Chef Studio or Brand Beverage Studio"],
+        },
+      ],
+    },
+  },
 ];
 
 const LIBRARY_SECTIONS: LibrarySection[] = [
