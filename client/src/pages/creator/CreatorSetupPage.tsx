@@ -162,9 +162,10 @@ function YesNoPill({ value, onChange }: { value: boolean; onChange: (v: boolean)
 
 export default function CreatorSetupPage() {
   const [, setLocation] = useLocation();
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
@@ -187,6 +188,50 @@ export default function CreatorSetupPage() {
     document.title = "Studio Setup — My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
+
+  if (submitted) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="min-h-screen bg-gradient-to-br from-black via-orange-950/20 to-black pb-24"
+      >
+        <div className="px-6 pt-16 max-w-lg mx-auto text-center">
+          <div className="flex items-center justify-center mb-6">
+            <div className="p-4 rounded-2xl bg-orange-500/20 border border-orange-500/30">
+              <Check className="h-10 w-10 text-orange-400" />
+            </div>
+          </div>
+          <h1 className="text-2xl font-bold text-white mb-3">Application Received</h1>
+          <p className="text-white/60 text-sm leading-relaxed mb-8">
+            We've received your Chef Studio application. Our team will review it and reach out within 2–3 business days to confirm and collect your deposit.
+          </p>
+          <div className="bg-white/5 rounded-xl border border-white/10 p-4 mb-8 text-left space-y-2">
+            <p className="text-xs text-white/50 uppercase tracking-wider font-medium mb-3">What happens next</p>
+            {[
+              "We review your application",
+              "We contact you to confirm your build",
+              "You pay the $1,250 deposit",
+              "We build and deliver your system",
+              "You pay the remaining $1,250",
+            ].map((step, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <span className="w-5 h-5 rounded-full bg-orange-500/20 border border-orange-500/30 text-orange-300 text-[10px] font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                <span className="text-sm text-white/70">{step}</span>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => setLocation("/lifestyle")}
+            className="w-full py-3 text-sm text-white/50 hover:text-white/80 transition-colors"
+          >
+            Back to Lifestyle Hub
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
 
   if (user?.isCreator) {
     setLocation("/creator/studio");
@@ -262,8 +307,7 @@ export default function CreatorSetupPage() {
         return;
       }
 
-      await refreshUser();
-      setLocation("/creator/studio");
+      setSubmitted(true);
     } catch (err) {
       setError("Connection error. Please try again.");
       setSubmitting(false);

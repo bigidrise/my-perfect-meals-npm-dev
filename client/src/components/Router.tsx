@@ -147,6 +147,7 @@ import AntiInflammatoryMenuBuilder from "@/pages/physician/AntiInflammatoryMenuB
 import CreatorStartPage from "@/pages/creator/CreatorStartPage";
 import CreatorSetupPage from "@/pages/creator/CreatorSetupPage";
 import CreatorStudioPage from "@/pages/creator/CreatorStudioPage";
+import CreatorStudioLanding from "@/pages/creator/CreatorStudioLanding";
 
 // Craving pages
 import ChefsKitchenPage from "@/pages/lifestyle/ChefsKitchenPage";
@@ -412,9 +413,10 @@ export default function Router() {
         {/* DELETED: AffiliatesPage, FoundersPage, FoundersSubmit, Changelog routes */}
         {/* DELETED: MealPlanning, LowGlycemicCarbPage, AiMealCreatorPage, MealPlanningHubRevised routes */}
         <Route path="/lifestyle" component={LifestyleLandingPage} />
-        {/* Creator Studio — admin-only during beta */}
-        <Route path="/creator/start" component={() => <CoachingAdminGate component={CreatorStartPage} />} />
-        <Route path="/creator/setup" component={() => <CoachingAdminGate component={CreatorSetupPage} />} />
+        {/* Creator Studio — landing open to all; studio entry still admin-only */}
+        <Route path="/creator-studio" component={CreatorStudioLanding} />
+        <Route path="/creator/start" component={CreatorStartPage} />
+        <Route path="/creator/setup" component={CreatorSetupPage} />
         <Route path="/creator/studio" component={() => <CoachingAdminGate component={CreatorStudioPage} />} />
         {/* DELETED: /healthy-kids-meals, /kids-meals, /toddler-meals routes (Phase 1 cleanup) */}
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />

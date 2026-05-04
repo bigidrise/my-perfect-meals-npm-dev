@@ -10,7 +10,6 @@ import {
   Wine,
   Lock,
   Star,
-  Briefcase,
   ArrowRight,
 } from "lucide-react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
@@ -29,14 +28,11 @@ interface AIFeature {
   badge?: "emotion" | "behavioral";
 }
 
-const CREATOR_BETA_ADMIN_ID = "6796ce88-dff8-4336-adcb-e53986830f3f";
-
 export default function LifestyleLandingPage() {
   const [, setLocation] = useLocation();
   const isDesktop = useIsDesktop();
   const { isFree, showLockModal, lockMessage, guardAction, closeLockModal } = useFreeLock();
   const { user } = useAuth();
-  const isCreatorBetaAdmin = user?.id === CREATOR_BETA_ADMIN_ID;
 
   useEffect(() => {
     document.title = "Lifestyle | My Perfect Meals";
@@ -291,8 +287,7 @@ export default function LifestyleLandingPage() {
               );
             })}
           </div>
-          {/* Creator Studio Card — admin-only during beta */}
-          {isCreatorBetaAdmin && (
+          {/* Creator Studio Card — visible to all users */}
           <div data-testid="card-creator-system-teaser" className="relative mt-2">
             {user?.isCreator ? (
               <Card
@@ -322,32 +317,32 @@ export default function LifestyleLandingPage() {
               </Card>
             ) : (
               <Card
-                className="relative rounded-xl shadow-sm overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 hover:scale-[1.02] bg-black/30 backdrop-blur-lg border border-white/15 hover:border-orange-500/30"
-                onClick={() => setLocation("/creator/start")}
-                data-testid="card-build-system"
+                className="relative rounded-xl shadow-sm overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 hover:scale-[1.02] bg-black/30 backdrop-blur-lg border border-orange-400/20 hover:border-orange-500/40"
+                onClick={() => setLocation("/creator-studio")}
+                data-testid="card-creator-studio-teaser"
               >
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
                     <div className="p-2 rounded-lg bg-orange-500/20 mt-0.5 flex-shrink-0">
-                      <Briefcase className="h-4 w-4 text-orange-400" />
+                      <ChefHat className="h-4 w-4 text-orange-400" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="text-sm font-semibold text-white">
-                          Build Your Own System
+                          Creator Studio
                         </h3>
                         <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">
-                          Early Access
+                          Premium
                         </span>
                       </div>
                       <p className="text-[11px] text-white/70 mt-0.5 font-medium">
-                        For chefs, coaches, and professionals
+                        Chef Studio · Brand Beverage Studio
                       </p>
                       <p className="text-xs text-white/60 mt-1.5 leading-relaxed">
-                        Turn your cooking or coaching style into a system your audience can actually use.
+                        We build a custom system inside My Perfect Meals — your style, your identity, your audience.
                       </p>
                       <div className="flex items-center gap-1 mt-2.5 text-xs text-orange-400 font-medium">
-                        Start Creator Setup <ArrowRight className="h-3 w-3" />
+                        View & Apply <ArrowRight className="h-3 w-3" />
                       </div>
                     </div>
                   </div>
@@ -355,7 +350,6 @@ export default function LifestyleLandingPage() {
               </Card>
             )}
           </div>
-          )}
         </div>
       </div>
 
