@@ -664,7 +664,7 @@ Return ONLY a single JSON object (not an array) with this exact structure:
         try {
           // DO NOT call image generation directly.
           // Use generateMealImageUnified only.
-          const imageUrl = await generateMealImageUnified(meal.name, meal.ingredients || []);
+          const imageUrl = await generateMealImageUnified(meal.name, meal.ingredients || [], 'meal');
           meal.imageUrl = imageUrl;
           console.log(`✅ Image generated for ${meal.name}`);
         } catch (error) {

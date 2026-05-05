@@ -64,7 +64,8 @@ async function generateMeal(opts: {
       // Use generateMealImageUnified only.
       (meal as any).imageUrl = await generateMealImageUnified(
         meal.name,
-        meal.ingredients
+        meal.ingredients,
+        'meal'
       );
       console.log(`🖼️ Generated image for: ${meal.name}`);
     } catch (imageError) {

@@ -223,7 +223,8 @@ Respond with this exact JSON structure:
       // Use generateMealImageUnified only.
       (dish as any).imageUrl = await generateMealImageUnified(
         dish.name,
-        (dish as any).ingredients || []
+        (dish as any).ingredients || [],
+        'meal'
       );
       console.log(`✅ Generated image for: ${dish.name}`);
     }

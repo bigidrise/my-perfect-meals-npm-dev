@@ -3152,6 +3152,7 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
       const generatedImage = await generateMealImageUnified(
         finalSnackData.name,
         finalSnackData.ingredients || [],
+        'snack'
       );
 
       if (generatedImage) {

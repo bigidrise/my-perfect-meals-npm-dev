@@ -3939,14 +3939,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // DO NOT call image generation directly — uses generateMealImageUnified only.
   app.post("/api/meals/generate-image", async (req, res) => {
     try {
-      const { mealName, ingredients = [], mealType } = req.body;
+      const { mealName, ingredients = [], mealType, sourceType } = req.body;
       if (!mealName) return res.status(400).json({ error: "mealName is required" });
-      console.log(`🖼️ IMAGE PIPELINE START: ${mealName}`);
+      console.log(`🖼️ IMAGE PIPELINE START: ${mealName} (sourceType: ${sourceType ?? 'unset → classifier'})`);
       const { generateMealImageUnified } = await import("./services/mealImageGenerator");
       const ingredientNames = (ingredients as any[]).map((i: any) =>
         typeof i === "string" ? i : (i.name || i.item || "")
       ).filter(Boolean);
-      const imageUrl = await generateMealImageUnified(mealName, ingredientNames);
+      // Pass explicit sourceType if provided by the client — hard-locks macro type before classifier runs
+      const imageUrl = await generateMealImageUnified(mealName, ingredientNames, sourceType ?? undefined);
       res.json({ imageUrl });
     } catch (err: any) {
       console.error("❌ /api/meals/generate-image error:", err);
