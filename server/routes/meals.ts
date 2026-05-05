@@ -38,6 +38,7 @@ router.post("/generate-image", async (req: any, res) => {
   // dish name — they never replace it.
   // ─────────────────────────────────────────────────────────
   let ingredientContext = "";
+  const cleanedIngredients: string[] = [];
   if (Array.isArray(ingredients) && ingredients.length > 0) {
     const topIngredients = ingredients
       .slice(0, 4)
@@ -51,21 +52,40 @@ router.post("/generate-image", async (req: any, res) => {
       })
       .filter(Boolean);
     if (topIngredients.length > 0) {
+      cleanedIngredients.push(...topIngredients);
       ingredientContext = ` with ${topIngredients.join(", ")}`;
     }
   }
 
   // ─────────────────────────────────────────────────────────
-  // LAYER 3 — VISUAL DIRECTIVE (DISH-TYPE AWARE)
-  // Classify the dish so the photography style matches the food.
+  // LAYER 3 — TYPE RESOLUTION (AUTHORITATIVE → KEYWORD FALLBACK)
+  // mealType from the request is the primary source of truth.
+  // Keyword detection is backup only — never overrides explicit type.
   // ─────────────────────────────────────────────────────────
   const nameLower = subject.toLowerCase();
-  const isDessert = /cake|pie|cookie|brownie|pudding|ice cream|cheesecake|tart|mousse|cupcake|donut|pastry|eclair|macaron|tiramisu|gelato|sorbet|sundae|fudge|truffle|crepe|waffle|pancake|parfait|cobbler/.test(nameLower);
-  const isDrink = /smoothie|shake|juice|latte|coffee|tea|cocktail|mocktail|drink|beverage|lemonade|beer|wine|soda|protein shake|matcha|espresso|frappe/.test(nameLower);
+  const mealTypeLower = (mealType || "").toLowerCase();
 
+  // PRIMARY: explicit type from the creator (beverage creators send "beverages")
+  const isBeverageType = mealTypeLower === "beverages" || mealTypeLower === "beverage" || mealTypeLower === "drink";
+
+  // FALLBACK: keyword detection (expanded list, used only when type is generic)
+  const isDrinkKeyword = /smoothie|shake|juice|latte|coffee|tea|cocktail|mocktail|drink|beverage|lemonade|beer|wine|soda|protein shake|matcha|espresso|frappe|cooler|spritzer|tonic|punch|agua fresca|horchata|infusion|elixir/.test(nameLower);
+  const isDessertKeyword = /cake|pie|cookie|brownie|pudding|ice cream|cheesecake|tart|mousse|cupcake|donut|pastry|eclair|macaron|tiramisu|gelato|sorbet|sundae|fudge|truffle|crepe|waffle|pancake|parfait|cobbler/.test(nameLower);
+
+  const isDrink = isBeverageType || isDrinkKeyword;
+  const isDessert = !isDrink && isDessertKeyword;
+
+  // ─────────────────────────────────────────────────────────
+  // LAYER 4 — VISUAL DIRECTIVE (TYPE-ENFORCED, NOT GUESSED)
+  // Beverages get explicit "no food" guardrail to prevent
+  // DALL-E from generating food imagery for drink requests.
+  // ─────────────────────────────────────────────────────────
   let visualDirective: string;
   if (isDrink) {
-    visualDirective = "in elegant glassware, professional drink photography, natural lighting, realistic, appetizing";
+    const garnishHint = cleanedIngredients.length > 0
+      ? ` with garnishes matching the ingredients: ${cleanedIngredients.join(", ")}`
+      : "";
+    visualDirective = `served in a glass or cup${garnishHint}, professional beverage photography, natural lighting, condensation on glass, realistic, appetizing. THIS IS A DRINK. Do NOT show any solid plated food, pizza, meat, pasta, or entrees. Show only the beverage in glassware`;
   } else if (isDessert) {
     visualDirective = "plated finished dessert, soft warm lighting, professional food photography, realistic, appetizing";
   } else {
@@ -83,9 +103,14 @@ router.post("/generate-image", async (req: any, res) => {
 
   if (!imageUrl) {
     console.log(`🔄 [generate-image] Retry for "${mealName}"`);
-    const retryPrompt = isCarnivore
-      ? `${subject}, food photography, pure animal-based meal with only meat fish or eggs, zero plants zero garnish zero green color, appetizing plating`
-      : `${subject}, food photography, plated finished dish, appetizing presentation, realistic`;
+    let retryPrompt: string;
+    if (isDrink) {
+      retryPrompt = `${subject}, professional drink photography, beverage in a glass, NO food NO pizza NO plated dish, realistic`;
+    } else if (isCarnivore) {
+      retryPrompt = `${subject}, food photography, pure animal-based meal with only meat fish or eggs, zero plants zero garnish zero green color, appetizing plating`;
+    } else {
+      retryPrompt = `${subject}, food photography, plated finished dish, appetizing presentation, realistic`;
+    }
     imageUrl = (await genImageFast(retryPrompt)) ?? null;
   }
 
