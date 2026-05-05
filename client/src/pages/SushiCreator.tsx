@@ -855,19 +855,9 @@ export default function SushiCreator() {
                 <CardContent className="space-y-4">
 
                   {/* Coach Micro-Hints */}
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { hint: "New to sushi?", tip: "Start with a roll", emoji: "👋" },
-                      { hint: "Want light?", tip: "Choose sashimi", emoji: "🐟" },
-                      { hint: "No fish?", tip: "Try vegan rolls", emoji: "🥑" },
-                    ].map(({ hint, tip, emoji }) => (
-                      <div key={hint} className="flex items-center gap-1.5 px-2.5 py-1 bg-white/10 rounded-full border border-white/20">
-                        <span className="text-sm">{emoji}</span>
-                        <span className="text-xs text-white/60">{hint}</span>
-                        <span className="text-xs text-white font-medium">{tip}</span>
-                      </div>
-                    ))}
-                  </div>
+                  <p className="text-xs text-white/55 leading-relaxed">
+                    👋 New to sushi? Start with a roll &nbsp;·&nbsp; 🐟 Want something light? Choose sashimi &nbsp;·&nbsp; 🥑 No fish? Try vegan rolls
+                  </p>
 
                   {/* Starter Tiles — Primary Entry Point */}
                   <div>
