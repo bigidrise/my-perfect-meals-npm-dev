@@ -1,15 +1,22 @@
 /**
  * Beverage Medical Rules — Single Source of Truth
  *
- * This module is the authoritative registry for all beverage-specific medical
- * and nutritional builder constraints. It drives two layers simultaneously:
+ * This module drives three capabilities from one registry:
  *
  *   1. PROMPT INJECTION  — buildBeveragePromptBlocks() injects explicit
- *      ingredient-level ban/require text into the AI prompt before generation.
+ *      ingredient-level ban/require text before generation.
  *
- *   2. POST-GEN VALIDATION — validateBeverageOutput() scans the returned
- *      ingredient list against the same structured ban lists and returns a
- *      typed result with specific violation messages for corrective retries.
+ *   2. POST-GEN VALIDATION — validateBeverageOutput() scans returned
+ *      ingredients against the same ban lists with false-positive protection.
+ *
+ *   3. AUTO-FIX — attemptBeverageAutoFix() performs surgical ingredient
+ *      swaps for simple violations before burning an OpenAI retry call.
+ *
+ * Precision matching rules:
+ *   - bannedKeywords: substring match (catches "ripe banana" via "banana")
+ *   - safeVariants: if the text also contains a safe phrase, the ban is skipped
+ *     ("non-alcoholic wine" contains "wine" but is NOT alcoholic)
+ *   - Alcohol violations never auto-fix — the full drink concept must change
  *
  * Adding a new condition: add one entry to BEVERAGE_CONDITION_RULES, update
  * detectActiveBeverageConditions() — no other files need changing.
@@ -33,44 +40,53 @@ export type BeverageConditionFamily =
   | "anti-inflammatory";
 
 export interface BeverageRuleSet {
-  /** Human-readable label used in logs and violation messages */
   label: string;
   /**
-   * Substring keywords matched against each ingredient.name (case-insensitive).
-   * A match on ANY keyword is an immediate hard fail — no regeneration attempt
-   * can proceed without a corrective hint naming the specific violation.
+   * Substring keywords matched against ingredient.name, meal.name, description.
+   * A match triggers a hard fail UNLESS the matched text also contains a
+   * corresponding entry from safeVariants (false-positive protection).
    */
   bannedKeywords: string[];
-  /** Per-serving calorie ceiling; null = no numeric cap enforced by validator */
+  /**
+   * Per-keyword safe phrases that override the ban.
+   * Example: keyword "wine" → safeVariants ["wine vinegar", "non-alcoholic wine"]
+   * If the matched text includes ANY safe phrase, the ban is skipped.
+   */
+  safeVariants?: Record<string, string[]>;
   calorieCap: number | null;
-  /** Text blocks injected verbatim into the AI prompt */
   prompt: {
     icon: string;
     title: string;
-    /** Comma/semicolon-separated list after "NEVER include:" */
     ban: string;
-    /** Full REQUIRED sentence(s) */
     required: string;
   };
 }
 
 export interface BeverageViolation {
   condition: string;
+  /** The full ingredient string that matched */
   ingredient: string;
   rule: string;
-  /** Corrective instruction surfaced in the retry hint */
   correction: string;
+  /** The exact keyword that fired — used by auto-fix for swap lookup */
+  keyword: string;
+  /** True when this violation involves an alcohol ingredient (blocks auto-fix) */
+  isAlcohol: boolean;
 }
 
 export interface BeverageValidationResult {
   passed: boolean;
   violations: BeverageViolation[];
-  /** Ready-to-inject retry hint (empty string when passed) */
   retryHint: string;
 }
 
+export interface BeverageAutoFixResult {
+  fixes: Array<{ keyword: string; replacement: string; affectedText: string }>;
+  note: string;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Shared ban lists (reused across multiple conditions)
+// Shared ban lists
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ALCOHOL_KEYWORDS: string[] = [
@@ -78,13 +94,79 @@ const ALCOHOL_KEYWORDS: string[] = [
   "wine", "beer", "champagne", "prosecco", "liqueur", "kahlúa", "kahlua",
   "amaretto", "baileys", "triple sec", "cointreau", "cognac", "brandy",
   "sake", "mead", "schnapps", "creme de", "midori", "aperol", "campari",
-  "vermouth", "absinthe", "alcohol",
+  "vermouth", "absinthe", "alcohol", "soju", "shochu", "hard seltzer",
+  "white claw", "hard cider", "hard kombucha", "wine cooler", "hard lemonade",
 ];
+
+/** Phrases that override an alcohol keyword match (false-positive protection) */
+const ALCOHOL_SAFE_VARIANTS: Record<string, string[]> = {
+  alcohol:    ["alcohol-free", "non-alcoholic", "dealcoholized", "0% abv", "zero alcohol"],
+  wine:       ["wine vinegar", "rice wine vinegar", "non-alcoholic wine", "dealcoholized wine"],
+  beer:       ["root beer", "ginger beer", "non-alcoholic beer", "craft root beer"],
+  sake:       ["sake vinegar", "non-alcoholic sake"],
+  rum:        ["rum extract flavor", "rum flavoring"],  // small flavor amounts only
+  champagne:  ["champagne vinegar", "non-alcoholic champagne"],
+  "hard cider": ["non-alcoholic cider", "apple cider" ],
+};
+
+/** Set for O(1) lookup — used in violation isAlcohol tagging */
+const ALCOHOL_KEYWORD_SET = new Set(ALCOHOL_KEYWORDS.map(k => k.toLowerCase()));
 
 const RAW_SEAFOOD_KEYWORDS: string[] = [
   "raw oyster", "raw oysters", "raw clam", "raw clams",
   "raw shellfish", "raw fish", "raw sushi", "raw sashimi",
 ];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Auto-fix swap table — keyword → replacement ingredient name
+//
+// Only simple 1:1 ingredient swaps are listed here. Alcohol violations are
+// intentionally absent — those require full recipe reconstruction, not a swap.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const INGREDIENT_AUTO_FIXES: Record<string, string> = {
+  // ── Cardiac swaps ───────────────────────────────────────────────────────────
+  "ice cream":               "frozen banana and oat milk",
+  "whole milk":              "oat milk",
+  "heavy cream":             "unsweetened oat milk",
+  "half and half":           "oat milk",
+  "butter":                  "none (omit — not needed in this beverage)",
+  "coconut cream":           "light coconut milk",
+  "cream cheese":            "plain low-fat Greek yogurt",
+  "whipped cream":           "none (omit)",
+  "simple syrup":            "½ tsp raw honey or stevia drops",
+  "condensed milk":          "unsweetened almond milk",
+  "sweetened condensed milk": "unsweetened almond milk",
+
+  // ── Renal swaps ─────────────────────────────────────────────────────────────
+  "banana":                  "blueberries",
+  "plantain":                "green apple",
+  "orange juice":            "unsweetened cranberry juice",
+  "citrus juice":            "unsweetened cranberry juice",
+  "citrus blend":            "unsweetened cranberry juice",
+  "tomato juice":            "cucumber water",
+  "tomato":                  "cucumber",
+  "avocado":                 "plain low-fat Greek yogurt",
+  "chocolate":               "carob powder",
+  "cocoa powder":            "carob powder",
+  "cocoa":                   "carob powder",
+  "cacao powder":            "carob powder",
+  "cacao":                   "carob powder",
+  "peanut butter":           "sunflower seed butter",
+  "nut butter":              "sunflower seed butter",
+  "cola":                    "sparkling water",
+  "coca-cola":               "sparkling water",
+  "pepsi":                   "sparkling water",
+  "dark soda":               "sparkling water with lemon",
+  "energy drink":            "unsweetened green tea",
+  "red bull":                "unsweetened green tea",
+  "monster energy":          "unsweetened green tea",
+  "bang energy":             "unsweetened green tea",
+
+  // ── Diabetic swaps ──────────────────────────────────────────────────────────
+  "corn syrup":                  "stevia syrup",
+  "high fructose corn syrup":    "stevia syrup",
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Rule registry — one entry per condition family
@@ -97,10 +179,11 @@ export const BEVERAGE_CONDITION_RULES: Record<BeverageConditionFamily, BeverageR
     label: "Cardiac / Heart Disease",
     bannedKeywords: [
       "ice cream", "whole milk", "heavy cream", "butter", "coconut cream",
-      "simple syrup", "condensed milk", "sweetened condensed milk",
       "cream cheese", "whipped cream", "half and half",
+      "simple syrup", "condensed milk", "sweetened condensed milk",
       ...ALCOHOL_KEYWORDS,
     ],
+    safeVariants: ALCOHOL_SAFE_VARIANTS,
     calorieCap: 200,
     prompt: {
       icon: "🫀",
@@ -114,21 +197,29 @@ export const BEVERAGE_CONDITION_RULES: Record<BeverageConditionFamily, BeverageR
   renal: {
     label: "Renal / Kidney Disease",
     bannedKeywords: [
-      // High-potassium
-      "banana", "orange juice", "tomato juice", "tomato", "avocado",
+      // High-potassium (including common synonym forms)
+      "banana", "plantain",
+      "orange juice", "citrus juice", "citrus blend",
+      "tomato juice", "tomato",
+      "avocado",
       // High-phosphorus
-      "chocolate", "cocoa powder", "cocoa", "peanut butter", "nut butter",
+      "chocolate", "cocoa powder", "cocoa", "cacao powder", "cacao",
+      "peanut butter", "nut butter",
       // High-phosphorus sodas
       "cola", "coca-cola", "pepsi", "dark soda",
       // Energy drinks
       "energy drink", "red bull", "monster energy", "bang energy",
     ],
+    safeVariants: {
+      cocoa: ["cocoa butter"],    // cocoa butter has negligible phosphorus
+      cacao: ["cacao butter"],
+    },
     calorieCap: 200,
     prompt: {
       icon: "🫘",
       title: "RENAL / KIDNEY DISEASE BEVERAGE SAFETY — MANDATORY (clinically required)",
-      ban: "high-potassium ingredients — banana, orange, orange juice, tomato juice, avocado, spinach-dominant juices, potato-based drinks; high-phosphorus — nuts, seeds, chocolate, cocoa, large amounts of dairy (whole milk, heavy cream in shakes); dark soda, cola, energy drinks (high phosphorus and potassium); salt or high-sodium mixes",
-      required: "low-potassium fruit base only — apple, grapes, blueberries, cranberry (unsweetened); prefer water, herbal tea, unsweetened cranberry juice, or small amounts of apple juice; if a smoothie is requested: apple + blueberry base ONLY — NEVER banana or orange; moderate calories 150–200/serving; avoid high-phosphorus dairy-heavy bases.",
+      ban: "high-potassium ingredients — banana, plantain, orange, orange juice, citrus juice, tomato juice, avocado, spinach-dominant juices, potato-based drinks; high-phosphorus — nuts, seeds, chocolate, cocoa, cacao, large amounts of dairy (whole milk, heavy cream in shakes); dark soda, cola, energy drinks (high phosphorus and potassium); salt or high-sodium mixes",
+      required: "low-potassium fruit base only — apple, grapes, blueberries, cranberry (unsweetened); prefer water, herbal tea, unsweetened cranberry juice, or small amounts of apple juice; if a smoothie is requested: apple + blueberry base ONLY — NEVER banana, plantain, or orange; moderate calories 150–200/serving; avoid high-phosphorus dairy-heavy bases.",
     },
   },
 
@@ -139,6 +230,7 @@ export const BEVERAGE_CONDITION_RULES: Record<BeverageConditionFamily, BeverageR
       ...ALCOHOL_KEYWORDS,
       ...RAW_SEAFOOD_KEYWORDS,
     ],
+    safeVariants: ALCOHOL_SAFE_VARIANTS,
     calorieCap: null,
     prompt: {
       icon: "🫀",
@@ -154,6 +246,7 @@ export const BEVERAGE_CONDITION_RULES: Record<BeverageConditionFamily, BeverageR
     bannedKeywords: [
       ...ALCOHOL_KEYWORDS,
     ],
+    safeVariants: ALCOHOL_SAFE_VARIANTS,
     calorieCap: null,
     prompt: {
       icon: "🌿",
@@ -170,6 +263,7 @@ export const BEVERAGE_CONDITION_RULES: Record<BeverageConditionFamily, BeverageR
       ...ALCOHOL_KEYWORDS,
       ...RAW_SEAFOOD_KEYWORDS,
     ],
+    safeVariants: ALCOHOL_SAFE_VARIANTS,
     calorieCap: null,
     prompt: {
       icon: "🎗️",
@@ -183,8 +277,8 @@ export const BEVERAGE_CONDITION_RULES: Record<BeverageConditionFamily, BeverageR
   diabetic: {
     label: "Diabetic (builder)",
     bannedKeywords: [
-      "simple syrup", "condensed milk", "sweetened condensed milk", "corn syrup",
-      "high fructose corn syrup",
+      "simple syrup", "condensed milk", "sweetened condensed milk",
+      "corn syrup", "high fructose corn syrup",
     ],
     calorieCap: null,
     prompt: {
@@ -198,8 +292,6 @@ export const BEVERAGE_CONDITION_RULES: Record<BeverageConditionFamily, BeverageR
   // ── GLP-1 BUILDER ──────────────────────────────────────────────────────────
   glp1: {
     label: "GLP-1 (builder)",
-    // Prompt-only — ingredient intent is hard to detect from names alone;
-    // the prompt constraint carries the enforcement load for this builder.
     bannedKeywords: [],
     calorieCap: null,
     prompt: {
@@ -213,8 +305,6 @@ export const BEVERAGE_CONDITION_RULES: Record<BeverageConditionFamily, BeverageR
   // ── ANTI-INFLAMMATORY BUILDER ──────────────────────────────────────────────
   "anti-inflammatory": {
     label: "Anti-Inflammatory (builder)",
-    // Prompt-only — the required/avoid ingredients are too context-dependent
-    // (e.g., "soda" is fine in sparkling water form) for keyword matching.
     bannedKeywords: [],
     calorieCap: null,
     prompt: {
@@ -258,9 +348,9 @@ export function detectActiveBeverageConditions(
     all.some(c => c.includes("liver support") || c.includes("liver-support"))
   ) active.push("liver-support");
 
-  if (all.some(c => c.includes("oncology") || c.includes("oncology-support") || c.includes("cancer"))) {
-    active.push("oncology");
-  }
+  if (all.some(c =>
+    c.includes("oncology") || c.includes("oncology-support") || c.includes("cancer")
+  )) active.push("oncology");
 
   if (builder === "diabetic") active.push("diabetic");
   if (builder === "glp1") active.push("glp1");
@@ -270,7 +360,7 @@ export function detectActiveBeverageConditions(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Prompt injection — replaces the inline buildMedicalBeverageEnforcement()
+// Prompt injection
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function buildBeveragePromptBlocks(
@@ -299,27 +389,28 @@ export function buildBeveragePromptBlocks(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Post-generation validator — hard gate before output reaches the user
+// Post-generation validator
 // ─────────────────────────────────────────────────────────────────────────────
 
+type MealInput = {
+  name?: string;
+  description?: string;
+  ingredients?: Array<{ name?: string; item?: string; [k: string]: unknown }>;
+  nutrition?: { calories?: number };
+};
+
 /**
- * Scans every ingredient in the generated beverage output against the active
- * condition ban lists. Returns a typed result; on failure the `retryHint`
- * string is ready to be appended to the next prompt attempt verbatim.
+ * Scans the generated beverage output against the active condition ban lists.
  *
- * Scan strategy:
- *   - ingredient.name (primary)
- *   - meal.name (catches "Rum & Coke" style names)
- *   - meal.description (secondary signal)
- * All comparisons are case-insensitive substring matches.
+ * Precision matching strategy:
+ *   1. Build searchable text from ingredient.name, meal.name, meal.description
+ *   2. For each banned keyword: substring-match against all text
+ *   3. Before flagging: check if the matched text contains a safeVariant phrase
+ *      (e.g. "non-alcoholic wine" matches "wine" but passes via safeVariant)
+ *   4. Violations include `keyword` + `isAlcohol` fields for auto-fix routing
  */
 export function validateBeverageOutput(
-  meal: {
-    name?: string;
-    description?: string;
-    ingredients?: Array<{ name?: string; item?: string; [k: string]: unknown }>;
-    nutrition?: { calories?: number };
-  },
+  meal: MealInput,
   envelope: UserProtocolEnvelope,
   builder: BuilderKey | null,
 ): BeverageValidationResult {
@@ -330,13 +421,10 @@ export function validateBeverageOutput(
 
   const violations: BeverageViolation[] = [];
 
-  // Build a flat list of searchable strings from the output
   const ingredientStrings = (meal.ingredients ?? []).map(i =>
     (i.name ?? i.item ?? "").toLowerCase()
   ).filter(Boolean);
 
-  // Also scan the meal name and description for alcohol/raw terms that might
-  // appear there even if not listed as an ingredient (e.g., "Rum Punch")
   const nameAndDesc = [
     (meal.name ?? "").toLowerCase(),
     (meal.description ?? "").toLowerCase(),
@@ -350,19 +438,23 @@ export function validateBeverageOutput(
     for (const keyword of rule.bannedKeywords) {
       const kw = keyword.toLowerCase();
       const hit = allText.find(text => text.includes(kw));
-      if (hit) {
-        violations.push({
-          condition: rule.label,
-          ingredient: hit.trim(),
-          rule: `"${keyword}" is banned for ${rule.label}`,
-          correction: buildCorrection(family, keyword),
-        });
-        // One violation per keyword is enough — no need to surface duplicates
-        break;
-      }
+      if (!hit) continue;
+
+      // ── Safe-variant check (false-positive protection) ────────────────────
+      const safeList = rule.safeVariants?.[kw] ?? ALCOHOL_SAFE_VARIANTS[kw] ?? [];
+      if (safeList.some(safe => hit.includes(safe.toLowerCase()))) continue;
+
+      violations.push({
+        condition: rule.label,
+        ingredient: hit.trim(),
+        rule: `"${keyword}" is banned for ${rule.label}`,
+        correction: buildCorrection(family, keyword),
+        keyword: kw,
+        isAlcohol: ALCOHOL_KEYWORD_SET.has(kw),
+      });
+      break; // One violation per keyword per condition family is enough
     }
 
-    // Calorie cap check (uses nutrition.calories from the AI output)
     if (rule.calorieCap !== null) {
       const cal = meal.nutrition?.calories ?? 0;
       if (cal > rule.calorieCap) {
@@ -374,6 +466,8 @@ export function validateBeverageOutput(
             `Reduce the recipe to ≤ ${rule.calorieCap} calories per serving. ` +
             `Use lower-calorie base (plant milk, water, or unsweetened tea) and ` +
             `reduce or eliminate any high-calorie sweeteners or toppings.`,
+          keyword: "__calorie_cap__",
+          isAlcohol: false,
         });
       }
     }
@@ -383,8 +477,72 @@ export function validateBeverageOutput(
     return { passed: true, violations: [], retryHint: "" };
   }
 
-  const retryHint = buildRetryHint(violations);
-  return { passed: false, violations, retryHint };
+  return { passed: false, violations, retryHint: buildRetryHint(violations) };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Auto-fix — surgical ingredient swap before burning an OpenAI retry
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Attempts a zero-latency fix for simple violations by swapping banned
+ * ingredients with clinical-safe alternatives directly in the meal object.
+ *
+ * Returns null when the violations are NOT auto-fixable:
+ *   - Any violation involves alcohol (requires full recipe reconstruction)
+ *   - Any violation keyword lacks a swap in INGREDIENT_AUTO_FIXES
+ *   - Violations involve the calorie cap (structural, not a single ingredient)
+ *
+ * When this returns non-null, the caller should mutate the meal object,
+ * then immediately re-run validateBeverageOutput. If it passes, no OpenAI
+ * retry is needed. If it still fails (rare edge case), fall through to retry.
+ */
+export function attemptBeverageAutoFix(
+  meal: MealInput & { reasoning?: string },
+  violations: BeverageViolation[],
+): BeverageAutoFixResult | null {
+  // Bail on alcohol violations — full mocktail rebuild required
+  if (violations.some(v => v.isAlcohol)) return null;
+
+  // Bail on calorie cap violations — structural, not a single ingredient
+  if (violations.some(v => v.keyword === "__calorie_cap__")) return null;
+
+  // Check every violation has a known swap
+  const fixes: BeverageAutoFixResult["fixes"] = [];
+  for (const violation of violations) {
+    const swap = INGREDIENT_AUTO_FIXES[violation.keyword];
+    if (!swap) return null;
+    fixes.push({
+      keyword: violation.keyword,
+      replacement: swap,
+      affectedText: violation.ingredient,
+    });
+  }
+
+  // Apply patches to ingredient list — mutates in place for caller efficiency
+  for (const ing of meal.ingredients ?? []) {
+    const name = (ing.name ?? (ing as any).item ?? "").toLowerCase();
+    for (const fix of fixes) {
+      if (name.includes(fix.keyword)) {
+        if ("name" in ing) {
+          (ing as any).name = fix.replacement;
+        } else {
+          (ing as any).item = fix.replacement;
+        }
+        break;
+      }
+    }
+  }
+
+  const fixSummary = fixes.map(f => `${f.keyword} → ${f.replacement}`).join(", ");
+  if (meal.reasoning !== undefined) {
+    meal.reasoning += ` [Auto-corrected: ${fixSummary}]`;
+  }
+
+  return {
+    fixes,
+    note: `Auto-corrected ${fixes.length} violation(s) without AI retry: ${fixSummary}`,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -394,28 +552,50 @@ export function validateBeverageOutput(
 function buildCorrection(family: BeverageConditionFamily, keyword: string): string {
   const corrections: Partial<Record<BeverageConditionFamily, Partial<Record<string, string>>>> = {
     cardiac: {
-      "ice cream": "Replace with frozen banana + plant milk + cultural flavoring for the same creamy texture.",
-      "whole milk": "Use oat milk, almond milk, soy milk, or low-fat milk instead.",
-      "heavy cream": "Use oat milk or low-fat plant milk instead.",
-      "simple syrup": "Use a small amount of natural fruit sweetness or omit entirely.",
-      "condensed milk": "Omit or use unsweetened plant milk with a tiny amount of honey (≤ 1 tsp).",
-      "sweetened condensed milk": "Omit or use unsweetened plant milk with a tiny amount of honey (≤ 1 tsp).",
+      "ice cream":               "Replace with frozen banana + plant milk + cultural flavoring for the same creamy texture.",
+      "whole milk":              "Use oat milk, almond milk, soy milk, or low-fat milk instead.",
+      "heavy cream":             "Use unsweetened oat milk or low-fat plant milk instead.",
+      "half and half":           "Use oat milk instead.",
+      "butter":                  "Omit entirely — butter has no role in a compliant cardiac beverage.",
+      "coconut cream":           "Use light coconut milk if coconut flavor is needed.",
+      "simple syrup":            "Use a small amount of natural fruit sweetness (½ tsp honey max) or omit entirely.",
+      "condensed milk":          "Use unsweetened almond or oat milk with ½ tsp honey if sweetness is needed.",
+      "sweetened condensed milk": "Use unsweetened plant milk — the drink's sweetness must come from fruit only.",
+      "cream cheese":            "Use plain low-fat Greek yogurt instead.",
+      "whipped cream":           "Omit entirely.",
     },
     renal: {
-      "banana": "Replace with apple, blueberry, or cranberry as the smoothie base.",
-      "orange juice": "Replace with unsweetened cranberry juice or small-portion apple juice.",
-      "tomato": "Omit entirely — high potassium. Use cucumber water or herbal tea base.",
-      "avocado": "Omit entirely — high potassium.",
-      "chocolate": "Omit entirely — high phosphorus. Use carob powder only if needed.",
-      "cocoa": "Omit entirely — high phosphorus.",
-      "cola": "Replace with sparkling water, lemon water, or herbal tea.",
-      "energy drink": "Replace with plain water, herbal tea, or coconut water.",
+      "banana":        "Replace with blueberries as the smoothie base (low potassium).",
+      "plantain":      "Replace with green apple (low potassium).",
+      "orange juice":  "Replace with unsweetened cranberry juice or small-portion apple juice.",
+      "citrus juice":  "Replace with unsweetened cranberry juice.",
+      "citrus blend":  "Replace with unsweetened cranberry juice.",
+      "tomato juice":  "Replace with cucumber water or herbal tea base.",
+      "tomato":        "Omit entirely — high potassium.",
+      "avocado":       "Omit entirely — high potassium. Use plain Greek yogurt for creaminess.",
+      "chocolate":     "Use carob powder if a chocolate-like flavor is needed (low phosphorus).",
+      "cocoa":         "Use carob powder — lower phosphorus alternative.",
+      "cacao":         "Use carob powder — lower phosphorus alternative.",
+      "peanut butter": "Use sunflower seed butter (lower phosphorus).",
+      "nut butter":    "Use sunflower seed butter (lower phosphorus).",
+      "cola":          "Replace with sparkling water or unsweetened herbal tea.",
+      "energy drink":  "Replace with unsweetened green tea.",
     },
     "liver-disease": {
-      default: "Remove ALL alcohol. This is a clinical hard stop — use a mocktail base instead.",
+      default: "Remove ALL alcohol immediately. This is a clinical hard stop — rebuild the drink as a mocktail using the same flavor profile without any alcohol.",
+    },
+    "liver-support": {
+      default: "Remove ALL alcohol. Replace with an equivalent non-alcoholic base that preserves the drink's flavor concept.",
     },
     oncology: {
-      default: "Remove ALL alcohol and any raw/undercooked ingredients. Clinical hard stop — zero exceptions.",
+      default: "Remove ALL alcohol and any raw/undercooked ingredients. Clinical hard stop — zero exceptions. Rebuild as a mocktail using pasteurized ingredients only.",
+    },
+    diabetic: {
+      "simple syrup":            "Replace with stevia drops or monk fruit syrup (zero glycemic impact).",
+      "condensed milk":          "Use unsweetened almond milk — the drink does not need a sweetener if fruit is present.",
+      "sweetened condensed milk": "Use unsweetened almond milk.",
+      "corn syrup":              "Use stevia syrup.",
+      "high fructose corn syrup": "Use stevia syrup.",
     },
   };
 
@@ -423,7 +603,7 @@ function buildCorrection(family: BeverageConditionFamily, keyword: string): stri
   if (familyMap) {
     const specific = familyMap[keyword];
     if (specific) return specific;
-    const def = familyMap["default"];
+    const def = (familyMap as any)["default"];
     if (def) return def;
   }
 
@@ -436,7 +616,7 @@ function buildRetryHint(violations: BeverageViolation[]): string {
     `❌ CLINICAL VIOLATION [${v.condition}]: Found "${v.ingredient}" — ${v.rule}.\n   ↳ FIX: ${v.correction}`
   );
   return (
-    `\n\n⚠️ PREVIOUS ATTEMPT FAILED CLINICAL VALIDATION — you MUST fix ALL of the following before regenerating:\n\n` +
+    `\n\n⚠️ PREVIOUS ATTEMPT FAILED CLINICAL VALIDATION — fix ALL of the following before regenerating:\n\n` +
     `${lines.join("\n\n")}\n\n` +
     `Regenerate the beverage with EVERY violation above resolved. ` +
     `The drink concept and cultural identity can be preserved — only swap the violating ingredients.`
