@@ -615,6 +615,52 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
     },
   },
   {
+    id: "cuisine-intensity",
+    title: "How Cuisine Intensity Works",
+    subtitle: "Light, Balanced, and Authentic — what each mode actually does",
+    icon: Utensils,
+    content: {
+      sections: [
+        {
+          heading: "What Cuisine Intensity Is",
+          text: "When you select a cuisine in your profile, you also choose how strongly you want it applied. This is your Cuisine Intensity setting. It controls how much the AI leans into traditional ingredients, cooking methods, and dish formats when building your meals.",
+        },
+        {
+          heading: "Light — Health-First With Cultural Flavor",
+          text: "The app builds meals around your health goals and macros first, then adds cultural flavor on top. You'll recognize the spice profiles, aromatics, and seasoning familiar to your cuisine — but the structure and ingredients are chosen primarily for nutritional performance. Think of it as your food culture used as seasoning, not as the foundation.",
+        },
+        {
+          heading: "Balanced — Real Dishes, Adjusted Ingredients",
+          text: "The app uses the actual dish formats from your cuisine — traditional meal structures, classic combinations, and recognizable presentations — but adjusts specific ingredients to meet your health needs. A dish will look and feel like it belongs to your culture, while the inside has been adapted. The cultural identity is real. The adaptation is careful.",
+        },
+        {
+          heading: "Authentic — Traditional Recipes as Actually Made",
+          text: "The app generates meals the way they are genuinely prepared in your culture. Traditional fats, cooking methods, sauces, textures, and ingredient pairings are all fully honored. This is not a health-optimized version of your food. It is your food.",
+        },
+        {
+          heading: "Authentic When You Have a Health Condition",
+          text: "If you have active medical conditions, dietary restrictions, or physician-assigned support systems, Authentic mode works differently — and this is intentional. The app preserves the cultural dish structure as closely as possible, but adapts only what your health rules require. When a substitute is needed, the app uses ingredients that belong to your culinary tradition rather than generic Western alternatives. Your food still feels like yours.",
+        },
+        {
+          heading: "Allergies Are Always Enforced",
+          text: "No matter which intensity setting you choose, your saved allergies are always active. Authentic mode does not override allergy protection. This applies to every cuisine, every dish, every creator.",
+        },
+        {
+          heading: "How to Set It",
+          text: "Go to your profile and find the Cuisine Identity section. Select your cuisine, then tap the intensity you want. You can change this at any time and your next generated meal will reflect the new setting.",
+        },
+        {
+          heading: "Which Should You Choose",
+          list: [
+            "Choose Light if your primary goal is fat loss, performance, or medical nutrition — you want familiar flavors but health comes first",
+            "Choose Balanced if you want real cultural dishes that still fit your plan — the structure matters to you but you're comfortable with some adaptation",
+            "Choose Authentic if you want your food to taste and feel genuinely traditional — and you understand the meals reflect how the cuisine is actually eaten",
+          ],
+        },
+      ],
+    },
+  },
+  {
     id: "diet-cuisine-controls",
     title: "How Diet & Cuisine Controls Work",
     subtitle: "Override your saved preferences on any creator page",
