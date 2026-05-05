@@ -9,10 +9,17 @@ import { enforceSafetyProfile } from "../services/safetyProfileService";
 import { buildPalateSection, PalatePreferences } from "../services/promptBuilder";
 import { resolveDietCategoryStrategy, type DietCategoryStrategy } from "../services/allergyGuardrails";
 import { scanGeneratedOutput, buildMealComplianceBundle } from "../services/protocolEnvelope";
-import { getActiveNutritionContext } from "../services/nutritionContext/getActiveNutritionContext";
+import { getActiveNutritionContext, type BuilderKey } from "../services/nutritionContext/getActiveNutritionContext";
+import { type UserProtocolEnvelope } from "../services/protocolEnvelope";
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from "../services/behavioralMemoryService";
 import { resolveCreatorSystemForUser } from "../services/creatorSystems/resolveCreatorSystemForUser";
 import { applyCreatorTransformation } from "../services/creatorSystems/applyCreatorTransformation";
+import {
+  buildBeveragePromptBlocks,
+  validateBeverageOutput,
+} from "../services/guardrails/beverageMedicalRules";
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -95,8 +102,12 @@ beverageCreatorRouter.post("/", async (req, res) => {
       skipPalate,
       dietAdaptOverride,
       userDietOverride,
-      cultureOverride,
+      cultureOverride: _cultureOverride,
+      cuisineOverride: _cuisineOverride,
     } = req.body ?? {};
+
+    // Accept either key name — some clients send cuisineOverride, others cultureOverride
+    const cultureOverride: string | undefined = (_cultureOverride || _cuisineOverride) ?? undefined;
 
     if (isDev) console.log("[BEVERAGE] Request params:", { beverageCategory, flavorFamily, servingSize, hasCustomDesc: typeof customBeverageDescription === "string" && customBeverageDescription.trim().length > 0 });
 
@@ -289,14 +300,41 @@ beverageCreatorRouter.post("/", async (req, res) => {
       }
     }
 
+    // ── Cuisine intensity — read from user's profile envelope ─────────────────
+    // This is the same intensity the user set for meals. "light" means same drink,
+    // lighter base ingredients (plant milk over whole milk, yogurt over ice cream,
+    // minimal sweetener). "authentic" means traditional ingredients from that culture.
+    const beverageCuisineIntensity = beverageEnvelope.cuisineIntensity ?? "balanced";
+
+    const BEVERAGE_INTENSITY_DEPTH: Record<string, string> = {
+      light: `Apply the cultural FLAVOR identity fully (spices, fruits, herbs, aromatics, teas) — but lighten the BASE ingredients only.
+  - REQUIRED BASE SWAPS: full-fat ice cream → frozen banana or low-fat yogurt; whole milk → oat milk, almond milk, soy milk, or low-fat milk; heavy cream → low-fat milk or plant milk; butter → none.
+  - SWEETENER: Skip added syrups and honey entirely. Use natural fruit sweetness. If a small sweetener is needed, use ½ tsp honey or 1 tsp agave — no more.
+  - The drink NAME, CATEGORY, and CULTURAL FLAVOR PROFILE stay identical. Do NOT change a Korean citrus drink to water with lime. Do NOT change a milkshake to a smoothie. Keep the cultural flavor — change what carries it.
+  - If a milkshake is requested: make the lightest possible version (frozen banana + low-fat milk + cultural flavoring) — NEVER full-fat ice cream.`,
+      balanced: `Apply the cultural flavor identity fully — spices, fruits, herbs, aromatics — with health-aware base choices. Prefer lower-fat dairy or plant milk over heavy cream or whole milk. Moderate natural sweetening. Cultural ingredients are preserved; the base is optimized for balance.`,
+      authentic: `Apply strict cultural authenticity — use traditional ingredients, flavor combinations, and preparation methods from this cuisine. Traditional bases (full-fat dairy, honey, traditional sweeteners, coconut milk) are permitted unless overridden by the user's active medical or dietary constraints.`,
+    };
+
     const cuisineOverrideBlock = cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()
-      ? `\n🌍 CUISINE STYLE OVERRIDE: The user has requested ${cultureOverride.trim()} style. Infuse authentic ${cultureOverride.trim()} flavors, spices, and cultural ingredients into this beverage. Adapt names and flavor notes accordingly.\n`
+      ? `\n🌍 CUISINE STYLE (${beverageCuisineIntensity.toUpperCase()}): Create a ${cultureOverride.trim()}-influenced beverage.\n${BEVERAGE_INTENSITY_DEPTH[beverageCuisineIntensity] ?? BEVERAGE_INTENSITY_DEPTH.balanced}\n`
       : "";
+
+    console.log(`🌍 [BEVERAGE] Cuisine: override=${cultureOverride ?? "none"} intensity=${beverageCuisineIntensity}`);
+
+    // ── Medical beverage enforcement — ingredient-level rules for every active condition ──
+    // buildBeveragePromptBlocks() uses the same structured rule registry as the
+    // post-generation validator, ensuring prompt intent and validation enforcement
+    // are always in sync (one source of truth in beverageMedicalRules.ts).
+    const medicalBeverageBlock = buildBeveragePromptBlocks(
+      beverageEnvelope,
+      beverageContext.builder,
+    );
 
     const prompt = `
 You are a professional mixologist, nutritionist, and beverage chef inside the My Perfect Meals system.
 Generate a FULL structured beverage recipe.
-${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${cuisineOverrideBlock}${beverageBehavioralMemorySection ? `\n${beverageBehavioralMemorySection}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}${softOverrideBlock}
+${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${medicalBeverageBlock}${cuisineOverrideBlock}${beverageBehavioralMemorySection ? `\n${beverageBehavioralMemorySection}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}${softOverrideBlock}
 The result MUST be a drink. Never generate solid food, meals, or desserts.
 
 Return JSON ONLY, following this exact schema:
@@ -377,14 +415,30 @@ INCORRECT (NEVER DO THIS):
       return nameHit || ingredientHit;
     }
 
-    const MAX_BEVERAGE_ATTEMPTS = 2;
+    // Three attempts:
+    //   Attempt 1 — normal generation
+    //   Attempt 2 — appends specific protocol or clinical violation hint
+    //   Attempt 3 — appends combined hint if still failing (last chance)
+    const MAX_BEVERAGE_ATTEMPTS = 3;
     let meal: any;
     let beverageScan: ReturnType<typeof scanGeneratedOutput> | null = null;
+    let beverageValidation: ReturnType<typeof validateBeverageOutput> | null = null;
 
     for (let attempt = 1; attempt <= MAX_BEVERAGE_ATTEMPTS; attempt++) {
-      const retryHint = attempt > 1 && beverageScan
-        ? `\n\nPREVIOUS ATTEMPT VIOLATION — fix this before generating:\n${beverageScan.message}\nEnsure every ingredient and the drink name are fully compliant with the dietary rules above.`
-        : "";
+      // Build the retry hint from whichever validator failed last round.
+      // Clinical validator (beverage-specific ingredient bans) takes priority
+      // because its hints are more specific and corrective than the generic scan.
+      let retryHint = "";
+      if (attempt > 1) {
+        if (beverageValidation && !beverageValidation.passed) {
+          retryHint = beverageValidation.retryHint;
+        } else if (beverageScan && !beverageScan.passed) {
+          retryHint =
+            `\n\nPREVIOUS ATTEMPT VIOLATION — fix this before generating:\n` +
+            `${beverageScan.message}\n` +
+            `Ensure every ingredient and the drink name are fully compliant with the dietary rules above.`;
+        }
+      }
 
       if (isDev) console.log(`[BEVERAGE] Calling OpenAI GPT-4o (attempt ${attempt})...`);
       const completion = await getOpenAI().chat.completions.create({
@@ -403,7 +457,7 @@ INCORRECT (NEVER DO THIS):
         return res.status(500).json({ error: "AI returned invalid JSON for beverage" });
       }
 
-      // ── Solid-food fast-fail guard ────────────────────────────────────────
+      // ── Layer 1: Solid-food fast-fail guard ───────────────────────────────
       if (isSolidFood(meal)) {
         console.warn(`🚨 [BEVERAGE] Solid food detected in output ("${meal.name}") — attempt ${attempt}. Forcing retry.`);
         if (attempt >= MAX_BEVERAGE_ATTEMPTS) {
@@ -414,25 +468,58 @@ INCORRECT (NEVER DO THIS):
           });
         }
         beverageScan = { passed: false, message: `Output was food ("${meal.name}"), not a beverage. You MUST generate a ${categoryLabel} drink.` } as any;
+        beverageValidation = null;
         continue;
       }
 
-      // ── Post-gen protocol scan ────────────────────────────────────────────
+      // ── Layer 2: Post-gen protocol scan (dietary restriction compliance) ──
       beverageScan = scanGeneratedOutput(meal, beverageEnvelope, {
         generatorName: 'beverage_creator',
         skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
       });
 
-      if (beverageScan.passed) break;
-
-      console.log(`🚫 [BEVERAGE] Post-gen protocol violation (attempt ${attempt}): ${beverageScan.message}`);
-      if (attempt >= MAX_BEVERAGE_ATTEMPTS) {
-        return res.status(400).json({
-          error: "PROTOCOL_VIOLATION",
-          message: beverageScan.message,
-          retryable: true,
-        });
+      if (!beverageScan.passed) {
+        console.log(`🚫 [BEVERAGE] Protocol violation (attempt ${attempt}): ${beverageScan.message}`);
+        beverageValidation = null;
+        if (attempt >= MAX_BEVERAGE_ATTEMPTS) {
+          return res.status(400).json({
+            error: "PROTOCOL_VIOLATION",
+            message: beverageScan.message,
+            retryable: true,
+          });
+        }
+        continue;
       }
+
+      // ── Layer 3: Clinical medical validator (ingredient-level hard bans) ──
+      // Runs only when the protocol scan passes. Checks the generated ingredient
+      // list against the structured ban registry in beverageMedicalRules.ts.
+      // This is the system-controlled enforcement gate — not AI guidance.
+      beverageValidation = validateBeverageOutput(
+        meal,
+        beverageEnvelope,
+        beverageContext.builder,
+      );
+
+      if (!beverageValidation.passed) {
+        console.warn(
+          `🚨 [BEVERAGE] Clinical validation failed (attempt ${attempt}): ` +
+          beverageValidation.violations.map(v => `[${v.condition}] ${v.ingredient}`).join("; ")
+        );
+        if (attempt >= MAX_BEVERAGE_ATTEMPTS) {
+          return res.status(400).json({
+            error: "CLINICAL_VIOLATION",
+            message:
+              `This beverage cannot be generated safely for your health profile. ` +
+              `Violations: ${beverageValidation.violations.map(v => v.rule).join("; ")}`,
+            retryable: true,
+          });
+        }
+        continue;
+      }
+
+      // All three layers passed — output is clean
+      break;
     }
 
     const normalizedIngredients = normalizeIngredients(meal.ingredients || []);
