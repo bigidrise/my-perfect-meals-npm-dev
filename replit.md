@@ -1,451 +1,92 @@
-# MyPerfectMeals (MPM)
+# MyPerfectMeals
 
-## Overview
-MyPerfectMeals is a full-stack TypeScript application for comprehensive meal planning and nutrition. It features AI-powered meal generation, detailed dietary tracking, biometrics monitoring, and specialized meal builders. The project aims to provide a robust platform for personalized nutrition management, addressing a significant market need in health and wellness technology.
+MyPerfectMeals is a full-stack TypeScript application providing AI-powered meal generation, dietary tracking, and biometric monitoring for personalized nutrition management.
 
-## User Preferences
+## Run & Operate
 
-### UI Component Rules (MANDATORY)
+**Required Environment Variables**:
+- `COACH_JEN_USER_ID`, `COACH_JEN_STUDIO_ID` (for each coach)
+- `ONCOLOGY_SUPPORT_V1` (default: active, set to "off" to disable)
+- `MACRO_AUDIT` (set to `true` for macro debug logging)
+- `TESTER_PROGRAM_ACTIVE` (set in `client/src/lib/subscriptionCheck.ts`, `server/lib/accessTier.ts`, `server/routes/auth.session.ts`)
+
+**Commands**:
+- `npm run dev`: Starts the development server.
+- `npm run build`: Builds the application for production.
+- `npm run typecheck`: Runs TypeScript type checking.
+- `drizzle-kit push:pg`: Pushes Drizzle schema changes to PostgreSQL.
+
+## Stack
+
+- **Frontend**: React 18, Vite, TypeScript, Tailwind CSS, Radix UI, shadcn/ui, Wouter
+- **Backend**: Express.js (Node.js 20)
+- **Database**: PostgreSQL
+- **ORM**: Drizzle ORM
+- **AI**: OpenAI API
+- **Payments**: Stripe
+- **Email**: Resend
+- **SMS**: Twilio
+- **Push Notifications**: VAPID
+- **iOS Purchases**: `@squareetlabs/capacitor-subscriptions`
+
+## Where things live
+
+- **DB Schema**: `server/db/schema/*` & `shared/schema.ts`
+- **API Routes**: `server/routes.ts`, `server/routes/*`
+- **UI Components**: `client/src/components/*`
+- **Pages**: `client/src/pages/*`
+- **Client Config**: `client/src/config/*`
+- **Server Config**: `server/config/*`
+- **Shared Utilities/Types**: `shared/*`
+- **Coach Registry (Frontend)**: `client/src/config/coaches.ts`
+- **Coach Registry (Backend)**: `server/config/coaches.ts`
+- **Legal Documents**: `shared/legalDocuments.ts`
+- **Plan Features/Access Tiers**: `shared/planFeatures.ts`
+- **Professional Builder Map**: `client/src/lib/professionalBuilderMap.ts`
+
+## Architecture decisions
+
+- **Free-first model**: Users can access basic features, with a `hasActivePaidSubscription(user)` check gating advanced functionality.
+- **Protocol Envelope & 4-Layer Constraint Hierarchy**: All AI generation flows use `server/services/protocolEnvelope.ts` to assemble a `UserProtocolEnvelope` and enforce a strict hierarchy: (1) Medical, (2) Dietary Identity, (3) Cultural/Cuisine Preference, (4) Behavioral Preference.
+- **Macro Truth Contract**: `server/services/guardrails/macroTruthContract.ts` ensures that macro values are never invented (null=unknown, 0=known zero) and are only rejected or regenerated, never mutated.
+- **Slug-based Coaching System**: New coaches are added by updating config files and environment variables; no code changes required for coach onboarding.
+- **Creator System Layer (Branded Kitchens)**: Allows chefs/coaches to customize meal generation output styling (name, description, instructions) via `creator_system_configs` in the DB, without affecting core medical/dietary guardrails.
+
+## Product
+
+- AI-powered meal generation (Create a Dish, Chef's Kitchen, Snack Creator, Beverage Creator, Craving Creator, Fridge Rescue, Meal Planner, Holiday Feast).
+- Detailed dietary and biometric tracking.
+- Personalized meal plans with clinical mode support (e.g., Anti-Inflammatory, Oncology Support).
+- Professional coaching platform with client management and communication tools.
+- Multi-course meal generator for ultimate experiences (e.g., Holiday meals).
+- Freemium model with "show but lock" for paid features.
+
+## User preferences
+
 - **NEVER use radio buttons.** The app uses a pill button system for all selection inputs. Always use pill buttons instead of radio buttons, no exceptions.
 - **Info/action trigger buttons: always use `PillButton`.** Import from `@/components/ui/pill-button`. This is the standard button style for ALL info triggers, labels, small action buttons, and selection chips across the entire app. NEVER substitute a circular icon button, ghost button, or custom inline button where a pill is appropriate.
 - **Page color theme**: All pages use the black/orange gradient (`from-black/60 via-orange-600 to-black/80`). Accent colors are orange (e.g., `text-orange-400`, `bg-orange-600`). NEVER use purple gradients or purple accents on any page.
 - **NEVER use hover-dependent UI.** No hover states that reveal text, change meaning, or make content readable. Mobile has no hover. All buttons must be fully visible and readable without any interaction. No `variant="outline"` white/invisible ghost buttons — use solid backgrounds (`bg-orange-600`, `bg-white/10`, etc.) with visible text at all times.
 - Dismissible UI must follow the `mpm.dismiss.<featureName>` localStorage pattern (see Dismissible UI Pattern below).
-
-### Agent Safety Rules
-- See `docs/agent-rules.md` for the full mandatory ruleset covering routing, security, UI, and change discipline.
-- Routes must only be mounted in `server/routes.ts` via `registerRoutes()`. Never in `index.ts` or `prod.ts`.
-- Never expose external API keys to the client. All third-party calls must be server-proxied.
-- A route audit log runs on every server startup — check for "MISSING" entries in logs.
-
-### Change Control Protocol (MANDATORY)
-
-#### Pre-Change
-1. Record current checkpoint hash in `BASELINE_STATUS.md`
-2. For High-Risk changes (auth, onboarding, macros, meal boards, middleware): run full Golden Path checklist and record pass/fail
-3. Write a 1-paragraph change scope: "We are changing X. It affects Y files/routes. It should NOT affect A, B, C flows."
-
-#### During Change
-- One change set, one purpose — no bonus refactors, no "while I'm here" edits
-- Only touch files listed in the scope
-
-#### Post-Change
-1. Run Golden Path again — every item must match baseline unless intentionally changed
-2. Review diff — confirm only intended files were modified
-3. Check logs for new warnings, 403s, 404s, unexpected middleware hits
-4. If anything regressed that wasn't in scope: STOP, fix immediately, do not proceed
-5. Record the change in `CHANGE_LOG.md` with: date, what changed, files touched, expected impact, Golden Path result
-6. Update `BASELINE_STATUS.md` with new checkpoint hash
-
-### Reference Files
-- `BASELINE_STATUS.md` — Current known-good state and Golden Path pass/fail
-- `CHANGE_LOG.md` — Surgical log of every change with scope and verification
-
-### Operating Rules (MANDATORY)
-
-#### Rule 1: One change set, one purpose
-Every commit must answer: "What single outcome is this supposed to change?" If it changes more than one feature, split it.
-
-#### Rule 2: No new work until the last change is proven
-A feature is not "done" when it compiles. It is done when it passes the Golden Path checklist on web (and iOS for key flows).
-
-#### Rule 3: High-Risk zones require extra checks
-Any change touching **auth, onboarding, macros, or meal boards** is High Risk. Extra verification required, no exceptions.
-
-#### Rule 4: Stop the line on regressions
-If a regression is found: stop feature work, fix the regression first, ship the fix, then resume.
-
-#### Rule 5: One ticket at a time
-Fix one bug → verify Golden Path → commit and deploy → then start the next bug. No stacking.
-
-## DEAD CODE — DO NOT TOUCH OR REFERENCE
-
-The following files exist in the codebase but are completely disconnected and must NEVER be used, edited, or referenced:
-
-| File | Status | Why it still exists |
-|---|---|---|
-| `client/src/pages/onboarding-standalone.tsx` | **DEAD — no route, no import** | Legacy standalone build, replaced entirely by `OnboardingV3.tsx`. Has been incorrectly used as the target for onboarding changes multiple times. Ignore it completely. |
-
-**The ONLY active onboarding is `client/src/pages/OnboardingV3.tsx`** — mounted at `/onboarding` and `/onboarding-v2`. Any onboarding change goes there and nowhere else.
-
-## Page Name Glossary (MANDATORY — never confuse these)
-
-This section exists because page feature names have evolved. Always use these exact names and file paths.
-
-| What to call it | File | What it does |
-|---|---|---|
-| **Create a Dish** | `client/src/pages/lifestyle/CreateDishPage.tsx` | Standalone AI dish creation page. User describes a dish, AI generates it. This was originally "Phase 1" of Chef's Kitchen before the two-part feature was split. |
-| **Chef's Kitchen** | `client/src/pages/lifestyle/ChefsKitchenPage.tsx` | Step-by-step cooking walkthrough/instructions page. This is what survived from the original Chef's Kitchen feature — it guides the user through preparing a meal. No AI generation here. |
-| **Create With Chef (modal)** | `client/src/components/CreateWithChefModal.tsx` | The modal dialog for AI meal generation accessible from the main meal builders. Not a page — a modal. |
-| **Snack Creator (modal)** | `client/src/components/SnackCreatorModal.tsx` | Modal for AI snack generation. |
-| **Beverage Creator (page)** | `client/src/pages/BeverageCreator.tsx` | Standalone page for AI beverage generation. Uses `/api/meals/beverage-creator` endpoint, not `/api/meals/generate`. |
-
-**Key rule**: When the user or a task mentions "Chef's Kitchen," confirm whether they mean the creation page (`CreateDishPage`) or the walkthrough page (`ChefsKitchenPage`) before making any changes.
-
-## System Architecture
-The application is a full-stack TypeScript project focused on personalized nutrition management.
-
--   **Frontend**: React 18, Vite, TypeScript, Tailwind CSS, Radix UI, shadcn/ui. Wouter for client-side routing.
--   **Backend**: Express.js (Node.js 20) for API routes and serving the frontend.
--   **Database**: PostgreSQL via Drizzle ORM.
--   **AI Integration**: OpenAI API for meal generation and content translation.
--   **Navigation**: Role and workspace-based navigation (client and clinician views) with `BuilderHeader` and `ProClientContext`. Desktop layout for larger screens, mobile for smaller. Specific routes bypass desktop layout (e.g., auth, onboarding). `MobileHeaderGuard` hides mobile fixed headers on desktop.
--   **Routing & Gating**: Implements a free-first model with subscription state managed by `hasActivePaidSubscription(user)`. Onboarding is gated for paid users. `WelcomeGate` manages initial user experience, and `mpm_active_space` localStorage key tracks personal vs. workspace views.
--   **Access Tier System**: `shared/planFeatures.ts` defines tiers and entitlements, enforced by backend middleware (`requireAuth`, `requireActiveAccess`).
--   **Feature Flags**: `PhaseGate` component enables phased rollouts.
--   **Versioned Storage**: `APP_STORAGE_VERSION` for schema versioning.
--   **Deployment**: Designed for autoscale with separate build/start scripts.
--   **iOS/Capacitor Integration**: Supports iOS via Capacitor, including StoreKit for in-app purchases, with global error handling.
--   **ProCare Architecture**: Enforces a single active professional per client via unique partial indexes. `clientLinkService` manages links, and `requireBoardAccess` middleware ensures proper access. Pro-scoped API endpoints (`/api/pro/week-boards/:clientId/...`) with `requireBoardAccess`. `useWeeklyBoard` hook supports `proClientId`.
--   **Clinical Mode Architecture**: Supports clinical modes (e.g., Anti-Inflammatory, Liver Support) via `board.meta.clinicalMode`. `shared/clinical/guardrails.ts` provides functions for applying dietary guardrails to prompts and filtering premade meals. Server-side guardrails are implemented.
--   **Macro Sync Architecture**: `macro_logs` table stores daily macro summaries. `useTodayMacros(userId)` fetches data from `daily-with-source` API, with localStorage as an offline fallback. `macros:updated` window event triggers refetches.
--   **Reactivity & Refresh Architecture**: Selective per-query opt-in for refresh. `useVisibilityRefresh` invalidates critical queries on visibility change. Push notifications implemented via `pushToUser()` and `pushToCoachOfClient()`.
--   **iOS Purchase Flow**: Uses `@squareetlabs/capacitor-subscriptions`. `verifyAndActivate()` merges server response with existing user data after purchase, dispatching `mpm:user-updated` event to sync React state.
--   **Behavioral Memory System (Phase 2, Steps 1–2)**: Read-only, deterministic, auditable. `server/services/behavioralMemoryService.ts` derives a `PreferenceProfile` from `saved_meals` and `user_recipes` (last 90 days, max 50 records, exponential recency decay λ=0.025, half-life ≈28d). Extracts cuisine, protein, cooking method, macro-bias, and prep-time signals via keyword matching only — no AI guessing. Output schema: `{ likes[], avoids[], patterns{}, evidence[], auditMeta{} }`. Every preference is traceable to a specific evidence record (mealId + eventType + score). `buildBehavioralMemoryPromptSection()` produces a tightly bounded soft-hint block (≤8 lines). Injected into `stableMealGenerator.ts → instructBatch()` alongside palate preferences, AFTER pre-generation enforcement passes. Post-generation enforcement still runs. Enforcement gateway is never touched. Audit metadata (profileHash, evidenceCount, categories, derivedAt) is attached to every generated meal as `_behavioralAudit` on the `FinalMeal` type. No DB schema changes in Phase 2 Steps 1–2. Steps 3–4 (event ledger, snapshot tables, coaching triggers) are deferred until behavioral accuracy is validated.
--   **Food Intelligence Layer (Phase 1)**: A three-tier enforcement pipeline that all builder routes sit on top of. (1) `server/services/ingredientIntelligence.ts` — provenance and certification database for high-risk ingredients (gelatin variants, rennet, emulsifiers, animal fats, broths, isinglass, carmine) with `assessIngredientRisk()` and `scanTextForHighRiskIngredients()`. Fail-closed: unknown certification for a strict protocol = BLOCK. (2) `server/services/guardrails/rules/culturalRules.ts` — relational rule engine for kosher (meat+dairy pair conflict, pork block, shellfish block, dish-category review) and halal (pork, alcohol, blood) with `evaluateRelationshipRules()`. (3) `server/services/enforcementGateway.ts` — universal gateway (`runEnforcement()` + `toRouteResponse()`) that runs pre-generation AND post-generation. Priority: Tier 1 (allergy/safety) → Tier 2 (religious/cultural) → Tier 3–5 (medical, preferences). All four builders (craving_creator, fridge_rescue, create_dish, meal_planner, holiday_feast) now route through this gateway. Returns structured `EnforcementResult` with `decision`, `reasonCode`, `protocol`, `blockingIngredient`/`blockingRule`, `suggestedSubstitute`, `reviewOverrideAllowed`. Forward-compatible with future `protocols[]` array.
--   **Protocol Envelope & 4-Layer Constraint Hierarchy**: The protocol envelope (`server/services/protocolEnvelope.ts`) is the single source of truth for all per-user AI enforcement. It assembles a `UserProtocolEnvelope` from the DB and fires `enforceBeforeGenerate()` to produce a structured prompt block injected into every generation path. The constraint priority order is non-negotiable and enforced in this exact sequence: **(1) Medical** (diabetes carb limits, GLP-1 rules, hypertension sodium — hard stops, cannot be overridden by anything below), **(2) Dietary Identity** (vegan, vegetarian, kosher, halal — identity-level constraints, override cuisine choices when conflict exists), **(3) Cultural / Cuisine Preference** (Ethiopian, Mexican, Japanese, etc. — the AI actively generates authentic dishes from this cuisine; it is NOT just a name label), **(4) Behavioral Preference** (soft hints from saved meal history — lowest priority, can be ignored if higher layers conflict). This hierarchy is described to users in `DisclaimerModal.tsx` under "How My Perfect Meals Works" with real examples (Goi Chay for Vietnamese vegan, Misir Wat for Ethiopian vegan diabetic). The `UserProtocolEnvelope` fields: `dietaryIdentity[]`, `allergies[]`, `avoidances[]`, `medicalHardLimits[]`, `culturalStapleCarbs[]`, `cuisineIdentity`, `cuisineIntensity`, `proceduralRules[]`.
-
--   **Cultural Intelligence System**: Cuisine preference is stored as `cuisinePreference` (string, e.g. "Ethiopian") and `cuisineIntensity` ("light" | "moderate" | "strong") in the `users` table. Both are loaded by `loadUserProtocolEnvelope()` and injected into the AI prompt as an active cultural generation directive — NOT just a flavor label. At "strong" intensity, the AI is instructed to generate authentic dishes from that cuisine's tradition (e.g. Misir Wat + Gomen for Ethiopian, not bell peppers renamed "Ethiopian-Style"). At "moderate", primary dishes are from the cuisine with familiar protein sources. At "light", cuisine influences seasoning and sides only. The `GET /api/user/profile` response includes both `cuisinePreference` and `cuisineIntensity` (fixed 2024-04-30 — previously missing from response, causing UI to blank after save). Key files: `server/services/protocolEnvelope.ts` (CULTURAL STAPLE CARB RULE + MULTI-CONSTRAINT ADAPTATION RULE), `server/routes.ts` GET `/api/user/profile` (lines 2143–2144).
-
--   **Unified Pipeline Enforcement Coverage**: All generation paths in `server/services/unifiedMealPipeline.ts` must load the protocol envelope via `loadUserProtocolEnvelope(userId)` before calling the AI. As of 2024-04-30: `create-with-chef` (line 1867) ✅, `craving` (line 1439) ✅, `snack-creator` (line 2317) ✅, `fridge-rescue` / `premade` (line 1682) ✅ (fixed 2024-04-30 — was the only path that swallowed `userId` and called `generateFridgeRescueMeals` with no envelope, causing vegan/diabetic/cultural constraints to be completely ignored). The `FridgeRescueRequest` interface in `fridgeRescueGenerator.ts` has a `protocolEnvelope?: UserProtocolEnvelope` field (line 136) — the socket existed but was never wired through the unified pipeline until this fix. Post-generation dietary compliance check also runs on the fridge-rescue path: meals violating `dietaryIdentity` trigger a `strictMode: true` regeneration pass before caching.
-
--   **Ingredient Measurement Normalizer**: `server/services/ingredientNormalizer.ts` is Layer 3 of the measurement precision system — a post-processing safety net that runs on every generated meal before it reaches the client. Rules (as of 2024-04-30): Garlic → always `cloves` (e.g. "4 cloves garlic"); Onions/shallots → always `cup` (e.g. "1 cup diced yellow onion", never "1 medium onion"); Bell peppers used as vessels → `whole`; Proteins → `oz`; Potatoes → `oz`; Size descriptors in unit field (`medium`, `large`, `small`, `units`) → routed to ingredient-specific conversion. The AI prompts in all 5 generation locations (create-with-chef, craving × 2, snack-creator, fridge-rescue) also explicitly list garlic/onion rules and add `unit`, `units`, `medium`, `large`, `small` to the FORBIDDEN units list. Two-layer defense: prompt prevents it at generation, normalizer catches anything that slips through.
-
--   **Compliance Engine Architecture**: `server/services/complianceEngine.ts` calculates a rolling compliance score based on calories, protein, and logging consistency. It uses the `macro_logs` table and provides an API endpoint `/api/users/:userId/compliance`.
--   **Studio Metrics Architecture**: Studio reads directly from the database for macro targets, logged macros, and body composition. `ProClientWeightSnapshot` displays weight trends.
--   **Vegetable System Architecture**: Fibrous carbs scale inversely with starchy carbs using a tier table in `applyStrategyLayer()` (in `dailyLimits.ts`). `mealsPerDay` (3/4/5) drives `vegetableCupsPerMeal` and `vegetableCupsPerDay`. All 4 macro save paths persist `mealsPerDay`, `vegetableCupsPerMeal`, and `vegetableCupsPerDay` to `MacroTargets`. DB column: `macro_meals_per_day` on `users` table. The macro-targets GET/POST endpoints (`server/routes/manualMacros.ts`) persist and return `mealsPerDay`. Results display in `MacroCalculator.tsx` shows vegetable prescription below "Carbs - Fibrous (Vegetables)". `buildVegetableStrategyPrompt()` in `server/services/promptBuilder.ts` generates starch-day-aware guardrails (zero-starch, low-starch, moderate, standard). `server/routes.ts` auto-enriches `nutritionStrategy` from the user's saved macro profile on every `create-with-chef` generation request. `unifiedMealPipeline.ts` injects vegetable guardrails into the chef prompt via the `nutritionStrategy` parameter.
--   **Professional Builder Map Architecture**: `client/src/lib/professionalBuilderMap.ts` is the single source of truth for all professional meal builders. Each entry has a `role` (`trainer` | `physician` | `both`), `label`, `proRoute`, and `description`. `getBuilderKeys('trainer')` and `getBuilderKeys('physician')` filter by role. `client/src/lib/assignBuilderToClient.ts` is the shared assignment helper used by both `TrainerClientDashboard` and `ClinicianClientDashboard`. Both call `PATCH /api/studios/{studioId}/clients/{uid}/assign` + `POST /api/pro/assign-builder` and inject `localStorage.setItem("pro-client-id", resolvedClientUserId)` before navigating to any builder. `builderMap.ts` is preserved as-is for `assignedBuilder.ts` client-side routing. `physicianBuilderMap.ts` is superseded by `professionalBuilderMap.ts`.
--   **Program Adjustment History**: `macro_program_history` table stores historical macro target changes. Every macro target save inserts a history row. An API endpoint `/api/pro/clients/:clientId/program-history` provides this data.
--   **Auth Hardening**: All core user-data routes use `requireAuth` + `getAuthUserId(req)` from `server/utils/getAuthUserId.ts`. Hardened subsystems include biometrics, manualMacros, shoppingList, mealPlans, meals, userMealPrefs, alcohol-log. Delegated endpoints (macro-targets, daily-with-source, compliance) use `:userId` param with `assertSelfOrProAccess` for coach/client flows.
--   **Board Access**: `requireBoardAccess` checks for self-access, care team membership, client links, and studio memberships.
--   **Coach Board Authority**: `client_links.meal_board_control` (`'client'|'professional'`, default `'client'`). When set to `'professional'`: (1) `PUT /api/weekly-board` returns 403 — server blocks client saves; (2) client builder shows a read-only banner and disables add/generate buttons; (3) coach toggles via `PATCH /api/pro/clients/:clientId/board-control`; (4) toggle UI card ("Meal Board Control") in both `ClinicianClientDashboard.tsx` and `TrainerClientDashboard.tsx`; (5) client checks lock via `GET /api/me/board-lock` using `useBoardLockStatus()` hook.
--   **week_boards Schema**: PK is `(user_id, week_start_iso, builder_type)`. `builder_type` is a varchar (default `''`) storing the builder namespace (e.g. `antiInflammatory`, `diabetic`, `generalNutrition`, `''` for non-namespaced). `week_start_iso` is always a bare `YYYY-MM-DD` date — no more composite string keys. All routes pass `builderType` explicitly; client sends `?bt=` query param; server accepts `?ns=` as fallback. `server/data/weekBoardsRepo.ts` is the single data layer — `getWeekBoard(userId, weekStartISO, builderType?)` and `upsertWeekBoard(userId, weekStartISO, board, builderType?)`.
--   **Tablet Communication Layer**: Full coach-client messaging system via `client_notes` table with `proTabletRoutes.ts` (pro side) and `clientTabletRoutes.ts` (client side). Includes `tabletModerationService.ts` for server-side moderation, `tabletNotificationService.ts` for notifications, and audit logging for all tablet operations. Unread indicators are poll-driven via localStorage.
--   **Push Route Security**: All `/api/push/*` routes require `requireAuth`. User ID derived from session. Push subscriptions are persisted to both in-memory store and `users.pushTokens` DB column.
--   **Legal Document Acceptance System**: DB-backed legal acceptance with version enforcement. `shared/legalDocuments.ts` is the single source of truth. `user_document_acceptance` table stores acceptance records. API endpoints for acceptance and status (`POST /api/legal/accept`, `GET /api/legal/status`). Server enforcement checks during procare upgrade and client connection flows. Version bumping forces reacceptance.
--   **AI Quota System**: Per-feature daily usage limits for free tier users tracked in `ai_usage` table. `server/services/aiQuotaService.ts` provides `checkAndIncrementQuota()` and `checkDailyQuota()`. Enforces 1/day Fridge Rescue for free users; paid users bypass. Frontend handles 429 responses with upgrade nudge UI.
--   **Freemium "Show but Lock" System**: Free users see all features but only Fridge Rescue + macro tools are functional. Other features are visible but locked with icons and trigger an upgrade modal. `UpgradeLockModal` is a reusable modal. `useFreeLock` hook guards actions.
--   **Tester Program Architecture**: `TESTER_PROGRAM_ACTIVE = true` flag controls tester bypass. Set in 3 files: `client/src/lib/subscriptionCheck.ts`, `server/lib/accessTier.ts`, `server/routes/auth.session.ts`. When `true`, users with `is_tester = true` in DB get full paid access, and all new signups auto-get `is_tester = true`. At launch, flip all 3 to `false` — testers become normal users subject to subscription checks. `freetest@myperfectmeals.com` is the only account with `is_tester = false` for testing the free-tier experience. The `is_tester` flag is permanent and remains useful post-launch for QA, demo, and Apple review accounts.
-
-## Coaching System Architecture
-
-The coaching system is built as a scalable, slug-based platform — not hardcoded per coach.
-
-### Adding a New Coach (3 steps, zero code rewrites)
-
-1. **Add to both config files:**
-
-   `client/src/config/coaches.ts` — for frontend UI (cards, forms, display names)
-   `server/config/coaches.ts` — for backend resolution (env var mapping, message templates)
-
-   ```ts
-   jen: {
-     slug: "jen",
-     displayName: "Coach Jen",
-     title: "Nutrition Coach",
-     isFounder: false,
-     userIdEnv: "COACH_JEN_USER_ID",
-     studioIdEnv: "COACH_JEN_STUDIO_ID",
-     image: "/assets/coach-jen.jpg",
-   }
-   ```
-
-2. **Set two env vars** in Replit Secrets:
-   - `COACH_JEN_USER_ID` — their database user ID
-   - `COACH_JEN_STUDIO_ID` — their studio ID
-
-3. **Done.** No routing changes, no new endpoints, no hardcoded logic.
-
-### Four Official Entry Flows (Architect-Approved)
-
-**Flow A — Client via MPM Platform (client pays directly):**
-Client fills form on ApplyGuidance → pays via Stripe → notify-coach creates "invited" membership → appears in Pro Portal Pending Activation queue → coach activates → program live.
-
-**Flow B — Coach sees MPM client (coach perspective for Flow A):**
-Coach opens Pro Portal → sees Pending Activation queue → taps Activate → system sends activation email → client moves to active roster.
-
-**Flow C — Coach invites external client (Care Team → Pro Portal):**
-Coach sends coaching invite via Pro Portal "Invited Awaiting Payment" section → invite email with token link → client installs app, pays → notify-coach links via invite token, marks invite accepted → client appears in queue → coach activates.
-
-**Flow D — External client gets invited (client perspective for Flow C):**
-Client receives email → taps "Accept Invitation" → creates account / logs in → purchases ProCare via Stripe → notify-coach uses inviteToken to link correct coach → enters activation queue → coach activates.
-
-**RULE: No one enters the Pro Portal queue without completed payment. Period.**
-
-### How notify-coach Works
-
-- Accepts `{ coachSlug, stripeSessionId, inviteToken? }` (inviteToken optional for Flow C/D)
-- Verifies Stripe payment server-side (never trust client)
-- If `inviteToken` present: looks up `coaching_invites` table, uses that studioId, marks invite accepted
-- If no inviteToken: resolves coach from `coachSlug` env vars
-- Creates `studioMemberships` record with `status="invited"` (pending activation)
-- Drops assignment message in coach inbox with source tag
-
-### Pro Portal (Coach Dashboard) — /pro/clients
-
-- **PendingActivationQueue** — clients who have paid, awaiting coach activation. Shows overdue badges (24h+), orange "Activate Client" button. Only renders for registered coaches.
-- **PendingCoachInvites** — clients the coach personally invited who haven't paid yet. Shows "Invited Awaiting Payment" section with email input to send new coaching invites. Only renders for registered coaches.
-- **Client activation** — `POST /api/coaching/activate-client/:clientId` sets status=active, scoped by studioId, sends activation email to client.
-- **Retired**: `/coach/queue` standalone route → `CoachQueue.tsx` now redirects to `/pro/clients`.
-
-### Coaching Invite System (coaching_invites table)
-
-- Coach calls `POST /api/coaching/send-invite` with client email → creates `coaching_invites` record (studioId, coachSlug, email, token UUID, 30-day expiry)
-- Email sent via `sendCoachingInviteEmail()` with link to `/apply-guidance?token=<uuid>`
-- Client visits link → `GET /api/coaching/invite/:token` returns coach info → ApplyGuidance pre-populates coach name and stores token in sessionStorage
-- After Stripe payment → CheckoutSuccess passes inviteToken to notify-coach → invite marked accepted
-- Coach sees pending invites via `GET /api/coaching/pending-invites`
-
-### Dev-Only Test Bypass
-
-- `POST /api/coaching/test-enroll` — **only available when `NODE_ENV=development`**, server-enforced (throws 404 in prod)
-- Creates "invited" membership + assignment note tagged with `source:dev_bypass`
-- "Test Mode — Skip Payment" button (violet pill) shown on ApplyGuidance only when `import.meta.env.DEV` is true
-
-### Key Files
-
-- `client/src/config/coaches.ts` — frontend coach registry
-- `server/config/coaches.ts` — server coach registry + `resolveCoach()` helper
-- `server/routes/coaching.ts` — notify-coach, activate-client, queue, send-invite, pending-invites, invite token, test-enroll endpoints
-- `server/db/schema/studio.ts` — includes `coachingInvites` table definition
-- `server/services/emailService.ts` — `sendCoachActivationEmail()`, `sendCoachingInviteEmail()`
-- `client/src/components/pro/PendingActivationQueue.tsx` — paid clients awaiting activation
-- `client/src/components/pro/PendingCoachInvites.tsx` — invited clients awaiting payment + send invite UI
-- `client/src/pages/pro/ProClients.tsx` — Pro Portal; renders both queue components
-- `client/src/pages/ApplyGuidance.tsx` — onboarding form → Stripe (reads ?token= for invite flow, test bypass button in dev)
-- `client/src/pages/CheckoutSuccess.tsx` — post-payment coach notification (passes inviteToken if present)
-- `client/src/pages/CoachesComingSoon.tsx` — coach selection grid
-
-### Current Coaches
-
-| Slug | Name | Role | Env Vars |
-|------|------|------|----------|
-| `idrise` | Coach Idrise | Founder & Head Coach | `COACH_IDRISE_USER_ID`, `COACH_IDRISE_STUDIO_ID` |
-
-### Rule: Never store coach user IDs on the frontend. Always use slug only.
-
-## Cancer Support Nutrition (oncology_support_v1)
-
-Physician-assigned clinical overlay. Not public-facing or self-selectable.
-
-### Architecture: Overlay on Anti-Inflammatory
-Built on top of the anti-inflammatory builder — not a standalone engine.
-
-### Authorization model (HARDENED)
-`verifyClinicalAccess(requesterId, targetUserId)` in `server/utils/verifyClinicalAccess.ts`:
-- Self-access always permitted
-- Cross-user access: requester must own the studio that the target user is a member of
-- Applied in: `clinicalLabs.ts` (POST and GET), `procareRoutes.ts` (oncology endpoints)
-
-### DB field
-`oncology_support_context jsonb` on `users` table (nullable — null = feature inactive for user).
-Typed as `OncologySupportContext` in `shared/schema.ts`.
-
-### Context shape
-```
-{ enabled, symptoms[], emphasis: { highProteinNutrientDensity }, source, updatedBy, updatedAt }
-```
-Symptoms: `low_appetite | nausea | mouth_sensitivity | fatigue_low_prep | gi_sensitivity`
-
-### Key files
-- `server/services/guardrails/prompt/oncologySupportPromptBuilder.ts` — overlay prompt composer
-- `server/services/guardrails/validators/oncologySupportValidator.ts` — post-generation safety validator
-- `server/utils/verifyClinicalAccess.ts` — shared clinician-client auth helper
-- ProCare endpoints: `GET/PUT /api/pro/oncology-support/:clientUserId`
-
-### Feature flag
-`ONCOLOGY_SUPPORT_V1` env var. Default: active. Set to `"off"` for instant disable.
-
-### Prompt injection path
-`stableMealGenerator.ts` loads `oncologySupportContext` from DB alongside palate prefs. 
-`buildOncologySupportPrompt()` is injected after existing hub context (diabetes/GLP-1/anti-inflammatory).
-
-### Hard-blocked ingredients (ENFORCED AT PROMPT + POST-GENERATION)
-`ONCOLOGY_HARD_BLOCKED_INGREDIENTS` (exported from `oncologySupportPromptBuilder.ts`) is the canonical list. Includes: all processed/cured meats (bacon, turkey bacon, sausage, chorizo, pepperoni, salami, prosciutto, pancetta, ham, deli meats, hot dogs, bologna, mortadella, spam, beef jerky), lard, margarine, shortening, hydrogenated oils. White bread/toast and charred preparations are also blocked at the prompt level. Priority foods (leafy greens, cruciferous vegetables, mushrooms, berries, healthy fats, high-fiber carbs, clean proteins) are actively injected into every generation. These blocks were added 2024-04-30 after the system generated a "Classic American Breakfast Plate" with bacon for a cancer protocol user — the prompt was labeling but not enforcing.
-
-### Safety validator (mandatory)
-`filterOncologySafeMeals()` / `validateOncologyMealSafety()` — two-check post-generation validator: (1) scans meal text (name, description, instructions) for forbidden clinical/treatment language (cure claims, chemotherapy references, supplement dosing); (2) scans ingredient list AND meal name against `ONCOLOGY_HARD_BLOCKED_INGREDIENTS` and rejects any meal containing a blocked item. Rejected meals are logged with the specific violation. Both checks must pass for a meal to be returned to the client.
-
-### Safety wording — non-negotiable
-No treatment claims, cure claims, diagnosis recommendations, or medication/supplement directives. Prompt includes: "nutrition support only — not medical treatment — follow oncology team guidance."
-
-### Phase 0 security hardening (COMPLETED)
-`clinicalLabs.ts` POST `/api/biometrics/labs` and GET `/api/biometrics/labs/:userId` now both call `verifyClinicalAccess()` and return 403 on unauthorized attempts.
-
-## Oncology Support Onboarding Intent (User-facing — separate from physician protocol)
-
-**CRITICAL SEPARATION**: This is NOT the physician oncology protocol. It captures user intent only during onboarding.
-
-### DB fields (added via direct SQL — see note below)
-- `oncology_support_intent text` — nullable. `own_provider | request_support | self_directed`. Set only by the user.
-- `oncology_support_intent_set_at timestamptz` — when intent was saved.
-- `needs_professional_followup boolean DEFAULT false` — true only for `request_support` intent.
-
-**Schema parity note**: These columns were added with direct SQL (not `db:push`) due to a pre-existing drizzle-kit null-expression bug in the `macro_logs` index. The Drizzle schema file (`shared/schema.ts` lines 391–396) is in sync with the live DB — confirmed via `information_schema.columns` query.
-
-### Onboarding flow
-`OnboardingV3.tsx` has 7 steps. Step 4 is the Treatment Support step (optional):
-- "Yes, I may need this" → reveals 3-path card choice
-- "Skip for now" → advances with null intent
-- Next button shows "Skip" / "Select a path above" (disabled) / "Next" depending on state
-- Intent saved to DB via `PATCH /api/user/oncology-support-intent` and mirrored to `localStorage:mpm:oncologySupportIntent`
-
-### API endpoint
-`PATCH /api/user/oncology-support-intent` — authenticated via `x-auth-token`. Saves intent, timestamp, and followup flag.
-
-### Profile persistence
-`/api/user/profile` returns `oncologySupportIntent`. `AuthContext` maps it to the `User` type and syncs localStorage on every refresh. Profile page hook card reads from `user?.oncologySupportIntent` first (server-authoritative), falls back to localStorage.
-
-### Profile follow-up card
-`client/src/pages/Profile.tsx` — rose-tinted card shown only when intent is `request_support`. Displays a waitlist notice and safety disclaimer.
-
-## Heat Preference Feature
-
-`heatPreference` is a first-class user profile field, separate from `flavorPreference`.
-
-### Values
-`none | mild | medium | hot | very-hot | unsure`
-
-### How it works
-- Stored as `heat_preference text` in the `users` DB table
-- Collected in onboarding step 5 (alongside flavor style and sweeteners)
-- Editable in Edit Profile → Flavor Preferences section
-- Flows through `PalatePreferences` in `server/services/promptBuilder.ts` via `buildPalateSection()`
-- **Medical override**: users with diabetes, GI conditions, anti-inflammatory, or RA/psoriasis/lupus are automatically capped at "mild" heat regardless of preference — clinical safety overrides user preference
-- `flavorPreference` and `heatPreference` are combined to give the AI a coherent flavor+heat instruction rather than two separate signals
-
-### Key rule: "Bold & Flavorful" slug stays as `bold-spicy`
-The display label was renamed but the stored value `bold-spicy` remains unchanged — safe for existing users, analytics, and prompt logic.
-
-### Prompt path
-`stableMealGenerator.ts` and `dessert-creator.ts` both load `flavorPreference`, `heatPreference`, and `medicalConditions` from the DB and pass them into `buildPalateSection()`. No scattered prompt edits — one central function.
-
-## Macro Truth Architecture (v1.0 — April 2026)
-
-### The Problem That Was Fixed
-The system was injecting "MANDATORY minimum carbs" instructions into ALL AI prompts — including keto, diabetic, anti-inflammatory, and liver support builders. Diabetic users were being told by the AI to use 25g starchy carbs minimum. Hardcoded numeric fallbacks (|| 30, || 35, || 40) were inventing carbs when the AI returned none.
-
-### Macro Truth Contract (`server/services/guardrails/macroTruthContract.ts`)
-The single source of truth for macro semantics:
-- **null** = unknown. AI did not provide this value. Never invented.
-- **0** = known zero. The food genuinely contains none of this macro.
-- No layer may invent a macro value. No fallback numerics.
-- Validation layers may REJECT or REGENERATE — never MUTATE.
-- Guidance layers may SUGGEST — never enter the pipeline.
-
-### Prompt Policy Gatekeeper (`server/services/guardrails/promptPolicyGate.ts`)
-Single authority for deciding whether balanced-meal macro guidance can be injected into a prompt.
-- **Blocked forever**: keto, diabetic, GLP-1, carnivore, anti-inflammatory, liver-support, fridge-rescue, restaurant, snacks, single-ingredient
-- **Allowed**: general/balanced nutrition only
-- Framing is changed from "MANDATORY minimums" to "targets, not requirements"
-
-### Files Cleaned (Baseline Injection Removed)
-- `server/services/promptBuilder.ts` — uses gatekeeper, passing diet context
-- `server/services/universalMealGenerator.ts` — uses gatekeeper
-- `server/services/fridgeRescueGenerator.ts` — uses gatekeeper (always blocked)
-- `server/services/guardrails/prompt/diabeticPromptBuilder.ts` — BASELINE removed entirely
-- `server/services/guardrails/prompt/antiInflammatoryPromptBuilder.ts` — BASELINE removed
-- `server/services/guardrails/prompt/liverSupportPromptBuilder.ts` — BASELINE removed
-- `server/services/guardrails/prompt/generalNutritionPromptBuilder.ts` — uses gatekeeper
-
-### Numeric Fallbacks Removed
-All `|| 30`, `|| 35`, `|| 40`, `|| 25`, `|| 15`, `|| 20` carb defaults replaced with:
-- Server pipeline: `resolveAICarbsStrict(aiMeal)` → returns `number | null`
-- Client pickers: `?? null` (displays `—` for unknown)
-- `UnifiedMeal.carbs` type updated to `number | null`
-
-### Cache Versioning
-- `IngredientSignatureInput` now accepts `policyVersion` field
-- Default version `mtp1` baked into all new cache keys
-- Old contaminated cache entries generate misses → fresh generation
-- Diet type already included in cache keys (cross-diet contamination prevented)
-
-### Macro Audit Logger (`server/utils/macroAuditLogger.ts`)
-Set `MACRO_AUDIT=true` in env to enable debug logging at:
-1. `prompt_sent` — logs whether baseline injection was included
-2. `ai_raw` — logs what the AI returned for carbs
-3. `post_processing` — logs post-pipeline carb values
-4. `api_payload` — logs final payload to client
-5. `cache` — logs cache hit/miss/write decisions
-
-## Ultimate Experiences — Multi-Course Meal Generator (April 2026)
-
-### Architecture
-The feature generates a complete multi-course holiday (or camping/tailgating) meal experience using the existing `universalMealGenerator` engine. No new AI service — it layers context on top.
-
-**Route:** `/lifestyle/ultimate-experiences`
-**API:** `POST /api/experiences/generate`
-**Server route file:** `server/routes/experiences.ts`
-
-### 4 Hard Guardrails (all server-enforced)
-1. **Course structure is route-enforced**: 3→App/Main/Dessert, 4→App/Main/Side/Dessert, 5→App/Main/2Sides/Dessert. AI never decides course count.
-2. **Shared flavor context**: One `experienceContext` object created once, injected into every course prompt so all courses taste like the same meal.
-3. **Explicit course labels**: Every course prompt tells the AI exactly which course it is generating — no guessing.
-4. **Retry logic**: Each course retries once in strict mode if it fails; never exposes "something went wrong" to the user (graceful fallback card).
-
-### Client Data
-`client/src/data/holidayTraditionalDishes.ts` — Curated traditional dishes for 8 holidays (Thanksgiving, Christmas, Kwanzaa, Hanukkah, Eid, Passover, New Year's, Fourth of July) organized by appetizer/main/side/dessert with popular pre-selections.
-
-### UX Flow
-1. Situation pill (Holiday / Camping / Tailgating)
-2. Holiday event pill (8 options)
-3. Traditional dish picker — popular dishes pre-selected, user can tap to add/remove, organized by category
-4. Family specialty text input — injected with mandatory preservation rule
-5. Course count pills (3 / 4 / 5)
-6. Servings stepper (− +, 1–50)
-7. Chef notes (optional)
-8. All guardrails: GlucoseGuard, FlavorToggle, KeepItSimple, DietGuard, SafetyGuard, StarchGuard
-
-### Results Display
-Multi-card layout — one card per course, each with gold course label badge showing course type + requested dish name. Full card parity with CreateDishPage: nutrition grid, ingredient list, step-by-step instructions, medical badges, Add to Macros, Add to Meal Plan, Prepare with Chef, Share Recipe, Translate, Favorite.
-
-ShoppingAggregateBar aggregates all ingredients across all courses with deduplication.
-
-### Pricing Note
-Ultimate Experiences is a $14.99/mo add-on (not a tier). Stripe billing deferred — gate to be added when payment work resumes.
-
-### Fast Food Feature (queued for next session)
-Fast Food = Restaurant Guide engine + `mode: "fast_food"` flag. No brand grid, no hardcoded restaurants, no new API. Works globally — user in US gets McDonald's suggestions, user in UK gets Greggs/Nando's. Entry point: SocializingHub button next to Guide/Find Meals. Banner at top: "Fast Food Mode — Smart fast food choices that match your diet."
-
-## Creator System Layer (Phase 3 — April 2026)
-
-### Architecture
-Branded "kitchens" that allow chefs/coaches to style meal generation output (name, description, instructions) without touching medical/dietary guardrails.
-
-**Config schema:** `server/services/creatorSystems/registry.ts` — `CreatorSystemConfig` (structured fields: techniques, flavorProfiles, ingredientBias, naming, instructionRules, description). Registry is now a fallback/seed only.
-
-**Transformer:** `server/services/creatorSystems/applyCreatorTransformation.ts` — 2-pass: build prompt from config → call LLM → merge name/description/instructions back. Always tags output with `creatorSystem: system.id`.
-
-**Resolver (DB-first):** `server/services/creatorSystems/resolveCreatorSystemForUser.ts` — reads `users.active_system` → looks up `creator_system_configs` via `creators.slug` → falls back to registry → falls back to default.
-
-**Questionnaire mapper:** `server/services/creatorSystems/mapQuestionnaireToSystemConfig.ts` — deterministic function that converts onboarding answers to `CreatorSystemConfig`. No AI used here.
-
-**Hooks:** Craving Creator (`server/routes.ts` ~line 3559), Dessert Creator (`server/routes/dessert-creator.ts`), Beverage Creator (`server/routes/beverage-creator.ts`).
-
-### Database Tables
-- `creators` — one per creator user; `slug`, `display_name`, `type`, `status` (not_started → invited → intake_submitted → active → rejected), `tier` (self_serve | gifted), `is_active`
-- `creator_system_configs` — one per creator; `config_json` (full CreatorSystemConfig), `version`, `published_at`
-- `creator_onboarding_submissions` — raw questionnaire answers per creator
-- `creator_meals` — signature catalog; `creator_id`, `creator_system_id`, `meal_json`, `is_published`
-
-### Build Order (per architect)
-1. ✅ Phase 2.2 — Structured config + 2-pass transformer
-2. ✅ Phase 3 data model — 4 tables + DB-first resolver
-3. Next: Self-serve onboarding API + Lifestyle card entry point
-4. Then: Signature catalog save/fetch flow + Creator Studio UI (light)
-
-### Key Rules
-- `registry.ts` is read-only fallback — all new creators live in DB
-- `users.active_system` stores the creator slug — same as `creators.slug`
-- Creator endpoints must enforce `creator.user_id === auth.user.id` (no cross-creator access)
-- Config is validated against `CreatorSystemConfig` shape before writing to DB
-- Catalog is `is_published` flag only — no ratings/comments/likes yet
-
-## External Dependencies
--   **PostgreSQL**: Primary database.
--   **OpenAI API**: AI-powered features.
--   **Stripe**: Payment processing.
--   **Resend**: Email services.
--   **Twilio**: SMS notifications.
--   **VAPID**: Push notifications.
--   **@squareetlabs/capacitor-subscriptions**: iOS StoreKit plugin.
+- **NEVER use `client/src/pages/onboarding-standalone.tsx`** for onboarding changes. The ONLY active onboarding is `client/src/pages/OnboardingV3.tsx`.
+- When mentioning "Chef's Kitchen," confirm if `CreateDishPage` (creation) or `ChefsKitchenPage` (walkthrough) is intended.
+- Never store coach user IDs on the frontend. Always use slug only.
+
+## Gotchas
+
+- **DEAD CODE**: `client/src/pages/onboarding-standalone.tsx` is dead code; do not use or modify.
+- **Onboarding**: All onboarding changes must target `client/src/pages/OnboardingV3.tsx`.
+- **UI Element Confusion**: Carefully distinguish between "Create a Dish" (`CreateDishPage`), "Chef's Kitchen" (`ChefsKitchenPage`), "Create With Chef" (modal `CreateWithChefModal.tsx`), "Snack Creator" (modal `SnackCreatorModal.tsx`), and "Beverage Creator" (`BeverageCreator.tsx`).
+- **Clinical Safety Overrides**: User preferences (e.g., heat preference) are automatically capped or overridden by clinical safety rules for users with specific medical conditions.
+- **Macro Truth Enforcement**: The `Macro Truth Contract` (v1.0) explicitly prevents AI from inventing macro values and blocks macro injection for specific diet types.
+- **Oncology Support**: `oncology_support_context` is physician-assigned and not public-facing; the separate `oncology_support_intent` captures user onboarding intent only. Hard-blocked ingredients are enforced at prompt and post-generation. No treatment claims are allowed.
+- **Coach Enrollment**: No one enters the Pro Portal queue without completed payment.
+- **"Bold & Flavorful" Slug**: The internal slug `bold-spicy` remains unchanged despite display name updates.
+
+## Pointers
+
+- **Agent Rules**: `docs/agent-rules.md`
+- **Baseline Status**: `BASELINE_STATUS.md`
+- **Change Log**: `CHANGE_LOG.md`
+- **Dismissible UI Pattern**: _Populate as you build_
+- **Golden Path Checklist**: _Populate as you build_
