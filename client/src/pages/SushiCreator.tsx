@@ -460,11 +460,11 @@ export default function SushiCreator() {
     console.log("🔥 handleGenerateMeal called - craving:", cravingInput);
     setDietAdaptedNotice(null);
 
-    if (!cravingInput.trim()) {
-      console.log("❌ Empty craving input - showing toast");
+    if (!cravingInput.trim() && !sushiStyle) {
+      console.log("❌ No input - showing toast");
       toast({
         title: "Missing Information",
-        description: "Please describe what you're craving first!",
+        description: "Tap a starter, pick a style, or describe what you want!",
         variant: "destructive",
       });
       return;
@@ -852,57 +852,49 @@ export default function SushiCreator() {
                     />
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-md font-medium text-white">
-                        What are you craving?
-                      </label>
-                    </div>
-                    <div className="relative">
-                      <textarea
-                        data-testid="cravingcreator-input-box"
-                        data-wt="cc-description-input"
-                        value={cravingInput}
-                        onChange={(e) => setCravingInput(e.target.value)}
-                        placeholder="e.g., spicy tuna roll with sriracha mayo, dragon roll with mango avocado, salmon sashimi - describe your ideal sushi!"
-                        className="w-full px-3 py-2 pr-10 bg-black text-white placeholder:text-white/50 border border-white/30 rounded-lg h-20 resize-none text-sm"
-                        maxLength={300}
-                      />
-                      {cravingInput && (
-                        <TrashButton
-                          onClick={() => setCravingInput("")}
-                          size="sm"
-                          ariaLabel="Clear craving input"
-                          title="Clear craving input"
-                          className="absolute top-2 right-2"
-                          data-testid="button-clear-craving"
-                        />
-                      )}
-                    </div>
-                    <p className="text-md text-white mt-1 text-center">
-                      Use keyboard or voice texting for input.
-                    </p>
-                    <p className="text-xs text-white/70 mt-1 text-right">
-                      {cravingInput.length}/300
-                    </p>
-                  </div>
+                <CardContent className="space-y-4">
 
-                  <DietCuisineControlRow
-                    savedCuisine={user?.cuisinePreference}
-                    dietOverrideEnabled={dietOverrideEnabled}
-                    dietOverrideValue={dietOverrideValue}
-                    onDietToggle={setDietOverrideEnabled}
-                    onDietChange={setDietOverrideValue}
-                    cuisineOverrideEnabled={cuisineOverrideEnabled}
-                    cuisineOverrideValue={cuisineOverrideValue}
-                    onCuisineToggle={setCuisineOverrideEnabled}
-                    onCuisineChange={setCuisineOverrideValue}
-                  />
+                  {/* Coach Micro-Hints */}
+                  <p className="text-xs text-white/55 leading-relaxed">
+                    👋 New to sushi? Start with a roll &nbsp;·&nbsp; 🐟 Want something light? Choose sashimi &nbsp;·&nbsp; 🥑 No fish? Try vegan rolls
+                  </p>
 
+                  {/* Starter Tiles — Primary Entry Point */}
                   <div>
                     <label className="block text-sm font-medium text-white mb-2">
-                      Sushi Style <span className="text-white/40 font-normal">(optional)</span>
+                      Quick Start <span className="text-white/40 font-normal">— tap to select, no typing needed</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { label: "California Roll", emoji: "🥑", value: "California Roll" },
+                        { label: "Spicy Tuna Roll", emoji: "🌶️", value: "Spicy Tuna Roll" },
+                        { label: "Salmon Avocado Roll", emoji: "🍣", value: "Salmon Avocado Roll" },
+                        { label: "Cucumber Roll (Vegan)", emoji: "🥒", value: "Cucumber Roll, vegan" },
+                        { label: "Rainbow Roll", emoji: "🌈", value: "Rainbow Roll" },
+                        { label: "Dragon Roll", emoji: "🐉", value: "Dragon Roll" },
+                        { label: "Salmon Sashimi", emoji: "🐟", value: "Salmon Sashimi" },
+                      ].map(({ label, emoji, value }) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => setCravingInput(cravingInput === value ? "" : value)}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-all active:scale-95 ${
+                            cravingInput === value
+                              ? "bg-lime-600 border-lime-400 text-white shadow-lg"
+                              : "bg-black/40 border-white/20 text-white/80 hover:border-white/40 hover:bg-white/10"
+                          }`}
+                        >
+                          <span className="text-base">{emoji}</span>
+                          <span className="text-left leading-tight">{label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Sushi Style — Secondary Guidance */}
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Sushi Style <span className="text-white/40 font-normal">(refine further)</span>
                     </label>
                     <div className="flex flex-wrap gap-2">
                       {[
@@ -926,41 +918,61 @@ export default function SushiCreator() {
                     </div>
                   </div>
 
-                  {/* Dietary Preferences with clear support */}
+                  {/* Optional Text Input — Expert Mode */}
                   <div>
-                    <label className="block text-md mb-1 text-white">
-                      Dietary Preferences (Optional)
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-sm font-medium text-white">
+                        Describe your sushi <span className="text-white/40 font-normal">(optional)</span>
+                      </label>
+                    </div>
+                    <div className="relative">
+                      <textarea
+                        data-testid="cravingcreator-input-box"
+                        data-wt="cc-description-input"
+                        value={cravingInput}
+                        onChange={(e) => setCravingInput(e.target.value)}
+                        placeholder="e.g., spicy tuna roll with sriracha mayo, dragon roll with mango avocado…"
+                        className="w-full px-3 py-2 pr-10 bg-black text-white placeholder:text-white/50 border border-white/30 rounded-lg h-16 resize-none text-sm"
+                        maxLength={300}
+                      />
+                      {cravingInput && (
+                        <TrashButton
+                          onClick={() => setCravingInput("")}
+                          size="sm"
+                          ariaLabel="Clear craving input"
+                          title="Clear craving input"
+                          className="absolute top-2 right-2"
+                          data-testid="button-clear-craving"
+                        />
+                      )}
+                    </div>
+                    <p className="text-xs text-white/70 mt-1 text-right">
+                      {cravingInput.length}/300
+                    </p>
+                  </div>
 
+                  {/* Diet Filters — Sushi-Relevant Only */}
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-white">
+                      Dietary Preference <span className="text-white/40 font-normal">(optional)</span>
+                    </label>
                     <div className="flex items-center gap-2">
                       <Select
                         data-wt="cc-dietary-flags"
                         value={selectedDiet || "__none__"}
-                        onValueChange={(v) =>
-                          setSelectedDiet(v === "__none__" ? "" : v)
-                        }
+                        onValueChange={(v) => setSelectedDiet(v === "__none__" ? "" : v)}
                       >
                         <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
-                          <SelectValue placeholder="Select dietary preferences" />
+                          <SelectValue placeholder="Select dietary preference" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="__none__">
-                            No preference (Clear)
-                          </SelectItem>
-                          <SelectItem value="keto">Keto/Low Carb</SelectItem>
-                          <SelectItem value="paleo">Paleo</SelectItem>
+                          <SelectItem value="__none__">No preference</SelectItem>
                           <SelectItem value="vegan">Vegan</SelectItem>
                           <SelectItem value="vegetarian">Vegetarian</SelectItem>
-                          <SelectItem value="gluten-free">
-                            Gluten-Free
-                          </SelectItem>
-                          <SelectItem value="dairy-free">Dairy-Free</SelectItem>
-                          <SelectItem value="mediterranean">
-                            Mediterranean
-                          </SelectItem>
+                          <SelectItem value="gluten-free">Gluten-Free</SelectItem>
+                          <SelectItem value="keto">Low-Carb / Keto</SelectItem>
                         </SelectContent>
                       </Select>
-
                       <GlassButton
                         data-wt="cc-clear-flags-button"
                         onClick={clearDiet}
@@ -971,11 +983,16 @@ export default function SushiCreator() {
                         Clear
                       </GlassButton>
                     </div>
+                    {selectedDiet === "keto" && (
+                      <p className="text-xs text-white/60 mt-1.5 pl-1">
+                        No rice — sashimi-style or lettuce-wrapped options
+                      </p>
+                    )}
                   </div>
 
-                  {/* NEW: Serving Size Dropdown */}
+                  {/* Number of Servings */}
                   <div>
-                    <label className="block text-md font-medium mb-1 text-white">
+                    <label className="block text-sm font-medium mb-1 text-white">
                       Number of Servings
                     </label>
                     <Select
@@ -1000,25 +1017,6 @@ export default function SushiCreator() {
                       </SelectContent>
                     </Select>
                   </div>
-
-                  {!selectedDiet && (
-                    <div>
-                      <label className="block text-md font-medium mb-1 text-white">
-                        Custom Dietary Restrictions
-                      </label>
-                      <textarea
-                        data-wt="cc-custom-restrictions"
-                        value={dietaryRestrictions}
-                        onChange={(e) => setDietaryRestrictions(e.target.value)}
-                        placeholder="e.g., no nuts, low sodium, diabetic-friendly..."
-                        className="w-full px-3 py-2 bg-black text-white placeholder:text-white/50 border border-white/30 rounded-lg h-16 resize-none text-md"
-                        maxLength={250}
-                      />
-                      <p className="text-xs text-white/70 mt-1 text-right">
-                        {dietaryRestrictions.length}/250
-                      </p>
-                    </div>
-                  )}
 
                   {!replaceId && (
                     <p className="text-white/80 text-sm mt-2 text-center"></p>
