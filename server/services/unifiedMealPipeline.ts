@@ -1618,13 +1618,15 @@ export async function generateCravingMealOptions(
   // but oncology is stored in specialtyCondition — NOT dietaryRestrictions — so
   // that check was structurally impossible and never activated. Fixed here.
   const _cravingMentionsOncology = /oncolog|cancer[\s\-]?support|cancer[\s\-]?protocol/i.test(cravingInput);
+  console.log(`🧬 [VARIETY ENGINE] Oncology check — specialtyCondition: ${JSON.stringify(_varietySpecialtyCondition)}, oncologyCtx.enabled: ${_varietyOncologyCtx?.enabled ?? null}, cravingTextMatch: ${_cravingMentionsOncology}, dietRestrictions includes: ${dietRestrictions.includes('oncology-support')}`);
   const isVarietyOncology =
     _varietySpecialtyCondition === 'oncology-support' ||
     _varietyOncologyCtx?.enabled === true ||
+    dietRestrictions.includes('oncology-support') ||
     _cravingMentionsOncology;
 
   if (isVarietyOncology) {
-    const _oncologyTrigger = _varietyOncologyCtx?.enabled ? 'DB (physician)' : _varietySpecialtyCondition === 'oncology-support' ? 'specialtyCondition' : 'text intent';
+    const _oncologyTrigger = _varietyOncologyCtx?.enabled ? 'DB (physician)' : _varietySpecialtyCondition === 'oncology-support' ? 'specialtyCondition' : dietRestrictions.includes('oncology-support') ? 'route-injection' : 'text intent';
     const oncologyVarietyOverlay = [
       ``,
       `═══ CANCER SUPPORT NUTRITION — HARD BLOCK (ALL 3 OPTIONS) ═══`,
