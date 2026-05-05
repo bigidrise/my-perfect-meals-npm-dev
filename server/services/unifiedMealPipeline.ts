@@ -1531,6 +1531,10 @@ export async function generateCravingMealOptions(
   let allergyBlock = '';
   let avoidanceBlock = '';
   let proceduralBlock = '';
+  // Oncology fields fetched from DB — declared outside try so they're in scope for the overlay check below
+  let _varietySpecialtyCondition: string | null = null;
+  let _varietyOncologyCtx: { enabled?: boolean } | null = null;
+
   if (userId) {
     try {
       const [u] = await db.select({
@@ -1539,9 +1543,15 @@ export async function generateCravingMealOptions(
         healthConditions: users.healthConditions,
         dislikedFoods: users.dislikedFoods,
         avoidedFoods: users.avoidedFoods,
+        specialtyCondition: users.specialtyCondition,
+        oncologySupportContext: users.oncologySupportContext,
       }).from(users).where(eq(users.id, userId)).limit(1);
 
       dietRestrictions = (u?.dietaryRestrictions as string[]) || [];
+
+      // Store oncology fields for the activation check below
+      _varietySpecialtyCondition = u?.specialtyCondition ?? null;
+      _varietyOncologyCtx = (u?.oncologySupportContext as { enabled?: boolean } | null) ?? null;
 
       const allergies: string[] = (u?.allergies as string[]) || [];
       if (allergies.length > 0) {
@@ -1601,12 +1611,20 @@ export async function generateCravingMealOptions(
   }
 
   // ── Oncology overlay for variety engine ──────────────────────────────────
-  // The oncology protocol prompt is normally injected only in the stable
-  // single-meal generator. For variety cards shown to oncology-support users,
-  // we must also enforce hard-blocks at the prompt level so the AI never
-  // suggests processed meats, added sugars, or vegan sausage as options.
-  const isVarietyOncology = dietRestrictions.includes('oncology-support');
+  // Activation: specialtyCondition === 'oncology-support' (self-selected) OR
+  //             oncologySupportContext.enabled === true (physician-assigned) OR
+  //             craving text explicitly mentions oncology/cancer protocol.
+  // NOTE: dietRestrictions.includes('oncology-support') was the original check
+  // but oncology is stored in specialtyCondition — NOT dietaryRestrictions — so
+  // that check was structurally impossible and never activated. Fixed here.
+  const _cravingMentionsOncology = /oncolog|cancer[\s\-]?support|cancer[\s\-]?protocol/i.test(cravingInput);
+  const isVarietyOncology =
+    _varietySpecialtyCondition === 'oncology-support' ||
+    _varietyOncologyCtx?.enabled === true ||
+    _cravingMentionsOncology;
+
   if (isVarietyOncology) {
+    const _oncologyTrigger = _varietyOncologyCtx?.enabled ? 'DB (physician)' : _varietySpecialtyCondition === 'oncology-support' ? 'specialtyCondition' : 'text intent';
     const oncologyVarietyOverlay = [
       ``,
       `═══ CANCER SUPPORT NUTRITION — HARD BLOCK (ALL 3 OPTIONS) ═══`,
@@ -1615,7 +1633,8 @@ export async function generateCravingMealOptions(
       `STRICTLY FORBIDDEN — never appear in any option:`,
       `• Processed/cured meats: bacon, sausage (ALL forms including vegan sausage, veggie sausage,`,
       `  plant-based sausage), pepperoni, salami, ham, hot dogs, deli meat, chorizo, bratwurst`,
-      `• Added sugars: maple syrup, honey, agave, corn syrup, brown sugar, powdered sugar, refined sugar`,
+      `• Added sugars: maple syrup, honey, agave, corn syrup, brown sugar, powdered sugar, refined sugar,`,
+      `  bourbon reduction, glazes containing sugar, barbecue sauce with sugar`,
       `• Heavily processed fats: lard, margarine, shortening, hydrogenated oils`,
       `• Refined white carbs as primary starch: white bread, white pasta — upgrade to whole grain`,
       ``,
@@ -1624,10 +1643,18 @@ export async function generateCravingMealOptions(
       `• At least ONE anti-inflammatory vegetable: broccoli, kale, spinach, mushrooms, bell peppers`,
       `• A real fiber anchor: oats, quinoa, lentils, sweet potato, brown rice, or berries`,
       `• A therapeutic booster: garlic, turmeric, ginger, lemon, or fresh herbs`,
+      ``,
+      `TRANSFORMATION RULE: If the requested dish is traditionally prepared with forbidden ingredients`,
+      `(e.g., BBQ spareribs with maple glaze or brown sugar), you MUST reinterpret ALL 3 options into`,
+      `fully compliant versions that preserve the cultural spirit of the dish. Dish names should remain`,
+      `recognizable — only non-compliant components are replaced. Example: "spareribs" →`,
+      `Dry-Rubbed Oven Spareribs (turmeric-garlic rub, sweet potato, collard greens — no sugar glaze),`,
+      `Herb-Braised Spareribs (lemon-herb broth, brown rice, roasted broccoli — no sauce),`,
+      `Citrus-Marinated Spareribs (orange-ginger marinade, quinoa, sautéed kale — no added sugar).`,
       `═════════════════════════════════════════════════════════════`,
     ].join('\n');
     dietBlock += oncologyVarietyOverlay;
-    console.log(`🧬 [VARIETY ENGINE] Oncology hard-block overlay injected`);
+    console.log(`🧬 [VARIETY ENGINE] Oncology hard-block overlay injected (trigger: ${_oncologyTrigger})`);
   }
 
   const excludeClause = excludeMeals && excludeMeals.length > 0
