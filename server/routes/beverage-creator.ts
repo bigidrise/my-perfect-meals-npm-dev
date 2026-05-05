@@ -14,121 +14,10 @@ import { type UserProtocolEnvelope } from "../services/protocolEnvelope";
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from "../services/behavioralMemoryService";
 import { resolveCreatorSystemForUser } from "../services/creatorSystems/resolveCreatorSystemForUser";
 import { applyCreatorTransformation } from "../services/creatorSystems/applyCreatorTransformation";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MEDICAL BEVERAGE ENFORCEMENT
-// Generates ingredient-level prompt rules for every active medical condition
-// and nutrition builder. The generic protocol block only says "this user has X"
-// — these blocks spell out exactly which beverage ingredients are banned/required.
-// Called once per request; returns "" when no relevant conditions are active.
-// ─────────────────────────────────────────────────────────────────────────────
-function buildMedicalBeverageEnforcement(
-  envelope: UserProtocolEnvelope,
-  builder: BuilderKey | null,
-): string {
-  const blocks: string[] = [];
-  const limits = envelope.medicalHardLimits.map(c => c.toLowerCase());
-  const optimization = envelope.medicalOptimization.map(c => c.toLowerCase());
-  const allMedical = [...limits, ...optimization];
-
-  // ── CARDIAC / HEART DISEASE / HYPERTENSION ────────────────────────────────
-  const hasCardiac = limits.some(c =>
-    c.includes("cardiac") || c.includes("heart disease") || c.includes("heart failure") || c.includes("hypertension")
-  );
-  if (hasCardiac) {
-    blocks.push(`🫀 CARDIAC BEVERAGE SAFETY — MANDATORY (clinically required, cannot be overridden):
-NEVER include: full-fat ice cream or frozen dairy desserts even as a blending base (use frozen banana, low-fat yogurt, or sorbet); whole milk or heavy cream (use oat milk, almond milk, soy milk, or low-fat milk); butter or coconut cream; added sugar > 1 tsp, simple syrup, honey > 1 tsp, sweetened condensed milk, flavored syrups; alcohol; high-sodium ingredients (soy sauce, salted broths).
-REQUIRED: ≤ 200 calories/serving; base = plant milk, low-fat milk, plain low-fat yogurt, water, coconut water, or unsweetened tea; natural fruit sweetness preferred; cultural flavor identity preserved — change base and sweetener only, not the drink concept.
-If a milkshake is requested: frozen banana + plant milk + cultural flavoring. NEVER full-fat ice cream.`);
-  }
-
-  // ── RENAL / KIDNEY DISEASE ────────────────────────────────────────────────
-  const hasRenal = limits.some(c =>
-    c.includes("renal") || c.includes("kidney") || c.includes("ckd")
-  );
-  if (hasRenal) {
-    blocks.push(`🫘 RENAL / KIDNEY DISEASE BEVERAGE SAFETY — MANDATORY (clinically required):
-NEVER include: high-potassium ingredients — banana, orange, orange juice, tomato juice, avocado, spinach-dominant juices, potato-based drinks; high-phosphorus — nuts, seeds, chocolate, cocoa, large amounts of dairy (whole milk, heavy cream in shakes); dark soda, cola, energy drinks (high phosphorus and potassium); salt or high-sodium mixes.
-REQUIRED: low-potassium fruit base only — apple, grapes, blueberries, cranberry (unsweetened); prefer water, herbal tea, unsweetened cranberry juice, or small amounts of apple juice; if a smoothie is requested: apple + blueberry base ONLY — NEVER banana or orange; moderate calories 150–200/serving; avoid high-phosphorus dairy-heavy bases.`);
-  }
-
-  // ── LIVER DISEASE ─────────────────────────────────────────────────────────
-  const hasLiverDisease = limits.some(c =>
-    c.includes("liver disease") || c.includes("liver-disease")
-  ) || optimization.some(c => c.includes("nafld") || c.includes("fatty liver"));
-  if (hasLiverDisease) {
-    blocks.push(`🫀 LIVER DISEASE BEVERAGE SAFETY — MANDATORY (clinically required):
-NEVER include: alcohol of any kind — beer, wine, liquor, cocktail ingredients — this is an absolute clinical hard stop; raw shellfish or raw fish in any blended/liquid form; soda, energy drinks, sweet tea, fruit punch, juice cocktails (high sugar harms the liver); heavy syrup, candy-based flavoring, sweetened condensed milk, added sugar > 1 tsp; ultra-processed flavoring.
-REQUIRED: base = water, herbal tea, green tea, coconut water, or unsweetened plant milk; natural fruit sweetness only, no syrups; prefer liver-supportive ingredients: turmeric, ginger, lemon, beet, green tea, or berries when possible; 150–250 calories/serving.`);
-  }
-
-  // ── LIVER SUPPORT ─────────────────────────────────────────────────────────
-  const hasLiverSupport = allMedical.some(c =>
-    c.includes("liver support") || c.includes("liver-support")
-  );
-  if (hasLiverSupport && !hasLiverDisease) {
-    blocks.push(`🌿 LIVER SUPPORT BEVERAGE RULES — MANDATORY:
-NEVER include: alcohol of any kind; soda, energy drinks, sweet tea, juice cocktails; heavy syrup, processed artificial flavoring, candy-based ingredients; deep-fried additions or toppings.
-REQUIRED: light, whole-food base — herbal tea, green tea, plant milk, coconut water, or water; natural sweetness only (fruit, small amount of honey); prefer turmeric, ginger, green tea, lemon, or beet-based drinks when culturally appropriate.`);
-  }
-
-  // ── ONCOLOGY SUPPORT ──────────────────────────────────────────────────────
-  const hasOncology = allMedical.some(c =>
-    c.includes("oncology") || c.includes("oncology-support") || c.includes("cancer")
-  );
-  if (hasOncology) {
-    blocks.push(`🎗️ ONCOLOGY SUPPORT BEVERAGE SAFETY — MANDATORY (physician-assigned protocol):
-NEVER include: alcohol of any kind — zero exceptions, no cocktail or cocktail-adjacent ingredients; raw shellfish, raw fish, or any raw/undercooked ingredient (infection risk during treatment); processed or deli meat additives; soda, energy drinks; high added sugar — heavy syrups, candy flavoring, sweetened condensed milk, added sugar > 1 tsp.
-REQUIRED: food safety is paramount — use only pasteurized dairy if dairy is used; prefer immune-supportive ingredients: green tea, ginger, turmeric, berries, tart cherry, pomegranate; protein-forward smoothies encouraged if appetite is reduced (Greek yogurt + berries, plant protein powder); 150–350 calories/serving; prioritize nutrient density over volume.`);
-  }
-
-  // ── BUILDER-SPECIFIC BEVERAGE SUPPLEMENTS ─────────────────────────────────
-  // These ADD beverage-specific language on top of the general builder block
-  // already in beverageProtocolBlock. They don't replace it — they sharpen it
-  // with concrete ingredient names the AI understands in a beverage context.
-
-  if (builder === "diabetic") {
-    blocks.push(`🩺 DIABETIC BEVERAGE RULES — beverage-specific (supplement to medical rules above):
-NEVER use: simple syrup, honey > ½ tsp, agave > ½ tsp, flavored syrups, sweetened creamers, or fruit juice as the primary base (high glycemic spike).
-SWEETENER: stevia or monk fruit only if any sweetness is needed.
-SMOOTHIE BASE: low-GI fruits only — berries, green apple, tart cherry — NEVER banana, mango, or pineapple as the dominant ingredient.
-PREFER: plain Greek yogurt, unsweetened plant milk, or protein powder base; net carbs ≤ 20g/serving for standalone beverages.`);
-  }
-
-  if (builder === "glp1") {
-    blocks.push(`💊 GLP-1 BEVERAGE RULES — beverage-specific (supplement to medical rules above):
-PORTION: single serving only (8–12 oz for smoothies and shakes); no large-format or pitcher-style drinks.
-SUGAR: no added sugar; natural fruit sweetness in moderation only.
-BASE: avoid heavy cream and full-fat ice cream; prefer plant milk or low-fat dairy.
-ALCOHOL: if an alcoholic beverage is requested, limit to 1 standard drink equivalent max — prefer mocktail version.
-Prioritize protein-forward, low-volume, nutrient-dense options over sugary blended drinks.`);
-  }
-
-  if (builder === "anti_inflammatory") {
-    blocks.push(`🌿 ANTI-INFLAMMATORY BEVERAGE RULES — beverage-specific (supplement to above):
-AVOID: soda, energy drinks, artificial sweeteners, high-sugar fruit juices, seed or vegetable oils, processed flavor syrups, refined white sugar.
-PREFER these specific ingredients: turmeric, ginger, cinnamon, green tea, matcha, tart cherry, pomegranate, beet, blueberry, spinach (in smoothies), coconut water, oat milk, almond milk.
-SWEETENER: small amount of raw honey, dates, or natural fruit sweetness only.
-BASE: unsweetened plant milk, green tea, water, or coconut water.`);
-  }
-
-  if (blocks.length === 0) return "";
-
-  const activeConditions = [
-    hasCardiac && "cardiac",
-    hasRenal && "renal",
-    hasLiverDisease && "liver-disease",
-    hasLiverSupport && !hasLiverDisease && "liver-support",
-    hasOncology && "oncology",
-    builder === "diabetic" && "diabetic-builder",
-    builder === "glp1" && "glp1-builder",
-    builder === "anti_inflammatory" && "anti-inflammatory-builder",
-  ].filter(Boolean).join(", ");
-
-  console.log(`🔒 [BEVERAGE] Medical enforcement injected: [${activeConditions}]`);
-
-  return `\n🔒 MEDICAL BEVERAGE SAFETY PROTOCOLS — ALL RULES BELOW ARE CLINICALLY MANDATORY:\n${blocks.join("\n\n")}\n`;
-}
+import {
+  buildBeveragePromptBlocks,
+  validateBeverageOutput,
+} from "../services/guardrails/beverageMedicalRules";
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -434,10 +323,10 @@ beverageCreatorRouter.post("/", async (req, res) => {
     console.log(`🌍 [BEVERAGE] Cuisine: override=${cultureOverride ?? "none"} intensity=${beverageCuisineIntensity}`);
 
     // ── Medical beverage enforcement — ingredient-level rules for every active condition ──
-    // The generic protocol block only says "this user has X condition" — not which specific
-    // beverage ingredients are banned. buildMedicalBeverageEnforcement covers all conditions:
-    // cardiac, renal, liver-disease, liver-support, oncology, diabetic, GLP-1, anti-inflammatory.
-    const medicalBeverageBlock = buildMedicalBeverageEnforcement(
+    // buildBeveragePromptBlocks() uses the same structured rule registry as the
+    // post-generation validator, ensuring prompt intent and validation enforcement
+    // are always in sync (one source of truth in beverageMedicalRules.ts).
+    const medicalBeverageBlock = buildBeveragePromptBlocks(
       beverageEnvelope,
       beverageContext.builder,
     );
@@ -526,14 +415,30 @@ INCORRECT (NEVER DO THIS):
       return nameHit || ingredientHit;
     }
 
-    const MAX_BEVERAGE_ATTEMPTS = 2;
+    // Three attempts:
+    //   Attempt 1 — normal generation
+    //   Attempt 2 — appends specific protocol or clinical violation hint
+    //   Attempt 3 — appends combined hint if still failing (last chance)
+    const MAX_BEVERAGE_ATTEMPTS = 3;
     let meal: any;
     let beverageScan: ReturnType<typeof scanGeneratedOutput> | null = null;
+    let beverageValidation: ReturnType<typeof validateBeverageOutput> | null = null;
 
     for (let attempt = 1; attempt <= MAX_BEVERAGE_ATTEMPTS; attempt++) {
-      const retryHint = attempt > 1 && beverageScan
-        ? `\n\nPREVIOUS ATTEMPT VIOLATION — fix this before generating:\n${beverageScan.message}\nEnsure every ingredient and the drink name are fully compliant with the dietary rules above.`
-        : "";
+      // Build the retry hint from whichever validator failed last round.
+      // Clinical validator (beverage-specific ingredient bans) takes priority
+      // because its hints are more specific and corrective than the generic scan.
+      let retryHint = "";
+      if (attempt > 1) {
+        if (beverageValidation && !beverageValidation.passed) {
+          retryHint = beverageValidation.retryHint;
+        } else if (beverageScan && !beverageScan.passed) {
+          retryHint =
+            `\n\nPREVIOUS ATTEMPT VIOLATION — fix this before generating:\n` +
+            `${beverageScan.message}\n` +
+            `Ensure every ingredient and the drink name are fully compliant with the dietary rules above.`;
+        }
+      }
 
       if (isDev) console.log(`[BEVERAGE] Calling OpenAI GPT-4o (attempt ${attempt})...`);
       const completion = await getOpenAI().chat.completions.create({
@@ -552,7 +457,7 @@ INCORRECT (NEVER DO THIS):
         return res.status(500).json({ error: "AI returned invalid JSON for beverage" });
       }
 
-      // ── Solid-food fast-fail guard ────────────────────────────────────────
+      // ── Layer 1: Solid-food fast-fail guard ───────────────────────────────
       if (isSolidFood(meal)) {
         console.warn(`🚨 [BEVERAGE] Solid food detected in output ("${meal.name}") — attempt ${attempt}. Forcing retry.`);
         if (attempt >= MAX_BEVERAGE_ATTEMPTS) {
@@ -563,25 +468,58 @@ INCORRECT (NEVER DO THIS):
           });
         }
         beverageScan = { passed: false, message: `Output was food ("${meal.name}"), not a beverage. You MUST generate a ${categoryLabel} drink.` } as any;
+        beverageValidation = null;
         continue;
       }
 
-      // ── Post-gen protocol scan ────────────────────────────────────────────
+      // ── Layer 2: Post-gen protocol scan (dietary restriction compliance) ──
       beverageScan = scanGeneratedOutput(meal, beverageEnvelope, {
         generatorName: 'beverage_creator',
         skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
       });
 
-      if (beverageScan.passed) break;
-
-      console.log(`🚫 [BEVERAGE] Post-gen protocol violation (attempt ${attempt}): ${beverageScan.message}`);
-      if (attempt >= MAX_BEVERAGE_ATTEMPTS) {
-        return res.status(400).json({
-          error: "PROTOCOL_VIOLATION",
-          message: beverageScan.message,
-          retryable: true,
-        });
+      if (!beverageScan.passed) {
+        console.log(`🚫 [BEVERAGE] Protocol violation (attempt ${attempt}): ${beverageScan.message}`);
+        beverageValidation = null;
+        if (attempt >= MAX_BEVERAGE_ATTEMPTS) {
+          return res.status(400).json({
+            error: "PROTOCOL_VIOLATION",
+            message: beverageScan.message,
+            retryable: true,
+          });
+        }
+        continue;
       }
+
+      // ── Layer 3: Clinical medical validator (ingredient-level hard bans) ──
+      // Runs only when the protocol scan passes. Checks the generated ingredient
+      // list against the structured ban registry in beverageMedicalRules.ts.
+      // This is the system-controlled enforcement gate — not AI guidance.
+      beverageValidation = validateBeverageOutput(
+        meal,
+        beverageEnvelope,
+        beverageContext.builder,
+      );
+
+      if (!beverageValidation.passed) {
+        console.warn(
+          `🚨 [BEVERAGE] Clinical validation failed (attempt ${attempt}): ` +
+          beverageValidation.violations.map(v => `[${v.condition}] ${v.ingredient}`).join("; ")
+        );
+        if (attempt >= MAX_BEVERAGE_ATTEMPTS) {
+          return res.status(400).json({
+            error: "CLINICAL_VIOLATION",
+            message:
+              `This beverage cannot be generated safely for your health profile. ` +
+              `Violations: ${beverageValidation.violations.map(v => v.rule).join("; ")}`,
+            retryable: true,
+          });
+        }
+        continue;
+      }
+
+      // All three layers passed — output is clean
+      break;
     }
 
     const normalizedIngredients = normalizeIngredients(meal.ingredients || []);
