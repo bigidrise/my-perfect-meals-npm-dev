@@ -169,7 +169,7 @@ export async function generateRestaurantMeals(request: RestaurantMealRequest): P
       console.log(`🖼️ Generating image for ${meal.name}...`);
       // DO NOT call image generation directly.
       // Use generateMealImageUnified only.
-      const imageUrl = await generateMealImageUnified(meal.name, meal.ingredients || []);
+      const imageUrl = await generateMealImageUnified(meal.name, meal.ingredients || [], 'meal');
       meal.imageUrl = imageUrl;
       console.log(`✅ Image generated for ${meal.name}: ${imageUrl}`);
     } catch (error) {

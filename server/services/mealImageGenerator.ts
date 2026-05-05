@@ -351,9 +351,58 @@ export function buildDishTypeHint(mealName: string): string {
 // Layer 1: Structured prompt that tells DALL-E exactly what to render.
 // ─────────────────────────────────────────────────────────────────────────────
 
-function buildMealImagePrompt(mealName: string, ingredients: string[]): string {
-  const dish = detectDishType(mealName);
+// ─────────────────────────────────────────────────────────────────────────────
+// SOURCE-TYPE ANCHORS
+// Hard presentation rules keyed to the explicit sourceType from the generator.
+// These run BEFORE the name-based classifier to prevent macro misclassification.
+// The classifier still refines presentation style within the anchored category.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const SOURCE_TYPE_ANCHORS: Record<string, { base: string; rule: string }> = {
+  beverage: {
+    base: "A photorealistic tall glass containing a finished drink — liquid visible, condensation on the glass if cold, steam if hot. No food on the plate.",
+    rule: "THIS IS A BEVERAGE. Do NOT show any solid food. Do NOT show a plate with food. Show ONLY the drink in a glass or cup.",
+  },
+  snack: {
+    base: "A photorealistic small portion snack, finished and ready to eat, on a small plate or board.",
+    rule: "THIS IS A SNACK. Show a small, finished portion. Do NOT show a full dinner plate.",
+  },
+  dessert: {
+    base: "A photorealistic plated dessert, finished and ready to eat.",
+    rule: "THIS IS A DESSERT. Show only the finished dessert, plated. Do NOT show savory food.",
+  },
+  meal: {
+    base: "A photorealistic finished meal, plated and ready to eat.",
+    rule: "THIS IS A COOKED MEAL. Do NOT show a glass of liquid as the primary subject. Show a plated hot or warm dish.",
+  },
+};
+
+function buildMealImagePrompt(mealName: string, ingredients: string[], sourceType?: ImageSourceType): string {
   const topIngredients = ingredients.slice(0, 5).join(", ");
+
+  // When sourceType is explicitly provided by the generator, use it as the
+  // hard macro anchor. The name-based classifier refines presentation within
+  // that category but cannot override the top-level type decision.
+  if (sourceType && SOURCE_TYPE_ANCHORS[sourceType]) {
+    const anchor = SOURCE_TYPE_ANCHORS[sourceType];
+    const dish = detectDishType(mealName);
+
+    return `${anchor.base}
+Food: ${mealName}.
+${topIngredients ? `Made with: ${topIngredients}.` : ''}
+Presentation: ${dish.presentation}. ${dish.textureDescription}.
+
+${anchor.rule}
+CRITICAL: Show ONLY the finished, ready-to-eat item described above — NOT raw ingredients, NOT uncooked components, NOT ingredient bowls.
+ABSOLUTE RULE: NO HUMANS. NO PEOPLE. NO PERSONS. NO HANDS. NO ARMS. NO BODIES. NO FACES. NO MODELS. Food only.
+
+Style: cinematic, high-detail, natural lighting, realistic food photography.
+Camera: 3/4 angle or overhead depending on dish type.
+Background: clean, minimal, neutral surface, no clutter, no text, no logos, no humans.`;
+  }
+
+  // No sourceType — fall back to full name-based classifier (legacy path)
+  const dish = detectDishType(mealName);
 
   return `A photorealistic ${dish.presentation} of ${mealName}.
 This is a finished dish, ready to eat, plated and served — ${dish.textureDescription}.
@@ -451,12 +500,18 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 // CORE TYPES (kept for backward compatibility with mealImages route)
 // ─────────────────────────────────────────────────────────────────────────────
 
+// sourceType: explicit category from the generator — overrides name-based classifier
+// for the macro-level decision (meal / beverage / snack / dessert).
+// The classifier still runs for presentation style within that category.
+export type ImageSourceType = 'meal' | 'beverage' | 'snack' | 'dessert';
+
 export interface MealImageRequest {
   mealName: string;
   ingredients: string[];
   style?: 'overhead' | 'plated' | 'rustic' | 'restaurant';
   templateRef?: string;
   mealType?: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  sourceType?: ImageSourceType;
 }
 
 export interface GeneratedImage {
@@ -474,13 +529,14 @@ export interface GeneratedImage {
 export async function generateMealImage(request: MealImageRequest): Promise<GeneratedImage> {
   // NORMALIZATION — must happen before cache key derivation and before prompt construction
   const normalizedName = normalizeMealName(request.mealName);
-  const { ingredients, mealType } = request;
+  const { ingredients, mealType, sourceType } = request;
   const mealName = normalizedName;
   const cacheKey = buildStableCacheKey(mealName, ingredients);
 
   // ── SNACK FIREWALL ──────────────────────────────────────────────────────────
-  const isSnackByType = mealType === 'snack';
-  const isSnackByPattern = !mealType && isLikelySnack(mealName);
+  // sourceType === 'snack' is the hard override; mealType and pattern are fallbacks
+  const isSnackByType = sourceType === 'snack' || mealType === 'snack';
+  const isSnackByPattern = !sourceType && !mealType && isLikelySnack(mealName);
 
   if (isSnackByType || isSnackByPattern) {
     const staticImage = getStaticSnackImage(mealName);
@@ -538,7 +594,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
   }
 
   // ── LAYER 1: BUILD STRONG PROMPT ───────────────────────────────────────────
-  const prompt = buildMealImagePrompt(mealName, ingredients);
+  const prompt = buildMealImagePrompt(mealName, ingredients, sourceType);
 
   if (process.env.NODE_ENV === "development") {
     console.log(`📝 IMAGE PROMPT for "${mealName}":\n${prompt}`);
@@ -719,7 +775,8 @@ export function getImageCacheStats(): { size: number; entries: string[] } {
 
 export async function generateMealImageUnified(
   mealName: string,
-  ingredients: Array<string | Record<string, any>> = []
+  ingredients: Array<string | Record<string, any>> = [],
+  sourceType?: ImageSourceType
 ): Promise<string> {
   // DO NOT call image generation directly.
   // Use generateMealImageUnified only.
@@ -738,6 +795,7 @@ export async function generateMealImageUnified(
   const result = await generateMealImage({
     mealName: normalizedName,
     ingredients: ingredientNames,
+    sourceType,
   });
 
   return result.url;
