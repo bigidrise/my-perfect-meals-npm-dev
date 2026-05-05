@@ -3582,6 +3582,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bodyDietRestrictions = dietaryRestrictions
         ? (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean)
         : [];
+
+      // ── Route-level oncology injection ────────────────────────────────────
+      // The variety engine does its own DB query for specialtyCondition, but the
+      // route already has the full user object — use it as a reliable upstream
+      // source so the pipeline never has to guess. If oncology is active, add
+      // 'oncology-support' to bodyDietRestrictions so the merged array in the
+      // pipeline triggers the overlay even if the inner DB query misses it.
+      const _routeSpecialtyCondition = (user as any)?.specialtyCondition ?? null;
+      const _routeOncologyCtx = (user as any)?.oncologySupportContext as { enabled?: boolean } | null ?? null;
+      const _routeOncologyActive =
+        _routeSpecialtyCondition === 'oncology-support' ||
+        _routeOncologyCtx?.enabled === true;
+      if (_routeOncologyActive && !bodyDietRestrictions.includes('oncology-support')) {
+        bodyDietRestrictions.push('oncology-support');
+        console.log(`🎗️ [CRAVING ROUTE] Oncology injected into diet restrictions (source: ${_routeSpecialtyCondition === 'oncology-support' ? 'specialtyCondition' : 'oncologySupportContext'})`);
+      }
+
       const excludeMeals: string[] = Array.isArray(req.body.excludeMeals)
         ? req.body.excludeMeals.slice(0, 5)
         : [];

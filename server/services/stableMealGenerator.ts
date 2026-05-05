@@ -833,6 +833,23 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
     console.log(`🎨 Palate preferences skipped - using neutral seasoning for shared meal`);
   }
 
+  // 🎗️ TEXT-INTENT ONCOLOGY SYNTHETIC CONTEXT
+  // If the craving text mentions oncology but no DB flag was loaded above, create a synthetic
+  // context so the catalog filter (line ~1094) and the catalog bypass below both activate.
+  // Without this, text-intent only fires in the no-match AI fallback — the catalog path is unprotected.
+  if (craving && /oncolog|cancer[\s\-]?support|cancer[\s\-]?protocol/i.test(String(craving)) &&
+      !((userPrefs as any)?._oncologySupportContext?.enabled)) {
+    (userPrefs as any)._oncologySupportContext = {
+      enabled: true,
+      symptoms: [],
+      emphasis: { highProteinNutrientDensity: true },
+      source: "self",
+      updatedBy: null,
+      updatedAt: null,
+    };
+    console.log('🎗️ [CANCER SUPPORT] Text-intent oncology detected in craving — synthetic context activated for catalog bypass + filter');
+  }
+
   // 🧠 Phase 2 Step 1: Behavioral memory — derive preference profile (read-only, no writes)
   let behavioralMemorySection: string = "";
   let behavioralProfile: PreferenceProfile | null = null;
@@ -1242,6 +1259,30 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
     }
   }
   
+  // 🎗️ ONCOLOGY HARD CATALOG BYPASS
+  // When oncology is active (DB flag OR text intent — both now populate _oncologySupportContext),
+  // skip the static catalog entirely. Catalog meals cannot be reliably verified as oncology-safe
+  // (e.g., "BBQ ribs" in catalog may contain brown sugar via a sauce not individually listed).
+  // The constraint-first AI prompt is the only reliable path for oncology meals.
+  if (craving && isOncologySupportEnabled()) {
+    const _oncologyBypassCtx = (userPrefs as any)?._oncologySupportContext as OncologySupportContext | null;
+    if (_oncologyBypassCtx?.enabled) {
+      console.log('🎗️ [CANCER SUPPORT] Oncology active — bypassing catalog, routing to constraint-first AI generation');
+      telemetry.tagFallback(sessionId, "oncology_ai_bypass", "Oncology active — catalog bypassed for constraint-first AI");
+      telemetry.closeSession(sessionId);
+
+      const oncologyPrompt = buildOncologySupportPrompt(_oncologyBypassCtx);
+      const enhancedCravingForBypass = oncologyPrompt
+        ? `${oncologyPrompt}
+TRANSFORMATION RULE: If the requested dish is traditionally prepared with ingredients that violate the above constraints (e.g., added sugar, honey, brown sugar, maple syrup, bourbon glaze, processed meats), you MUST reinterpret it into a fully compliant version while preserving its cultural identity and spirit. The dish concept and name should remain recognizable — only the non-compliant components are replaced with protocol-safe alternatives. Example: "soul food spareribs" → dry-rubbed oven-baked spareribs with turmeric-garlic spice rub, sweet potato wedges, and braised collard greens with garlic and olive oil — no added sugar, no honey glaze, no maple syrup, no bourbon.
+
+User request: ${craving}`
+        : String(craving);
+
+      return await generateMealFromPrompt(enhancedCravingForBypass, targetMealType, userPrefs);
+    }
+  }
+
   // CRAVING MATCHING LOGIC - Filter by craving if provided
   // For kids meals, also process craving matching to find the right kid-friendly meal
   if (craving && (!userPrefs?.kidFriendly || filtered.length > 1)) {
@@ -1356,12 +1397,25 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
       }
 
       // 🎗️ CANCER SUPPORT NUTRITION OVERLAY: Inject symptom-aware guidance if active
+      // Activation: DB flag (physician-assigned) OR text intent in the craving ("oncology", "cancer support", etc.)
       const oncologyCtx = (userPrefs as any)?._oncologySupportContext as OncologySupportContext | null;
-      if (isOncologySupportEnabled() && oncologyCtx?.enabled) {
-        const oncologyPrompt = buildOncologySupportPrompt(oncologyCtx);
+      const cravingMentionsOncology = /oncolog|cancer[\s\-]?support|cancer[\s\-]?protocol/i.test(craving);
+      const oncologyActive = isOncologySupportEnabled() && (oncologyCtx?.enabled || cravingMentionsOncology);
+
+      if (oncologyActive) {
+        const activeCtx: OncologySupportContext = oncologyCtx?.enabled
+          ? oncologyCtx
+          : { enabled: true, symptoms: [], emphasis: { highProteinNutrientDensity: true }, source: "self", updatedBy: null, updatedAt: null };
+        const oncologyPrompt = buildOncologySupportPrompt(activeCtx);
         if (oncologyPrompt) {
-          console.log(`🎗️ [CANCER SUPPORT] Injecting oncology nutrition overlay. Symptoms: [${oncologyCtx.symptoms.join(", ")}]`);
-          enhancedCraving = `${enhancedCraving}\n\n${oncologyPrompt}`;
+          const trigger = oncologyCtx?.enabled ? "DB flag" : "text intent";
+          console.log(`🎗️ [CANCER SUPPORT] Injecting oncology overlay (trigger: ${trigger}). Symptoms: [${activeCtx.symptoms.join(", ")}]`);
+          // CONSTRAINT-FIRST: hard rules come BEFORE the user request so the model
+          // sees constraints as primary, not as an afterthought to fix later.
+          enhancedCraving = `${oncologyPrompt}
+TRANSFORMATION RULE: If the requested dish is traditionally prepared with ingredients that violate the above constraints (e.g., added sugar, honey, brown sugar, processed meats), you MUST reinterpret it into a fully compliant version while preserving its cultural identity and spirit. The dish concept and name should remain recognizable — only the non-compliant components are replaced with protocol-safe alternatives. Example: "soul food spareribs" → dry-rubbed oven-baked spareribs with turmeric-garlic spice rub, sweet potato wedges, and braised collard greens with garlic and olive oil — no added sugar, no honey glaze.
+
+User request: ${craving}`;
         }
       }
       

@@ -1531,6 +1531,10 @@ export async function generateCravingMealOptions(
   let allergyBlock = '';
   let avoidanceBlock = '';
   let proceduralBlock = '';
+  // Oncology fields fetched from DB — declared outside try so they're in scope for the overlay check below
+  let _varietySpecialtyCondition: string | null = null;
+  let _varietyOncologyCtx: { enabled?: boolean } | null = null;
+
   if (userId) {
     try {
       const [u] = await db.select({
@@ -1539,9 +1543,15 @@ export async function generateCravingMealOptions(
         healthConditions: users.healthConditions,
         dislikedFoods: users.dislikedFoods,
         avoidedFoods: users.avoidedFoods,
+        specialtyCondition: users.specialtyCondition,
+        oncologySupportContext: users.oncologySupportContext,
       }).from(users).where(eq(users.id, userId)).limit(1);
 
       dietRestrictions = (u?.dietaryRestrictions as string[]) || [];
+
+      // Store oncology fields for the activation check below
+      _varietySpecialtyCondition = u?.specialtyCondition ?? null;
+      _varietyOncologyCtx = (u?.oncologySupportContext as { enabled?: boolean } | null) ?? null;
 
       const allergies: string[] = (u?.allergies as string[]) || [];
       if (allergies.length > 0) {
@@ -1601,12 +1611,22 @@ export async function generateCravingMealOptions(
   }
 
   // ── Oncology overlay for variety engine ──────────────────────────────────
-  // The oncology protocol prompt is normally injected only in the stable
-  // single-meal generator. For variety cards shown to oncology-support users,
-  // we must also enforce hard-blocks at the prompt level so the AI never
-  // suggests processed meats, added sugars, or vegan sausage as options.
-  const isVarietyOncology = dietRestrictions.includes('oncology-support');
+  // Activation: specialtyCondition === 'oncology-support' (self-selected) OR
+  //             oncologySupportContext.enabled === true (physician-assigned) OR
+  //             craving text explicitly mentions oncology/cancer protocol.
+  // NOTE: dietRestrictions.includes('oncology-support') was the original check
+  // but oncology is stored in specialtyCondition — NOT dietaryRestrictions — so
+  // that check was structurally impossible and never activated. Fixed here.
+  const _cravingMentionsOncology = /oncolog|cancer[\s\-]?support|cancer[\s\-]?protocol/i.test(cravingInput);
+  console.log(`🧬 [VARIETY ENGINE] Oncology check — specialtyCondition: ${JSON.stringify(_varietySpecialtyCondition)}, oncologyCtx.enabled: ${_varietyOncologyCtx?.enabled ?? null}, cravingTextMatch: ${_cravingMentionsOncology}, dietRestrictions includes: ${dietRestrictions.includes('oncology-support')}`);
+  const isVarietyOncology =
+    _varietySpecialtyCondition === 'oncology-support' ||
+    _varietyOncologyCtx?.enabled === true ||
+    dietRestrictions.includes('oncology-support') ||
+    _cravingMentionsOncology;
+
   if (isVarietyOncology) {
+    const _oncologyTrigger = _varietyOncologyCtx?.enabled ? 'DB (physician)' : _varietySpecialtyCondition === 'oncology-support' ? 'specialtyCondition' : dietRestrictions.includes('oncology-support') ? 'route-injection' : 'text intent';
     const oncologyVarietyOverlay = [
       ``,
       `═══ CANCER SUPPORT NUTRITION — HARD BLOCK (ALL 3 OPTIONS) ═══`,
@@ -1615,19 +1635,45 @@ export async function generateCravingMealOptions(
       `STRICTLY FORBIDDEN — never appear in any option:`,
       `• Processed/cured meats: bacon, sausage (ALL forms including vegan sausage, veggie sausage,`,
       `  plant-based sausage), pepperoni, salami, ham, hot dogs, deli meat, chorizo, bratwurst`,
-      `• Added sugars: maple syrup, honey, agave, corn syrup, brown sugar, powdered sugar, refined sugar`,
+      `• Added sugars: maple syrup, honey, agave, corn syrup, brown sugar, powdered sugar, refined sugar,`,
+      `  bourbon reduction, glazes containing sugar, barbecue sauce with sugar`,
       `• Heavily processed fats: lard, margarine, shortening, hydrogenated oils`,
       `• Refined white carbs as primary starch: white bread, white pasta — upgrade to whole grain`,
       ``,
-      `REQUIRED in every option:`,
-      `• A green-tier protein: fresh fish, eggs, chicken breast, tofu, tempeh, lentils, chickpeas`,
-      `• At least ONE anti-inflammatory vegetable: broccoli, kale, spinach, mushrooms, bell peppers`,
-      `• A real fiber anchor: oats, quinoa, lentils, sweet potato, brown rice, or berries`,
-      `• A therapeutic booster: garlic, turmeric, ginger, lemon, or fresh herbs`,
+      `MANDATORY PLATE STRUCTURE — INCOMPLETE PLATES ARE INVALID:`,
+      `Every option MUST contain ALL THREE of the following components. An option with only protein`,
+      `and no vegetable or fiber anchor is REJECTED — do not generate it.`,
+      ``,
+      `COMPONENT 1 — PROTEIN (the requested dish or a compliant version of it):`,
+      `• Use the user's requested protein as the anchor. If it requires transformation (see below),`,
+      `  transform it — but keep it recognizable. Do NOT replace ribs with chicken just to avoid work.`,
+      ``,
+      `COMPONENT 2 — FIBER ANCHOR (MANDATORY, not optional):`,
+      `• One of: sweet potato, roasted yam, quinoa, brown rice, lentils, black beans,`,
+      `  chickpeas, farro, barley, oats (for breakfast), or berries (for snacks/breakfast).`,
+      `• If the protein is naturally high-fat (ribs, dark meat, salmon), the fiber anchor is`,
+      `  ESPECIALLY important — it balances the plate and supports digestion.`,
+      `• A meal with 1–2g of total carbs is WRONG for this protocol. Do not generate it.`,
+      ``,
+      `COMPONENT 3 — VEGETABLE (MANDATORY, not optional):`,
+      `• One of: collard greens, kale, spinach, broccoli, cauliflower, Brussels sprouts,`,
+      `  roasted zucchini, bell peppers, mushrooms, asparagus, Swiss chard, bok choy.`,
+      `• Must appear as an actual listed ingredient with a quantity — not implied or hidden.`,
+      ``,
+      `THERAPEUTIC BOOSTER — add at least one to every option:`,
+      `• Garlic, turmeric, ginger, lemon juice, fresh herbs (parsley, cilantro, thyme, rosemary).`,
+      ``,
+      `TRANSFORMATION RULE: If the requested dish is traditionally prepared with forbidden ingredients`,
+      `(e.g., BBQ spareribs with maple glaze or brown sugar), you MUST reinterpret ALL 3 options into`,
+      `fully compliant versions that preserve the cultural spirit of the dish. Dish names should remain`,
+      `recognizable — only non-compliant components are replaced. Example: "spareribs" →`,
+      `Dry-Rubbed Oven Spareribs (turmeric-garlic rub) + sweet potato wedges + braised collard greens,`,
+      `Herb-Braised Spareribs (rosemary-lemon broth) + brown rice + roasted broccoli,`,
+      `Citrus-Marinated Spareribs (orange-ginger) + quinoa + sautéed kale. EACH option is a full plate.`,
       `═════════════════════════════════════════════════════════════`,
     ].join('\n');
     dietBlock += oncologyVarietyOverlay;
-    console.log(`🧬 [VARIETY ENGINE] Oncology hard-block overlay injected`);
+    console.log(`🧬 [VARIETY ENGINE] Oncology hard-block overlay injected (trigger: ${_oncologyTrigger})`);
   }
 
   const excludeClause = excludeMeals && excludeMeals.length > 0
@@ -2256,9 +2302,12 @@ export async function generateFromDescriptionUnified(
     }
 
     // ── Load oncology-support context if active ─────────────────────────────
+    // Activation: dietType === 'oncology-support' OR description text mentions oncology/cancer protocol
     let oncologyCtx: OncologySupportContext | null = null;
     let oncologyPromptSection = "";
-    if (dietType === 'oncology-support' && userId) {
+    const descriptionMentionsOncology = /oncolog|cancer[\s\-]?support|cancer[\s\-]?protocol/i.test(description || "");
+    const oncologyTriggered = dietType === 'oncology-support' || descriptionMentionsOncology;
+    if (isOncologySupportEnabled() && oncologyTriggered && userId) {
       try {
         const [oncologyUser] = await db.select({ oncologySupportContext: users.oncologySupportContext })
           .from(users).where(eq(users.id, userId)).limit(1);
@@ -2266,9 +2315,10 @@ export async function generateFromDescriptionUnified(
         if (rawCtx?.enabled) {
           oncologyCtx = rawCtx;
           oncologyPromptSection = buildOncologySupportPrompt(rawCtx);
-          console.log(`🔬 [CREATE-WITH-CHEF] Oncology-support context loaded — symptoms: ${rawCtx.symptoms?.join(', ') || 'none'}`);
+          const trigger = dietType === 'oncology-support' ? 'dietType' : 'text intent';
+          console.log(`🔬 [CREATE-WITH-CHEF] Oncology-support context loaded (trigger: ${trigger}) — symptoms: ${rawCtx.symptoms?.join(', ') || 'none'}`);
         } else {
-          // No DB context but diet type is oncology-support: apply default hard-block
+          // No DB context but oncology triggered: apply default hard-block
           oncologyPromptSection = buildOncologySupportPrompt({
             enabled: true,
             symptoms: [],
@@ -2292,8 +2342,12 @@ export async function generateFromDescriptionUnified(
       console.log(`🌈 [DiversityRule] Injecting diversity guidance into prompt`);
     }
 
+    const oncologyTransformationRule = oncologyPromptSection
+      ? `\nTRANSFORMATION RULE: If the requested dish is traditionally prepared with ingredients that violate the above constraints (e.g., added sugar, honey, brown sugar, processed meats), you MUST reinterpret it into a fully compliant version while preserving its cultural identity and spirit. The dish concept should remain recognizable — only non-compliant components are replaced with protocol-safe alternatives. Example: "soul food spareribs" → dry-rubbed oven-baked spareribs with turmeric-garlic spice rub, sweet potato wedges, and braised collard greens — no added sugar, no honey glaze.\n`
+      : "";
+
     let basePrompt = `You are a professional chef creating a personalized meal recipe.
-${chefProtocolBlock ? `\n${chefProtocolBlock}\n` : ""}${oncologyPromptSection ? `\n${oncologyPromptSection}\n` : ""}${behavioralMemorySection ? `\n${behavioralMemorySection}\n` : ""}
+${chefProtocolBlock ? `\n${chefProtocolBlock}\n` : ""}${oncologyPromptSection ? `\n${oncologyPromptSection}\n` : ""}${oncologyTransformationRule}${behavioralMemorySection ? `\n${behavioralMemorySection}\n` : ""}
 TASK: Create a complete ${validMealType} recipe based on this request: "${description}"
 
 REQUIREMENTS:
