@@ -95,8 +95,12 @@ beverageCreatorRouter.post("/", async (req, res) => {
       skipPalate,
       dietAdaptOverride,
       userDietOverride,
-      cultureOverride,
+      cultureOverride: _cultureOverride,
+      cuisineOverride: _cuisineOverride,
     } = req.body ?? {};
+
+    // Accept either key name — some clients send cuisineOverride, others cultureOverride
+    const cultureOverride: string | undefined = (_cultureOverride || _cuisineOverride) ?? undefined;
 
     if (isDev) console.log("[BEVERAGE] Request params:", { beverageCategory, flavorFamily, servingSize, hasCustomDesc: typeof customBeverageDescription === "string" && customBeverageDescription.trim().length > 0 });
 
@@ -289,14 +293,67 @@ beverageCreatorRouter.post("/", async (req, res) => {
       }
     }
 
+    // ── Cuisine intensity — read from user's profile envelope ─────────────────
+    // This is the same intensity the user set for meals. "light" means same drink,
+    // lighter base ingredients (plant milk over whole milk, yogurt over ice cream,
+    // minimal sweetener). "authentic" means traditional ingredients from that culture.
+    const beverageCuisineIntensity = beverageEnvelope.cuisineIntensity ?? "balanced";
+
+    const BEVERAGE_INTENSITY_DEPTH: Record<string, string> = {
+      light: `Apply the cultural FLAVOR identity fully (spices, fruits, herbs, aromatics, teas) — but lighten the BASE ingredients only.
+  - REQUIRED BASE SWAPS: full-fat ice cream → frozen banana or low-fat yogurt; whole milk → oat milk, almond milk, soy milk, or low-fat milk; heavy cream → low-fat milk or plant milk; butter → none.
+  - SWEETENER: Skip added syrups and honey entirely. Use natural fruit sweetness. If a small sweetener is needed, use ½ tsp honey or 1 tsp agave — no more.
+  - The drink NAME, CATEGORY, and CULTURAL FLAVOR PROFILE stay identical. Do NOT change a Korean citrus drink to water with lime. Do NOT change a milkshake to a smoothie. Keep the cultural flavor — change what carries it.
+  - If a milkshake is requested: make the lightest possible version (frozen banana + low-fat milk + cultural flavoring) — NEVER full-fat ice cream.`,
+      balanced: `Apply the cultural flavor identity fully — spices, fruits, herbs, aromatics — with health-aware base choices. Prefer lower-fat dairy or plant milk over heavy cream or whole milk. Moderate natural sweetening. Cultural ingredients are preserved; the base is optimized for balance.`,
+      authentic: `Apply strict cultural authenticity — use traditional ingredients, flavor combinations, and preparation methods from this cuisine. Traditional bases (full-fat dairy, honey, traditional sweeteners, coconut milk) are permitted unless overridden by the user's active medical or dietary constraints.`,
+    };
+
     const cuisineOverrideBlock = cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()
-      ? `\n🌍 CUISINE STYLE OVERRIDE: The user has requested ${cultureOverride.trim()} style. Infuse authentic ${cultureOverride.trim()} flavors, spices, and cultural ingredients into this beverage. Adapt names and flavor notes accordingly.\n`
+      ? `\n🌍 CUISINE STYLE (${beverageCuisineIntensity.toUpperCase()}): Create a ${cultureOverride.trim()}-influenced beverage.\n${BEVERAGE_INTENSITY_DEPTH[beverageCuisineIntensity] ?? BEVERAGE_INTENSITY_DEPTH.balanced}\n`
       : "";
+
+    console.log(`🌍 [BEVERAGE] Cuisine: override=${cultureOverride ?? "none"} intensity=${beverageCuisineIntensity}`);
+
+    // ── Cardiac beverage enforcement — explicit ingredient-level rules ─────────
+    // The generic medical block only tells the AI "this user has cardiac" — not
+    // which specific ingredients to ban. Without these rules the AI still produces
+    // milkshakes with ice cream, whole milk, and high sugar for cardiac users.
+    const hasCardiacCondition = beverageEnvelope.medicalHardLimits.some(c =>
+      c.includes("cardiac") || c.includes("heart disease") || c.includes("heart failure") || c.includes("hypertension")
+    );
+
+    const cardiacBeverageBlock = hasCardiacCondition
+      ? `
+🫀 CARDIAC BEVERAGE SAFETY — MANDATORY (clinically required, cannot be overridden):
+This user has a cardiac / heart condition. Every beverage MUST follow these rules:
+
+NEVER include in a cardiac beverage:
+- Full-fat ice cream or frozen dairy desserts — even as a blending base (use frozen banana, low-fat yogurt, or sorbet instead)
+- Whole milk or heavy cream (use oat milk, almond milk, soy milk, or low-fat milk)
+- Butter, coconut cream, or any other saturated-fat-heavy ingredient
+- Added sugar > 1 tsp, simple syrup, honey > 1 tsp, sweetened condensed milk, flavored syrups
+- Alcohol of any kind
+- High-sodium ingredients (soy sauce, salted broths, etc.)
+
+REQUIRED for every cardiac beverage:
+- Total calories ≤ 200 per serving (single serving)
+- Base must be: plant milk, low-fat milk, plain low-fat yogurt, water, coconut water, or unsweetened tea
+- Natural fruit sweetness is permitted and preferred over added sweeteners
+- Cultural flavor identity is preserved — change the BASE and SWEETENER, not the cultural flavoring ingredients
+
+If a milkshake or cream-based drink is requested: substitute frozen banana + plant milk + cultural flavoring — the result must still be a drink in the same cultural flavor direction, NOT a different category.
+`
+      : "";
+
+    if (hasCardiacCondition) {
+      console.log(`🫀 [BEVERAGE] Cardiac enforcement block injected — banning full-fat dairy/added sugar, capping 200 cal`);
+    }
 
     const prompt = `
 You are a professional mixologist, nutritionist, and beverage chef inside the My Perfect Meals system.
 Generate a FULL structured beverage recipe.
-${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${cuisineOverrideBlock}${beverageBehavioralMemorySection ? `\n${beverageBehavioralMemorySection}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}${softOverrideBlock}
+${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${cardiacBeverageBlock}${cuisineOverrideBlock}${beverageBehavioralMemorySection ? `\n${beverageBehavioralMemorySection}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}${softOverrideBlock}
 The result MUST be a drink. Never generate solid food, meals, or desserts.
 
 Return JSON ONLY, following this exact schema:

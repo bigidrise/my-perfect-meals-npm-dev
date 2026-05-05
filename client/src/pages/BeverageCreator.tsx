@@ -346,7 +346,7 @@ export default function BeverageCreator() {
           dietAdaptOverride,
           userDietOverride,
           dietOverride: dietOverrideEnabled && dietOverrideValue ? dietOverrideValue : undefined,
-          cuisineOverride: cuisineOverrideEnabled && cuisineOverrideValue ? cuisineOverrideValue : undefined,
+          cultureOverride: cuisineOverrideEnabled && cuisineOverrideValue ? cuisineOverrideValue : undefined,
         }),
       });
 
