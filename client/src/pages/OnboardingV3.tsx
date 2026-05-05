@@ -1023,9 +1023,9 @@ export default function OnboardingV3() {
                 </label>
                 <div className="flex flex-col gap-2">
                   {([
-                    ["light", "Light Influence", "Subtle — familiar ingredients, mild hints"],
-                    ["balanced", "Balanced", "Recognizable style, approachable for everyone"],
-                    ["authentic", "Authentic", "Full cultural identity — traditional spices and techniques"],
+                    ["light", "Light Influence", "Health-first — your cultural flavors added on top"],
+                    ["balanced", "Balanced", "Real dish formats from your cuisine, ingredients adjusted for your health"],
+                    ["authentic", "Authentic", "Traditional recipes as actually made. If you have no dietary restrictions or health conditions, this includes traditional fats, oils, and sugars. Active health conditions are still protected."],
                   ] as const).map(([value, label, desc]) => (
                     <button
                       key={value}
