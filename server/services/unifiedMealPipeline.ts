@@ -2256,9 +2256,12 @@ export async function generateFromDescriptionUnified(
     }
 
     // ── Load oncology-support context if active ─────────────────────────────
+    // Activation: dietType === 'oncology-support' OR description text mentions oncology/cancer protocol
     let oncologyCtx: OncologySupportContext | null = null;
     let oncologyPromptSection = "";
-    if (dietType === 'oncology-support' && userId) {
+    const descriptionMentionsOncology = /oncolog|cancer[\s\-]?support|cancer[\s\-]?protocol/i.test(description || "");
+    const oncologyTriggered = dietType === 'oncology-support' || descriptionMentionsOncology;
+    if (isOncologySupportEnabled() && oncologyTriggered && userId) {
       try {
         const [oncologyUser] = await db.select({ oncologySupportContext: users.oncologySupportContext })
           .from(users).where(eq(users.id, userId)).limit(1);
@@ -2266,9 +2269,10 @@ export async function generateFromDescriptionUnified(
         if (rawCtx?.enabled) {
           oncologyCtx = rawCtx;
           oncologyPromptSection = buildOncologySupportPrompt(rawCtx);
-          console.log(`🔬 [CREATE-WITH-CHEF] Oncology-support context loaded — symptoms: ${rawCtx.symptoms?.join(', ') || 'none'}`);
+          const trigger = dietType === 'oncology-support' ? 'dietType' : 'text intent';
+          console.log(`🔬 [CREATE-WITH-CHEF] Oncology-support context loaded (trigger: ${trigger}) — symptoms: ${rawCtx.symptoms?.join(', ') || 'none'}`);
         } else {
-          // No DB context but diet type is oncology-support: apply default hard-block
+          // No DB context but oncology triggered: apply default hard-block
           oncologyPromptSection = buildOncologySupportPrompt({
             enabled: true,
             symptoms: [],
@@ -2292,8 +2296,12 @@ export async function generateFromDescriptionUnified(
       console.log(`🌈 [DiversityRule] Injecting diversity guidance into prompt`);
     }
 
+    const oncologyTransformationRule = oncologyPromptSection
+      ? `\nTRANSFORMATION RULE: If the requested dish is traditionally prepared with ingredients that violate the above constraints (e.g., added sugar, honey, brown sugar, processed meats), you MUST reinterpret it into a fully compliant version while preserving its cultural identity and spirit. The dish concept should remain recognizable — only non-compliant components are replaced with protocol-safe alternatives. Example: "soul food spareribs" → dry-rubbed oven-baked spareribs with turmeric-garlic spice rub, sweet potato wedges, and braised collard greens — no added sugar, no honey glaze.\n`
+      : "";
+
     let basePrompt = `You are a professional chef creating a personalized meal recipe.
-${chefProtocolBlock ? `\n${chefProtocolBlock}\n` : ""}${oncologyPromptSection ? `\n${oncologyPromptSection}\n` : ""}${behavioralMemorySection ? `\n${behavioralMemorySection}\n` : ""}
+${chefProtocolBlock ? `\n${chefProtocolBlock}\n` : ""}${oncologyPromptSection ? `\n${oncologyPromptSection}\n` : ""}${oncologyTransformationRule}${behavioralMemorySection ? `\n${behavioralMemorySection}\n` : ""}
 TASK: Create a complete ${validMealType} recipe based on this request: "${description}"
 
 REQUIREMENTS:

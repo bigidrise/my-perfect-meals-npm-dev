@@ -766,15 +766,58 @@ When possible, incorporate: ${prefList}.`;
   // ── CUISINE CULTURAL GROUNDING (culture-first generation — below all safety/diet tiers) ───
   if (envelope.cuisinePreference) {
     const intensity = envelope.cuisineIntensity ?? "balanced";
+
+    // Determine whether this user has active health-directive constraints.
+    // Allergies are always enforced regardless — this only controls whether
+    // nutritional optimization is applied on top of cultural authenticity.
+    const isHealthConstrained =
+      envelope.medicalHardLimits.length > 0 ||
+      envelope.medicalOptimization.length > 0 ||
+      envelope.dietaryIdentity.length > 0;
+
+    // True authentic = user chose "authentic" AND has no active health constraints.
+    // In this mode, traditional ingredients (lard, butter, sugar, cream, etc.) are
+    // fully permitted. The user has explicitly chosen real cultural food over optimization.
+    const trueAuthentic = intensity === "authentic" && !isHealthConstrained;
+
     const intensityDepth: Record<string, string> = {
       light: "Apply subtle cultural influence — use recognizable flavors and mild spice signatures from this cuisine. Some familiar formats are acceptable but should lean toward cultural patterns.",
-      balanced: "Apply full cultural structure — meal format, ingredients, and flavor system must reflect how people in this cuisine actually eat. Avoid Western defaults.",
-      authentic: "Apply strict cultural authenticity — every element (dish format, proteins, starches, vegetables, seasoning) must be drawn from this cuisine's real food traditions. No Western templates.",
+      balanced: "Apply full cultural structure — meal format, ingredients, and flavor system must reflect how people in this cuisine actually eat. Avoid Western defaults. Smart health-aware ingredient choices are applied.",
+      authentic: trueAuthentic
+        ? "Apply strict cultural authenticity — every element (dish format, proteins, starches, vegetables, cooking fats, seasoning) must be drawn from this cuisine's real food traditions. Traditional ingredients including butter, lard, rendered animal fats, cream, honey, sugars, and culturally authentic carbohydrates are fully permitted and expected. Do NOT make healthy substitutions."
+        : "Apply strict cultural authenticity — every element (dish format, proteins, starches, vegetables, seasoning) must be drawn from this cuisine's real food traditions. Cultural dish structure is preserved as closely as possible within the user's active health constraints. When adapting, use culturally local alternatives — never Western substitutes.",
     };
     const depthInstruction = intensityDepth[intensity] || intensityDepth["balanced"];
-    layers.preferences = (layers.preferences || "") + `\n\n🌍 CULTURAL GROUNDING — REQUIRED (never overrides diet, allergy, or medical rules):
+
+    // Build the optional authentic mode block
+    const authenticModeBlock = trueAuthentic
+      ? `
+AUTHENTIC MODE — HEALTH OPTIMIZATION SUSPENDED (user choice):
+This user has no active dietary restrictions or medical conditions and has explicitly chosen Authentic cuisine mode.
+Traditional ingredients are fully permitted and expected: butter, lard, rendered animal fats (duck fat, tallow, manteca),
+cream, full-fat dairy, honey, brown sugar, refined sugars, white rice, white bread, and any cooking method traditional
+to this cuisine including deep frying and slow braising in traditional fats.
+Do NOT make healthy substitutions. Do NOT reduce fat or sugar for health reasons. Do NOT swap traditional protein cuts
+for leaner alternatives. Serve the dish exactly as it is traditionally prepared in its culture of origin.
+Allergies (if any) remain the only active safety stop — all other nutritional optimization is intentionally suspended.
+`
+      : intensity === "authentic"
+        ? `
+AUTHENTIC WITH PROTECTION: This user has chosen Authentic cuisine mode but has active health settings.
+Cultural dish structure and flavor system are preserved as closely as possible within those constraints.
+When adapting for health requirements, use culturally local alternatives — not Western substitutes.
+The meal must still feel authentically from this cuisine to someone who grew up eating it.
+`
+        : "";
+
+    const sectionHeader = trueAuthentic
+      ? `\n\n🌍 AUTHENTIC MODE — TRUE CULTURAL FOOD (health optimization suspended by user choice):`
+      : `\n\n🌍 CULTURAL GROUNDING — REQUIRED (never overrides diet, allergy, or medical rules):`;
+
+    layers.preferences = (layers.preferences || "") + `${sectionHeader}
 Cuisine: ${envelope.cuisinePreference}
 Intensity: ${intensity} — ${depthInstruction}
+${authenticModeBlock}
 
 BEFORE GENERATING THE MEAL, internally determine all four of the following:
 1. EATING PATTERN — What do people in ${envelope.cuisinePreference} cuisine actually eat at the requested meal time? Do NOT assume Western breakfast/lunch/dinner patterns. Identify the real-world eating pattern for this culture (e.g., rice porridge for breakfast, noodle soup, grilled meat with rice — not scrambled eggs or oatmeal).

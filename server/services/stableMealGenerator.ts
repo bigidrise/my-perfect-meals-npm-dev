@@ -1356,12 +1356,25 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
       }
 
       // 🎗️ CANCER SUPPORT NUTRITION OVERLAY: Inject symptom-aware guidance if active
+      // Activation: DB flag (physician-assigned) OR text intent in the craving ("oncology", "cancer support", etc.)
       const oncologyCtx = (userPrefs as any)?._oncologySupportContext as OncologySupportContext | null;
-      if (isOncologySupportEnabled() && oncologyCtx?.enabled) {
-        const oncologyPrompt = buildOncologySupportPrompt(oncologyCtx);
+      const cravingMentionsOncology = /oncolog|cancer[\s\-]?support|cancer[\s\-]?protocol/i.test(craving);
+      const oncologyActive = isOncologySupportEnabled() && (oncologyCtx?.enabled || cravingMentionsOncology);
+
+      if (oncologyActive) {
+        const activeCtx: OncologySupportContext = oncologyCtx?.enabled
+          ? oncologyCtx
+          : { enabled: true, symptoms: [], emphasis: { highProteinNutrientDensity: true }, source: "self", updatedBy: null, updatedAt: null };
+        const oncologyPrompt = buildOncologySupportPrompt(activeCtx);
         if (oncologyPrompt) {
-          console.log(`🎗️ [CANCER SUPPORT] Injecting oncology nutrition overlay. Symptoms: [${oncologyCtx.symptoms.join(", ")}]`);
-          enhancedCraving = `${enhancedCraving}\n\n${oncologyPrompt}`;
+          const trigger = oncologyCtx?.enabled ? "DB flag" : "text intent";
+          console.log(`🎗️ [CANCER SUPPORT] Injecting oncology overlay (trigger: ${trigger}). Symptoms: [${activeCtx.symptoms.join(", ")}]`);
+          // CONSTRAINT-FIRST: hard rules come BEFORE the user request so the model
+          // sees constraints as primary, not as an afterthought to fix later.
+          enhancedCraving = `${oncologyPrompt}
+TRANSFORMATION RULE: If the requested dish is traditionally prepared with ingredients that violate the above constraints (e.g., added sugar, honey, brown sugar, processed meats), you MUST reinterpret it into a fully compliant version while preserving its cultural identity and spirit. The dish concept and name should remain recognizable — only the non-compliant components are replaced with protocol-safe alternatives. Example: "soul food spareribs" → dry-rubbed oven-baked spareribs with turmeric-garlic spice rub, sweet potato wedges, and braised collard greens with garlic and olive oil — no added sugar, no honey glaze.
+
+User request: ${craving}`;
         }
       }
       
