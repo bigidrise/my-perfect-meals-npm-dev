@@ -9,10 +9,128 @@ import { enforceSafetyProfile } from "../services/safetyProfileService";
 import { buildPalateSection, PalatePreferences } from "../services/promptBuilder";
 import { resolveDietCategoryStrategy, type DietCategoryStrategy } from "../services/allergyGuardrails";
 import { scanGeneratedOutput, buildMealComplianceBundle } from "../services/protocolEnvelope";
-import { getActiveNutritionContext } from "../services/nutritionContext/getActiveNutritionContext";
+import { getActiveNutritionContext, type BuilderKey } from "../services/nutritionContext/getActiveNutritionContext";
+import { type UserProtocolEnvelope } from "../services/protocolEnvelope";
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from "../services/behavioralMemoryService";
 import { resolveCreatorSystemForUser } from "../services/creatorSystems/resolveCreatorSystemForUser";
 import { applyCreatorTransformation } from "../services/creatorSystems/applyCreatorTransformation";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MEDICAL BEVERAGE ENFORCEMENT
+// Generates ingredient-level prompt rules for every active medical condition
+// and nutrition builder. The generic protocol block only says "this user has X"
+// — these blocks spell out exactly which beverage ingredients are banned/required.
+// Called once per request; returns "" when no relevant conditions are active.
+// ─────────────────────────────────────────────────────────────────────────────
+function buildMedicalBeverageEnforcement(
+  envelope: UserProtocolEnvelope,
+  builder: BuilderKey | null,
+): string {
+  const blocks: string[] = [];
+  const limits = envelope.medicalHardLimits.map(c => c.toLowerCase());
+  const optimization = envelope.medicalOptimization.map(c => c.toLowerCase());
+  const allMedical = [...limits, ...optimization];
+
+  // ── CARDIAC / HEART DISEASE / HYPERTENSION ────────────────────────────────
+  const hasCardiac = limits.some(c =>
+    c.includes("cardiac") || c.includes("heart disease") || c.includes("heart failure") || c.includes("hypertension")
+  );
+  if (hasCardiac) {
+    blocks.push(`🫀 CARDIAC BEVERAGE SAFETY — MANDATORY (clinically required, cannot be overridden):
+NEVER include: full-fat ice cream or frozen dairy desserts even as a blending base (use frozen banana, low-fat yogurt, or sorbet); whole milk or heavy cream (use oat milk, almond milk, soy milk, or low-fat milk); butter or coconut cream; added sugar > 1 tsp, simple syrup, honey > 1 tsp, sweetened condensed milk, flavored syrups; alcohol; high-sodium ingredients (soy sauce, salted broths).
+REQUIRED: ≤ 200 calories/serving; base = plant milk, low-fat milk, plain low-fat yogurt, water, coconut water, or unsweetened tea; natural fruit sweetness preferred; cultural flavor identity preserved — change base and sweetener only, not the drink concept.
+If a milkshake is requested: frozen banana + plant milk + cultural flavoring. NEVER full-fat ice cream.`);
+  }
+
+  // ── RENAL / KIDNEY DISEASE ────────────────────────────────────────────────
+  const hasRenal = limits.some(c =>
+    c.includes("renal") || c.includes("kidney") || c.includes("ckd")
+  );
+  if (hasRenal) {
+    blocks.push(`🫘 RENAL / KIDNEY DISEASE BEVERAGE SAFETY — MANDATORY (clinically required):
+NEVER include: high-potassium ingredients — banana, orange, orange juice, tomato juice, avocado, spinach-dominant juices, potato-based drinks; high-phosphorus — nuts, seeds, chocolate, cocoa, large amounts of dairy (whole milk, heavy cream in shakes); dark soda, cola, energy drinks (high phosphorus and potassium); salt or high-sodium mixes.
+REQUIRED: low-potassium fruit base only — apple, grapes, blueberries, cranberry (unsweetened); prefer water, herbal tea, unsweetened cranberry juice, or small amounts of apple juice; if a smoothie is requested: apple + blueberry base ONLY — NEVER banana or orange; moderate calories 150–200/serving; avoid high-phosphorus dairy-heavy bases.`);
+  }
+
+  // ── LIVER DISEASE ─────────────────────────────────────────────────────────
+  const hasLiverDisease = limits.some(c =>
+    c.includes("liver disease") || c.includes("liver-disease")
+  ) || optimization.some(c => c.includes("nafld") || c.includes("fatty liver"));
+  if (hasLiverDisease) {
+    blocks.push(`🫀 LIVER DISEASE BEVERAGE SAFETY — MANDATORY (clinically required):
+NEVER include: alcohol of any kind — beer, wine, liquor, cocktail ingredients — this is an absolute clinical hard stop; raw shellfish or raw fish in any blended/liquid form; soda, energy drinks, sweet tea, fruit punch, juice cocktails (high sugar harms the liver); heavy syrup, candy-based flavoring, sweetened condensed milk, added sugar > 1 tsp; ultra-processed flavoring.
+REQUIRED: base = water, herbal tea, green tea, coconut water, or unsweetened plant milk; natural fruit sweetness only, no syrups; prefer liver-supportive ingredients: turmeric, ginger, lemon, beet, green tea, or berries when possible; 150–250 calories/serving.`);
+  }
+
+  // ── LIVER SUPPORT ─────────────────────────────────────────────────────────
+  const hasLiverSupport = allMedical.some(c =>
+    c.includes("liver support") || c.includes("liver-support")
+  );
+  if (hasLiverSupport && !hasLiverDisease) {
+    blocks.push(`🌿 LIVER SUPPORT BEVERAGE RULES — MANDATORY:
+NEVER include: alcohol of any kind; soda, energy drinks, sweet tea, juice cocktails; heavy syrup, processed artificial flavoring, candy-based ingredients; deep-fried additions or toppings.
+REQUIRED: light, whole-food base — herbal tea, green tea, plant milk, coconut water, or water; natural sweetness only (fruit, small amount of honey); prefer turmeric, ginger, green tea, lemon, or beet-based drinks when culturally appropriate.`);
+  }
+
+  // ── ONCOLOGY SUPPORT ──────────────────────────────────────────────────────
+  const hasOncology = allMedical.some(c =>
+    c.includes("oncology") || c.includes("oncology-support") || c.includes("cancer")
+  );
+  if (hasOncology) {
+    blocks.push(`🎗️ ONCOLOGY SUPPORT BEVERAGE SAFETY — MANDATORY (physician-assigned protocol):
+NEVER include: alcohol of any kind — zero exceptions, no cocktail or cocktail-adjacent ingredients; raw shellfish, raw fish, or any raw/undercooked ingredient (infection risk during treatment); processed or deli meat additives; soda, energy drinks; high added sugar — heavy syrups, candy flavoring, sweetened condensed milk, added sugar > 1 tsp.
+REQUIRED: food safety is paramount — use only pasteurized dairy if dairy is used; prefer immune-supportive ingredients: green tea, ginger, turmeric, berries, tart cherry, pomegranate; protein-forward smoothies encouraged if appetite is reduced (Greek yogurt + berries, plant protein powder); 150–350 calories/serving; prioritize nutrient density over volume.`);
+  }
+
+  // ── BUILDER-SPECIFIC BEVERAGE SUPPLEMENTS ─────────────────────────────────
+  // These ADD beverage-specific language on top of the general builder block
+  // already in beverageProtocolBlock. They don't replace it — they sharpen it
+  // with concrete ingredient names the AI understands in a beverage context.
+
+  if (builder === "diabetic") {
+    blocks.push(`🩺 DIABETIC BEVERAGE RULES — beverage-specific (supplement to medical rules above):
+NEVER use: simple syrup, honey > ½ tsp, agave > ½ tsp, flavored syrups, sweetened creamers, or fruit juice as the primary base (high glycemic spike).
+SWEETENER: stevia or monk fruit only if any sweetness is needed.
+SMOOTHIE BASE: low-GI fruits only — berries, green apple, tart cherry — NEVER banana, mango, or pineapple as the dominant ingredient.
+PREFER: plain Greek yogurt, unsweetened plant milk, or protein powder base; net carbs ≤ 20g/serving for standalone beverages.`);
+  }
+
+  if (builder === "glp1") {
+    blocks.push(`💊 GLP-1 BEVERAGE RULES — beverage-specific (supplement to medical rules above):
+PORTION: single serving only (8–12 oz for smoothies and shakes); no large-format or pitcher-style drinks.
+SUGAR: no added sugar; natural fruit sweetness in moderation only.
+BASE: avoid heavy cream and full-fat ice cream; prefer plant milk or low-fat dairy.
+ALCOHOL: if an alcoholic beverage is requested, limit to 1 standard drink equivalent max — prefer mocktail version.
+Prioritize protein-forward, low-volume, nutrient-dense options over sugary blended drinks.`);
+  }
+
+  if (builder === "anti_inflammatory") {
+    blocks.push(`🌿 ANTI-INFLAMMATORY BEVERAGE RULES — beverage-specific (supplement to above):
+AVOID: soda, energy drinks, artificial sweeteners, high-sugar fruit juices, seed or vegetable oils, processed flavor syrups, refined white sugar.
+PREFER these specific ingredients: turmeric, ginger, cinnamon, green tea, matcha, tart cherry, pomegranate, beet, blueberry, spinach (in smoothies), coconut water, oat milk, almond milk.
+SWEETENER: small amount of raw honey, dates, or natural fruit sweetness only.
+BASE: unsweetened plant milk, green tea, water, or coconut water.`);
+  }
+
+  if (blocks.length === 0) return "";
+
+  const activeConditions = [
+    hasCardiac && "cardiac",
+    hasRenal && "renal",
+    hasLiverDisease && "liver-disease",
+    hasLiverSupport && !hasLiverDisease && "liver-support",
+    hasOncology && "oncology",
+    builder === "diabetic" && "diabetic-builder",
+    builder === "glp1" && "glp1-builder",
+    builder === "anti_inflammatory" && "anti-inflammatory-builder",
+  ].filter(Boolean).join(", ");
+
+  console.log(`🔒 [BEVERAGE] Medical enforcement injected: [${activeConditions}]`);
+
+  return `\n🔒 MEDICAL BEVERAGE SAFETY PROTOCOLS — ALL RULES BELOW ARE CLINICALLY MANDATORY:\n${blocks.join("\n\n")}\n`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -315,45 +433,19 @@ beverageCreatorRouter.post("/", async (req, res) => {
 
     console.log(`🌍 [BEVERAGE] Cuisine: override=${cultureOverride ?? "none"} intensity=${beverageCuisineIntensity}`);
 
-    // ── Cardiac beverage enforcement — explicit ingredient-level rules ─────────
-    // The generic medical block only tells the AI "this user has cardiac" — not
-    // which specific ingredients to ban. Without these rules the AI still produces
-    // milkshakes with ice cream, whole milk, and high sugar for cardiac users.
-    const hasCardiacCondition = beverageEnvelope.medicalHardLimits.some(c =>
-      c.includes("cardiac") || c.includes("heart disease") || c.includes("heart failure") || c.includes("hypertension")
+    // ── Medical beverage enforcement — ingredient-level rules for every active condition ──
+    // The generic protocol block only says "this user has X condition" — not which specific
+    // beverage ingredients are banned. buildMedicalBeverageEnforcement covers all conditions:
+    // cardiac, renal, liver-disease, liver-support, oncology, diabetic, GLP-1, anti-inflammatory.
+    const medicalBeverageBlock = buildMedicalBeverageEnforcement(
+      beverageEnvelope,
+      beverageContext.builder,
     );
-
-    const cardiacBeverageBlock = hasCardiacCondition
-      ? `
-🫀 CARDIAC BEVERAGE SAFETY — MANDATORY (clinically required, cannot be overridden):
-This user has a cardiac / heart condition. Every beverage MUST follow these rules:
-
-NEVER include in a cardiac beverage:
-- Full-fat ice cream or frozen dairy desserts — even as a blending base (use frozen banana, low-fat yogurt, or sorbet instead)
-- Whole milk or heavy cream (use oat milk, almond milk, soy milk, or low-fat milk)
-- Butter, coconut cream, or any other saturated-fat-heavy ingredient
-- Added sugar > 1 tsp, simple syrup, honey > 1 tsp, sweetened condensed milk, flavored syrups
-- Alcohol of any kind
-- High-sodium ingredients (soy sauce, salted broths, etc.)
-
-REQUIRED for every cardiac beverage:
-- Total calories ≤ 200 per serving (single serving)
-- Base must be: plant milk, low-fat milk, plain low-fat yogurt, water, coconut water, or unsweetened tea
-- Natural fruit sweetness is permitted and preferred over added sweeteners
-- Cultural flavor identity is preserved — change the BASE and SWEETENER, not the cultural flavoring ingredients
-
-If a milkshake or cream-based drink is requested: substitute frozen banana + plant milk + cultural flavoring — the result must still be a drink in the same cultural flavor direction, NOT a different category.
-`
-      : "";
-
-    if (hasCardiacCondition) {
-      console.log(`🫀 [BEVERAGE] Cardiac enforcement block injected — banning full-fat dairy/added sugar, capping 200 cal`);
-    }
 
     const prompt = `
 You are a professional mixologist, nutritionist, and beverage chef inside the My Perfect Meals system.
 Generate a FULL structured beverage recipe.
-${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${cardiacBeverageBlock}${cuisineOverrideBlock}${beverageBehavioralMemorySection ? `\n${beverageBehavioralMemorySection}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}${softOverrideBlock}
+${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${medicalBeverageBlock}${cuisineOverrideBlock}${beverageBehavioralMemorySection ? `\n${beverageBehavioralMemorySection}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}${softOverrideBlock}
 The result MUST be a drink. Never generate solid food, meals, or desserts.
 
 Return JSON ONLY, following this exact schema:
