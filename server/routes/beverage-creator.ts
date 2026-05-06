@@ -17,6 +17,7 @@ import { applyCreatorTransformation } from "../services/creatorSystems/applyCrea
 import {
   buildBeveragePromptBlocks,
   validateBeverageOutput,
+  attemptBeverageAutoFix,
 } from "../services/guardrails/beverageMedicalRules";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -506,6 +507,22 @@ INCORRECT (NEVER DO THIS):
           `🚨 [BEVERAGE] Clinical validation failed (attempt ${attempt}): ` +
           beverageValidation.violations.map(v => `[${v.condition}] ${v.ingredient}`).join("; ")
         );
+
+        // ── Auto-fix: surgical ingredient swap before burning an OpenAI retry ──
+        // Only fires for simple non-alcohol violations with a known safe swap.
+        // If the fix resolves all violations the loop breaks immediately —
+        // zero extra latency, zero extra token cost.
+        const autoFix = attemptBeverageAutoFix(meal, beverageValidation.violations);
+        if (autoFix) {
+          const fixedValidation = validateBeverageOutput(meal, beverageEnvelope, beverageContext.builder);
+          if (fixedValidation.passed) {
+            console.log(`✅ [BEVERAGE] Auto-fixed ${autoFix.fixes.length} violation(s): ${autoFix.note}`);
+            beverageValidation = fixedValidation;
+            break;
+          }
+          console.log(`⚠️ [BEVERAGE] Auto-fix applied but re-validation still failed — falling through to retry`);
+        }
+
         if (attempt >= MAX_BEVERAGE_ATTEMPTS) {
           return res.status(400).json({
             error: "CLINICAL_VIOLATION",
