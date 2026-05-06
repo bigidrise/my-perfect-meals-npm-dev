@@ -10,6 +10,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { isFeatureEnabled } from "@/lib/productionGates";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { GlassButton } from "@/components/glass";
 import { PillButton } from "@/components/ui/pill-button";
 import {
@@ -571,6 +572,11 @@ export default function DessertCreator() {
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg text-white">
                 Quick Create
+                <div className="flex-grow" />
+                <HowThisWorksLink
+                  videoUrl="https://youtube.com/shorts/hsvqjCK_6rA?feature=share"
+                  label="How It Works"
+                />
               </CardTitle>
             </CardHeader>
 

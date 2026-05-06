@@ -502,7 +502,7 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
                 Create Your Drink
                 <div className="flex-grow" />
                 <HowThisWorksLink
-                  videoUrl="https://youtube.com/shorts/ATHLETE_BEVERAGE_VIDEO"
+                  videoUrl="https://youtube.com/shorts/JLqrxVdS2kI?feature=share"
                   label="How It Works"
                 />
               </CardTitle>
