@@ -79,13 +79,54 @@ router.post("/generate-image", async (req: any, res) => {
   // LAYER 4 — VISUAL DIRECTIVE (TYPE-ENFORCED, NOT GUESSED)
   // Beverages get explicit "no food" guardrail to prevent
   // DALL-E from generating food imagery for drink requests.
+  //
+  // GARNISH FILTER: Only visually recognizable drink garnishes
+  // are included in the prompt. Smoothie bases (banana, sweet
+  // potato, protein powder, almond milk) are intentionally
+  // excluded — they exist INSIDE the blender, not as garnishes,
+  // and feeding them to DALL-E causes it to generate food plates.
   // ─────────────────────────────────────────────────────────
+
+  // Ingredients that look good visually on/in a drink
+  const GARNISH_TERMS = [
+    "lime", "lemon", "orange", "grapefruit", "mint", "basil", "rosemary",
+    "thyme", "lavender", "cherry", "strawberry", "raspberry", "blueberry",
+    "blackberry", "mango", "pineapple", "passion fruit", "cucumber",
+    "jalapeño", "jalapeño slice", "cinnamon", "cinnamon stick", "star anise",
+    "cardamom", "turmeric", "ginger", "coconut", "coconut flake", "matcha",
+    "espresso", "coffee", "cream", "whipped cream", "foam", "boba", "tapioca",
+    "pomegranate", "hibiscus", "rose", "elderflower", "beet", "tart cherry",
+    "ice", "sparkling water", "soda water", "tonic",
+  ];
+
+  // Glassware / vessel matched to drink subcategory
+  let glassware: string;
+  if (/smoothie|shake|protein shake|recovery shake|post.?workout/.test(nameLower)) {
+    glassware = "tall glass with a straw, smoothie texture visible";
+  } else if (/latte|coffee|cappuccino|espresso|americano|mocha|chai|hot chocolate|hot cocoa/.test(nameLower)) {
+    glassware = "ceramic mug or latte glass with latte art";
+  } else if (/cocktail|mocktail|martini|margarita|daiquiri|mojito|spritz|negroni|old fashioned/.test(nameLower)) {
+    glassware = "cocktail glass";
+  } else if (/juice|lemonade|agua fresca|horchata|punch/.test(nameLower)) {
+    glassware = "tall glass with ice";
+  } else if (/tea|matcha|infusion|elixir/.test(nameLower)) {
+    glassware = "glass or mug";
+  } else if (/beer|wine|cider|kombucha/.test(nameLower)) {
+    glassware = "appropriate glass for the drink type";
+  } else {
+    glassware = "glass or cup";
+  }
+
   let visualDirective: string;
   if (isDrink) {
-    const garnishHint = cleanedIngredients.length > 0
-      ? ` with garnishes matching the ingredients: ${cleanedIngredients.join(", ")}`
+    // Only pass ingredients that are recognizable visual garnishes
+    const visualGarnishes = cleanedIngredients.filter(ing =>
+      GARNISH_TERMS.some(term => ing.toLowerCase().includes(term))
+    );
+    const garnishHint = visualGarnishes.length > 0
+      ? `, garnished with ${visualGarnishes.join(", ")}`
       : "";
-    visualDirective = `served in a glass or cup${garnishHint}, professional beverage photography, natural lighting, condensation on glass, realistic, appetizing. THIS IS A DRINK. Do NOT show any solid plated food, pizza, meat, pasta, or entrees. Show only the beverage in glassware`;
+    visualDirective = `served in a ${glassware}${garnishHint}, professional beverage photography, natural lighting, condensation on glass, realistic, appetizing. THIS IS A DRINK. Do NOT show any solid food, salad, bowl, plate, or entree. Show ONLY the beverage in its glass or cup`;
   } else if (isDessert) {
     visualDirective = "plated finished dessert, soft warm lighting, professional food photography, realistic, appetizing";
   } else {
