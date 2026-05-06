@@ -1494,9 +1494,7 @@ export default function WeeklyMealBoard() {
                                 const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
                                 setBoard(updatedBoard);
                                 boardRef.current = updatedBoard;
-                                putWeekBoard(weekStartISO, updatedBoard, proClientId)
-                                  .then(({ week }) => { if (week) setBoard(week); })
-                                  .catch((err) => {
+                                saveBoard(updatedBoard).catch((err) => {
                                     console.error("❌ Delete sync failed (Day mode):", err);
                                     toast({ title: "Sync pending", description: "Changes will sync automatically." });
                                   });
