@@ -151,35 +151,89 @@ export default function Founder() {
         </section>
         {/* FOUNDING COACHES */}
         <section className="bg-black/60 rounded-2xl p-8 ring-1 ring-white/10 backdrop-blur-md shadow-2xl">
-          <h2 className="text-2xl font-semibold mb-6">Founding Coaches</h2>
-
-          <div className="flex items-center gap-6">
-            <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-orange-400/60 shadow-lg shrink-0">
-              <img
-                src="/assets/kristen-bogan-2.jpg"
-                alt="Kristen Bogan"
-                className="w-full h-full object-cover object-top"
-              />
-            </div>
-
-            <div>
-              <h3 className="text-xl font-semibold text-white">
-                Kristen Bogan
-              </h3>
-
-              <p className="text-orange-400 text-sm font-medium">
-                Founding Coach
-              </p>
-
-              <p className="text-white/70 text-sm mt-1">
-                CPT · Corrective Exercise · Strength & Recovery
-              </p>
-            </div>
-          </div>
-
-          <p className="text-white/70 text-sm leading-relaxed mt-6">
-            As a dedicated personal trainer, Kristen specializes in helping clients build strength, lose weight, and recover safely and effectively from surgery or injury. Her approach is rooted in functional and lifestyle-based training—focusing on movements that make everyday life easier, safer, and more enjoyable. With a background in muscle development and corrective exercise, she designs programs that improve mobility, stability, and overall body mechanics. Recovery and longevity are at the core of her philosophy—empowering clients with the strength, confidence, and resilience to thrive in both the gym and everyday life.
+          <h2 className="text-2xl font-semibold mb-2">Founding Coaches</h2>
+          <p className="text-white/50 text-sm mb-8">
+            These are the coaches who signed on to build this with us — before the platform was proven, before the audience was there. That means something.
           </p>
+
+          <div className="space-y-10">
+
+            {/* Monica Brant */}
+            <div>
+              <div className="flex items-center gap-5 mb-4">
+                <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-orange-400/60 shadow-lg shrink-0 bg-white/10 flex items-center justify-center text-white/30 text-xs">
+                  <img
+                    src="/assets/monica-brant.jpg"
+                    alt="Monica Brant"
+                    className="w-full h-full object-cover object-top"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                  />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-white">Monica Brant</h3>
+                  <p className="text-orange-400 text-sm font-medium">Founding Coach</p>
+                  <p className="text-white/60 text-xs mt-0.5">
+                    IFBB Fitness World Champion · 30+ Years Coaching
+                  </p>
+                </div>
+              </div>
+              <p className="text-white/60 text-sm leading-relaxed italic">
+                Bio and credentials coming soon.
+              </p>
+            </div>
+
+            <div className="border-t border-white/10" />
+
+            {/* Kristen Bogan */}
+            <div>
+              <div className="flex items-center gap-5 mb-4">
+                <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-orange-400/60 shadow-lg shrink-0">
+                  <img
+                    src="/assets/kristen-bogan-2.jpg"
+                    alt="Kristen Bogan"
+                    className="w-full h-full object-cover object-top"
+                  />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-white">Kristen Bogan</h3>
+                  <p className="text-orange-400 text-sm font-medium">Founding Coach</p>
+                  <p className="text-white/60 text-xs mt-0.5">
+                    CPT · Corrective Exercise · Strength & Recovery
+                  </p>
+                </div>
+              </div>
+              <p className="text-white/70 text-sm leading-relaxed">
+                As a dedicated personal trainer, Kristen specializes in helping clients build strength, lose weight, and recover safely and effectively from surgery or injury. Her approach is rooted in functional and lifestyle-based training — focusing on movements that make everyday life easier, safer, and more enjoyable. With a background in muscle development and corrective exercise, she designs programs that improve mobility, stability, and overall body mechanics. Recovery and longevity are at the core of her philosophy — empowering clients with the strength, confidence, and resilience to thrive in both the gym and everyday life.
+              </p>
+            </div>
+
+            <div className="border-t border-white/10" />
+
+            {/* Danielle Affatato */}
+            <div>
+              <div className="flex items-center gap-5 mb-4">
+                <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-orange-400/60 shadow-lg shrink-0 bg-white/10 flex items-center justify-center text-white/30 text-xs">
+                  <img
+                    src="/assets/danielle-affatato.jpg"
+                    alt="Danielle Affatato"
+                    className="w-full h-full object-cover object-top"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                  />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-white">Danielle Affatato</h3>
+                  <p className="text-orange-400 text-sm font-medium">Founding Coach</p>
+                  <p className="text-white/60 text-xs mt-0.5">
+                    Certified Nutrition Coach · Macro Strategy · Habit-Based Coaching
+                  </p>
+                </div>
+              </div>
+              <p className="text-white/60 text-sm leading-relaxed italic">
+                Bio and credentials coming soon.
+              </p>
+            </div>
+
+          </div>
         </section>
 
         {/* CONTACT */}
