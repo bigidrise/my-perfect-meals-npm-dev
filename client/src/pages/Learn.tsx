@@ -545,8 +545,8 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
           text: "If you already know your numbers, you can enter protein, carbs, fat, and calories directly. Type in the values and tap Add to include them in your daily total. This works well when you have exact macro data from a restaurant app, a meal plan, or a nutrition guide.",
         },
         {
-          heading: "Calorie Tracker — Up to 30 Days",
-          text: "Below your daily totals you will find a calorie history graph. Switch between Today, 7-day, and 30-day views to see how your intake is trending over time. This is where patterns become visible — consistent days, high days, low logging weeks — so you can have honest conversations with yourself or your coach about what is actually happening.",
+          heading: "Macro Consistency — Up to 30 Days",
+          text: "Below your daily totals you will find your Macro Consistency graph. Switch between Today, 7-day, and 30-day views to see how consistently you are staying aligned with your targets over time. This is where real patterns become visible — consistent days, missed logging periods, high-carb stretches, low-protein trends, or strong weekly adherence. Instead of focusing on perfection, this section helps you understand your habits so you can make smarter adjustments and have more productive conversations with your coach or care team.",
         },
         {
           heading: "Body Stats — Up to One Year",
