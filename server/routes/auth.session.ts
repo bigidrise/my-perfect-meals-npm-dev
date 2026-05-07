@@ -15,10 +15,15 @@ function generateAuthToken(): string {
   return crypto.randomBytes(32).toString("hex");
 }
 
-function isTesterEmail(_email: string): boolean {
-  // PRE_LAUNCH: All new signups get tester access (Ultimate tier, no paywalls).
-  // When launching, replace with: check process.env.MPM_TESTER_EMAILS allowlist.
-  return true;
+function isTesterEmail(email: string): boolean {
+  // Allowlist-based: only explicit emails get isTester=true at signup.
+  // Set MPM_TESTER_EMAILS as a comma-separated list in env.
+  // Example: "coach@example.com,partner@example.com"
+  const allowlist = (process.env.MPM_TESTER_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return allowlist.includes(email.toLowerCase().trim());
 }
 
 /**
@@ -53,6 +58,10 @@ router.post("/api/auth/signup", async (req, res) => {
     // Check if email is in tester allowlist
     const isTester = isTesterEmail(email);
 
+    // New signups get a 7-day premium trial (no planLookupKey — must pay after trial)
+    const trialStartedAt = new Date();
+    const trialEndsAt = new Date(trialStartedAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+
     // Build user values with optional ProCare professional fields
     const userValues: any = {
       email,
@@ -61,7 +70,9 @@ router.post("/api/auth/signup", async (req, res) => {
       authToken,
       authTokenCreatedAt: new Date(),
       isTester,
-      planLookupKey: "mpm_ultimate_monthly",
+      trialStartedAt,
+      trialEndsAt,
+      // planLookupKey intentionally omitted — set by Stripe webhook on payment
     };
 
     if (procare && procare.professionalCategory) {
@@ -120,6 +131,10 @@ router.post("/api/auth/signup", async (req, res) => {
       isProCare: newUser.isProCare || false,
       professionalRole: newUser.professionalRole || null,
       role: newUser.role || "client",
+      isTester: newUser.isTester || false,
+      isFounder: newUser.isFounder || false,
+      trialEndsAt: newUser.trialEndsAt?.toISOString() || null,
+      planLookupKey: newUser.planLookupKey || null,
       ...(membership && { studioMembership: membership }),
     });
   } catch (error: any) {
@@ -240,14 +255,16 @@ router.post("/api/auth/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    const isTester = isTesterEmail(email);
+    // Login: only regenerate auth token if missing — never overwrite isTester from login
     const authToken = user.authToken || generateAuthToken();
-    const updateFields: any = { isTester };
+    const updateFields: any = {};
     if (!user.authToken) {
       updateFields.authToken = authToken;
       updateFields.authTokenCreatedAt = new Date();
     }
-    await db.update(users).set(updateFields).where(eq(users.id, user.id));
+    if (Object.keys(updateFields).length > 0) {
+      await db.update(users).set(updateFields).where(eq(users.id, user.id));
+    }
 
     // Set session cookie for mobile compatibility (guard for PROD where session may be undefined)
     if (req.session) {
@@ -275,6 +292,10 @@ router.post("/api/auth/login", async (req, res) => {
       selectedMealBuilder: user.selectedMealBuilder || null,
       activeBoard: user.activeBoard || null,
       onboardingCompletedAt: user.onboardingCompletedAt || null,
+      isTester: user.isTester || false,
+      isFounder: user.isFounder || false,
+      trialEndsAt: user.trialEndsAt?.toISOString() || null,
+      planLookupKey: user.planLookupKey || null,
       ...(membership && { studioMembership: membership }),
     });
   } catch (error: any) {
@@ -306,6 +327,12 @@ router.get("/api/auth/session", async (req: any, res) => {
       id: user.id,
       email: user.email,
       username: user.username,
+      isTester: user.isTester || false,
+      isFounder: user.isFounder || false,
+      trialEndsAt: user.trialEndsAt?.toISOString() || null,
+      planLookupKey: user.planLookupKey || null,
+      role: user.role || "client",
+      isProCare: user.isProCare || false,
     });
   } catch (error) {
     console.error("Session validation error:", error);

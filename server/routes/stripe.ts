@@ -4,6 +4,7 @@ import { db } from "../db";
 import { users } from "../../shared/schema";
 import { eq } from "drizzle-orm";
 import { PLAN_ENTITLEMENTS, PlanKey, getEntitlementsForPlan } from "../entitlements";
+import { requireAuth } from "../middleware/requireAuth";
 
 const router = express.Router();
 
@@ -27,7 +28,7 @@ function getStripe(): Stripe {
 
 router.use(requireStripe);
 
-router.post("/create-checkout-session", async (req, res) => {
+router.post("/create-checkout-session", requireAuth, async (req, res) => {
   try {
     const { priceLookupKey, customerEmail, metadata } = req.body;
 
@@ -72,7 +73,7 @@ router.post("/create-checkout-session", async (req, res) => {
   }
 });
 
-router.post("/create-portal-session", async (req, res) => {
+router.post("/create-portal-session", requireAuth, async (req, res) => {
   try {
     const { customerId, returnUrl } = req.body;
 

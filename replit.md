@@ -8,7 +8,9 @@ MyPerfectMeals is a full-stack TypeScript application providing AI-powered meal 
 - `COACH_JEN_USER_ID`, `COACH_JEN_STUDIO_ID` (for each coach)
 - `ONCOLOGY_SUPPORT_V1` (default: active, set to "off" to disable)
 - `MACRO_AUDIT` (set to `true` for macro debug logging)
-- `TESTER_PROGRAM_ACTIVE` (set in `client/src/lib/subscriptionCheck.ts`, `server/lib/accessTier.ts`, `server/routes/auth.session.ts`)
+- `BILLING_ENFORCED` — set to `"true"` to activate real paywalls. While unset/false, everyone gets PAID_FULL (pre-launch mode). This is the master launch switch — no code deploy needed.
+- `MPM_TESTER_EMAILS` — comma-separated list of emails that get `isTester=true` on signup. Empty = no testers (post-launch default).
+- ~~`TESTER_PROGRAM_ACTIVE`~~ — **REPLACED** by `BILLING_ENFORCED` + `MPM_TESTER_EMAILS`. Do not use.
 
 **Commands**:
 - `npm run dev`: Starts the development server.

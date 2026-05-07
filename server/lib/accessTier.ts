@@ -5,6 +5,7 @@ interface UserForAccess {
   trialStartedAt?: Date | null;
   trialEndsAt?: Date | null;
   isTester?: boolean | null;
+  isFounder?: boolean | null;
 }
 
 const PAID_PLAN_KEYS = [
@@ -23,23 +24,29 @@ const PAID_PLAN_KEYS = [
   "mpm_ultimate_plan_2999",
 ];
 
-// PRE-LAUNCH: Grant full access to all users for testing & growth.
-// When ready to enforce subscriptions, remove the early return below.
-const PRE_LAUNCH_FULL_ACCESS = true;
+// BILLING_ENFORCED=true in env means real paywalls are live.
+// While false (or unset), everyone gets PAID_FULL (pre-launch mode).
+// Flip this env var to go live — no code deploy required.
+const BILLING_ENFORCED = process.env.BILLING_ENFORCED === "true";
 
 export function resolveAccessTier(user: UserForAccess, now: Date = new Date()): AccessTier {
-  if (PRE_LAUNCH_FULL_ACCESS) return "PAID_FULL";
+  // Pre-launch bypass: remove by setting BILLING_ENFORCED=true in env
+  if (!BILLING_ENFORCED) return "PAID_FULL";
 
-  if (user.isTester) return "PAID_FULL";
+  // Tier 1: Founders — permanent free access (core family, business partners, contributors)
+  if (user.isFounder) return "PAID_FULL";
 
+  // Tier 2: Active paid subscription
   if (user.planLookupKey && PAID_PLAN_KEYS.includes(user.planLookupKey)) {
     return "PAID_FULL";
   }
 
+  // Tier 3: Active trial window
   if (user.trialEndsAt && now < user.trialEndsAt) {
     return "TRIAL_FULL";
   }
 
+  // Tier 4: Free tier
   return "FREE";
 }
 
