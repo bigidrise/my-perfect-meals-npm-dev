@@ -103,6 +103,7 @@ import iosVerifyRouter from "./routes/iosVerify";
 import translateRouter from "./routes/translate";
 import studioGeneratorRouter from "./routes/studioGenerator";
 import checkInSchedulesRouter from "./routes/checkInSchedules";
+import adminRouter from "./routes/admin";
 
 const app = express();
 
@@ -512,6 +513,10 @@ app.use("/api/sms", smsRoutes);
 
 // Check-in schedules + alert preferences
 app.use("/api/check-in-schedules", checkInSchedulesRouter);
+
+// Admin dashboard — requires both auth + admin role (server-enforced)
+import { requireAdmin } from "./middleware/requireAdmin";
+app.use("/api/admin", requireAuth, requireAdmin, adminRouter);
 
 // Initialize SMS worker (side-effect import)
 import "./workers/smsWorker";

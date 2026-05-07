@@ -196,6 +196,9 @@ const VitalsLogger = () => <div>Vitals Logger - Coming Soon</div>;
 import SupplementHub from "@/pages/supplement-hub";
 import SupplementEducationPage from "@/pages/supplement-education";
 
+// Admin Dashboard
+import AdminDashboard from "@/pages/AdminDashboard";
+
 // Wrapper components for Performance Competition Builder boards
 const PerformanceCompetitionBuilderStandalone = (_props: any) => (
   <PerformanceCompetitionBuilder mode="athlete" />
@@ -570,6 +573,8 @@ export default function Router() {
           path="/supplement-education"
           component={SupplementEducationPage}
         />
+        {/* Admin Dashboard — role-checked on both server and client */}
+        <Route path="/admin" component={AdminDashboard} />
         {/* 404 fallback */}
         <Route component={NotFound} />
       </Switch>

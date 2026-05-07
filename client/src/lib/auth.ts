@@ -141,6 +141,8 @@ export interface User {
   // Culture Intelligence
   cuisinePreference?: string | null;
   cuisineIntensity?: string | null;
+  // Admin access
+  isAdmin?: boolean;
 }
 
 export function getAuthToken(): string | null {
