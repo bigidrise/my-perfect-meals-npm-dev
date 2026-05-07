@@ -687,19 +687,17 @@ export default function WeeklyMealBoard() {
       if (checkLockedDay()) return;
 
       try {
-        // Strip static snack placeholder images before inserting into the board.
-        // The server's snack firewall always returns a generic static image (e.g., yogurt-ranch-dip.jpg)
-        // as Stage 1. That placeholder is semantically wrong for complex dishes like parfaits.
-        // Stripping it here means the card shows a neutral getMealFallbackImage() while DALL-E
-        // generates the correct image in Stage 2 (fetchImageForMeal below).
-        // S3/DALL-E URLs (previously cached correct images) pass through unchanged.
+        // Replace server-returned static placeholders with /images/fallback/meal.svg —
+        // a neutral SVG that exists on disk — so the card never shows a wrong food image
+        // while DALL-E generates. S3/DALL-E URLs (cached correct images) pass through.
         const isStaticPlaceholder =
           snack.imageUrl &&
           (snack.imageUrl.startsWith('/images/templates/') ||
             snack.imageUrl.startsWith('/images/snacks/') ||
+            snack.imageUrl.startsWith('/images/fallback/meal') ||
             snack.imageUrl.includes('default-snack'));
         const snackForBoard = isStaticPlaceholder
-          ? { ...snack, imageUrl: undefined }
+          ? { ...snack, imageUrl: '/images/fallback/meal.svg' }
           : snack;
 
         // Add to the snacks slot
