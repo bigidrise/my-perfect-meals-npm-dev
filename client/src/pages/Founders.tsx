@@ -3,6 +3,51 @@ import { useLocation } from "wouter";
 import { ArrowLeft } from "lucide-react";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
+// ─────────────────────────────────────────────────────────────
+// FOUNDING COACHES LIST
+// To add a new founding coach, just add an entry here.
+// photo: path under /assets/ — leave null if not yet available.
+// credentials: short tag line (certifications, specialty, etc.)
+// bio: leave null to show "Bio coming soon."
+// ─────────────────────────────────────────────────────────────
+const FOUNDING_COACHES: {
+  name: string;
+  title: string;
+  credentials: string;
+  photo: string | null;
+  bio: string | null;
+}[] = [
+  {
+    name: "Monica Brant",
+    title: "Founding Coach",
+    credentials: "IFBB Fitness World Champion · 30+ Years Coaching",
+    photo: "/assets/monica-brant.jpg",
+    bio: null,
+  },
+  {
+    name: "Kristen Bogan",
+    title: "Founding Coach",
+    credentials: "CPT · Corrective Exercise · Strength & Recovery",
+    photo: "/assets/kristen-bogan-2.jpg",
+    bio: "As a dedicated personal trainer, Kristen specializes in helping clients build strength, lose weight, and recover safely and effectively from surgery or injury. Her approach is rooted in functional and lifestyle-based training — focusing on movements that make everyday life easier, safer, and more enjoyable. With a background in muscle development and corrective exercise, she designs programs that improve mobility, stability, and overall body mechanics. Recovery and longevity are at the core of her philosophy — empowering clients with the strength, confidence, and resilience to thrive in both the gym and everyday life.",
+  },
+  {
+    name: "Danielle Affatato",
+    title: "Founding Coach",
+    credentials: "Certified Nutrition Coach · Macro Strategy · Habit-Based Coaching",
+    photo: "/assets/danielle-affatato.jpg",
+    bio: null,
+  },
+  // ── Add new founding coaches below this line ──
+  // {
+  //   name: "First Last",
+  //   title: "Founding Coach",
+  //   credentials: "Certifications · Specialty",
+  //   photo: "/assets/their-photo.jpg",  // or null
+  //   bio: "Their bio here.",             // or null
+  // },
+];
+
 export default function Founder() {
   const [, setLocation] = useLocation();
 
@@ -50,7 +95,7 @@ export default function Founder() {
                 Founder & Lead Coach
               </p>
               <p className="text-white/80 text-sm leading-relaxed max-w-xl">
-                I’ve spent over 25 years working in performance nutrition, body
+                I've spent over 25 years working in performance nutrition, body
                 composition, and structured meal design. My background combines
                 competitive athletics, clinical awareness, and real-world
                 coaching experience. My Perfect Meals was built to remove
@@ -76,7 +121,7 @@ export default function Founder() {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-white/85">
             <div>✔ NASM Certified Personal Trainer</div>
-            <div>✔ NASM Certified Women’s Fitness Specialist</div>
+            <div>✔ NASM Certified Women's Fitness Specialist</div>
             <div>✔ NASM Certified Nutrition Coach</div>
             <div>✔ NASM Behavior Change Specialist</div>
             <div>✔ NASM Online Coaching Specialist</div>
@@ -99,6 +144,7 @@ export default function Founder() {
             is long-term confidence with food.
           </p>
         </section>
+
         {/* MEDICAL COMPLIANCE */}
         <section className="bg-black/60 rounded-2xl p-8 ring-1 ring-white/10 backdrop-blur-md shadow-2xl">
           <h2 className="text-2xl font-semibold mb-6">Medical Compliance</h2>
@@ -120,11 +166,12 @@ export default function Founder() {
               </p>
 
               <p className="text-white/70 text-sm mt-1">
-                Cardiothoracic Surgeon DO FASC FACC Ret. CDR USN MC 
+                Cardiothoracic Surgeon DO FASC FACC Ret. CDR USN MC
               </p>
             </div>
           </div>
         </section>
+
         {/* LEGAL ADVISORY */}
         <section className="bg-black/60 rounded-2xl p-8 ring-1 ring-white/10 backdrop-blur-md shadow-2xl">
           <h2 className="text-2xl font-semibold mb-6">Legal Advisory</h2>
@@ -149,7 +196,8 @@ export default function Founder() {
             </div>
           </div>
         </section>
-        {/* FOUNDING COACHES */}
+
+        {/* FOUNDING COACHES — rendered from FOUNDING_COACHES list above */}
         <section className="bg-black/60 rounded-2xl p-8 ring-1 ring-white/10 backdrop-blur-md shadow-2xl">
           <h2 className="text-2xl font-semibold mb-2">Founding Coaches</h2>
           <p className="text-white/50 text-sm mb-8">
@@ -157,82 +205,39 @@ export default function Founder() {
           </p>
 
           <div className="space-y-10">
+            {FOUNDING_COACHES.map((coach, i) => (
+              <div key={coach.name}>
+                {i > 0 && <div className="border-t border-white/10 mb-10" />}
 
-            {/* Monica Brant */}
-            <div>
-              <div className="flex items-center gap-5 mb-4">
-                <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-orange-400/60 shadow-lg shrink-0 bg-white/10 flex items-center justify-center text-white/30 text-xs">
-                  <img
-                    src="/assets/monica-brant.jpg"
-                    alt="Monica Brant"
-                    className="w-full h-full object-cover object-top"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                  />
+                <div className="flex items-center gap-5 mb-4">
+                  <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-orange-400/60 shadow-lg shrink-0 bg-white/10">
+                    {coach.photo && (
+                      <img
+                        src={coach.photo}
+                        alt={coach.name}
+                        className="w-full h-full object-cover object-top"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-white">{coach.name}</h3>
+                    <p className="text-orange-400 text-sm font-medium">{coach.title}</p>
+                    <p className="text-white/60 text-xs mt-0.5">{coach.credentials}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-white">Monica Brant</h3>
-                  <p className="text-orange-400 text-sm font-medium">Founding Coach</p>
-                  <p className="text-white/60 text-xs mt-0.5">
-                    IFBB Fitness World Champion · 30+ Years Coaching
+
+                {coach.bio ? (
+                  <p className="text-white/70 text-sm leading-relaxed">{coach.bio}</p>
+                ) : (
+                  <p className="text-white/40 text-sm leading-relaxed italic">
+                    Bio and credentials coming soon.
                   </p>
-                </div>
+                )}
               </div>
-              <p className="text-white/60 text-sm leading-relaxed italic">
-                Bio and credentials coming soon.
-              </p>
-            </div>
-
-            <div className="border-t border-white/10" />
-
-            {/* Kristen Bogan */}
-            <div>
-              <div className="flex items-center gap-5 mb-4">
-                <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-orange-400/60 shadow-lg shrink-0">
-                  <img
-                    src="/assets/kristen-bogan-2.jpg"
-                    alt="Kristen Bogan"
-                    className="w-full h-full object-cover object-top"
-                  />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-white">Kristen Bogan</h3>
-                  <p className="text-orange-400 text-sm font-medium">Founding Coach</p>
-                  <p className="text-white/60 text-xs mt-0.5">
-                    CPT · Corrective Exercise · Strength & Recovery
-                  </p>
-                </div>
-              </div>
-              <p className="text-white/70 text-sm leading-relaxed">
-                As a dedicated personal trainer, Kristen specializes in helping clients build strength, lose weight, and recover safely and effectively from surgery or injury. Her approach is rooted in functional and lifestyle-based training — focusing on movements that make everyday life easier, safer, and more enjoyable. With a background in muscle development and corrective exercise, she designs programs that improve mobility, stability, and overall body mechanics. Recovery and longevity are at the core of her philosophy — empowering clients with the strength, confidence, and resilience to thrive in both the gym and everyday life.
-              </p>
-            </div>
-
-            <div className="border-t border-white/10" />
-
-            {/* Danielle Affatato */}
-            <div>
-              <div className="flex items-center gap-5 mb-4">
-                <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-orange-400/60 shadow-lg shrink-0 bg-white/10 flex items-center justify-center text-white/30 text-xs">
-                  <img
-                    src="/assets/danielle-affatato.jpg"
-                    alt="Danielle Affatato"
-                    className="w-full h-full object-cover object-top"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                  />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-white">Danielle Affatato</h3>
-                  <p className="text-orange-400 text-sm font-medium">Founding Coach</p>
-                  <p className="text-white/60 text-xs mt-0.5">
-                    Certified Nutrition Coach · Macro Strategy · Habit-Based Coaching
-                  </p>
-                </div>
-              </div>
-              <p className="text-white/60 text-sm leading-relaxed italic">
-                Bio and credentials coming soon.
-              </p>
-            </div>
-
+            ))}
           </div>
         </section>
 
