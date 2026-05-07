@@ -277,7 +277,20 @@ export default function MyBiometrics() {
     return () => window.removeEventListener("macros:updated", refetch);
   }, [userId]);
 
-  const today = todayKey();
+  const [today, setToday] = useState(todayKey);
+
+  // Midnight reset: re-arm a timeout each day so "today" updates and macros reset to zero
+  useEffect(() => {
+    const now = new Date();
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 3);
+    const ms = midnight.getTime() - now.getTime();
+    const timer = setTimeout(() => {
+      setToday(todayKey());
+      window.dispatchEvent(new Event("macros:updated"));
+    }, ms);
+    return () => clearTimeout(timer);
+  }, [today]);
+
   const sortedRows = useMemo(
     () => [...macroRows].sort((a, b) => b.day.localeCompare(a.day)),
     [macroRows],
