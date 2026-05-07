@@ -2193,6 +2193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         creatorDisplayName: creatorRow?.displayName || null,
         cuisinePreference: user.cuisinePreference || null,
         cuisineIntensity: user.cuisineIntensity || null,
+        isAdmin: user.isAdmin || false,
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);

@@ -4,6 +4,8 @@ dotenv.config(); // Load .env file FIRST before anything else
 import "./bootstrap-fetch"; // Ensure fetch is available
 import "./bootstrap/envSetup"; // Shared environment setup (same as prod.ts)
 import { logBootStatus } from "./bootstrap/envSetup";
+import { initSentry, sentryErrorHandler } from "./lib/sentry";
+initSentry(); // Must be called as early as possible
 import express, {
   type Request,
   type Response,
@@ -103,6 +105,7 @@ import iosVerifyRouter from "./routes/iosVerify";
 import translateRouter from "./routes/translate";
 import studioGeneratorRouter from "./routes/studioGenerator";
 import checkInSchedulesRouter from "./routes/checkInSchedules";
+import adminRouter from "./routes/admin";
 
 const app = express();
 
@@ -513,6 +516,10 @@ app.use("/api/sms", smsRoutes);
 // Check-in schedules + alert preferences
 app.use("/api/check-in-schedules", checkInSchedulesRouter);
 
+// Admin dashboard — requires both auth + admin role (server-enforced)
+import { requireAdmin } from "./middleware/requireAdmin";
+app.use("/api/admin", requireAuth, requireAdmin, adminRouter);
+
 // Initialize SMS worker (side-effect import)
 import "./workers/smsWorker";
 
@@ -667,6 +674,9 @@ async function start() {
     const clientDist = path.resolve(import.meta.dirname, "../client/dist");
     serveStatic(app);
   }
+
+  // Sentry error handler must come BEFORE the custom error handler
+  app.use(sentryErrorHandler());
 
   // Error handler LAST
   app.use(errorHandler);
