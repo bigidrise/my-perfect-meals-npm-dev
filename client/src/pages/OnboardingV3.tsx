@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,9 @@ import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { useToast } from "@/hooks/use-toast";
 import { PillButton } from "@/components/ui/pill-button";
+import { captureException } from "@/lib/sentry";
+
+const RESUME_STEP_KEY = "mpm.onboarding.resumeStep";
 
 const TOTAL_STEPS = 9;
 
@@ -138,11 +141,12 @@ function getRecommendedBuilder(conditions: string[]): string {
 
 export default function OnboardingV3() {
   const [, setLocation] = useLocation();
-  const { refreshUser } = useAuth();
+  const { refreshUser, user } = useAuth();
   const { toast } = useToast();
 
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
+  const restoredRef = useRef(false);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -184,6 +188,53 @@ export default function OnboardingV3() {
     const rec = getRecommendedBuilder(medicalConditions);
     if (!selectedBuilder) setSelectedBuilder(rec);
   }, [medicalConditions]);
+
+  // Persist current step so we can resume after refresh / app close
+  useEffect(() => {
+    if (!restoredRef.current) return;
+    localStorage.setItem(RESUME_STEP_KEY, String(step));
+  }, [step]);
+
+  // On mount: restore step position and pre-populate fields from already-saved profile
+  useEffect(() => {
+    if (restoredRef.current || !user) return;
+    restoredRef.current = true;
+
+    const savedStep = localStorage.getItem(RESUME_STEP_KEY);
+    if (savedStep) {
+      const n = parseInt(savedStep, 10);
+      if (n >= 1 && n <= TOTAL_STEPS) setStep(n);
+    }
+
+    if (user.firstName) setFirstName(user.firstName);
+    if (user.lastName) setLastName(user.lastName);
+    if (user.allergies?.length) setAllergies(user.allergies);
+    if (user.avoidedFoods?.length) setAvoidedFoods(user.avoidedFoods);
+    if (user.medicalConditions?.length) setMedicalConditions(user.medicalConditions);
+    if (user.specialtyCondition) setSpecialtyCondition(user.specialtyCondition);
+    if (user.oncologySupportIntent) {
+      setOncologyIntroAnswer("yes");
+      setOncologySupportIntentChoice(user.oncologySupportIntent);
+    }
+    if (user.dietaryRestrictions?.length) {
+      const firstVal = user.dietaryRestrictions[0];
+      const preset = DIET_OPTIONS.find((o) => o.value === firstVal);
+      if (preset) {
+        setDietaryStyle(firstVal);
+      } else if (firstVal) {
+        setDietaryStyle("custom");
+        setCustomDietInput(firstVal);
+      }
+    }
+    if (user.goalType) setGoalType(user.goalType);
+    if (user.goalTarget) setGoalTarget(user.goalTarget);
+    if (user.goalTimelineWeeks) setGoalTimelineWeeks(user.goalTimelineWeeks);
+    if (user.flavorPreference) setFlavorPreference(user.flavorPreference);
+    if (user.heatPreference) setHeatPreference(user.heatPreference);
+    if (user.sweetenerPreferences?.length) setSweetenerPreferences(user.sweetenerPreferences);
+    if (user.cuisinePreference) setCuisinePreference(user.cuisinePreference);
+    if (user.preferredBuilder) setSelectedBuilder(user.preferredBuilder);
+  }, [user]);
 
   /** Fetch with a 15-second timeout to surface hung requests as a clear error */
   const fetchWithTimeout = async (url: string, options: RequestInit, timeoutMs = 15000): Promise<Response> => {
@@ -297,12 +348,14 @@ export default function OnboardingV3() {
             return;
           }
           await saveProfile({ medicalConditions }, "medical_conditions");
-          // Save specialty condition separately (fire-and-forget — non-blocking)
+          // Save specialty condition separately (non-blocking — failure does not block step advance)
           fetch(apiUrl("/api/user/specialty-condition"), {
             method: "PATCH",
             headers: { "Content-Type": "application/json", ...getAuthHeaders() },
             body: JSON.stringify({ condition: specialtyCondition }),
-          }).catch(() => {});
+          }).catch((err) => {
+            captureException(err, { step: "specialty_condition", specialtyCondition });
+          });
           break;
         case 4: {
           const intent = oncologyIntroAnswer === "yes" ? oncologySupportIntentChoice : null;
@@ -311,11 +364,14 @@ export default function OnboardingV3() {
           } else {
             localStorage.removeItem("mpm:oncologySupportIntent");
           }
+          // Non-blocking — failure does not block step advance
           fetch(apiUrl("/api/user/oncology-support-intent"), {
             method: "PATCH",
             headers: { "Content-Type": "application/json", ...getAuthHeaders() },
             body: JSON.stringify({ intent }),
-          }).catch(() => {});
+          }).catch((err) => {
+            captureException(err, { step: "oncology_support_intent", intent });
+          });
           break;
         }
         case 5: {
@@ -419,12 +475,19 @@ export default function OnboardingV3() {
         body: JSON.stringify({ onboardingMode: "independent" }),
       });
       if (!completeRes.ok) {
-        let completeMsg = "Could not activate your plan.";
+        let completeMsg = "Could not activate your plan. Tap 'Start My Plan' to try again.";
         if (completeRes.status === 401) completeMsg = "Your session expired. Please sign out and sign back in.";
+        if (completeRes.status === 400) {
+          let body: any = {};
+          try { body = await completeRes.json(); } catch { /* ignore */ }
+          completeMsg = body?.error || completeMsg;
+        }
         console.error(`[onboarding] complete-onboarding failed — status: ${completeRes.status}`);
+        captureException(new Error("complete-onboarding failed"), { status: completeRes.status });
         throw new Error(completeMsg);
       }
 
+      localStorage.removeItem(RESUME_STEP_KEY);
       await refreshUser();
       setLocation("/macro-counter?from=onboarding");
     } catch (err: any) {

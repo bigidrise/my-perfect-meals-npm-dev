@@ -2872,6 +2872,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!existingUser) {
         return res.status(404).json({ error: "User not found" });
       }
+
+      // IDEMPOTENCY: if onboarding is already complete, return current state without re-stamping
+      if (existingUser.onboardingCompletedAt) {
+        return res.json({
+          success: true,
+          alreadyCompleted: true,
+          onboardingCompletedAt: existingUser.onboardingCompletedAt.toISOString(),
+          onboardingMode: existingUser.onboardingMode,
+          trialStartedAt: existingUser.trialStartedAt?.toISOString() ?? null,
+          trialEndsAt: existingUser.trialEndsAt?.toISOString() ?? null,
+          preferredBuilder: existingUser.preferredBuilder,
+        });
+      }
       
       // SERVER-SIDE VALIDATION: firstName must exist
       if (!existingUser.firstName) {
