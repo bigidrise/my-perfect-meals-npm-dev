@@ -108,9 +108,10 @@ router.get("/checkout-success", async (req, res) => {
       expand: ["subscription", "line_items.data.price"],
     });
 
-    // Security: Validate that the session belongs to this user
-    const sessionUserId = session.metadata?.user_id;
-    
+    // Security: Validate that the session belongs to this user.
+    // Checkout sessions are created with metadata.userId (not user_id).
+    const sessionUserId = session.metadata?.userId ?? session.metadata?.user_id;
+
     if (sessionUserId !== user_id) {
       console.error(
         `[Stripe] Security violation: User ${user_id} attempted to claim session for user ${sessionUserId}`

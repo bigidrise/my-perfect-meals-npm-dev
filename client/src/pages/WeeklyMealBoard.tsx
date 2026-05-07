@@ -687,6 +687,19 @@ export default function WeeklyMealBoard() {
       if (checkLockedDay()) return;
 
       try {
+        // Replace server-returned static placeholders with /images/fallback/meal.svg —
+        // a neutral SVG that exists on disk — so the card never shows a wrong food image
+        // while DALL-E generates. S3/DALL-E URLs (cached correct images) pass through.
+        const isStaticPlaceholder =
+          snack.imageUrl &&
+          (snack.imageUrl.startsWith('/images/templates/') ||
+            snack.imageUrl.startsWith('/images/snacks/') ||
+            snack.imageUrl.startsWith('/images/fallback/meal') ||
+            snack.imageUrl.includes('default-snack'));
+        const snackForBoard = isStaticPlaceholder
+          ? { ...snack, imageUrl: '/images/fallback/meal.svg' }
+          : snack;
+
         // Add to the snacks slot
         if (
           FEATURES.dayPlanning === "alpha" &&
@@ -697,7 +710,7 @@ export default function WeeklyMealBoard() {
           const dayLists = getDayLists(board, activeDayISO);
           const updatedDayLists = {
             ...dayLists,
-            snacks: [...dayLists.snacks, snack],
+            snacks: [...dayLists.snacks, snackForBoard],
           };
           const updatedBoard = setDayLists(
             board,
@@ -714,7 +727,7 @@ export default function WeeklyMealBoard() {
             ...board,
             lists: {
               ...board.lists,
-              snacks: [...board.lists.snacks, snack],
+              snacks: [...board.lists.snacks, snackForBoard],
             },
             version: board.version + 1,
             meta: {
@@ -730,14 +743,20 @@ export default function WeeklyMealBoard() {
         // Only dispatch macros:updated - do NOT refetch board after local mutation
         window.dispatchEvent(new Event("macros:updated"));
 
-        // Trigger proper image pipeline — matches Chef/Craving Creator flow
-        fetchImageForMeal({ id: snack.id, name: snack.name }, 'snacks', (mealId, imageUrl) => {
-          setBoard(prev => {
-            if (!prev) return prev;
-            if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
-            return updateMealImageInBoard(prev, mealId, imageUrl);
-          });
-        }, userDiet);
+        // Trigger proper image pipeline — pass full snack with ingredients so the
+        // DALL-E prompt has real food context. mealType normalized in useChefMealImage.
+        fetchImageForMeal(
+          { id: snack.id, name: snack.name, ingredients: snack.ingredients },
+          'snack',
+          (mealId, imageUrl) => {
+            setBoard(prev => {
+              if (!prev) return prev;
+              if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
+              return updateMealImageInBoard(prev, mealId, imageUrl);
+            });
+          },
+          userDiet,
+        );
 
         // Dispatch walkthrough event for snacks
         const eventTarget = document.querySelector(

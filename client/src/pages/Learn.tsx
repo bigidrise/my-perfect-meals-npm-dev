@@ -69,19 +69,19 @@ const SECTION_START_HERE: LibraryTopic[] = [
       sections: [
         {
           heading: "The Problem I Saw For 30 Years",
-          text: "For more than three decades I worked as a coach helping people lose weight, improve health, and rebuild confidence. The pattern was always the same. When clients trained with me, they succeeded. But when they left the gym and went back into real life, everything became harder."
+          text: "For more than three decades I worked as a coach helping people lose weight, improve health, and rebuild confidence. The pattern was always the same. When clients trained with me, they succeeded. But when they left the gym and went back into real life, everything became harder.",
         },
         {
           heading: "Real Life Is Where Diets Fail",
-          text: "Clients struggled at restaurants, on vacation, while traveling for work, or even just going out with friends. Many would tell me the same thing: I wish you were here right now so you could tell me what to eat."
+          text: "Clients struggled at restaurants, on vacation, while traveling for work, or even just going out with friends. Many would tell me the same thing: I wish you were here right now so you could tell me what to eat.",
         },
         {
           heading: "The Phrase That Started Everything",
-          text: "Over time one sentence kept coming up again and again from clients: I wish you were in my pocket. That idea stayed with me for years."
+          text: "Over time one sentence kept coming up again and again from clients: I wish you were in my pocket. That idea stayed with me for years.",
         },
         {
           heading: "What I Saw In Other Nutrition Apps",
-          text: "When I started studying nutrition apps on the market, I realized something frustrating. Most were built by technology companies focused on calorie tracking and generic recipes. They were not built by coaches who actually work with clients every day."
+          text: "When I started studying nutrition apps on the market, I realized something frustrating. Most were built by technology companies focused on calorie tracking and generic recipes. They were not built by coaches who actually work with clients every day.",
         },
         {
           heading: "Why Those Apps Didn't Work",
@@ -90,27 +90,27 @@ const SECTION_START_HERE: LibraryTopic[] = [
             "Medical conditions like diabetes were rarely considered",
             "Liver issues, inflammation, and allergies were ignored",
             "Users were left to figure everything out themselves",
-            "Many apps called themselves coaching, but there was no real guidance"
-          ]
+            "Many apps called themselves coaching, but there was no real guidance",
+          ],
         },
         {
           heading: "Real Coaching Works Differently",
-          text: "A real coach does not simply watch and hope the client figures things out. A coach provides structure, direction, and accountability."
+          text: "A real coach does not simply watch and hope the client figures things out. A coach provides structure, direction, and accountability.",
         },
         {
           heading: "The Turning Point",
-          text: "After a neck injury caused by a drunk driver forced me to rethink my career path, I began exploring whether technology could finally solve this problem."
+          text: "After a neck injury caused by a drunk driver forced me to rethink my career path, I began exploring whether technology could finally solve this problem.",
         },
         {
           heading: "Building The System",
-          text: "In June of last year I began building what would become My Perfect Meals."
+          text: "In June of last year I began building what would become My Perfect Meals.",
         },
         {
           heading: "The Mission",
-          text: "The goal is simple. To give people what my clients asked for years ago: a coach in their pocket."
-        }
-      ]
-    }
+          text: "The goal is simple. To give people what my clients asked for years ago: a coach in their pocket.",
+        },
+      ],
+    },
   },
   {
     id: "meal-builder",
@@ -209,7 +209,8 @@ const SECTION_START_HERE: LibraryTopic[] = [
   {
     id: "why-different",
     title: "Why This App Is Different",
-    subtitle: "A coaching app that leads you — not another log-and-hope tracker",
+    subtitle:
+      "A coaching app that leads you — not another log-and-hope tracker",
     icon: Zap,
     content: {
       sections: [
@@ -545,8 +546,8 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
           text: "If you already know your numbers, you can enter protein, carbs, fat, and calories directly. Type in the values and tap Add to include them in your daily total. This works well when you have exact macro data from a restaurant app, a meal plan, or a nutrition guide.",
         },
         {
-          heading: "Calorie Tracker — Up to 30 Days",
-          text: "Below your daily totals you will find a calorie history graph. Switch between Today, 7-day, and 30-day views to see how your intake is trending over time. This is where patterns become visible — consistent days, high days, low logging weeks — so you can have honest conversations with yourself or your coach about what is actually happening.",
+          heading: "Macro Consistency — Up to 30 Days",
+          text: "Below your daily totals you will find your Macro Consistency graph. Switch between Today, 7-day, and 30-day views to see how consistently you are staying aligned with your targets over time. This is where real patterns become visible — consistent days, missed logging periods, high-carb stretches, low-protein trends, or strong weekly adherence. Instead of focusing on perfection, this section helps you understand your habits so you can make smarter adjustments and have more productive conversations with your coach or care team.",
         },
         {
           heading: "Body Stats — Up to One Year",
@@ -1342,7 +1343,10 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
         },
         {
           heading: "Where to Find It",
-          list: ["Lifestyle → Fridge Rescue", "Free access — available on all plans"],
+          list: [
+            "Lifestyle → Fridge Rescue",
+            "Free access — available on all plans",
+          ],
         },
       ],
     },
@@ -1582,7 +1586,8 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
   {
     id: "sushi-creator",
     title: "Sushi Creator",
-    subtitle: "Japanese-inspired sushi and bowls — macros tracked, goals respected",
+    subtitle:
+      "Japanese-inspired sushi and bowls — macros tracked, goals respected",
     icon: Fish,
     content: {
       sections: [
@@ -1721,7 +1726,9 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
         },
         {
           heading: "Where to Apply",
-          list: ["Lifestyle → Creator Studio → Chef Studio or Brand Beverage Studio"],
+          list: [
+            "Lifestyle → Creator Studio → Chef Studio or Brand Beverage Studio",
+          ],
         },
       ],
     },

@@ -89,6 +89,15 @@ export const getQueryFn: <T>(options: {
     return await res.json();
   };
 
+function shouldRetry(failureCount: number, error: unknown): boolean {
+  // Never retry auth errors — they are definitive failures, not transient ones.
+  if (error instanceof Error) {
+    const status = parseInt(error.message.split(":")[0], 10);
+    if (status === 401 || status === 403) return false;
+  }
+  return failureCount < 2;
+}
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -96,11 +105,11 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: 60_000,
-      retry: 2,
+      retry: shouldRetry,
       throwOnError: false,
     },
     mutations: {
-      retry: 2,
+      retry: (failureCount, error) => shouldRetry(failureCount, error),
       throwOnError: false,
     },
   },

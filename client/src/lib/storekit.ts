@@ -296,9 +296,19 @@ async function verifyAndActivate(
 
   console.log("[StoreKit] Verifying with server:", { userId: existingUser.id, transactionId, productId, internalSku });
 
+  // x-auth-token is required — requireAuth is enforced on this endpoint.
+  // On native iOS, cookie-based sessions are unreliable, so the header is essential.
+  const authToken = localStorage.getItem("mpm_auth_token") || "";
+  if (!authToken) {
+    throw new Error("No auth token — please sign in again before purchasing.");
+  }
+
   const response = await fetch(apiUrl("/api/ios/verify-purchase"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-auth-token": authToken,
+    },
     credentials: "include",
     body: JSON.stringify({
       userId: existingUser.id,

@@ -122,27 +122,72 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUserContext(String(updatedUser.id), updatedUser.email);
         console.log("✅ [AuthContext] User refreshed:", updatedUser.email);
         return updatedUser;
-      } else {
-        console.log(
-          "⚠️ [AuthContext] Refresh failed - status:",
-          response.status,
-        );
+      } else if (response.status === 401 || response.status === 403) {
+        // Definitive auth rejection — token is invalid or revoked
+        console.warn("⚠️ [AuthContext] Refresh rejected (auth):", response.status);
         return null;
+      } else {
+        // Transient server error (5xx) or unexpected status — do NOT sign out.
+        // Preserve the cached user so the app keeps working through brief outages.
+        console.warn(
+          "⚠️ [AuthContext] Refresh failed with transient status:",
+          response.status,
+          "— keeping cached user",
+        );
+        throw new Error(`transient:${response.status}`);
       }
-    } catch (error) {
-      console.error("❌ [AuthContext] Refresh error:", error);
-      return null;
+    } catch (error: any) {
+      if (error?.message?.startsWith("transient:")) throw error;
+      // Network-level failure (fetch threw) — also transient, do NOT sign out
+      console.error("❌ [AuthContext] Refresh network error — keeping cached user:", error);
+      throw error;
     }
   }, []);
 
   useEffect(() => {
     const handleUserUpdated = () => {
       console.log("📡 [AuthContext] mpm:user-updated received — refreshing");
-      refreshUser();
+      refreshUser().catch(() => {});
     };
     window.addEventListener("mpm:user-updated", handleUserUpdated);
     return () => window.removeEventListener("mpm:user-updated", handleUserUpdated);
   }, [refreshUser]);
+
+  // On app resume (tab becomes visible after being hidden), re-probe the session
+  // if it has been more than 5 minutes since the last successful refresh.
+  // A 401 from the probe means the token was revoked while the app was in background.
+  useEffect(() => {
+    let lastProbeTime = Date.now();
+    const PROBE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+    const handleVisibilityResumed = async () => {
+      if (Date.now() - lastProbeTime < PROBE_INTERVAL_MS) return;
+      const token = getAuthToken();
+      if (!token) return;
+
+      lastProbeTime = Date.now();
+      try {
+        const res = await fetch(apiUrl("/api/auth/session"), {
+          headers: { ...getAuthHeaders() },
+        });
+        if (res.status === 401 || res.status === 403) {
+          console.warn("⚠️ [AuthContext] Session probe on resume → 401 — signing out");
+          setUser(null);
+          localStorage.removeItem("mpm_current_user");
+          localStorage.removeItem("userId");
+          localStorage.removeItem("isAuthenticated");
+          clearAuthToken();
+          clearUserContext();
+          window.location.href = "/login";
+        }
+      } catch {
+        // Network error on probe — app may be offline, keep session
+      }
+    };
+
+    window.addEventListener("mpm:visibility-resumed", handleVisibilityResumed);
+    return () => window.removeEventListener("mpm:visibility-resumed", handleVisibilityResumed);
+  }, []);
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -153,20 +198,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (token && currentUser && !currentUser.id.startsWith("guest-")) {
         setUser(currentUser);
-        const freshUser = await refreshUser();
-        if (!freshUser) {
-          console.log(
-            "⚠️ [AuthContext] refreshUser returned null - clearing state",
-          );
-          setUser(null);
-          localStorage.removeItem("mpm_current_user");
-          localStorage.removeItem("userId");
-          localStorage.removeItem("isAuthenticated");
-          clearAuthToken();
-          clearUserContext();
-          if (window.location.pathname !== "/login" && window.location.pathname !== "/welcome") {
-            window.location.href = "/login";
+        try {
+          const freshUser = await refreshUser();
+          if (!freshUser) {
+            // null = definitive 401/403: token is revoked — sign out
+            console.log("⚠️ [AuthContext] Token rejected by server — signing out");
+            setUser(null);
+            localStorage.removeItem("mpm_current_user");
+            localStorage.removeItem("userId");
+            localStorage.removeItem("isAuthenticated");
+            clearAuthToken();
+            clearUserContext();
+            if (window.location.pathname !== "/login" && window.location.pathname !== "/welcome") {
+              window.location.href = "/login";
+            }
           }
+        } catch {
+          // Transient error (5xx / network) — keep cached user; the app stays usable
+          console.warn("⚠️ [AuthContext] Transient refresh error on mount — using cached user");
         }
       } else if (appleReviewFullAccess) {
         const demoUser: User = {
