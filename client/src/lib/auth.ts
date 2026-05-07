@@ -345,6 +345,18 @@ export async function login(email: string, password: string): Promise<User> {
 }
 
 export function logout(): void {
+  // Fire-and-forget server-side token invalidation. The token is cleared from
+  // localStorage immediately below regardless of whether the server call succeeds,
+  // so logout is instant from the user's perspective.
+  const token = getAuthToken();
+  if (token) {
+    fetch(apiUrl("/api/auth/logout"), {
+      method: "POST",
+      credentials: "include",
+      headers: { "x-auth-token": token },
+    }).catch(() => {});
+  }
+
   clearAuthToken();
   localStorage.removeItem("mpm_current_user");
   localStorage.removeItem("userId");

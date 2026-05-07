@@ -15,7 +15,7 @@ let stripe: Stripe | null = null;
 
 if (process.env.STRIPE_SECRET_KEY) {
   stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: "2024-06-20",
+    apiVersion: "2025-10-29.clover",
   });
 }
 
@@ -83,7 +83,7 @@ router.post("/", async (req, res) => {
       case "invoice.payment_succeeded": {
         const invoice = event.data.object as Stripe.Invoice;
         const customerId = invoice.customer as string;
-        const subscriptionId = invoice.subscription as string | null;
+        const subscriptionId = (invoice as any).subscription as string | null;
 
         if (!customerId || !subscriptionId) {
           console.log(`[webhook] invoice.payment_succeeded — no customerId/subscriptionId, skipping`);

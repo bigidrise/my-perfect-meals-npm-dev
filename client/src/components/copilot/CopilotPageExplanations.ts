@@ -7,7 +7,7 @@ export interface PageExplanation {
   // Guest-specific marketing copy, used when in guest mode for onboarding/sales
   guestSpokenText?: string;
   guestDescription?: string;
-} 
+}
 
 export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
   "/dashboard": {
@@ -24,14 +24,16 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "my-biometrics",
     title: "My Biometrics",
     description:
-      "Your daily control panel. Scan food labels with MacroScan, log meals instantly, add extra macros when needed, and track calories, weight, and water over time.",
+      "Your daily feedback center. Track macro consistency, body metrics, hydration, and progress trends while logging meals instantly with MacroScan or Just Describe It.",
+
     spokenText:
-      "My Biometrics is your tracking and review center, where everything you are doing comes together in one place. At the top, you will see today’s macros, which are set from the Macro Calculator and stay in place until you update them, or a coach or physician adjusts them for you. As you move down the page, you can log foods using MacroScan by taking a photo of a nutrition label or using Just Describe It to simply describe what you ate and let the system estimate it for you. You will also see your calorie totals, body stats, body composition, clinical lab values, and daily water intake. Your body fat percentage is estimated using the U.S. Navy Body Fat Formula, which uses simple measurements like waist, neck, height, and hips to give you a consistent way to track changes over time, but if you have more accurate readings from an external source, you can use those as well. This page is designed to help you monitor progress, spot trends, and understand how your nutrition is affecting your body, not planning your meals, so think of it as your feedback system that shows you how everything is working together.",
+      "My Biometrics is your daily feedback and progress center, where everything you are doing inside the app comes together in one place. At the top, you will see your current macro targets, which are set from the Macro Calculator and remain active until you, your coach, or your physician updates them. As you move through the page, you can quickly log foods using MacroScan by scanning a nutrition label, or use Just Describe It to estimate meals by simply explaining what you ate. This page also tracks your macro consistency over time, helping you see how closely your eating habits align with your targets across daily, weekly, and monthly views. You will also find calorie totals, body measurements, body composition estimates, clinical lab values, and hydration tracking. Your body fat percentage is estimated using the U.S. Navy Body Fat Formula, which uses measurements like waist, neck, height, and hips to provide a consistent progress reference over time, though you can also enter more advanced readings from external devices if available. This page is not designed to build meals. It is designed to help you monitor patterns, identify trends, improve consistency, and better understand how your nutrition choices are affecting your body and overall progress.",
     autoClose: true,
     guestDescription:
-      "This is where food turns into numbers, and numbers turn into feedback. Your personal progress lens.",
+      "Your personal progress lens. This is where meals, macros, hydration, and body trends turn into real feedback.",
+
     guestSpokenText:
-      "This is your Biometrics page, and this is where food turns into data. Most people eat without ever knowing what’s actually working. Here, you’ll see exactly how your meals add up, protein, carbs, fat, calories, all in one place. You can scan packaged food labels, log meals you’ve built, and watch your weekly and monthly trends unfold. This isn’t just tracking, it’s feedback. It’s the difference between hoping your plan works, and actually knowing it does. For subscribers, this page becomes your personal progress lens, weight trends, water intake, macro consistency over time. It’s where the system closes the loop. You’ve made it through your first full loop of the Guest Experience, nicely done. Head back to the Guest Experience now, and you’ll find Fridge Rescue and Craving Creator unlocked and waiting for you. Those are free to explore, so go play with them. I’ll be here when you’re ready.",
+      "This is your Biometrics page, and this is where your nutrition starts turning into real data and real feedback. Most people eat every day without ever truly understanding what is helping them progress and what is holding them back. Here, you can see your protein, carbs, fats, calories, hydration, and body trends all in one place. You can scan food labels with MacroScan, describe meals using Just Describe It, and watch your macro consistency patterns develop over time across daily, weekly, and monthly views. This is not about perfection. It is about awareness, consistency, and understanding your habits. Subscribers unlock deeper tracking tools like weight trends, hydration monitoring, body composition tracking, and long term macro consistency insights that help close the loop between your nutrition and your results. You have now completed your first full loop of the Guest Experience. Nicely done. Head back to the Guest Experience and you will now find Fridge Rescue and Craving Creator unlocked and ready to explore. Go have fun with them. I will be here when you are ready for the next step.",
   },
 
   "/craving-creator": {
@@ -67,7 +69,6 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
       "Welcome to the Craving Creator Hub, this is where it all began. This is the original experience, built around what you actually feel like eating. You can use the Craving Creator to turn any craving into a healthier meal that fits your goals, browse Premades for ready-to-go favorites, or head into the Dessert Creator for healthier takes on things like cookies, cakes, and pies. Pick where you want to start, and I’ll guide you from there.",
     autoClose: true,
   },
-
 
   "/lifestyle/create-a-dish": {
     pageId: "create-a-dish",
@@ -163,9 +164,6 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
       "This is Fridge Rescue, and this is what happens when life doesn’t go according to plan. You’ve got random ingredients at home, no time to shop, and no idea what to make. Sound familiar? Just tell me what you’ve got, chicken, eggs, leftover rice, whatever, and I’ll turn it into a real meal with ingredients, instructions, and nutrition. No grocery run. No guessing. No wasted food. This feature is free for you to explore, no pass required. Play around, see what’s possible. When you find something you like, you can add it to your meal plan, and watch how it connects back to your day. This is one of those features that makes people go ‘oh wow, I didn’t know it could do that.’ So go ahead, rescue your fridge.",
   },
 
-
-
-
   "/social-hub": {
     pageId: "social-hub",
     title: "Socializing Hub",
@@ -192,7 +190,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Find healthy places to eat near you. Enter what you're craving and your zip code, and the app returns nearby restaurants with smart meal options that fit your goals.",
     spokenText:
-    "When you are out, on the road, or in a new area, staying on track becomes a guessing game. Find Meals Near Me fixes that. I am finding restaurants that fit your dietary preferences — and that includes both dedicated spots and places where you can confidently order meals that match your diet. Just tell me what type of food you are looking for and enter your location, and the system will find nearby restaurants that work for how you eat. From there, you will get three restaurant options, and for each, you will see smarter meal choices and simple guidance on how to order them, so they fit your goals. Each option appears as a meal card, where you can review the meal, see estimated macros, and understand how it fits into your day before you decide. Everything is filtered through your onboarding, dietary preferences, and SafetyGuard, so your allergies and restrictions are handled automatically. When you choose a meal, you can log it directly to your Biometrics, keeping your day accurate without extra effort. You are not guessing, you are not stressed, you are just finding food, ordering smarter, and staying on track wherever you are.",
+      "When you are out, on the road, or in a new area, staying on track becomes a guessing game. Find Meals Near Me fixes that. I am finding restaurants that fit your dietary preferences — and that includes both dedicated spots and places where you can confidently order meals that match your diet. Just tell me what type of food you are looking for and enter your location, and the system will find nearby restaurants that work for how you eat. From there, you will get three restaurant options, and for each, you will see smarter meal choices and simple guidance on how to order them, so they fit your goals. Each option appears as a meal card, where you can review the meal, see estimated macros, and understand how it fits into your day before you decide. Everything is filtered through your onboarding, dietary preferences, and SafetyGuard, so your allergies and restrictions are handled automatically. When you choose a meal, you can log it directly to your Biometrics, keeping your day accurate without extra effort. You are not guessing, you are not stressed, you are just finding food, ordering smarter, and staying on track wherever you are.",
     autoClose: true,
   },
 
@@ -215,8 +213,6 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
       "Welcome to My Perfect Gatherings. This is where meal planning meets real life. Think of it as a personal chef who designs the entire meal around what you are actually doing and who you are doing it with. You pick the situation, a holiday like Thanksgiving or Hanukkah, a camping trip, a tailgate, or a family gathering, and then set the details: how many people you are feeding and how many courses you want. From there, I build each course individually, appetizer, main, sides, dessert, so every dish feels intentional, balanced, and connected to the same occasion. Nothing random, nothing repeated. Each course knows what the others are. And one thing worth knowing: your dietary preferences travel with you into every single course. If you are vegan, every course will be plant-based. If you are keto, gluten-free, kosher, halal, or anything else, your protocol is enforced across your full gathering automatically. You do not need to remind me. It is already built in. You can even pin specific dishes to a course, paste in a family recipe, or let me build the entire meal from scratch. When it is ready, every course appears as a full meal card with ingredients, instructions, and nutrition. You can add any course to your meal plan, save favorites, or share the full gathering. This is not a meal generator. This is how you eat when it matters.",
     autoClose: true,
   },
-
-
 
   "/wine-pairing": {
     pageId: "wine-pairing",
@@ -247,7 +243,6 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
-
   "/meal-pairing-ai": {
     pageId: "meal-pairing",
     title: "Meal Pairing",
@@ -257,7 +252,6 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
       "Meal Pairing helps you bring food and drinks together the right way. Choose your drink category, pick a specific drink, select your meal style, and set your cooking time, and I’ll match everything so the flavors line up naturally.",
     autoClose: true,
   },
-
 
   "/weaning-off-tool": {
     pageId: "weaning-off-tool",
@@ -484,8 +478,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
   "/profile/edit-step-4": {
     pageId: "edit-profile-step-4",
     title: "Edit Profile, Review & Save",
-    description:
-      "Review your changes and save your updated profile.",
+    description: "Review your changes and save your updated profile.",
     spokenText:
       "This is your final review. Take a moment to double-check everything, your name, goals, activity level, dietary restrictions, and allergies. When you're ready, save your changes and they'll take effect immediately across the app.",
     autoClose: true,

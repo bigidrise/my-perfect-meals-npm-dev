@@ -314,6 +314,26 @@ router.get("/api/auth/session", async (req: any, res) => {
 });
 
 /**
+ * POST /api/auth/logout
+ * Invalidates the auth token in the database so it cannot be reused after sign-out.
+ * Client must also clear localStorage regardless of whether this call succeeds.
+ */
+router.post("/api/auth/logout", requireAuth, async (req: any, res) => {
+  const userId = req.authUser.id;
+  try {
+    await db.update(users).set({ authToken: null, authTokenCreatedAt: null }).where(eq(users.id, userId));
+    if (req.session) {
+      req.session.destroy?.(() => {});
+    }
+    console.log(`✅ [logout] Token invalidated for user ${userId}`);
+    return res.json({ success: true });
+  } catch (err: any) {
+    console.error(`[logout] DB error for user ${userId}:`, err.message);
+    return res.status(500).json({ error: "Logout failed" });
+  }
+});
+
+/**
  * DELETE /api/auth/delete-account
  * Permanently deletes the authenticated user's account and all associated data.
  * Apple App Store requirement 5.1.1 - self-service account deletion.
