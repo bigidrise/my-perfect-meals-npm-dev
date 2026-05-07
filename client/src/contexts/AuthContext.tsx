@@ -109,6 +109,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           creatorDisplayName: userData.creatorDisplayName || null,
           cuisinePreference: userData.cuisinePreference || null,
           cuisineIntensity: userData.cuisineIntensity || null,
+          isAdmin: userData.isAdmin || false,
         };
         if (userData.oncologySupportIntent) {
           localStorage.setItem("mpm:oncologySupportIntent", userData.oncologySupportIntent);

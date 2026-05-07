@@ -420,6 +420,8 @@ export const users = pgTable("users", {
   backAt: timestamp("back_at", { withTimezone: true }), // optional return date when not available
   // Creator System Layer — which branded system this user has activated (default = MPM standard)
   activeSystem: text("active_system").default("default"),
+  // Admin access — server-enforced, never trust frontend alone
+  isAdmin: boolean("is_admin").default(false),
 }, (t) => ({
   resetTokenIdx: index("idx_reset_token_lookup").on(t.resetTokenHash, t.resetTokenExpires),
   authTokenIdx: uniqueIndex("idx_auth_token_lookup").on(t.authToken),
