@@ -19,14 +19,18 @@ type Coach = {
   availableDate?: string;
   isFounder?: boolean;
   isCMCO?: boolean;
+  isVeteran?: boolean;
   isPlaceholder?: boolean;
 };
 
 const FOUNDER_BIO =
   "I have spent over 25 years helping people transform their bodies, their health, and the way they live.\n\nMy background is built on real-world experience and discipline—from serving in the United States Air Force and working in critical care as an EMT, to competing as a professional bodybuilder and earning the Mr. USA title in 2002. I have also spent years in front of the camera, hosting a daily fitness segment where I taught practical, results-driven strategies to a broad audience.\n\nOver the years, I have worked with hundreds of clients, helping people lose significant weight, rebuild strength, and take control of their health in a way that fits their life.\n\nMy approach is simple: results come from consistency, not restriction. I do not believe in forcing people into rigid diets that do not match how they live. Instead, I focus on helping people make smarter decisions within the foods they already enjoy—so they can stay consistent, see results, and maintain them long term.\n\nThat philosophy is what led me to build My Perfect Meals—an AI-powered coaching system designed to guide real food decisions in real time. It is an extension of the same system I have used for years, now structured in a way that allows more people to experience it.\n\nMy goal is to help you build strength, move with confidence, and create a way of eating that works in the real world—not just for a few weeks, but for life.";
 
-const LINDSEY_BIO =
-  "Dr. Lindsey Prescher brings clinical precision to the My Perfect Meals platform. As Chief Medical Advisor, she ensures our nutrition protocols align with evidence-based medicine, oversees physician-supervised programs, and provides the clinical framework that separates structured meal design from guesswork.";
+const MONICA_BIO =
+  "Monica Brant is one of the most recognized names in professional fitness — a former IFBB Fitness World Champion whose career has spanned over three decades of elite-level competition, coaching, and physique development.\n\nWith more than 30 years working with athletes, everyday clients, and fitness professionals, Monica brings a depth of real-world coaching experience that is rare. She has helped hundreds of people transform their bodies, rebuild their relationship with food, and perform at their highest level — not through shortcuts, but through disciplined, intelligent systems built over a lifetime in the sport.\n\nHer approach combines elite competitive knowledge with deep empathy for where people actually are in their journey. Whether you are stepping onto a stage or simply trying to feel your best every day, Monica meets you there — with structure, clarity, and the kind of insight that only comes from decades of doing this work at the highest level.\n\nAt My Perfect Meals, Monica brings that same veteran perspective to personalized nutrition coaching — grounded in science, shaped by experience, and designed to produce lasting results.";
+
+const DANIELLE_BIO =
+  "Danielle Affatato is a certified nutrition and fitness coach whose practice is built on accountability, consistency, and real-life application.\n\nHer coaching philosophy centers on meeting clients where they are — helping them build sustainable habits, understand how to fuel their body, and develop the discipline that creates lasting change. Danielle works especially well with clients who have struggled with all-or-nothing thinking, helping them find structure that fits how they actually live.\n\nShe specializes in body composition, macro-based nutrition, and behavioral habit-building — combining practical meal guidance with the mindset coaching that keeps people consistent when motivation fades.\n\nAt My Perfect Meals, Danielle focuses on helping clients turn the AI-generated meal guidance into a daily practice that sticks.";
 
 const CHEF_LOGO = "/icons/MPMFlameChefLogo.jpg";
 
@@ -42,14 +46,14 @@ const coaches: Coach[] = [
     isFounder: true,
   },
   {
-    id: "lindsey",
-    name: "Dr. Lindsey Prescher (Cardiothoracic Surgeon)",
-    title: "CMO",
-    credentials: "DO FASC FACC · Ret. CDR USN MC",
-    image: "/assets/dr-lindsey.jpg",
-    bio: LINDSEY_BIO,
+    id: "monica",
+    name: "Monica Brant (Body Composition & Elite Performance)",
+    title: "Elite Coach",
+    credentials: "IFBB Fitness World Champion · 30+ Years Coaching",
+    image: "/assets/monica-brant.jpg",
+    bio: MONICA_BIO,
     availabilityStatus: "available",
-    isCMCO: true,
+    isVeteran: true,
   },
   {
     id: "kristen",
@@ -61,12 +65,13 @@ const coaches: Coach[] = [
     availabilityStatus: "available",
   },
   {
-    id: "placeholder-2",
-    name: "Coming Soon",
-    image: CHEF_LOGO,
-    bio: "",
-    availabilityStatus: "unavailable",
-    isPlaceholder: true,
+    id: "danielle",
+    name: "Danielle Affatato (Nutrition & Habit Coaching)",
+    title: "Nutrition Coach",
+    credentials: "Certified Nutrition Coach · Macro Strategy · Habit-Based Coaching",
+    image: "/assets/danielle-affatato.jpg",
+    bio: DANIELLE_BIO,
+    availabilityStatus: "available",
   },
   {
     id: "placeholder-3",
@@ -213,6 +218,11 @@ export default function MeetYourCoach() {
                   Founder
                 </div>
               )}
+              {coach.isVeteran && (
+                <div className="absolute top-1.5 left-1.5 bg-amber-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-semibold shadow">
+                  30+ Yrs
+                </div>
+              )}
               {coach.isCMCO && (
                 <div className="absolute top-1.5 left-1.5 bg-blue-600 text-white text-[9px] px-1.5 py-1 rounded-lg font-semibold shadow leading-tight max-w-[80%]">
                   Chief Medical Officer
@@ -274,6 +284,11 @@ export default function MeetYourCoach() {
               {selectedCoach.isFounder && (
                 <p className="text-orange-400 text-sm font-medium mt-1">
                   Founder
+                </p>
+              )}
+              {selectedCoach.isVeteran && (
+                <p className="text-amber-400 text-sm font-medium mt-1">
+                  Elite Coach · 30+ Years Experience
                 </p>
               )}
               {selectedCoach.isCMCO && (
