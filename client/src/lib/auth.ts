@@ -335,6 +335,15 @@ export async function login(email: string, password: string): Promise<User> {
     localStorage.setItem("userId", user.id);
     localStorage.setItem("isAuthenticated", "true");
 
+    // Apple Review mode: when the reviewer logs in with the demo account,
+    // flag the session so the app bypasses paywalls and gating for review.
+    if (email.toLowerCase().trim() === "demo@myperfectmeals.com") {
+      localStorage.setItem("appleReviewFullAccess", "true");
+      console.log("🍎 [Auth] Apple review mode enabled");
+    } else {
+      localStorage.removeItem("appleReviewFullAccess");
+    }
+
     console.log("✅ User logged in:", user.email, "ID:", user.id, "isProCare:", user.isProCare, "role:", user.professionalRole, "studioMembership:", !!user.studioMembership);
 
     return user;
