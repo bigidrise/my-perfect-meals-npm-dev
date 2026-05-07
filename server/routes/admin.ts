@@ -21,6 +21,7 @@ const SAFE_USER_FIELDS = {
   role: users.role,
   isAdmin: users.isAdmin,
   isTester: users.isTester,
+  isFounder: users.isFounder,
   isProCare: users.isProCare,
   onboardingCompletedAt: users.onboardingCompletedAt,
   safetyPinHash: users.safetyPinHash,
@@ -162,6 +163,38 @@ router.post("/users/:userId/refresh-subscription", async (req, res) => {
   } catch (err) {
     console.error("[admin] refresh-subscription error:", err);
     return res.status(500).json({ error: "Failed to refresh subscription" });
+  }
+});
+
+router.post("/users/:userId/grant-founder", async (req, res) => {
+  const { userId } = req.params;
+  const actor = (req as AuthenticatedRequest).authUser;
+  try {
+    await db
+      .update(users)
+      .set({ isFounder: true, isTester: false })
+      .where(eq(users.id, userId));
+    console.log(`[admin] grant-founder: userId=${userId} by admin=${actor.email}`);
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("[admin] grant-founder error:", err);
+    return res.status(500).json({ error: "Failed to grant founder access" });
+  }
+});
+
+router.post("/users/:userId/revoke-founder", async (req, res) => {
+  const { userId } = req.params;
+  const actor = (req as AuthenticatedRequest).authUser;
+  try {
+    await db
+      .update(users)
+      .set({ isFounder: false })
+      .where(eq(users.id, userId));
+    console.log(`[admin] revoke-founder: userId=${userId} by admin=${actor.email}`);
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("[admin] revoke-founder error:", err);
+    return res.status(500).json({ error: "Failed to revoke founder access" });
   }
 });
 

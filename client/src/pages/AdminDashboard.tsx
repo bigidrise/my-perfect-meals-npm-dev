@@ -25,6 +25,7 @@ type AdminUser = {
   role: string | null;
   isAdmin: boolean | null;
   isTester: boolean | null;
+  isFounder: boolean | null;
   isProCare: boolean | null;
   onboardingCompletedAt: string | null;
   safetyPinHash: string | null;
@@ -120,6 +121,20 @@ function UserDetail({ user, onAction }: { user: AdminUser; onAction: (label: str
       color: "bg-blue-700 hover:bg-blue-600",
     },
     {
+      label: "Grant Founder",
+      path: "grant-founder",
+      icon: <CheckCircle className="h-4 w-4" />,
+      confirm: `Grant permanent founder access to ${user.email}? Keep this list very small.`,
+      color: "bg-purple-800 hover:bg-purple-700",
+    },
+    {
+      label: "Revoke Founder",
+      path: "revoke-founder",
+      icon: <RotateCcw className="h-4 w-4" />,
+      confirm: `Revoke founder access from ${user.email}?`,
+      color: "bg-purple-900 hover:bg-purple-800",
+    },
+    {
       label: "Disable Account",
       path: "disable",
       icon: <Ban className="h-4 w-4" />,
@@ -149,6 +164,7 @@ function UserDetail({ user, onAction }: { user: AdminUser; onAction: (label: str
     ["Role", user.role ?? "—"],
     ["Admin", <StatusPill value={user.isAdmin} />],
     ["Tester", <StatusPill value={user.isTester} />],
+    ["Founder", <StatusPill value={user.isFounder} />],
     ["ProCare", <StatusPill value={user.isProCare} />],
     ["Onboarding", <StatusPill value={user.onboardingCompletedAt} />],
     ["Macros Defined", <StatusPill value={user.macrosDefined} />],
