@@ -94,13 +94,18 @@ export default function Founder() {
               <p className="text-orange-400 font-medium">
                 Founder & Lead Coach
               </p>
+              <p className="text-white/60 text-xs mt-0.5 mb-1">
+                IFBB Professional · Mr. USA 2002 · 30+ Years Coaching
+              </p>
               <p className="text-white/80 text-sm leading-relaxed max-w-xl">
-                I've spent over 25 years working in performance nutrition, body
-                composition, and structured meal design. My background combines
-                competitive athletics, clinical awareness, and real-world
-                coaching experience. My Perfect Meals was built to remove
-                confusion, eliminate food stress, and help people eat
-                confidently without restriction.
+                I've spent over 30 years working in performance nutrition, body
+                composition, and structured meal design — starting long before
+                it was a business, because this is just how I've always lived.
+                My background combines elite competitive athletics, clinical
+                awareness from my time as an ICU Medic in the U.S. Air Force,
+                and decades of real-world coaching experience. My Perfect Meals
+                was built to remove confusion, eliminate food stress, and help
+                people eat confidently without restriction.
               </p>
 
               <Button
@@ -120,12 +125,13 @@ export default function Founder() {
             Professional Background
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-white/85">
+            <div>✔ IFBB Professional Bodybuilder</div>
+            <div>✔ Mr. USA 2002</div>
             <div>✔ NASM Certified Personal Trainer</div>
             <div>✔ NASM Certified Women's Fitness Specialist</div>
             <div>✔ NASM Certified Nutrition Coach</div>
             <div>✔ NASM Behavior Change Specialist</div>
             <div>✔ NASM Online Coaching Specialist</div>
-            <div>✔ Former IFBB Professional Bodybuilder</div>
             <div>✔ Former ICU Medic & EMT-I – United States Air Force</div>
           </div>
         </section>
