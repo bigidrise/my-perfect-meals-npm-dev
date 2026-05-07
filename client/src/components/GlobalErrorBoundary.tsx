@@ -1,5 +1,5 @@
-
 import React, { Component, ReactNode } from 'react';
+import { captureException } from '@/lib/sentry';
 
 interface Props {
   children: ReactNode;
@@ -22,9 +22,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('Global Error Boundary caught an error:', error, errorInfo);
-    
-    // Log to your error tracking service here
-    // Example: errorTracker.captureException(error, { extra: errorInfo });
+    captureException(error, { componentStack: errorInfo.componentStack ?? undefined });
   }
 
   render() {
@@ -54,24 +52,15 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   }
 }
 
-// Promise rejection handler
 export const setupGlobalErrorHandling = () => {
-  // Handle unhandled promise rejections
   window.addEventListener('unhandledrejection', (event) => {
     console.error('Unhandled promise rejection:', event.reason);
-    
-    // Prevent the default behavior that logs to console
+    captureException(event.reason, { type: 'unhandledrejection' });
     event.preventDefault();
-    
-    // You can add custom error reporting here
-    // Example: errorTracker.captureException(event.reason);
   });
 
-  // Handle general errors
   window.addEventListener('error', (event) => {
     console.error('Global error:', event.error);
-    
-    // You can add custom error reporting here
-    // Example: errorTracker.captureException(event.error);
+    captureException(event.error, { type: 'global-error', message: event.message });
   });
 };

@@ -10,6 +10,7 @@ import {
 import { User, getCurrentUser, getAuthHeaders, getAuthToken, clearAuthToken } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { isGuestMode, getGuestSession } from "@/lib/guestMode";
+import { setUserContext, clearUserContext } from "@/lib/sentry";
 
 interface AuthContextType {
   user: User | null;
@@ -118,6 +119,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
         setUser(updatedUser);
         localStorage.setItem("mpm_current_user", JSON.stringify(updatedUser));
+        setUserContext(String(updatedUser.id), updatedUser.email);
         console.log("✅ [AuthContext] User refreshed:", updatedUser.email);
         return updatedUser;
       } else {
@@ -161,6 +163,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           localStorage.removeItem("userId");
           localStorage.removeItem("isAuthenticated");
           clearAuthToken();
+          clearUserContext();
           if (window.location.pathname !== "/login" && window.location.pathname !== "/welcome") {
             window.location.href = "/login";
           }
@@ -209,6 +212,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         localStorage.removeItem("userId");
         localStorage.removeItem("isAuthenticated");
         clearAuthToken();
+        clearUserContext();
         const publicPaths = ["/login", "/welcome", "/auth", "/forgot-password", "/reset-password", "/pricing", "/privacy", "/guest-builder", "/guest-suite", "/consumer-welcome", "/procare-welcome", "/procare-identity", "/procare-attestation", "/founders", "/affiliates", "/delete-account", "/terms", "/privacy-policy"];
         const isPublicPath = publicPaths.some(p => window.location.pathname === p || window.location.pathname.startsWith(p + "/"));
         if (!isPublicPath) {
