@@ -220,7 +220,7 @@ export function clearProCareSignupData() {
 }
 
 export async function upgradeToProCare(procareData: ProCareSignupData): Promise<any> {
-  const res = await fetch(`${apiUrl}/api/auth/upgrade-to-procare`, {
+  const res = await fetch(apiUrl("/api/auth/upgrade-to-procare"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
