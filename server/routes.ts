@@ -2649,7 +2649,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if PIN already exists
       const hasPin = await hasUserSetPin(userId);
       if (hasPin) {
-        return res.status(400).json({ error: "PIN already set. Use change endpoint." });
+        // If onboarding is not yet complete, the user may be retrying after a
+        // partial failure (e.g. network drop after PIN saved but before
+        // complete-onboarding was called). Allow the re-set so they can finish.
+        const [userRow] = await db
+          .select({ onboardingCompletedAt: users.onboardingCompletedAt })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        if (userRow?.onboardingCompletedAt) {
+          return res.status(400).json({ error: "PIN already set. Use change endpoint." });
+        }
+        // Onboarding still in progress — fall through and overwrite the PIN
       }
       
       const result = await setUserPin(userId, pin);

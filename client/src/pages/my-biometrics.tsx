@@ -82,6 +82,7 @@ import { JustDescribeItModal } from "@/components/JustDescribeItModal";
 import { getCurrentUser } from "@/lib/auth";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ClinicalLabsCard from "@/components/biometrics/ClinicalLabsCard";
+import MacroConsistencyTimeline from "@/components/biometrics/MacroConsistencyTimeline";
 import { hasFeature } from "@/lib/entitlements";
 
 // ============================== CONFIG ==============================
@@ -277,7 +278,20 @@ export default function MyBiometrics() {
     return () => window.removeEventListener("macros:updated", refetch);
   }, [userId]);
 
-  const today = todayKey();
+  const [today, setToday] = useState(todayKey);
+
+  // Midnight reset: re-arm a timeout each day so "today" updates and macros reset to zero
+  useEffect(() => {
+    const now = new Date();
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 3);
+    const ms = midnight.getTime() - now.getTime();
+    const timer = setTimeout(() => {
+      setToday(todayKey());
+      window.dispatchEvent(new Event("macros:updated"));
+    }, ms);
+    return () => clearTimeout(timer);
+  }, [today]);
+
   const sortedRows = useMemo(
     () => [...macroRows].sort((a, b) => b.day.localeCompare(a.day)),
     [macroRows],
@@ -293,36 +307,6 @@ export default function MyBiometrics() {
   const history7 = sortedRows.slice(0, 7);
   const historyToday = [todayRow];
 
-  // Calories series: continuous (matches Steps pattern)
-  const calories30 = useMemo(() => {
-    const byDay = new Map<string, number>();
-    for (const r of macroRows) byDay.set(r.day, r.kcal || 0);
-    const out: { date: string; kcal: number }[] = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      out.push({ date: key, kcal: byDay.get(key) ?? 0 });
-    }
-    return out;
-  }, [macroRows]);
-  const calories7 = useMemo(() => {
-    const byDay = new Map<string, number>();
-    for (const r of macroRows) byDay.set(r.day, r.kcal || 0);
-    const out: { date: string; kcal: number }[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      out.push({ date: key, kcal: byDay.get(key) ?? 0 });
-    }
-    return out;
-  }, [macroRows]);
-  const caloriesToday = useMemo(() => {
-    const byDay = new Map<string, number>();
-    for (const r of macroRows) byDay.set(r.day, r.kcal || 0);
-    return [{ date: today, kcal: byDay.get(today) ?? 0 }];
-  }, [macroRows, today]);
 
   const [p, setP] = useState("");
   const [c, setC] = useState("");
@@ -512,12 +496,6 @@ export default function MyBiometrics() {
     if (!targets) return [];
     const items = [
       {
-        key: "Calories",
-        used: todayRow.kcal,
-        max: targets.calories,
-        unit: "kcal",
-      },
-      {
         key: "Protein",
         used: todayRow.protein,
         max: targets.protein_g,
@@ -525,6 +503,12 @@ export default function MyBiometrics() {
       },
       { key: "Carbs", used: todayRow.carbs, max: targets.carbs_g, unit: "g" },
       { key: "Fat", used: todayRow.fat, max: targets.fat_g, unit: "g" },
+      {
+        key: "Calories",
+        used: todayRow.kcal,
+        max: targets.calories,
+        unit: "kcal",
+      },
     ];
     return items.map((i) => {
       const pct = i.max > 0 ? (i.used / i.max) * 100 : 0;
@@ -1073,7 +1057,6 @@ export default function MyBiometrics() {
   const activeTargets = targets || defaultTargets;
 
   // View toggles for charts
-  const [caloriesView, setCaloriesView] = useState<"today" | "7" | "30">("30");
   const [weightView, setWeightView] = useState<"7" | "1" | "3" | "6" | "12">(
     "7",
   );
@@ -2141,62 +2124,8 @@ export default function MyBiometrics() {
           </CardContent>
         </Card>
 
-        {/* Calories chart - continuous 30 days (matches Steps) */}
-        <Card
-          data-testid="biometrics-charts-section"
-          className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl"
-        >
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-white text-xl flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" /> Calories
-            </CardTitle>
-            <ViewToggle value={caloriesView} onChange={setCaloriesView} />
-          </CardHeader>
-          <CardContent>
-            <div style={{ width: "100%", height: 220 }}>
-              <ResponsiveContainer>
-                <LineChart
-                  data={
-                    caloriesView === "today"
-                      ? caloriesToday
-                      : caloriesView === "7"
-                        ? calories7
-                        : calories30
-                  }
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 10, fill: "#fff" }}
-                    tickFormatter={(v: string) => {
-                      const d = new Date(v + "T12:00:00");
-                      return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
-                    }}
-                  />
-                  <YAxis tick={{ fontSize: 10, fill: "#fff" }} />
-                  <Tooltip
-                    contentStyle={{
-                      background: "rgba(0,0,0,0.9)",
-                      border: "1px solid #333",
-                      color: "#fff",
-                      borderRadius: 8,
-                    }}
-                    labelFormatter={(l) =>
-                      new Date(l + "T12:00:00").toLocaleDateString()
-                    }
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="kcal"
-                    stroke="#fbbf24"
-                    dot={false}
-                    name="Calories"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Macro Consistency Timeline - replaces standalone Calories chart */}
+        <MacroConsistencyTimeline macroRows={macroRows} />
 
         {/* BODY with weight history */}
         <Card id="biometrics-weight-section" className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl">
