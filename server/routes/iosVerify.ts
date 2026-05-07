@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { requireAuth } from "../middleware/requireAuth";
 
 const router = Router();
 
@@ -56,12 +57,19 @@ const PLAN_ENTITLEMENTS: Record<string, string[]> = {
   ],
 };
 
-router.post("/verify-purchase", async (req: Request, res: Response) => {
+router.post("/verify-purchase", requireAuth, async (req: Request, res: Response) => {
   try {
+    const authUserId = (req as any).authUser?.id as string | undefined;
     const { userId, transactionId, productId, internalSku } = req.body;
 
     if (!userId || !transactionId || !productId) {
       return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Security: the userId in the request body must match the authenticated session
+    if (authUserId !== userId) {
+      console.error(`[iOS Verify] Auth mismatch — auth: ${authUserId}, body: ${userId}`);
+      return res.status(403).json({ error: "User ID does not match authenticated session" });
     }
 
     console.log("[iOS Verify] Processing purchase:", {
@@ -126,12 +134,19 @@ router.post("/verify-purchase", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/restore-purchases", async (req: Request, res: Response) => {
+router.post("/restore-purchases", requireAuth, async (req: Request, res: Response) => {
   try {
+    const authUserId = (req as any).authUser?.id as string | undefined;
     const { userId, entitlements } = req.body;
 
     if (!userId || !entitlements || !Array.isArray(entitlements)) {
       return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Security: the userId in the request body must match the authenticated session
+    if (authUserId !== userId) {
+      console.error(`[iOS Restore] Auth mismatch — auth: ${authUserId}, body: ${userId}`);
+      return res.status(403).json({ error: "User ID does not match authenticated session" });
     }
 
     if (entitlements.length === 0) {
