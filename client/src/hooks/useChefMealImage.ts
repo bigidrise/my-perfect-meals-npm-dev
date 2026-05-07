@@ -9,6 +9,10 @@ export function useChefMealImage() {
     onImageReady: (mealId: string, imageUrl: string) => void,
     dietType?: string
   ) => {
+    // Normalize plural 'snacks' → 'snack' so the server image pipeline
+    // routes correctly through the snack-aware path
+    const normalizedMealType = mealType === 'snacks' ? 'snack' : mealType;
+
     try {
       const res = await fetch(apiUrl("/api/meals/generate-image"), {
         method: "POST",
@@ -16,7 +20,7 @@ export function useChefMealImage() {
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({
           mealName: meal.name,
-          mealType,
+          mealType: normalizedMealType,
           dietType,
           ingredients: meal.ingredients || [],
         }),
