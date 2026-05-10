@@ -128,7 +128,7 @@ export function AddOwnMealButton({ slot, onSave, onImageReady, variant = "icon",
         >
           <Plus className="h-3 w-3" />
         </PillButton>
-        <span className="text-xs font-semibold text-white/70 tracking-wide">Just Describe It</span>
+        <span className="text-xs font-semibold text-white/70 tracking-wide whitespace-nowrap">Describe It</span>
       </div>
 
       <Overlays

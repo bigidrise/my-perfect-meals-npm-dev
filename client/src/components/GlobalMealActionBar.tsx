@@ -41,7 +41,7 @@ export function GlobalMealActionBar({
   const isMealSlot = slot === "breakfast" || slot === "lunch" || slot === "dinner" || slot === "meal4" || slot === "meal5" || slot === "meal6";
 
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-2 flex-shrink-0">
       {FEATURES.showCreateWithAI && isMealSlot && (
         <Button
           size="sm"
@@ -82,7 +82,7 @@ export function GlobalMealActionBar({
           >
             <Star className="h-3 w-3 fill-white text-white" />
           </PillButton>
-          <span className="text-xs font-semibold text-white/70 tracking-wide">My Favorites</span>
+          <span className="text-xs font-semibold text-white/70 tracking-wide whitespace-nowrap">Favorites</span>
         </div>
       )}
 
