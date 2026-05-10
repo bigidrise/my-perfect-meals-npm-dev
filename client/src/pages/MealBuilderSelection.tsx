@@ -64,7 +64,7 @@ const BUILDER_OPTIONS: BuilderOption[] = [
   },
   {
     id: "anti_inflammatory",
-    title: "Anti-Inflam. Builder",
+    title: "Anti-Inflammatory Builder",
     description:
       "Fight inflammation with healing foods. Omega-3 rich, antioxidant focused.",
     icon: <Flame className="w-8 h-8" />,
@@ -401,7 +401,7 @@ export default function MealBuilderSelection() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className={`text-base font-semibold truncate ${!isUnlocked ? "text-zinc-400" : ""}`}>{option.title}</h3>
+                        <h3 className={`text-base font-semibold leading-snug ${!isUnlocked ? "text-zinc-400" : ""}`}>{option.title}</h3>
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-cyan-500/10 border border-cyan-400/25 rounded-full text-[8px] font-semibold text-cyan-300 tracking-wide flex-shrink-0">
                           <span className="w-1 h-1 bg-cyan-400 rounded-full" />
                           Behavioral AI™
