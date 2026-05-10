@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { motion } from "framer-motion";
@@ -105,6 +105,14 @@ export default function MealBuilderSelection() {
   const [saving, setSaving] = useState(false);
   const [switchStatus, setSwitchStatus] = useState<BuilderSwitchStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
+  const saveButtonRef = useRef<HTMLButtonElement>(null);
+
+  const handleSelect = (id: MealBuilderType) => {
+    setSelected(id);
+    setTimeout(() => {
+      saveButtonRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
+  };
 
   const isProCareClient = user?.isProCare && !["admin", "coach", "physician", "trainer"].includes(user?.professionalRole || user?.role || "");
   const isUnlimited = switchStatus?.isUnlimited ?? false;
@@ -415,7 +423,7 @@ export default function MealBuilderSelection() {
                       {isUnlocked ? (
                         <PillButton
                           active={selected === option.id}
-                          onClick={() => setSelected(option.id)}
+                          onClick={() => handleSelect(option.id)}
                           className="flex-shrink-0"
                         >
                           {selected === option.id ? "On" : "Off"}
@@ -448,11 +456,12 @@ export default function MealBuilderSelection() {
         {/* Continue button - hide for Pro Care clients with no assigned board */}
         {!(isProCareClient && !user?.activeBoard) && (
           <Button
+            ref={saveButtonRef}
             onClick={handleContinue}
             disabled={!selected || saving}
             className="w-full h-14 text-lg bg-lime-600 text-white font-semibold rounded-xl shadow-lg disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Continue with This Builder"}
+            {saving ? "Saving..." : selected ? "Save Builder" : "Select a Builder Above"}
           </Button>
         )}
       </div>
