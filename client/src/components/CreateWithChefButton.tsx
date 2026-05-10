@@ -13,7 +13,7 @@ export function CreateWithChefButton({ onClick, disabled, className }: CreateWit
       <PillButton onClick={onClick} disabled={disabled} active={true} variant="amber" className="px-3">
         <ChefHat className="h-3 w-3" />
       </PillButton>
-      <span className="text-xs font-semibold text-white/70 tracking-wide">Create with Chef</span>
+      <span className="text-xs font-semibold text-white/70 tracking-wide whitespace-nowrap">With Chef</span>
     </div>
   );
 }
