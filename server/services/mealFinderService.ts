@@ -1,8 +1,9 @@
-// Meal Finder Service v2.0 — Smart Restaurant Selection System
+// Meal Finder Service v2.1 — Smart Restaurant Selection System
 // Finds nearby restaurants for a given meal craving + ZIP code
 // Uses shared Restaurant Resolver + AI Restaurant Meal Generator
 //
 // Selection pipeline:
+//   0. Cuisine preference pass (if user has a cuisine preference, runs first)
 //   1. Diet-aware 3-tier query (strict → fallback → general)
 //   2. Price filtering (hard filter when active; strict: unknown price excluded)
 //   3. Rating DESC + distance ASC ranking
@@ -25,6 +26,7 @@ interface MealFinderRequest {
   priceRange?: number[];
   protocolBlock?: string;
   builderBlock?: string;
+  cuisinePreference?: string | null;
 }
 
 interface RestaurantResult {
@@ -54,6 +56,16 @@ interface RestaurantResult {
     reason: string;
     color: string;
   }>;
+}
+
+// ─── Cuisine preference query helper ─────────────────────────────────────────
+
+function buildCuisineQuery(cuisine: string, diet: string | null, craving: string): string {
+  const label = cuisine.charAt(0).toUpperCase() + cuisine.slice(1);
+  if (diet && IDENTITY_DIETS.has(diet)) {
+    return `${label} ${diet} restaurants serving ${craving}`;
+  }
+  return `${label} restaurants serving ${craving}`;
 }
 
 // ─── Diet-aware query helpers ───────────────────────────────────────────────
@@ -119,15 +131,65 @@ async function resolveWithFallback(
   mealQuery: string,
   zipCode: string,
   primaryDiet: string | null,
+  cuisinePreference?: string | null,
 ): Promise<{ labeled: ResolvedWithLabel[]; coords?: { lat: number; lng: number } }> {
   const CERT_REQUIRED_DIETS = new Set(['kosher', 'halal']);
   const isCertDiet = primaryDiet && CERT_REQUIRED_DIETS.has(primaryDiet);
   const isIdentity = primaryDiet && IDENTITY_DIETS.has(primaryDiet);
   let labeled: ResolvedWithLabel[] = [];
   let coords: { lat: number; lng: number } | undefined;
+  const seen = new Set<string>();
+
+  // ── Pass 0: Cuisine preference (runs first, in parallel with diet passes) ──
+  // If the user set a cuisine preference (e.g. Korean, Russian, Thai), bias the
+  // Google Places search toward that cuisine type before falling back to diet passes.
+  if (cuisinePreference && !isCertDiet) {
+    const cuisineQuery = buildCuisineQuery(cuisinePreference, primaryDiet, mealQuery);
+    console.log(`🍜 Cuisine pass 0: "${cuisineQuery}"`);
+    const cuisinePass = await resolveRestaurantsByZip({
+      query: mealQuery,
+      zipCode,
+      radiusMiles: 10,
+      limit: 15,
+      overrideQuery: cuisineQuery,
+    });
+    coords = cuisinePass.coordinates;
+    if (cuisinePass.success) {
+      for (const r of cuisinePass.restaurants) {
+        const key = r.placeId ?? r.name;
+        if (!seen.has(key)) {
+          labeled.push({ restaurant: r, matchLabel: 'Exact match' });
+          seen.add(key);
+        }
+      }
+    }
+    console.log(`📍 Cuisine pass: ${labeled.length} results for "${cuisinePreference}" preference`);
+  }
 
   if (isCertDiet && primaryDiet) {
-    // Certification-required diets (kosher, halal): Pass 1 ONLY — no fallback, no mixing
+    // Certification-required diets (kosher, halal): strict pass only — no fallback, no mixing
+    // Cuisine preference combined query for cert diets (e.g. "Korean kosher restaurants")
+    if (cuisinePreference) {
+      const certCuisineQuery = `${cuisinePreference.charAt(0).toUpperCase() + cuisinePreference.slice(1)} ${primaryDiet} restaurants`;
+      console.log(`🔒 Cert+cuisine pass: "${certCuisineQuery}"`);
+      const certCuisine = await resolveRestaurantsByZip({
+        query: mealQuery,
+        zipCode,
+        radiusMiles: 12,
+        limit: 15,
+        overrideQuery: certCuisineQuery,
+      });
+      coords = coords ?? certCuisine.coordinates;
+      if (certCuisine.success) {
+        for (const r of certCuisine.restaurants) {
+          const key = r.placeId ?? r.name;
+          if (!seen.has(key)) {
+            labeled.push({ restaurant: r, matchLabel: 'Exact match' });
+            seen.add(key);
+          }
+        }
+      }
+    }
     console.log(`🔒 Certification diet "${primaryDiet}" — strict pass only, no fallback`);
     const pass1 = await resolveRestaurantsByZip({
       query: mealQuery,
@@ -136,9 +198,8 @@ async function resolveWithFallback(
       limit: 15,
       overrideQuery: getStrictDietQuery(primaryDiet, mealQuery),
     });
-    coords = pass1.coordinates;
+    coords = coords ?? pass1.coordinates;
     if (pass1.success) {
-      const seen = new Set<string>();
       for (const r of pass1.restaurants) {
         const key = r.placeId ?? r.name;
         if (!seen.has(key)) {
@@ -168,10 +229,8 @@ async function resolveWithFallback(
       }),
     ]);
 
-    coords = pass1.coordinates ?? pass2.coordinates;
+    coords = coords ?? pass1.coordinates ?? pass2.coordinates;
 
-    // Merge and deduplicate by place_id, with match label priority
-    const seen = new Set<string>();
     if (pass1.success) {
       for (const r of pass1.restaurants) {
         const key = r.placeId ?? r.name;
@@ -193,7 +252,6 @@ async function resolveWithFallback(
 
     console.log(`📍 Passes 1+2 combined: ${labeled.length} unique restaurants`);
 
-    // Early return if we already have enough — skip pass 3 entirely
     if (labeled.length < MIN_RESULTS_TARGET) {
       console.log(`⚠️ Passes 1+2 returned ${labeled.length} total — running general fallback (Pass 3)`);
       const pass3 = await resolveRestaurantsByZip({
@@ -218,17 +276,25 @@ async function resolveWithFallback(
       console.log(`✅ Early return — skipping pass 3 (${labeled.length} results sufficient)`);
     }
   } else {
-    // No identity diet — single generic query, labeled as "Exact match"
-    const result = await resolveRestaurantsByZip({
-      query: mealQuery,
-      zipCode,
-      radiusMiles: 5,
-      limit: 15,
-      searchMode: 'craving',
-    });
-    coords = result.coordinates;
-    if (result.success) {
-      labeled = result.restaurants.map((r) => ({ restaurant: r, matchLabel: 'Exact match' as const }));
+    // No identity diet — generic query (cuisine pass 0 already ran above if applicable)
+    if (labeled.length < MIN_RESULTS_TARGET) {
+      const result = await resolveRestaurantsByZip({
+        query: mealQuery,
+        zipCode,
+        radiusMiles: 5,
+        limit: 15,
+        searchMode: 'craving',
+      });
+      coords = coords ?? result.coordinates;
+      if (result.success) {
+        for (const r of result.restaurants) {
+          const key = r.placeId ?? r.name;
+          if (!seen.has(key)) {
+            labeled.push({ restaurant: r, matchLabel: 'Exact match' });
+            seen.add(key);
+          }
+        }
+      }
     }
   }
 
@@ -238,7 +304,7 @@ async function resolveWithFallback(
 // ─── Main export ─────────────────────────────────────────────────────────────
 
 export async function findMealsNearby(request: MealFinderRequest): Promise<RestaurantResult[]> {
-  const { mealQuery, zipCode, user, dietaryRestrictions: bodyDiet, priceRange, protocolBlock, builderBlock } = request;
+  const { mealQuery, zipCode, user, dietaryRestrictions: bodyDiet, priceRange, protocolBlock, builderBlock, cuisinePreference } = request;
 
   // Merge body-supplied dietary restrictions with user's DB restrictions
   const effectiveDiet: string[] = Array.from(new Set([
@@ -250,11 +316,12 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
     : user;
 
   const primaryDiet = getPrimaryDiet(effectiveDiet) ?? null;
+  const effectiveCuisine = cuisinePreference ?? (user?.cuisinePreference as string | null | undefined) ?? null;
 
-  console.log(`🔍 Finding meals for "${mealQuery}" near ZIP ${zipCode} | diet: ${primaryDiet ?? 'none'} | price: ${priceRange ? JSON.stringify(priceRange) : 'any'}`);
+  console.log(`🔍 Finding meals for "${mealQuery}" near ZIP ${zipCode} | diet: ${primaryDiet ?? 'none'} | cuisine: ${effectiveCuisine ?? 'any'} | price: ${priceRange ? JSON.stringify(priceRange) : 'any'}`);
 
-  // ── Step 1: Resolve restaurants with diet-aware 3-tier fallback ─────────
-  const { labeled, coords } = await resolveWithFallback(mealQuery, zipCode, primaryDiet);
+  // ── Step 1: Resolve restaurants with diet+cuisine-aware fallback ─────────
+  const { labeled, coords } = await resolveWithFallback(mealQuery, zipCode, primaryDiet, effectiveCuisine);
 
   if (labeled.length === 0) {
     console.warn('⚠️ No restaurants found via Places API — falling back to AI suggestions');
