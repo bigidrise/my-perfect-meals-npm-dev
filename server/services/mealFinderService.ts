@@ -13,6 +13,7 @@ import { resolveRestaurantsByZip, ResolvedRestaurant } from './restaurantResolve
 import { generateRestaurantMealsAI } from './restaurantMealGeneratorAI';
 import type { User } from '@shared/schema';
 import { violatesDietaryConstraints, getPrimaryDiet } from './allergyGuardrails';
+import type { UserProtocolEnvelope } from './protocolEnvelope';
 
 const MIN_RESULTS_TARGET = 6;
 
@@ -27,6 +28,10 @@ interface MealFinderRequest {
   protocolBlock?: string;
   builderBlock?: string;
   cuisinePreference?: string | null;
+  /** Full protocol envelope — carries hasDiabetes, diabeticGlucoseState, and
+   *  all medical condition guidance needed for post-generation validation.
+   *  Without this, the diabetic validator and protocol post-scan are silently skipped. */
+  protocolEnvelope?: UserProtocolEnvelope;
 }
 
 interface RestaurantResult {
@@ -304,7 +309,7 @@ async function resolveWithFallback(
 // ─── Main export ─────────────────────────────────────────────────────────────
 
 export async function findMealsNearby(request: MealFinderRequest): Promise<RestaurantResult[]> {
-  const { mealQuery, zipCode, user, dietaryRestrictions: bodyDiet, priceRange, protocolBlock, builderBlock, cuisinePreference } = request;
+  const { mealQuery, zipCode, user, dietaryRestrictions: bodyDiet, priceRange, protocolBlock, builderBlock, cuisinePreference, protocolEnvelope } = request;
 
   // Merge body-supplied dietary restrictions with user's DB restrictions
   const effectiveDiet: string[] = Array.from(new Set([
@@ -350,6 +355,7 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
           skipImages: true,
           protocolBlock: protocolBlock || undefined,
           builderBlock: builderBlock || undefined,
+          protocolEnvelope,
         });
         if (aiMeals && aiMeals.length > 0) {
           return aiMeals.slice(0, 2).map((meal) => ({
@@ -417,6 +423,7 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
         skipImages: true,
         protocolBlock: protocolBlock || undefined,
         builderBlock: builderBlock || undefined,
+        protocolEnvelope,
       });
 
       if (aiMeals && aiMeals.length > 0) {

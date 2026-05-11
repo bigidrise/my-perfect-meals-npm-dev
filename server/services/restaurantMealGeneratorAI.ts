@@ -666,8 +666,15 @@ Return ONLY a single JSON object (not an array) with this exact structure:
     // This closes both gaps:
     //   1. AI slipping through with non-compliant meal composition despite prompt guidance
     //   2. Users with diabetes but no recent glucose log getting mashed potatoes / white rice
+    //
+    // SAFETY NET: Warn loudly if the user object suggests diabetes but no envelope
+    // was provided by the caller — this indicates a missing wire at the call site.
     const diabeticGlucoseState = protocolEnvelope?.diabeticGlucoseState ?? null;
     const hasDiabetes = protocolEnvelope?.hasDiabetes ?? false;
+    if (!protocolEnvelope && user?.selectedMealBuilder === 'diabetic') {
+      console.error(`🚨 [DIABETIC VALIDATOR] protocolEnvelope missing for diabetic builder user — validator SKIPPED. ` +
+        `Caller must pass protocolEnvelope to generateRestaurantMealsAI() for medical validation to run.`);
+    }
     if (hasDiabetes) {
       console.log(`🩸 [DIABETIC VALIDATOR] Running post-gen check — hasDiabetes=true, glucose state: ${diabeticGlucoseState ?? 'none'}`);
       const validatedMeals: typeof enforcedMeals = [];
