@@ -47,6 +47,9 @@ function buildEnvelope(
     avoidances,
     preferences: [],
     procedural: deriveProcedureRules(dietaryIdentity),
+    cuisinePreference: null,
+    cuisineIntensity: null,
+    diabeticGuidance: null,
   };
 }
 

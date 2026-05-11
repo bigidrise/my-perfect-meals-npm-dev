@@ -27,7 +27,8 @@ const FOUNDING_COACHES: {
   {
     name: "Danielle Affatato",
     title: "Founding Coach",
-    credentials: "Certified Nutrition Coach · Macro Strategy · Habit-Based Coaching",
+    credentials:
+      "Certified Nutrition Coach · Macro Strategy · Habit-Based Coaching",
     photo: "/assets/danielle-affatato.jpg",
     bio: null,
   },
@@ -48,22 +49,22 @@ export default function Founder() {
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 pt-0 pb-24">
       {/* Safe Area Header with Title */}
       <MobileHeaderGuard>
-      <div
-        className="fixed top-0 left-0 right-0 z-50 bg-black/10 backdrop-blur-none border-b border-white/10"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-      >
-        <div className="px-4 py-3 flex items-center gap-3">
-          <Button
-            onClick={() => setLocation("/dashboard")}
-            className="bg-black/10 hover:bg-black/50 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1.5 px-2.5 h-9 flex-shrink-0"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="text-xs font-medium">Back</span>
-          </Button>
+        <div
+          className="fixed top-0 left-0 right-0 z-50 bg-black/10 backdrop-blur-none border-b border-white/10"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        >
+          <div className="px-4 py-3 flex items-center gap-3">
+            <Button
+              onClick={() => setLocation("/dashboard")}
+              className="bg-black/10 hover:bg-black/50 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1.5 px-2.5 h-9 flex-shrink-0"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-xs font-medium">Back</span>
+            </Button>
 
-          <h1 className="text-lg font-bold text-white">Founders</h1>
+            <h1 className="text-lg font-bold text-white">Founders</h1>
+          </div>
         </div>
-      </div>
       </MobileHeaderGuard>
 
       {/* Main Content */}
@@ -85,7 +86,7 @@ export default function Founder() {
             <div className="space-y-4 text-center md:text-left">
               <h1 className="text-3xl font-bold">Coach Idrise</h1>
               <p className="text-orange-400 font-medium">
-                Founder & Lead Coach
+                CEO / Founder & Lead Coach
               </p>
               <p className="text-white/60 text-xs mt-0.5 mb-1">
                 IFBB Professional · Mr. USA 2002 · 30+ Years Coaching
@@ -181,9 +182,7 @@ export default function Founder() {
             </div>
 
             <div>
-              <h3 className="text-xl font-semibold text-white">
-                Mark Sherman
-              </h3>
+              <h3 className="text-xl font-semibold text-white">TBA</h3>
 
               <p className="text-orange-400 text-sm font-medium">
                 Legal Counsel
@@ -200,7 +199,9 @@ export default function Founder() {
         <section className="bg-black/60 rounded-2xl p-8 ring-1 ring-white/10 backdrop-blur-md shadow-2xl">
           <h2 className="text-2xl font-semibold mb-2">Founding Coaches</h2>
           <p className="text-white/50 text-sm mb-8">
-            These are the coaches who signed on to build this with us — before the platform was proven, before the audience was there. That means something.
+            These are the coaches who signed on to build this with us — before
+            the platform was proven, before the audience was there. That means
+            something.
           </p>
 
           <div className="space-y-10">
@@ -222,14 +223,22 @@ export default function Founder() {
                     )}
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold text-white">{coach.name}</h3>
-                    <p className="text-orange-400 text-sm font-medium">{coach.title}</p>
-                    <p className="text-white/60 text-xs mt-0.5">{coach.credentials}</p>
+                    <h3 className="text-xl font-semibold text-white">
+                      {coach.name}
+                    </h3>
+                    <p className="text-orange-400 text-sm font-medium">
+                      {coach.title}
+                    </p>
+                    <p className="text-white/60 text-xs mt-0.5">
+                      {coach.credentials}
+                    </p>
                   </div>
                 </div>
 
                 {coach.bio ? (
-                  <p className="text-white/70 text-sm leading-relaxed">{coach.bio}</p>
+                  <p className="text-white/70 text-sm leading-relaxed">
+                    {coach.bio}
+                  </p>
                 ) : (
                   <p className="text-white/40 text-sm leading-relaxed italic">
                     Bio and credentials coming soon.
