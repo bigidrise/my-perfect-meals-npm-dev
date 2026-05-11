@@ -50,6 +50,7 @@ function buildEnvelope(
     cuisinePreference: null,
     cuisineIntensity: null,
     diabeticGuidance: null,
+    conditionGuidanceBlocks: [],
   };
 }
 
