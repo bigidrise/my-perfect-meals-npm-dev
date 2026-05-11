@@ -8,6 +8,7 @@ import { db } from '../db';
 import { users } from '@shared/schema';
 import { findMealsNearby } from '../services/mealFinderService';
 import { getActiveNutritionContext } from '../services/nutritionContext/getActiveNutritionContext';
+import { loadUserProtocolEnvelope } from '../services/protocolEnvelope';
 
 const router = express.Router();
 
@@ -61,6 +62,7 @@ router.post('/meal-finder', async (req, res) => {
     let protocolBlock: string | undefined;
     let builderBlock: string | undefined;
     let contextUser: any = (req as any).user;
+    let protocolEnvelope: import('../services/protocolEnvelope').UserProtocolEnvelope | undefined;
     if (userId) {
       try {
         const nutritionContext = await getActiveNutritionContext(userId);
@@ -69,7 +71,12 @@ router.post('/meal-finder', async (req, res) => {
         // Use DB user object for full health conditions / dietary data
         const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
         if (dbUser) contextUser = dbUser;
-        console.log(`🔒 [MEAL-FINDER] Nutrition context: diet=[${nutritionContext.diet.join(",")}] medical=[${nutritionContext.medical.length} flags] builder=${nutritionContext.builder ?? "none"}`);
+        // Load the full envelope — required for post-generation medical validation
+        // (diabetic ingredient blocking, protocol post-scan, oncology/renal/cardiac rules).
+        // getActiveNutritionContext only returns text blocks; we need the structured object.
+        const envelope = await loadUserProtocolEnvelope(userId);
+        if (envelope) protocolEnvelope = envelope;
+        console.log(`🔒 [MEAL-FINDER] Nutrition context: diet=[${nutritionContext.diet.join(",")}] medical=[${nutritionContext.medical.length} flags] builder=${nutritionContext.builder ?? "none"} envelope=${protocolEnvelope ? "✓" : "✗"} hasDiabetes=${protocolEnvelope?.hasDiabetes ?? false}`);
       } catch (err) {
         console.warn('[MEAL-FINDER] Could not load nutrition context:', err);
       }
@@ -90,6 +97,7 @@ router.post('/meal-finder', async (req, res) => {
       protocolBlock,
       builderBlock,
       cuisinePreference: contextUser?.cuisinePreference ?? null,
+      protocolEnvelope,
     });
     
     return res.status(200).json({
