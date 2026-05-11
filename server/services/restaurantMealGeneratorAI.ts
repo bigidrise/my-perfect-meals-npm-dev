@@ -657,16 +657,19 @@ Return ONLY a single JSON object (not an array) with this exact structure:
     // ─────────────────────────────────────────────────────────────────────────
 
     // ── Post-generation diabetic hard validator ───────────────────────────────
-    // Runs AFTER all other filters. If the user has a logged glucose reading,
-    // we validate ingredient safety AND carb limits against the actual state.
-    // At elevated/high-risk states, carb excess and forbidden ingredients
-    // (potatoes, white rice, sugar, etc.) are hard violations that trigger a
-    // targeted retry with explicit failure context injected into the prompt.
-    // This closes the gap where the prompt guidance is correct but the AI output
-    // occasionally slips through with a non-compliant meal composition.
+    // Runs for ALL diabetic users — not just those with a recent glucose log.
+    // Ingredient blocking (potatoes, white rice, sugar, etc.) is unconditional
+    // for any user with diabetes in their medical conditions.
+    // Glucose state additionally governs the carb threshold severity:
+    //   - elevated / high-risk: carb excess is a hard VIOLATION (triggers retry)
+    //   - in-range / no log:    carb excess is a warning only
+    // This closes both gaps:
+    //   1. AI slipping through with non-compliant meal composition despite prompt guidance
+    //   2. Users with diabetes but no recent glucose log getting mashed potatoes / white rice
     const diabeticGlucoseState = protocolEnvelope?.diabeticGlucoseState ?? null;
-    if (diabeticGlucoseState) {
-      console.log(`🩸 [DIABETIC VALIDATOR] Running post-gen check — glucose state: ${diabeticGlucoseState}`);
+    const hasDiabetes = protocolEnvelope?.hasDiabetes ?? false;
+    if (hasDiabetes) {
+      console.log(`🩸 [DIABETIC VALIDATOR] Running post-gen check — hasDiabetes=true, glucose state: ${diabeticGlucoseState ?? 'none'}`);
       const validatedMeals: typeof enforcedMeals = [];
 
       for (const meal of enforcedMeals) {
