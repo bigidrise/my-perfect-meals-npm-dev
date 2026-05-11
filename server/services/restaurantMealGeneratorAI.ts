@@ -12,6 +12,7 @@ import { buildDietPromptBlock, violatesDietaryConstraints, getPrimaryDiet } from
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope, scanGeneratedOutput, UserProtocolEnvelope } from './protocolEnvelope';
 import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 import { classifyRestaurantArchetype } from './restaurantCuisineArchetype';
+import { validateDiabeticMeal } from './guardrails/validators/diabeticValidator';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -652,6 +653,129 @@ Return ONLY a single JSON object (not an array) with this exact structure:
       }
       enforcedMeals.length = 0;
       enforcedMeals.push(...protocolSafeMeals);
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // ── Post-generation diabetic hard validator ───────────────────────────────
+    // Runs AFTER all other filters. If the user has a logged glucose reading,
+    // we validate ingredient safety AND carb limits against the actual state.
+    // At elevated/high-risk states, carb excess and forbidden ingredients
+    // (potatoes, white rice, sugar, etc.) are hard violations that trigger a
+    // targeted retry with explicit failure context injected into the prompt.
+    // This closes the gap where the prompt guidance is correct but the AI output
+    // occasionally slips through with a non-compliant meal composition.
+    const diabeticGlucoseState = protocolEnvelope?.diabeticGlucoseState ?? null;
+    if (diabeticGlucoseState) {
+      console.log(`🩸 [DIABETIC VALIDATOR] Running post-gen check — glucose state: ${diabeticGlucoseState}`);
+      const validatedMeals: typeof enforcedMeals = [];
+
+      for (const meal of enforcedMeals) {
+        const mealForValidation = {
+          name: meal.name,
+          description: meal.description,
+          ingredients: meal.ingredients,
+          macros: { carbs: meal.carbs, fiber: undefined as number | undefined },
+        };
+        const result = validateDiabeticMeal(mealForValidation, { glucoseState: diabeticGlucoseState });
+
+        if (result.isValid) {
+          validatedMeals.push(meal);
+          continue;
+        }
+
+        // Violations found — log and retry with explicit failure context
+        console.warn(`🚫 [DIABETIC VALIDATOR] "${meal.name}" failed: ${result.violations.join('; ')}`);
+
+        const carbLimit = diabeticGlucoseState === 'high-risk' ? 15
+          : diabeticGlucoseState === 'elevated' ? 25
+          : diabeticGlucoseState === 'low' ? 45
+          : 30;
+
+        const retryPrompt = `You are a nutrition expert for ${restaurantName}, a ${cuisine} restaurant.
+${protocolBlock ? `\n${protocolBlock}\n` : ''}
+CRITICAL — PREVIOUS MEAL REJECTED BY DIABETIC SAFETY VALIDATOR.
+Violations detected: ${result.violations.join('; ')}
+
+The user's current blood glucose is in the "${diabeticGlucoseState}" state.
+HARD RULES for this replacement meal:
+- Maximum ${carbLimit}g total carbohydrates — this is a clinical hard limit, not a guideline
+- ABSOLUTELY NO: potatoes, white rice, pasta, bread, tortillas, corn, sugar, mashed potatoes, french fries, hash browns, waffles, pancakes, bagels, or any high-starch/high-GI ingredient
+- Protein must be prominent (minimum 25g)
+- Non-starchy vegetables are required
+- Choose a completely different meal format from the one that was rejected ("${meal.name}")
+
+Return ONLY a single JSON object (not an array):
+{"name":"...","description":"...","calories":0,"protein":0,"starchyCarbs":0,"fibrousCarbs":0,"fat":0,"reason":"...","modifications":"...","ingredients":[],"menuAnchorItem":"...","howToOrder":{"askFor":"...","modify":[],"swap":[]},"medicalWaiterScript":""}`;
+
+        try {
+          const retryCompletion = await getOpenAI().chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [{ role: 'user', content: retryPrompt }],
+            temperature: 0.5,
+            max_tokens: 600,
+          });
+          const retryText = retryCompletion.choices[0]?.message?.content?.trim()
+            ?.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+          if (retryText) {
+            const retryMeal = JSON.parse(retryText);
+            const starchy = retryMeal.starchyCarbs ?? 0;
+            const fibrous = retryMeal.fibrousCarbs ?? 0;
+            const retryCarbTotal = starchy + fibrous || retryMeal.carbs || 0;
+
+            // Second-pass validation on the retry
+            const retryForValidation = {
+              name: retryMeal.name || meal.name,
+              description: retryMeal.description || '',
+              ingredients: Array.isArray(retryMeal.ingredients) ? retryMeal.ingredients : [],
+              macros: { carbs: retryCarbTotal },
+            };
+            const retryResult = validateDiabeticMeal(retryForValidation, { glucoseState: diabeticGlucoseState });
+
+            if (retryResult.isValid) {
+              const rawHowToOrder = retryMeal.howToOrder;
+              validatedMeals.push({
+                ...meal,
+                name: retryMeal.name || meal.name,
+                description: retryMeal.description || meal.description,
+                calories: retryMeal.calories || meal.calories,
+                protein: retryMeal.protein || meal.protein,
+                carbs: retryCarbTotal,
+                starchyCarbs: starchy,
+                fibrousCarbs: fibrous,
+                fat: retryMeal.fat || meal.fat,
+                reason: retryMeal.reason || meal.reason,
+                modifications: retryMeal.modifications || meal.modifications,
+                ingredients: Array.isArray(retryMeal.ingredients) ? retryMeal.ingredients : meal.ingredients,
+                menuAnchorItem: retryMeal.menuAnchorItem || undefined,
+                howToOrder: rawHowToOrder && typeof rawHowToOrder === 'object'
+                  ? { askFor: rawHowToOrder.askFor || retryMeal.name, modify: Array.isArray(rawHowToOrder.modify) ? rawHowToOrder.modify : [], swap: Array.isArray(rawHowToOrder.swap) ? rawHowToOrder.swap : [] }
+                  : undefined,
+                medicalWaiterScript: typeof retryMeal.medicalWaiterScript === 'string' ? retryMeal.medicalWaiterScript : undefined,
+              });
+              console.log(`✅ [DIABETIC VALIDATOR] Retry succeeded — replaced with "${retryMeal.name}"`);
+            } else {
+              console.warn(`⚠️ [DIABETIC VALIDATOR] Retry still failed for "${retryMeal.name}" — dropping meal`);
+            }
+          }
+        } catch (retryErr) {
+          console.warn(`⚠️ [DIABETIC VALIDATOR] Retry generation failed for "${meal.name}":`, retryErr);
+        }
+      }
+
+      if (validatedMeals.length === 0 && enforcedMeals.length > 0) {
+        console.warn(`⚠️ [DIABETIC VALIDATOR] All meals failed diabetic validation — falling back to locked generator`);
+        return generateFallbackMeals(request);
+      }
+
+      if (validatedMeals.length < enforcedMeals.length) {
+        console.log(`🛡️ [DIABETIC VALIDATOR] ${enforcedMeals.length - validatedMeals.length} meal(s) replaced, ${validatedMeals.length} clean meals ready`);
+      } else {
+        console.log(`✅ [DIABETIC VALIDATOR] All ${validatedMeals.length} meals passed diabetic validation`);
+      }
+
+      enforcedMeals.length = 0;
+      enforcedMeals.push(...validatedMeals);
     }
     // ─────────────────────────────────────────────────────────────────────────
 

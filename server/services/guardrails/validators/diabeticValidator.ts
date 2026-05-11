@@ -82,8 +82,15 @@ export function validateDiabeticMeal(
       : context.glucoseState === "low" ? 45
       : 60;
 
+    const isHighRiskState = context.glucoseState === "high-risk" || context.glucoseState === "elevated";
+
     if (meal.macros.carbs && meal.macros.carbs > carbLimit && !isLowGlucose) {
-      warnings.push(`High carbohydrate content (${meal.macros.carbs}g) - consider reducing`);
+      if (isHighRiskState) {
+        // At elevated or high-risk glucose, carb excess is a hard violation — not a suggestion.
+        violations.push(`Carbohydrate content (${meal.macros.carbs}g) exceeds the ${carbLimit}g hard limit for glucose state "${context.glucoseState}". This meal must be rejected and replaced.`);
+      } else {
+        warnings.push(`High carbohydrate content (${meal.macros.carbs}g) - consider reducing`);
+      }
     }
 
     if (meal.macros.fiber && meal.macros.fiber < 3 && !isLowGlucose) {

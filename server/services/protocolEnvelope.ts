@@ -48,6 +48,7 @@ import {
 import {
   getDiabeticContext,
   getGlucoseBasedMealGuidance,
+  type GlucoseState,
 } from "./diabeticContextService";
 import { buildUniversalConditionGuidance } from "./universalMedicalGuidance";
 
@@ -445,6 +446,14 @@ export interface UserProtocolEnvelope {
   diabeticGuidance: string | null;
 
   /**
+   * The classified glucose state — used by post-generation validators to apply
+   * hard carb and ingredient checks. Separate from the text guidance so
+   * validators can branch on the actual state without parsing text.
+   * Null when user has no diabetes or no recent glucose data.
+   */
+  diabeticGlucoseState: GlucoseState | null;
+
+  /**
    * Universal condition guidance blocks — one entry per active non-diabetic
    * medical condition (GLP-1, Anti-Inflammatory, Renal, Cardiac, Liver,
    * Oncology). Each block is a self-contained directive string injected into
@@ -595,10 +604,12 @@ export async function loadUserProtocolEnvelope(
     const DIABETES_KEYS = new Set(["diabetes", "diabetic", "type 2 diabetes", "type 1 diabetes", "prediabetes"]);
     const hasDiabetes = hardLimits.some(c => DIABETES_KEYS.has(c));
     let diabeticGuidance: string | null = null;
+    let diabeticGlucoseState: GlucoseState | null = null;
     if (hasDiabetes) {
       try {
         const diabCtx = await getDiabeticContext(userId);
         diabeticGuidance = getGlucoseBasedMealGuidance(diabCtx);
+        diabeticGlucoseState = diabCtx.latestGlucose?.state ?? null;
       } catch (err) {
         console.warn("[ProtocolEnvelope] Could not load diabetic context:", err);
       }
@@ -631,6 +642,7 @@ export async function loadUserProtocolEnvelope(
       cuisinePreference: user.cuisinePreference ?? null,
       cuisineIntensity: (user.cuisineIntensity as "light" | "balanced" | "authentic" | null) ?? null,
       diabeticGuidance,
+      diabeticGlucoseState,
       conditionGuidanceBlocks,
     };
   } catch (error) {
@@ -656,6 +668,7 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     cuisinePreference: null,
     cuisineIntensity: null,
     diabeticGuidance: null,
+    diabeticGlucoseState: null,
     conditionGuidanceBlocks: [],
   };
 }
