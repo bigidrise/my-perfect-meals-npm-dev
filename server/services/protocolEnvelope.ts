@@ -48,6 +48,7 @@ import {
 import {
   getDiabeticContext,
   getGlucoseBasedMealGuidance,
+  type GlucoseState,
 } from "./diabeticContextService";
 import { buildUniversalConditionGuidance } from "./universalMedicalGuidance";
 
@@ -445,6 +446,24 @@ export interface UserProtocolEnvelope {
   diabeticGuidance: string | null;
 
   /**
+   * True when the user has any diabetic condition in their medical hard limits
+   * (diabetes, diabetic, type 2 diabetes, type 1 diabetes, prediabetes).
+   * Used to gate post-generation ingredient validators that must run even when
+   * no recent glucose log exists (i.e., diabeticGlucoseState is null).
+   * Ingredient blocking (potatoes, white rice, sugar, etc.) applies to ALL
+   * diabetic users — not just those with a recent glucose reading.
+   */
+  hasDiabetes: boolean;
+
+  /**
+   * The classified glucose state — used by post-generation validators to apply
+   * hard carb and ingredient checks. Separate from the text guidance so
+   * validators can branch on the actual state without parsing text.
+   * Null when user has no diabetes or no recent glucose data.
+   */
+  diabeticGlucoseState: GlucoseState | null;
+
+  /**
    * Universal condition guidance blocks — one entry per active non-diabetic
    * medical condition (GLP-1, Anti-Inflammatory, Renal, Cardiac, Liver,
    * Oncology). Each block is a self-contained directive string injected into
@@ -565,6 +584,7 @@ export async function loadUserProtocolEnvelope(
         cuisinePreference: users.cuisinePreference,
         cuisineIntensity: users.cuisineIntensity,
         oncologySupportContext: users.oncologySupportContext,
+        selectedMealBuilder: users.selectedMealBuilder,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -593,12 +613,21 @@ export async function loadUserProtocolEnvelope(
     // diabetes profile and latest glucose log. This makes blood glucose data
     // available to EVERY generator — not only the Diabetic Hub.
     const DIABETES_KEYS = new Set(["diabetes", "diabetic", "type 2 diabetes", "type 1 diabetes", "prediabetes"]);
-    const hasDiabetes = hardLimits.some(c => DIABETES_KEYS.has(c));
+    // hasDiabetes is true when EITHER:
+    //   (a) a diabetes-family condition is in the user's medical hard limits, OR
+    //   (b) the user has selected the diabetic meal builder
+    // Both paths mean the same clinical reality: potatoes, white rice, sugar, and
+    // other high-GI ingredients must be blocked in post-generation validation.
+    const hasDiabetes: boolean =
+      hardLimits.some(c => DIABETES_KEYS.has(c)) ||
+      user.selectedMealBuilder === "diabetic";
     let diabeticGuidance: string | null = null;
+    let diabeticGlucoseState: GlucoseState | null = null;
     if (hasDiabetes) {
       try {
         const diabCtx = await getDiabeticContext(userId);
         diabeticGuidance = getGlucoseBasedMealGuidance(diabCtx);
+        diabeticGlucoseState = diabCtx.latestGlucose?.state ?? null;
       } catch (err) {
         console.warn("[ProtocolEnvelope] Could not load diabetic context:", err);
       }
@@ -631,6 +660,8 @@ export async function loadUserProtocolEnvelope(
       cuisinePreference: user.cuisinePreference ?? null,
       cuisineIntensity: (user.cuisineIntensity as "light" | "balanced" | "authentic" | null) ?? null,
       diabeticGuidance,
+      hasDiabetes,
+      diabeticGlucoseState,
       conditionGuidanceBlocks,
     };
   } catch (error) {
@@ -656,6 +687,8 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     cuisinePreference: null,
     cuisineIntensity: null,
     diabeticGuidance: null,
+    hasDiabetes: false,
+    diabeticGlucoseState: null,
     conditionGuidanceBlocks: [],
   };
 }
