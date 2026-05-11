@@ -18,13 +18,6 @@ const FOUNDING_COACHES: {
   bio: string | null;
 }[] = [
   {
-    name: "Monica Brant",
-    title: "Founding Coach",
-    credentials: "IFBB Fitness World Champion · 30+ Years Coaching",
-    photo: "/assets/monica-brant.jpg",
-    bio: null,
-  },
-  {
     name: "Kristen Bogan",
     title: "Founding Coach",
     credentials: "CPT · Corrective Exercise · Strength & Recovery",
