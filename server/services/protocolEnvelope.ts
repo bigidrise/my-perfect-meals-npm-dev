@@ -45,6 +45,11 @@ import {
   type HiddenViolation,
   type KosherCategory,
 } from "./allergyGuardrails";
+import {
+  getDiabeticContext,
+  getGlucoseBasedMealGuidance,
+} from "./diabeticContextService";
+import { buildUniversalConditionGuidance } from "./universalMedicalGuidance";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PROCEDURAL RULES — The third enforcement dimension
@@ -429,6 +434,24 @@ export interface UserProtocolEnvelope {
    * if the instructions violate these rules.
    */
   procedural: ProtocolProcedureRules;
+
+  /**
+   * Real-time blood glucose guidance — populated when the user has diabetes
+   * AND has recent glucose log data. This is glucose-state-responsive text
+   * (e.g., "glucose is 220 mg/dL — keep carbs under 15g, prioritize protein
+   * and fiber"). Injected into the medical hard limits block for ALL generators.
+   * Null when user has no diabetes or no recent glucose data.
+   */
+  diabeticGuidance: string | null;
+
+  /**
+   * Universal condition guidance blocks — one entry per active non-diabetic
+   * medical condition (GLP-1, Anti-Inflammatory, Renal, Cardiac, Liver,
+   * Oncology). Each block is a self-contained directive string injected into
+   * the medical hard limits section of EVERY generator automatically.
+   * Empty array when no conditions are active.
+   */
+  conditionGuidanceBlocks: string[];
 }
 
 /**
@@ -541,6 +564,7 @@ export async function loadUserProtocolEnvelope(
         preferredSweeteners: users.preferredSweeteners,
         cuisinePreference: users.cuisinePreference,
         cuisineIntensity: users.cuisineIntensity,
+        oncologySupportContext: users.oncologySupportContext,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -564,6 +588,37 @@ export async function loadUserProtocolEnvelope(
     const preferences = [...new Set([...likedFoods, ...preferredSweeteners])];
     const procedural = deriveProcedureRules(dietaryRestrictions);
 
+    // ── REAL-TIME DIABETIC CONTEXT ─────────────────────────────────────────────
+    // If the user has any diabetic condition in their hard limits, fetch their
+    // diabetes profile and latest glucose log. This makes blood glucose data
+    // available to EVERY generator — not only the Diabetic Hub.
+    const DIABETES_KEYS = new Set(["diabetes", "diabetic", "type 2 diabetes", "type 1 diabetes", "prediabetes"]);
+    const hasDiabetes = hardLimits.some(c => DIABETES_KEYS.has(c));
+    let diabeticGuidance: string | null = null;
+    if (hasDiabetes) {
+      try {
+        const diabCtx = await getDiabeticContext(userId);
+        diabeticGuidance = getGlucoseBasedMealGuidance(diabCtx);
+      } catch (err) {
+        console.warn("[ProtocolEnvelope] Could not load diabetic context:", err);
+      }
+    }
+
+    // ── UNIVERSAL CONDITION GUIDANCE (GLP-1, Anti-Inflammatory, Renal, Cardiac, Liver, Oncology)
+    // Builds directive guidance blocks for all active non-diabetic medical conditions.
+    // These travel with the user into every generator automatically via the envelope.
+    const oncologySupportContext = user.oncologySupportContext as {
+      enabled: boolean;
+      symptoms: Array<"low_appetite" | "nausea" | "mouth_sensitivity" | "fatigue_low_prep" | "gi_sensitivity">;
+      emphasis?: { highProteinNutrientDensity?: boolean };
+    } | null;
+
+    const conditionGuidanceBlocks = buildUniversalConditionGuidance({
+      userId,
+      healthConditions,
+      oncologySupportContext,
+    });
+
     return {
       userId,
       dietaryIdentity: dietaryRestrictions,
@@ -575,6 +630,8 @@ export async function loadUserProtocolEnvelope(
       procedural,
       cuisinePreference: user.cuisinePreference ?? null,
       cuisineIntensity: (user.cuisineIntensity as "light" | "balanced" | "authentic" | null) ?? null,
+      diabeticGuidance,
+      conditionGuidanceBlocks,
     };
   } catch (error) {
     console.error("[ProtocolEnvelope] Failed to load envelope:", error);
@@ -598,6 +655,8 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     procedural: deriveProcedureRules([]),
     cuisinePreference: null,
     cuisineIntensity: null,
+    diabeticGuidance: null,
+    conditionGuidanceBlocks: [],
   };
 }
 
@@ -679,10 +738,23 @@ This is a hard stop — not a preference.`;
   // ── TIER 3: Medical Hard Limits ────────────────────────────────────────────
   if (envelope.medicalHardLimits.length > 0) {
     const limitList = envelope.medicalHardLimits.join(", ");
+
+    // Real-time blood glucose guidance — injected here so it travels universally
+    // to every generator, not only the Diabetic Hub.
+    const glucoseBlock = envelope.diabeticGuidance
+      ? `\n\n🩸 REAL-TIME BLOOD GLUCOSE GUIDANCE (current reading — HIGHEST PRIORITY within diabetic constraints):\n${envelope.diabeticGuidance}\nThis guidance is based on the user's actual current glucose reading and overrides generic diabetic defaults. Adjust carb targets, meal composition, and food choices accordingly.`
+      : "";
+
+    // Universal condition guidance — GLP-1, Anti-Inflammatory, Renal, Cardiac, Liver, Oncology.
+    // Each block is a self-contained directive string assembled at envelope load time.
+    const conditionBlocks = (envelope.conditionGuidanceBlocks ?? [])
+      .map(block => `\n\n${block}`)
+      .join("");
+
     layers.medicalHardLimits = `\n⚕️ MEDICAL HARD LIMITS (apply inside the dietary identity container):
 This user has: ${limitList}.
 Respect the medical constraints for these conditions while staying inside the dietary identity.
-Example: if diabetic + vegan, optimize carbs WITHIN vegan-safe foods only — never add animal products.
+Example: if diabetic + vegan, optimize carbs WITHIN vegan-safe foods only — never add animal products.${glucoseBlock}${conditionBlocks}
 
 MULTI-CONSTRAINT ADAPTATION RULE (REQUIRED — enforces the exact priority hierarchy):
 When multiple constraints are present (medical condition + diet identity + cultural cuisine), resolve them in this exact order:
