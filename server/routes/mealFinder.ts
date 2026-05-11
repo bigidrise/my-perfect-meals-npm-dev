@@ -79,7 +79,8 @@ router.post('/meal-finder', async (req, res) => {
       ? (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean)
       : [];
 
-    // Find meals
+    // Find meals — pass cuisine preference from the DB user profile so the
+    // restaurant search query is biased toward the user's preferred cuisine type
     const results = await findMealsNearby({
       mealQuery,
       zipCode,
@@ -88,6 +89,7 @@ router.post('/meal-finder', async (req, res) => {
       priceRange: Array.isArray(priceRange) && priceRange.length > 0 ? priceRange : undefined,
       protocolBlock,
       builderBlock,
+      cuisinePreference: contextUser?.cuisinePreference ?? null,
     });
     
     return res.status(200).json({

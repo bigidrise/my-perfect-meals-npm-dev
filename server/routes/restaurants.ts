@@ -287,6 +287,15 @@ router.post("/find-nearby", async (req, res) => {
       return res.status(400).json({ error: `Could not resolve ZIP code ${zipCode}` });
     }
 
+    // Load cuisine preference from user profile when userId is provided
+    let cuisinePreference: string | null = null;
+    if (userId) {
+      try {
+        const [foundUser] = await db.select({ cuisinePreference: users.cuisinePreference }).from(users).where(eq(users.id, userId)).limit(1);
+        if (foundUser?.cuisinePreference) cuisinePreference = foundUser.cuisinePreference;
+      } catch {}
+    }
+
     const radiusMeters = Math.round(8 * 1609.34);
     const dietStr = (diet || "general").toString();
 
@@ -311,14 +320,39 @@ router.post("/find-nearby", async (req, res) => {
     const CERT_REQUIRED_DIETS = ["kosher", "halal"];
     const isCertDiet = CERT_REQUIRED_DIETS.includes(dietStr);
 
+    // Build primary diet query
     const primaryQuery = buildDietQuery(dietStr, false);
-    let places = await searchPlaces(primaryQuery);
+
+    // Run diet query + optional cuisine-biased query in parallel
+    const queryPromises: Promise<any[]>[] = [searchPlaces(primaryQuery)];
+    if (cuisinePreference && !isCertDiet) {
+      const cuisineLabel = cuisinePreference.charAt(0).toUpperCase() + cuisinePreference.slice(1);
+      const cuisineQuery = dietStr === "general"
+        ? `${cuisineLabel} restaurants`
+        : `${cuisineLabel} restaurants with ${dietStr} options`;
+      console.log(`🍜 [find-nearby] Cuisine preference query: "${cuisineQuery}"`);
+      queryPromises.push(searchPlaces(cuisineQuery));
+    }
+
+    const queryResults = await Promise.all(queryPromises);
+    let places: any[] = [];
+    const seenIds = new Set<string>();
+    for (const batch of queryResults) {
+      for (const p of batch) {
+        if (!seenIds.has(p.place_id)) {
+          places.push(p);
+          seenIds.add(p.place_id);
+        }
+      }
+    }
 
     if (places.length < 3 && !isCertDiet) {
       const fallbackPlaces = await searchPlaces(buildDietQuery(dietStr, true));
-      const existing = new Set(places.map((p: any) => p.place_id));
       for (const p of fallbackPlaces) {
-        if (!existing.has(p.place_id)) places.push(p);
+        if (!seenIds.has(p.place_id)) {
+          places.push(p);
+          seenIds.add(p.place_id);
+        }
         if (places.length >= 20) break;
       }
     }
@@ -332,7 +366,7 @@ router.post("/find-nearby", async (req, res) => {
       : visible.filter((r) => r.tier === "ADAPTABLE").sort((a, b) => b.score - a.score);
 
     console.log(
-      `✅ [find-nearby] diet=${dietStr} zip=${zipCode} total=${places.length} high=${highMatch.length} adaptable=${adaptable.length} blocked=${scored.length - visible.length}`
+      `✅ [find-nearby] diet=${dietStr} cuisine=${cuisinePreference ?? "any"} zip=${zipCode} total=${places.length} high=${highMatch.length} adaptable=${adaptable.length} blocked=${scored.length - visible.length}`
     );
 
     if (isCertDiet && highMatch.length === 0) {
