@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
 
+<<<<<<< HEAD
 Sitemap: https://myperfectmeals.com/sitemap.xml
+=======
+Sitemap: https://app.myperfectmeals.com/sitemap.xml
+>>>>>>> b7e74599 (Improve app indexing and search engine visibility)
