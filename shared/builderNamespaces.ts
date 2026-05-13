@@ -12,6 +12,7 @@ export const BUILDER_NS = {
   ANTI_INFLAMMATORY: 'antiInflammatory',
   ANTI_INFLAMMATORY_LIVER: 'antiInflammatory:liverSupport',
   ANTI_INFLAMMATORY_ONCOLOGY: 'antiInflammatory:oncologySupport',
+  ANTI_INFLAMMATORY_THYROID: 'antiInflammatory:thyroidSupport',
   DIABETIC: 'diabetic',
   GLP1: 'glp1',
   GENERAL_NUTRITION: 'generalNutrition',

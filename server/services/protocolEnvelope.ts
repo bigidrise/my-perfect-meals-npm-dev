@@ -471,6 +471,20 @@ export interface UserProtocolEnvelope {
    * Empty array when no conditions are active.
    */
   conditionGuidanceBlocks: string[];
+
+  /**
+   * Thyroid Support active flag — true when specialtyCondition === 'thyroid-support'
+   * OR thyroid lab values triggered resolveThyroidFromLabs().
+   * Used by post-generation validators (thyroidSupportValidator) and the
+   * physician dashboard indicator light.
+   */
+  thyroidSupport: boolean;
+
+  /**
+   * Thyroid medication name if the user disclosed one (e.g., "Levothyroxine").
+   * Null when not disclosed. Used for medication timing guidance in meal generation.
+   */
+  thyroidMedication: string | null;
 }
 
 /**
@@ -585,6 +599,8 @@ export async function loadUserProtocolEnvelope(
         cuisineIntensity: users.cuisineIntensity,
         oncologySupportContext: users.oncologySupportContext,
         selectedMealBuilder: users.selectedMealBuilder,
+        specialtyCondition: users.specialtyCondition,
+        thyroidMedication: users.thyroidMedication,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -642,10 +658,35 @@ export async function loadUserProtocolEnvelope(
       emphasis?: { highProteinNutrientDensity?: boolean };
     } | null;
 
-    const conditionGuidanceBlocks = buildUniversalConditionGuidance({
+    // ── THYROID SUPPORT — first-class protocol slot ──────────────────────────
+    // Activation cascade (any of these triggers the modifier):
+    //   1. specialtyCondition === 'thyroid-support' (self-selected in profile/onboarding)
+    //   2. healthConditions includes a thyroid key (e.g. 'hashimoto\'s', 'hypothyroidism')
+    //   3. Future: lab-resolved thyroid signal (handled at the API route level)
+    const THYROID_ACTIVATION_KEYS = new Set([
+      "thyroid-support", "thyroid support", "hashimoto's", "hashimotos",
+      "hypothyroidism", "autoimmune thyroid", "thyroid disease",
+    ]);
+    const thyroidSupport: boolean =
+      user.specialtyCondition === "thyroid-support" ||
+      healthConditions.some(c => THYROID_ACTIVATION_KEYS.has(c.trim().toLowerCase()));
+
+    const thyroidMedication: string | null = (user.thyroidMedication as string | null) ?? null;
+
+    const conditionGuidanceBlocks = await buildUniversalConditionGuidance({
       userId,
       healthConditions,
       oncologySupportContext,
+      thyroidSupportContext: thyroidSupport
+        ? {
+            active: true,
+            medication: thyroidMedication,
+            labDriven: false,
+            isAutoimmune: healthConditions.some(c =>
+              ["hashimoto's", "hashimotos", "autoimmune thyroid"].includes(c.trim().toLowerCase())
+            ),
+          }
+        : null,
     });
 
     return {
@@ -663,6 +704,8 @@ export async function loadUserProtocolEnvelope(
       hasDiabetes,
       diabeticGlucoseState,
       conditionGuidanceBlocks,
+      thyroidSupport,
+      thyroidMedication,
     };
   } catch (error) {
     console.error("[ProtocolEnvelope] Failed to load envelope:", error);
@@ -690,6 +733,8 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     hasDiabetes: false,
     diabeticGlucoseState: null,
     conditionGuidanceBlocks: [],
+    thyroidSupport: false,
+    thyroidMedication: null,
   };
 }
 

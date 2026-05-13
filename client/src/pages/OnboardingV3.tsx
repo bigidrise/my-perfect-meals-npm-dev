@@ -736,6 +736,7 @@ export default function OnboardingV3() {
                   { label: "Liver Disease", value: "liver-disease" },
                   { label: "Liver Support", value: "liver-support" },
                   { label: "Cancer / Oncology Support", value: "oncology-support" },
+                  { label: "Thyroid Support", value: "thyroid-support" },
                 ].map((opt) => (
                   <PillButton
                     key={opt.value}
@@ -748,6 +749,19 @@ export default function OnboardingV3() {
                   </PillButton>
                 ))}
               </div>
+              {specialtyCondition === "thyroid-support" && (
+                <div className="mt-3 rounded-xl border border-teal-500/40 bg-teal-950/30 p-3">
+                  <div className="flex items-start gap-2">
+                    <span className="text-teal-400 text-base mt-0.5">🦋</span>
+                    <div>
+                      <p className="text-teal-300 text-xs font-semibold mb-1">Thyroid Support — Nutritional Guidance Only</p>
+                      <p className="text-white/70 text-xs leading-relaxed">
+                        This activates anti-inflammatory, selenium-focused meal guidance designed to complement thyroid wellness. It is <span className="text-white font-medium">not a medical diagnosis</span>, not a treatment plan, and <span className="text-white font-medium">not a substitute for your doctor or endocrinologist's care</span>. Always follow your healthcare provider's recommendations first.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
               {specialtyCondition === "oncology-support" && (
                 <div className="mt-3 rounded-xl border border-rose-500/40 bg-rose-950/30 p-3">
                   <div className="flex items-start gap-2">

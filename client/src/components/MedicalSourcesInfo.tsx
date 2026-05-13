@@ -150,6 +150,45 @@ export function MedicalSourcesInfo({
 
           <section>
             <h3 className="text-lg font-semibold text-white mb-3">
+              Thyroid support nutrition references
+            </h3>
+            <p className="text-white/60 text-xs mb-3">
+              My Perfect Meals uses publicly available thyroid nutrition guidance
+              to inform Thyroid Support meal design patterns. These references are
+              used for general nutrition education and food-structure guidance only —
+              not diagnosis, treatment, or individualized endocrinology care.
+            </p>
+            <ul className="space-y-3">
+              <SourceItem
+                title="American Thyroid Association (ATA)"
+                description="Clinical practice guidelines for hypothyroidism, Hashimoto's thyroiditis, and thyroid nutrition"
+                url="https://www.thyroid.org/"
+              />
+              <SourceItem
+                title="American Association of Clinical Endocrinology (AACE)"
+                description="Evidence-based clinical endocrinology guidelines including thyroid function reference ranges"
+                url="https://www.aace.com/"
+              />
+              <SourceItem
+                title="Endocrine Society"
+                description="Clinical practice guidelines for thyroid disorders, autoimmune thyroid disease, and nutrition interactions"
+                url="https://www.endocrine.org/"
+              />
+              <SourceItem
+                title="NIH Office of Dietary Supplements — Selenium"
+                description="Evidence-based selenium intake guidance; selenium is essential for thyroid hormone synthesis and T4→T3 conversion"
+                url="https://ods.od.nih.gov/factsheets/Selenium-HealthProfessional/"
+              />
+              <SourceItem
+                title="NIH Office of Dietary Supplements — Iodine"
+                description="Iodine reference ranges, thyroid function role, and dietary considerations for thyroid health"
+                url="https://ods.od.nih.gov/factsheets/Iodine-HealthProfessional/"
+              />
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-semibold text-white mb-3">
               Allergen taxonomy knowledge sources
             </h3>
             <p className="text-white/60 text-xs mb-3">

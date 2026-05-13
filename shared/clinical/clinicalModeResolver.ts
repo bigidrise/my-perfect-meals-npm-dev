@@ -12,6 +12,7 @@ export interface ClinicalFlags {
   glp1?: boolean;
   postBariatric?: boolean;
   oncologySupport?: boolean;
+  thyroidSupport?: boolean;
   [key: string]: boolean | undefined;
 }
 
@@ -80,6 +81,9 @@ export function resolveClinicalModeFromFlags(flags?: ClinicalFlags | null): Reso
   if (f.diabetesFriendly) modifierBadges.push({ label: 'Diabetes-Friendly', cls: 'bg-purple-700 text-purple-100' });
   if (f.glp1)             modifierBadges.push({ label: 'GLP-1 Support',     cls: 'bg-blue-700 text-blue-100'    });
   if (f.postBariatric)    modifierBadges.push({ label: 'Post-Bariatric',    cls: 'bg-orange-700 text-orange-100' });
+  // Thyroid Support is an ADDITIVE MODIFIER — it blends into the active primary protocol,
+  // never overrides it. Teal distinguishes it visually from oncology (rose) and cardiac (red).
+  if (f.thyroidSupport)   modifierBadges.push({ label: 'Thyroid Support',   cls: 'bg-teal-700 text-teal-100'    });
 
   return {
     mode,

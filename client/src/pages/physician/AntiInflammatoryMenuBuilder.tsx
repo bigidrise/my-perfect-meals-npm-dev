@@ -257,6 +257,10 @@ export default function AntiInflammatoryMenuBuilder() {
             'liver-disease':    'liver-disease',
             'liver-support':    'liver-support',
             'oncology-support': 'oncology-support',
+            // Thyroid is an ADDITIVE MODIFIER — it resolves as base anti-inflammatory
+            // at the primary mode level. The teal indicator light and modifier badge
+            // (from clinicalModeResolver.ts) signal the modifier is active.
+            'thyroid-support':  'anti-inflammatory',
           };
           const mappedMode = conditionModeMap[data.specialtyCondition] as ClinicalMode | undefined;
           if (mappedMode) {
@@ -282,6 +286,8 @@ export default function AntiInflammatoryMenuBuilder() {
     "heart-failure":    { label: "Cardiac Health",   cls: "bg-red-600 text-white" },
     "liver-support":    { label: "Liver Support",    cls: "bg-emerald-600 text-white" },
     "oncology-support": { label: "Oncology Support", cls: "bg-rose-600 text-white" },
+    // Note: thyroid-support does NOT get a primary badge here because it's an additive
+    // modifier. Its teal badge comes from clinicalModeResolver.ts modifierBadges.
   };
   const activePrimaryBadge: ProtocolBadge | null = CLINICAL_MODE_BADGE[clinicalModeState] ?? null;
 
@@ -1289,8 +1295,13 @@ export default function AntiInflammatoryMenuBuilder() {
                   { key: "liver-support",    label: "Liver Support",    activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
                   { key: "liver-disease",    label: "Liver Disease",    activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
                   { key: "oncology-support", label: "Cancer Protocol",  activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
+                  { key: "thyroid-support", label: "Thyroid Support",  activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
                 ].map(({ key, label, activeColor, dotColor, dotGlow }) => {
-                  const isActive = clinicalModeState === key;
+                  // For thyroid-support: active when specialtyCondition is thyroid-support
+                  // (clinicalModeState stays 'anti-inflammatory' since thyroid is additive)
+                  const isActive = key === "thyroid-support"
+                    ? (resolvedProtocol.modifierBadges ?? []).some((b: { label: string }) => b.label === "Thyroid Support")
+                    : clinicalModeState === key;
                   return (
                     <span
                       key={key}

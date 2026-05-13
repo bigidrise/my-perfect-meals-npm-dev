@@ -22,6 +22,7 @@ import {
   safeNum,
   LAB_THRESHOLDS,
   type LabProtocolSignal,
+  type ThyroidLabSignal,
 } from '../../shared/clinical/protocolDecision';
 
 /**
@@ -40,6 +41,12 @@ export interface LabInputForProtocol {
   ldl?: string | number | null;
   bloodPressureSystolic?: string | number | null;
   ejectionFraction?: string | number | null;
+  // Thyroid panel — Phase 1
+  tsh?: string | number | null;
+  freeT4?: string | number | null;
+  freeT3?: string | number | null;
+  tpoAntibodies?: string | number | null;
+  thyroglobulinAntibodies?: string | number | null;
 }
 
 export function resolveProtocolFromLabs(
@@ -181,4 +188,93 @@ export function labSignalToSubtitle(signal: LabProtocolSignal | null): string {
     'anti-inflammatory': 'Anti-Inflammatory',
   };
   return labels[signal.protocol] ?? 'Anti-Inflammatory';
+}
+
+/**
+ * Resolve thyroid indicators from lab values.
+ *
+ * Unlike resolveProtocolFromLabs(), this function returns a ThyroidLabSignal
+ * rather than a LabProtocolSignal because thyroid is an ADDITIVE MODIFIER,
+ * not a primary protocol override. It can co-exist with any primary protocol.
+ *
+ * Triggers on:
+ *   - TSH > 4.5 mIU/L (hypothyroid range) or < 0.4 mIU/L (hyperthyroid range)
+ *   - Free T4 < 0.8 ng/dL (low hormone level)
+ *   - Free T3 < 2.3 pg/mL (low active thyroid hormone)
+ *   - TPO antibodies > 9 IU/mL (autoimmune thyroid — Hashimoto's pattern)
+ *   - Thyroglobulin antibodies > 1 IU/mL (autoimmune thyroid activity)
+ *
+ * Sources: ATA, AACE, Endocrine Society, NIH.
+ */
+export function resolveThyroidFromLabs(
+  labs: Pick<LabInputForProtocol, 'tsh' | 'freeT4' | 'freeT3' | 'tpoAntibodies' | 'thyroglobulinAntibodies'>,
+): ThyroidLabSignal {
+  const t = LAB_THRESHOLDS.thyroid;
+
+  const tsh    = safeNum(labs.tsh);
+  const freeT4 = safeNum(labs.freeT4);
+  const freeT3 = safeNum(labs.freeT3);
+  const tpo    = safeNum(labs.tpoAntibodies);
+  const tgab   = safeNum(labs.thyroglobulinAntibodies);
+
+  const triggers: string[] = [];
+  let isAutoimmune = false;
+
+  // TSH out of range (either direction)
+  if (tsh !== null && tsh > t.tshHigh) triggers.push('tsh_high');
+  if (tsh !== null && tsh < t.tshLow)  triggers.push('tsh_low');
+
+  // Low thyroid hormone levels
+  if (freeT4 !== null && freeT4 < t.freeT4Low) triggers.push('free_t4_low');
+  if (freeT3 !== null && freeT3 < t.freeT3Low) triggers.push('free_t3_low');
+
+  // Antibody markers — autoimmune thyroid pattern
+  if (tpo  !== null && tpo  > t.tpoAntibodiesHigh)          { triggers.push('tpo_antibodies'); isAutoimmune = true; }
+  if (tgab !== null && tgab > t.thyroglobulinAntibodiesHigh) { triggers.push('thyroglobulin_antibodies'); isAutoimmune = true; }
+
+  if (triggers.length === 0) {
+    return {
+      hasThyroidIndicators: false,
+      reason: '',
+      triggerFields: [],
+      confidence: 'low',
+      isAutoimmune: false,
+    };
+  }
+
+  const hasHormoneSignal  = triggers.some(f => ['tsh_high', 'tsh_low', 'free_t4_low', 'free_t3_low'].includes(f));
+  const hasAntibodySignal = isAutoimmune;
+
+  let reason = '';
+  if (hasAntibodySignal && hasHormoneSignal) {
+    reason =
+      'Your lab values suggest both thyroid hormone markers and thyroid antibodies that may ' +
+      'benefit from a Thyroid Support nutritional approach. This includes anti-inflammatory eating, ' +
+      'selenium-rich proteins, and meal timing awareness. (ATA / AACE / Endocrine Society)';
+  } else if (hasAntibodySignal) {
+    reason =
+      'Your thyroid antibody markers — TPO antibodies and/or thyroglobulin antibodies — are ' +
+      'above the normal reference range. This pattern is associated with autoimmune thyroid ' +
+      'activity. A Thyroid Support approach emphasizing anti-inflammatory nutrition may be ' +
+      'beneficial. (ATA / AACE)';
+  } else {
+    reason =
+      'One or more of your thyroid markers — TSH, Free T4, or Free T3 — suggests your thyroid ' +
+      'function may benefit from adaptive nutritional support. A Thyroid Support approach ' +
+      'emphasizes selenium-rich foods, anti-inflammatory eating, and medication timing awareness. ' +
+      '(ATA / AACE / Endocrine Society)';
+  }
+
+  const confidence: 'high' | 'moderate' | 'low' =
+    triggers.length >= 3 ? 'high' :
+    triggers.length >= 2 ? 'moderate' :
+    'low';
+
+  return {
+    hasThyroidIndicators: true,
+    reason,
+    triggerFields: triggers,
+    confidence,
+    isAutoimmune,
+  };
 }

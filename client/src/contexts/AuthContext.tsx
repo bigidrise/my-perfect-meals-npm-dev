@@ -104,6 +104,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           dailyFatTarget: userData.dailyFatTarget ?? null,
           oncologySupportIntent: userData.oncologySupportIntent ?? null,
           specialtyCondition: userData.specialtyCondition ?? null,
+          thyroidMedication: userData.thyroidMedication ?? null,
           oncologySupportContext: userData.oncologySupportContext ?? null,
           activeSystem: userData.activeSystem || null,
           isCreator: userData.isCreator || false,

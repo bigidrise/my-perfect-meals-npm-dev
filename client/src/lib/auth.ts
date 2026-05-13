@@ -131,6 +131,8 @@ export interface User {
   oncologySupportIntent?: "own_provider" | "request_support" | "self_directed" | null;
   // Self-selected specialty health protocol (edit profile page)
   specialtyCondition?: string | null;
+  // Thyroid Support — medication name if disclosed (e.g. "Levothyroxine")
+  thyroidMedication?: string | null;
   // Physician-set oncology context (Protocol Ownership Model)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   oncologySupportContext?: any | null;
