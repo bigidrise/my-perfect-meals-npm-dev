@@ -139,6 +139,12 @@ const DIABETIC_BUILDER_TOUR_STEPS: TourStep[] = [
       "Copy your meal plan to other days for consistent eating patterns.",
   },
   {
+    icon: "+",
+    title: "Clinical Conditions Stack Here Too",
+    description:
+      "If you have cardiac, renal, thyroid, oncology, or other conditions set in your profile, those clinical protocols are active on top of this builder right now — automatically. Every meal generated here follows all your active clinical rules at once. Update your conditions anytime in Edit Profile.",
+  },
+  {
     icon: "4",
     title: "Track Macros",
     description:

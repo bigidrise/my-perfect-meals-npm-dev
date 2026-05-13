@@ -1015,7 +1015,7 @@ export default function EditProfilePage() {
                 )}
 
                 <p className="text-white/60 text-xs mb-3">
-                  Select if you have one of these conditions. This immediately activates the appropriate nutrition protocol in your Anti-Inflammatory Builder — no lab entry required. You can always add labs later for precision refinement.
+                  Select all conditions that apply — you can choose more than one. Each condition you select immediately activates its full clinical protocol across every meal generator, and all selected conditions stack together. No lab entry required. You can add labs later for precision refinement.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {([
