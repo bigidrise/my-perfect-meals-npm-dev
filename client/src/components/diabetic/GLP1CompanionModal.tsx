@@ -40,7 +40,7 @@ export function GLP1CompanionModal({ isOpen, onClose }: GLP1CompanionModalProps)
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <PillButton
-              onClick={() => { onClose(); setLocation("/glp1"); }}
+              onClick={() => { onClose(); setLocation("/glp1-hub"); }}
               variant="default"
             >
               <ExternalLink className="w-3 h-3 mr-1" />
@@ -126,7 +126,7 @@ export function GLP1CompanionModal({ isOpen, onClose }: GLP1CompanionModalProps)
                   </div>
                   <div className="col-span-2 mt-1">
                     <PillButton
-                      onClick={() => { onClose(); setLocation("/glp1"); }}
+                      onClick={() => { onClose(); setLocation("/glp1-hub"); }}
                       variant="default"
                     >
                       Edit Guardrails in GLP-1 Hub
