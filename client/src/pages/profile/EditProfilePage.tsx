@@ -269,6 +269,7 @@ export default function EditProfilePage() {
   const [thyroidMedication, setThyroidMedication] = useState<string>(
     (user as any)?.thyroidMedication ?? ""
   );
+  const [antiInflammatorySupport, setAntiInflammatorySupport] = useState(false);
 
   // Protocol Ownership Model — physician-set oncology context (read from server)
   const oncologyCtx = user?.oncologySupportContext ?? null;
@@ -318,6 +319,15 @@ export default function EditProfilePage() {
   useEffect(() => {
     setSpecialtyCondition(user?.specialtyCondition ?? null);
   }, [user?.specialtyCondition]);
+
+  // Load anti-inflammatory support preference from server (stored in app-preferences)
+  useEffect(() => {
+    if (!user?.id) return;
+    fetch(apiUrl(`/api/users/${user.id}/app-preferences`), { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(prefs => { if (prefs?.antiInflammatorySupport) setAntiInflammatorySupport(true); })
+      .catch(() => {});
+  }, [user?.id]);
   
   const verifyPinForAllergies = async () => {
     if (pinInput.length !== 4) {
@@ -468,6 +478,19 @@ export default function EditProfilePage() {
         credentials: "include",
         body: JSON.stringify({ medication: thyroidMedication.trim() || null }),
       }).catch(() => {});
+
+      // Save anti-inflammatory support preference
+      if (user?.id) {
+        await fetch(apiUrl(`/api/users/${user.id}/app-preferences`), {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            ...(authToken ? { "x-auth-token": authToken } : {}),
+          },
+          credentials: "include",
+          body: JSON.stringify({ antiInflammatorySupport }),
+        }).catch(() => {});
+      }
 
       await refreshUser?.();
 
@@ -1063,6 +1086,20 @@ export default function EditProfilePage() {
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Anti-Inflammatory Support — independent toggle, not part of specialty condition */}
+              <div className="rounded-xl border border-green-500/20 bg-green-950/10 p-3">
+                <p className="text-white/80 text-xs font-semibold mb-1">Anti-Inflammatory Support</p>
+                <p className="text-white/50 text-xs mb-3 leading-relaxed">
+                  Layer anti-inflammatory nutrition optimization onto any builder — including GLP-1 and Diabetic. Emphasizes food quality, healthy fats, and reduced ultra-processed ingredients. No medical condition required.
+                </p>
+                <PillButton
+                  active={antiInflammatorySupport}
+                  onClick={() => setAntiInflammatorySupport(prev => !prev)}
+                >
+                  {antiInflammatorySupport ? "Active — Anti-Inflammatory" : "Enable Anti-Inflammatory Support"}
+                </PillButton>
               </div>
 
               <div className="rounded-xl border border-white/10 bg-black/30 p-3">
