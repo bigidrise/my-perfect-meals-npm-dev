@@ -40,7 +40,7 @@ const coaches: Coach[] = [
     name: "Coach Idrise (Nutrition / Behavior Change)",
     title: "Founder",
     credentials: "NASM-CPT · WFS · CNC · BCS",
-    image: "/assets/founder-photo.jpg",
+    image: "/assets/idrise-coach.png",
     bio: FOUNDER_BIO,
     availabilityStatus: "available",
     isFounder: true,
