@@ -1294,7 +1294,7 @@ export default function AntiInflammatoryMenuBuilder() {
                   { key: "kidney-disease",   label: "Kidney Disease",   activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
                   { key: "liver-support",    label: "Liver Support",    activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
                   { key: "liver-disease",    label: "Liver Disease",    activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
-                  { key: "oncology-support", label: "Cancer Protocol",  activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
+                  { key: "oncology-support", label: "Oncology Support", activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
                   { key: "thyroid-support", label: "Thyroid Support",  activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
                 ].map(({ key, label, activeColor, dotColor, dotGlow }) => {
                   // For thyroid-support: active when specialtyCondition is thyroid-support
