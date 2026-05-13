@@ -127,11 +127,32 @@ export const clientNotes = pgTable("client_notes", {
   tags: jsonb("tags").$type<string[]>().default([]),
   entryType: entryTypeEnum("entry_type").notNull().default("note"),
   sender: senderTypeEnum("sender").notNull().default("pro"),
+  contentType: text("content_type").$type<"text" | "voice">().notNull().default("text"),
+  audioObjectKey: text("audio_object_key"),
+  audioMimeType: text("audio_mime_type"),
+  audioDurationSec: integer("audio_duration_sec"),
+  transcript: text("transcript"),
+  transcriptStatus: text("transcript_status").$type<"pending" | "completed" | "failed" | "blocked">(),
+  moderationStatus: text("moderation_status").$type<"pending" | "approved" | "blocked">(),
+  transcribedAt: timestamp("transcribed_at", { withTimezone: true }),
+  moderatedAt: timestamp("moderated_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
   studioClientIdx: index("idx_client_notes_studio_client").on(table.studioId, table.clientUserId),
   authorIdx: index("idx_client_notes_author").on(table.authorUserId),
+}));
+
+export const tabletVoiceJobs = pgTable("tablet_voice_jobs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  noteId: uuid("note_id").notNull().references(() => clientNotes.id, { onDelete: "cascade" }),
+  status: text("status").$type<"pending" | "processing" | "completed" | "failed">().notNull().default("pending"),
+  attempts: integer("attempts").notNull().default(0),
+  lastError: text("last_error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  processedAt: timestamp("processed_at", { withTimezone: true }),
+}, (table) => ({
+  statusIdx: index("idx_tablet_voice_jobs_status").on(table.status),
 }));
 
 export type Studio = typeof studios.$inferSelect;

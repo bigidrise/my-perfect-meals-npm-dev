@@ -3,12 +3,13 @@ import { db } from "../db";
 import { clientNotes, studios, studioMemberships } from "../db/schema/studio";
 import { clientLinks } from "../db/schema/procare";
 import { users } from "../../shared/schema";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, and, asc, sql } from "drizzle-orm";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
 import { moderateContent, BLOCKED_MESSAGE } from "../services/tabletModerationService";
 import { notifyProfessionalOfMessage } from "../services/tabletNotificationService";
 import { logClientActivity } from "../services/activityLog";
 import { sendCoachMessageAlert } from "../services/emailService";
+import { getSignedPlaybackUrl } from "../services/tabletVoiceService";
 
 const router = Router();
 
@@ -255,6 +256,46 @@ router.delete("/entry/:entryId", async (req: Request, res: Response) => {
   }
 
   res.json({ ok: true });
+});
+
+router.get("/audio/:entryId", async (req: Request, res: Response) => {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  if (!authUser) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+
+  const { entryId } = req.params;
+
+  const result = await db.execute(sql`
+    SELECT id, audio_object_key, client_user_id, visibility, content_type,
+           transcript_status, moderation_status, transcript
+    FROM client_notes
+    WHERE id = ${entryId}
+      AND client_user_id = ${authUser.id}
+      AND content_type = 'voice'
+      AND visibility = 'shared_with_client'
+    LIMIT 1
+  `);
+
+  const note = result.rows[0] as any;
+  if (!note?.audio_object_key) {
+    res.status(404).json({ error: "Voice note not found" });
+    return;
+  }
+
+  if (note.moderation_status === "blocked") {
+    res.status(403).json({ error: "This voice note has been removed" });
+    return;
+  }
+
+  if (note.transcript_status !== "completed") {
+    res.status(202).json({ pending: true, message: "Transcript not yet available" });
+    return;
+  }
+
+  const url = await getSignedPlaybackUrl(note.audio_object_key);
+  res.json({ url, transcript: note.transcript, transcriptStatus: note.transcript_status });
 });
 
 export default router;

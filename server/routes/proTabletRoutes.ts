@@ -9,6 +9,18 @@ import { moderateContent, BLOCKED_MESSAGE } from "../services/tabletModerationSe
 import { notifyClientOfMessage, notifyClientOfNote } from "../services/tabletNotificationService";
 import { logClientActivity } from "../services/activityLog";
 import { sql } from "drizzle-orm";
+import multer from "multer";
+import {
+  uploadVoiceToS3,
+  getVoiceObjectKey,
+  getSignedPlaybackUrl,
+  MAX_VOICE_DURATION_SEC,
+} from "../services/tabletVoiceService";
+import { startVoiceJobWorker } from "../services/voiceJobWorker";
+
+startVoiceJobWorker();
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
 const router = Router();
 
@@ -163,8 +175,14 @@ router.get("/:clientId", requireWorkspaceAccess, async (req: Request, res: Respo
       visibility: clientNotes.visibility,
       sender: clientNotes.sender,
       tags: clientNotes.tags,
+      contentType: clientNotes.contentType,
+      audioObjectKey: clientNotes.audioObjectKey,
+      audioDurationSec: clientNotes.audioDurationSec,
+      transcript: clientNotes.transcript,
+      transcriptStatus: clientNotes.transcriptStatus,
+      moderationStatus: clientNotes.moderationStatus,
       createdAt: clientNotes.createdAt,
-    })
+    } as any)
     .from(clientNotes)
     .where(
       and(
@@ -379,6 +397,193 @@ router.delete("/:clientId/entry/:entryId", requireWorkspaceAccess, async (req: R
   );
 
   res.json({ ok: true });
+});
+
+router.post("/:clientId/voice-message", requireWorkspaceAccess, upload.single("audio"), async (req: Request, res: Response) => {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  const { clientId } = req.params;
+
+  if (!req.file) {
+    res.status(400).json({ error: "audio file is required" });
+    return;
+  }
+
+  const mimeType = req.file.mimetype || "audio/webm";
+  const buffer = req.file.buffer;
+
+  if (buffer.length > 15 * 1024 * 1024) {
+    res.status(400).json({ error: "Audio file too large (max 15 MB)" });
+    return;
+  }
+
+  const studioId = await getProStudioId(authUser.id);
+  if (!studioId) {
+    res.status(404).json({ error: "No studio found for this professional" });
+    return;
+  }
+
+  const placeholder = "🎤 Voice note — transcribing…";
+
+  const [entry] = await db
+    .insert(clientNotes)
+    .values({
+      studioId,
+      clientUserId: clientId,
+      authorUserId: authUser.id,
+      body: placeholder,
+      noteType: "general",
+      visibility: "shared_with_client",
+      entryType: "message",
+      sender: "pro",
+      contentType: "voice",
+      audioMimeType: mimeType,
+      transcriptStatus: "pending",
+      moderationStatus: "pending",
+    } as any)
+    .returning({
+      id: clientNotes.id,
+      body: clientNotes.body,
+      authorUserId: clientNotes.authorUserId,
+      entryType: clientNotes.entryType,
+      visibility: clientNotes.visibility,
+      sender: clientNotes.sender,
+      createdAt: clientNotes.createdAt,
+    });
+
+  const objectKey = getVoiceObjectKey(entry.id, mimeType);
+
+  await uploadVoiceToS3(buffer, mimeType, objectKey);
+
+  await db.execute(sql`
+    UPDATE client_notes SET audio_object_key = ${objectKey} WHERE id = ${entry.id}
+  `);
+
+  await db.execute(sql`
+    INSERT INTO tablet_voice_jobs (note_id, status) VALUES (${entry.id}, 'pending')
+  `);
+
+  logClientActivity(studioId, clientId, authUser.id, "message_sent", "message", entry.id, { type: "voice" });
+  notifyClientOfMessage(clientId);
+
+  res.json({
+    entry: {
+      ...entry,
+      contentType: "voice",
+      audioObjectKey: objectKey,
+      transcriptStatus: "pending",
+      moderationStatus: "pending",
+    },
+  });
+});
+
+router.post("/:clientId/voice-note", requireWorkspaceAccess, upload.single("audio"), async (req: Request, res: Response) => {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  const { clientId } = req.params;
+
+  if (!req.file) {
+    res.status(400).json({ error: "audio file is required" });
+    return;
+  }
+
+  const mimeType = req.file.mimetype || "audio/webm";
+  const buffer = req.file.buffer;
+
+  if (buffer.length > 15 * 1024 * 1024) {
+    res.status(400).json({ error: "Audio file too large (max 15 MB)" });
+    return;
+  }
+
+  const studioId = await getProStudioId(authUser.id);
+  if (!studioId) {
+    res.status(404).json({ error: "No studio found for this professional" });
+    return;
+  }
+
+  const placeholder = "🎤 Voice note — transcribing…";
+
+  const [entry] = await db
+    .insert(clientNotes)
+    .values({
+      studioId,
+      clientUserId: clientId,
+      authorUserId: authUser.id,
+      body: placeholder,
+      noteType: "general",
+      visibility: "professional_only",
+      entryType: "note",
+      sender: "pro",
+      contentType: "voice",
+      audioMimeType: mimeType,
+      transcriptStatus: "pending",
+      moderationStatus: "pending",
+    } as any)
+    .returning({
+      id: clientNotes.id,
+      body: clientNotes.body,
+      authorUserId: clientNotes.authorUserId,
+      entryType: clientNotes.entryType,
+      visibility: clientNotes.visibility,
+      sender: clientNotes.sender,
+      createdAt: clientNotes.createdAt,
+    });
+
+  const objectKey = getVoiceObjectKey(entry.id, mimeType);
+
+  await uploadVoiceToS3(buffer, mimeType, objectKey);
+
+  await db.execute(sql`
+    UPDATE client_notes SET audio_object_key = ${objectKey} WHERE id = ${entry.id}
+  `);
+
+  await db.execute(sql`
+    INSERT INTO tablet_voice_jobs (note_id, status) VALUES (${entry.id}, 'pending')
+  `);
+
+  logClientActivity(studioId, clientId, authUser.id, "note_added", "note", entry.id, { type: "voice" });
+
+  res.json({
+    entry: {
+      ...entry,
+      contentType: "voice",
+      audioObjectKey: objectKey,
+      transcriptStatus: "pending",
+      moderationStatus: "pending",
+    },
+  });
+});
+
+router.get("/audio/:entryId", async (req: Request, res: Response) => {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  if (!authUser) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+
+  const { entryId } = req.params;
+
+  const studioId = await getProStudioId(authUser.id);
+  if (!studioId) {
+    res.status(403).json({ error: "No studio found" });
+    return;
+  }
+
+  const result = await db.execute(sql`
+    SELECT id, audio_object_key, studio_id, client_user_id, content_type, transcript_status, moderation_status
+    FROM client_notes
+    WHERE id = ${entryId}
+      AND studio_id = ${studioId}
+      AND content_type = 'voice'
+    LIMIT 1
+  `);
+
+  const note = result.rows[0] as any;
+  if (!note?.audio_object_key) {
+    res.status(404).json({ error: "Voice note not found" });
+    return;
+  }
+
+  const url = await getSignedPlaybackUrl(note.audio_object_key);
+  res.json({ url, transcriptStatus: note.transcript_status, moderationStatus: note.moderation_status });
 });
 
 export default router;
