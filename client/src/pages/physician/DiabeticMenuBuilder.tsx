@@ -1196,6 +1196,30 @@ export default function DiabeticMenuBuilder() {
                 </div>
               )}
 
+            {/* ROW 4.5: Active Clinical Supports */}
+            <div className="flex justify-center">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
+                <span className="font-medium text-white/70">Active Clinical Supports:</span>
+                {(() => {
+                  const flags = effectiveUserId ? getResolvedTargets(effectiveUserId)?.flags : null;
+                  return [
+                    { key: "anti-inflammatory", label: "Anti-Inflammatory", isActive: true,                       activeColor: "text-orange-400", dotColor: "bg-orange-400", dotGlow: "shadow-[0_0_4px_rgba(251,146,60,0.8)]"  },
+                    { key: "cardiac",            label: "Cardiac Health",    isActive: !!flags?.cardiac,           activeColor: "text-red-400",    dotColor: "bg-red-400",    dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]" },
+                    { key: "kidney-disease",     label: "Kidney Disease",    isActive: !!flags?.renal,             activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
+                    { key: "liver-support",      label: "Liver Support",     isActive: !!flags?.liverSupport,      activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
+                    { key: "liver-disease",      label: "Liver Disease",     isActive: !!flags?.liverDisease,      activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
+                    { key: "oncology-support",   label: "Oncology Support",  isActive: !!flags?.oncologySupport,   activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
+                    { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!flags?.thyroidSupport,    activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                  ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
+                    <span key={key} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
+                      <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
+                      {label}
+                    </span>
+                  ));
+                })()}
+              </div>
+            </div>
+
             {/* ROW 5: Bottom Actions */}
             <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
 
