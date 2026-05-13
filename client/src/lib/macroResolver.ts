@@ -33,6 +33,8 @@ export type ResolvedTargets = {
     postBariatric?: boolean;
     liverDisease?: boolean;
     liverSupport?: boolean;
+    thyroidSupport?: boolean;
+    oncologySupport?: boolean;
     highProtein?: boolean;
     carbCycling?: boolean;
     antiInflammatory?: boolean;

@@ -56,6 +56,8 @@ export type Targets = {
     postBariatric?: boolean;
     liverDisease?: boolean;
     liverSupport?: boolean;
+    thyroidSupport?: boolean;
+    oncologySupport?: boolean;
 
     // Performance flags (for trainers)
     highProtein?: boolean;
