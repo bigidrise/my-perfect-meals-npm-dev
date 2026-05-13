@@ -188,6 +188,14 @@ const SECTION_START_HERE: LibraryTopic[] = [
           text: "A physician-assigned support system — not treatment or medical care. Built on an anti-inflammatory foundation with protein support, easier-to-tolerate meals, appetite-aware structure, and symptom-sensitive adjustments. Examples include low-appetite support, nausea-friendly meals, soft food options, and low-prep meals during fatigue.",
         },
         {
+          heading: "Multiple Conditions — All Stack at Once",
+          text: "If you have more than one condition, you can select all of them. Cardiac and renal. Thyroid and oncology. Any combination. Every condition you activate gets its own full protocol applied to every meal generator simultaneously. The app does not pick one and ignore the rest. All active clinical rules stack together in real time across every tool in the app.",
+        },
+        {
+          heading: "Where to Set Your Conditions",
+          text: "Go to Edit Profile and scroll to the Clinical Support section. Tap each condition that applies to you. You can select as many as you need — they all activate immediately. If your health situation changes over time, come back and update your selections. New conditions stack on top of existing ones without removing what was already set.",
+        },
+        {
           heading: "With a Coach or Physician (ProCare)",
           text: "When you connect with a professional through ProCare, they can assign your meal builder, apply support systems, and adjust your plan in real time. You still own your plan. They guide it.",
         },

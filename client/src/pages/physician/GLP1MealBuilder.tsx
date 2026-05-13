@@ -124,7 +124,8 @@ const GLP1_BUILDER_TOUR_STEPS: TourStep[] = [
   { icon: "5", title: "Shopping List", description: "Export ingredients for easy meal prep shopping." },
   { icon: "6", title: "Track Progress at Bottom", description: "The bottom bar shows color-coded progress: green = on track, yellow = close, red = over. Tap 'Save Day' to lock your day to Biometrics." },
   { icon: "🥔", title: "Watch Your Starch Slots", description: "The starch indicator shows your daily starch meal status. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!" },
-  { icon: "*", title: "What the Asterisks Mean", description: "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first." }
+  { icon: "*", title: "What the Asterisks Mean", description: "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first." },
+  { icon: "+", title: "Clinical Conditions Stack Here Too", description: "If you have cardiac, renal, thyroid, oncology, or other conditions set in your profile, those clinical protocols are active on top of this builder right now — automatically. Every meal generated here follows all your active clinical rules at once. Update your conditions anytime in Edit Profile." }
 ];
 
 // CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
