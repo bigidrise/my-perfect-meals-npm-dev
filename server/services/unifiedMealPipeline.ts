@@ -1534,6 +1534,7 @@ export async function generateCravingMealOptions(
   let proceduralBlock = '';
   // Oncology fields fetched from DB — declared outside try so they're in scope for the overlay check below
   let _varietySpecialtyCondition: string | null = null;
+  let _varietySpecialtyConditions: string[] = [];
   let _varietyOncologyCtx: { enabled?: boolean } | null = null;
 
   if (userId) {
@@ -1545,6 +1546,7 @@ export async function generateCravingMealOptions(
         dislikedFoods: users.dislikedFoods,
         avoidedFoods: users.avoidedFoods,
         specialtyCondition: users.specialtyCondition,
+        specialtyConditions: users.specialtyConditions,
         oncologySupportContext: users.oncologySupportContext,
       }).from(users).where(eq(users.id, userId)).limit(1);
 
@@ -1552,6 +1554,7 @@ export async function generateCravingMealOptions(
 
       // Store oncology fields for the activation check below
       _varietySpecialtyCondition = u?.specialtyCondition ?? null;
+      _varietySpecialtyConditions = (u?.specialtyConditions as string[]) || (_varietySpecialtyCondition ? [_varietySpecialtyCondition] : []);
       _varietyOncologyCtx = (u?.oncologySupportContext as { enabled?: boolean } | null) ?? null;
 
       const allergies: string[] = (u?.allergies as string[]) || [];
@@ -1619,15 +1622,16 @@ export async function generateCravingMealOptions(
   // but oncology is stored in specialtyCondition — NOT dietaryRestrictions — so
   // that check was structurally impossible and never activated. Fixed here.
   const _cravingMentionsOncology = /oncolog|cancer[\s\-]?support|cancer[\s\-]?protocol/i.test(cravingInput);
-  console.log(`🧬 [VARIETY ENGINE] Oncology check — specialtyCondition: ${JSON.stringify(_varietySpecialtyCondition)}, oncologyCtx.enabled: ${_varietyOncologyCtx?.enabled ?? null}, cravingTextMatch: ${_cravingMentionsOncology}, dietRestrictions includes: ${dietRestrictions.includes('oncology-support')}`);
+  console.log(`🧬 [VARIETY ENGINE] Oncology check — specialtyConditions: ${JSON.stringify(_varietySpecialtyConditions)}, oncologyCtx.enabled: ${_varietyOncologyCtx?.enabled ?? null}, cravingTextMatch: ${_cravingMentionsOncology}`);
   const isVarietyOncology =
     _varietySpecialtyCondition === 'oncology-support' ||
+    _varietySpecialtyConditions.includes('oncology-support') ||
     _varietyOncologyCtx?.enabled === true ||
     dietRestrictions.includes('oncology-support') ||
     _cravingMentionsOncology;
 
   if (isVarietyOncology) {
-    const _oncologyTrigger = _varietyOncologyCtx?.enabled ? 'DB (physician)' : _varietySpecialtyCondition === 'oncology-support' ? 'specialtyCondition' : dietRestrictions.includes('oncology-support') ? 'route-injection' : 'text intent';
+    const _oncologyTrigger = _varietyOncologyCtx?.enabled ? 'DB (physician)' : (_varietySpecialtyCondition === 'oncology-support' || _varietySpecialtyConditions.includes('oncology-support')) ? 'specialtyConditions' : dietRestrictions.includes('oncology-support') ? 'route-injection' : 'text intent';
     const oncologyVarietyOverlay = [
       ``,
       `═══ CANCER SUPPORT NUTRITION — HARD BLOCK (ALL 3 OPTIONS) ═══`,
@@ -1865,12 +1869,14 @@ export async function generateFridgeRescueUnified(
   // Fetch dietary restrictions FIRST to ensure diet-aware cache key
   let fridgeDietRestrictions: string[] = [];
   let fridgeSpecialtyCondition: string | null = null;
+  let fridgeSpecialtyConditions: string[] = [];
   if (userId) {
     try {
-      const [fridgeUser] = await db.select({ dietaryRestrictions: users.dietaryRestrictions, specialtyCondition: users.specialtyCondition })
+      const [fridgeUser] = await db.select({ dietaryRestrictions: users.dietaryRestrictions, specialtyCondition: users.specialtyCondition, specialtyConditions: users.specialtyConditions })
         .from(users).where(eq(users.id, userId)).limit(1);
       fridgeDietRestrictions = (fridgeUser?.dietaryRestrictions as string[]) || [];
       fridgeSpecialtyCondition = (fridgeUser?.specialtyCondition as string | null) ?? null;
+      fridgeSpecialtyConditions = (fridgeUser?.specialtyConditions as string[]) || (fridgeSpecialtyCondition ? [fridgeSpecialtyCondition] : []);
     } catch (err) {
       console.warn("[FRIDGE] Could not fetch dietary restrictions for cache key:", err);
     }
@@ -1878,10 +1884,11 @@ export async function generateFridgeRescueUnified(
   const fridgePrimaryDiet = getPrimaryDiet(fridgeDietRestrictions) || "none";
 
   // Detect oncology protocol early (before cache) so we can bypass stale cache.
-  // Check both dietaryRestrictions AND specialtyCondition — oncology-support may be stored in either.
+  // Check dietaryRestrictions AND both specialtyCondition forms (single + array).
   const isOncologyFridge = fridgePrimaryDiet === 'oncology-support'
     || fridgeDietRestrictions.includes('oncology-support')
-    || fridgeSpecialtyCondition === 'oncology-support';
+    || fridgeSpecialtyCondition === 'oncology-support'
+    || fridgeSpecialtyConditions.includes('oncology-support');
   
   // Step 1: Check diet-aware cache (includes primaryDiet to prevent cross-diet contamination)
   // Oncology-support bypasses cache — enhancement logic must run fresh every time so
@@ -2309,9 +2316,10 @@ export async function generateFromDescriptionUnified(
     if (userId) {
       try {
         const [thyroidUser] = await db
-          .select({ specialtyCondition: users.specialtyCondition })
+          .select({ specialtyCondition: users.specialtyCondition, specialtyConditions: users.specialtyConditions })
           .from(users).where(eq(users.id, userId)).limit(1);
-        thyroidSupportActive = thyroidUser?.specialtyCondition === 'thyroid-support';
+        const _thyroidSCs: string[] = (thyroidUser?.specialtyConditions as string[]) || (thyroidUser?.specialtyCondition ? [thyroidUser.specialtyCondition] : []);
+        thyroidSupportActive = thyroidUser?.specialtyCondition === 'thyroid-support' || _thyroidSCs.includes('thyroid-support');
         if (thyroidSupportActive) {
           console.log(`🦋 [THYROID] Thyroid support modifier active for user ${userId.slice(0, 8)}`);
         }

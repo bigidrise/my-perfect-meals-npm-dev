@@ -388,6 +388,7 @@ export const users = pgTable("users", {
   // without requiring lab values. Labs remain optional for precision refinement.
   // Values: 'renal' | 'cardiac' | 'liver-disease' | 'liver-support' | 'oncology-support' | 'thyroid-support' | null
   specialtyCondition: text("specialty_condition"),
+  specialtyConditions: text("specialty_conditions").array().default(sql`ARRAY[]::text[]`),
   preferredBuilder: text("preferred_builder"), // diabetic, glp1, anti-inflammatory, general — starting recommendation from onboarding
   flavorPreference: text("flavor_preference"), // bold-spicy, comfort, mediterranean, balanced, unsure
   heatPreference: text("heat_preference"), // none, mild, medium, hot, very-hot, unsure

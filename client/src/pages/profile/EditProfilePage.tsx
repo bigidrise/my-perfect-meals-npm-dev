@@ -263,8 +263,8 @@ export default function EditProfilePage() {
       : (form.cuisinePreference || "")
   );
 
-  const [specialtyCondition, setSpecialtyCondition] = useState<string | null>(
-    user?.specialtyCondition ?? null
+  const [specialtyConditions, setSpecialtyConditions] = useState<string[]>(
+    (user as any)?.specialtyConditions ?? (user?.specialtyCondition ? [user.specialtyCondition] : [])
   );
   const [thyroidMedication, setThyroidMedication] = useState<string>(
     (user as any)?.thyroidMedication ?? ""
@@ -315,10 +315,11 @@ export default function EditProfilePage() {
     // so that a background user-data refresh doesn't wipe the PIN unlock mid-flow
   }, [initial]);
 
-  // Sync specialtyCondition from user object — handles async load and protocol persistence
+  // Sync specialtyConditions from user object — handles async load and protocol persistence
   useEffect(() => {
-    setSpecialtyCondition(user?.specialtyCondition ?? null);
-  }, [user?.specialtyCondition]);
+    const arr: string[] = (user as any)?.specialtyConditions ?? (user?.specialtyCondition ? [user.specialtyCondition] : []);
+    setSpecialtyConditions(arr);
+  }, [(user as any)?.specialtyConditions, user?.specialtyCondition]);
 
   // Load anti-inflammatory support preference from server (stored in app-preferences)
   useEffect(() => {
@@ -465,7 +466,7 @@ export default function EditProfilePage() {
           ...(authToken ? { "x-auth-token": authToken } : {}),
         },
         credentials: "include",
-        body: JSON.stringify({ condition: specialtyCondition }),
+        body: JSON.stringify({ conditions: specialtyConditions }),
       }).catch(() => {});
 
       // Save thyroid medication (only relevant when thyroid-support is active, but always sync)
@@ -1027,27 +1028,29 @@ export default function EditProfilePage() {
                   ] as const).map((opt) => (
                     <PillButton
                       key={opt.value}
-                      active={specialtyCondition === opt.value}
+                      active={specialtyConditions.includes(opt.value)}
                       onClick={() => {
                         // Physician-locked: block self-select changes while care team is in control
                         if (physicianOncologyLocked && opt.value === "oncology-support") return;
-                        setSpecialtyCondition((prev) => prev === opt.value ? null : opt.value);
+                        setSpecialtyConditions((prev) =>
+                          prev.includes(opt.value) ? prev.filter(c => c !== opt.value) : [...prev, opt.value]
+                        );
                       }}
                       className={physicianOncologyLocked && opt.value === "oncology-support" ? "opacity-50 cursor-not-allowed" : ""}
                     >
                       {opt.label}
                     </PillButton>
                   ))}
-                  {specialtyCondition && !physicianOncologyLocked && (
+                  {specialtyConditions.length > 0 && !physicianOncologyLocked && (
                     <PillButton
                       active={false}
-                      onClick={() => setSpecialtyCondition(null)}
+                      onClick={() => setSpecialtyConditions([])}
                     >
-                      Clear ×
+                      Clear All ×
                     </PillButton>
                   )}
                 </div>
-                {specialtyCondition === "thyroid-support" && (
+                {specialtyConditions.includes("thyroid-support") && (
                   <div className="mt-3 rounded-xl border border-teal-500/40 bg-teal-950/30 p-3 space-y-3">
                     <div className="flex items-start gap-2">
                       <span className="text-teal-400 text-base mt-0.5">🦋</span>
@@ -1073,7 +1076,7 @@ export default function EditProfilePage() {
                     </div>
                   </div>
                 )}
-                {specialtyCondition === "oncology-support" && !physicianOncologyActive && (
+                {specialtyConditions.includes("oncology-support") && !physicianOncologyActive && (
                   <div className="mt-3 rounded-xl border border-rose-500/40 bg-rose-950/30 p-3">
                     <div className="flex items-start gap-2">
                       <span className="text-rose-400 text-base mt-0.5">🎗️</span>
@@ -1565,7 +1568,14 @@ export default function EditProfilePage() {
                   Cuisine Identity: {form.cuisinePreference ? `${form.cuisinePreference.charAt(0).toUpperCase() + form.cuisinePreference.slice(1)} — ${form.cuisineIntensity || "balanced"}` : "Not set"}
                 </p>
                 <p className="text-white/80 text-xs">
-                  Special Protocol: {specialtyCondition === "renal" ? "Kidney / Renal Disease" : specialtyCondition === "cardiac" ? "Cardiac / Heart Disease" : specialtyCondition === "liver-disease" ? "Liver Disease" : specialtyCondition === "liver-support" ? "Liver Support" : specialtyCondition === "oncology-support" ? "Cancer / Oncology Support" : specialtyCondition === "thyroid-support" ? "Thyroid Support" : "None"}
+                  Special Protocol: {specialtyConditions.length === 0 ? "None" : specialtyConditions.map(c =>
+                    c === "renal" ? "Kidney / Renal Disease" :
+                    c === "cardiac" ? "Cardiac / Heart Disease" :
+                    c === "liver-disease" ? "Liver Disease" :
+                    c === "liver-support" ? "Liver Support" :
+                    c === "oncology-support" ? "Cancer / Oncology Support" :
+                    c === "thyroid-support" ? "Thyroid Support" : c
+                  ).join(", ")}
                 </p>
               </div>
 
