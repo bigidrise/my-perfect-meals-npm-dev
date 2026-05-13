@@ -75,6 +75,10 @@ export default function Founder() {
       >
         {/* FOUNDER HERO */}
         <section className="bg-black/60 rounded-2xl p-8 ring-1 ring-white/10 backdrop-blur-md shadow-2xl">
+          <h2 className="text-2xl font-semibold mb-6">
+            Executive Leadership
+          </h2>
+        <section className="bg-black/60 rounded-2xl p-8 ring-1 ring-white/10 backdrop-blur-md shadow-2xl">
           <div className="flex flex-col md:flex-row items-center gap-8">
             <div className="w-36 h-48 overflow-hidden rounded-xl ring-1 ring-white/20 shadow-lg">
               <img
