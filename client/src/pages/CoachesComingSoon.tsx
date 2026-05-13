@@ -110,60 +110,62 @@ export default function MeetYourCoach() {
 
   const [liveCoaches, setLiveCoaches] = useState<Coach[]>(coaches);
 
+  type ProviderRow = {
+    id?: string;
+    coachSlug?: string | null;
+    availabilityStatus?: string;
+    backAt?: string | null;
+    awayFrom?: string | null;
+  };
+
+  function applyProviderStatus(c: Coach, p: ProviderRow): Coach {
+    const liveStatus = p.availabilityStatus;
+    let availableDate: string | undefined;
+    if (liveStatus === "away") {
+      const fmt: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
+      if (p.awayFrom && p.backAt) {
+        availableDate = `${new Date(p.awayFrom).toLocaleDateString(undefined, fmt)} – ${new Date(p.backAt).toLocaleDateString(undefined, fmt)}`;
+      } else if (p.backAt) {
+        availableDate = `Until ${new Date(p.backAt).toLocaleDateString(undefined, fmt)}`;
+      }
+    }
+    return {
+      ...c,
+      availabilityStatus: liveStatus === "available" ? "available" : "unavailable",
+      availableDate,
+    };
+  }
+
   useEffect(() => {
-    (async () => {
+    const fetchProviders = async () => {
       try {
         const res = await fetch(apiUrl("/api/professionals/providers"), {
           headers: { ...getAuthHeaders() },
           credentials: "include",
         });
         if (!res.ok) return;
-        const json: { providers: Array<{
-          firstName?: string;
-          lastName?: string;
-          professionalRole?: string;
-          availabilityStatus?: string;
-          backAt?: string | null;
-        }> } = await res.json();
+        const json: { providers: ProviderRow[] } = await res.json();
         const data = json.providers ?? [];
-
-        const applyLiveStatus = (
-          c: Coach,
-          provider: { availabilityStatus?: string; backAt?: string | null },
-        ): Coach => {
-          const liveStatus = provider.availabilityStatus;
-          return {
-            ...c,
-            availabilityStatus: liveStatus === "available" ? "available" : "unavailable",
-            availableDate:
-              (liveStatus === "busy" || liveStatus === "away") && provider.backAt
-                ? new Date(provider.backAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })
-                : undefined,
-          };
-        };
-
         setLiveCoaches((prev) =>
           prev.map((c) => {
             if (!c.lookupName || c.isPlaceholder) return c;
-            const lookup = c.lookupName.toLowerCase().trim();
-            const match = data.find((p) => {
-              const first = (p.firstName ?? "").toLowerCase().trim();
-              const last  = (p.lastName  ?? "").toLowerCase().trim();
-              const full  = `${first} ${last}`.trim();
-              return (
-                first === lookup ||
-                last  === lookup ||
-                full  === lookup ||
-                first.startsWith(lookup) ||
-                lookup.startsWith(first)
-              );
-            });
-            if (match) return applyLiveStatus(c, match);
+            const match = data.find((p) => p.coachSlug === c.id);
+            if (match) return applyProviderStatus(c, match);
             return c;
           }),
         );
       } catch {}
-    })();
+    };
+
+    fetchProviders();
+    const onFocus = () => fetchProviders();
+    const onVisibility = () => { if (!document.hidden) fetchProviders(); };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
 
   const allChecked = Object.values(agreed).every(Boolean);
@@ -260,7 +262,7 @@ export default function MeetYourCoach() {
                   {coach.availabilityStatus === "available"
                     ? "Available now"
                     : coach.availableDate
-                      ? `Returns ${coach.availableDate}`
+                      ? `Away ${coach.availableDate}`
                       : "Unavailable"}
                 </p>
               )}
@@ -331,7 +333,7 @@ export default function MeetYourCoach() {
               ) : (
                 <p className="text-white/60 text-sm mb-5">
                   {selectedCoach.availableDate
-                    ? `Returns ${selectedCoach.availableDate}. Your plan will begin once they activate your program.`
+                    ? `Away ${selectedCoach.availableDate}. You can still reach out — your plan will begin when they return.`
                     : "This professional is currently unavailable."}
                 </p>
               )}

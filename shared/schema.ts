@@ -423,7 +423,8 @@ export const users = pgTable("users", {
   goalStartDate: timestamp("goal_start_date", { withTimezone: true }),
   // Coach / Provider Availability — controlled from Care Team page (professionals only)
   availabilityStatus: text("availability_status").$type<"available"|"busy"|"away"|"offline">().default("available"),
-  backAt: timestamp("back_at", { withTimezone: true }), // optional return date when not available
+  backAt: timestamp("back_at", { withTimezone: true }), // optional return date / end of away period
+  awayFrom: timestamp("away_from", { withTimezone: true }), // start date of away/vacation period
   // Creator System Layer — which branded system this user has activated (default = MPM standard)
   activeSystem: text("active_system").default("default"),
   // Admin access — server-enforced, never trust frontend alone
