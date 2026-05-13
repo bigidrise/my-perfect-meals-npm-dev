@@ -2506,7 +2506,7 @@ export default function MacroCounter() {
                         const cupsPerDay = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
                         return (
                           <>
-                            <MacroRow label="Carbs - Starchy" grams={starchy} />
+                            <MacroRow label="Carbs - Starchy" grams={starchy} isKey />
                             <MacroRow label="Carbs - Fibrous (Vegetables)" grams={fibrous} />
                             <div className="flex items-center justify-between text-xs text-green-400/80 px-1 -mt-1">
                               <span>🥦 {cupsPerMeal} cups/meal · {cupsPerDay} cups/day</span>
@@ -3667,7 +3667,7 @@ export default function MacroCounter() {
                           const cupsPerDay = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
                           return (
                             <>
-                              <MacroRow label="Carbs - Starchy" grams={starchy} />
+                              <MacroRow label="Carbs - Starchy" grams={starchy} isKey />
                               <MacroRow label="Carbs - Fibrous (Vegetables)" grams={fibrous} />
                               <div className="flex items-center justify-between text-xs text-green-400/80 px-1 -mt-1">
                                 <span>🥦 {cupsPerMeal} cups/meal · {cupsPerDay} cups/day</span>
@@ -4005,11 +4005,22 @@ export default function MacroCounter() {
   );
 }
 
-function MacroRow({ label, grams }: { label: string; grams: number }) {
+function MacroRow({ label, grams, isKey = false }: { label: string; grams: number; isKey?: boolean }) {
   return (
-    <div className="flex justify-between items-center rounded-xl border border-white/20 bg-black/40 p-4">
-      <div className="text-sm font-semibold text-white/90">{label}</div>
-      <div className="text-lg font-bold text-white">
+    <div className={`flex justify-between items-center rounded-xl border p-4 ${
+      isKey ? "border-amber-500/40 bg-amber-950/30" : "border-white/20 bg-black/40"
+    }`}>
+      <div className="flex flex-col gap-0.5">
+        <div className={`text-sm font-semibold ${isKey ? "text-amber-300" : "text-white/90"}`}>
+          {isKey && <span className="mr-1.5">★</span>}{label}
+        </div>
+        {isKey && (
+          <div className="text-[10px] text-amber-500/70 font-medium">
+            Your main daily limit — stay at or under this
+          </div>
+        )}
+      </div>
+      <div className={`text-lg font-bold ${isKey ? "text-amber-300" : "text-white"}`}>
         {Math.round(grams)} grams
       </div>
     </div>
