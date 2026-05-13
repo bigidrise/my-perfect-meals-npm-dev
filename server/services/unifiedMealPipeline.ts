@@ -65,6 +65,7 @@ import { macroAudit, macroAuditPrompt, macroAuditCache } from '../utils/macroAud
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from './behavioralMemoryService';
 import { buildOncologySupportPrompt, isOncologySupportEnabled, type OncologySupportContext } from './guardrails/prompt/oncologySupportPromptBuilder';
 import { validateOncologyMealSafety, filterOncologySafeMeals } from './guardrails/validators/oncologySupportValidator';
+import { validateThyroidSupportMeal } from './guardrails/validators/thyroidSupportValidator';
 import { filterByStarchStructure, validateStarchStructure, buildStarchFixHint } from './guardrails/validators/vegetarianMacroValidator';
 import { scoreOncologyMealQuality } from './guardrails/validators/oncologyQualityScorer';
 import { scoreOncologySnackQuality } from './guardrails/validators/oncologySnackScorer';
@@ -2301,6 +2302,24 @@ export async function generateFromDescriptionUnified(
       }
     }
 
+    // ── Load thyroid-support flag (additive modifier, separate from primary protocol) ─
+    // Activates when user's specialtyCondition = 'thyroid-support'. Runs alongside
+    // anti-inflammatory as a modifier, never overrides the primary protocol chain.
+    let thyroidSupportActive = false;
+    if (userId) {
+      try {
+        const [thyroidUser] = await db
+          .select({ specialtyCondition: users.specialtyCondition })
+          .from(users).where(eq(users.id, userId)).limit(1);
+        thyroidSupportActive = thyroidUser?.specialtyCondition === 'thyroid-support';
+        if (thyroidSupportActive) {
+          console.log(`🦋 [THYROID] Thyroid support modifier active for user ${userId.slice(0, 8)}`);
+        }
+      } catch {
+        // Non-fatal — thyroid check degrades gracefully
+      }
+    }
+
     // ── Load oncology-support context if active ─────────────────────────────
     // Activation: dietType === 'oncology-support' OR description text mentions oncology/cancer protocol
     let oncologyCtx: OncologySupportContext | null = null;
@@ -2623,6 +2642,37 @@ Create the recipe for: "${description}"`;
           source: 'error',
           error: chefScan.message,
         };
+      }
+
+      // ── Thyroid support post-gen scan (additive modifier) ────────────────
+      // Runs independently of oncology. Hard violations (kelp supplements, alcohol,
+      // pseudoscientific claims) trigger regeneration. Advisory flags are logged only.
+      if (thyroidSupportActive) {
+        const thyroidValidation = validateThyroidSupportMeal({
+          name: tempMeal.name,
+          description: (tempMeal as any).description,
+          ingredients: tempMeal.ingredients,
+          instructions: (tempMeal as any).instructions,
+        });
+        if (!thyroidValidation.passed) {
+          const hardViolations = thyroidValidation.violations.filter(v => !v.startsWith("Advisory"));
+          console.warn(`🦋 [THYROID GUARD] Hard violation (attempt ${attemptCount}): ${hardViolations.join(', ')}`);
+          if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
+            lastFixHint = `THYROID SUPPORT VIOLATION: The following are strictly forbidden: ${hardViolations.join(', ')}. ` +
+              `Do NOT include iodine supplements (kelp/seaweed supplement), alcohol, energy drinks, deep-fried preparations, ` +
+              `pseudoscientific claims like "thyroid detox" or "heal your thyroid", or soy protein isolate as a primary ingredient. ` +
+              `Regenerate a clean, whole-food meal that is naturally anti-inflammatory and selenium/zinc-rich (e.g., eggs, Brazil nuts, ` +
+              `wild salmon, pumpkin seeds, chickpeas, sweet potato).`;
+            continue;
+          }
+          console.error(`❌ [THYROID GUARD] Could not resolve violations after ${attemptCount} attempts — serving as-is (safe, hard-blocked ingredient not confirmed)`);
+        } else {
+          if (thyroidValidation.violations.length > 0) {
+            console.log(`🦋 [THYROID GUARD] Passed (${thyroidValidation.violations.length} advisory note(s)): ${thyroidValidation.violations.join(' | ')}`);
+          } else {
+            console.log(`✅ [THYROID GUARD] Passed — no violations`);
+          }
+        }
       }
 
       // ── Oncology hard-block post-gen scan ────────────────────────────────

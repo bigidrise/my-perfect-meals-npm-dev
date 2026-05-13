@@ -266,6 +266,9 @@ export default function EditProfilePage() {
   const [specialtyCondition, setSpecialtyCondition] = useState<string | null>(
     user?.specialtyCondition ?? null
   );
+  const [thyroidMedication, setThyroidMedication] = useState<string>(
+    (user as any)?.thyroidMedication ?? ""
+  );
 
   // Protocol Ownership Model — physician-set oncology context (read from server)
   const oncologyCtx = user?.oncologySupportContext ?? null;
@@ -453,6 +456,17 @@ export default function EditProfilePage() {
         },
         credentials: "include",
         body: JSON.stringify({ condition: specialtyCondition }),
+      }).catch(() => {});
+
+      // Save thyroid medication (only relevant when thyroid-support is active, but always sync)
+      await fetch(apiUrl("/api/user/thyroid-medication"), {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(authToken ? { "x-auth-token": authToken } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify({ medication: thyroidMedication.trim() || null }),
       }).catch(() => {});
 
       await refreshUser?.();
@@ -986,6 +1000,7 @@ export default function EditProfilePage() {
                     { label: "Liver Disease", value: "liver-disease" },
                     { label: "Liver Support", value: "liver-support" },
                     { label: "Cancer / Oncology Support", value: "oncology-support" },
+                    { label: "Thyroid Support", value: "thyroid-support" },
                   ] as const).map((opt) => (
                     <PillButton
                       key={opt.value}
@@ -1009,6 +1024,32 @@ export default function EditProfilePage() {
                     </PillButton>
                   )}
                 </div>
+                {specialtyCondition === "thyroid-support" && (
+                  <div className="mt-3 rounded-xl border border-teal-500/40 bg-teal-950/30 p-3 space-y-3">
+                    <div className="flex items-start gap-2">
+                      <span className="text-teal-400 text-base mt-0.5">🦋</span>
+                      <div>
+                        <p className="text-teal-300 text-xs font-semibold mb-1">Thyroid Support — Nutritional Guidance Only</p>
+                        <p className="text-white/70 text-xs leading-relaxed">
+                          This activates anti-inflammatory, selenium-focused meal guidance designed to complement thyroid wellness — including smart medication timing awareness if you take thyroid medication. This is <span className="text-white font-medium">not a medical diagnosis</span> and is <span className="text-white font-medium">not a substitute for your doctor or endocrinologist's care</span>. Always follow your healthcare provider's recommendations.
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-teal-300/80 text-xs font-medium block mb-1">
+                        Thyroid Medication <span className="text-white/40 font-normal">(optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={thyroidMedication}
+                        onChange={(e) => setThyroidMedication(e.target.value)}
+                        placeholder="e.g. Levothyroxine 50mcg"
+                        className="w-full bg-black/40 border border-teal-500/30 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-teal-400/60"
+                      />
+                      <p className="text-white/35 text-[10px] mt-1">Helps the AI suggest appropriate meal timing around your medication schedule.</p>
+                    </div>
+                  </div>
+                )}
                 {specialtyCondition === "oncology-support" && !physicianOncologyActive && (
                   <div className="mt-3 rounded-xl border border-rose-500/40 bg-rose-950/30 p-3">
                     <div className="flex items-start gap-2">
@@ -1487,7 +1528,7 @@ export default function EditProfilePage() {
                   Cuisine Identity: {form.cuisinePreference ? `${form.cuisinePreference.charAt(0).toUpperCase() + form.cuisinePreference.slice(1)} — ${form.cuisineIntensity || "balanced"}` : "Not set"}
                 </p>
                 <p className="text-white/80 text-xs">
-                  Special Protocol: {specialtyCondition === "renal" ? "Kidney / Renal Disease" : specialtyCondition === "cardiac" ? "Cardiac / Heart Disease" : specialtyCondition === "liver-disease" ? "Liver Disease" : specialtyCondition === "liver-support" ? "Liver Support" : specialtyCondition === "oncology-support" ? "Cancer / Oncology Support" : "None"}
+                  Special Protocol: {specialtyCondition === "renal" ? "Kidney / Renal Disease" : specialtyCondition === "cardiac" ? "Cardiac / Heart Disease" : specialtyCondition === "liver-disease" ? "Liver Disease" : specialtyCondition === "liver-support" ? "Liver Support" : specialtyCondition === "oncology-support" ? "Cancer / Oncology Support" : specialtyCondition === "thyroid-support" ? "Thyroid Support" : "None"}
                 </p>
               </div>
 

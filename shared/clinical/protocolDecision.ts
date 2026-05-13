@@ -107,6 +107,43 @@ export const LAB_THRESHOLDS = {
     bpSystolicHigh:      130,  // mmHg  — systolic > 130 signals heart-failure protocol
     ejectionFractionLow:  50,  // %     — EF < 50 signals heart-failure protocol
   },
+
+  // Thyroid Support — additive modifier layer, not a primary protocol override.
+  // Sources: American Thyroid Association (ATA), American Association of Clinical
+  // Endocrinology (AACE), Endocrine Society clinical practice guidelines.
+  thyroid: {
+    tshHigh:                    4.5,  // mIU/L  — TSH > 4.5 suggests hypothyroid (ATA/AACE)
+    tshLow:                     0.4,  // mIU/L  — TSH < 0.4 suggests hyperthyroid (ATA/AACE)
+    freeT4Low:                  0.8,  // ng/dL  — Free T4 < 0.8 suggests inadequate hormone level
+    freeT3Low:                  2.3,  // pg/mL  — Free T3 < 2.3 suggests low active thyroid hormone
+    tpoAntibodiesHigh:          9,    // IU/mL  — TPO Ab > 9 suggests autoimmune thyroid (Hashimoto's)
+    thyroglobulinAntibodiesHigh: 1,   // IU/mL  — TgAb > 1 suggests autoimmune thyroid activity
+  },
 } as const;
 
 export type LabThresholds = typeof LAB_THRESHOLDS;
+
+// ---------------------------------------------------------------------------
+// 5. ThyroidLabSignal — separate from LabProtocolSignal because thyroid is
+//    an additive modifier, not a primary protocol override.
+// ---------------------------------------------------------------------------
+
+export interface ThyroidLabSignal {
+  /** Whether any thyroid threshold was crossed. */
+  hasThyroidIndicators: boolean;
+
+  /**
+   * Human-readable reason string used in the recommendation modal.
+   * Language MUST be advisory — never diagnostic.
+   */
+  reason: string;
+
+  /** The specific field name(s) that triggered this signal. */
+  triggerFields: string[];
+
+  /** Confidence level driven by number and type of triggering fields. */
+  confidence: 'high' | 'moderate' | 'low';
+
+  /** true when the trigger is antibody-based (autoimmune pattern like Hashimoto's). */
+  isAutoimmune: boolean;
+}

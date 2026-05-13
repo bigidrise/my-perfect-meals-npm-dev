@@ -2186,6 +2186,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         backAt: (user as any).backAt?.toISOString?.() ?? (user as any).backAt ?? null,
         oncologySupportIntent: user.oncologySupportIntent ?? null,
         specialtyCondition: user.specialtyCondition ?? null,
+        thyroidMedication: user.thyroidMedication ?? null,
         // Protocol Ownership Model: expose context to user so UI can show source/lock state
         oncologySupportContext: user.oncologySupportContext ?? null,
         activeSystem: user.activeSystem || null,
@@ -2208,7 +2209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const authReq = req as AuthenticatedRequest;
       const userId = authReq.authUser.id;
-      const ALLOWED = ["renal", "cardiac", "liver-disease", "liver-support", "oncology-support"] as const;
+      const ALLOWED = ["renal", "cardiac", "liver-disease", "liver-support", "oncology-support", "thyroid-support"] as const;
       const { condition } = req.body;
       if (condition !== null && condition !== undefined && !ALLOWED.includes(condition)) {
         return res.status(400).json({ error: "Invalid specialty condition value" });
@@ -2219,6 +2220,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("[specialty-condition PATCH]", error);
       res.status(500).json({ error: "Failed to save specialty condition" });
+    }
+  });
+
+  // PATCH /api/user/thyroid-medication
+  // Saves the name/dosage of the user's thyroid medication (e.g. "Levothyroxine 50mcg").
+  // Free-text field; no normalization — stored verbatim for physician review.
+  app.patch("/api/user/thyroid-medication", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const { medication } = req.body;
+      const value = typeof medication === "string" ? medication.trim() || null : null;
+      await db.update(users).set({ thyroidMedication: value } as any).where(eq(users.id, userId));
+      console.log(`[thyroid-medication] User ${userId} set → ${value ?? "cleared"}`);
+      res.json({ ok: true, thyroidMedication: value });
+    } catch (error: any) {
+      console.error("[thyroid-medication PATCH]", error);
+      res.status(500).json({ error: "Failed to save thyroid medication" });
     }
   });
 
