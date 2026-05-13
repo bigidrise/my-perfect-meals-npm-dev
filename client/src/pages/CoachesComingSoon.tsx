@@ -21,6 +21,7 @@ type Coach = {
   isCMCO?: boolean;
   isVeteran?: boolean;
   isPlaceholder?: boolean;
+  lookupName?: string;
 };
 
 const FOUNDER_BIO =
@@ -44,6 +45,7 @@ const coaches: Coach[] = [
     bio: FOUNDER_BIO,
     availabilityStatus: "available",
     isFounder: true,
+    lookupName: "Idrise",
   },
   {
     id: "monica",
@@ -54,6 +56,7 @@ const coaches: Coach[] = [
     bio: MONICA_BIO,
     availabilityStatus: "available",
     isVeteran: true,
+    lookupName: "Monica",
   },
   {
     id: "kristen",
@@ -63,6 +66,7 @@ const coaches: Coach[] = [
     image: "/assets/kristen-bogan-2.jpg",
     bio: "I help clients build strength, lose weight, and recover safely from injury or surgery through structured, real-world training.\n\nMy approach is rooted in functional movement and lifestyle-based coaching—focusing on improving how your body moves so everyday life feels easier, safer, and more controlled.\n\nWith a background in muscle development and corrective exercise, I design programs that enhance mobility, stability, and overall body mechanics. Whether your goal is to move without pain, build confidence in your strength, or simply feel better day to day, everything is built to support how you live.\n\nRecovery and longevity are at the core of my philosophy. My goal is to help you develop the strength, confidence, and resilience to perform at your best—both in and out of the gym.",
     availabilityStatus: "available",
+    lookupName: "Kristen",
   },
   {
     id: "danielle",
@@ -72,6 +76,7 @@ const coaches: Coach[] = [
     image: "/assets/danielle-affatato.jpg",
     bio: DANIELLE_BIO,
     availabilityStatus: "available",
+    lookupName: "Danielle",
   },
   {
     id: "placeholder-3",
@@ -114,37 +119,36 @@ export default function MeetYourCoach() {
         });
         if (!res.ok) return;
         const json: { providers: Array<{
+          firstName?: string;
+          lastName?: string;
           professionalRole?: string;
           availabilityStatus?: string;
           backAt?: string | null;
         }> } = await res.json();
         const data = json.providers ?? [];
 
-        const firstTrainer = data.find((p) => p.professionalRole === "trainer");
-        const firstPhysician = data.find((p) => p.professionalRole === "physician");
+        const applyLiveStatus = (
+          c: Coach,
+          provider: { availabilityStatus?: string; backAt?: string | null },
+        ): Coach => {
+          const liveStatus = provider.availabilityStatus;
+          return {
+            ...c,
+            availabilityStatus: liveStatus === "available" ? "available" : "unavailable",
+            availableDate:
+              (liveStatus === "busy" || liveStatus === "away") && provider.backAt
+                ? new Date(provider.backAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+                : undefined,
+          };
+        };
 
         setLiveCoaches((prev) =>
           prev.map((c) => {
-            if (c.isFounder && firstTrainer) {
-              const liveStatus = firstTrainer.availabilityStatus;
-              return {
-                ...c,
-                availabilityStatus: liveStatus === "available" ? "available" : "unavailable",
-                availableDate: (liveStatus === "busy" || liveStatus === "away") && firstTrainer.backAt
-                  ? new Date(firstTrainer.backAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })
-                  : undefined,
-              };
-            }
-            if (c.isCMCO && firstPhysician) {
-              const liveStatus = firstPhysician.availabilityStatus;
-              return {
-                ...c,
-                availabilityStatus: liveStatus === "available" ? "available" : "unavailable",
-                availableDate: (liveStatus === "busy" || liveStatus === "away") && firstPhysician.backAt
-                  ? new Date(firstPhysician.backAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })
-                  : undefined,
-              };
-            }
+            if (!c.lookupName || c.isPlaceholder) return c;
+            const match = data.find(
+              (p) => p.firstName?.toLowerCase() === c.lookupName!.toLowerCase(),
+            );
+            if (match) return applyLiveStatus(c, match);
             return c;
           }),
         );
