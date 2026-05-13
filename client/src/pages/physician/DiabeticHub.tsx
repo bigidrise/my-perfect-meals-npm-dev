@@ -353,6 +353,27 @@ export default function DiabeticHub() {
             </p>
           </div>
 
+          {/* GLP-1 onboarding nudge — shown only when diabetic but GLP-1 not yet activated */}
+          {!isGlp1Active && (
+            <div className="rounded-xl border border-orange-500/20 bg-orange-950/10 px-4 py-3 flex items-start gap-3">
+              <span className="text-orange-400 text-base mt-0.5 shrink-0">💉</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-semibold text-orange-300 mb-0.5">
+                  Using a GLP-1 medication like Ozempic, Wegovy, or Mounjaro?
+                </p>
+                <p className="text-[11px] text-white/50 leading-relaxed mb-2">
+                  Enable GLP-1 Active in your profile to personalize meal sizing, protein targeting, and nausea-friendly meal support — stacked with your diabetic protocol.
+                </p>
+                <PillButton
+                  onClick={() => setLocation("/profile/edit")}
+                  variant="default"
+                >
+                  Enable GLP-1 in Profile
+                </PillButton>
+              </div>
+            </div>
+          )}
+
           {/* Doctor / Coach Guardrail Card */}
           <section className="bg-black/30 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8 mb-2 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/3 pointer-events-none" />

@@ -266,6 +266,9 @@ export default function EditProfilePage() {
   const [specialtyConditions, setSpecialtyConditions] = useState<string[]>(
     (user as any)?.specialtyConditions ?? (user?.specialtyCondition ? [user.specialtyCondition] : [])
   );
+  const [glp1Active, setGlp1Active] = useState<boolean>(
+    !!((user as any)?.medicalConditions as string[] | undefined)?.includes("glp1")
+  );
   const [thyroidMedication, setThyroidMedication] = useState<string>(
     (user as any)?.thyroidMedication ?? ""
   );
@@ -320,6 +323,12 @@ export default function EditProfilePage() {
     const arr: string[] = (user as any)?.specialtyConditions ?? (user?.specialtyCondition ? [user.specialtyCondition] : []);
     setSpecialtyConditions(arr);
   }, [(user as any)?.specialtyConditions, user?.specialtyCondition]);
+
+  // Sync glp1Active from user object
+  useEffect(() => {
+    const mc = (user as any)?.medicalConditions as string[] | undefined;
+    setGlp1Active(!!(mc?.includes("glp1")));
+  }, [(user as any)?.medicalConditions]);
 
   // Load anti-inflammatory support preference from server (stored in app-preferences)
   useEffect(() => {
@@ -440,7 +449,16 @@ export default function EditProfilePage() {
         goalTimelineWeeks: goalTimelineWeeks,
         goalStartDate: goalChanged && (goalTarget.trim() || goalTimelineWeeks) ? new Date().toISOString() : undefined,
         ...(allergiesChanged && allergyEditToken ? { allergyEditToken } : {}),
-      };
+      } as any;
+
+      // Merge glp1Active into medicalConditions — preserve existing values, only toggle 'glp1'
+      const existingMedical: string[] = Array.isArray((user as any)?.medicalConditions)
+        ? (user as any).medicalConditions
+        : [];
+      const medicalWithoutGlp1 = existingMedical.filter((v: string) => v !== "glp1");
+      (payload as any).medicalConditions = glp1Active
+        ? [...medicalWithoutGlp1, "glp1"]
+        : medicalWithoutGlp1;
 
       const authToken = getAuthToken();
       const res = await fetch(apiUrl("/api/users/profile"), {
@@ -1041,10 +1059,16 @@ export default function EditProfilePage() {
                       {opt.label}
                     </PillButton>
                   ))}
-                  {specialtyConditions.length > 0 && !physicianOncologyLocked && (
+                  <PillButton
+                    active={glp1Active}
+                    onClick={() => setGlp1Active(prev => !prev)}
+                  >
+                    GLP-1 Active
+                  </PillButton>
+                  {(specialtyConditions.length > 0 || glp1Active) && !physicianOncologyLocked && (
                     <PillButton
                       active={false}
-                      onClick={() => setSpecialtyConditions([])}
+                      onClick={() => { setSpecialtyConditions([]); setGlp1Active(false); }}
                     >
                       Clear All ×
                     </PillButton>
@@ -1084,6 +1108,19 @@ export default function EditProfilePage() {
                         <p className="text-rose-300 text-xs font-semibold mb-1">Important — Not a Medical Diagnosis</p>
                         <p className="text-white/70 text-xs leading-relaxed">
                           Selecting this activates general nutritional guidance designed to support people going through cancer treatment — things like managing appetite, nausea, and energy needs. This is <span className="text-white font-medium">not a diagnosis</span>, not a treatment plan, and <span className="text-white font-medium">not a substitute for your oncology team's medical care</span>. Always follow your doctor's guidance first.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {glp1Active && (
+                  <div className="mt-3 rounded-xl border border-orange-500/40 bg-orange-950/20 p-3">
+                    <div className="flex items-start gap-2">
+                      <span className="text-orange-400 text-base mt-0.5">💉</span>
+                      <div>
+                        <p className="text-orange-300 text-xs font-semibold mb-1">GLP-1 Medication Support — Nutritional Guidance Only</p>
+                        <p className="text-white/70 text-xs leading-relaxed">
+                          Enabling this activates GLP-1 aware meal generation — smaller, nutrient-dense portions, high protein floors (≥25g), nausea-safe ingredients, and reduced fat ceilings to match how GLP-1 medications affect appetite and digestion. If you are on a diabetic protocol, both layers stack automatically. This is <span className="text-white font-medium">not a substitute for your prescribing doctor's guidance</span>. Always follow your physician's instructions.
                         </p>
                       </div>
                     </div>
