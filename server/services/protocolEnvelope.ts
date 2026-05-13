@@ -600,6 +600,7 @@ export async function loadUserProtocolEnvelope(
         oncologySupportContext: users.oncologySupportContext,
         selectedMealBuilder: users.selectedMealBuilder,
         specialtyCondition: users.specialtyCondition,
+        specialtyConditions: users.specialtyConditions,
         thyroidMedication: users.thyroidMedication,
       })
       .from(users)
@@ -614,12 +615,18 @@ export async function loadUserProtocolEnvelope(
     const dietaryRestrictions: string[] = (user.dietaryRestrictions as string[]) || [];
     const allergies: string[] = (user.allergies as string[]) || [];
     const healthConditions: string[] = (user.healthConditions as string[]) || [];
+    // Stack all active specialty conditions into healthConditions so EVERY active protocol
+    // gets its guidance block injected simultaneously via buildUniversalConditionGuidance.
+    // Falls back to single specialtyCondition value for backward compat with existing users.
+    const specialtyConditionsArr: string[] = ((user as any).specialtyConditions as string[] | null) ||
+      (user.specialtyCondition ? [user.specialtyCondition] : []);
+    const mergedHealthConditions = [...new Set([...healthConditions, ...specialtyConditionsArr])];
     const dislikedFoods: string[] = (user.dislikedFoods as string[]) || [];
     const avoidedFoods: string[] = (user.avoidedFoods as string[]) || [];
     const likedFoods: string[] = (user.likedFoods as string[]) || [];
     const preferredSweeteners: string[] = (user.preferredSweeteners as string[]) || [];
 
-    const { hardLimits, optimization } = classifyHealthConditions(healthConditions);
+    const { hardLimits, optimization } = classifyHealthConditions(mergedHealthConditions);
     const avoidances = [...new Set([...dislikedFoods, ...avoidedFoods])];
     const preferences = [...new Set([...likedFoods, ...preferredSweeteners])];
     const procedural = deriveProcedureRules(dietaryRestrictions);
@@ -669,13 +676,14 @@ export async function loadUserProtocolEnvelope(
     ]);
     const thyroidSupport: boolean =
       user.specialtyCondition === "thyroid-support" ||
-      healthConditions.some(c => THYROID_ACTIVATION_KEYS.has(c.trim().toLowerCase()));
+      specialtyConditionsArr.includes("thyroid-support") ||
+      mergedHealthConditions.some(c => THYROID_ACTIVATION_KEYS.has(c.trim().toLowerCase()));
 
     const thyroidMedication: string | null = (user.thyroidMedication as string | null) ?? null;
 
     const conditionGuidanceBlocks = await buildUniversalConditionGuidance({
       userId,
-      healthConditions,
+      healthConditions: mergedHealthConditions,
       oncologySupportContext,
       thyroidSupportContext: thyroidSupport
         ? {

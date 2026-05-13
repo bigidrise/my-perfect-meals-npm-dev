@@ -254,7 +254,7 @@ router.get("/:userId", requireAuth, async (req, res) => {
     if (rows.length === 0) {
       // Still check oncologySupportEnabled + specialtyCondition even with no labs on file
       const userRows0 = await db
-        .select({ oncologySupportContext: users.oncologySupportContext, specialtyCondition: users.specialtyCondition })
+        .select({ oncologySupportContext: users.oncologySupportContext, specialtyCondition: users.specialtyCondition, specialtyConditions: users.specialtyConditions })
         .from(users)
         .where(eq(users.id, userId as any))
         .limit(1);
@@ -263,6 +263,7 @@ router.get("/:userId", requireAuth, async (req, res) => {
         labs: null,
         oncologySupportEnabled: !!(oncologyCtx0?.enabled),
         specialtyCondition: userRows0[0]?.specialtyCondition ?? null,
+        specialtyConditions: (userRows0[0]?.specialtyConditions as string[]) ?? [],
       });
     }
 
@@ -293,7 +294,7 @@ router.get("/:userId", requireAuth, async (req, res) => {
 
     // Fetch the user's oncologySupportContext + specialtyCondition to include in the response
     const userRows = await db
-      .select({ oncologySupportContext: users.oncologySupportContext, specialtyCondition: users.specialtyCondition })
+      .select({ oncologySupportContext: users.oncologySupportContext, specialtyCondition: users.specialtyCondition, specialtyConditions: users.specialtyConditions })
       .from(users)
       .where(eq(users.id, userId as any))
       .limit(1);
@@ -335,6 +336,7 @@ router.get("/:userId", requireAuth, async (req, res) => {
       oncologySupportEnabled: !!(oncologyCtx?.enabled),
       // User self-selected specialty condition (activates protocol without lab entry)
       specialtyCondition: userRows[0]?.specialtyCondition ?? null,
+      specialtyConditions: (userRows[0]?.specialtyConditions as string[]) ?? [],
     });
   } catch (error: any) {
     console.error("[clinicalLabs GET]", error);

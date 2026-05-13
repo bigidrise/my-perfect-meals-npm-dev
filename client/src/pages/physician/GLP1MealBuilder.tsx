@@ -159,7 +159,7 @@ export default function GLP1MealBuilder() {
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (cancelled) return;
-        if (data?.specialtyCondition === 'thyroid-support') {
+        if (data?.specialtyCondition === 'thyroid-support' || (data?.specialtyConditions ?? []).includes('thyroid-support')) {
           setThyroidFromSpecialtyCondition(true);
         }
       })
