@@ -181,6 +181,7 @@ export function RemainingMacrosFooter({
               consumed={consumed.starchyCarbs}
               colorState={colorState.starchyCarbs}
               suffix="g"
+              isKeyMacro
             />
             <MacroCell
               label="Fibrous"
@@ -212,6 +213,7 @@ interface MacroCellProps {
   consumed: number;
   colorState: keyof typeof MPM_MACRO_COLORS;
   suffix?: string;
+  isKeyMacro?: boolean;
 }
 
 function MacroCell({
@@ -221,14 +223,23 @@ function MacroCell({
   consumed,
   colorState,
   suffix = "",
+  isKeyMacro = false,
 }: MacroCellProps) {
   const color = MPM_MACRO_COLORS[colorState];
   const isOver = consumed > target && target > 0;
   const percentage = target > 0 ? Math.min(100, (consumed / target) * 100) : 0;
 
   return (
-    <div className="flex flex-col items-center bg-black/20 rounded-lg px-1.5 py-1.5">
-      <div className="text-[10px] text-white/50 uppercase tracking-wide mb-0.5">{label}</div>
+    <div className={`flex flex-col items-center rounded-lg px-1.5 py-1.5 ${
+      isKeyMacro
+        ? isOver
+          ? "bg-red-950/40 border border-red-500/50"
+          : "bg-amber-950/30 border border-amber-500/30"
+        : "bg-black/20"
+    }`}>
+      <div className={`text-[10px] uppercase tracking-wide mb-0.5 ${isKeyMacro ? "text-amber-400 font-bold" : "text-white/50"}`}>
+        {label}
+      </div>
       <div className={`text-base font-bold ${isOver ? color.text : "text-white"}`}>
         {isOver ? `+${Math.round(consumed - target)}` : Math.round(remaining)}
         <span className="text-[10px] font-normal text-white/60">{suffix}</span>
@@ -239,6 +250,11 @@ function MacroCell({
           style={{ width: `${percentage}%` }}
         />
       </div>
+      {isKeyMacro && (
+        <div className={`text-[9px] font-bold uppercase tracking-wider mt-1 ${isOver ? "text-red-400" : "text-amber-500/80"}`}>
+          {isOver ? "⚠ over limit" : "★ limit"}
+        </div>
+      )}
     </div>
   );
 }
