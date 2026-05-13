@@ -106,6 +106,7 @@ export default function ProClientFolderModal({
     goalTimelineWeeks?: number | null;
     goalStartDate?: string | null;
   } | null>(null);
+  const [labDerivedConditions, setLabDerivedConditions] = useState<string[]>([]);
 
   const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
   const [resolvedStudioId, setResolvedStudioId] = useState<string | null>(null);
@@ -156,6 +157,35 @@ export default function ProClientFolderModal({
         }
       } catch {}
     })();
+    return () => { cancelled = true; };
+  }, [open, clientId]);
+
+  // Fetch client labs to derive active conditions from lab signal + specialty selections
+  useEffect(() => {
+    if (!open || !clientId) { setLabDerivedConditions([]); return; }
+    let cancelled = false;
+    fetch(apiUrl(`/api/biometrics/labs/${clientId}`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (cancelled) return;
+        const derived: string[] = [];
+        if (data?.protocolSignal?.protocol) derived.push(data.protocolSignal.protocol);
+        const scMap: Record<string, string> = {
+          cardiac: 'heart-failure', renal: 'kidney-disease',
+          'liver-disease': 'liver-disease', 'liver-support': 'liver-support',
+          'oncology-support': 'oncology-support',
+        };
+        const scArr: string[] = data?.specialtyConditions ?? (data?.specialtyCondition ? [data.specialtyCondition] : []);
+        for (const sc of scArr) {
+          const mapped = scMap[sc];
+          if (mapped && !derived.includes(mapped)) derived.push(mapped);
+        }
+        setLabDerivedConditions(derived);
+      })
+      .catch(() => {});
     return () => { cancelled = true; };
   }, [open, clientId]);
 
@@ -448,12 +478,12 @@ export default function ProClientFolderModal({
                 <span className="font-medium text-white/70">Active Clinical Supports:</span>
                 {[
                   { key: "anti-inflammatory", label: "Anti-Inflammatory", isActive: true,                    activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
-                  { key: "cardiac",            label: "Cardiac Health",    isActive: !!flags?.cardiac,        activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
-                  { key: "kidney-disease",     label: "Kidney Disease",    isActive: !!flags?.renal,          activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
-                  { key: "liver-support",      label: "Liver Support",     isActive: !!flags?.liverSupport,   activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
-                  { key: "liver-disease",      label: "Liver Disease",     isActive: !!flags?.liverDisease,   activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
-                  { key: "oncology-support",   label: "Oncology Support",  isActive: !!flags?.oncologySupport,activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
-                  { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!flags?.thyroidSupport, activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                  { key: "cardiac",            label: "Cardiac Health",    isActive: !!flags?.cardiac          || labDerivedConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
+                  { key: "kidney-disease",     label: "Kidney Disease",    isActive: !!flags?.renal            || labDerivedConditions.includes('kidney-disease'),   activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
+                  { key: "liver-support",      label: "Liver Support",     isActive: !!flags?.liverSupport     || labDerivedConditions.includes('liver-support'),    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
+                  { key: "liver-disease",      label: "Liver Disease",     isActive: !!flags?.liverDisease     || labDerivedConditions.includes('liver-disease'),    activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
+                  { key: "oncology-support",   label: "Oncology Support",  isActive: !!flags?.oncologySupport  || labDerivedConditions.includes('oncology-support'), activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
+                  { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!flags?.thyroidSupport,                                                        activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
                 ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
                   <span key={key} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
                     <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />

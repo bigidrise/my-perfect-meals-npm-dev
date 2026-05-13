@@ -145,9 +145,19 @@ export default function MeetYourCoach() {
         setLiveCoaches((prev) =>
           prev.map((c) => {
             if (!c.lookupName || c.isPlaceholder) return c;
-            const match = data.find(
-              (p) => p.firstName?.toLowerCase() === c.lookupName!.toLowerCase(),
-            );
+            const lookup = c.lookupName.toLowerCase().trim();
+            const match = data.find((p) => {
+              const first = (p.firstName ?? "").toLowerCase().trim();
+              const last  = (p.lastName  ?? "").toLowerCase().trim();
+              const full  = `${first} ${last}`.trim();
+              return (
+                first === lookup ||
+                last  === lookup ||
+                full  === lookup ||
+                first.startsWith(lookup) ||
+                lookup.startsWith(first)
+              );
+            });
             if (match) return applyLiveStatus(c, match);
             return c;
           }),
