@@ -113,12 +113,8 @@ export default function Founder() {
           </h2>
 
           <div className="flex items-start gap-6">
-            <div className="w-24 h-24 rounded-full overflow-hidden ring-1 ring-white/20 shrink-0">
-              <img
-                src="/assets/monica-brant.jpg"
-                alt="Monica Brant"
-                className="w-full h-full object-cover object-top"
-              />
+            <div className="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center text-white/40 text-sm ring-1 ring-white/20 overflow-hidden shrink-0">
+              Photo
             </div>
 
             <div>
