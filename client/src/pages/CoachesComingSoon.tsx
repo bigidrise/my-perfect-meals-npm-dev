@@ -50,7 +50,7 @@ const coaches: Coach[] = [
     name: "Monica Brant (Body Composition & Elite Performance)",
     title: "Elite Coach",
     credentials: "IFBB Fitness World Champion · 30+ Years Coaching",
-    image: "/assets/monica-brant.jpg",
+    image: "/assets/monica-brant-coach.png",
     bio: MONICA_BIO,
     availabilityStatus: "available",
     isVeteran: true,
