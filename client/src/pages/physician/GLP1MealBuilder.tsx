@@ -39,6 +39,8 @@ import { LockedDayDialog } from "@/components/biometrics/LockedDayDialog";
 import { lockDay, isDayLocked } from "@/lib/lockedDays";
 import { setQuickView } from "@/lib/macrosQuickView";
 import { getMacroTargets } from "@/lib/dailyLimits";
+import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import WeeklyOverviewModal from "@/components/WeeklyOverviewModal";
 import BuilderShoppingBar from "@/components/BuilderShoppingBar";
@@ -143,6 +145,27 @@ export default function GLP1MealBuilder() {
   const { user } = useAuth();
 
   const effectiveUserId = proClientId || user?.id;
+
+  // Thyroid modifier bridge: detects user self-selected thyroid via edit page / onboarding.
+  // Uses the same labs endpoint the Anti-Inflammatory builder uses.
+  const [thyroidFromSpecialtyCondition, setThyroidFromSpecialtyCondition] = useState(false);
+  useEffect(() => {
+    if (!effectiveUserId) return;
+    let cancelled = false;
+    fetch(apiUrl(`/api/biometrics/labs/${effectiveUserId}`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.specialtyCondition === 'thyroid-support') {
+          setThyroidFromSpecialtyCondition(true);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [effectiveUserId]);
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
@@ -1086,7 +1109,7 @@ export default function GLP1MealBuilder() {
                   { key: "liver-support",      label: "Liver Support",     isActive: !!flags?.liverSupport,      activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
                   { key: "liver-disease",      label: "Liver Disease",     isActive: !!flags?.liverDisease,      activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
                   { key: "oncology-support",   label: "Oncology Support",  isActive: !!flags?.oncologySupport,   activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
-                  { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!flags?.thyroidSupport,    activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                  { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!flags?.thyroidSupport || thyroidFromSpecialtyCondition,    activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
                 ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
                   <span key={key} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
                     <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />

@@ -167,6 +167,11 @@ export default function AntiInflammatoryMenuBuilder() {
     ).mode
   );
 
+  // Tracks thyroid support when user self-selected via edit page / onboarding.
+  // This is separate from primary clinicalModeState because thyroid is an
+  // additive modifier — it never changes the primary mode.
+  const [thyroidFromSpecialtyCondition, setThyroidFromSpecialtyCondition] = React.useState(false);
+
   // Redirect legacy clinical routes to canonical anti-inflammatory route.
   // Mode is now determined by physician flags, not by URL path.
   useEffect(() => {
@@ -186,11 +191,14 @@ export default function AntiInflammatoryMenuBuilder() {
   }, [effectiveUserId]);
 
   const resolvedProtocol = useMemo(
-    () => resolveClinicalModeFromFlags(
-      effectiveUserId ? getResolvedTargets(effectiveUserId)?.flags : undefined
-    ),
+    () => resolveClinicalModeFromFlags({
+      ...(effectiveUserId ? getResolvedTargets(effectiveUserId)?.flags : undefined),
+      // Bridge: user self-selected thyroid via edit page / onboarding.
+      // Merge it into the flags so the modifier badge and indicator light fire.
+      ...(thyroidFromSpecialtyCondition ? { thyroidSupport: true } : {}),
+    }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [effectiveUserId, clinicalModeState]
+    [effectiveUserId, clinicalModeState, thyroidFromSpecialtyCondition]
   );
 
   const namespace = resolvedProtocol.namespace;
@@ -262,6 +270,11 @@ export default function AntiInflammatoryMenuBuilder() {
             // (from clinicalModeResolver.ts) signal the modifier is active.
             'thyroid-support':  'anti-inflammatory',
           };
+          // Bridge: set modifier state so resolvedProtocol merges thyroidSupport
+          // into flags even though clinicalModeState stays 'anti-inflammatory'.
+          if (data.specialtyCondition === 'thyroid-support') {
+            setThyroidFromSpecialtyCondition(true);
+          }
           const mappedMode = conditionModeMap[data.specialtyCondition] as ClinicalMode | undefined;
           if (mappedMode) {
             console.log("[AntiInflamBuilder] specialtyCondition →", data.specialtyCondition, "→ mode:", mappedMode);
