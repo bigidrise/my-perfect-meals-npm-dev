@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { db } from "../db";
 import { users } from "@shared/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, or } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 
 const router = Router();
@@ -80,7 +80,12 @@ router.get("/providers", async (_req, res) => {
         backAt: users.backAt,
       })
       .from(users)
-      .where(inArray(users.professionalRole, ["trainer", "physician"] as any[]));
+      .where(
+        or(
+          inArray(users.professionalRole, ["trainer", "physician"] as any[]),
+          inArray(users.role, ["coach", "admin"] as any[]),
+        ),
+      );
 
     return res.json({ providers: rows });
   } catch (e) {
