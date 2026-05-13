@@ -219,6 +219,18 @@ export default function ClinicianClientDashboard() {
         }
       })
       .catch(() => {});
+    // Load physician-assigned GLP-1 protocol state from DB
+    fetch(apiUrl(`/api/pro/glp1-protocol/${uid}`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.glp1Active) {
+          setT((prev) => ({ ...prev, flags: { ...prev.flags, glp1: true } }));
+        }
+      })
+      .catch(() => {});
     fetch(apiUrl(`/api/users/${uid}/goal`), { headers: { ...getAuthHeaders() }, credentials: "include" })
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data) setClientGoal(data); })
@@ -293,6 +305,23 @@ export default function ClinicianClientDashboard() {
         });
       } catch (e) {
         console.error("Failed to sync oncology support to database:", e);
+      }
+    }
+
+    // Persist GLP-1 protocol flag — writes to client's medicalConditions so the
+    // protocol envelope stacks GLP-1 guidance automatically on the next generation call
+    if (dbUserId) {
+      try {
+        await fetch(apiUrl(`/api/pro/glp1-protocol/${dbUserId}`), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          credentials: "include",
+          body: JSON.stringify({
+            enabled: !!(t.flags as Record<string, boolean> | undefined)?.glp1,
+          }),
+        });
+      } catch (e) {
+        console.error("Failed to sync GLP-1 protocol to database:", e);
       }
     }
 
@@ -645,7 +674,7 @@ export default function ClinicianClientDashboard() {
 
               <div className="mt-3 pt-3 border-t border-white/10">
                 <p className="text-xs text-white/50 mb-2">Physician-Initiated Protocol</p>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   {(() => {
                     const isOn = !!(t.flags as Record<string, boolean> | undefined)?.oncologySupport;
                     return (
@@ -663,8 +692,30 @@ export default function ClinicianClientDashboard() {
                       </button>
                     );
                   })()}
+                  {(() => {
+                    const isOn = !!(t.flags as Record<string, boolean> | undefined)?.glp1;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => updateT({ ...t, flags: { ...t.flags, glp1: !isOn } })}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 active:scale-[0.97] border ${
+                          isOn
+                            ? "bg-orange-600 border-orange-400 text-white"
+                            : "bg-black/30 border-orange-900/40 text-white/70 hover:bg-orange-950/40 hover:text-white"
+                        }`}
+                      >
+                        {isOn && <Check className="inline h-3 w-3 mr-1 -mt-0.5" />}
+                        💉 GLP-1 Active
+                      </button>
+                    );
+                  })()}
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1.5">
                   {!!(t.flags as Record<string, boolean> | undefined)?.oncologySupport && (
-                    <span className="text-xs text-rose-300/80">Cancer support nutrition overlay active — save to persist</span>
+                    <span className="text-xs text-rose-300/80">Oncology overlay active — save to persist</span>
+                  )}
+                  {!!(t.flags as Record<string, boolean> | undefined)?.glp1 && (
+                    <span className="text-xs text-orange-300/80">GLP-1 protocol active — stacks with diabetic builder on save</span>
                   )}
                 </div>
               </div>
