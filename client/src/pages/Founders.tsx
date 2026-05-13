@@ -104,7 +104,7 @@ export default function Founder() {
           
             </div>
           </div>
-        </section>No
+        </section>
 
         {/* EXECUTIVE LEADERSHIP */}
         <section className="bg-black/60 rounded-2xl p-8 ring-1 ring-white/10 backdrop-blur-md shadow-2xl">
@@ -113,11 +113,13 @@ export default function Founder() {
           </h2>
 
           <div className="flex items-start gap-6">
-            <img
-              src="/assets/monica-brant.jpg"
-              alt="Monica Brant"
-              className="w-24 h-24 rounded-full object-cover object-top ring-1 ring-white/20 shrink-0"
-            />
+            <div className="w-24 h-24 rounded-full overflow-hidden ring-1 ring-white/20 shrink-0">
+              <img
+                src="/assets/monica-brant.jpg"
+                alt="Monica Brant"
+                className="w-full h-full object-cover object-top"
+              />
+            </div>
 
             <div>
               <h3 className="text-xl font-semibold text-white">
