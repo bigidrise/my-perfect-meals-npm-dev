@@ -170,15 +170,28 @@ export default function CareTeamPage() {
   );
   const [backAtInput, setBackAtInput] = useState<string>(user?.backAt ? user.backAt.slice(0, 10) : "");
   const [availSaving, setAvailSaving] = useState(false);
+  const [availSaved, setAvailSaved] = useState(false);
+
+  useEffect(() => {
+    if (user?.availabilityStatus) {
+      setAvailStatus(user.availabilityStatus as AvailStatus);
+    }
+    if (user?.backAt) {
+      setBackAtInput(user.backAt.slice(0, 10));
+    }
+  }, [user?.availabilityStatus, user?.backAt]);
 
   async function updateAvailability(status: AvailStatus) {
     setAvailStatus(status);
     setAvailSaving(true);
+    setAvailSaved(false);
     try {
       await apiRequest("/api/professionals/me/availability", {
         method: "PATCH",
         body: JSON.stringify({ status, backAt: backAtInput || null }),
       });
+      setAvailSaved(true);
+      setTimeout(() => setAvailSaved(false), 3000);
     } catch {
       setError("Failed to update availability.");
     } finally {
@@ -188,11 +201,14 @@ export default function CareTeamPage() {
 
   async function saveBackAt() {
     setAvailSaving(true);
+    setAvailSaved(false);
     try {
       await apiRequest("/api/professionals/me/availability", {
         method: "PATCH",
         body: JSON.stringify({ status: availStatus, backAt: backAtInput || null }),
       });
+      setAvailSaved(true);
+      setTimeout(() => setAvailSaved(false), 3000);
     } catch {
       setError("Failed to save back date.");
     } finally {
@@ -239,6 +255,7 @@ export default function CareTeamPage() {
               )}
               <h2 className="text-base font-bold text-white">Your Availability</h2>
               {availSaving && <span className="text-xs text-white/40 ml-auto">Saving…</span>}
+              {!availSaving && availSaved && <span className="text-xs text-green-400 ml-auto">✓ Saved</span>}
             </div>
             <div className="flex flex-wrap gap-2">
               {(["available", "busy", "away", "offline"] as const).map((s) => (
