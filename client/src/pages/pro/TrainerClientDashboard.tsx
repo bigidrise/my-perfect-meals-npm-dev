@@ -145,6 +145,7 @@ export default function TrainerClientDashboard() {
   const [labs, setLabs] = useState<KeyLabs | null>(null);
   const [recommendedProtocol, setRecommendedProtocol] = useState<string | null>(null);
   const [recommendedDirectiveKey, setRecommendedDirectiveKey] = useState<string | null>(null);
+  const [labDerivedConditions, setLabDerivedConditions] = useState<string[]>([]);
 
   const PROTOCOL_TO_FLAG: Record<string, string> = {
     "liver-disease": "liverDisease",
@@ -232,6 +233,20 @@ export default function TrainerClientDashboard() {
           const flagKey = PROTOCOL_TO_FLAG[data.protocolSignal.protocol] ?? null;
           setRecommendedDirectiveKey(flagKey);
         }
+        // Derive active conditions from lab signal + user specialty selections
+        const derived: string[] = [];
+        if (data?.protocolSignal?.protocol) derived.push(data.protocolSignal.protocol);
+        const scMap: Record<string, string> = {
+          cardiac: 'heart-failure', renal: 'kidney-disease',
+          'liver-disease': 'liver-disease', 'liver-support': 'liver-support',
+          'oncology-support': 'oncology-support',
+        };
+        const scArr: string[] = data?.specialtyConditions ?? (data?.specialtyCondition ? [data.specialtyCondition] : []);
+        for (const sc of scArr) {
+          const mapped = scMap[sc];
+          if (mapped && !derived.includes(mapped)) derived.push(mapped);
+        }
+        setLabDerivedConditions(derived);
       })
       .catch(() => {});
   }, [clientId, resolvedClientUserId]);
@@ -524,6 +539,26 @@ export default function TrainerClientDashboard() {
                   </span>
                 </div>
               ) : null}
+              {/* Active Clinical Supports */}
+              <div className="flex items-start gap-2 pt-0.5">
+                <span className="text-xs text-white/50 w-28 shrink-0 mt-0.5">Active Supports</span>
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {[
+                    { key: "anti-inflammatory", label: "Anti-Inflammatory", isActive: true,                        activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
+                    { key: "cardiac",            label: "Cardiac Health",    isActive: !!t?.flags?.cardiac          || labDerivedConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
+                    { key: "kidney-disease",     label: "Kidney Disease",    isActive: !!t?.flags?.renal            || labDerivedConditions.includes('kidney-disease'),   activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
+                    { key: "liver-support",      label: "Liver Support",     isActive: !!t?.flags?.liverSupport     || labDerivedConditions.includes('liver-support'),    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
+                    { key: "liver-disease",      label: "Liver Disease",     isActive: !!t?.flags?.liverDisease     || labDerivedConditions.includes('liver-disease'),    activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
+                    { key: "oncology-support",   label: "Oncology Support",  isActive: !!t?.flags?.oncologySupport  || labDerivedConditions.includes('oncology-support'), activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
+                    { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!t?.flags?.thyroidSupport,                                                        activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                  ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
+                    <span key={key} className={`flex items-center gap-1 text-xs ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
+                      <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              </div>
               {labs && (
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs text-white/50 w-28 shrink-0">Key Labs</span>

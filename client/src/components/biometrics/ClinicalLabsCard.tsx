@@ -28,6 +28,12 @@ interface LabValues {
   ast: string;
   bilirubin: string;
   albumin: string;
+  // Thyroid panel
+  tsh: string;
+  free_t4: string;
+  free_t3: string;
+  tpo_antibodies: string;
+  thyroglobulin_antibodies: string;
   notes: string;
   lab_date: string;
 }
@@ -46,6 +52,11 @@ const EMPTY_LABS: LabValues = {
   ast: "",
   bilirubin: "",
   albumin: "",
+  tsh: "",
+  free_t4: "",
+  free_t3: "",
+  tpo_antibodies: "",
+  thyroglobulin_antibodies: "",
   notes: "",
   lab_date: todayIso(),
 };
@@ -128,6 +139,11 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
             ast:       l.ast       != null ? String(l.ast)       : "",
             bilirubin: l.bilirubin != null ? String(l.bilirubin) : "",
             albumin:   l.albumin   != null ? String(l.albumin)   : "",
+            tsh:                     l.tsh                     != null ? String(l.tsh)                     : "",
+            free_t4:                 l.free_t4                 != null ? String(l.free_t4)                 : "",
+            free_t3:                 l.free_t3                 != null ? String(l.free_t3)                 : "",
+            tpo_antibodies:          l.tpo_antibodies          != null ? String(l.tpo_antibodies)          : "",
+            thyroglobulin_antibodies:l.thyroglobulin_antibodies!= null ? String(l.thyroglobulin_antibodies): "",
             notes: l.notes || "",
             lab_date: l.lab_date || todayIso(),
           });
@@ -168,6 +184,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
         "a1c", "ldl", "hdl", "blood_pressure_systolic", "blood_pressure_diastolic",
         "ejection_fraction", "creatinine", "bun", "inr",
         "alt", "ast", "bilirubin", "albumin",
+        "tsh", "free_t4", "free_t3", "tpo_antibodies", "thyroglobulin_antibodies",
       ];
       for (const field of numFields) {
         const v = form[field].trim();
@@ -304,6 +321,16 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
               <LabField label="AST" name="ast" value={form.ast} unit="U/L" placeholder="e.g. 22" onChange={handleChange} />
               <LabField label="Bilirubin (Total)" name="bilirubin" value={form.bilirubin} unit="mg/dL" placeholder="e.g. 0.8" onChange={handleChange} />
               <LabField label="Albumin" name="albumin" value={form.albumin} unit="g/dL" placeholder="e.g. 4.0" onChange={handleChange} />
+
+              {/* Thyroid Panel */}
+              <div className="pt-2 pb-1 border-t border-white/10">
+                <span className="text-[10px] font-semibold tracking-widest text-teal-400/70 uppercase">Thyroid Panel</span>
+              </div>
+              <LabField label="TSH" name="tsh" value={form.tsh} unit="mIU/L" placeholder="e.g. 2.5" onChange={handleChange} />
+              <LabField label="Free T4" name="free_t4" value={form.free_t4} unit="ng/dL" placeholder="e.g. 1.2" onChange={handleChange} />
+              <LabField label="Free T3" name="free_t3" value={form.free_t3} unit="pg/mL" placeholder="e.g. 3.1" onChange={handleChange} />
+              <LabField label="TPO Antibodies" name="tpo_antibodies" value={form.tpo_antibodies} unit="IU/mL" placeholder="e.g. 17" onChange={handleChange} />
+              <LabField label="Thyroglobulin Ab" name="thyroglobulin_antibodies" value={form.thyroglobulin_antibodies} unit="IU/mL" placeholder="e.g. 245" onChange={handleChange} />
 
               <div className="flex items-start gap-2 pt-1">
                 <span className="text-xs text-white/50 w-36 shrink-0 pt-2">Notes</span>

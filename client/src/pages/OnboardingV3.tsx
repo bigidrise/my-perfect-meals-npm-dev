@@ -172,7 +172,7 @@ export default function OnboardingV3() {
   const [pinError, setPinError] = useState("");
   const [oncologyIntroAnswer, setOncologyIntroAnswer] = useState<"yes" | "skip" | null>(null);
   const [oncologySupportIntentChoice, setOncologySupportIntentChoice] = useState<"own_provider" | "request_support" | "self_directed" | null>(null);
-  const [specialtyCondition, setSpecialtyCondition] = useState<string | null>(null);
+  const [specialtyConditions, setSpecialtyConditions] = useState<string[]>([]);
   const [dietaryStyle, setDietaryStyle] = useState("");
   const [customDietInput, setCustomDietInput] = useState("");
 
@@ -211,7 +211,8 @@ export default function OnboardingV3() {
     if (user.allergies?.length) setAllergies(user.allergies);
     if (user.avoidedFoods?.length) setAvoidedFoods(user.avoidedFoods);
     if (user.medicalConditions?.length) setMedicalConditions(user.medicalConditions);
-    if (user.specialtyCondition) setSpecialtyCondition(user.specialtyCondition);
+    if ((user as any).specialtyConditions?.length) setSpecialtyConditions((user as any).specialtyConditions);
+    else if (user.specialtyCondition) setSpecialtyConditions([user.specialtyCondition]);
     if (user.oncologySupportIntent) {
       setOncologyIntroAnswer("yes");
       setOncologySupportIntentChoice(user.oncologySupportIntent);
@@ -348,13 +349,13 @@ export default function OnboardingV3() {
             return;
           }
           await saveProfile({ medicalConditions }, "medical_conditions");
-          // Save specialty condition separately (non-blocking — failure does not block step advance)
+          // Save specialty conditions separately (non-blocking — failure does not block step advance)
           fetch(apiUrl("/api/user/specialty-condition"), {
             method: "PATCH",
             headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-            body: JSON.stringify({ condition: specialtyCondition }),
+            body: JSON.stringify({ conditions: specialtyConditions }),
           }).catch((err) => {
-            captureException(err, { step: "specialty_condition", specialtyCondition });
+            captureException(err, { step: "specialty_condition", specialtyConditions });
           });
           break;
         case 4: {
@@ -727,7 +728,7 @@ export default function OnboardingV3() {
                 <span className="text-white/40 text-xs">(optional)</span>
               </div>
               <p className="text-white/60 text-xs mb-3">
-                Do you have one of these conditions? Selecting one immediately activates the right nutrition protocol in your Anti-Inflammatory Builder — no lab entry required.
+                Do any of these apply to you? Select all that apply — you can choose more than one. Each condition activates its full clinical protocol across every meal generator, and they all stack together automatically.
               </p>
               <div className="flex flex-wrap gap-2">
                 {[
@@ -736,19 +737,37 @@ export default function OnboardingV3() {
                   { label: "Liver Disease", value: "liver-disease" },
                   { label: "Liver Support", value: "liver-support" },
                   { label: "Cancer / Oncology Support", value: "oncology-support" },
+                  { label: "Thyroid Support", value: "thyroid-support" },
                 ].map((opt) => (
                   <PillButton
                     key={opt.value}
-                    active={specialtyCondition === opt.value}
+                    active={specialtyConditions.includes(opt.value)}
                     onClick={() =>
-                      setSpecialtyCondition((prev) => prev === opt.value ? null : opt.value)
+                      setSpecialtyConditions((prev) =>
+                        prev.includes(opt.value)
+                          ? prev.filter((c) => c !== opt.value)
+                          : [...prev, opt.value]
+                      )
                     }
                   >
                     {opt.label}
                   </PillButton>
                 ))}
               </div>
-              {specialtyCondition === "oncology-support" && (
+              {specialtyConditions.includes("thyroid-support") && (
+                <div className="mt-3 rounded-xl border border-teal-500/40 bg-teal-950/30 p-3">
+                  <div className="flex items-start gap-2">
+                    <span className="text-teal-400 text-base mt-0.5">🦋</span>
+                    <div>
+                      <p className="text-teal-300 text-xs font-semibold mb-1">Thyroid Support — Nutritional Guidance Only</p>
+                      <p className="text-white/70 text-xs leading-relaxed">
+                        This activates anti-inflammatory, selenium-focused meal guidance designed to complement thyroid wellness. It is <span className="text-white font-medium">not a medical diagnosis</span>, not a treatment plan, and <span className="text-white font-medium">not a substitute for your doctor or endocrinologist's care</span>. Always follow your healthcare provider's recommendations first.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {specialtyConditions.includes("oncology-support") && (
                 <div className="mt-3 rounded-xl border border-rose-500/40 bg-rose-950/30 p-3">
                   <div className="flex items-start gap-2">
                     <span className="text-rose-400 text-base mt-0.5">🎗️</span>

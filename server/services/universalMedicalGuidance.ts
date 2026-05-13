@@ -30,6 +30,13 @@ export interface UniversalGuidanceInput {
     symptoms: OncologySymptom[];
     emphasis?: { highProteinNutrientDensity?: boolean };
   } | null;
+  /** Thyroid Support context — self-selected or lab-driven. */
+  thyroidSupportContext?: {
+    active: boolean;
+    medication: string | null;
+    labDriven: boolean;
+    isAutoimmune: boolean;
+  } | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -212,14 +219,19 @@ const LIVER_KEYS = new Set([
   "non-alcoholic fatty liver", "non alcoholic fatty liver",
 ]);
 
+const THYROID_KEYS = new Set([
+  "thyroid-support", "thyroid support", "hashimoto's", "hashimotos",
+  "hypothyroidism", "thyroid disease", "autoimmune thyroid",
+]);
+
 /**
  * Build all active condition guidance blocks for injection into the protocol envelope.
  * Returns an array of directive strings — one per active condition.
  * Diabetes is intentionally excluded here (handled by diabeticContextService).
  */
-export function buildUniversalConditionGuidance(
+export async function buildUniversalConditionGuidance(
   input: UniversalGuidanceInput
-): string[] {
+): Promise<string[]> {
   const blocks: string[] = [];
   const conditions = input.healthConditions.map(c => c.trim().toLowerCase());
 
@@ -247,6 +259,27 @@ export function buildUniversalConditionGuidance(
     const symptoms = (input.oncologySupportContext.symptoms ?? []) as OncologySymptom[];
     const highProtein = input.oncologySupportContext.emphasis?.highProteinNutrientDensity ?? false;
     blocks.push(buildOncologyGuidance(symptoms, highProtein));
+  }
+
+  // Thyroid Support — fires when:
+  //   (a) explicitly passed via thyroidSupportContext.active, OR
+  //   (b) a thyroid key exists in healthConditions (e.g., "thyroid-support", "hashimoto's")
+  //   (c) specialtyCondition = 'thyroid-support' is wired up at the envelope level
+  const thyroidActiveViaCondition = conditions.some(c => THYROID_KEYS.has(c));
+  const thyroidActiveViaContext   = !!input.thyroidSupportContext?.active;
+
+  if (thyroidActiveViaContext || thyroidActiveViaCondition) {
+    // Import inline to avoid circular dependency with protocolEnvelope
+    const { buildThyroidSupportPrompt } = await import('./guardrails/prompt/thyroidSupportPromptBuilder');
+    const thyroidCtx = input.thyroidSupportContext ?? {
+      active: true,
+      medication: null,
+      labDriven: false,
+      isAutoimmune: thyroidActiveViaCondition &&
+        conditions.some(c => ["hashimoto's", "hashimotos", "autoimmune thyroid"].includes(c)),
+    };
+    const overlay = buildThyroidSupportPrompt(thyroidCtx);
+    if (overlay.trim()) blocks.push(overlay);
   }
 
   return blocks;

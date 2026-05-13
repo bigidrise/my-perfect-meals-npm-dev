@@ -164,21 +164,35 @@ export default function CareTeamPage() {
   }
 
   // ── Availability ──────────────────────────────────────────────────────────
-  type AvailStatus = "available" | "busy" | "away" | "offline";
-  const [availStatus, setAvailStatus] = useState<AvailStatus>(
-    (user?.availabilityStatus as AvailStatus) ?? "available",
-  );
+  type AvailStatus = "available" | "away" | "offline";
+  const [availStatus, setAvailStatus] = useState<AvailStatus>(() => {
+    const s = user?.availabilityStatus;
+    return (s === "available" || s === "away" || s === "offline") ? s : "available";
+  });
+  const [awayFromInput, setAwayFromInput] = useState<string>("");
   const [backAtInput, setBackAtInput] = useState<string>(user?.backAt ? user.backAt.slice(0, 10) : "");
   const [availSaving, setAvailSaving] = useState(false);
+  const [availSaved, setAvailSaved] = useState(false);
+
+  useEffect(() => {
+    if (user?.availabilityStatus) {
+      const s = user.availabilityStatus;
+      setAvailStatus((s === "available" || s === "away" || s === "offline") ? s : "available");
+    }
+    if (user?.backAt) setBackAtInput(user.backAt.slice(0, 10));
+  }, [user?.availabilityStatus, user?.backAt]);
 
   async function updateAvailability(status: AvailStatus) {
     setAvailStatus(status);
     setAvailSaving(true);
+    setAvailSaved(false);
     try {
       await apiRequest("/api/professionals/me/availability", {
         method: "PATCH",
-        body: JSON.stringify({ status, backAt: backAtInput || null }),
+        body: JSON.stringify({ status, backAt: backAtInput || null, awayFrom: awayFromInput || null }),
       });
+      setAvailSaved(true);
+      setTimeout(() => setAvailSaved(false), 3000);
     } catch {
       setError("Failed to update availability.");
     } finally {
@@ -188,13 +202,16 @@ export default function CareTeamPage() {
 
   async function saveBackAt() {
     setAvailSaving(true);
+    setAvailSaved(false);
     try {
       await apiRequest("/api/professionals/me/availability", {
         method: "PATCH",
-        body: JSON.stringify({ status: availStatus, backAt: backAtInput || null }),
+        body: JSON.stringify({ status: availStatus, backAt: backAtInput || null, awayFrom: awayFromInput || null }),
       });
+      setAvailSaved(true);
+      setTimeout(() => setAvailSaved(false), 3000);
     } catch {
-      setError("Failed to save back date.");
+      setError("Failed to save dates.");
     } finally {
       setAvailSaving(false);
     }
@@ -239,29 +256,42 @@ export default function CareTeamPage() {
               )}
               <h2 className="text-base font-bold text-white">Your Availability</h2>
               {availSaving && <span className="text-xs text-white/40 ml-auto">Saving…</span>}
+              {!availSaving && availSaved && <span className="text-xs text-green-400 ml-auto">✓ Saved</span>}
             </div>
             <div className="flex flex-wrap gap-2">
-              {(["available", "busy", "away", "offline"] as const).map((s) => (
+              {(["available", "away", "offline"] as const).map((s) => (
                 <PillButton
                   key={s}
                   active={availStatus === s}
                   variant={s === "available" ? "emerald" : "amber"}
                   onClick={() => updateAvailability(s)}
                 >
-                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                  {s === "available" ? "Available" : s === "away" ? "Away / Vacation" : "Offline"}
                 </PillButton>
               ))}
             </div>
-            {(availStatus === "busy" || availStatus === "away") && (
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-white/60 whitespace-nowrap">Back on:</label>
-                <Input
-                  type="date"
-                  value={backAtInput}
-                  onChange={(e) => setBackAtInput(e.target.value)}
-                  onBlur={saveBackAt}
-                  className="h-7 text-xs text-white bg-white/10 border-white/20 max-w-[160px]"
-                />
+            {availStatus === "away" && (
+              <div className="flex flex-col gap-2 pt-1">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-white/60 w-12 shrink-0">From:</label>
+                  <Input
+                    type="date"
+                    value={awayFromInput}
+                    onChange={(e) => setAwayFromInput(e.target.value)}
+                    onBlur={saveBackAt}
+                    className="h-7 text-xs text-white bg-white/10 border-white/20 max-w-[160px]"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-white/60 w-12 shrink-0">Until:</label>
+                  <Input
+                    type="date"
+                    value={backAtInput}
+                    onChange={(e) => setBackAtInput(e.target.value)}
+                    onBlur={saveBackAt}
+                    className="h-7 text-xs text-white bg-white/10 border-white/20 max-w-[160px]"
+                  />
+                </div>
               </div>
             )}
           </GlassCardContent>

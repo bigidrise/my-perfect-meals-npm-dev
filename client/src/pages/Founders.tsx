@@ -22,7 +22,7 @@ const FOUNDING_COACHES: {
     title: "Founding Coach",
     credentials: "CPT · Corrective Exercise · Strength & Recovery",
     photo: "/assets/kristen-bogan-2.jpg",
-    bio: "As a dedicated personal trainer, Kristen specializes in helping clients build strength, lose weight, and recover safely and effectively from surgery or injury. Her approach is rooted in functional and lifestyle-based training — focusing on movements that make everyday life easier, safer, and more enjoyable. With a background in muscle development and corrective exercise, she designs programs that improve mobility, stability, and overall body mechanics. Recovery and longevity are at the core of her philosophy — empowering clients with the strength, confidence, and resilience to thrive in both the gym and everyday life.",
+    bio: "As a dedicated personal trainer, Kristen specializes in helping clients build strength, lose weight, and recover safely and effectively from surgery or injury. Her approach is rooted in functional and lifestyle-based training focusing on movements that make everyday life easier, safer, and more enjoyable. With a background in muscle development and corrective exercise, she designs programs that improve mobility, stability, and overall body mechanics. Recovery and longevity are at the core of her philosophy empowering clients with the strength, confidence, and resilience to thrive in both the gym and everyday life.",
   },
   {
     name: "Danielle Affatato",
@@ -32,13 +32,14 @@ const FOUNDING_COACHES: {
     photo: "/assets/danielle-affatato.jpg",
     bio: null,
   },
+
   // ── Add new founding coaches below this line ──
   // {
   //   name: "First Last",
   //   title: "Founding Coach",
   //   credentials: "Certifications · Specialty",
-  //   photo: "/assets/their-photo.jpg",  // or null
-  //   bio: "Their bio here.",             // or null
+  //   photo: "/assets/their-photo.jpg",
+  //   bio: "Their bio here.",
   // },
 ];
 
@@ -74,6 +75,7 @@ export default function Founder() {
       >
         {/* FOUNDER HERO */}
         <section className="bg-black/60 rounded-2xl p-8 ring-1 ring-white/10 backdrop-blur-md shadow-2xl">
+          <h2 className="text-2xl font-semibold mb-6">Founder &amp; Chief Executive Officer</h2>
           <div className="flex flex-col md:flex-row items-center gap-8">
             <div className="w-36 h-48 overflow-hidden rounded-xl ring-1 ring-white/20 shadow-lg">
               <img
@@ -84,70 +86,88 @@ export default function Founder() {
             </div>
 
             <div className="space-y-4 text-center md:text-left">
-              <h1 className="text-3xl font-bold">Coach Idrise</h1>
+              <h1 className="text-xl font-bold">Idrise Ward-EL</h1>
+
               <p className="text-orange-400 font-medium">
-                CEO / Founder & Lead Coach
+                CEO, Founder & Lead Coach
               </p>
+
               <p className="text-white/60 text-xs mt-0.5 mb-1">
                 IFBB Professional · Mr. USA 2002 · 30+ Years Coaching
               </p>
+
               <p className="text-white/80 text-sm leading-relaxed max-w-xl">
-                I've spent over 30 years working in performance nutrition, body
-                composition, and structured meal design — starting long before
-                it was a business, because this is just how I've always lived.
-                My background combines elite competitive athletics, clinical
-                awareness from my time as an ICU Medic in the U.S. Air Force,
-                and decades of real-world coaching experience. My Perfect Meals
-                was built to remove confusion, eliminate food stress, and help
-                people eat confidently without restriction.
+                Coach Idrise is the Founder and CEO of My Perfect Meals, an adaptive nutrition and wellness software platform designed to help people build long-term confidence with food through intelligent coaching, structured meal systems, and AI-driven personalization. With more than 30 years of experience in performance nutrition, body composition, and real-world coaching, his background combines elite athletics, clinical medical experience, behavioral coaching, and leadership across multiple disciplines. A former IFBB Professional Bodybuilder and Mr. USA 2002, Idrise has spent decades helping people improve their health, performance, and relationship with food through sustainable, real-life strategies rather than restriction-based dieting. His experience includes serving as an ICU Medic and EMT-I in the United States Air Force, working in high-pressure environments including corrections at San Quentin State Prison, and years of hands-on coaching with clients from all walks of life. In addition to his fitness and medical background, Idrise is pursuing a Bachelor’s degree in Business Administration with a concentration in Social Media Marketing and a minor in Generative Artificial Intelligence, combining modern AI strategy with decades of practical coaching experience. Through My Perfect Meals, he is building a new category of intelligent wellness technology focused on adaptive nutrition, behavior change, medical support integration, and real-world lifestyle coaching for everyday people.
+
               </p>
 
-              <Button
-                size="sm"
-                className="mt-4 bg-orange-600 hover:bg-orange-700 text-white font-medium transition-colors shadow-md hover:shadow-lg"
-                onClick={() => setLocation("/apply-guidance")}
-              >
-                Work Directly With Coach Idrise
-              </Button>
+          
             </div>
           </div>
         </section>
 
-        {/* PROFESSIONAL BACKGROUND */}
+        {/* EXECUTIVE LEADERSHIP */}
         <section className="bg-black/60 rounded-2xl p-8 ring-1 ring-white/10 backdrop-blur-md shadow-2xl">
           <h2 className="text-2xl font-semibold mb-6">
-            Professional Background
+            Executive Leadership
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-white/85">
-            <div>✔ IFBB Professional Bodybuilder</div>
-            <div>✔ Mr. USA 2002</div>
-            <div>✔ NASM Certified Personal Trainer</div>
-            <div>✔ NASM Certified Women's Fitness Specialist</div>
-            <div>✔ NASM Certified Nutrition Coach</div>
-            <div>✔ NASM Behavior Change Specialist</div>
-            <div>✔ NASM Online Coaching Specialist</div>
-            <div>✔ Former ICU Medic & EMT-I – United States Air Force</div>
-          </div>
-        </section>
 
-        {/* PHILOSOPHY */}
-        <section className="bg-black/60 rounded-2xl p-8 ring-1 ring-white/10 backdrop-blur-md shadow-2xl">
-          <h2 className="text-2xl font-semibold mb-4">
-            The Philosophy Behind My Perfect Meals
-          </h2>
-          <p className="text-white/80 text-sm leading-relaxed">
-            My Perfect Meals was created for food lovers who are tired of
-            starting over. Instead of restriction, the system focuses on
-            intelligent structure. Meals are designed to work in real life — at
-            restaurants, at home, while traveling, during busy seasons, and
-            through changing goals. The objective is not short-term dieting. It
-            is long-term confidence with food.
-          </p>
+          <div className="flex items-start gap-6">
+            <div className="w-24 h-24 rounded-full overflow-hidden ring-1 ring-white/20 shadow-lg shrink-0 bg-white/10">
+              <img
+                src="/assets/monica-brant.jpg"
+                alt="Monica Brant"
+                className="w-full h-full object-cover object-top"
+                onError={(e) => {
+                  console.error("Failed to load Monica image");
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            </div>
+
+            <div>
+              <h3 className="text-xl font-semibold text-white">
+                Monica Brant
+              </h3>
+
+              <p className="text-orange-400 text-sm font-medium">
+                Chief Growth & Partnerships Officer
+              </p>
+
+              <p className="text-white/70 text-sm mt-1">
+                Fitness Icon · World Champion · Global Wellness Leader
+              </p>
+
+              <p className="text-white/70 text-sm leading-relaxed mt-4">
+                Monica Brant has been a global force in the fitness industry
+                since the early 1990s, recognized for her leadership,
+                discipline, faith, and lasting influence across health and
+                wellness. An international fitness icon and cover model with
+                more than 130 magazine covers spanning over three decades,
+                Monica rose to prominence following her breakthrough appearance
+                on the cover of Muscle & Fitness magazine in 1994 and went on
+                to become one of the most recognized women in fitness worldwide
+                through magazine features, interviews, competitions, and
+                speaking engagements. Throughout her career, she earned multiple
+                top placements at both the Olympia and Arnold Festival stages
+                and captured three world championship titles, including the
+                Fitness Olympia championship in 1998 and two WBFF World
+                Championships in 2010 and 2013, before concluding her
+                competitive career with an overall victory in the United Kingdom
+                in 2016. Beyond competition, Monica continues to inspire
+                audiences around the world through coaching, consulting,
+                speaking, and faith-driven wellness initiatives focused on
+                helping others grow physically, mentally, and spiritually.
+              </p>
+            </div>
+          </div>
         </section>
 
         {/* MEDICAL COMPLIANCE */}
         <section className="bg-black/60 rounded-2xl p-8 ring-1 ring-white/10 backdrop-blur-md shadow-2xl">
-          <h2 className="text-2xl font-semibold mb-6">Medical Compliance</h2>
+          <h2 className="text-2xl font-semibold mb-6">
+            Medical Compliance
+          </h2>
 
           <div className="flex items-center gap-6">
             <img
@@ -195,11 +215,14 @@ export default function Founder() {
           </div>
         </section>
 
-        {/* FOUNDING COACHES — rendered from FOUNDING_COACHES list above */}
+        {/* FOUNDING COACHES */}
         <section className="bg-black/60 rounded-2xl p-8 ring-1 ring-white/10 backdrop-blur-md shadow-2xl">
-          <h2 className="text-2xl font-semibold mb-2">Founding Coaches</h2>
+          <h2 className="text-2xl font-semibold mb-2">
+            Founding Coaches
+          </h2>
+
           <p className="text-white/50 text-sm mb-8">
-            These are the coaches who signed on to build this with us — before
+            These are the coaches who signed on to build this with us before
             the platform was proven, before the audience was there. That means
             something.
           </p>
@@ -207,7 +230,9 @@ export default function Founder() {
           <div className="space-y-10">
             {FOUNDING_COACHES.map((coach, i) => (
               <div key={coach.name}>
-                {i > 0 && <div className="border-t border-white/10 mb-10" />}
+                {i > 0 && (
+                  <div className="border-t border-white/10 mb-10" />
+                )}
 
                 <div className="flex items-center gap-5 mb-4">
                   <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-orange-400/60 shadow-lg shrink-0 bg-white/10">
@@ -217,18 +242,23 @@ export default function Founder() {
                         alt={coach.name}
                         className="w-full h-full object-cover object-top"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = "none";
+                          (
+                            e.target as HTMLImageElement
+                          ).style.display = "none";
                         }}
                       />
                     )}
                   </div>
+
                   <div>
                     <h3 className="text-xl font-semibold text-white">
                       {coach.name}
                     </h3>
+
                     <p className="text-orange-400 text-sm font-medium">
                       {coach.title}
                     </p>
+
                     <p className="text-white/60 text-xs mt-0.5">
                       {coach.credentials}
                     </p>
@@ -251,10 +281,14 @@ export default function Founder() {
 
         {/* CONTACT */}
         <section className="bg-black/60 rounded-2xl p-8 ring-1 ring-white/10 backdrop-blur-md shadow-2xl text-center">
-          <h2 className="text-2xl font-semibold mb-2">Contact & Support</h2>
+          <h2 className="text-2xl font-semibold mb-2">
+            Contact & Support
+          </h2>
+
           <p className="text-white/60 text-sm mb-6">
-            Questions, bugs, or feedback — email us anytime. We read everything.
+            Questions, bugs, or feedback email us anytime. We read everything.
           </p>
+
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <a
               href="mailto:support@myperfectmeals.com"
@@ -264,6 +298,7 @@ export default function Founder() {
             >
               support@myperfectmeals.com
             </a>
+
             <a
               href="mailto:support@myperfectmeals.com?subject=My Perfect Meals Feedback"
               target="_blank"

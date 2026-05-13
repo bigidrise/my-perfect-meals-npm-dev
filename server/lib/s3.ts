@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export const s3 = new S3Client({
@@ -13,7 +13,7 @@ export async function presignUpload({
   bucket,
   key,
   contentType,
-  expiresIn = 60 * 5, // 5 minutes
+  expiresIn = 60 * 5,
 }: {
   bucket: string;
   key: string;
@@ -22,7 +22,33 @@ export async function presignUpload({
 }) {
   const command = new PutObjectCommand({ Bucket: bucket, Key: key, ContentType: contentType, ACL: "public-read" });
   const url = await getSignedUrl(s3, command, { expiresIn });
-  // Public URL (if bucket policy allows public-read)
   const publicUrl = `https://${bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
   return { url, publicUrl };
+}
+
+export async function uploadPrivateObject({
+  bucket,
+  key,
+  body,
+  contentType,
+}: {
+  bucket: string;
+  key: string;
+  body: Buffer;
+  contentType: string;
+}): Promise<void> {
+  await s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType }));
+}
+
+export async function getSignedGetUrl({
+  bucket,
+  key,
+  expiresIn = 60 * 20,
+}: {
+  bucket: string;
+  key: string;
+  expiresIn?: number;
+}): Promise<string> {
+  const command = new GetObjectCommand({ Bucket: bucket, Key: key });
+  return getSignedUrl(s3, command, { expiresIn });
 }

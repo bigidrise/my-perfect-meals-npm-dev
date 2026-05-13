@@ -471,6 +471,20 @@ export interface UserProtocolEnvelope {
    * Empty array when no conditions are active.
    */
   conditionGuidanceBlocks: string[];
+
+  /**
+   * Thyroid Support active flag — true when specialtyCondition === 'thyroid-support'
+   * OR thyroid lab values triggered resolveThyroidFromLabs().
+   * Used by post-generation validators (thyroidSupportValidator) and the
+   * physician dashboard indicator light.
+   */
+  thyroidSupport: boolean;
+
+  /**
+   * Thyroid medication name if the user disclosed one (e.g., "Levothyroxine").
+   * Null when not disclosed. Used for medication timing guidance in meal generation.
+   */
+  thyroidMedication: string | null;
 }
 
 /**
@@ -585,6 +599,9 @@ export async function loadUserProtocolEnvelope(
         cuisineIntensity: users.cuisineIntensity,
         oncologySupportContext: users.oncologySupportContext,
         selectedMealBuilder: users.selectedMealBuilder,
+        specialtyCondition: users.specialtyCondition,
+        specialtyConditions: users.specialtyConditions,
+        thyroidMedication: users.thyroidMedication,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -598,12 +615,24 @@ export async function loadUserProtocolEnvelope(
     const dietaryRestrictions: string[] = (user.dietaryRestrictions as string[]) || [];
     const allergies: string[] = (user.allergies as string[]) || [];
     const healthConditions: string[] = (user.healthConditions as string[]) || [];
+    // Stack all active specialty conditions into healthConditions so EVERY active protocol
+    // gets its guidance block injected simultaneously via buildUniversalConditionGuidance.
+    // Falls back to single specialtyCondition value for backward compat with existing users.
+    const specialtyConditionsArr: string[] = ((user as any).specialtyConditions as string[] | null) ||
+      (user.specialtyCondition ? [user.specialtyCondition] : []);
+    // Also pull 'glp1' out of medicalConditions so diabetic-builder generation stacks the GLP-1
+    // protocol automatically when a user is on GLP-1 medication. Only 'glp1' is extracted —
+    // other medicalConditions values (e.g. 'diabetes-type2') are builder-routing flags, not
+    // guidance-layer condition keys, so they must not be injected into healthConditions.
+    const medicalConditionsGlp1 = (((user as any).medicalConditions as string[] | null) || [])
+      .filter((c: string) => c === "glp1");
+    const mergedHealthConditions = [...new Set([...healthConditions, ...specialtyConditionsArr, ...medicalConditionsGlp1])];
     const dislikedFoods: string[] = (user.dislikedFoods as string[]) || [];
     const avoidedFoods: string[] = (user.avoidedFoods as string[]) || [];
     const likedFoods: string[] = (user.likedFoods as string[]) || [];
     const preferredSweeteners: string[] = (user.preferredSweeteners as string[]) || [];
 
-    const { hardLimits, optimization } = classifyHealthConditions(healthConditions);
+    const { hardLimits, optimization } = classifyHealthConditions(mergedHealthConditions);
     const avoidances = [...new Set([...dislikedFoods, ...avoidedFoods])];
     const preferences = [...new Set([...likedFoods, ...preferredSweeteners])];
     const procedural = deriveProcedureRules(dietaryRestrictions);
@@ -642,10 +671,36 @@ export async function loadUserProtocolEnvelope(
       emphasis?: { highProteinNutrientDensity?: boolean };
     } | null;
 
-    const conditionGuidanceBlocks = buildUniversalConditionGuidance({
+    // ── THYROID SUPPORT — first-class protocol slot ──────────────────────────
+    // Activation cascade (any of these triggers the modifier):
+    //   1. specialtyCondition === 'thyroid-support' (self-selected in profile/onboarding)
+    //   2. healthConditions includes a thyroid key (e.g. 'hashimoto\'s', 'hypothyroidism')
+    //   3. Future: lab-resolved thyroid signal (handled at the API route level)
+    const THYROID_ACTIVATION_KEYS = new Set([
+      "thyroid-support", "thyroid support", "hashimoto's", "hashimotos",
+      "hypothyroidism", "autoimmune thyroid", "thyroid disease",
+    ]);
+    const thyroidSupport: boolean =
+      user.specialtyCondition === "thyroid-support" ||
+      specialtyConditionsArr.includes("thyroid-support") ||
+      mergedHealthConditions.some(c => THYROID_ACTIVATION_KEYS.has(c.trim().toLowerCase()));
+
+    const thyroidMedication: string | null = (user.thyroidMedication as string | null) ?? null;
+
+    const conditionGuidanceBlocks = await buildUniversalConditionGuidance({
       userId,
-      healthConditions,
+      healthConditions: mergedHealthConditions,
       oncologySupportContext,
+      thyroidSupportContext: thyroidSupport
+        ? {
+            active: true,
+            medication: thyroidMedication,
+            labDriven: false,
+            isAutoimmune: healthConditions.some(c =>
+              ["hashimoto's", "hashimotos", "autoimmune thyroid"].includes(c.trim().toLowerCase())
+            ),
+          }
+        : null,
     });
 
     return {
@@ -663,6 +718,8 @@ export async function loadUserProtocolEnvelope(
       hasDiabetes,
       diabeticGlucoseState,
       conditionGuidanceBlocks,
+      thyroidSupport,
+      thyroidMedication,
     };
   } catch (error) {
     console.error("[ProtocolEnvelope] Failed to load envelope:", error);
@@ -690,6 +747,8 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     hasDiabetes: false,
     diabeticGlucoseState: null,
     conditionGuidanceBlocks: [],
+    thyroidSupport: false,
+    thyroidMedication: null,
   };
 }
 

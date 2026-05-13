@@ -39,6 +39,8 @@ import { LockedDayDialog } from "@/components/biometrics/LockedDayDialog";
 import { lockDay, isDayLocked } from "@/lib/lockedDays";
 import { setQuickView } from "@/lib/macrosQuickView";
 import { getMacroTargets } from "@/lib/dailyLimits";
+import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import WeeklyOverviewModal from "@/components/WeeklyOverviewModal";
 import BuilderShoppingBar from "@/components/BuilderShoppingBar";
@@ -122,7 +124,8 @@ const GLP1_BUILDER_TOUR_STEPS: TourStep[] = [
   { icon: "5", title: "Shopping List", description: "Export ingredients for easy meal prep shopping." },
   { icon: "6", title: "Track Progress at Bottom", description: "The bottom bar shows color-coded progress: green = on track, yellow = close, red = over. Tap 'Save Day' to lock your day to Biometrics." },
   { icon: "🥔", title: "Watch Your Starch Slots", description: "The starch indicator shows your daily starch meal status. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!" },
-  { icon: "*", title: "What the Asterisks Mean", description: "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first." }
+  { icon: "*", title: "What the Asterisks Mean", description: "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first." },
+  { icon: "+", title: "Clinical Conditions Stack Here Too", description: "If you have cardiac, renal, thyroid, oncology, or other conditions set in your profile, those clinical protocols are active on top of this builder right now — automatically. Every meal generated here follows all your active clinical rules at once. Update your conditions anytime in Edit Profile." }
 ];
 
 // CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
@@ -143,6 +146,60 @@ export default function GLP1MealBuilder() {
   const { user } = useAuth();
 
   const effectiveUserId = proClientId || user?.id;
+
+  // Thyroid modifier bridge + lab/specialty condition indicator state.
+  // Single labs fetch populates both thyroid bridge and all active protocol indicators.
+  const [thyroidFromSpecialtyCondition, setThyroidFromSpecialtyCondition] = useState(false);
+  const [labDerivedConditions, setLabDerivedConditions] = useState<string[]>([]);
+  useEffect(() => {
+    if (!effectiveUserId) return;
+    let cancelled = false;
+    fetch(apiUrl(`/api/biometrics/labs/${effectiveUserId}`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (cancelled) return;
+        const derived: string[] = [];
+        // Lab-value-driven signal (e.g. LDL ≥ 130 → heart-failure)
+        if (data?.protocolSignal?.protocol) derived.push(data.protocolSignal.protocol);
+        // User self-selected specialtyConditions → protocol key mapping
+        const scMap: Record<string, string> = {
+          cardiac: 'heart-failure', renal: 'kidney-disease',
+          'liver-disease': 'liver-disease', 'liver-support': 'liver-support',
+          'oncology-support': 'oncology-support',
+        };
+        const scArr: string[] = data?.specialtyConditions ?? (data?.specialtyCondition ? [data.specialtyCondition] : []);
+        for (const sc of scArr) {
+          const mapped = scMap[sc];
+          if (mapped && !derived.includes(mapped)) derived.push(mapped);
+        }
+        setLabDerivedConditions(derived);
+        // Thyroid bridge
+        if (scArr.includes('thyroid-support')) setThyroidFromSpecialtyCondition(true);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [effectiveUserId]);
+
+  // Anti-Inflammatory support bridge: user opted in via Edit Profile → app-preferences
+  const [antiInflammatoryFromUserPrefs, setAntiInflammatoryFromUserPrefs] = useState(false);
+  useEffect(() => {
+    if (!effectiveUserId) return;
+    let cancelled = false;
+    fetch(apiUrl(`/api/users/${effectiveUserId}/app-preferences`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((prefs) => {
+        if (cancelled) return;
+        if (prefs?.antiInflammatorySupport) setAntiInflammatoryFromUserPrefs(true);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [effectiveUserId]);
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
@@ -1072,6 +1129,30 @@ export default function GLP1MealBuilder() {
                 />
               </div>
             )}
+
+          {/* ROW 4.5: Active Clinical Supports */}
+          <div className="flex justify-center">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
+              <span className="font-medium text-white/70">Active Clinical Supports:</span>
+              {(() => {
+                const flags = effectiveUserId ? getResolvedTargets(effectiveUserId)?.flags : null;
+                return [
+                  { key: "anti-inflammatory", label: "Anti-Inflammatory", isActive: !!flags?.antiInflammatory || antiInflammatoryFromUserPrefs,                                            activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
+                  { key: "cardiac",            label: "Cardiac Health",    isActive: !!flags?.cardiac           || labDerivedConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
+                  { key: "kidney-disease",     label: "Kidney Disease",    isActive: !!flags?.renal             || labDerivedConditions.includes('kidney-disease'),   activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
+                  { key: "liver-support",      label: "Liver Support",     isActive: !!flags?.liverSupport      || labDerivedConditions.includes('liver-support'),    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
+                  { key: "liver-disease",      label: "Liver Disease",     isActive: !!flags?.liverDisease      || labDerivedConditions.includes('liver-disease'),    activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
+                  { key: "oncology-support",   label: "Oncology Support",  isActive: !!flags?.oncologySupport   || labDerivedConditions.includes('oncology-support'), activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
+                  { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!flags?.thyroidSupport    || thyroidFromSpecialtyCondition,                     activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
+                  <span key={key} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
+                    <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
+                    {label}
+                  </span>
+                ));
+              })()}
+            </div>
+          </div>
 
           {/* ROW 5: Bottom Actions */}
           <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">

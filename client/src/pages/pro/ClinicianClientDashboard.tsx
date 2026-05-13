@@ -120,6 +120,7 @@ export default function ClinicianClientDashboard() {
     ejection_fraction: number | null;
   }
   const [labs, setLabs] = useState<LabsSummary | null>(null);
+  const [labDerivedConditions, setLabDerivedConditions] = useState<string[]>([]);
 
   interface BodyCompEntry {
     id: number;
@@ -190,6 +191,20 @@ export default function ClinicianClientDashboard() {
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (data?.labs) setLabs(data.labs);
+        // Derive active conditions from lab signal + user specialty selections
+        const derived: string[] = [];
+        if (data?.protocolSignal?.protocol) derived.push(data.protocolSignal.protocol);
+        const scMap: Record<string, string> = {
+          cardiac: 'heart-failure', renal: 'kidney-disease',
+          'liver-disease': 'liver-disease', 'liver-support': 'liver-support',
+          'oncology-support': 'oncology-support',
+        };
+        const scArr: string[] = data?.specialtyConditions ?? (data?.specialtyCondition ? [data.specialtyCondition] : []);
+        for (const sc of scArr) {
+          const mapped = scMap[sc];
+          if (mapped && !derived.includes(mapped)) derived.push(mapped);
+        }
+        setLabDerivedConditions(derived);
       })
       .catch(() => {});
     // Load physician-assigned oncology support state from DB
@@ -201,6 +216,18 @@ export default function ClinicianClientDashboard() {
       .then((data) => {
         if (data?.oncologySupportContext?.enabled) {
           setT((prev) => ({ ...prev, flags: { ...prev.flags, oncologySupport: true } }));
+        }
+      })
+      .catch(() => {});
+    // Load physician-assigned GLP-1 protocol state from DB
+    fetch(apiUrl(`/api/pro/glp1-protocol/${uid}`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.glp1Active) {
+          setT((prev) => ({ ...prev, flags: { ...prev.flags, glp1: true } }));
         }
       })
       .catch(() => {});
@@ -278,6 +305,23 @@ export default function ClinicianClientDashboard() {
         });
       } catch (e) {
         console.error("Failed to sync oncology support to database:", e);
+      }
+    }
+
+    // Persist GLP-1 protocol flag — writes to client's medicalConditions so the
+    // protocol envelope stacks GLP-1 guidance automatically on the next generation call
+    if (dbUserId) {
+      try {
+        await fetch(apiUrl(`/api/pro/glp1-protocol/${dbUserId}`), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          credentials: "include",
+          body: JSON.stringify({
+            enabled: !!(t.flags as Record<string, boolean> | undefined)?.glp1,
+          }),
+        });
+      } catch (e) {
+        console.error("Failed to sync GLP-1 protocol to database:", e);
       }
     }
 
@@ -484,6 +528,24 @@ export default function ClinicianClientDashboard() {
               Active Protocol: {activeProtocolLabel}
             </div>
           )}
+          {/* Active Clinical Supports */}
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
+            <span className="font-medium text-white/70">Active Clinical Supports:</span>
+            {[
+              { key: "anti-inflammatory", label: "Anti-Inflammatory", isActive: true,                        activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
+              { key: "cardiac",            label: "Cardiac Health",    isActive: !!t?.flags?.cardiac          || labDerivedConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
+              { key: "kidney-disease",     label: "Kidney Disease",    isActive: !!t?.flags?.renal            || labDerivedConditions.includes('kidney-disease'),   activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
+              { key: "liver-support",      label: "Liver Support",     isActive: !!t?.flags?.liverSupport     || labDerivedConditions.includes('liver-support'),    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
+              { key: "liver-disease",      label: "Liver Disease",     isActive: !!t?.flags?.liverDisease     || labDerivedConditions.includes('liver-disease'),    activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
+              { key: "oncology-support",   label: "Oncology Support",  isActive: !!t?.flags?.oncologySupport  || labDerivedConditions.includes('oncology-support'), activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
+              { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!t?.flags?.thyroidSupport,                                                        activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+            ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
+              <span key={key} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
+                <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
+                {label}
+              </span>
+            ))}
+          </div>
           {clientGoal?.goalType && (
             <div className="mt-3 flex items-center gap-3 rounded-xl bg-orange-500/10 border border-orange-500/30 px-4 py-3">
               <span className="text-2xl">
@@ -612,7 +674,7 @@ export default function ClinicianClientDashboard() {
 
               <div className="mt-3 pt-3 border-t border-white/10">
                 <p className="text-xs text-white/50 mb-2">Physician-Initiated Protocol</p>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   {(() => {
                     const isOn = !!(t.flags as Record<string, boolean> | undefined)?.oncologySupport;
                     return (
@@ -630,8 +692,30 @@ export default function ClinicianClientDashboard() {
                       </button>
                     );
                   })()}
+                  {(() => {
+                    const isOn = !!(t.flags as Record<string, boolean> | undefined)?.glp1;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => updateT({ ...t, flags: { ...t.flags, glp1: !isOn } })}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 active:scale-[0.97] border ${
+                          isOn
+                            ? "bg-orange-600 border-orange-400 text-white"
+                            : "bg-black/30 border-orange-900/40 text-white/70 hover:bg-orange-950/40 hover:text-white"
+                        }`}
+                      >
+                        {isOn && <Check className="inline h-3 w-3 mr-1 -mt-0.5" />}
+                        💉 GLP-1 Active
+                      </button>
+                    );
+                  })()}
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1.5">
                   {!!(t.flags as Record<string, boolean> | undefined)?.oncologySupport && (
-                    <span className="text-xs text-rose-300/80">Cancer support nutrition overlay active — save to persist</span>
+                    <span className="text-xs text-rose-300/80">Oncology overlay active — save to persist</span>
+                  )}
+                  {!!(t.flags as Record<string, boolean> | undefined)?.glp1 && (
+                    <span className="text-xs text-orange-300/80">GLP-1 protocol active — stacks with diabetic builder on save</span>
                   )}
                 </div>
               </div>

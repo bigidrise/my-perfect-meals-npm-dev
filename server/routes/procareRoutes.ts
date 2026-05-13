@@ -460,6 +460,98 @@ router.put("/oncology-support/:clientUserId", async (req, res) => {
   }
 });
 
+// ─── GLP-1 Protocol — Physician Assignment ────────────────────────────────────
+
+/**
+ * GET /api/pro/glp1-protocol/:clientUserId
+ * Read whether GLP-1 protocol is physician-assigned for a client.
+ */
+router.get("/glp1-protocol/:clientUserId", async (req, res) => {
+  try {
+    const requesterId = getUserId(req);
+    const { clientUserId } = req.params;
+
+    const hasAccess = await verifyClinicalAccess(requesterId, clientUserId);
+    if (!hasAccess) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    const [row] = await db
+      .select({ medicalConditions: users.medicalConditions })
+      .from(users)
+      .where(eq(users.id, clientUserId as any))
+      .limit(1);
+
+    const mc: string[] = Array.isArray(row?.medicalConditions) ? row.medicalConditions as string[] : [];
+    res.json({ glp1Active: mc.includes("glp1"), medicalConditions: mc });
+  } catch (error: any) {
+    console.error("[glp1-protocol GET]", error);
+    res.status(500).json({ error: "Failed to retrieve GLP-1 protocol status" });
+  }
+});
+
+/**
+ * PUT /api/pro/glp1-protocol/:clientUserId
+ * Physician-only: assign or remove GLP-1 Active from a client's medicalConditions.
+ * Body: { enabled: boolean }
+ *
+ * Preserves all other medicalConditions values — only toggles 'glp1'.
+ * The protocol envelope reads medicalConditions and stacks GLP-1 guidance
+ * automatically on the next meal generation call.
+ */
+router.put("/glp1-protocol/:clientUserId", async (req, res) => {
+  try {
+    const requesterId = getUserId(req);
+    const { clientUserId } = req.params;
+
+    const hasAccess = await verifyClinicalAccess(requesterId, clientUserId);
+    if (!hasAccess) {
+      console.warn(`[glp1-protocol PUT] UNAUTHORIZED: ${requesterId} attempted to write GLP-1 protocol for ${clientUserId}`);
+      return res.status(403).json({ error: "You are not authorized to update this client's protocol" });
+    }
+
+    const { enabled } = req.body;
+    if (typeof enabled !== "boolean") {
+      return res.status(400).json({ error: "enabled must be a boolean" });
+    }
+
+    // Physician name for audit trail
+    const [physician] = await db
+      .select({ firstName: users.firstName, lastName: users.lastName, username: users.username })
+      .from(users)
+      .where(eq(users.id, requesterId as any))
+      .limit(1);
+
+    const ownerName = physician
+      ? (physician.firstName && physician.lastName
+          ? `${physician.firstName} ${physician.lastName}`
+          : physician.firstName || physician.username || "Your Physician")
+      : null;
+
+    // Toggle 'glp1' — preserve all other medicalConditions values
+    const [clientRow] = await db
+      .select({ medicalConditions: users.medicalConditions })
+      .from(users)
+      .where(eq(users.id, clientUserId as any))
+      .limit(1);
+
+    const existing: string[] = Array.isArray(clientRow?.medicalConditions) ? clientRow.medicalConditions as string[] : [];
+    const withoutGlp1 = existing.filter((v: string) => v !== "glp1");
+    const updated = enabled ? [...withoutGlp1, "glp1"] : withoutGlp1;
+
+    await db
+      .update(users)
+      .set({ medicalConditions: updated as any, updatedAt: new Date() })
+      .where(eq(users.id, clientUserId as any));
+
+    console.log(`[glp1-protocol PUT] Physician ${requesterId} (${ownerName ?? "unknown"}) ${enabled ? "assigned" : "removed"} GLP-1 Active for client ${clientUserId}`);
+    res.json({ ok: true, glp1Active: enabled, medicalConditions: updated });
+  } catch (error: any) {
+    console.error("[glp1-protocol PUT]", error);
+    res.status(500).json({ error: "Failed to update GLP-1 protocol", detail: error?.message });
+  }
+});
+
 // ─── Workspace-Aware Board Endpoints (T002) ───────────────────────────────────
 // Architecture: actorUserId = req.authUser.id (pro), workspaceUserId = :clientId (client)
 // requireWorkspaceAccess validates the active clientLinks relationship before any data is served.

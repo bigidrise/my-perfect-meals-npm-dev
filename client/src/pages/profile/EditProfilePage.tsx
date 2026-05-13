@@ -263,9 +263,16 @@ export default function EditProfilePage() {
       : (form.cuisinePreference || "")
   );
 
-  const [specialtyCondition, setSpecialtyCondition] = useState<string | null>(
-    user?.specialtyCondition ?? null
+  const [specialtyConditions, setSpecialtyConditions] = useState<string[]>(
+    (user as any)?.specialtyConditions ?? (user?.specialtyCondition ? [user.specialtyCondition] : [])
   );
+  const [glp1Active, setGlp1Active] = useState<boolean>(
+    !!((user as any)?.medicalConditions as string[] | undefined)?.includes("glp1")
+  );
+  const [thyroidMedication, setThyroidMedication] = useState<string>(
+    (user as any)?.thyroidMedication ?? ""
+  );
+  const [antiInflammatorySupport, setAntiInflammatorySupport] = useState(false);
 
   // Protocol Ownership Model — physician-set oncology context (read from server)
   const oncologyCtx = user?.oncologySupportContext ?? null;
@@ -311,10 +318,26 @@ export default function EditProfilePage() {
     // so that a background user-data refresh doesn't wipe the PIN unlock mid-flow
   }, [initial]);
 
-  // Sync specialtyCondition from user object — handles async load and protocol persistence
+  // Sync specialtyConditions from user object — handles async load and protocol persistence
   useEffect(() => {
-    setSpecialtyCondition(user?.specialtyCondition ?? null);
-  }, [user?.specialtyCondition]);
+    const arr: string[] = (user as any)?.specialtyConditions ?? (user?.specialtyCondition ? [user.specialtyCondition] : []);
+    setSpecialtyConditions(arr);
+  }, [(user as any)?.specialtyConditions, user?.specialtyCondition]);
+
+  // Sync glp1Active from user object
+  useEffect(() => {
+    const mc = (user as any)?.medicalConditions as string[] | undefined;
+    setGlp1Active(!!(mc?.includes("glp1")));
+  }, [(user as any)?.medicalConditions]);
+
+  // Load anti-inflammatory support preference from server (stored in app-preferences)
+  useEffect(() => {
+    if (!user?.id) return;
+    fetch(apiUrl(`/api/users/${user.id}/app-preferences`), { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(prefs => { if (prefs?.antiInflammatorySupport) setAntiInflammatorySupport(true); })
+      .catch(() => {});
+  }, [user?.id]);
   
   const verifyPinForAllergies = async () => {
     if (pinInput.length !== 4) {
@@ -426,7 +449,16 @@ export default function EditProfilePage() {
         goalTimelineWeeks: goalTimelineWeeks,
         goalStartDate: goalChanged && (goalTarget.trim() || goalTimelineWeeks) ? new Date().toISOString() : undefined,
         ...(allergiesChanged && allergyEditToken ? { allergyEditToken } : {}),
-      };
+      } as any;
+
+      // Merge glp1Active into medicalConditions — preserve existing values, only toggle 'glp1'
+      const existingMedical: string[] = Array.isArray((user as any)?.medicalConditions)
+        ? (user as any).medicalConditions
+        : [];
+      const medicalWithoutGlp1 = existingMedical.filter((v: string) => v !== "glp1");
+      (payload as any).medicalConditions = glp1Active
+        ? [...medicalWithoutGlp1, "glp1"]
+        : medicalWithoutGlp1;
 
       const authToken = getAuthToken();
       const res = await fetch(apiUrl("/api/users/profile"), {
@@ -452,8 +484,32 @@ export default function EditProfilePage() {
           ...(authToken ? { "x-auth-token": authToken } : {}),
         },
         credentials: "include",
-        body: JSON.stringify({ condition: specialtyCondition }),
+        body: JSON.stringify({ conditions: specialtyConditions }),
       }).catch(() => {});
+
+      // Save thyroid medication (only relevant when thyroid-support is active, but always sync)
+      await fetch(apiUrl("/api/user/thyroid-medication"), {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(authToken ? { "x-auth-token": authToken } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify({ medication: thyroidMedication.trim() || null }),
+      }).catch(() => {});
+
+      // Save anti-inflammatory support preference
+      if (user?.id) {
+        await fetch(apiUrl(`/api/users/${user.id}/app-preferences`), {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            ...(authToken ? { "x-auth-token": authToken } : {}),
+          },
+          credentials: "include",
+          body: JSON.stringify({ antiInflammatorySupport }),
+        }).catch(() => {});
+      }
 
       await refreshUser?.();
 
@@ -977,7 +1033,7 @@ export default function EditProfilePage() {
                 )}
 
                 <p className="text-white/60 text-xs mb-3">
-                  Select if you have one of these conditions. This immediately activates the appropriate nutrition protocol in your Anti-Inflammatory Builder — no lab entry required. You can always add labs later for precision refinement.
+                  Select all conditions that apply — you can choose more than one. Each condition you select immediately activates its full clinical protocol across every meal generator, and all selected conditions stack together. No lab entry required. You can add labs later for precision refinement.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {([
@@ -986,30 +1042,65 @@ export default function EditProfilePage() {
                     { label: "Liver Disease", value: "liver-disease" },
                     { label: "Liver Support", value: "liver-support" },
                     { label: "Cancer / Oncology Support", value: "oncology-support" },
+                    { label: "Thyroid Support", value: "thyroid-support" },
                   ] as const).map((opt) => (
                     <PillButton
                       key={opt.value}
-                      active={specialtyCondition === opt.value}
+                      active={specialtyConditions.includes(opt.value)}
                       onClick={() => {
                         // Physician-locked: block self-select changes while care team is in control
                         if (physicianOncologyLocked && opt.value === "oncology-support") return;
-                        setSpecialtyCondition((prev) => prev === opt.value ? null : opt.value);
+                        setSpecialtyConditions((prev) =>
+                          prev.includes(opt.value) ? prev.filter(c => c !== opt.value) : [...prev, opt.value]
+                        );
                       }}
                       className={physicianOncologyLocked && opt.value === "oncology-support" ? "opacity-50 cursor-not-allowed" : ""}
                     >
                       {opt.label}
                     </PillButton>
                   ))}
-                  {specialtyCondition && !physicianOncologyLocked && (
+                  <PillButton
+                    active={glp1Active}
+                    onClick={() => setGlp1Active(prev => !prev)}
+                  >
+                    GLP-1 Active
+                  </PillButton>
+                  {(specialtyConditions.length > 0 || glp1Active) && !physicianOncologyLocked && (
                     <PillButton
                       active={false}
-                      onClick={() => setSpecialtyCondition(null)}
+                      onClick={() => { setSpecialtyConditions([]); setGlp1Active(false); }}
                     >
-                      Clear ×
+                      Clear All ×
                     </PillButton>
                   )}
                 </div>
-                {specialtyCondition === "oncology-support" && !physicianOncologyActive && (
+                {specialtyConditions.includes("thyroid-support") && (
+                  <div className="mt-3 rounded-xl border border-teal-500/40 bg-teal-950/30 p-3 space-y-3">
+                    <div className="flex items-start gap-2">
+                      <span className="text-teal-400 text-base mt-0.5">🦋</span>
+                      <div>
+                        <p className="text-teal-300 text-xs font-semibold mb-1">Thyroid Support — Nutritional Guidance Only</p>
+                        <p className="text-white/70 text-xs leading-relaxed">
+                          This activates anti-inflammatory, selenium-focused meal guidance designed to complement thyroid wellness — including smart medication timing awareness if you take thyroid medication. This is <span className="text-white font-medium">not a medical diagnosis</span> and is <span className="text-white font-medium">not a substitute for your doctor or endocrinologist's care</span>. Always follow your healthcare provider's recommendations.
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-teal-300/80 text-xs font-medium block mb-1">
+                        Thyroid Medication <span className="text-white/40 font-normal">(optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={thyroidMedication}
+                        onChange={(e) => setThyroidMedication(e.target.value)}
+                        placeholder="e.g. Levothyroxine 50mcg"
+                        className="w-full bg-black/40 border border-teal-500/30 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-teal-400/60"
+                      />
+                      <p className="text-white/35 text-[10px] mt-1">Helps the AI suggest appropriate meal timing around your medication schedule.</p>
+                    </div>
+                  </div>
+                )}
+                {specialtyConditions.includes("oncology-support") && !physicianOncologyActive && (
                   <div className="mt-3 rounded-xl border border-rose-500/40 bg-rose-950/30 p-3">
                     <div className="flex items-start gap-2">
                       <span className="text-rose-400 text-base mt-0.5">🎗️</span>
@@ -1022,6 +1113,33 @@ export default function EditProfilePage() {
                     </div>
                   </div>
                 )}
+                {glp1Active && (
+                  <div className="mt-3 rounded-xl border border-orange-500/40 bg-orange-950/20 p-3">
+                    <div className="flex items-start gap-2">
+                      <span className="text-orange-400 text-base mt-0.5">💉</span>
+                      <div>
+                        <p className="text-orange-300 text-xs font-semibold mb-1">GLP-1 Medication Support — Nutritional Guidance Only</p>
+                        <p className="text-white/70 text-xs leading-relaxed">
+                          Enabling this activates GLP-1 aware meal generation — smaller, nutrient-dense portions, high protein floors (≥25g), nausea-safe ingredients, and reduced fat ceilings to match how GLP-1 medications affect appetite and digestion. If you are on a diabetic protocol, both layers stack automatically. This is <span className="text-white font-medium">not a substitute for your prescribing doctor's guidance</span>. Always follow your physician's instructions.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Anti-Inflammatory Support — independent toggle, not part of specialty condition */}
+              <div className="rounded-xl border border-green-500/20 bg-green-950/10 p-3">
+                <p className="text-white/80 text-xs font-semibold mb-1">Anti-Inflammatory Support</p>
+                <p className="text-white/50 text-xs mb-3 leading-relaxed">
+                  Layer anti-inflammatory nutrition optimization onto any builder — including GLP-1 and Diabetic. Emphasizes food quality, healthy fats, and reduced ultra-processed ingredients. No medical condition required.
+                </p>
+                <PillButton
+                  active={antiInflammatorySupport}
+                  onClick={() => setAntiInflammatorySupport(prev => !prev)}
+                >
+                  {antiInflammatorySupport ? "Active — Anti-Inflammatory" : "Enable Anti-Inflammatory Support"}
+                </PillButton>
               </div>
 
               <div className="rounded-xl border border-white/10 bg-black/30 p-3">
@@ -1487,7 +1605,14 @@ export default function EditProfilePage() {
                   Cuisine Identity: {form.cuisinePreference ? `${form.cuisinePreference.charAt(0).toUpperCase() + form.cuisinePreference.slice(1)} — ${form.cuisineIntensity || "balanced"}` : "Not set"}
                 </p>
                 <p className="text-white/80 text-xs">
-                  Special Protocol: {specialtyCondition === "renal" ? "Kidney / Renal Disease" : specialtyCondition === "cardiac" ? "Cardiac / Heart Disease" : specialtyCondition === "liver-disease" ? "Liver Disease" : specialtyCondition === "liver-support" ? "Liver Support" : specialtyCondition === "oncology-support" ? "Cancer / Oncology Support" : "None"}
+                  Special Protocol: {specialtyConditions.length === 0 ? "None" : specialtyConditions.map(c =>
+                    c === "renal" ? "Kidney / Renal Disease" :
+                    c === "cardiac" ? "Cardiac / Heart Disease" :
+                    c === "liver-disease" ? "Liver Disease" :
+                    c === "liver-support" ? "Liver Support" :
+                    c === "oncology-support" ? "Cancer / Oncology Support" :
+                    c === "thyroid-support" ? "Thyroid Support" : c
+                  ).join(", ")}
                 </p>
               </div>
 

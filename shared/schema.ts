@@ -386,8 +386,9 @@ export const users = pgTable("users", {
   medicalConditions: text("medical_conditions").array().default(sql`ARRAY[]::text[]`), // diabetes-type1, diabetes-type2, prediabetes, glp1, anti-inflammatory, none
   // Self-selected specialty health protocol — activates the appropriate clinical variant of the Anti-Inflammatory Builder
   // without requiring lab values. Labs remain optional for precision refinement.
-  // Values: 'renal' | 'cardiac' | 'liver-disease' | 'liver-support' | 'oncology-support' | null
+  // Values: 'renal' | 'cardiac' | 'liver-disease' | 'liver-support' | 'oncology-support' | 'thyroid-support' | null
   specialtyCondition: text("specialty_condition"),
+  specialtyConditions: text("specialty_conditions").array().default(sql`ARRAY[]::text[]`),
   preferredBuilder: text("preferred_builder"), // diabetic, glp1, anti-inflammatory, general — starting recommendation from onboarding
   flavorPreference: text("flavor_preference"), // bold-spicy, comfort, mediterranean, balanced, unsure
   heatPreference: text("heat_preference"), // none, mild, medium, hot, very-hot, unsure
@@ -409,6 +410,10 @@ export const users = pgTable("users", {
   // null = user skipped this step. Set only by the user themselves during onboarding or in settings.
   oncologySupportIntent: text("oncology_support_intent").$type<"own_provider" | "request_support" | "self_directed">(),
   oncologySupportIntentSetAt: timestamp("oncology_support_intent_set_at", { withTimezone: true }),
+  // Thyroid Support — self-selected during onboarding or edit profile. Stores the user's thyroid medication
+  // name if they are on medication (e.g., "Levothyroxine", "Synthroid"). null = no medication disclosed.
+  // Used by the Thyroid Support protocol for medication timing awareness in meal generation.
+  thyroidMedication: text("thyroid_medication"),
   // Flags 'request_support' intent for future professional follow-up surfacing
   needsProfessionalFollowup: boolean("needs_professional_followup").default(false),
   // Client Goals — set during onboarding, displayed on dashboard + coach folder
@@ -418,7 +423,8 @@ export const users = pgTable("users", {
   goalStartDate: timestamp("goal_start_date", { withTimezone: true }),
   // Coach / Provider Availability — controlled from Care Team page (professionals only)
   availabilityStatus: text("availability_status").$type<"available"|"busy"|"away"|"offline">().default("available"),
-  backAt: timestamp("back_at", { withTimezone: true }), // optional return date when not available
+  backAt: timestamp("back_at", { withTimezone: true }), // optional return date / end of away period
+  awayFrom: timestamp("away_from", { withTimezone: true }), // start date of away/vacation period
   // Creator System Layer — which branded system this user has activated (default = MPM standard)
   activeSystem: text("active_system").default("default"),
   // Admin access — server-enforced, never trust frontend alone

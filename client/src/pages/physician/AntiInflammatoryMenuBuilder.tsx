@@ -128,7 +128,8 @@ const ANTI_INFLAMMATORY_TOUR_STEPS: TourStep[] = [
   { icon: "5", title: "Shopping List", description: "Export ingredients for healing-focused grocery shopping." },
   { icon: "6", title: "Track Progress at Bottom", description: "The bottom bar shows color-coded progress: green = on track, yellow = close, red = over. Tap 'Save Day' to lock your day to Biometrics." },
   { icon: "🥔", title: "Watch Your Starch Slots", description: "The starch indicator shows your daily starch meal status. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!" },
-  { icon: "*", title: "What the Asterisks Mean", description: "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first." }
+  { icon: "*", title: "What the Asterisks Mean", description: "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first." },
+  { icon: "+", title: "Clinical Conditions Stack Here Too", description: "If you have cardiac, renal, thyroid, oncology, or other conditions set in your profile, those clinical protocols are active on top of this builder right now — automatically. Every meal generated here follows all your active clinical rules at once. Update your conditions anytime in Edit Profile." }
 ];
 
 // CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
@@ -167,6 +168,11 @@ export default function AntiInflammatoryMenuBuilder() {
     ).mode
   );
 
+  // Tracks thyroid support when user self-selected via edit page / onboarding.
+  // This is separate from primary clinicalModeState because thyroid is an
+  // additive modifier — it never changes the primary mode.
+  const [thyroidFromSpecialtyCondition, setThyroidFromSpecialtyCondition] = React.useState(false);
+
   // Redirect legacy clinical routes to canonical anti-inflammatory route.
   // Mode is now determined by physician flags, not by URL path.
   useEffect(() => {
@@ -186,11 +192,14 @@ export default function AntiInflammatoryMenuBuilder() {
   }, [effectiveUserId]);
 
   const resolvedProtocol = useMemo(
-    () => resolveClinicalModeFromFlags(
-      effectiveUserId ? getResolvedTargets(effectiveUserId)?.flags : undefined
-    ),
+    () => resolveClinicalModeFromFlags({
+      ...(effectiveUserId ? getResolvedTargets(effectiveUserId)?.flags : undefined),
+      // Bridge: user self-selected thyroid via edit page / onboarding.
+      // Merge it into the flags so the modifier badge and indicator light fire.
+      ...(thyroidFromSpecialtyCondition ? { thyroidSupport: true } : {}),
+    }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [effectiveUserId, clinicalModeState]
+    [effectiveUserId, clinicalModeState, thyroidFromSpecialtyCondition]
   );
 
   const namespace = resolvedProtocol.namespace;
@@ -257,7 +266,16 @@ export default function AntiInflammatoryMenuBuilder() {
             'liver-disease':    'liver-disease',
             'liver-support':    'liver-support',
             'oncology-support': 'oncology-support',
+            // Thyroid is an ADDITIVE MODIFIER — it resolves as base anti-inflammatory
+            // at the primary mode level. The teal indicator light and modifier badge
+            // (from clinicalModeResolver.ts) signal the modifier is active.
+            'thyroid-support':  'anti-inflammatory',
           };
+          // Bridge: set modifier state so resolvedProtocol merges thyroidSupport
+          // into flags even though clinicalModeState stays 'anti-inflammatory'.
+          if (data.specialtyCondition === 'thyroid-support') {
+            setThyroidFromSpecialtyCondition(true);
+          }
           const mappedMode = conditionModeMap[data.specialtyCondition] as ClinicalMode | undefined;
           if (mappedMode) {
             console.log("[AntiInflamBuilder] specialtyCondition →", data.specialtyCondition, "→ mode:", mappedMode);
@@ -282,6 +300,8 @@ export default function AntiInflammatoryMenuBuilder() {
     "heart-failure":    { label: "Cardiac Health",   cls: "bg-red-600 text-white" },
     "liver-support":    { label: "Liver Support",    cls: "bg-emerald-600 text-white" },
     "oncology-support": { label: "Oncology Support", cls: "bg-rose-600 text-white" },
+    // Note: thyroid-support does NOT get a primary badge here because it's an additive
+    // modifier. Its teal badge comes from clinicalModeResolver.ts modifierBadges.
   };
   const activePrimaryBadge: ProtocolBadge | null = CLINICAL_MODE_BADGE[clinicalModeState] ?? null;
 
@@ -1284,13 +1304,18 @@ export default function AntiInflammatoryMenuBuilder() {
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
                 <span className="font-medium text-white/70">Active Protocol:</span>
                 {[
-                  { key: "heart-failure",    label: "Cardiac Health",   activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
-                  { key: "kidney-disease",   label: "Kidney Disease",   activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
-                  { key: "liver-support",    label: "Liver Support",    activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
-                  { key: "liver-disease",    label: "Liver Disease",    activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
-                  { key: "oncology-support", label: "Cancer Protocol",  activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
+                  { key: "heart-failure",    label: "Cardiac Health",   activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]" },
+                  { key: "kidney-disease",   label: "Kidney Disease",   activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"  },
+                  { key: "liver-support",    label: "Liver Support",    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"  },
+                  { key: "liver-disease",    label: "Liver Disease",    activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"  },
+                  { key: "oncology-support", label: "Oncology Support", activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
+                  { key: "thyroid-support", label: "Thyroid Support",  activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
                 ].map(({ key, label, activeColor, dotColor, dotGlow }) => {
-                  const isActive = clinicalModeState === key;
+                  // For thyroid-support: active when specialtyCondition is thyroid-support
+                  // (clinicalModeState stays 'anti-inflammatory' since thyroid is additive)
+                  const isActive = key === "thyroid-support"
+                    ? (resolvedProtocol.modifierBadges ?? []).some((b: { label: string }) => b.label === "Thyroid Support")
+                    : clinicalModeState === key;
                   return (
                     <span
                       key={key}

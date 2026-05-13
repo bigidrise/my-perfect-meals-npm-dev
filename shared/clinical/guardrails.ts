@@ -4,7 +4,8 @@ export type ClinicalMode =
   | "kidney-disease"
   | "heart-failure"
   | "liver-disease"
-  | "oncology-support";
+  | "oncology-support"
+  | "thyroid-support";
 
 interface GuardrailRules {
   hardBlock: string[];
@@ -59,6 +60,49 @@ const ONCOLOGY_SUPPORT_RULES: GuardrailRules = {
     "olive oil", "avocado", "walnuts", "almonds",
     "turmeric", "ginger", "garlic",
     "green tea", "flaxseed", "chia",
+  ],
+};
+
+// Thyroid Support — ADDITIVE MODIFIER rules.
+// Key design principle: NO blanket bans of cruciferous or soy.
+// Smart, context-aware discouragement only. No wellness mythology.
+// Sources: ATA, AACE, Endocrine Society, NIH.
+const THYROID_SUPPORT_RULES: GuardrailRules = {
+  hardBlock: [
+    // Iodine extremes — excess iodine can worsen autoimmune thyroid conditions
+    "seaweed supplement", "kelp supplement", "kelp powder", "iodine supplement",
+    // Ultra-processed / inflammatory
+    "alcohol", "beer", "wine", "liquor", "cocktail",
+    "soda", "energy drink",
+    "fast food", "ultra processed",
+    "deep fried",
+  ],
+  softDiscourage: [
+    // Excessive isolated soy — large amounts of soy isoflavones may interfere with thyroid hormone absorption
+    "soy protein isolate", "textured soy protein", "soy flour",
+    // Very large raw cruciferous servings — cooked is fine and encouraged; raw in large quantities
+    // may reduce iodine utilization in sensitive individuals. NOT a ban — a context-aware note.
+    "raw kale juice", "raw kale smoothie in excess",
+    // Millet — goitrogenic grain; limit when thyroid function is impaired
+    "millet",
+  ],
+  prioritize: [
+    // Selenium — critical for T4→T3 conversion (ATA/NIH)
+    "brazil nuts", "tuna", "sardines", "salmon", "shrimp", "chicken", "eggs",
+    // Anti-inflammatory foundation
+    "spinach", "arugula", "broccoli", "cauliflower",
+    "blueberries", "strawberries", "raspberries",
+    "olive oil", "avocado", "walnuts",
+    // Zinc — supports thyroid hormone production
+    "pumpkin seeds", "chickpeas", "lentils", "beef",
+    // Fiber — gut-thyroid axis support
+    "oats", "quinoa", "brown rice", "sweet potato",
+    // Magnesium and B vitamins
+    "spinach", "pumpkin seeds", "almonds",
+    // Anti-inflammatory spices
+    "turmeric", "ginger", "garlic",
+    // Vitamin D sources (autoimmune thyroid support)
+    "fortified milk", "mushrooms",
   ],
 };
 
@@ -138,6 +182,7 @@ export function getGuardrails(dietType: string): GuardrailRules {
   if (dietType === "heart-failure") return HEART_FAILURE_RULES;
   if (dietType === "liver-disease") return LIVER_DISEASE_RULES;
   if (dietType === "oncology-support") return ONCOLOGY_SUPPORT_RULES;
+  if (dietType === "thyroid-support")  return THYROID_SUPPORT_RULES;
   return { hardBlock: [], softDiscourage: [], prioritize: [] };
 }
 
@@ -289,6 +334,49 @@ PRIORITIZE:
 - Liver-supportive: coffee, green tea
 
 These guardrails apply to meal composition only. Do NOT override macro targets.
+`;
+    return basePrompt + "\n" + guardrailBlock;
+  }
+
+  if (dietType === "thyroid-support") {
+    const guardrailBlock = `
+THYROID SUPPORT NUTRITIONAL GUARDRAILS (ACTIVE — ADAPTIVE MODIFIER):
+This user has Thyroid Support active. These guidelines are applied as an adaptive layer
+on top of the base anti-inflammatory protocol. They are NOT a replacement for medical care.
+
+HARD BLOCKED — Never include in any form:
+- Iodine supplements or seaweed/kelp supplements (not the same as small amounts of nori in food — those are fine)
+- Alcohol of any kind (beer, wine, liquor, cocktails)
+- Ultra-processed foods (fast food, energy drinks, soda)
+- Deep fried foods
+
+SMART LIMITS — Avoid excessive amounts; normal culinary amounts are fine:
+- Soy protein isolate and textured soy protein in large quantities: these concentrated forms
+  may compete with thyroid hormone absorption. Regular tofu, edamame, and small amounts of
+  soy sauce are completely acceptable — this is about isolate/concentrate volumes only.
+- Very large quantities of raw cruciferous vegetables consumed all at once: cooking
+  eliminates the goitrogenic effect almost entirely. Normal culinary portions of raw
+  broccoli, cabbage, or kale are NOT blocked — only extreme raw-only concentrations.
+  Never tell the user to avoid cruciferous vegetables — that is wellness mythology, not science.
+- Millet: limit as a primary grain due to mild goitrogenic potential.
+
+PRIORITIZE — Include these regularly:
+- Selenium-rich proteins: salmon, sardines, tuna, eggs, chicken, shrimp, Brazil nuts
+  (selenium is critical for T4→T3 thyroid hormone conversion)
+- Anti-inflammatory vegetables: broccoli (cooked preferred), spinach, arugula, cauliflower
+- Antioxidant fruits: blueberries, strawberries, raspberries
+- Zinc-rich foods: pumpkin seeds, chickpeas, lentils, lean beef (supports thyroid hormone production)
+- Healthy fats: olive oil, avocado, walnuts (anti-inflammatory, autoimmune support)
+- Fiber anchor: oats, quinoa, brown rice, sweet potato (gut-thyroid axis)
+- Anti-inflammatory spices: turmeric, ginger, garlic
+
+LANGUAGE RULES — Critical for platform integrity:
+- Do NOT use language suggesting food can "heal the thyroid", "reverse thyroid disease",
+  "boost thyroid function", "cure Hashimoto's", or "detox the thyroid". 
+- Meal descriptions should be practical, nourishing, and clinical-neutral.
+- Never reference "thyroid detox", "thyroid cleanse", or "thyroid healing protocol".
+
+These guardrails apply to meal composition only. Do NOT override macro targets or calorie goals.
 `;
     return basePrompt + "\n" + guardrailBlock;
   }

@@ -8,7 +8,7 @@ import { eq, desc } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
 import { getAuthUserId } from "../utils/getAuthUserId";
 import { z } from "zod";
-import { resolveProtocolFromLabs, labSignalToSubtitle } from "../services/resolveProtocolFromLabs";
+import { resolveProtocolFromLabs, resolveThyroidFromLabs, labSignalToSubtitle } from "../services/resolveProtocolFromLabs";
 import { verifyClinicalAccess } from "../utils/verifyClinicalAccess";
 
 const router = express.Router();
@@ -22,9 +22,11 @@ const router = express.Router();
  *   Database→  column names:            snake_case  (e.g. blood_pressure_systolic)
  *
  * Single-word fields (a1c, ldl, hdl, creatinine, bun, inr, alt, ast,
- * bilirubin, albumin) are identical in all three layers — no mapping needed.
+ * bilirubin, albumin, tsh) are identical in all three layers — no mapping needed.
  * Multi-word fields require explicit snake→camel mapping in the POST handler
  * and explicit camel→snake mapping in the GET response.
+ * Thyroid fields: tsh (single-word, no mapping), free_t4→freeT4, free_t3→freeT3,
+ * tpo_antibodies→tpoAntibodies, thyroglobulin_antibodies→thyroglobulinAntibodies.
  *
  * Protocol precedence (must match clinicalModeResolver.ts exactly):
  *   liver-disease > kidney-disease > heart-failure > liver-support > base
@@ -56,6 +58,12 @@ const labsPayloadSchema = z.object({
   ast:       z.number().optional().nullable(),
   bilirubin: z.number().optional().nullable(),
   albumin:   z.number().optional().nullable(),
+  // Thyroid panel — Phase 1 (ATA/AACE/Endocrine Society thresholds)
+  tsh:                      z.number().optional().nullable(), // mIU/L — single-word, no mapping
+  free_t4:                  z.number().optional().nullable(), // ng/dL
+  free_t3:                  z.number().optional().nullable(), // pg/mL
+  tpo_antibodies:           z.number().optional().nullable(), // IU/mL
+  thyroglobulin_antibodies: z.number().optional().nullable(), // IU/mL
   notes: z.string().optional().nullable(),
   recorded_at: z.string().optional(),
   lab_date: z.string().optional().nullable(),
@@ -112,6 +120,11 @@ router.post("/", requireAuth, async (req, res) => {
         ast:       body.ast       != null ? String(body.ast)       : null,
         bilirubin: body.bilirubin != null ? String(body.bilirubin) : null,
         albumin:   body.albumin   != null ? String(body.albumin)   : null,
+        tsh:                     body.tsh                      != null ? String(body.tsh)                      : null,
+        freeT4:                  body.free_t4                  != null ? String(body.free_t4)                  : null,
+        freeT3:                  body.free_t3                  != null ? String(body.free_t3)                  : null,
+        tpoAntibodies:           body.tpo_antibodies           != null ? String(body.tpo_antibodies)           : null,
+        thyroglobulinAntibodies: body.thyroglobulin_antibodies != null ? String(body.thyroglobulin_antibodies) : null,
         notes: body.notes || null,
         labDate: body.lab_date || new Date().toISOString().split("T")[0],
         recordedAt: body.recorded_at ? new Date(body.recorded_at) : new Date(),
@@ -133,6 +146,15 @@ router.post("/", requireAuth, async (req, res) => {
       ejectionFraction:      body.ejection_fraction,
     });
 
+    // Thyroid resolver runs as a SEPARATE signal — additive modifier, not primary override
+    const thyroidSignal = resolveThyroidFromLabs({
+      tsh:                     body.tsh,
+      freeT4:                  body.free_t4,
+      freeT3:                  body.free_t3,
+      tpoAntibodies:           body.tpo_antibodies,
+      thyroglobulinAntibodies: body.thyroglobulin_antibodies,
+    });
+
     const [physicianLocked] = await Promise.all([
       getPhysicianLock(targetUserId as string),
     ]);
@@ -142,6 +164,7 @@ router.post("/", requireAuth, async (req, res) => {
       labId,
       protocolSignal,
       protocolSubtitle: labSignalToSubtitle(protocolSignal),
+      thyroidSignal: thyroidSignal.hasThyroidIndicators ? thyroidSignal : null,
       physicianLocked,
     });
   } catch (error: any) {
@@ -231,7 +254,7 @@ router.get("/:userId", requireAuth, async (req, res) => {
     if (rows.length === 0) {
       // Still check oncologySupportEnabled + specialtyCondition even with no labs on file
       const userRows0 = await db
-        .select({ oncologySupportContext: users.oncologySupportContext, specialtyCondition: users.specialtyCondition })
+        .select({ oncologySupportContext: users.oncologySupportContext, specialtyCondition: users.specialtyCondition, specialtyConditions: users.specialtyConditions })
         .from(users)
         .where(eq(users.id, userId as any))
         .limit(1);
@@ -240,6 +263,7 @@ router.get("/:userId", requireAuth, async (req, res) => {
         labs: null,
         oncologySupportEnabled: !!(oncologyCtx0?.enabled),
         specialtyCondition: userRows0[0]?.specialtyCondition ?? null,
+        specialtyConditions: (userRows0[0]?.specialtyConditions as string[]) ?? [],
       });
     }
 
@@ -259,9 +283,18 @@ router.get("/:userId", requireAuth, async (req, res) => {
       ejectionFraction:      r.ejectionFraction,
     });
 
+    // Thyroid resolver — additive modifier, separate from primary protocol chain
+    const thyroidSignal = resolveThyroidFromLabs({
+      tsh:                     r.tsh,
+      freeT4:                  r.freeT4,
+      freeT3:                  r.freeT3,
+      tpoAntibodies:           r.tpoAntibodies,
+      thyroglobulinAntibodies: r.thyroglobulinAntibodies,
+    });
+
     // Fetch the user's oncologySupportContext + specialtyCondition to include in the response
     const userRows = await db
-      .select({ oncologySupportContext: users.oncologySupportContext, specialtyCondition: users.specialtyCondition })
+      .select({ oncologySupportContext: users.oncologySupportContext, specialtyCondition: users.specialtyCondition, specialtyConditions: users.specialtyConditions })
       .from(users)
       .where(eq(users.id, userId as any))
       .limit(1);
@@ -284,19 +317,26 @@ router.get("/:userId", requireAuth, async (req, res) => {
         ast:       r.ast       ? parseFloat(r.ast)       : null,
         bilirubin: r.bilirubin ? parseFloat(r.bilirubin) : null,
         albumin:   r.albumin   ? parseFloat(r.albumin)   : null,
+        // Thyroid panel
+        tsh:                     r.tsh                     ? parseFloat(r.tsh)                     : null,
+        free_t4:                 r.freeT4                  ? parseFloat(r.freeT4)                  : null,
+        free_t3:                 r.freeT3                  ? parseFloat(r.freeT3)                  : null,
+        tpo_antibodies:          r.tpoAntibodies           ? parseFloat(r.tpoAntibodies)           : null,
+        thyroglobulin_antibodies:r.thyroglobulinAntibodies ? parseFloat(r.thyroglobulinAntibodies) : null,
         notes: r.notes,
         lab_date: r.labDate || null,
         recorded_at: r.recordedAt,
       },
-      // Protocol signal derived from the lab values.
-      // null  → no threshold crossed, patient stays on base anti-inflammatory.
-      // value → the resolver's recommended protocol with reason and confidence.
+      // Primary protocol signal — null = base anti-inflammatory.
       protocolSignal,
       protocolSubtitle: labSignalToSubtitle(protocolSignal),
+      // Thyroid modifier signal — separate from primary protocol (additive, not override).
+      thyroidSignal: thyroidSignal.hasThyroidIndicators ? thyroidSignal : null,
       // Physician-assigned oncology support overlay (independent of lab values)
       oncologySupportEnabled: !!(oncologyCtx?.enabled),
       // User self-selected specialty condition (activates protocol without lab entry)
       specialtyCondition: userRows[0]?.specialtyCondition ?? null,
+      specialtyConditions: (userRows[0]?.specialtyConditions as string[]) ?? [],
     });
   } catch (error: any) {
     console.error("[clinicalLabs GET]", error);

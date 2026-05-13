@@ -999,7 +999,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let oncologyFridgeBlock: string | undefined;
       const isOncologyRoute = (fridgeProtocolEnvelope.dietaryIdentity ?? []).includes('oncology-support')
         || fridgeNutritionContext.diet.includes('oncology-support')
-        || fridgeDbUser?.specialtyCondition === 'oncology-support';
+        || fridgeDbUser?.specialtyCondition === 'oncology-support'
+        || ((fridgeDbUser as any)?.specialtyConditions as string[] ?? []).includes('oncology-support');
 
       if (isOncologyRoute) {
         const fridgeText = fridgeItems.join(' ').toLowerCase();
@@ -2186,6 +2187,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         backAt: (user as any).backAt?.toISOString?.() ?? (user as any).backAt ?? null,
         oncologySupportIntent: user.oncologySupportIntent ?? null,
         specialtyCondition: user.specialtyCondition ?? null,
+        specialtyConditions: ((user as any).specialtyConditions as string[]) ?? [],
+        thyroidMedication: user.thyroidMedication ?? null,
         // Protocol Ownership Model: expose context to user so UI can show source/lock state
         oncologySupportContext: user.oncologySupportContext ?? null,
         activeSystem: user.activeSystem || null,
@@ -2202,23 +2205,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PATCH /api/user/specialty-condition
-  // Saves the user's self-selected specialty health protocol.
-  // Allowed values: 'renal' | 'cardiac' | 'liver-disease' | 'liver-support' | 'oncology-support' | null
+  // Saves the user's self-selected specialty health protocol(s).
+  // Accepts: { condition: string } (single, backward-compat) OR { conditions: string[] } (multi)
+  // Allowed values: 'renal' | 'cardiac' | 'liver-disease' | 'liver-support' | 'oncology-support' | 'thyroid-support'
   app.patch("/api/user/specialty-condition", requireAuth, async (req: any, res) => {
     try {
       const authReq = req as AuthenticatedRequest;
       const userId = authReq.authUser.id;
-      const ALLOWED = ["renal", "cardiac", "liver-disease", "liver-support", "oncology-support"] as const;
-      const { condition } = req.body;
+      const ALLOWED = ["renal", "cardiac", "liver-disease", "liver-support", "oncology-support", "thyroid-support"];
+      const { condition, conditions } = req.body;
+
+      // Multi-condition path: conditions[]
+      if (conditions !== undefined) {
+        if (!Array.isArray(conditions)) return res.status(400).json({ error: "conditions must be an array" });
+        const invalid = conditions.find((c: any) => !ALLOWED.includes(c));
+        if (invalid) return res.status(400).json({ error: `Invalid condition: ${invalid}` });
+        const primaryCondition = conditions.length > 0 ? conditions[0] : null;
+        await db.update(users).set({
+          specialtyCondition: primaryCondition,
+          specialtyConditions: conditions,
+        } as any).where(eq(users.id, userId));
+        console.log(`[specialty-condition] User ${userId} multi-set → [${conditions.join(', ')}]`);
+        return res.json({ ok: true, specialtyConditions: conditions, specialtyCondition: primaryCondition });
+      }
+
+      // Single-condition path: backward compat
       if (condition !== null && condition !== undefined && !ALLOWED.includes(condition)) {
         return res.status(400).json({ error: "Invalid specialty condition value" });
       }
-      await db.update(users).set({ specialtyCondition: condition ?? null }).where(eq(users.id, userId));
+      const newArray = condition ? [condition] : [];
+      await db.update(users).set({
+        specialtyCondition: condition ?? null,
+        specialtyConditions: newArray,
+      } as any).where(eq(users.id, userId));
       console.log(`[specialty-condition] User ${userId} set → ${condition ?? "null"}`);
-      res.json({ ok: true, specialtyCondition: condition ?? null });
+      res.json({ ok: true, specialtyCondition: condition ?? null, specialtyConditions: newArray });
     } catch (error: any) {
       console.error("[specialty-condition PATCH]", error);
       res.status(500).json({ error: "Failed to save specialty condition" });
+    }
+  });
+
+  // PATCH /api/user/thyroid-medication
+  // Saves the name/dosage of the user's thyroid medication (e.g. "Levothyroxine 50mcg").
+  // Free-text field; no normalization — stored verbatim for physician review.
+  app.patch("/api/user/thyroid-medication", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const { medication } = req.body;
+      const value = typeof medication === "string" ? medication.trim() || null : null;
+      await db.update(users).set({ thyroidMedication: value } as any).where(eq(users.id, userId));
+      console.log(`[thyroid-medication] User ${userId} set → ${value ?? "cleared"}`);
+      res.json({ ok: true, thyroidMedication: value });
+    } catch (error: any) {
+      console.error("[thyroid-medication PATCH]", error);
+      res.status(500).json({ error: "Failed to save thyroid medication" });
     }
   });
 

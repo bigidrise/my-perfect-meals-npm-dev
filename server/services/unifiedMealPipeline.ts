@@ -65,6 +65,7 @@ import { macroAudit, macroAuditPrompt, macroAuditCache } from '../utils/macroAud
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from './behavioralMemoryService';
 import { buildOncologySupportPrompt, isOncologySupportEnabled, type OncologySupportContext } from './guardrails/prompt/oncologySupportPromptBuilder';
 import { validateOncologyMealSafety, filterOncologySafeMeals } from './guardrails/validators/oncologySupportValidator';
+import { validateThyroidSupportMeal } from './guardrails/validators/thyroidSupportValidator';
 import { filterByStarchStructure, validateStarchStructure, buildStarchFixHint } from './guardrails/validators/vegetarianMacroValidator';
 import { scoreOncologyMealQuality } from './guardrails/validators/oncologyQualityScorer';
 import { scoreOncologySnackQuality } from './guardrails/validators/oncologySnackScorer';
@@ -1533,6 +1534,7 @@ export async function generateCravingMealOptions(
   let proceduralBlock = '';
   // Oncology fields fetched from DB — declared outside try so they're in scope for the overlay check below
   let _varietySpecialtyCondition: string | null = null;
+  let _varietySpecialtyConditions: string[] = [];
   let _varietyOncologyCtx: { enabled?: boolean } | null = null;
 
   if (userId) {
@@ -1544,6 +1546,7 @@ export async function generateCravingMealOptions(
         dislikedFoods: users.dislikedFoods,
         avoidedFoods: users.avoidedFoods,
         specialtyCondition: users.specialtyCondition,
+        specialtyConditions: users.specialtyConditions,
         oncologySupportContext: users.oncologySupportContext,
       }).from(users).where(eq(users.id, userId)).limit(1);
 
@@ -1551,6 +1554,7 @@ export async function generateCravingMealOptions(
 
       // Store oncology fields for the activation check below
       _varietySpecialtyCondition = u?.specialtyCondition ?? null;
+      _varietySpecialtyConditions = (u?.specialtyConditions as string[]) || (_varietySpecialtyCondition ? [_varietySpecialtyCondition] : []);
       _varietyOncologyCtx = (u?.oncologySupportContext as { enabled?: boolean } | null) ?? null;
 
       const allergies: string[] = (u?.allergies as string[]) || [];
@@ -1618,15 +1622,16 @@ export async function generateCravingMealOptions(
   // but oncology is stored in specialtyCondition — NOT dietaryRestrictions — so
   // that check was structurally impossible and never activated. Fixed here.
   const _cravingMentionsOncology = /oncolog|cancer[\s\-]?support|cancer[\s\-]?protocol/i.test(cravingInput);
-  console.log(`🧬 [VARIETY ENGINE] Oncology check — specialtyCondition: ${JSON.stringify(_varietySpecialtyCondition)}, oncologyCtx.enabled: ${_varietyOncologyCtx?.enabled ?? null}, cravingTextMatch: ${_cravingMentionsOncology}, dietRestrictions includes: ${dietRestrictions.includes('oncology-support')}`);
+  console.log(`🧬 [VARIETY ENGINE] Oncology check — specialtyConditions: ${JSON.stringify(_varietySpecialtyConditions)}, oncologyCtx.enabled: ${_varietyOncologyCtx?.enabled ?? null}, cravingTextMatch: ${_cravingMentionsOncology}`);
   const isVarietyOncology =
     _varietySpecialtyCondition === 'oncology-support' ||
+    _varietySpecialtyConditions.includes('oncology-support') ||
     _varietyOncologyCtx?.enabled === true ||
     dietRestrictions.includes('oncology-support') ||
     _cravingMentionsOncology;
 
   if (isVarietyOncology) {
-    const _oncologyTrigger = _varietyOncologyCtx?.enabled ? 'DB (physician)' : _varietySpecialtyCondition === 'oncology-support' ? 'specialtyCondition' : dietRestrictions.includes('oncology-support') ? 'route-injection' : 'text intent';
+    const _oncologyTrigger = _varietyOncologyCtx?.enabled ? 'DB (physician)' : (_varietySpecialtyCondition === 'oncology-support' || _varietySpecialtyConditions.includes('oncology-support')) ? 'specialtyConditions' : dietRestrictions.includes('oncology-support') ? 'route-injection' : 'text intent';
     const oncologyVarietyOverlay = [
       ``,
       `═══ CANCER SUPPORT NUTRITION — HARD BLOCK (ALL 3 OPTIONS) ═══`,
@@ -1864,12 +1869,14 @@ export async function generateFridgeRescueUnified(
   // Fetch dietary restrictions FIRST to ensure diet-aware cache key
   let fridgeDietRestrictions: string[] = [];
   let fridgeSpecialtyCondition: string | null = null;
+  let fridgeSpecialtyConditions: string[] = [];
   if (userId) {
     try {
-      const [fridgeUser] = await db.select({ dietaryRestrictions: users.dietaryRestrictions, specialtyCondition: users.specialtyCondition })
+      const [fridgeUser] = await db.select({ dietaryRestrictions: users.dietaryRestrictions, specialtyCondition: users.specialtyCondition, specialtyConditions: users.specialtyConditions })
         .from(users).where(eq(users.id, userId)).limit(1);
       fridgeDietRestrictions = (fridgeUser?.dietaryRestrictions as string[]) || [];
       fridgeSpecialtyCondition = (fridgeUser?.specialtyCondition as string | null) ?? null;
+      fridgeSpecialtyConditions = (fridgeUser?.specialtyConditions as string[]) || (fridgeSpecialtyCondition ? [fridgeSpecialtyCondition] : []);
     } catch (err) {
       console.warn("[FRIDGE] Could not fetch dietary restrictions for cache key:", err);
     }
@@ -1877,10 +1884,11 @@ export async function generateFridgeRescueUnified(
   const fridgePrimaryDiet = getPrimaryDiet(fridgeDietRestrictions) || "none";
 
   // Detect oncology protocol early (before cache) so we can bypass stale cache.
-  // Check both dietaryRestrictions AND specialtyCondition — oncology-support may be stored in either.
+  // Check dietaryRestrictions AND both specialtyCondition forms (single + array).
   const isOncologyFridge = fridgePrimaryDiet === 'oncology-support'
     || fridgeDietRestrictions.includes('oncology-support')
-    || fridgeSpecialtyCondition === 'oncology-support';
+    || fridgeSpecialtyCondition === 'oncology-support'
+    || fridgeSpecialtyConditions.includes('oncology-support');
   
   // Step 1: Check diet-aware cache (includes primaryDiet to prevent cross-diet contamination)
   // Oncology-support bypasses cache — enhancement logic must run fresh every time so
@@ -2301,6 +2309,25 @@ export async function generateFromDescriptionUnified(
       }
     }
 
+    // ── Load thyroid-support flag (additive modifier, separate from primary protocol) ─
+    // Activates when user's specialtyCondition = 'thyroid-support'. Runs alongside
+    // anti-inflammatory as a modifier, never overrides the primary protocol chain.
+    let thyroidSupportActive = false;
+    if (userId) {
+      try {
+        const [thyroidUser] = await db
+          .select({ specialtyCondition: users.specialtyCondition, specialtyConditions: users.specialtyConditions })
+          .from(users).where(eq(users.id, userId)).limit(1);
+        const _thyroidSCs: string[] = (thyroidUser?.specialtyConditions as string[]) || (thyroidUser?.specialtyCondition ? [thyroidUser.specialtyCondition] : []);
+        thyroidSupportActive = thyroidUser?.specialtyCondition === 'thyroid-support' || _thyroidSCs.includes('thyroid-support');
+        if (thyroidSupportActive) {
+          console.log(`🦋 [THYROID] Thyroid support modifier active for user ${userId.slice(0, 8)}`);
+        }
+      } catch {
+        // Non-fatal — thyroid check degrades gracefully
+      }
+    }
+
     // ── Load oncology-support context if active ─────────────────────────────
     // Activation: dietType === 'oncology-support' OR description text mentions oncology/cancer protocol
     let oncologyCtx: OncologySupportContext | null = null;
@@ -2623,6 +2650,37 @@ Create the recipe for: "${description}"`;
           source: 'error',
           error: chefScan.message,
         };
+      }
+
+      // ── Thyroid support post-gen scan (additive modifier) ────────────────
+      // Runs independently of oncology. Hard violations (kelp supplements, alcohol,
+      // pseudoscientific claims) trigger regeneration. Advisory flags are logged only.
+      if (thyroidSupportActive) {
+        const thyroidValidation = validateThyroidSupportMeal({
+          name: tempMeal.name,
+          description: (tempMeal as any).description,
+          ingredients: tempMeal.ingredients,
+          instructions: (tempMeal as any).instructions,
+        });
+        if (!thyroidValidation.passed) {
+          const hardViolations = thyroidValidation.violations.filter(v => !v.startsWith("Advisory"));
+          console.warn(`🦋 [THYROID GUARD] Hard violation (attempt ${attemptCount}): ${hardViolations.join(', ')}`);
+          if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
+            lastFixHint = `THYROID SUPPORT VIOLATION: The following are strictly forbidden: ${hardViolations.join(', ')}. ` +
+              `Do NOT include iodine supplements (kelp/seaweed supplement), alcohol, energy drinks, deep-fried preparations, ` +
+              `pseudoscientific claims like "thyroid detox" or "heal your thyroid", or soy protein isolate as a primary ingredient. ` +
+              `Regenerate a clean, whole-food meal that is naturally anti-inflammatory and selenium/zinc-rich (e.g., eggs, Brazil nuts, ` +
+              `wild salmon, pumpkin seeds, chickpeas, sweet potato).`;
+            continue;
+          }
+          console.error(`❌ [THYROID GUARD] Could not resolve violations after ${attemptCount} attempts — serving as-is (safe, hard-blocked ingredient not confirmed)`);
+        } else {
+          if (thyroidValidation.violations.length > 0) {
+            console.log(`🦋 [THYROID GUARD] Passed (${thyroidValidation.violations.length} advisory note(s)): ${thyroidValidation.violations.join(' | ')}`);
+          } else {
+            console.log(`✅ [THYROID GUARD] Passed — no violations`);
+          }
+        }
       }
 
       // ── Oncology hard-block post-gen scan ────────────────────────────────

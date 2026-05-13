@@ -104,6 +104,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           dailyFatTarget: userData.dailyFatTarget ?? null,
           oncologySupportIntent: userData.oncologySupportIntent ?? null,
           specialtyCondition: userData.specialtyCondition ?? null,
+          thyroidMedication: userData.thyroidMedication ?? null,
           oncologySupportContext: userData.oncologySupportContext ?? null,
           activeSystem: userData.activeSystem || null,
           isCreator: userData.isCreator || false,
@@ -111,6 +112,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           cuisinePreference: userData.cuisinePreference || null,
           cuisineIntensity: userData.cuisineIntensity || null,
           isAdmin: userData.isAdmin || false,
+          availabilityStatus: userData.availabilityStatus ?? null,
+          backAt: userData.backAt ?? null,
         };
         if (userData.oncologySupportIntent) {
           localStorage.setItem("mpm:oncologySupportIntent", userData.oncologySupportIntent);
