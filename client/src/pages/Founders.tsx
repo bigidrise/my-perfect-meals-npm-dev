@@ -86,7 +86,7 @@ export default function Founder() {
             </div>
 
             <div className="space-y-4 text-center md:text-left">
-              <h1 className="text-3xl font-bold">Coach Idrise</h1>
+              <h1 className="text-xl font-bold">Idrise Ward-EL</h1>
 
               <p className="text-orange-400 font-medium">
                 CEO / Founder & Lead Coach
@@ -125,8 +125,12 @@ export default function Founder() {
           </h2>
 
           <div className="flex items-start gap-6">
-            <div className="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center text-white/40 text-sm ring-1 ring-white/20 overflow-hidden shrink-0">
-              Photo
+            <div className="w-24 h-24 rounded-full ring-1 ring-white/20 overflow-hidden shrink-0">
+              <img
+                src="/assets/monica-brant.jpg"
+                alt="Monica Brant"
+                className="w-full h-full object-cover object-top"
+              />
             </div>
 
             <div>
