@@ -37,7 +37,7 @@ const CHEF_LOGO = "/icons/MPMFlameChefLogo.jpg";
 const coaches: Coach[] = [
   {
     id: "idrise",
-    name: "Coach Idrise (Nutrition / Behavior Change)",
+    name: "Coach Idrise (Nutrition Coach & Behavior Change Coach)",
     title: "Founder",
     credentials: "NASM-CPT · WFS · CNC · BCS",
     image: "/assets/idrise-coach.png",
