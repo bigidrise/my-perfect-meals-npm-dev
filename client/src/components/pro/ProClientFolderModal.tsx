@@ -63,6 +63,7 @@ const DOT_TOOLTIPS: Record<string, string> = {
   "liver-disease": "Applies stricter hepatic nutrient controls for diagnosed liver disease — reduced protein load, sodium, and compounds that stress the liver. Activates on significantly elevated ALT or specialist assignment.",
   "oncology-support": "Applies oncology-safe nutritional guidance — reduces processed foods, supports immune function, and avoids clinically contraindicated ingredients. Physician-assigned only. No treatment claims are implied.",
   "thyroid-support": "Applies thyroid-aware meal guidance — moderates excess goitrogenic foods, supports iodine and selenium intake, and accounts for medication timing where relevant. Activated via medical directives.",
+  "glp1": "GLP-1 receptor agonist protocol — adjusts meal sizing, protein pacing, and satiety-supportive ingredients to complement medication effect. Stacks with diabetic builder. Physician-assigned only.",
 };
 
 interface TabletEntry {
@@ -195,6 +196,9 @@ export default function ProClientFolderModal({
   const [dotTooltip, setDotTooltip] = useState<string | null>(null);
   const folderTour = useQuickTour("client-folder");
 
+  const [glp1PhysicianActive, setGlp1PhysicianActive] = useState(false);
+  const [glp1Saving, setGlp1Saving] = useState(false);
+
   const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
   const [resolvedStudioId, setResolvedStudioId] = useState<string | null>(null);
   const clientId = resolvedClientId || client?.clientUserId || client?.userId || null;
@@ -244,6 +248,20 @@ export default function ProClientFolderModal({
         }
       } catch {}
     })();
+    return () => { cancelled = true; };
+  }, [open, clientId]);
+
+  // Fetch physician-assigned GLP-1 protocol state
+  useEffect(() => {
+    if (!open || !clientId) { setGlp1PhysicianActive(false); return; }
+    let cancelled = false;
+    fetch(apiUrl(`/api/pro/glp1-protocol/${clientId}`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (!cancelled) setGlp1PhysicianActive(!!data?.glp1Active); })
+      .catch(() => {});
     return () => { cancelled = true; };
   }, [open, clientId]);
 
@@ -794,6 +812,7 @@ export default function ProClientFolderModal({
                     { key: "liver-disease",      label: "Liver Disease",     isActive: !!flags?.liverDisease     || labDerivedConditions.includes('liver-disease'),    activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
                     { key: "oncology-support",   label: "Oncology Support",  isActive: !!flags?.oncologySupport  || labDerivedConditions.includes('oncology-support'), activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
                     { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!flags?.thyroidSupport,                                                        activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                    { key: "glp1",               label: "GLP-1 Active",      isActive: !!flags?.glp1             || glp1PhysicianActive,                               activeColor: "text-orange-400", dotColor: "bg-orange-400", dotGlow: "shadow-[0_0_4px_rgba(251,146,60,0.9)]"  },
                   ];
                   return (
                     <>
@@ -821,6 +840,52 @@ export default function ProClientFolderModal({
               </div>
             );
           })()}
+
+          {/* Physician-only GLP-1 assignment panel */}
+          {isPhysician && clientId && (
+            <div className={`rounded-lg border px-3 py-2.5 mb-1 ${glp1PhysicianActive ? "border-orange-500/40 bg-orange-500/10" : "border-white/10 bg-zinc-800/40"}`}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-white/80 flex items-center gap-1.5">
+                    <span>💉</span>
+                    GLP-1 Protocol
+                    {glp1PhysicianActive && <span className="text-orange-400 font-bold">· Active</span>}
+                  </p>
+                  <p className="text-[10px] text-white/45 leading-snug mt-0.5">
+                    {glp1PhysicianActive
+                      ? "Physician-assigned. Meal generation stacks GLP-1 satiety guidance with diabetic builder."
+                      : "Assign to activate GLP-1 aware meal generation for this client."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={glp1Saving}
+                  onClick={async () => {
+                    if (!clientId) return;
+                    setGlp1Saving(true);
+                    try {
+                      const next = !glp1PhysicianActive;
+                      const res = await fetch(apiUrl(`/api/pro/glp1-protocol/${clientId}`), {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+                        credentials: "include",
+                        body: JSON.stringify({ enabled: next }),
+                      });
+                      if (res.ok) setGlp1PhysicianActive(next);
+                    } catch {}
+                    setGlp1Saving(false);
+                  }}
+                  className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-[0.97] border ${
+                    glp1PhysicianActive
+                      ? "bg-orange-600 border-orange-400 text-white"
+                      : "bg-black/40 border-orange-900/40 text-orange-300/80 hover:bg-orange-950/40"
+                  } ${glp1Saving ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  {glp1Saving ? "Saving…" : glp1PhysicianActive ? "Remove GLP-1" : "Assign GLP-1"}
+                </button>
+              </div>
+            </div>
+          )}
 
           {clientGoal?.goalType && (
             <div className="flex items-center gap-2.5 rounded-lg border border-orange-500/30 bg-orange-500/10 px-3 py-2">
