@@ -13,6 +13,57 @@ import CycleProtocolControl from "@/components/pro/CycleProtocolControl";
 import ProNutritionStrategyCard from "@/components/pro/ProNutritionStrategyCard";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+
+const FOLDER_TOUR_STEPS: TourStep[] = [
+  {
+    icon: "1",
+    title: "Client Folder Overview",
+    description: "This is your complete client workspace. Protocols, communication, compliance, and nutrition strategy all live here. The tour button is always available in the top-right corner.",
+  },
+  {
+    icon: "2",
+    title: "Active Clinical Supports",
+    description: "The colored dots show which clinical protocols are active for this client. A glowing dot means that protocol is shaping every meal the AI generates. Tap any dot to see exactly what it does. Dots activate from your settings, physician assignment, or automatically when lab values cross clinical thresholds.",
+  },
+  {
+    icon: "3",
+    title: "Messages vs. Provider Notes",
+    description: "Messages are a shared conversation — your client can read them and reply. Provider Notes are internal only and are never visible to the client. Use notes for clinical observations, progress documentation, or anything that should stay in your professional records.",
+  },
+  {
+    icon: "4",
+    title: "Compliance Score",
+    description: "Compliance is calculated over the last 30 days across three factors: calorie logging accuracy, protein target adherence, and daily logging frequency. 90%+ is excellent. 70–89% is on track. Below 70% is a signal to reach out.",
+  },
+  {
+    icon: "5",
+    title: "Snapshots & History",
+    description: "Below the tablet you will find weight trends, lab results (physicians only), program history, and nutrition strategy cards. These update in real time from your client's activity in the app.",
+  },
+  {
+    icon: "6",
+    title: "Cycle Protocols",
+    description: "Use Cycle Protocols to guide your client through structured nutrition phases — Lower Carb Phase, Higher Carb Push, or Carb Refeed. When you update the strategy, the client is notified and must acknowledge the change before it is marked as seen.",
+  },
+  {
+    icon: "7",
+    title: "Client Dashboard",
+    description: "Tap 'Go To Client Dashboard' at the bottom to open the full workspace where you can set macro targets, adjust medical directives, assign builders, and view your client's live meal board.",
+  },
+];
+
+const DOT_TOOLTIPS: Record<string, string> = {
+  "anti-inflammatory": "Adjusts meal generation to reduce inflammatory triggers — refined oils, processed foods, and pro-inflammatory proteins. Actively promotes omega-3s, leafy greens, turmeric, berries, and anti-inflammatory fats.",
+  "cardiac": "Applies sodium limits, reduces saturated fat, and promotes heart-healthy fats like olive oil and fatty fish. Activates when LDL cholesterol is ≥130 mg/dL or when the Cardiac flag is set in medical directives.",
+  "kidney-disease": "Limits phosphorus, potassium, and protein to reduce kidney workload. Designed for CKD patients requiring modified nutrient intake. Activates on elevated creatinine levels or specialist assignment.",
+  "liver-support": "Supports hepatic health with anti-inflammatory foods and reduced liver-taxing compounds. Activates when ALT is mildly elevated or when Liver Support is selected in medical directives.",
+  "liver-disease": "Applies stricter hepatic nutrient controls for diagnosed liver disease — reduced protein load, sodium, and compounds that stress the liver. Activates on significantly elevated ALT or specialist assignment.",
+  "oncology-support": "Applies oncology-safe nutritional guidance — reduces processed foods, supports immune function, and avoids clinically contraindicated ingredients. Physician-assigned only. No treatment claims are implied.",
+  "thyroid-support": "Applies thyroid-aware meal guidance — moderates excess goitrogenic foods, supports iodine and selenium intake, and accounts for medication timing where relevant. Activated via medical directives.",
+};
 
 interface TabletEntry {
   id: string;
@@ -107,6 +158,8 @@ export default function ProClientFolderModal({
     goalStartDate?: string | null;
   } | null>(null);
   const [labDerivedConditions, setLabDerivedConditions] = useState<string[]>([]);
+  const [dotTooltip, setDotTooltip] = useState<string | null>(null);
+  const folderTour = useQuickTour("client-folder");
 
   const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
   const [resolvedStudioId, setResolvedStudioId] = useState<string | null>(null);
@@ -443,13 +496,19 @@ export default function ProClientFolderModal({
   );
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-zinc-900 border-white/10 text-white max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl text-white">{client.name}</DialogTitle>
-          <DialogDescription className="text-white/50">
-            {client.email || "No email on file"}
-          </DialogDescription>
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <DialogTitle className="text-xl text-white">{client.name}</DialogTitle>
+              <DialogDescription className="text-white/50">
+                {client.email || "No email on file"}
+              </DialogDescription>
+            </div>
+            <QuickTourButton onClick={folderTour.openTour} />
+          </div>
         </DialogHeader>
 
         <div className="space-y-3 mt-2">
@@ -476,20 +535,39 @@ export default function ProClientFolderModal({
             return (
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs mb-1">
                 <span className="font-medium text-white/70">Active Clinical Supports:</span>
-                {[
-                  { key: "anti-inflammatory", label: "Anti-Inflammatory", isActive: true,                    activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
-                  { key: "cardiac",            label: "Cardiac Health",    isActive: !!flags?.cardiac          || labDerivedConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
-                  { key: "kidney-disease",     label: "Kidney Disease",    isActive: !!flags?.renal            || labDerivedConditions.includes('kidney-disease'),   activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
-                  { key: "liver-support",      label: "Liver Support",     isActive: !!flags?.liverSupport     || labDerivedConditions.includes('liver-support'),    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
-                  { key: "liver-disease",      label: "Liver Disease",     isActive: !!flags?.liverDisease     || labDerivedConditions.includes('liver-disease'),    activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
-                  { key: "oncology-support",   label: "Oncology Support",  isActive: !!flags?.oncologySupport  || labDerivedConditions.includes('oncology-support'), activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
-                  { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!flags?.thyroidSupport,                                                        activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
-                ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
-                  <span key={key} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
-                    <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
-                    {label}
-                  </span>
-                ))}
+                {(() => {
+                  const conditions = [
+                    { key: "anti-inflammatory", label: "Anti-Inflammatory", isActive: true,                    activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
+                    { key: "cardiac",            label: "Cardiac Health",    isActive: !!flags?.cardiac          || labDerivedConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
+                    { key: "kidney-disease",     label: "Kidney Disease",    isActive: !!flags?.renal            || labDerivedConditions.includes('kidney-disease'),   activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
+                    { key: "liver-support",      label: "Liver Support",     isActive: !!flags?.liverSupport     || labDerivedConditions.includes('liver-support'),    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
+                    { key: "liver-disease",      label: "Liver Disease",     isActive: !!flags?.liverDisease     || labDerivedConditions.includes('liver-disease'),    activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
+                    { key: "oncology-support",   label: "Oncology Support",  isActive: !!flags?.oncologySupport  || labDerivedConditions.includes('oncology-support'), activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
+                    { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!flags?.thyroidSupport,                                                        activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                  ];
+                  return (
+                    <>
+                      {conditions.map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
+                        <span
+                          key={key}
+                          className={`flex items-center gap-1 cursor-pointer select-none ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}
+                          onClick={() => setDotTooltip(dotTooltip === key ? null : key)}
+                        >
+                          <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
+                          {label}
+                        </span>
+                      ))}
+                      {dotTooltip && DOT_TOOLTIPS[dotTooltip] && (
+                        <div className="w-full mt-1 text-[11px] text-white/70 bg-zinc-700/60 rounded-md px-2.5 py-2 leading-relaxed border border-white/10">
+                          <span className="text-white/90 font-semibold">
+                            {conditions.find((c) => c.key === dotTooltip)?.label}:
+                          </span>{" "}
+                          {DOT_TOOLTIPS[dotTooltip]}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             );
           })()}
@@ -517,6 +595,10 @@ export default function ProClientFolderModal({
                 Client Tablet
               </div>
 
+              <p className="text-[10px] text-white/40 mb-2 leading-snug">
+                <span className="text-orange-400 font-medium">Messages</span> are visible to your client and they can reply.{" "}
+                <span className="text-white/60 font-medium">Provider Notes</span> are internal only — never shown to the client.
+              </p>
               <div className="flex rounded-md overflow-hidden border border-white/10 mb-3">
                 <button
                   onClick={() => setActiveTab("messages")}
@@ -655,5 +737,12 @@ export default function ProClientFolderModal({
         </div>
       </DialogContent>
     </Dialog>
+    <QuickTourModal
+      steps={FOLDER_TOUR_STEPS}
+      isOpen={folderTour.isOpen}
+      onClose={folderTour.closeTour}
+      tourKey="client-folder"
+    />
+    </>
   );
 }

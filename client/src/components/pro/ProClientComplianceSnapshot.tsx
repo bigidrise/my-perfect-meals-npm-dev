@@ -85,7 +85,7 @@ export default function ProClientComplianceSnapshot({ clientId }: ProClientCompl
     <div className="bg-white/5 rounded-lg p-3 border border-white/10">
       <h4 className="text-xs font-medium text-white/60 mb-2">Compliance</h4>
 
-      <div className="flex items-center gap-3 mb-3">
+      <div className="flex items-center gap-3 mb-1">
         <div className={`p-2 rounded-lg ${getScoreBg(score)} border ${getScoreBorder(score)}`}>
           <Target className={`w-4 h-4 ${getScoreColor(score)}`} />
         </div>
@@ -96,6 +96,12 @@ export default function ProClientComplianceSnapshot({ clientId }: ProClientCompl
           <p className="text-[10px] text-white/30">Last {data.windowDays} days</p>
         </div>
       </div>
+      <p className="text-[10px] text-white/35 leading-snug mb-3">
+        Combines calorie accuracy, protein adherence, and daily logging frequency.{" "}
+        <span className="text-emerald-400">90%+</span> excellent ·{" "}
+        <span className="text-yellow-400">70–89%</span> on track ·{" "}
+        <span className="text-red-400">below 70%</span> check in.
+      </p>
 
       {data.loggedDays7 === 0 && (
         <p className="text-[10px] text-white/30 italic mb-2">
