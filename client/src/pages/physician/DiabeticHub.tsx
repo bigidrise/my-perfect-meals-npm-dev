@@ -36,6 +36,7 @@ import { PillButton } from "@/components/ui/pill-button";
 import { GlucoseGuardExplainerModal } from "@/components/GlucoseGuardExplainerModal";
 import { GlycemicSettingsModal } from "@/components/diabetic/GlycemicSettingsModal";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { GLP1CompanionModal } from "@/components/diabetic/GLP1CompanionModal";
 
 const DIABETIC_TOUR_STEPS: TourStep[] = [
   {
@@ -102,6 +103,14 @@ export default function DiabeticHub() {
   const [selectedPreset, setSelectedPreset] = useState<string>("");
   const [showGlucoseExplainer, setShowGlucoseExplainer] = useState(false);
   const [showGlycemicModal, setShowGlycemicModal] = useState(false);
+  const [showGlp1Companion, setShowGlp1Companion] = useState(false);
+
+  const isGlp1Active = !!(
+    (user?.medicalConditions as string[] | undefined)?.includes("glp1") ||
+    (user?.healthConditions as string[] | undefined)?.includes("glp1") ||
+    user?.selectedMealBuilder === "glp1" ||
+    user?.preferredBuilder === "glp1"
+  );
 
   // Auto-mark info as seen since Copilot provides guidance now
   useEffect(() => {
@@ -318,7 +327,27 @@ export default function DiabeticHub() {
                   {chip}
                 </span>
               ))}
+              {isGlp1Active && (
+                <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-300">
+                  GLP-1 Active
+                </span>
+              )}
             </div>
+            {isGlp1Active && (
+              <div className="flex items-center gap-3 pt-1.5">
+                <p className="text-[11px] text-orange-400/70 leading-relaxed">
+                  GLP-1 guardrails (portion caps, protein floors, nausea-safe ingredients) are stacked with your diabetic protocol.
+                </p>
+                <div className="shrink-0">
+                  <PillButton
+                    onClick={() => setShowGlp1Companion(true)}
+                    variant="default"
+                  >
+                    Manage GLP-1
+                  </PillButton>
+                </div>
+              </div>
+            )}
             <p className="text-[11px] text-white/30 pt-0.5">
               Your meal builders automatically use these settings.
             </p>
@@ -865,6 +894,11 @@ export default function DiabeticHub() {
         <GlycemicSettingsModal
           open={showGlycemicModal}
           onClose={() => setShowGlycemicModal(false)}
+        />
+
+        <GLP1CompanionModal
+          isOpen={showGlp1Companion}
+          onClose={() => setShowGlp1Companion(false)}
         />
       </div>
     </>

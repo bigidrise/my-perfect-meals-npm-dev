@@ -620,7 +620,13 @@ export async function loadUserProtocolEnvelope(
     // Falls back to single specialtyCondition value for backward compat with existing users.
     const specialtyConditionsArr: string[] = ((user as any).specialtyConditions as string[] | null) ||
       (user.specialtyCondition ? [user.specialtyCondition] : []);
-    const mergedHealthConditions = [...new Set([...healthConditions, ...specialtyConditionsArr])];
+    // Also pull 'glp1' out of medicalConditions so diabetic-builder generation stacks the GLP-1
+    // protocol automatically when a user is on GLP-1 medication. Only 'glp1' is extracted —
+    // other medicalConditions values (e.g. 'diabetes-type2') are builder-routing flags, not
+    // guidance-layer condition keys, so they must not be injected into healthConditions.
+    const medicalConditionsGlp1 = (((user as any).medicalConditions as string[] | null) || [])
+      .filter((c: string) => c === "glp1");
+    const mergedHealthConditions = [...new Set([...healthConditions, ...specialtyConditionsArr, ...medicalConditionsGlp1])];
     const dislikedFoods: string[] = (user.dislikedFoods as string[]) || [];
     const avoidedFoods: string[] = (user.avoidedFoods as string[]) || [];
     const likedFoods: string[] = (user.likedFoods as string[]) || [];
