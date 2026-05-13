@@ -447,11 +447,11 @@ export default function ProClientFolderModal({
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs mb-1">
                 <span className="font-medium text-white/70">Active Clinical Supports:</span>
                 {[
-                  { key: "anti-inflammatory", label: "Anti-Inflammatory", isActive: true,                    activeColor: "text-orange-400", dotColor: "bg-orange-400", dotGlow: "shadow-[0_0_4px_rgba(251,146,60,0.8)]"  },
-                  { key: "cardiac",            label: "Cardiac Health",    isActive: !!flags?.cardiac,        activeColor: "text-red-400",    dotColor: "bg-red-400",    dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]" },
-                  { key: "kidney-disease",     label: "Kidney Disease",    isActive: !!flags?.renal,          activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
-                  { key: "liver-support",      label: "Liver Support",     isActive: !!flags?.liverSupport,   activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
-                  { key: "liver-disease",      label: "Liver Disease",     isActive: !!flags?.liverDisease,   activeColor: "text-green-400",  dotColor: "bg-green-400",  dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"  },
+                  { key: "anti-inflammatory", label: "Anti-Inflammatory", isActive: true,                    activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
+                  { key: "cardiac",            label: "Cardiac Health",    isActive: !!flags?.cardiac,        activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
+                  { key: "kidney-disease",     label: "Kidney Disease",    isActive: !!flags?.renal,          activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
+                  { key: "liver-support",      label: "Liver Support",     isActive: !!flags?.liverSupport,   activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
+                  { key: "liver-disease",      label: "Liver Disease",     isActive: !!flags?.liverDisease,   activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
                   { key: "oncology-support",   label: "Oncology Support",  isActive: !!flags?.oncologySupport,activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
                   { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!flags?.thyroidSupport, activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
                 ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
