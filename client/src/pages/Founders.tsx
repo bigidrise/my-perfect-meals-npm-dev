@@ -97,23 +97,11 @@ export default function Founder() {
               </p>
 
               <p className="text-white/80 text-sm leading-relaxed max-w-xl">
-                I've spent over 30 years working in performance nutrition, body
-                composition, and structured meal design starting long before it
-                was a business, because this is just how I've always lived. My
-                background combines elite competitive athletics, clinical
-                awareness from my time as an ICU Medic in the U.S. Air Force,
-                and decades of real-world coaching experience. My Perfect Meals
-                was built to remove confusion, eliminate food stress, and help
-                people eat confidently without restriction.
+                Coach Idrise is the Founder and CEO of My Perfect Meals, an adaptive nutrition and wellness software platform designed to help people build long-term confidence with food through intelligent coaching, structured meal systems, and AI-driven personalization. With more than 30 years of experience in performance nutrition, body composition, and real-world coaching, his background combines elite athletics, clinical medical experience, behavioral coaching, and leadership across multiple disciplines. A former IFBB Professional Bodybuilder and Mr. USA 2002, Idrise has spent decades helping people improve their health, performance, and relationship with food through sustainable, real-life strategies rather than restriction-based dieting. His experience includes serving as an ICU Medic and EMT-I in the United States Air Force, working in high-pressure environments including corrections at San Quentin State Prison, and years of hands-on coaching with clients from all walks of life. In addition to his fitness and medical background, Idrise is pursuing a Bachelor’s degree in Business Administration with a concentration in Social Media Marketing and a minor in Generative Artificial Intelligence, combining modern AI strategy with decades of practical coaching experience. Through My Perfect Meals, he is building a new category of intelligent wellness technology focused on adaptive nutrition, behavior change, medical support integration, and real-world lifestyle coaching for everyday people.
+
               </p>
 
-              <Button
-                size="sm"
-                className="mt-4 bg-orange-600 hover:bg-orange-700 text-white font-medium transition-colors shadow-md hover:shadow-lg"
-                onClick={() => setLocation("/apply-guidance")}
-              >
-                Work Directly With Coach Idrise
-              </Button>
+          
             </div>
           </div>
         </section>
@@ -169,40 +157,6 @@ export default function Founder() {
               </p>
             </div>
           </div>
-        </section>
-
-        {/* PROFESSIONAL BACKGROUND */}
-        <section className="bg-black/60 rounded-2xl p-8 ring-1 ring-white/10 backdrop-blur-md shadow-2xl">
-          <h2 className="text-2xl font-semibold mb-6">
-            Professional Background
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-white/85">
-            <div>✔ IFBB Professional Bodybuilder</div>
-            <div>✔ Mr. USA 2002</div>
-            <div>✔ NASM Certified Personal Trainer</div>
-            <div>✔ NASM Certified Women's Fitness Specialist</div>
-            <div>✔ NASM Certified Nutrition Coach</div>
-            <div>✔ NASM Behavior Change Specialist</div>
-            <div>✔ NASM Online Coaching Specialist</div>
-            <div>✔ Former ICU Medic & EMT-I – United States Air Force</div>
-          </div>
-        </section>
-
-        {/* PHILOSOPHY */}
-        <section className="bg-black/60 rounded-2xl p-8 ring-1 ring-white/10 backdrop-blur-md shadow-2xl">
-          <h2 className="text-2xl font-semibold mb-4">
-            The Philosophy Behind My Perfect Meals
-          </h2>
-
-          <p className="text-white/80 text-sm leading-relaxed">
-            My Perfect Meals was created for food lovers who are tired of
-            starting over. Instead of restriction, the system focuses on
-            intelligent structure. Meals are designed to work in real life at
-            restaurants, at home, while traveling, during busy seasons, and
-            through changing goals. The objective is not short-term dieting. It
-            is long-term confidence with food.
-          </p>
         </section>
 
         {/* MEDICAL COMPLIANCE */}
