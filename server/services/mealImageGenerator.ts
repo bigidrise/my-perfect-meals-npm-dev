@@ -607,18 +607,18 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
 
   try {
     const response = await withTimeout(
-      getOpenAI().images.generate({
-        model: "dall-e-3",
+      (getOpenAI().images.generate as any)({
+        model: "gpt-image-1",
         prompt,
         n: 1,
         size: "1024x1024",
-        quality: "standard",
-        style: "natural",
       }),
-      25000
+      90000
     );
 
-    imageUrl = response.data?.[0]?.url ?? null;
+    const item = response.data?.[0];
+    if (item?.url) imageUrl = item.url;
+    else if (item?.b64_json) imageUrl = `data:image/png;base64,${item.b64_json}`;
   } catch (dalleErr: any) {
     console.warn(`⚠️ DALL-E failed for "${mealName}": ${dalleErr.message}`);
   }
