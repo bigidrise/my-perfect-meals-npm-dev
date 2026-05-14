@@ -78,8 +78,7 @@ export async function genImage(prompt: string, size: "1024x1024" | "1024x1536" |
   }
 }
 
-// Fast image generation for ChefFlow card previews — DALL-E 2 at 512×512.
-// ~3-5x faster than genImage (DALL-E 3). Quality is sufficient for card thumbnails.
+// Fast image generation for card previews — DALL-E 3 at 1024×1024.
 // Does NOT touch imageService.ts or the permanent storage path.
 export async function genImageFast(prompt: string): Promise<string | undefined> {
   if (process.env.DISABLE_IMAGE_GEN === "true") return undefined;
@@ -87,7 +86,7 @@ export async function genImageFast(prompt: string): Promise<string | undefined> 
   const t = setTimeout(() => ac.abort("image-timeout"), IMAGE_TIMEOUT_MS);
   try {
     const res = await openai.images.generate(
-      { model: "dall-e-2", prompt, size: "512x512", n: 1 },
+      { model: "dall-e-3", prompt, size: "1024x1024", n: 1 },
       { signal: ac.signal }
     );
     clearTimeout(t);
