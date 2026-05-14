@@ -8,7 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { FlaskConical, Loader2, Save } from "lucide-react";
 import ProtocolRecommendationModal from "@/components/clinical/ProtocolRecommendationModal";
 import ThyroidRecommendationModal from "@/components/clinical/ThyroidRecommendationModal";
-import type { LabProtocolSignal, ThyroidLabSignal } from "@shared/clinical/protocolDecision";
+import ProtocolDowngradeModal from "@/components/clinical/ProtocolDowngradeModal";
+import type { LabProtocolSignal, ThyroidLabSignal, LabDowngradeSignal } from "@shared/clinical/protocolDecision";
 
 function todayIso() {
   return new Date().toISOString().split("T")[0];
@@ -117,6 +118,10 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
   const [pendingThyroidSignal, setPendingThyroidSignal] = useState<ThyroidLabSignal | null>(null);
   const [showThyroidModal, setShowThyroidModal] = useState(false);
 
+  // Downgrade signals — shown after activation modals finish (may be multiple)
+  const [downgradeQueue, setDowngradeQueue] = useState<LabDowngradeSignal[]>([]);
+  const [showDowngradeModal, setShowDowngradeModal] = useState(false);
+
   useEffect(() => {
     if (!userId) return;
     const fetchLabs = async () => {
@@ -213,23 +218,31 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
         month: "short", day: "numeric", year: "numeric",
       }));
 
-      const hasProtocol = !!data.protocolSignal;
-      const hasThyroid  = !!data.thyroidSignal?.hasThyroidIndicators;
+      const hasProtocol   = !!data.protocolSignal;
+      const hasThyroid    = !!data.thyroidSignal?.hasThyroidIndicators;
+      const hasDowngrades = Array.isArray(data.downgradeSignals) && data.downgradeSignals.length > 0;
+
+      const labId = data.labId ?? null;
 
       if (hasThyroid) {
-        // Store thyroid signal — if there's also a primary protocol modal, thyroid
-        // will display after that one closes; otherwise it opens immediately.
         setPendingThyroidSignal(data.thyroidSignal);
-        setPendingLabId(data.labId ?? null);
+        setPendingLabId(labId);
+      }
+
+      if (hasDowngrades) {
+        setDowngradeQueue(data.downgradeSignals);
+        setPendingLabId(labId);
       }
 
       if (hasProtocol) {
         setPendingSignal(data.protocolSignal);
-        setPendingLabId(data.labId ?? null);
+        setPendingLabId(labId);
         setPhysicianLocked(!!data.physicianLocked);
         setShowModal(true);
       } else if (hasThyroid) {
         setShowThyroidModal(true);
+      } else if (hasDowngrades) {
+        setShowDowngradeModal(true);
       } else {
         toast({ title: "Clinical Labs Saved", description: "Your lab values have been recorded." });
       }
@@ -247,7 +260,23 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
     "liver-support": "Liver Support",
   };
 
-  // After primary protocol modal is accepted, redirect then (optionally) chain thyroid
+  // Helper: advance to next step in the modal chain
+  // Order: activation → thyroid activation → downgrade reassessment(s) → done
+  function advanceChain(opts: { skipThyroid?: boolean; skipDowngrades?: boolean } = {}) {
+    if (!opts.skipThyroid && pendingThyroidSignal) {
+      setShowThyroidModal(true);
+      return;
+    }
+    if (!opts.skipDowngrades && downgradeQueue.length > 0) {
+      setShowDowngradeModal(true);
+      return;
+    }
+    // All modals done
+    setPendingLabId(null);
+    toast({ title: "Clinical Labs Saved", description: "Your lab values have been recorded." });
+  }
+
+  // After primary protocol modal is accepted, redirect then (optionally) chain thyroid/downgrade
   const handleModalAccepted = () => {
     const label = pendingSignal ? (PROTOCOL_LABEL[pendingSignal.protocol] ?? "Clinical") : "Clinical";
     toast({
@@ -256,24 +285,20 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
     });
     setShowModal(false);
     setPendingSignal(null);
-    // If a thyroid signal is also pending, show it before redirecting
     if (pendingThyroidSignal) {
       setShowThyroidModal(true);
+    } else if (downgradeQueue.length > 0) {
+      setShowDowngradeModal(true);
     } else {
       setTimeout(() => { window.location.href = "/anti-inflammatory-menu-builder"; }, 700);
     }
   };
 
-  // After primary protocol modal is closed/rejected, chain to thyroid modal if pending
+  // After primary protocol modal is closed/rejected, chain to thyroid/downgrade if pending
   const handleModalClose = () => {
     setShowModal(false);
     setPendingSignal(null);
-    if (pendingThyroidSignal) {
-      setShowThyroidModal(true);
-    } else {
-      setPendingLabId(null);
-      toast({ title: "Clinical Labs Saved", description: "Your lab values have been recorded." });
-    }
+    advanceChain();
   };
 
   const handleThyroidAccepted = () => {
@@ -283,14 +308,45 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
     });
     setShowThyroidModal(false);
     setPendingThyroidSignal(null);
-    setPendingLabId(null);
+    advanceChain({ skipThyroid: true });
   };
 
   const handleThyroidClose = () => {
     setShowThyroidModal(false);
     setPendingThyroidSignal(null);
-    setPendingLabId(null);
-    toast({ title: "Clinical Labs Saved", description: "Your lab values have been recorded." });
+    advanceChain({ skipThyroid: true });
+  };
+
+  // Downgrade modal: user chose to return to Anti-Inflammatory
+  const handleDowngradeRemoved = () => {
+    const current = downgradeQueue[0];
+    if (current) {
+      toast({
+        title: `${current.protocolLabel} protocol removed`,
+        description: "You have returned to the Anti-Inflammatory foundation.",
+      });
+    }
+    const remaining = downgradeQueue.slice(1);
+    setDowngradeQueue(remaining);
+    setShowDowngradeModal(false);
+    if (remaining.length > 0) {
+      setTimeout(() => setShowDowngradeModal(true), 180);
+    } else {
+      setPendingLabId(null);
+    }
+  };
+
+  // Downgrade modal: user chose to continue the protocol
+  const handleDowngradeKept = () => {
+    const remaining = downgradeQueue.slice(1);
+    setDowngradeQueue(remaining);
+    setShowDowngradeModal(false);
+    if (remaining.length > 0) {
+      setTimeout(() => setShowDowngradeModal(true), 180);
+    } else {
+      setPendingLabId(null);
+      toast({ title: "Clinical Labs Saved", description: "Your lab values have been recorded." });
+    }
   };
 
   return (
@@ -424,6 +480,17 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
           signal={pendingThyroidSignal}
           labId={pendingLabId}
           onAccepted={handleThyroidAccepted}
+        />
+      )}
+
+      {/* Protocol downgrade / reassessment modal — shown when normalized labs detected */}
+      {downgradeQueue.length > 0 && (
+        <ProtocolDowngradeModal
+          open={showDowngradeModal}
+          onClose={handleDowngradeKept}
+          signal={downgradeQueue[0]}
+          labId={pendingLabId}
+          onRemoved={handleDowngradeRemoved}
         />
       )}
     </>

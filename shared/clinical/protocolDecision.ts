@@ -124,6 +124,37 @@ export const LAB_THRESHOLDS = {
 export type LabThresholds = typeof LAB_THRESHOLDS;
 
 // ---------------------------------------------------------------------------
+// 6. LabDowngradeSignal — returned when a user is already on a protocol and
+//    their new lab values are now within the normal reference range for that
+//    protocol's activation markers. Offers the user the option to step down
+//    to the Anti-Inflammatory foundation. Never auto-applied.
+// ---------------------------------------------------------------------------
+
+export interface LabDowngradeSignal {
+  /**
+   * The protocol the user is currently on that may no longer be needed.
+   * 'thyroid-support' | 'liver-disease' | 'kidney-disease' | 'heart-failure' | 'liver-support'
+   */
+  protocol: string;
+
+  /** Human-readable protocol name, e.g. "Cardiac Health" */
+  protocolLabel: string;
+
+  /**
+   * The specific lab field names that were entered and are now within normal
+   * range (used to display "markers improved" in the modal).
+   */
+  normalFields: string[];
+
+  /**
+   * Advisory reason text for the reassessment modal.
+   * Language is positive and non-diagnostic ("your values now fall within...",
+   * "you may be ready to...").
+   */
+  reason: string;
+}
+
+// ---------------------------------------------------------------------------
 // 5. ThyroidLabSignal — separate from LabProtocolSignal because thyroid is
 //    an additive modifier, not a primary protocol override.
 // ---------------------------------------------------------------------------

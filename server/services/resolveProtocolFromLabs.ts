@@ -23,6 +23,7 @@ import {
   LAB_THRESHOLDS,
   type LabProtocolSignal,
   type ThyroidLabSignal,
+  type LabDowngradeSignal,
 } from '../../shared/clinical/protocolDecision';
 
 /**
@@ -168,6 +169,220 @@ export function resolveProtocolFromLabs(
   // Returning null signals that base anti-inflammatory is the appropriate
   // protocol — no recommendation modal should be shown.
   return null;
+}
+
+/**
+ * Resolve downgrade signals — called when new labs are saved for a user
+ * who is already on one or more clinical protocols.
+ *
+ * A downgrade signal fires when ALL of these are true:
+ *   1. The user is currently on protocol X (via specialtyConditions or previousProtocol)
+ *   2. The new labs include at least one marker relevant to protocol X
+ *   3. None of those entered markers exceed the activation thresholds for X
+ *
+ * Oncology is NEVER included here — it is physician-assigned and must be
+ * removed by the clinical team, not by lab values alone.
+ *
+ * Returns an array (may be empty) — one signal per protocol that qualifies
+ * for a step-down reassessment. Never auto-removes anything; the user must
+ * confirm via the ProtocolDowngradeModal.
+ */
+export function resolveDowngradeSignals(
+  labs: LabInputForProtocol,
+  opts: {
+    /** User's current specialtyConditions array (from DB) */
+    currentSpecialtyConditions: string[];
+    /**
+     * The primary clinical protocol the user was on BEFORE this lab save,
+     * derived by running resolveProtocolFromLabs() on their previous lab record.
+     * null = user was on base anti-inflammatory (no primary protocol).
+     */
+    previousProtocol: string | null;
+  },
+): LabDowngradeSignal[] {
+  const t = LAB_THRESHOLDS;
+  const signals: LabDowngradeSignal[] = [];
+
+  // ── Thyroid downgrade ────────────────────────────────────────────────────
+  // Fires when user has 'thyroid-support' in specialtyConditions and all
+  // entered thyroid markers are now within the normal reference range.
+  if (opts.currentSpecialtyConditions.includes('thyroid-support')) {
+    const tsh    = safeNum(labs.tsh);
+    const freeT4 = safeNum(labs.freeT4);
+    const freeT3 = safeNum(labs.freeT3);
+    const tpo    = safeNum(labs.tpoAntibodies);
+    const tgab   = safeNum(labs.thyroglobulinAntibodies);
+
+    const anyThyroidEntered = [tsh, freeT4, freeT3, tpo, tgab].some(v => v !== null);
+
+    if (anyThyroidEntered) {
+      const hasAbnormal =
+        (tsh  !== null && (tsh > t.thyroid.tshHigh || tsh < t.thyroid.tshLow)) ||
+        (freeT4 !== null && freeT4 < t.thyroid.freeT4Low)                      ||
+        (freeT3 !== null && freeT3 < t.thyroid.freeT3Low)                      ||
+        (tpo    !== null && tpo    > t.thyroid.tpoAntibodiesHigh)               ||
+        (tgab   !== null && tgab   > t.thyroid.thyroglobulinAntibodiesHigh);
+
+      if (!hasAbnormal) {
+        const normalFields: string[] = [];
+        if (tsh    !== null) normalFields.push('tsh');
+        if (freeT4 !== null) normalFields.push('free_t4');
+        if (freeT3 !== null) normalFields.push('free_t3');
+        if (tpo    !== null) normalFields.push('tpo_antibodies');
+        if (tgab   !== null) normalFields.push('thyroglobulin_antibodies');
+
+        signals.push({
+          protocol:      'thyroid-support',
+          protocolLabel: 'Thyroid Support',
+          normalFields,
+          reason:
+            'Your recent thyroid lab values now fall within the normal reference range. ' +
+            'Based on your updated markers, your nutrition plan may no longer require ' +
+            'active Thyroid Support modifications. A physician would typically reassess ' +
+            'at this point and may recommend transitioning back to the Anti-Inflammatory ' +
+            'foundation while continuing to monitor. (ATA / AACE / Endocrine Society)',
+        });
+      }
+    }
+  }
+
+  // ── Cardiac (heart-failure) downgrade ────────────────────────────────────
+  if (opts.previousProtocol === 'heart-failure') {
+    const ldl   = safeNum(labs.ldl);
+    const bpSys = safeNum(labs.bloodPressureSystolic);
+    const ef    = safeNum(labs.ejectionFraction);
+
+    const anyCardiacEntered = [ldl, bpSys, ef].some(v => v !== null);
+
+    if (anyCardiacEntered) {
+      const hasAbnormal =
+        (ldl   !== null && ldl   >= t.cardiac.ldlHigh)            ||
+        (bpSys !== null && bpSys >  t.cardiac.bpSystolicHigh)     ||
+        (ef    !== null && ef    <  t.cardiac.ejectionFractionLow);
+
+      if (!hasAbnormal) {
+        const normalFields: string[] = [];
+        if (ldl   !== null) normalFields.push('ldl');
+        if (bpSys !== null) normalFields.push('blood_pressure_systolic');
+        if (ef    !== null) normalFields.push('ejection_fraction');
+
+        signals.push({
+          protocol:      'heart-failure',
+          protocolLabel: 'Cardiac Health',
+          normalFields,
+          reason:
+            'Your recent cardiac markers — LDL, blood pressure, and/or ejection fraction — ' +
+            'are now within the normal reference range. Based on your updated values, you may ' +
+            'be ready to transition back to the Anti-Inflammatory foundation. A physician ' +
+            'would typically reassess lipid and cardiovascular risk at this point before ' +
+            'stepping down from a cardiac nutrition protocol. (ACC / AHA)',
+        });
+      }
+    }
+  }
+
+  // ── Kidney Disease downgrade ──────────────────────────────────────────────
+  if (opts.previousProtocol === 'kidney-disease') {
+    const creatinine = safeNum(labs.creatinine);
+    const bun        = safeNum(labs.bun);
+
+    const anyKidneyEntered = [creatinine, bun].some(v => v !== null);
+
+    if (anyKidneyEntered) {
+      const hasAbnormal =
+        (creatinine !== null && creatinine > t.kidney.creatinineHigh) ||
+        (bun        !== null && bun        > t.kidney.bunHigh);
+
+      if (!hasAbnormal) {
+        const normalFields: string[] = [];
+        if (creatinine !== null) normalFields.push('creatinine');
+        if (bun        !== null) normalFields.push('bun');
+
+        signals.push({
+          protocol:      'kidney-disease',
+          protocolLabel: 'Kidney Support',
+          normalFields,
+          reason:
+            'Your creatinine and/or BUN values are now within the normal reference range. ' +
+            'Based on your updated kidney markers, you may be ready to transition back to ' +
+            'the Anti-Inflammatory foundation. A physician would typically reassess renal ' +
+            'function trends before stepping down from a kidney nutrition protocol. ' +
+            '(KDIGO / NKF)',
+        });
+      }
+    }
+  }
+
+  // ── Liver Disease downgrade ───────────────────────────────────────────────
+  if (opts.previousProtocol === 'liver-disease') {
+    const alt       = safeNum(labs.alt);
+    const ast       = safeNum(labs.ast);
+    const bilirubin = safeNum(labs.bilirubin);
+    const albumin   = safeNum(labs.albumin);
+
+    const anyLiverDxEntered = [alt, ast, bilirubin, albumin].some(v => v !== null);
+
+    if (anyLiverDxEntered) {
+      const hasAbnormal =
+        (alt       !== null && alt       > t.liverDisease.altHigh)       ||
+        (ast       !== null && ast       > t.liverDisease.astHigh)       ||
+        (bilirubin !== null && bilirubin > t.liverDisease.bilirubinHigh) ||
+        (albumin   !== null && albumin   < t.liverDisease.albuminLow);
+
+      if (!hasAbnormal) {
+        const normalFields: string[] = [];
+        if (alt       !== null) normalFields.push('alt');
+        if (ast       !== null) normalFields.push('ast');
+        if (bilirubin !== null) normalFields.push('bilirubin');
+        if (albumin   !== null) normalFields.push('albumin');
+
+        signals.push({
+          protocol:      'liver-disease',
+          protocolLabel: 'Liver Disease',
+          normalFields,
+          reason:
+            'Your liver markers — ALT, AST, bilirubin, and/or albumin — are now within the ' +
+            'normal reference range. Based on your updated values, a step down to the ' +
+            'Anti-Inflammatory foundation or Liver Support protocol may be appropriate. ' +
+            'A physician would typically confirm hepatic stability before reducing protocol ' +
+            'intensity. (AASLD / EASL)',
+        });
+      }
+    }
+  }
+
+  // ── Liver Support downgrade ───────────────────────────────────────────────
+  if (opts.previousProtocol === 'liver-support') {
+    const alt = safeNum(labs.alt);
+    const ast = safeNum(labs.ast);
+
+    const anyLiverSupportEntered = [alt, ast].some(v => v !== null);
+
+    if (anyLiverSupportEntered) {
+      const hasAbnormal =
+        (alt !== null && alt > t.liverSupport.altHigh) ||
+        (ast !== null && ast > t.liverSupport.astHigh);
+
+      if (!hasAbnormal) {
+        const normalFields: string[] = [];
+        if (alt !== null) normalFields.push('alt');
+        if (ast !== null) normalFields.push('ast');
+
+        signals.push({
+          protocol:      'liver-support',
+          protocolLabel: 'Liver Support',
+          normalFields,
+          reason:
+            'Your ALT and/or AST values are now within the normal reference range, which ' +
+            'suggests the mild hepatic inflammation previously detected may have resolved. ' +
+            'Based on your updated markers, you may be ready to return to the ' +
+            'Anti-Inflammatory foundation. (AASLD / NIH)',
+        });
+      }
+    }
+  }
+
+  return signals;
 }
 
 /**
