@@ -378,15 +378,15 @@ export default function PricingPage() {
                 </Button>
               </div>
               <div className="bg-black/40 backdrop-blur-lg border border-white/15 rounded-xl p-4">
-                <h3 className="text-white font-bold text-base mb-1">Family Plan</h3>
+                <h3 className="text-white font-bold text-base mb-1">Family Plans</h3>
                 <p className="text-white/60 text-xs mb-3">
-                  Trying to eat healthy while everyone in the house eats differently creates chaos. The My Perfect Meals Family Plan gives every person their own personalized nutrition experience while keeping the household organized in one system.
+                  Every household is different. My Perfect Meals Family Plans give each person their own personalized nutrition profile while keeping the whole household coordinated — from weekly meal planning to smart shopping lists built around everyone's needs.
                 </p>
                 <ul className="text-white/50 text-xs space-y-1 mb-3">
-                  <li>• Individual profiles for every family member</li>
-                  <li>• Personalized nutrition guidance for each person</li>
-                  <li>• Kids, parents, and partners on the same system</li>
-                  <li>• One organized plan for the whole household</li>
+                  <li>• Personalized profiles for up to 4 household members</li>
+                  <li>• Shared meal planning and smart shopping lists</li>
+                  <li>• Individual macro tracking and dietary preferences</li>
+                  <li>• Parental controls and family-friendly meal generation</li>
                 </ul>
                 <Button
                   onClick={() => setLocation("/family-info")}
@@ -877,9 +877,9 @@ export default function PricingPage() {
                     <p className="text-lg font-semibold">
                       ${plan.price.toFixed(2)} / month
                     </p>
-                    {plan.seats && (
+                    {plan.supportingText && (
                       <p className="text-xs text-white/60">
-                        Includes up to {plan.seats} profiles
+                        {plan.supportingText}
                       </p>
                     )}
                   </div>
@@ -957,15 +957,15 @@ export default function PricingPage() {
                 className="w-full h-40 object-cover"
               />
               <CardContent className="pt-4 pb-5 space-y-2">
-                <h3 className="text-lg font-bold">Family Plan</h3>
+                <h3 className="text-lg font-bold">Family Plans</h3>
                 <p className="text-white/70 text-sm">
-                  Trying to eat healthy while everyone in the house eats differently creates chaos. The My Perfect Meals Family Plan gives every person their own personalized nutrition experience while keeping the household organized in one system.
+                  Every household is different. My Perfect Meals Family Plans give each person their own personalized nutrition profile while keeping the whole household coordinated — from weekly meal planning to smart shopping lists built around everyone's needs.
                 </p>
                 <ul className="text-white/50 text-sm space-y-1 mt-2">
-                  <li>• Individual profiles for every family member</li>
-                  <li>• Personalized nutrition guidance for each person</li>
-                  <li>• Kids, parents, and partners on the same system</li>
-                  <li>• One organized plan for the whole household</li>
+                  <li>• Personalized profiles for up to 4 household members</li>
+                  <li>• Shared meal planning and smart shopping lists</li>
+                  <li>• Individual macro tracking and dietary preferences</li>
+                  <li>• Parental controls and family-friendly meal generation</li>
                 </ul>
                 <Button
                   onClick={() => setLocation("/family-info")}

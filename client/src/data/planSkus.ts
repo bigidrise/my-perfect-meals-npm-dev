@@ -26,6 +26,7 @@ export type PlanSku = {
   clients?: number;
   hidden?: boolean;
   blurb?: string;
+  supportingText?: string;
   features?: string[];
   group: "consumer" | "family" | "pro";
   badge?: string;
@@ -81,12 +82,14 @@ export const PLAN_SKUS: PlanSku[] = [
     price: 49.99,
     seats: 4,
     group: "family",
-    blurb: "One household, 4 profiles, shared menus & shopping",
+    blurb: "Shared wellness support for modern households",
+    supportingText: "Supports up to 4 personalized household profiles",
     features: [
-      "Includes up to 4 profiles",
-      "Shared Smart Menu Builder",
-      "Shared Shopping List",
-      "Individual macro tracking per profile",
+      "Shared weekly meal planning",
+      "Shared smart shopping lists",
+      "Individual preferences and macro tracking per profile",
+      "Family-friendly meal generation",
+      "Basic dietary personalization",
       "Parental controls",
     ],
     badge: "Best for Families",
@@ -97,13 +100,16 @@ export const PLAN_SKUS: PlanSku[] = [
     price: 99.99,
     seats: 4,
     group: "family",
-    blurb: "All 4 seats include Premium features",
+    blurb: "Adaptive wellness support for households with different needs",
+    supportingText: "Premium wellness features for up to 4 household profiles",
     features: [
-      "All Family Base features",
-      "Premium tier for all 4 profiles",
-      "Advanced presets & alerts",
-      "Shopping list export",
-      "Specialty diet menus",
+      "Everything included in Family Base",
+      "Premium access for all household profiles",
+      "Advanced household meal customization",
+      "Specialty diet support",
+      "Restaurant and beverage recommendations",
+      "Smart ingredient overlap optimization",
+      "Expanded wellness personalization",
     ],
     badge: "Best Value",
   },
@@ -113,13 +119,16 @@ export const PLAN_SKUS: PlanSku[] = [
     price: 159.99,
     seats: 4,
     group: "family",
-    blurb: "All 4 seats include Ultimate features",
+    blurb: "The complete AI-powered household wellness experience",
+    supportingText: "Ultimate wellness intelligence for up to 4 household profiles",
     features: [
-      "All Family Premium features",
-      "Ultimate tier for all 4 profiles",
-      "Priority family support",
-      "Advanced analytics per profile",
-      "Voice commands for everyone",
+      "Everything included in Family Premium",
+      "Ultimate access for all household profiles",
+      "AI-generated adaptive meal variations",
+      "Advanced household wellness insights",
+      "Voice-assisted meal planning",
+      "Enhanced automation and personalization",
+      "Early access to future household AI features",
     ],
   },
 
