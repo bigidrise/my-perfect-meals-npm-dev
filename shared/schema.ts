@@ -375,6 +375,9 @@ export const users = pgTable("users", {
   cuisineIntensity: text("cuisine_intensity").$type<"light"|"balanced"|"authentic">(), // how strongly to apply the cuisine
   // Display Preferences - accessibility settings
   fontSizePreference: text("font_size_preference").$type<"standard"|"large"|"xl">().default("standard"),
+  // International / Metric Support
+  measurementSystem: text("measurement_system").$type<"imperial"|"metric">().default("imperial"),
+  countryCode: text("country_code").$type<"US"|"CA"|"AU"|"UK"|"NZ">().default("US"),
   // ProCare Professional Onboarding - Phase 1
   professionalRole: text("professional_role").$type<"trainer"|"physician">(),
   professionalCategory: text("professional_category").$type<"certified"|"experienced"|"non_certified">(),

@@ -1,6 +1,7 @@
 // server/services/promptBuilder.ts
 import { MealGenerationRequest, UserOnboardingProfile } from "./mealEngineService";
 import { UnitPrefs } from "./validators";
+import { getMeasurementPromptBlock, MeasurementSystem } from "../../shared/units";
 import { getBaselineMacroPrompt } from "./guardrails/promptPolicyGate";
 import { AVOIDANCE_EXPANSION } from "./allergyGuardrails";
 
@@ -317,39 +318,8 @@ OUTPUT FORMAT: a single JSON object with keys:
   "servings": number
 }
 
-🚨 U.S. MEASUREMENT RULES (CRITICAL - EXACT MEASUREMENTS REQUIRED):
-- Use ONLY these units: oz, lb, cup, tbsp, tsp, each (for eggs only), fl oz
-- NEVER use grams (g), milliliters (ml), or metric units
-- NEVER use "piece" or "pieces" for meats/proteins - always use oz or lb
-- Proteins (chicken, beef, fish, pork) MUST be measured in oz (4-8 oz typical serving)
-- DEFAULT LEAN CUT RULE: When beef, steak, lamb, or pork is included and no specific cut is named, always default to a lean cut — rotate through: sirloin, tenderloin, eye of round, flank steak, or filet mignon (vary the cut, do not always pick the same one). Red meat portion defaults to 4–6 oz. Only use a fatty cut (ribeye, T-bone, porterhouse, brisket) if the user explicitly names it. Naming a cut overrides the cut choice only — portion still defaults to 4–6 oz unless the user also specifies a different amount.
-- Dairy (yogurt, cheese, milk) use oz or cups
-- Liquids use cup, tbsp, tsp, or fl oz
-- ALWAYS provide EXACT numeric measurements - never use "a pinch", "dash", "to taste"
-- Use precise amounts like 6 oz, 1/2 cup, 2 tbsp - no vague measurements
-- For small amounts, use fractions: 1/4 tsp, 1/2 cup
-- Scale output for the requested servings exactly (${servings})
-- Every ingredient MUST have a specific amount and unit
-- DO NOT include macro/nutrition data in ingredient rows - macros go in the nutrition object only
-
-EXAMPLES OF CORRECT INGREDIENT FORMAT:
-- {"name": "chicken breast", "amount": "6", "unit": "oz", "preparationNote": "boneless, skinless"}
-- {"name": "Greek yogurt", "amount": "1", "unit": "cup"}
-- {"name": "olive oil", "amount": "2", "unit": "tbsp"}
-- {"name": "eggs", "amount": "2", "unit": "each", "preparationNote": "scrambled"}
-- {"name": "broccoli florets", "amount": "2", "unit": "cup", "preparationNote": "steamed"}
-- {"name": "mixed greens", "amount": "3", "unit": "cup"}
-- {"name": "bell pepper", "amount": "1", "unit": "cup", "preparationNote": "diced"}
-- {"name": "zucchini", "amount": "1.5", "unit": "cup", "preparationNote": "sliced"}
-- {"name": "asparagus", "amount": "8", "unit": "oz", "preparationNote": "trimmed"}
-- {"name": "spinach", "amount": "2", "unit": "cup", "preparationNote": "fresh"}
-
-EXAMPLES OF INCORRECT FORMAT (NEVER DO THIS):
-- {"name": "chicken", "amount": "1", "unit": "piece"} ❌ (use oz instead)
-- {"name": "yogurt", "amount": "340", "unit": "g"} ❌ (use cups instead)
-- {"name": "chicken", "amount": "150", "unit": "g", "protein": 30} ❌ (no grams, no macros)
-- {"name": "broccoli", "amount": "100", "unit": "g"} ❌ (use cups instead)
-- {"name": "spinach", "amount": "50", "unit": "grams"} ❌ (use cups instead)
+${getMeasurementPromptBlock((profile.measurementSystem ?? "imperial") as MeasurementSystem)}
+Scale output for the requested servings exactly (${servings}).
 
 DO NOT:
 - Do not include banned ingredients or sweeteners.

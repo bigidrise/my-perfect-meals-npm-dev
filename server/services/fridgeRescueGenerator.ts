@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { getMeasurementPromptBlock } from '../../shared/units';
 import { deriveCarbSplit } from './generators/macros/carbSplit';
 import { convertStructuredIngredients } from '../utils/unitConverter';
 import { enforceCarbs } from '../utils/carbClassifier';
@@ -136,6 +137,8 @@ interface FridgeRescueRequest {
   protocolEnvelope?: UserProtocolEnvelope;
   /** Optional additive builder guidance block to append after protocol enforcement. */
   builderBlock?: string;
+  /** Measurement system preference — drives ingredient unit format in the prompt. */
+  measurementSystem?: "imperial" | "metric";
 }
 
 // Medical condition compatibility checker - using correct badge format
@@ -199,7 +202,7 @@ function getMedicalBadges(meal: any, userConditions: string[] = []): Array<{
 }
 
 export async function generateFridgeRescueMeals(request: FridgeRescueRequest): Promise<FridgeRescueMeal[]> {
-  const { fridgeItems, user, servings = 2, macroTargets, skipPalate, palatePrefs, strictMode = false, protocolEnvelope, builderBlock } = request;
+  const { fridgeItems, user, servings = 2, macroTargets, skipPalate, palatePrefs, strictMode = false, protocolEnvelope, builderBlock, measurementSystem = "imperial" } = request;
   const userConditions = user?.healthConditions || [];
   
   // 🎨 PALATE PREFERENCES: Build flavor guidance section
@@ -347,7 +350,7 @@ Every ingredient MUST use a precise, measurable quantity. No vague units. No gue
 - Liquids (milk, broth, beverages): cup or fl oz — e.g. {"name": "chicken broth", "amount": 8, "unit": "fl oz"}
 - Spices / seasonings: tsp — e.g. {"name": "garlic powder", "amount": 0.5, "unit": "tsp"}
 FORBIDDEN UNITS — NEVER use: "each", "piece", "pieces", "serving", "servings", "handful", "unit", "units", "medium", "large", "small" as a unit
-NEVER use grams (g), milliliters (ml), or any metric unit
+${getMeasurementPromptBlock(measurementSystem as "imperial" | "metric")}
 
 CARB CLASSIFICATION RULES (CRITICAL):
 - starchyCarbs: Energy-dense carbs from rice, pasta, bread, potatoes, grains, beans, corn, peas

@@ -14,7 +14,7 @@ import { captureException } from "@/lib/sentry";
 
 const RESUME_STEP_KEY = "mpm.onboarding.resumeStep";
 
-const TOTAL_STEPS = 9;
+const TOTAL_STEPS = 10;
 
 const CUISINE_OPTIONS = [
   "American", "Mexican", "Italian", "Indian", "Chinese",
@@ -175,6 +175,8 @@ export default function OnboardingV3() {
   const [specialtyConditions, setSpecialtyConditions] = useState<string[]>([]);
   const [dietaryStyle, setDietaryStyle] = useState("");
   const [customDietInput, setCustomDietInput] = useState("");
+  const [countryCode, setCountryCode] = useState<string>("US");
+  const [measurementSystem, setMeasurementSystem] = useState<"imperial" | "metric">("imperial");
 
   const progress = (step / TOTAL_STEPS) * 100;
 
@@ -235,6 +237,8 @@ export default function OnboardingV3() {
     if (user.sweetenerPreferences?.length) setSweetenerPreferences(user.sweetenerPreferences);
     if (user.cuisinePreference) setCuisinePreference(user.cuisinePreference);
     if (user.preferredBuilder) setSelectedBuilder(user.preferredBuilder);
+    if ((user as any).measurementSystem) setMeasurementSystem((user as any).measurementSystem);
+    if ((user as any).countryCode) setCountryCode((user as any).countryCode);
   }, [user]);
 
   /** Fetch with a 15-second timeout to surface hung requests as a clear error */
@@ -423,6 +427,16 @@ export default function OnboardingV3() {
             cuisinePreference: cuisinePreference || null,
             cuisineIntensity: cuisinePreference ? cuisineIntensity : null,
           }, "cuisine");
+          break;
+        case 9:
+          // Non-blocking — saves measurement preference; failure does not block step advance
+          fetch(apiUrl("/api/user/preferences"), {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify({ measurementSystem, countryCode }),
+          }).catch((err) => {
+            captureException(err, { step: "measurement_preference", measurementSystem, countryCode });
+          });
           break;
       }
       setStep((s) => s + 1);
@@ -1131,6 +1145,69 @@ export default function OnboardingV3() {
         );
 
       case 9:
+        return (
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="text-center space-y-2">
+              <div className="text-4xl mb-1">🌍</div>
+              <h1 className="text-2xl font-bold text-white">Where are you located?</h1>
+              <p className="text-white/60 text-sm max-w-sm mx-auto">
+                Optional — skip this step if you prefer. We use this to suggest the right measurement system for your meals and shopping list.
+              </p>
+            </div>
+
+            <div className="max-w-sm mx-auto space-y-4">
+              <div className="space-y-2">
+                <p className="text-white/80 text-sm font-medium">Country</p>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { label: "🇺🇸 United States", value: "US" },
+                    { label: "🇨🇦 Canada", value: "CA" },
+                    { label: "🇦🇺 Australia", value: "AU" },
+                    { label: "🇬🇧 United Kingdom", value: "UK" },
+                    { label: "🇳🇿 New Zealand", value: "NZ" },
+                  ] as const).map((c) => (
+                    <PillButton
+                      key={c.value}
+                      active={countryCode === c.value}
+                      onClick={() => {
+                        setCountryCode(c.value);
+                        if (c.value !== "US") setMeasurementSystem("metric");
+                        else setMeasurementSystem("imperial");
+                      }}
+                    >
+                      {c.label}
+                    </PillButton>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-white/80 text-sm font-medium">Measurement System</p>
+                <p className="text-white/50 text-xs">Controls units in your meals, shopping list, and biometrics.</p>
+                <div className="flex gap-2">
+                  <PillButton
+                    active={measurementSystem === "imperial"}
+                    onClick={() => setMeasurementSystem("imperial")}
+                  >
+                    🇺🇸 Imperial (oz, lbs, cups)
+                  </PillButton>
+                  <PillButton
+                    active={measurementSystem === "metric"}
+                    onClick={() => setMeasurementSystem("metric")}
+                  >
+                    🌍 Metric (g, kg, ml)
+                  </PillButton>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-orange-500/20 bg-orange-950/20 p-3 text-xs text-white/60">
+                You can always change this later in your profile settings.
+              </div>
+            </div>
+          </div>
+        );
+
+      case 10:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">

@@ -269,6 +269,12 @@ export default function EditProfilePage() {
   const [glp1Active, setGlp1Active] = useState<boolean>(
     !!((user as any)?.medicalConditions as string[] | undefined)?.includes("glp1")
   );
+  const [localMeasurementSystem, setLocalMeasurementSystem] = useState<"imperial" | "metric">(
+    ((user as any)?.measurementSystem as "imperial" | "metric") ?? "imperial"
+  );
+  const [localCountryCode, setLocalCountryCode] = useState<string>(
+    (user as any)?.countryCode ?? "US"
+  );
   const [thyroidMedication, setThyroidMedication] = useState<string>(
     (user as any)?.thyroidMedication ?? ""
   );
@@ -522,6 +528,17 @@ export default function EditProfilePage() {
         },
         credentials: "include",
         body: JSON.stringify({ medication: thyroidMedication.trim() || null }),
+      }).catch(() => {});
+
+      // Save measurement preferences (non-blocking)
+      await fetch(apiUrl("/api/user/preferences"), {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(authToken ? { "x-auth-token": authToken } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify({ measurementSystem: localMeasurementSystem, countryCode: localCountryCode }),
       }).catch(() => {});
 
       // Save anti-inflammatory support preference
@@ -1612,6 +1629,50 @@ export default function EditProfilePage() {
             title="Review & save"
             subtitle="Double-check your info. Save when ready."
           >
+            <div className="rounded-xl border border-white/10 bg-black/30 p-3 space-y-3">
+              <p className="text-white font-semibold text-sm">Measurement Preferences</p>
+              <div className="space-y-2">
+                <p className="text-white/60 text-xs">Country</p>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { label: "🇺🇸 US", value: "US" },
+                    { label: "🇨🇦 Canada", value: "CA" },
+                    { label: "🇦🇺 Australia", value: "AU" },
+                    { label: "🇬🇧 UK", value: "UK" },
+                    { label: "🇳🇿 NZ", value: "NZ" },
+                  ] as const).map((c) => (
+                    <PillButton
+                      key={c.value}
+                      active={localCountryCode === c.value}
+                      onClick={() => {
+                        setLocalCountryCode(c.value);
+                        if (c.value !== "US") setLocalMeasurementSystem("metric");
+                        else setLocalMeasurementSystem("imperial");
+                      }}
+                    >
+                      {c.label}
+                    </PillButton>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-white/60 text-xs">Measurement System</p>
+                <div className="flex gap-2">
+                  <PillButton
+                    active={localMeasurementSystem === "imperial"}
+                    onClick={() => setLocalMeasurementSystem("imperial")}
+                  >
+                    Imperial (oz, lbs)
+                  </PillButton>
+                  <PillButton
+                    active={localMeasurementSystem === "metric"}
+                    onClick={() => setLocalMeasurementSystem("metric")}
+                  >
+                    Metric (g, kg, ml)
+                  </PillButton>
+                </div>
+              </div>
+            </div>
             <div className="space-y-3">
               <div className="rounded-xl border border-white/10 bg-black/30 p-3 space-y-1">
                 <div className="flex items-center gap-2 text-white">

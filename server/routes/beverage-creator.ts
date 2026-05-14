@@ -1,5 +1,6 @@
 import { Router } from "express";
 import OpenAI from "openai";
+import { getMeasurementPromptBlock, MeasurementSystem } from "../../shared/units";
 import { computeMedicalBadges } from "../services/medicalBadges";
 import { normalizeIngredients } from "../services/ingredientNormalizer";
 import { db } from "../db";
@@ -171,6 +172,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
 
     // Use envelope's dietaryIdentity for cocktail-vs-mocktail redirect intelligence
     let activeRestrictions: string[] = beverageEnvelope.dietaryIdentity;
+    let beverageMeasurementSystem: MeasurementSystem = "imperial";
 
     if (userId && userId !== "1") {
       try {
@@ -178,9 +180,11 @@ beverageCreatorRouter.post("/", async (req, res) => {
           palateSpiceTolerance: users.palateSpiceTolerance,
           palateSeasoningIntensity: users.palateSeasoningIntensity,
           palateFlavorStyle: users.palateFlavorStyle,
+          measurementSystem: users.measurementSystem,
         }).from(users).where(eq(users.id, userId)).limit(1);
         
         if (user) {
+          beverageMeasurementSystem = (user.measurementSystem as MeasurementSystem) ?? "imperial";
           if (!skipPalate && (user.palateSpiceTolerance || user.palateSeasoningIntensity || user.palateFlavorStyle)) {
             const palatePrefs: PalatePreferences = {
               palateSpiceTolerance: user.palateSpiceTolerance as PalatePreferences['palateSpiceTolerance'],
@@ -383,23 +387,9 @@ GENERATION RULES:
 8. Apply all dietary requirements strictly.
 ${palateGuidance}
 
-🚨 U.S. MEASUREMENT RULES (CRITICAL):
-- Use ONLY these units: oz, fl oz, cup, tbsp, tsp, each (for whole items like limes)
-- NEVER use grams (g), milliliters (ml), or metric units
-- Liquids: use oz, fl oz, cup, tbsp, tsp (e.g., "2 oz vodka", "1 cup milk", "1 tbsp honey")
+${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
 - Whole items: use "each" (e.g., "1 each lime", "2 each mint sprigs")
 - DO NOT include macro/nutrition data in ingredient rows - macros go in the nutrition object only
-
-CORRECT INGREDIENT EXAMPLES:
-- {"name": "vodka", "amount": "2", "unit": "oz"}
-- {"name": "fresh lime juice", "amount": "1", "unit": "oz"}
-- {"name": "simple syrup", "amount": "0.5", "unit": "oz"}
-- {"name": "mint leaves", "amount": "6", "unit": "each"}
-- {"name": "oat milk", "amount": "1", "unit": "cup"}
-
-INCORRECT (NEVER DO THIS):
-- {"name": "vodka", "amount": "60", "unit": "ml"} ❌ (use oz)
-- {"name": "sugar", "amount": "15", "unit": "g"} ❌ (use tsp/tbsp)
 `;
 
     if (hasCustomDesc && inferredCategory) {

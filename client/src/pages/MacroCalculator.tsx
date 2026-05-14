@@ -910,7 +910,9 @@ export default function MacroCounter() {
   const [userType, setUserType] = useState<UserType>(
     savedSettings?.userType ?? "general",
   );
-  const [units, setUnits] = useState<Units>(savedSettings?.units ?? "imperial");
+  const [units, setUnits] = useState<Units>(
+    savedSettings?.units ?? ((user as any)?.measurementSystem as Units) ?? "imperial"
+  );
   const [sex, setSex] = useState<Sex>(savedSettings?.sex ?? "female");
   const [age, setAge] = useState<number>(savedSettings?.age ?? 30);
   const [heightFt, setHeightFt] = useState<number>(

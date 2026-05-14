@@ -2205,10 +2205,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cuisinePreference: user.cuisinePreference || null,
         cuisineIntensity: user.cuisineIntensity || null,
         isAdmin: user.isAdmin || false,
+        measurementSystem: (user as any).measurementSystem || "imperial",
+        countryCode: (user as any).countryCode || "US",
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);
       res.status(500).json({ error: "Failed to fetch user profile" });
+    }
+  });
+
+  // PATCH /api/user/preferences — saves measurement system and country code preferences
+  app.patch("/api/user/preferences", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const ALLOWED_SYSTEMS = ["imperial", "metric"];
+      const ALLOWED_COUNTRIES = ["US", "CA", "AU", "UK", "NZ"];
+
+      const { measurementSystem, countryCode } = req.body;
+
+      const updates: Record<string, any> = {};
+      if (measurementSystem !== undefined) {
+        if (!ALLOWED_SYSTEMS.includes(measurementSystem)) {
+          return res.status(400).json({ error: "Invalid measurementSystem. Must be 'imperial' or 'metric'." });
+        }
+        updates.measurementSystem = measurementSystem;
+      }
+      if (countryCode !== undefined) {
+        if (!ALLOWED_COUNTRIES.includes(countryCode)) {
+          return res.status(400).json({ error: "Invalid countryCode. Must be US, CA, AU, UK, or NZ." });
+        }
+        updates.countryCode = countryCode;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ error: "No valid fields to update." });
+      }
+
+      await db.update(users).set(updates).where(eq(users.id, userId));
+      console.log(`[Preferences] User ${userId} updated: ${JSON.stringify(updates)}`);
+      res.json({ success: true, ...updates });
+    } catch (error: any) {
+      console.error("Error updating user preferences:", error);
+      res.status(500).json({ error: "Failed to update preferences" });
     }
   });
 
