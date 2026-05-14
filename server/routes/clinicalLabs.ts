@@ -244,6 +244,7 @@ router.post("/", requireAuth, async (req, res) => {
     ]);
 
     console.log(`[labs POST] user=${targetUserId} specialtyConditions=${JSON.stringify(currentSpecialtyConditions)} prevProtocol=${previousProtocol} downgradeSignals=${JSON.stringify(downgradeSignals.map(s=>s.protocol))} protocolSignal=${effectiveProtocolSignal?.protocol??null} thyroidSignal=${effectiveThyroidSignal?.hasThyroidIndicators??false} thyroidMonitoring=${thyroidMonitoring}`);
+    console.log(`[labs POST INPUTS] tsh=${body.tsh??'null'} freeT4=${body.free_t4??'null'} freeT3=${body.free_t3??'null'} tpo=${body.tpo_antibodies??'null'} tgab=${body.thyroglobulin_antibodies??'null'} bp=${body.blood_pressure_systolic??'null'} ldl=${body.ldl??'null'} alreadyOnThyroid=${currentSpecialtyConditions.includes('thyroid-support')}`);
 
     res.status(201).json({
       success: true,
