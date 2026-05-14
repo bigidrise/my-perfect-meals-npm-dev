@@ -233,6 +233,8 @@ router.post("/", requireAuth, async (req, res) => {
       getPhysicianLock(targetUserId as string),
     ]);
 
+    console.log(`[labs POST] user=${targetUserId} specialtyConditions=${JSON.stringify(currentSpecialtyConditions)} prevProtocol=${previousProtocol} downgradeSignals=${JSON.stringify(downgradeSignals.map(s=>s.protocol))} protocolSignal=${effectiveProtocolSignal?.protocol??null} thyroidSignal=${effectiveThyroidSignal?.hasThyroidIndicators??false}`);
+
     res.status(201).json({
       success: true,
       labId,

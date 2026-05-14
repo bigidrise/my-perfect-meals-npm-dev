@@ -162,7 +162,7 @@ export default function ProtocolDowngradeModal({
             onClick={() => postDecision("advisory")}
           >
             {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Keep Current Plan
+            Stay the Same
           </Button>
           <Button
             className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold gap-1.5"

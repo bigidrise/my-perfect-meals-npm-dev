@@ -156,7 +156,7 @@ export default function ThyroidRecommendationModal({
             onClick={() => postDecision("rejected")}
           >
             {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Keep Current Plan
+            Stay the Same
           </Button>
           <Button
             className="flex-1 bg-teal-700 hover:bg-teal-600 text-white font-semibold"
