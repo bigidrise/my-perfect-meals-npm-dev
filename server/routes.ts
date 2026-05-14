@@ -33,6 +33,7 @@ import { sanitizeMealName } from "./utils/mealNameSanitizer";
 import { buildChefAdaptationBlock } from "./utils/chefAdaptationBlock";
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol, buildGuestEnvelope, scanGeneratedOutput, buildComplianceSection, buildMealComplianceBundle } from "./services/protocolEnvelope";
 import { getActiveNutritionContext } from "./services/nutritionContext/getActiveNutritionContext";
+import { getLabDrivenConditions, getPhysicianLockStatus } from "./services/labProtocolOwnership";
 import { 
   hasUserSetPin, 
   setUserPin, 
@@ -2191,6 +2192,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         thyroidMedication: user.thyroidMedication ?? null,
         // Protocol Ownership Model: expose context to user so UI can show source/lock state
         oncologySupportContext: user.oncologySupportContext ?? null,
+        // Three-tier hierarchy signals — used by Edit Profile to show/lock lab-driven conditions
+        labDrivenConditions: await getLabDrivenConditions(user.id),
+        physicianLocked: await getPhysicianLockStatus(user.id),
         activeSystem: user.activeSystem || null,
         isCreator,
         creatorDisplayName: creatorRow?.displayName || null,
@@ -2208,6 +2212,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Saves the user's self-selected specialty health protocol(s).
   // Accepts: { condition: string } (single, backward-compat) OR { conditions: string[] } (multi)
   // Allowed values: 'renal' | 'cardiac' | 'liver-disease' | 'liver-support' | 'oncology-support' | 'thyroid-support'
+  //
+  // THREE-TIER HIERARCHY ENFORCEMENT:
+  //   Tier 1 — Physician lock:  reject if active studio membership with assigned builder
+  //   Tier 2 — Lab value lock:  reject if the change would REMOVE a lab-driven condition
+  //   Tier 3 — Self-select:     allowed only when Tiers 1 and 2 are not in play
   app.patch("/api/user/specialty-condition", requireAuth, async (req: any, res) => {
     try {
       const authReq = req as AuthenticatedRequest;
@@ -2215,6 +2224,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const ALLOWED = ["renal", "cardiac", "liver-disease", "liver-support", "oncology-support", "thyroid-support"];
       const { condition, conditions } = req.body;
 
+      // ── Tier 1: Physician lock ────────────────────────────────────────────
+      const physicianLocked = await getPhysicianLockStatus(userId);
+      if (physicianLocked) {
+        return res.status(403).json({
+          error: "physician_locked",
+          message: "Your protocol is controlled by your physician and cannot be changed here.",
+        });
+      }
+
+      // ── Tier 2: Lab-value lock ────────────────────────────────────────────
+      // Determine what conditions the user currently has and what they're requesting.
+      const requestedNew: string[] = conditions !== undefined
+        ? (Array.isArray(conditions) ? conditions : [])
+        : (condition ? [condition] : []);
+
+      const labDriven = await getLabDrivenConditions(userId);
+      if (labDriven.length > 0) {
+        const currentUser = await db
+          .select({ specialtyConditions: (users as any).specialtyConditions })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        const current: string[] = (currentUser[0]?.specialtyConditions as string[]) ?? [];
+        // Block if any lab-driven condition is being REMOVED (present now but absent in the new list)
+        const blockedRemovals = labDriven.filter(c => current.includes(c) && !requestedNew.includes(c));
+        if (blockedRemovals.length > 0) {
+          return res.status(403).json({
+            error: "lab_driven",
+            message: "One or more protocols are controlled by your lab values. Update your labs in Biometrics to change them.",
+            locked: blockedRemovals,
+          });
+        }
+      }
+
+      // ── Tier 3: Self-select — apply the change ────────────────────────────
       // Multi-condition path: conditions[]
       if (conditions !== undefined) {
         if (!Array.isArray(conditions)) return res.status(400).json({ error: "conditions must be an array" });
