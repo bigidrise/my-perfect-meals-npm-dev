@@ -7,7 +7,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, TrendingDown, CheckCircle2, BookOpen, ArrowLeft } from "lucide-react";
+import { Loader2, CheckCircle2, BookOpen, TrendingUp, ShieldOff } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import type { LabDowngradeSignal } from "@shared/clinical/protocolDecision";
@@ -67,10 +67,10 @@ export default function ProtocolDowngradeModal({
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
         body: JSON.stringify({
-          protocol:   signal.protocol,
+          protocol: signal.protocol,
           status,
-          labId:      labId ?? null,
-          reason:     signal.reason,
+          labId:    labId ?? null,
+          reason:   signal.reason,
         }),
       });
       if (!res.ok) throw new Error("Request failed");
@@ -89,22 +89,22 @@ export default function ProtocolDowngradeModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o && !busy) onClose(); }}>
-      <DialogContent className="bg-[#0a1a12] border border-emerald-500/20 text-white max-w-md rounded-2xl p-0 overflow-hidden shadow-2xl">
+      <DialogContent className="bg-[#0a1a0e] border border-emerald-500/25 text-white max-w-md rounded-2xl p-0 overflow-hidden shadow-2xl">
 
-        {/* Header band — green/teal = good news */}
-        <div className="bg-gradient-to-r from-emerald-900/50 to-teal-900/50 px-6 pt-6 pb-4 border-b border-emerald-500/15">
+        {/* Header band */}
+        <div className="bg-gradient-to-r from-emerald-900/60 to-teal-900/40 px-6 pt-6 pb-4 border-b border-emerald-500/20">
           <DialogHeader>
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingDown className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="w-5 h-5 text-emerald-400 shrink-0" />
               <span className="text-[10px] font-semibold tracking-widest text-emerald-400/80 uppercase">
-                Protocol Reassessment
+                Great News
               </span>
             </div>
-            <DialogTitle className="text-white text-lg font-bold leading-snug">
-              {signal.protocolLabel} — Your Markers Have Improved
+            <DialogTitle className="text-white text-xl font-bold leading-snug">
+              Your numbers are back to normal range.
             </DialogTitle>
-            <DialogDescription className="text-white/50 text-sm mt-0.5">
-              Based on your most recent lab values
+            <DialogDescription className="text-emerald-300/70 text-sm mt-1">
+              {signal.protocolLabel} — based on your most recent lab values
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -112,55 +112,57 @@ export default function ProtocolDowngradeModal({
         {/* Body */}
         <div className="px-6 py-4 space-y-4">
 
-          {/* Advisory reason */}
+          {/* Plain language explanation */}
           <p className="text-sm text-white/80 leading-relaxed">
-            {signal.reason}
+            Your recent lab results show that the markers used for{" "}
+            <span className="text-emerald-300 font-medium">{signal.protocolLabel}</span> are
+            now within a healthy range. You can choose to keep your current plan, or
+            deactivate the protocol and return to your Anti-Inflammatory foundation.
           </p>
 
           {/* Normalized markers */}
           {signal.normalFields.length > 0 && (
-            <div className="bg-emerald-900/20 border border-emerald-500/20 rounded-xl px-4 py-3 space-y-1">
-              <p className="text-[10px] text-emerald-400/60 uppercase tracking-widest font-semibold mb-2">
+            <div className="bg-emerald-900/25 border border-emerald-500/20 rounded-xl px-4 py-3 space-y-1.5">
+              <p className="text-[10px] text-emerald-400/70 uppercase tracking-widest font-semibold mb-2">
                 Markers now within normal range
               </p>
               {signal.normalFields.map((f) => (
                 <div key={f} className="flex items-center gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span className="text-xs text-white/70">{labelNormalField(f)}</span>
+                  <span className="text-xs text-white/75">{labelNormalField(f)}</span>
                 </div>
               ))}
             </div>
           )}
 
-          {/* What stepping down means */}
+          {/* What deactivating means */}
           <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3">
-            <p className="text-xs text-white/60 leading-relaxed">
-              Returning to the Anti-Inflammatory foundation means your meals will continue
-              to be guided by broad anti-inflammatory principles, without the specialized
-              modifications that were active for{" "}
-              <span className="text-white/80">{signal.protocolLabel}</span>. You can
-              re-activate the protocol at any time if your labs change.
+            <p className="text-xs text-white/55 leading-relaxed">
+              Deactivating{" "}
+              <span className="text-white/75">{signal.protocolLabel}</span> means your meals
+              will follow the broad Anti-Inflammatory plan without the specialized
+              modifications. You can re-activate it at any time if your numbers change.
             </p>
           </div>
 
           {/* Citation */}
           {citation && (
-            <div className="flex items-start gap-2 text-xs text-white/40">
-              <BookOpen className="w-3.5 h-3.5 mt-0.5 shrink-0 text-white/30" />
+            <div className="flex items-start gap-2 text-xs text-white/35">
+              <BookOpen className="w-3.5 h-3.5 mt-0.5 shrink-0 text-white/25" />
               <span>{citation}</span>
             </div>
           )}
         </div>
 
-        {/* Footer */}
+        {/* Footer buttons */}
         <div className="px-6 pb-6 pt-2 flex gap-3">
           <Button
-            className="flex-1 bg-white/10 border border-white/20 text-white font-semibold hover:bg-white/20 active:bg-white/30 transition"
+            className="flex-1 bg-white/10 border border-white/15 text-white font-semibold active:bg-white/20 transition"
             disabled={busy}
             onClick={() => postDecision("advisory")}
           >
             {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Continue {signal.protocolLabel}
+            Keep Current Plan
           </Button>
           <Button
             className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold gap-1.5"
@@ -170,9 +172,9 @@ export default function ProtocolDowngradeModal({
             {busy ? (
               <Loader2 className="w-4 h-4 animate-spin mr-2" />
             ) : (
-              <ArrowLeft className="w-4 h-4 shrink-0" />
+              <ShieldOff className="w-4 h-4 shrink-0" />
             )}
-            Return to Anti-Inflammatory
+            Deactivate {signal.protocolLabel}
           </Button>
         </div>
       </DialogContent>
