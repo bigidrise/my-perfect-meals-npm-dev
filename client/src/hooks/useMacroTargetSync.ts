@@ -17,7 +17,7 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { proStore } from "@/lib/proData";
-import { getResolvedTargets, clearResolvedTargetsCache } from "@/lib/macroResolver";
+import { getResolvedTargets, clearResolvedTargetsCache, unlinkUser } from "@/lib/macroResolver";
 import { getAuthHeaders } from "@/lib/auth";
 
 const POLL_INTERVAL_MS = 45_000;
@@ -61,18 +61,18 @@ export function useMacroTargetSync() {
       const userId = userIdRef.current;
       if (!userId) return;
 
-      // Protocol Ownership Model: if the user is no longer connected to a physician,
-      // strip any stale physician medical flags from localStorage so they don't
-      // persist across sessions and incorrectly activate clinical protocols.
+      // Protocol Ownership Model: if the user is no longer connected to ProCare,
+      // clear the stale client mapping AND strip any physician medical flags from
+      // localStorage so they don't persist and incorrectly attribute macro targets
+      // or clinical protocols to a physician/professional.
       if (isProCareRef.current === false) {
         const clientId = getClientId(userId);
         if (clientId) {
-          const stripped = proStore.stripMedicalFlags(clientId);
-          if (stripped) {
-            clearResolvedTargetsCache();
-            window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
-            console.log("[MacroTargetSync] Stripped stale physician medical flags — ProCare ended.");
-          }
+          proStore.stripMedicalFlags(clientId);
+          unlinkUser(userId);
+          clearResolvedTargetsCache();
+          window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
+          console.log("[MacroTargetSync] Cleared ProCare mapping — isProCare=false, stale clientId removed.");
         }
       }
 
