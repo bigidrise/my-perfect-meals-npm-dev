@@ -4,7 +4,7 @@ import { clinicalLabs } from "../db/schema/clinicalLabs";
 import { clinicalProtocolRecommendations } from "../db/schema/clinicalProtocolRecommendations";
 import { studioMemberships, studios } from "../db/schema/studio";
 import { users } from "@shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
 import { getAuthUserId } from "../utils/getAuthUserId";
 import { z } from "zod";
@@ -69,13 +69,25 @@ const labsPayloadSchema = z.object({
   lab_date: z.string().optional().nullable(),
 });
 
-/** Check whether a physician has already explicitly assigned a builder to this user. */
+/**
+ * Check whether a physician has already explicitly assigned a builder to this user
+ * via an ACTIVE, non-archived studio membership.
+ *
+ * Intentionally mirrors the same filters used in loadStudioMembership() so that
+ * disconnected/archived memberships never trigger the physician lock.
+ */
 async function getPhysicianLock(userId: string): Promise<boolean> {
   try {
     const rows = await db
       .select({ assignedBuilder: studioMemberships.assignedBuilder })
       .from(studioMemberships)
-      .where(eq(studioMemberships.clientUserId, userId as any))
+      .where(
+        and(
+          eq(studioMemberships.clientUserId, userId as any),
+          eq(studioMemberships.status, "active"),
+          eq(studioMemberships.isArchived, false)
+        )
+      )
       .limit(1);
 
     return rows.length > 0 && !!rows[0].assignedBuilder;
@@ -204,21 +216,59 @@ router.post("/recommendation", requireAuth, async (req, res) => {
       reason:              body.reason ?? null,
     });
 
-    // On accept: switch the user's meal builder to anti_inflammatory
-    // (all clinical protocol variants live under this builder)
+    // On accept: action depends on protocol type
     if (body.status === "accepted") {
-      await db
-        .update(users)
-        .set({ selectedMealBuilder: "anti_inflammatory", updatedAt: new Date() })
-        .where(eq(users.id, userId as any));
+      if (body.protocol === "thyroid-support") {
+        // Thyroid is an ADDITIVE modifier — it does not change the meal builder.
+        // Mirror the same write pattern as PATCH /api/user/specialty-condition:
+        //   - specialtyConditions (array): append 'thyroid-support' if not present
+        //   - specialtyCondition  (singular): set only when currently null (non-destructive)
+        // Both fields must be written so every builder's indicator light fires correctly.
+        const [currentUser] = await db
+          .select({ specialtyConditions: users.specialtyConditions, specialtyCondition: users.specialtyCondition })
+          .from(users)
+          .where(eq(users.id, userId as any))
+          .limit(1);
 
-      // Stamp all studio memberships for this user as clinically assigned
-      await db
-        .update(studioMemberships)
-        .set({ assignedBuilder: "anti_inflammatory", builderSource: "clinical", updatedAt: new Date() } as any)
-        .where(eq(studioMemberships.clientUserId, userId as any));
+        const currentConditions = (currentUser?.specialtyConditions as string[]) ?? [];
+        if (!currentConditions.includes("thyroid-support")) {
+          const newConditions = [...currentConditions, "thyroid-support"];
+          // Only promote to primary if user has no existing primary specialty condition
+          const newPrimary = currentUser?.specialtyCondition ?? "thyroid-support";
+          await db
+            .update(users)
+            .set({
+              specialtyConditions: newConditions,
+              specialtyCondition:  newPrimary,
+              updatedAt: new Date(),
+            } as any)
+            .where(eq(users.id, userId as any));
+        }
+        console.log(`[labs/recommendation] User ${userId} accepted thyroid-support → specialty_conditions updated`);
+      } else {
+        // Non-thyroid clinical protocols → switch the user's meal builder to anti_inflammatory
+        // (all clinical protocol variants live under this builder)
+        await db
+          .update(users)
+          .set({ selectedMealBuilder: "anti_inflammatory", updatedAt: new Date() })
+          .where(eq(users.id, userId as any));
 
-      console.log(`[labs/recommendation] User ${userId} accepted ${body.protocol} → builder set to anti_inflammatory (source: clinical)`);
+        // Stamp active studio memberships for this user as clinically assigned.
+        // Inactive/archived memberships are intentionally excluded so a past coaching
+        // relationship cannot block the user's own lab-based builder selection.
+        await db
+          .update(studioMemberships)
+          .set({ assignedBuilder: "anti_inflammatory", builderSource: "clinical", updatedAt: new Date() } as any)
+          .where(
+            and(
+              eq(studioMemberships.clientUserId, userId as any),
+              eq(studioMemberships.status, "active"),
+              eq(studioMemberships.isArchived, false)
+            )
+          );
+
+        console.log(`[labs/recommendation] User ${userId} accepted ${body.protocol} → builder set to anti_inflammatory (source: clinical)`);
+      }
     }
 
     res.json({ ok: true, status: body.status });

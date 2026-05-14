@@ -675,7 +675,9 @@ export async function loadUserProtocolEnvelope(
     // Activation cascade (any of these triggers the modifier):
     //   1. specialtyCondition === 'thyroid-support' (self-selected in profile/onboarding)
     //   2. healthConditions includes a thyroid key (e.g. 'hashimoto\'s', 'hypothyroidism')
-    //   3. Future: lab-resolved thyroid signal (handled at the API route level)
+    //   3. Lab-resolved thyroid signal: on acceptance, the /api/biometrics/labs/recommendation
+    //      endpoint appends 'thyroid-support' to the user's specialtyConditions array,
+    //      which is then picked up on the next request via specialtyConditionsArr check above.
     const THYROID_ACTIVATION_KEYS = new Set([
       "thyroid-support", "thyroid support", "hashimoto's", "hashimotos",
       "hypothyroidism", "autoimmune thyroid", "thyroid disease",
