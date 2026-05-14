@@ -280,6 +280,15 @@ export default function EditProfilePage() {
   const physicianOncologyLocked = physicianOncologyActive && !!(user?.isProCare);
   const [physicianProtocolClearing, setPhysicianProtocolClearing] = useState(false);
 
+  // ── Three-tier hierarchy ──────────────────────────────────────────────────
+  // Tier 1: General physician lock (controls ALL conditions, not just oncology)
+  const physicianLocked: boolean = !!(user as any)?.physicianLocked;
+  // Tier 2: Lab-driven conditions — cannot be changed in Edit Profile; must go through Biometrics
+  const labDrivenConditions: string[] = (user as any)?.labDrivenConditions ?? [];
+  // A condition is locked if physician controls it OR if labs are driving it
+  const isConditionLocked = (val: string): boolean =>
+    physicianLocked || labDrivenConditions.includes(val);
+
   const [allergiesUnlocked, setAllergiesUnlocked] = useState(false);
   const [allergyEditToken, setAllergyEditToken] = useState<string | null>(null);
   const [showPinModal, setShowPinModal] = useState(false);
@@ -476,8 +485,8 @@ export default function EditProfilePage() {
         throw new Error(txt || "Failed to update profile");
       }
 
-      // Save specialty condition separately (its own PATCH endpoint)
-      await fetch(apiUrl("/api/user/specialty-condition"), {
+      // Save specialty condition — enforces three-tier hierarchy server-side
+      const condRes = await fetch(apiUrl("/api/user/specialty-condition"), {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -485,7 +494,24 @@ export default function EditProfilePage() {
         },
         credentials: "include",
         body: JSON.stringify({ conditions: specialtyConditions }),
-      }).catch(() => {});
+      });
+      if (!condRes.ok) {
+        const condErr = await condRes.json().catch(() => ({}));
+        if (condErr.error === "lab_driven") {
+          toast({
+            title: "Protocol locked by lab values",
+            description: "One or more protocols are controlled by your lab results. Go to Biometrics → Lab Values to update them.",
+            variant: "destructive",
+          });
+        } else if (condErr.error === "physician_locked") {
+          toast({
+            title: "Protocol controlled by your physician",
+            description: "Contact your care team to make changes to your active protocols.",
+            variant: "destructive",
+          });
+        }
+        // Still allow the rest of the save (profile data saved OK — only conditions were blocked)
+      }
 
       // Save thyroid medication (only relevant when thyroid-support is active, but always sync)
       await fetch(apiUrl("/api/user/thyroid-medication"), {
@@ -1033,8 +1059,39 @@ export default function EditProfilePage() {
                 )}
 
                 <p className="text-white/60 text-xs mb-3">
-                  Select all conditions that apply — you can choose more than one. Each condition you select immediately activates its full clinical protocol across every meal generator, and all selected conditions stack together. No lab entry required. You can add labs later for precision refinement.
+                  Select all conditions that apply — you can choose more than one. Each condition activates its full clinical protocol across every meal generator.{labDrivenConditions.length > 0 ? "" : " No lab entry required; you can add labs later for precision."}
                 </p>
+
+                {/* ── Lab-driven lock banner ─────────────────────────────── */}
+                {labDrivenConditions.length > 0 && !physicianLocked && (
+                  <div className="mb-3 rounded-xl border border-blue-500/40 bg-blue-950/30 p-3">
+                    <div className="flex items-start gap-2">
+                      <Lock className="h-3.5 w-3.5 text-blue-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-blue-300 text-xs font-semibold mb-0.5">Protocol Controlled by Lab Values</p>
+                        <p className="text-white/60 text-xs leading-relaxed">
+                          One or more of your protocols were set based on your lab results. These are locked here — go to <span className="text-white font-medium">Biometrics &rarr; Lab Values</span> and save updated labs to change them.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── General physician lock banner ──────────────────────── */}
+                {physicianLocked && !physicianOncologyActive && (
+                  <div className="mb-3 rounded-xl border border-amber-500/40 bg-amber-950/30 p-3">
+                    <div className="flex items-start gap-2">
+                      <Lock className="h-3.5 w-3.5 text-amber-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-amber-300 text-xs font-semibold mb-0.5">Protocol Controlled by Your Physician</p>
+                        <p className="text-white/60 text-xs leading-relaxed">
+                          Your care team controls your active protocols while you are connected to them. Contact your physician to make changes.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex flex-wrap gap-2">
                   {([
                     { label: "Kidney / Renal Disease", value: "renal" },
@@ -1043,32 +1100,41 @@ export default function EditProfilePage() {
                     { label: "Liver Support", value: "liver-support" },
                     { label: "Cancer / Oncology Support", value: "oncology-support" },
                     { label: "Thyroid Support", value: "thyroid-support" },
-                  ] as const).map((opt) => (
-                    <PillButton
-                      key={opt.value}
-                      active={specialtyConditions.includes(opt.value)}
-                      onClick={() => {
-                        // Physician-locked: block self-select changes while care team is in control
-                        if (physicianOncologyLocked && opt.value === "oncology-support") return;
-                        setSpecialtyConditions((prev) =>
-                          prev.includes(opt.value) ? prev.filter(c => c !== opt.value) : [...prev, opt.value]
-                        );
-                      }}
-                      className={physicianOncologyLocked && opt.value === "oncology-support" ? "opacity-50 cursor-not-allowed" : ""}
-                    >
-                      {opt.label}
-                    </PillButton>
-                  ))}
+                  ] as const).map((opt) => {
+                    const locked = isConditionLocked(opt.value);
+                    return (
+                      <PillButton
+                        key={opt.value}
+                        active={specialtyConditions.includes(opt.value)}
+                        onClick={() => {
+                          if (locked) return;
+                          // Legacy oncology physician lock (specific to physician-assigned oncology)
+                          if (physicianOncologyLocked && opt.value === "oncology-support") return;
+                          setSpecialtyConditions((prev) =>
+                            prev.includes(opt.value) ? prev.filter(c => c !== opt.value) : [...prev, opt.value]
+                          );
+                        }}
+                        className={locked || (physicianOncologyLocked && opt.value === "oncology-support") ? "opacity-60 cursor-not-allowed" : ""}
+                      >
+                        {locked && <Lock className="h-3 w-3 mr-1 inline-block" />}
+                        {opt.label}
+                      </PillButton>
+                    );
+                  })}
                   <PillButton
                     active={glp1Active}
                     onClick={() => setGlp1Active(prev => !prev)}
                   >
                     GLP-1 Active
                   </PillButton>
-                  {(specialtyConditions.length > 0 || glp1Active) && !physicianOncologyLocked && (
+                  {(specialtyConditions.length > 0 || glp1Active) && !physicianOncologyLocked && !physicianLocked && (
                     <PillButton
                       active={false}
-                      onClick={() => { setSpecialtyConditions([]); setGlp1Active(false); }}
+                      onClick={() => {
+                        // Only clear conditions that are NOT lab-driven
+                        setSpecialtyConditions(prev => prev.filter(c => labDrivenConditions.includes(c)));
+                        setGlp1Active(false);
+                      }}
                     >
                       Clear All ×
                     </PillButton>
