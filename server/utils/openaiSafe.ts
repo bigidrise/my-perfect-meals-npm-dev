@@ -54,19 +54,26 @@ export async function chatJson(opts: {
   throw lastErr ?? new Error("LLM failed");
 }
 
-const IMAGE_TIMEOUT_MS = Number(process.env.IMAGE_TIMEOUT_MS ?? 30000);
+const IMAGE_TIMEOUT_MS = Number(process.env.IMAGE_TIMEOUT_MS ?? 90000);
+
+function b64ToDataUrl(b64: string): string {
+  return `data:image/png;base64,${b64}`;
+}
 
 export async function genImage(prompt: string, size: "1024x1024" | "1024x1536" | "1536x1024" = "1024x1024"): Promise<string | undefined> {
   if (process.env.DISABLE_IMAGE_GEN === "true") return undefined;
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort("image-timeout"), IMAGE_TIMEOUT_MS);
   try {
-    const res = await openai.images.generate(
-      { model: "dall-e-3", prompt, size, n: 1 },
+    const res = await (openai.images.generate as any)(
+      { model: "gpt-image-1", prompt, size, n: 1 },
       { signal: ac.signal }
     );
     clearTimeout(t);
-    return res.data?.[0]?.url ?? undefined;
+    const item = res.data?.[0];
+    if (item?.url) return item.url;
+    if (item?.b64_json) return b64ToDataUrl(item.b64_json);
+    return undefined;
   } catch (e: any) {
     clearTimeout(t);
     if (e?.name === "AbortError" || String(e).includes("image-timeout")) {
@@ -78,20 +85,22 @@ export async function genImage(prompt: string, size: "1024x1024" | "1024x1536" |
   }
 }
 
-// Fast image generation for ChefFlow card previews — DALL-E 2 at 512×512.
-// ~3-5x faster than genImage (DALL-E 3). Quality is sufficient for card thumbnails.
+// Fast image generation for card previews — gpt-image-1 at 1024×1024.
 // Does NOT touch imageService.ts or the permanent storage path.
 export async function genImageFast(prompt: string): Promise<string | undefined> {
   if (process.env.DISABLE_IMAGE_GEN === "true") return undefined;
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort("image-timeout"), IMAGE_TIMEOUT_MS);
   try {
-    const res = await openai.images.generate(
-      { model: "dall-e-2", prompt, size: "512x512", n: 1 },
+    const res = await (openai.images.generate as any)(
+      { model: "gpt-image-1", prompt, size: "1024x1024", n: 1 },
       { signal: ac.signal }
     );
     clearTimeout(t);
-    return res.data?.[0]?.url ?? undefined;
+    const item = res.data?.[0];
+    if (item?.url) return item.url;
+    if (item?.b64_json) return b64ToDataUrl(item.b64_json);
+    return undefined;
   } catch (e: any) {
     clearTimeout(t);
     if (e?.name === "AbortError" || String(e).includes("image-timeout")) {

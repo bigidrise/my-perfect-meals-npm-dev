@@ -108,16 +108,17 @@ async function generateDalleImage(options: ImageGenerationOptions): Promise<stri
   try {
     const prompt = createImagePrompt(options);
     
-    const response = await getOpenAI().images.generate({
-      model: "dall-e-3",
+    const response = await (getOpenAI().images.generate as any)({
+      model: "gpt-image-1",
       prompt,
       n: 1,
       size: "1024x1024",
-      quality: "standard",
-      style: "natural"
     });
 
-    return response.data?.[0]?.url || null;
+    const item = response.data?.[0];
+    if (item?.url) return item.url;
+    if (item?.b64_json) return `data:image/png;base64,${item.b64_json}`;
+    return null;
   } catch (error) {
     console.error('DALL-E generation error:', error);
     return null;

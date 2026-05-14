@@ -951,6 +951,7 @@ export default function DessertCreator() {
                   <MealImageSlot
                     imageUrl={generatedDessert.imageUrl}
                     mealName={generatedDessert.name}
+                    sourceType="dessert"
                     isLoading={dessertImageLoading}
                   />
 
