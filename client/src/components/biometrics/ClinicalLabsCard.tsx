@@ -218,9 +218,10 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
         month: "short", day: "numeric", year: "numeric",
       }));
 
-      const hasProtocol   = !!data.protocolSignal;
-      const hasThyroid    = !!data.thyroidSignal?.hasThyroidIndicators;
-      const hasDowngrades = Array.isArray(data.downgradeSignals) && data.downgradeSignals.length > 0;
+      const hasProtocol        = !!data.protocolSignal;
+      const hasThyroid         = !!data.thyroidSignal?.hasThyroidIndicators;
+      const hasDowngrades      = Array.isArray(data.downgradeSignals) && data.downgradeSignals.length > 0;
+      const thyroidMonitoring  = !!data.thyroidMonitoring;
 
       const labId = data.labId ?? null;
 
@@ -243,6 +244,14 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
         setShowThyroidModal(true);
       } else if (hasDowngrades) {
         setShowDowngradeModal(true);
+      } else if (thyroidMonitoring) {
+        toast({
+          title: "Thyroid Labs Saved",
+          description:
+            "Some markers (TPO or Thyroglobulin antibodies) are still above the reference range. " +
+            "Your Thyroid Support protocol remains active. When all markers return to normal, " +
+            "you'll be prompted to reassess.",
+        });
       } else {
         toast({ title: "Clinical Labs Saved", description: "Your lab values have been recorded." });
       }

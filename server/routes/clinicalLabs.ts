@@ -229,11 +229,21 @@ router.post("/", requireAuth, async (req, res) => {
     const effectiveProtocolSignal  = alreadyOnProtocol  ? null : protocolSignal;
     const effectiveThyroidSignal   = alreadyOnThyroid   ? null : (thyroidSignalRaw.hasThyroidIndicators ? thyroidSignalRaw : null);
 
+    // ── Thyroid still-elevated monitoring signal ──────────────────────────────
+    // Fires when the user is already on thyroid-support, submitted thyroid
+    // values that are still elevated (so no downgrade fires), and no new
+    // activation modal is needed. This lets the frontend show a "still
+    // monitoring" toast instead of the generic "Labs Saved" message.
+    const thyroidMonitoring =
+      alreadyOnThyroid &&
+      thyroidSignalRaw.hasThyroidIndicators &&
+      downgradeSignals.length === 0;
+
     const [physicianLocked] = await Promise.all([
       getPhysicianLock(targetUserId as string),
     ]);
 
-    console.log(`[labs POST] user=${targetUserId} specialtyConditions=${JSON.stringify(currentSpecialtyConditions)} prevProtocol=${previousProtocol} downgradeSignals=${JSON.stringify(downgradeSignals.map(s=>s.protocol))} protocolSignal=${effectiveProtocolSignal?.protocol??null} thyroidSignal=${effectiveThyroidSignal?.hasThyroidIndicators??false}`);
+    console.log(`[labs POST] user=${targetUserId} specialtyConditions=${JSON.stringify(currentSpecialtyConditions)} prevProtocol=${previousProtocol} downgradeSignals=${JSON.stringify(downgradeSignals.map(s=>s.protocol))} protocolSignal=${effectiveProtocolSignal?.protocol??null} thyroidSignal=${effectiveThyroidSignal?.hasThyroidIndicators??false} thyroidMonitoring=${thyroidMonitoring}`);
 
     res.status(201).json({
       success: true,
@@ -242,6 +252,7 @@ router.post("/", requireAuth, async (req, res) => {
       protocolSubtitle: labSignalToSubtitle(effectiveProtocolSignal),
       thyroidSignal: effectiveThyroidSignal,
       downgradeSignals,
+      thyroidMonitoring,
       physicianLocked,
     });
   } catch (error: any) {
