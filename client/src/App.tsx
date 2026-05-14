@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { FontSizeProvider } from "@/contexts/FontSizeContext";
+import { HouseholdProvider } from "@/contexts/HouseholdContext";
 import { ProClientProvider } from "@/contexts/ProClientContext";
 import AppRouter from "@/components/AppRouter";
 import Router from "@/components/Router";
@@ -178,6 +179,7 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AuthProvider>
+            <HouseholdProvider>
             <FontSizeProvider>
             <AudioProvider>
               <VoiceProvider>
@@ -203,6 +205,7 @@ export default function App() {
               </VoiceProvider>
             </AudioProvider>
             </FontSizeProvider>
+            </HouseholdProvider>
           </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>

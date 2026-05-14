@@ -237,3 +237,32 @@ export function getMinTierForEntitlement(entitlement: Entitlement): PlanTier {
 }
 
 export const PROCARE_ENTITLEMENTS: Entitlement[] = ["procare", "care_team", "lab_metrics"];
+
+// ── Household / Family Plan Helpers ──────────────────────────────────────────
+
+const HOUSEHOLD_PLAN_KEYS = new Set([
+  "mpm_family_base",
+  "mpm_family_base_monthly",
+  "mpm_family_premium",
+  "mpm_family_all_upgrade_monthly",
+  "mpm_family_all_premium_monthly",
+  "mpm_family_ultimate",
+  "mpm_family_all_ultimate_monthly",
+]);
+
+/**
+ * Returns true when the lookup key is any Family plan tier.
+ * Use this to gate household profile creation and the profile switcher UI.
+ */
+export function isHouseholdPlan(lookupKey: string | null | undefined): boolean {
+  if (!lookupKey) return false;
+  return HOUSEHOLD_PLAN_KEYS.has(lookupKey);
+}
+
+/**
+ * Maximum number of household profiles the plan allows.
+ * All Family plans support up to 4. Individual/Pro plans return 1 (owner only).
+ */
+export function getMaxHouseholdProfiles(lookupKey: string | null | undefined): number {
+  return isHouseholdPlan(lookupKey) ? 4 : 1;
+}

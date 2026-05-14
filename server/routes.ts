@@ -404,6 +404,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Load studio membership for all API routes (non-blocking - just attaches membership info to req)
   app.use("/api", loadStudioMembership);
 
+  // Household profiles (Family plan feature)
+  const householdRouter = (await import("./routes/household")).default;
+  app.use("/api/household", householdRouter);
+
   // Mount auth session and alcohol log
   app.use("/api/ios", iosVerifyRouter);
   app.use("/api/stripe", stripeCheckoutRouter);

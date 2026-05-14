@@ -78,6 +78,7 @@ import ApplyGuidance from "@/pages/ApplyGuidance";
 import MealBuilderSelection from "@/pages/MealBuilderSelection";
 import CheckoutSuccess from "@/pages/CheckoutSuccess";
 import FamilyInfoPage from "@/pages/FamilyInfoPage";
+import HouseholdProfilesPage from "@/pages/HouseholdProfilesPage";
 import ProCareInfoPage from "@/pages/ProCareInfoPage";
 import PersonalGuidanceInfoPage from "@/pages/PersonalGuidanceInfoPage";
 import AdminModerationPage from "@/pages/admin-moderation";
@@ -389,6 +390,7 @@ export default function Router() {
         <Route path="/checkout/success" component={CheckoutSuccess} />
         <Route path="/billing/success" component={CheckoutSuccess} />
         <Route path="/family-info" component={FamilyInfoPage} />
+        <Route path="/household-profiles" component={HouseholdProfilesPage} />
         <Route path="/procare-info" component={ProCareInfoPage} />
         <Route path="/personal-guidance-info" component={PersonalGuidanceInfoPage} />
         <Route path="/admin-moderation" component={AdminModerationPage} />
