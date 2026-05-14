@@ -779,6 +779,7 @@ export default function BeverageCreator() {
                   <MealImageSlot
                     imageUrl={generatedBeverage.imageUrl}
                     mealName={generatedBeverage.name}
+                    sourceType="beverage"
                     isLoading={beverageImageLoading}
                   />
 

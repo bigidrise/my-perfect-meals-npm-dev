@@ -1246,6 +1246,7 @@ export default function SushiCreator() {
                       <MealImageSlot
                         imageUrl={meal.imageUrl}
                         mealName={meal.name}
+                        sourceType="sushi"
                         isLoading={!!loadingImages[meal.id]}
                       />
 
