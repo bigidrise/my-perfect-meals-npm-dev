@@ -485,6 +485,12 @@ export interface UserProtocolEnvelope {
    * Null when not disclosed. Used for medication timing guidance in meal generation.
    */
   thyroidMedication: string | null;
+
+  /**
+   * Measurement system preference — drives unit display and AI prompt formatting.
+   * Defaults to "imperial" for all users. Metric users get g/ml/kg in AI output.
+   */
+  measurementSystem: "imperial" | "metric";
 }
 
 /**
@@ -603,6 +609,7 @@ export async function loadUserProtocolEnvelope(
         specialtyConditions: users.specialtyConditions,
         thyroidMedication: users.thyroidMedication,
         activeHouseholdProfileId: (users as any).activeHouseholdProfileId,
+        measurementSystem: users.measurementSystem,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -762,6 +769,7 @@ export async function loadUserProtocolEnvelope(
       conditionGuidanceBlocks,
       thyroidSupport,
       thyroidMedication,
+      measurementSystem: ((user as any).measurementSystem as "imperial" | "metric") ?? "imperial",
     };
   } catch (error) {
     console.error("[ProtocolEnvelope] Failed to load envelope:", error);
@@ -791,6 +799,7 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     conditionGuidanceBlocks: [],
     thyroidSupport: false,
     thyroidMedication: null,
+    measurementSystem: "imperial",
   };
 }
 

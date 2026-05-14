@@ -114,6 +114,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           isAdmin: userData.isAdmin || false,
           availabilityStatus: userData.availabilityStatus ?? null,
           backAt: userData.backAt ?? null,
+          measurementSystem: userData.measurementSystem || "imperial",
+          countryCode: userData.countryCode || "US",
         };
         if (userData.oncologySupportIntent) {
           localStorage.setItem("mpm:oncologySupportIntent", userData.oncologySupportIntent);
