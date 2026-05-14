@@ -7,7 +7,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, BookOpen, TrendingUp, ShieldOff } from "lucide-react";
+import { Loader2, CheckCircle2, BookOpen, TrendingUp } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import type { LabDowngradeSignal } from "@shared/clinical/protocolDecision";
@@ -165,15 +165,11 @@ export default function ProtocolDowngradeModal({
             Stay the Same
           </Button>
           <Button
-            className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold gap-1.5"
+            className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold"
             disabled={busy}
             onClick={() => postDecision("removed")}
           >
-            {busy ? (
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
-            ) : (
-              <ShieldOff className="w-4 h-4 shrink-0" />
-            )}
+            {busy && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
             Deactivate {signal.protocolLabel}
           </Button>
         </div>
