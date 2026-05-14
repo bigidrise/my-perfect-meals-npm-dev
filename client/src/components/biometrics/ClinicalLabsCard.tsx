@@ -7,7 +7,8 @@ import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { FlaskConical, Loader2, Save } from "lucide-react";
 import ProtocolRecommendationModal from "@/components/clinical/ProtocolRecommendationModal";
-import type { LabProtocolSignal } from "@shared/clinical/protocolDecision";
+import ThyroidRecommendationModal from "@/components/clinical/ThyroidRecommendationModal";
+import type { LabProtocolSignal, ThyroidLabSignal } from "@shared/clinical/protocolDecision";
 
 function todayIso() {
   return new Date().toISOString().split("T")[0];
@@ -106,11 +107,15 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
   const [loading, setLoading] = useState(true);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
 
-  // Recommendation modal state
+  // Primary protocol recommendation modal state
   const [pendingSignal, setPendingSignal] = useState<LabProtocolSignal | null>(null);
   const [pendingLabId, setPendingLabId] = useState<number | null>(null);
   const [physicianLocked, setPhysicianLocked] = useState(false);
   const [showModal, setShowModal] = useState(false);
+
+  // Thyroid signal — additive modifier, shown after (or instead of) the primary modal
+  const [pendingThyroidSignal, setPendingThyroidSignal] = useState<ThyroidLabSignal | null>(null);
+  const [showThyroidModal, setShowThyroidModal] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -208,12 +213,23 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
         month: "short", day: "numeric", year: "numeric",
       }));
 
-      // If the resolver returned a protocol signal, show the recommendation modal
-      if (data.protocolSignal) {
+      const hasProtocol = !!data.protocolSignal;
+      const hasThyroid  = !!data.thyroidSignal?.hasThyroidIndicators;
+
+      if (hasThyroid) {
+        // Store thyroid signal — if there's also a primary protocol modal, thyroid
+        // will display after that one closes; otherwise it opens immediately.
+        setPendingThyroidSignal(data.thyroidSignal);
+        setPendingLabId(data.labId ?? null);
+      }
+
+      if (hasProtocol) {
         setPendingSignal(data.protocolSignal);
         setPendingLabId(data.labId ?? null);
         setPhysicianLocked(!!data.physicianLocked);
         setShowModal(true);
+      } else if (hasThyroid) {
+        setShowThyroidModal(true);
       } else {
         toast({ title: "Clinical Labs Saved", description: "Your lab values have been recorded." });
       }
@@ -231,20 +247,48 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
     "liver-support": "Liver Support",
   };
 
+  // After primary protocol modal is accepted, redirect then (optionally) chain thyroid
   const handleModalAccepted = () => {
     const label = pendingSignal ? (PROTOCOL_LABEL[pendingSignal.protocol] ?? "Clinical") : "Clinical";
     toast({
       title: `${label} protocol activated`,
       description: "Your meals will now follow the recommended nutrition guardrails.",
     });
-    setTimeout(() => {
-      window.location.href = "/anti-inflammatory-menu-builder";
-    }, 700);
+    setShowModal(false);
+    setPendingSignal(null);
+    // If a thyroid signal is also pending, show it before redirecting
+    if (pendingThyroidSignal) {
+      setShowThyroidModal(true);
+    } else {
+      setTimeout(() => { window.location.href = "/anti-inflammatory-menu-builder"; }, 700);
+    }
   };
 
+  // After primary protocol modal is closed/rejected, chain to thyroid modal if pending
   const handleModalClose = () => {
     setShowModal(false);
     setPendingSignal(null);
+    if (pendingThyroidSignal) {
+      setShowThyroidModal(true);
+    } else {
+      setPendingLabId(null);
+      toast({ title: "Clinical Labs Saved", description: "Your lab values have been recorded." });
+    }
+  };
+
+  const handleThyroidAccepted = () => {
+    toast({
+      title: "Thyroid Support activated",
+      description: "Your meals will now include thyroid-supportive nutrition guidance.",
+    });
+    setShowThyroidModal(false);
+    setPendingThyroidSignal(null);
+    setPendingLabId(null);
+  };
+
+  const handleThyroidClose = () => {
+    setShowThyroidModal(false);
+    setPendingThyroidSignal(null);
     setPendingLabId(null);
     toast({ title: "Clinical Labs Saved", description: "Your lab values have been recorded." });
   };
@@ -360,7 +404,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
         </CardContent>
       </Card>
 
-      {/* Recommendation modal — only renders when a signal is present */}
+      {/* Primary protocol recommendation modal */}
       {pendingSignal && (
         <ProtocolRecommendationModal
           open={showModal}
@@ -369,6 +413,17 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
           labId={pendingLabId}
           physicianLocked={physicianLocked}
           onAccepted={handleModalAccepted}
+        />
+      )}
+
+      {/* Thyroid additive-modifier modal — shown after primary modal (or standalone) */}
+      {pendingThyroidSignal && (
+        <ThyroidRecommendationModal
+          open={showThyroidModal}
+          onClose={handleThyroidClose}
+          signal={pendingThyroidSignal}
+          labId={pendingLabId}
+          onAccepted={handleThyroidAccepted}
         />
       )}
     </>
