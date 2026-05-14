@@ -126,15 +126,17 @@ router.post("/generate-image", async (req: any, res) => {
     const garnishHint = visualGarnishes.length > 0
       ? `, garnished with ${visualGarnishes.join(", ")}`
       : "";
-    visualDirective = `served in a ${glassware}${garnishHint}, professional beverage photography, natural lighting, condensation on glass, realistic, appetizing. THIS IS A DRINK. Do NOT show any solid food, salad, bowl, plate, or entree. Show ONLY the beverage in its glass or cup`;
+    // DALL-E 2: positive-only descriptions only — negations cause content policy rejections
+    visualDirective = `in a ${glassware}${garnishHint}, professional beverage photography, natural lighting, condensation on glass, vibrant color, appetizing drink`;
   } else if (isDessert) {
     visualDirective = "plated finished dessert, soft warm lighting, professional food photography, realistic, appetizing";
   } else {
     visualDirective = "plated finished dish, professional food photography, natural lighting, realistic, appetizing";
   }
 
+  // DALL-E 2: carnivore — describe what's present (meat/protein focus), not what's absent
   const carnivoreConstraint = isCarnivore
-    ? ". STRICT RULES: animal-based foods only on plate. Absolutely NO green elements, NO vegetables, NO leaves, NO garnish, NO herbs, NO parsley, NO lettuce, NO salad, NO fruit, NO plant-based sides, NO seeds, NO nuts. Plate must show only meat, fish, eggs, or animal fat. No green color anywhere on the plate."
+    ? ", meat-focused plating, rich savory tones, protein-forward food photography, warm color palette"
     : "";
 
   // SAFEGUARD: prompt must always lead with the dish name
@@ -146,9 +148,10 @@ router.post("/generate-image", async (req: any, res) => {
     console.log(`🔄 [generate-image] Retry for "${mealName}"`);
     let retryPrompt: string;
     if (isDrink) {
-      retryPrompt = `${subject}, professional drink photography, beverage in a glass, NO food NO pizza NO plated dish, realistic`;
+      // Simplest possible positive prompt for retry
+      retryPrompt = `${subject}, professional drink photography, beautiful beverage in a glass, appetizing, realistic`;
     } else if (isCarnivore) {
-      retryPrompt = `${subject}, food photography, pure animal-based meal with only meat fish or eggs, zero plants zero garnish zero green color, appetizing plating`;
+      retryPrompt = `${subject}, food photography, savory meat dish, appetizing plating, warm tones`;
     } else {
       retryPrompt = `${subject}, food photography, plated finished dish, appetizing presentation, realistic`;
     }
