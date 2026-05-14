@@ -1328,6 +1328,7 @@ export default function CravingCreator() {
                       <MealImageSlot
                         imageUrl={meal.imageUrl}
                         mealName={meal.name}
+                        sourceType="meal"
                         isLoading={!!loadingImages[meal.id]}
                       />
 
