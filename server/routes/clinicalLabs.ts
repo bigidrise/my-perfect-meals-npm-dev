@@ -4,7 +4,7 @@ import { clinicalLabs } from "../db/schema/clinicalLabs";
 import { clinicalProtocolRecommendations } from "../db/schema/clinicalProtocolRecommendations";
 import { studioMemberships, studios } from "../db/schema/studio";
 import { users } from "@shared/schema";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
 import { getAuthUserId } from "../utils/getAuthUserId";
 import { z } from "zod";
@@ -220,16 +220,30 @@ router.post("/recommendation", requireAuth, async (req, res) => {
     if (body.status === "accepted") {
       if (body.protocol === "thyroid-support") {
         // Thyroid is an ADDITIVE modifier — it does not change the meal builder.
-        // Append 'thyroid-support' to specialtyConditions only if not already present.
-        // The protocol envelope already reads specialtyConditions, so this is enough
-        // for all downstream AI generators to pick it up on the next request.
-        await db.execute(
-          sql`UPDATE users
-              SET specialty_conditions = array_append(specialty_conditions, 'thyroid-support'),
-                  updated_at = NOW()
-              WHERE id = ${userId}::uuid
-              AND NOT ('thyroid-support' = ANY(COALESCE(specialty_conditions, ARRAY[]::text[])))`
-        );
+        // Mirror the same write pattern as PATCH /api/user/specialty-condition:
+        //   - specialtyConditions (array): append 'thyroid-support' if not present
+        //   - specialtyCondition  (singular): set only when currently null (non-destructive)
+        // Both fields must be written so every builder's indicator light fires correctly.
+        const [currentUser] = await db
+          .select({ specialtyConditions: users.specialtyConditions, specialtyCondition: users.specialtyCondition })
+          .from(users)
+          .where(eq(users.id, userId as any))
+          .limit(1);
+
+        const currentConditions = (currentUser?.specialtyConditions as string[]) ?? [];
+        if (!currentConditions.includes("thyroid-support")) {
+          const newConditions = [...currentConditions, "thyroid-support"];
+          // Only promote to primary if user has no existing primary specialty condition
+          const newPrimary = currentUser?.specialtyCondition ?? "thyroid-support";
+          await db
+            .update(users)
+            .set({
+              specialtyConditions: newConditions,
+              specialtyCondition:  newPrimary,
+              updatedAt: new Date(),
+            } as any)
+            .where(eq(users.id, userId as any));
+        }
         console.log(`[labs/recommendation] User ${userId} accepted thyroid-support → specialty_conditions updated`);
       } else {
         // Non-thyroid clinical protocols → switch the user's meal builder to anti_inflammatory

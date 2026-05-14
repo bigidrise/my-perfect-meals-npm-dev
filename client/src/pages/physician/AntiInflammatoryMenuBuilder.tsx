@@ -258,7 +258,19 @@ export default function AntiInflammatoryMenuBuilder() {
           return;
         }
 
-        // User self-selected specialty condition — higher priority than lab-derived signal
+        // User self-selected specialty condition — higher priority than lab-derived signal.
+        // Check BOTH specialtyCondition (singular) and specialtyConditions (array) so that
+        // lab-based thyroid writes (which populate both fields) always light the indicator.
+        const scConditions: string[] =
+          (data?.specialtyConditions as string[]) ??
+          (data?.specialtyCondition ? [data.specialtyCondition] : []);
+        // Bridge: set thyroid modifier regardless of which field carried the value.
+        if (
+          data?.specialtyCondition === 'thyroid-support' ||
+          scConditions.includes('thyroid-support')
+        ) {
+          setThyroidFromSpecialtyCondition(true);
+        }
         if (data?.specialtyCondition) {
           const conditionModeMap: Record<string, ClinicalMode> = {
             'renal':            'kidney-disease',
@@ -271,11 +283,6 @@ export default function AntiInflammatoryMenuBuilder() {
             // (from clinicalModeResolver.ts) signal the modifier is active.
             'thyroid-support':  'anti-inflammatory',
           };
-          // Bridge: set modifier state so resolvedProtocol merges thyroidSupport
-          // into flags even though clinicalModeState stays 'anti-inflammatory'.
-          if (data.specialtyCondition === 'thyroid-support') {
-            setThyroidFromSpecialtyCondition(true);
-          }
           const mappedMode = conditionModeMap[data.specialtyCondition] as ClinicalMode | undefined;
           if (mappedMode) {
             console.log("[AntiInflamBuilder] specialtyCondition →", data.specialtyCondition, "→ mode:", mappedMode);
