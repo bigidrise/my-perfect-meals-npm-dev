@@ -54,7 +54,7 @@ export async function chatJson(opts: {
   throw lastErr ?? new Error("LLM failed");
 }
 
-const IMAGE_TIMEOUT_MS = Number(process.env.IMAGE_TIMEOUT_MS ?? 30000);
+const IMAGE_TIMEOUT_MS = Number(process.env.IMAGE_TIMEOUT_MS ?? 90000);
 
 function b64ToDataUrl(b64: string): string {
   return `data:image/png;base64,${b64}`;

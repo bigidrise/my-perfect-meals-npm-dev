@@ -2,6 +2,8 @@ import { useState } from "react";
 
 export type ImageSourceType = "beverage" | "dessert" | "snack" | "sushi" | "meal";
 
+// Stock photo fallbacks — only used when a real generated image URL itself fails to load.
+// Never shown as a primary placeholder.
 const FALLBACK_POOLS: Record<ImageSourceType, string[]> = {
   beverage: [
     "https://images.unsplash.com/photo-1544145945-f90425340c7e?w=800&h=600&fit=crop&auto=format",
@@ -28,7 +30,6 @@ const FALLBACK_POOLS: Record<ImageSourceType, string[]> = {
     "https://images.unsplash.com/photo-1559410545-0bdcd187e0a6?w=800&h=600&fit=crop&auto=format",
     "https://images.unsplash.com/photo-1611143669185-af224c5e3252?w=800&h=600&fit=crop&auto=format",
     "https://images.unsplash.com/photo-1617196034183-421b4040ed20?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1562802378-063ec186a863?w=800&h=600&fit=crop&auto=format",
   ],
   meal: [
     "https://images.unsplash.com/photo-1546793665-c74683f339c1?w=800&h=600&fit=crop&auto=format",
@@ -49,7 +50,7 @@ const FALLBACK_POOLS: Record<ImageSourceType, string[]> = {
 function detectTypeFromName(name: string): ImageSourceType {
   const lower = name.toLowerCase();
   if (/smoothie|shake|juice|latte|coffee|tea|cocktail|mocktail|drink|beverage|lemonade|beer|wine|soda|protein.shake|matcha|espresso|frappe|cooler|spritzer|tonic|punch|agua.fresca|horchata|kombucha|infusion|elixir/.test(lower)) return "beverage";
-  if (/cake|pie|cookie|brownie|pudding|ice.cream|cheesecake|tart|mousse|cupcake|donut|pastry|macaron|tiramisu|gelato|sorbet|sundae|fudge|truffle|crepe|parfait|cobbler|dessert|éclair/.test(lower)) return "dessert";
+  if (/cake|pie|cookie|brownie|pudding|ice.cream|cheesecake|tart|mousse|cupcake|donut|pastry|macaron|tiramisu|gelato|sorbet|sundae|fudge|truffle|crepe|parfait|cobbler|dessert/.test(lower)) return "dessert";
   if (/sushi|roll|nigiri|sashimi|maki|temaki|uramaki/.test(lower)) return "sushi";
   if (/chip|cracker|pretzel|energy.bar|granola.bar|trail.mix|protein.bar/.test(lower)) return "snack";
   return "meal";
@@ -62,6 +63,14 @@ function hashFallback(name: string, pool: string[]): string {
   }
   return pool[Math.abs(h) % pool.length];
 }
+
+const TYPE_LABELS: Record<ImageSourceType, string> = {
+  beverage: "Beverage Preview",
+  dessert: "Dessert Preview",
+  snack: "Snack Preview",
+  sushi: "Dish Preview",
+  meal: "Meal Preview",
+};
 
 interface MealImageSlotProps {
   imageUrl?: string | null;
@@ -88,45 +97,70 @@ export function MealImageSlot({
   const resolvedType = sourceType ?? detectTypeFromName(mealName);
   const pool = FALLBACK_POOLS[resolvedType];
   const resolvedFallback = fallbackSrc || hashFallback(mealName, pool);
+  const label = TYPE_LABELS[resolvedType];
 
+  // Shimmer while actively loading
   if (isLoading) {
     return (
       <div className={`mb-6 rounded-lg overflow-hidden ${className}`}>
         <div
-          className={`w-full ${height} relative overflow-hidden`}
-          style={{ background: "linear-gradient(135deg, #1c1c1e 0%, #2c2c2e 100%)" }}
+          className={`w-full ${height} relative overflow-hidden flex flex-col items-center justify-center gap-2`}
+          style={{ background: "linear-gradient(135deg, #1a0a00 0%, #7c2d0e 50%, #1a0a00 100%)" }}
         >
           <div
-            className="mpm-shimmer-bar"
             style={{
               position: "absolute",
               inset: 0,
-              background:
-                "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%)",
+              background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%)",
               animation: "mpm-shimmer 1.8s ease-in-out infinite",
             }}
           />
+          <div className="w-8 h-8 rounded-full border-2 border-orange-400 border-t-transparent animate-spin" />
+          <span className="text-orange-300 text-sm font-medium tracking-wide">Generating image…</span>
         </div>
       </div>
     );
   }
 
-  const src = imageUrl && !errored ? imageUrl : resolvedFallback;
+  // Branded placeholder when no image URL came back (generation failed/timed out)
+  if (!imageUrl && !errored) {
+    return (
+      <div className={`mb-6 rounded-lg overflow-hidden ${className}`}>
+        <div
+          className={`w-full ${height} flex flex-col items-center justify-center gap-3`}
+          style={{ background: "linear-gradient(135deg, #1a0a00 0%, #7c2d0e 50%, #1a0a00 100%)" }}
+        >
+          <div className="w-12 h-12 rounded-full bg-orange-600/20 border border-orange-500/40 flex items-center justify-center">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+          </div>
+          <div className="text-center">
+            <p className="text-orange-300 text-sm font-medium">{label}</p>
+            <p className="text-white/40 text-xs mt-0.5">Image preview unavailable</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Real generated image (or stock photo fallback if the generated URL itself errors)
+  const src = errored ? resolvedFallback : imageUrl!;
 
   return (
     <div className={`mb-6 rounded-lg overflow-hidden relative ${className}`}>
       {!revealed && (
         <div
           className={`absolute inset-0 w-full ${height} animate-pulse`}
-          style={{ background: "linear-gradient(135deg, #1c1c1e 0%, #2c2c2e 100%)" }}
+          style={{ background: "linear-gradient(135deg, #1a0a00 0%, #7c2d0e 50%, #1a0a00 100%)" }}
         />
       )}
       <img
         src={src}
         alt={mealName}
-        className={`w-full ${height} object-cover transition-opacity duration-300 ${
-          revealed ? "opacity-100" : "opacity-0"
-        }`}
+        className={`w-full ${height} object-cover transition-opacity duration-300 ${revealed ? "opacity-100" : "opacity-0"}`}
         onLoad={() => setRevealed(true)}
         onError={() => {
           if (!errored) {
