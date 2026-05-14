@@ -240,7 +240,7 @@ export default function ProtocolRecommendationModal({
                 {busy ? (
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 ) : null}
-                Keep Current Plan
+                Stay the Same
               </Button>
               <Button
                 className="flex-1 bg-cyan-700 hover:bg-cyan-600 text-white font-semibold"
@@ -250,7 +250,7 @@ export default function ProtocolRecommendationModal({
                 {busy ? (
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 ) : null}
-                Use Recommended Plan
+                Activate {PROTOCOL_TITLE[signal.protocol]?.replace(" Nutrition Protocol", "") ?? signal.protocol}
               </Button>
             </div>
           )}

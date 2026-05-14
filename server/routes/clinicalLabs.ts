@@ -8,7 +8,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
 import { getAuthUserId } from "../utils/getAuthUserId";
 import { z } from "zod";
-import { resolveProtocolFromLabs, resolveThyroidFromLabs, labSignalToSubtitle } from "../services/resolveProtocolFromLabs";
+import { resolveProtocolFromLabs, resolveThyroidFromLabs, resolveDowngradeSignals, labSignalToSubtitle } from "../services/resolveProtocolFromLabs";
 import { verifyClinicalAccess } from "../utils/verifyClinicalAccess";
 
 const router = express.Router();
@@ -114,6 +114,36 @@ router.post("/", requireAuth, async (req, res) => {
       return res.status(403).json({ error: "You are not authorized to submit labs for this user" });
     }
 
+    // ── Pre-insert: fetch user state + previous labs for downgrade detection ──
+    // Must run BEFORE insert so we compare new values against the prior state.
+    const [userState, previousLabRows] = await Promise.all([
+      db.select({ specialtyConditions: users.specialtyConditions, specialtyCondition: users.specialtyCondition })
+        .from(users)
+        .where(eq(users.id, targetUserId as any))
+        .limit(1),
+      db.select()
+        .from(clinicalLabs)
+        .where(eq(clinicalLabs.userId, targetUserId as any))
+        .orderBy(desc(clinicalLabs.recordedAt))
+        .limit(1),
+    ]);
+
+    const currentSpecialtyConditions = (userState[0]?.specialtyConditions as string[]) ?? [];
+
+    // Derive the protocol the user was previously on by running the resolver
+    // against their most recent saved lab record (before the new insert).
+    let previousProtocol: string | null = null;
+    if (previousLabRows.length > 0) {
+      const pr = previousLabRows[0];
+      const prevSignal = resolveProtocolFromLabs({
+        alt: pr.alt, ast: pr.ast, bilirubin: pr.bilirubin, albumin: pr.albumin,
+        creatinine: pr.creatinine, bun: pr.bun, ldl: pr.ldl,
+        bloodPressureSystolic: pr.bloodPressureSystolic,
+        ejectionFraction: pr.ejectionFraction,
+      });
+      previousProtocol = prevSignal?.protocol ?? null;
+    }
+
     const inserted = await db
       .insert(clinicalLabs)
       .values({
@@ -159,7 +189,7 @@ router.post("/", requireAuth, async (req, res) => {
     });
 
     // Thyroid resolver runs as a SEPARATE signal — additive modifier, not primary override
-    const thyroidSignal = resolveThyroidFromLabs({
+    const thyroidSignalRaw = resolveThyroidFromLabs({
       tsh:                     body.tsh,
       freeT4:                  body.free_t4,
       freeT3:                  body.free_t3,
@@ -167,16 +197,62 @@ router.post("/", requireAuth, async (req, res) => {
       thyroglobulinAntibodies: body.thyroglobulin_antibodies,
     });
 
+    // ── Downgrade detection ───────────────────────────────────────────────────
+    // If the user is already on a protocol and their new labs are now normal,
+    // return a downgrade signal instead of (or in addition to) an activation.
+    const downgradeSignals = resolveDowngradeSignals(
+      {
+        alt:                   body.alt,
+        ast:                   body.ast,
+        bilirubin:             body.bilirubin,
+        albumin:               body.albumin,
+        creatinine:            body.creatinine,
+        bun:                   body.bun,
+        ldl:                   body.ldl,
+        bloodPressureSystolic: body.blood_pressure_systolic,
+        ejectionFraction:      body.ejection_fraction,
+        tsh:                   body.tsh,
+        freeT4:                body.free_t4,
+        freeT3:                body.free_t3,
+        tpoAntibodies:         body.tpo_antibodies,
+        thyroglobulinAntibodies: body.thyroglobulin_antibodies,
+      },
+      { currentSpecialtyConditions, previousProtocol },
+    );
+
+    // ── Skip activation signals the user is already on ────────────────────────
+    // Avoid showing "activate thyroid" when user already has thyroid-support,
+    // and avoid showing "activate protocol X" when user was already on X.
+    const alreadyOnThyroid = currentSpecialtyConditions.includes('thyroid-support');
+    const alreadyOnProtocol = protocolSignal?.protocol === previousProtocol && previousProtocol !== null;
+
+    const effectiveProtocolSignal  = alreadyOnProtocol  ? null : protocolSignal;
+    const effectiveThyroidSignal   = alreadyOnThyroid   ? null : (thyroidSignalRaw.hasThyroidIndicators ? thyroidSignalRaw : null);
+
+    // ── Thyroid still-elevated monitoring signal ──────────────────────────────
+    // Fires when the user is already on thyroid-support, submitted thyroid
+    // values that are still elevated (so no downgrade fires), and no new
+    // activation modal is needed. This lets the frontend show a "still
+    // monitoring" toast instead of the generic "Labs Saved" message.
+    const thyroidMonitoring =
+      alreadyOnThyroid &&
+      thyroidSignalRaw.hasThyroidIndicators &&
+      downgradeSignals.length === 0;
+
     const [physicianLocked] = await Promise.all([
       getPhysicianLock(targetUserId as string),
     ]);
 
+    console.log(`[labs POST] user=${targetUserId} specialtyConditions=${JSON.stringify(currentSpecialtyConditions)} prevProtocol=${previousProtocol} downgradeSignals=${JSON.stringify(downgradeSignals.map(s=>s.protocol))} protocolSignal=${effectiveProtocolSignal?.protocol??null} thyroidSignal=${effectiveThyroidSignal?.hasThyroidIndicators??false} thyroidMonitoring=${thyroidMonitoring}`);
+
     res.status(201).json({
       success: true,
       labId,
-      protocolSignal,
-      protocolSubtitle: labSignalToSubtitle(protocolSignal),
-      thyroidSignal: thyroidSignal.hasThyroidIndicators ? thyroidSignal : null,
+      protocolSignal: effectiveProtocolSignal,
+      protocolSubtitle: labSignalToSubtitle(effectiveProtocolSignal),
+      thyroidSignal: effectiveThyroidSignal,
+      downgradeSignals,
+      thyroidMonitoring,
       physicianLocked,
     });
   } catch (error: any) {
@@ -191,7 +267,7 @@ router.post("/", requireAuth, async (req, res) => {
 // ---------------------------------------------------------------------------
 const recommendationPayloadSchema = z.object({
   protocol:        z.string(),
-  status:          z.enum(["accepted", "rejected", "advisory"]),
+  status:          z.enum(["accepted", "rejected", "advisory", "removed"]),
   labId:           z.number().nullable().optional(),
   triggerFields:   z.array(z.string()).optional(),
   confidenceLevel: z.string().optional(),
@@ -215,6 +291,39 @@ router.post("/recommendation", requireAuth, async (req, res) => {
       triggerFields:       body.triggerFields ? (body.triggerFields as any) : null,
       reason:              body.reason ?? null,
     });
+
+    // On "removed" (downgrade accepted): remove the protocol from user's state
+    if (body.status === "removed") {
+      if (body.protocol === "thyroid-support") {
+        // Strip thyroid-support from both specialtyConditions array and singular field.
+        const [currentUser] = await db
+          .select({ specialtyConditions: users.specialtyConditions, specialtyCondition: users.specialtyCondition })
+          .from(users)
+          .where(eq(users.id, userId as any))
+          .limit(1);
+
+        const currentConditions = (currentUser?.specialtyConditions as string[]) ?? [];
+        const newConditions = currentConditions.filter(c => c !== 'thyroid-support');
+        // Clear the singular field only if it was pointing at thyroid-support
+        const newPrimary = currentUser?.specialtyCondition === 'thyroid-support'
+          ? (newConditions[0] ?? null)
+          : (currentUser?.specialtyCondition ?? null);
+
+        await db
+          .update(users)
+          .set({ specialtyConditions: newConditions, specialtyCondition: newPrimary, updatedAt: new Date() } as any)
+          .where(eq(users.id, userId as any));
+
+        console.log(`[labs/recommendation] User ${userId} removed thyroid-support → specialty_conditions updated`);
+      } else {
+        // Primary protocols (heart-failure, kidney-disease, liver-disease, liver-support) are
+        // lab-derived, not persistently stored. When the user accepts the downgrade, the
+        // new labs already carry normalized values — the protocol resolver will return null
+        // on the next builder load, naturally stepping them back to anti-inflammatory.
+        // No user-record change needed; audit entry (written above) is the only write.
+        console.log(`[labs/recommendation] User ${userId} removed ${body.protocol} → lab-derived protocol will resolve to anti-inflammatory on next load`);
+      }
+    }
 
     // On accept: action depends on protocol type
     if (body.status === "accepted") {
