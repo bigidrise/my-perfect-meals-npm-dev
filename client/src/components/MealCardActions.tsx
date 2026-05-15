@@ -81,6 +81,7 @@ export default function MealCardActions({
     // Store meal in Chef's Kitchen format + flag to enter prepare mode
     localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
     localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
+    localStorage.setItem("mpm_chefs_kitchen_origin", window.location.pathname);
 
     setLocation("/lifestyle/chefs-kitchen");
     window.scrollTo({ top: 0, behavior: "instant" });

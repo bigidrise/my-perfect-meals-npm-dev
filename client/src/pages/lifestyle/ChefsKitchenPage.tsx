@@ -135,11 +135,22 @@ export default function ChefsKitchenPage() {
   const [mode, setMode] = useState<KitchenMode>(initialState.mode);
   const [externalMeal] = useState<GeneratedMeal | null>(initialState.meal);
 
+  // Capture origin before clearing it — used by the back button to return
+  // the user to whichever page launched Guided Cooking.
+  const [originPath] = useState<string>(() => {
+    try {
+      return localStorage.getItem("mpm_chefs_kitchen_origin") || "/lifestyle";
+    } catch {
+      return "/lifestyle";
+    }
+  });
+
   useEffect(() => {
     if (initialState.mode === "prepare") {
       window.scrollTo({ top: 0, behavior: "instant" });
     }
     localStorage.removeItem("mpm_chefs_kitchen_external_prepare");
+    localStorage.removeItem("mpm_chefs_kitchen_origin");
     localStorage.removeItem("mpm_chefs_kitchen_prep");
   }, []);
 
@@ -569,7 +580,7 @@ export default function ChefsKitchenPage() {
         >
           <div className="px-4 h-14 flex items-center gap-3">
             <button
-              onClick={() => setLocation("/lifestyle")}
+              onClick={() => setLocation(originPath)}
               className="flex items-center justify-center text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
               data-testid="button-back-to-lifestyle"
             >

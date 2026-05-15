@@ -984,6 +984,7 @@ export default function BeverageCreator() {
                             "mpm_chefs_kitchen_external_prepare",
                             "true",
                           );
+                          localStorage.setItem("mpm_chefs_kitchen_origin", window.location.pathname);
                           setLocation("/lifestyle/chefs-kitchen");
                         }}
                         className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
