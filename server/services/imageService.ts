@@ -113,6 +113,7 @@ async function generateDalleImage(options: ImageGenerationOptions): Promise<stri
       prompt,
       n: 1,
       size: "1024x1024",
+      quality: "low",
     });
 
     const item = response.data?.[0];

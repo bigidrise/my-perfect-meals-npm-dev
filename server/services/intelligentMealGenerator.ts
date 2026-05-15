@@ -83,10 +83,10 @@ Provide responses in JSON format with:
     if (request.mode === "generate" && result.meal) {
       try {
         const imageResponse = await getOpenAI().images.generate({
-          model: "dall-e-3",
+          model: "gpt-image-1",
           prompt: `Professional food photography of ${result.meal.name}: ${result.meal.description}. Clean, appetizing, restaurant-quality presentation.`,
           size: "1024x1024",
-          quality: "standard",
+          quality: "low",
           n: 1
         });
         result.meal.imageUrl = imageResponse.data?.[0]?.url;
