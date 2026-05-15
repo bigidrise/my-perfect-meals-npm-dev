@@ -656,58 +656,58 @@ export default function UltimateExperiencesPage() {
                           Family Recipes
                           <span className="ml-1.5 text-white/40 font-normal text-xs">(optional)</span>
                         </label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (isListening) {
-                              recognitionRef.current?.stop();
-                              recognitionRef.current = null;
-                              setIsListening(false);
-                              return;
-                            }
-                            const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-                            if (!SR) {
-                              toast({ title: "Voice not supported", description: "Try typing instead.", duration: 3000 });
-                              return;
-                            }
-                            const rec = new SR();
-                            rec.lang = "en-US";
-                            rec.continuous = true;
-                            rec.interimResults = false;
-                            rec.onstart = () => setIsListening(true);
-                            rec.onend = () => {
-                              // Only clear if we didn't stop it manually
-                              if (recognitionRef.current) {
+                        <div className="flex flex-col items-center gap-0.5">
+                          <PillButton
+                            type="button"
+                            active={isListening}
+                            variant="rose"
+                            onClick={() => {
+                              if (isListening) {
+                                recognitionRef.current?.stop();
+                                recognitionRef.current = null;
+                                setIsListening(false);
+                                return;
+                              }
+                              const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+                              if (!SR) {
+                                toast({ title: "Voice not supported", description: "Try typing instead.", duration: 3000 });
+                                return;
+                              }
+                              const rec = new SR();
+                              rec.lang = "en-US";
+                              rec.continuous = true;
+                              rec.interimResults = false;
+                              rec.onstart = () => setIsListening(true);
+                              rec.onend = () => {
+                                if (recognitionRef.current) {
+                                  setIsListening(false);
+                                  recognitionRef.current = null;
+                                }
+                              };
+                              rec.onerror = () => {
                                 setIsListening(false);
                                 recognitionRef.current = null;
-                              }
-                            };
-                            rec.onerror = () => {
-                              setIsListening(false);
-                              recognitionRef.current = null;
-                            };
-                            rec.onresult = (e: any) => {
-                              const results = Array.from(e.results as SpeechRecognitionResultList);
-                              const newText = results
-                                .slice(e.resultIndex)
-                                .map((r: any) => r[0].transcript)
-                                .join(" ");
-                              if (newText.trim()) {
-                                setFamilyRecipes((prev) => (prev ? prev + " " + newText.trim() : newText.trim()));
-                              }
-                            };
-                            recognitionRef.current = rec;
-                            rec.start();
-                          }}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                            isListening
-                              ? "bg-red-500/30 border-red-400 text-red-300 animate-pulse"
-                              : "bg-black/40 border-white/20 text-white/60 hover:border-orange-400/50 hover:text-white"
-                          }`}
-                        >
-                          {isListening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
-                          {isListening ? "Stop" : "Voice"}
-                        </button>
+                              };
+                              rec.onresult = (e: any) => {
+                                const results = Array.from(e.results as SpeechRecognitionResultList);
+                                const newText = results
+                                  .slice(e.resultIndex)
+                                  .map((r: any) => r[0].transcript)
+                                  .join(" ");
+                                if (newText.trim()) {
+                                  setFamilyRecipes((prev) => (prev ? prev + " " + newText.trim() : newText.trim()));
+                                }
+                              };
+                              recognitionRef.current = rec;
+                              rec.start();
+                            }}
+                          >
+                            {isListening ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
+                          </PillButton>
+                          <span className={`text-[9px] font-semibold uppercase tracking-wide ${isListening ? "text-rose-400" : "text-white/50"}`}>
+                            {isListening ? "Stop" : "Voice"}
+                          </span>
+                        </div>
                       </div>
                       <textarea
                         value={familyRecipes}
