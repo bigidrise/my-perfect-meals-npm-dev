@@ -1463,7 +1463,7 @@ const FridgeRescuePage = () => {
                             }}
                           >
                             {isFree && <Lock className="h-3 w-3" />}
-                            Enter Studio
+                            Guided Cooking
                           </Button>
                           <ShareRecipeButton
                             recipe={{
