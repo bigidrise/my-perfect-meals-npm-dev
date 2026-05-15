@@ -267,7 +267,7 @@ export default function MealCard({ recipe, compact = false, onSelect, onViewReci
               <div className="flex justify-center">
                 <Button 
                   size="sm" 
-                  className="text-xs bg-lime-600 hover:bg-lime-500 text-black font-semibold shadow-md hover:shadow-lg active:scale-95 transition-all duration-200 flex items-center gap-1.5"
+                  className="text-xs bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold shadow-md hover:shadow-lg active:scale-95 transition-all duration-200 flex items-center gap-1.5"
                   onClick={handlePrepareWithChef}
                 >
                   <ChefHat className="h-3.5 w-3.5" />

@@ -143,7 +143,7 @@ export default function MealCardActions({
       {showPrepareButton && isFeatureEnabled('chefsKitchen') && (
         <Button
           size="sm"
-          className="w-full bg-lime-600 hover:bg-lime-500 text-white font-semibold shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1.5 py-2.5"
+          className="w-full bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1.5 py-2.5"
           onClick={handlePrepareWithChef}
           disabled={!hasInstructions}
           title={!hasInstructions ? "No cooking instructions available" : undefined}
