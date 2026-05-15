@@ -1522,7 +1522,7 @@ export default function UltimateExperiencesPage() {
                               );
                               setLocation("/lifestyle/chefs-kitchen");
                             }}
-                            className="flex-1 bg-orange-600 hover:bg-orange-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
+                            className="flex-1 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                           >
                             Guided Cooking
                           </GlassButton>
