@@ -550,6 +550,9 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
     };
   }
 
+  const _t0 = Date.now();
+  console.log(`⏱️ [IMG] START ${mealName}`);
+
   // ── LAYER 3: CHECK IN-MEMORY CACHE ─────────────────────────────────────────
   const memHit = memCache.get(cacheKey);
   if (memHit) {
@@ -564,6 +567,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
   }
 
   // ── LAYER 3: CHECK DB CACHE ─────────────────────────────────────────────────
+  console.log(`⏱️ [IMG] DB-check start +${Date.now()-_t0}ms`);
   try {
     const [dbRow] = await db
       .select({ imageUrl: mealImageCache.imageUrl, promptUsed: mealImageCache.promptUsed })
@@ -604,23 +608,27 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
 
   // ── LAYER 1: CALL DALL-E WITH TIMEOUT ──────────────────────────────────────
   let imageUrl: string | null = null;
+  console.log(`⏱️ [IMG] OpenAI call start +${Date.now()-_t0}ms`);
 
   try {
     const response = await withTimeout(
-      (getOpenAI().images.generate as any)({
-        model: "gpt-image-1",
+      getOpenAI().images.generate({
+        model: "dall-e-3",
         prompt,
         n: 1,
         size: "1024x1024",
+        quality: "standard",
+        response_format: "url",
       }),
-      90000
+      60000
     );
 
     const item = response.data?.[0];
     if (item?.url) imageUrl = item.url;
     else if (item?.b64_json) imageUrl = `data:image/png;base64,${item.b64_json}`;
+    console.log(`⏱️ [IMG] OpenAI call done +${Date.now()-_t0}ms`);
   } catch (dalleErr: any) {
-    console.warn(`⚠️ DALL-E failed for "${mealName}": ${dalleErr.message}`);
+    console.warn(`⚠️ DALL-E failed for "${mealName}": ${dalleErr.message} +${Date.now()-_t0}ms`);
   }
 
   // ── LAYER 4: FALLBACK — NEVER RETURN NULL ──────────────────────────────────
@@ -637,71 +645,56 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
     };
   }
 
-  // ── LAYER 3: S3-FIRST PERSIST PIPELINE ────────────────────────────────────
-  // Rule: Temp URLs NEVER enter the DB or memCache under any condition.
-  // Only permanent S3 URLs are cached. If S3 fails, serve temp URL for this
-  // session only and log loudly — do NOT cache anything.
+  // ── BACKGROUND S3 PERSIST ─────────────────────────────────────────────────
+  // Return the image to the client immediately (data URL is already the full
+  // image bytes — not a temp link). S3 upload + DB cache write happen in the
+  // background so the user sees the image without waiting for S3.
+  const immediateUrl = imageUrl;
 
-  const tempUrl = imageUrl;
-
-  // Race-condition guard: check if another request already wrote an S3 URL
-  try {
-    const [existing] = await db
-      .select({ imageUrl: mealImageCache.imageUrl })
-      .from(mealImageCache)
-      .where(eq(mealImageCache.cacheKey, cacheKey))
-      .limit(1);
-
-    if (existing && isS3Url(existing.imageUrl)) {
-      console.log(`✅ S3 URL already cached (race guard) for: ${mealName}`);
-      memCache.set(cacheKey, existing.imageUrl);
-      return {
-        url: existing.imageUrl,
-        prompt,
-        templateRef: request.templateRef,
-        hash: cacheKey,
-        createdAt: new Date().toISOString(),
-      };
-    }
-  } catch {}
-
-  // Upload to S3 — fully awaited before any cache write
-  console.log(`📦 Uploading to permanent S3 storage for: ${mealName}`);
-  const ingestionResult = await ingestImageToPermanentStorage(tempUrl, mealName);
-
-  if (ingestionResult.success && ingestionResult.permanentUrl) {
-    const s3Url = ingestionResult.permanentUrl;
-
-    // Write permanent S3 URL to DB — overwrite any stale temp row, never the reverse
+  setImmediate(async () => {
     try {
-      await db
-        .insert(mealImageCache)
-        .values({ cacheKey, imageUrl: s3Url, mealName, promptUsed: prompt })
-        .onConflictDoUpdate({
-          target: mealImageCache.cacheKey,
-          set: { imageUrl: s3Url, mealName, promptUsed: prompt },
-        });
-      console.log(`✅ S3 URL cached in DB for: ${mealName}`);
-    } catch (dbWriteErr) {
-      console.warn(`⚠️ DB cache write failed for "${mealName}":`, dbWriteErr);
+      // Race-condition guard: another request may have already written S3
+      const [existing] = await db
+        .select({ imageUrl: mealImageCache.imageUrl })
+        .from(mealImageCache)
+        .where(eq(mealImageCache.cacheKey, cacheKey))
+        .limit(1);
+
+      if (existing && isS3Url(existing.imageUrl)) {
+        memCache.set(cacheKey, existing.imageUrl);
+        console.log(`✅ S3 already cached (background race guard) for: ${mealName}`);
+        return;
+      }
+
+      console.log(`📦 [BG] Uploading to S3 for: ${mealName}`);
+      const ingestionResult = await ingestImageToPermanentStorage(immediateUrl, mealName);
+
+      if (ingestionResult.success && ingestionResult.permanentUrl) {
+        const s3Url = ingestionResult.permanentUrl;
+        try {
+          await db
+            .insert(mealImageCache)
+            .values({ cacheKey, imageUrl: s3Url, mealName, promptUsed: prompt })
+            .onConflictDoUpdate({
+              target: mealImageCache.cacheKey,
+              set: { imageUrl: s3Url, mealName, promptUsed: prompt },
+            });
+          console.log(`✅ [BG] S3 URL cached in DB for: ${mealName}`);
+        } catch (dbErr) {
+          console.warn(`⚠️ [BG] DB write failed for "${mealName}":`, dbErr);
+        }
+        memCache.set(cacheKey, s3Url);
+      } else {
+        console.warn(`⚠️ [BG] S3 upload failed for "${mealName}": ${ingestionResult.error ?? 'unknown'}`);
+      }
+    } catch (bgErr: any) {
+      console.warn(`⚠️ [BG] S3 pipeline error for "${mealName}": ${bgErr.message}`);
     }
+  });
 
-    memCache.set(cacheKey, s3Url);
-    return {
-      url: s3Url,
-      prompt,
-      templateRef: request.templateRef,
-      hash: cacheKey,
-      createdAt: new Date().toISOString(),
-    };
-  }
-
-  // S3 failed — serve temp URL for THIS REQUEST ONLY, nothing cached
-  console.error(
-    `🚨 S3 upload FAILED for "${mealName}" | url: ${tempUrl.substring(0, 80)}... | reason: ${ingestionResult.error ?? 'unknown'} — serving temp URL for current session only, NOT caching`
-  );
+  // Respond immediately with the image — client sees it without waiting for S3
   return {
-    url: tempUrl,
+    url: immediateUrl,
     prompt,
     templateRef: request.templateRef,
     hash: cacheKey,
