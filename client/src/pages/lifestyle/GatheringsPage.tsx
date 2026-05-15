@@ -1014,6 +1014,9 @@ export default function UltimateExperiencesPage() {
                           } else if (decision === "let_chef_adapt") {
                             setDietDecision("let_chef_adapt");
                             handleGenerateExperience(true, true);
+                          } else if (decision === "continue_anyway") {
+                            setDietDecision("continue_anyway");
+                            handleGenerateExperience(true);
                           }
                         }}
                         className="mt-3"
