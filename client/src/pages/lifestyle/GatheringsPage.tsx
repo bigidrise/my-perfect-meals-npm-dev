@@ -215,6 +215,7 @@ export default function UltimateExperiencesPage() {
   const [dishAccordionOpen, setDishAccordionOpen] = useState(false);
   const [dishTabFilter, setDishTabFilter] = useState<"all" | "appetizer" | "main" | "side" | "dessert">("all");
   const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const [totalCourses, setTotalCourses] = useState<3 | 4 | 5>(4);
   const [servings, setServings] = useState<number>(6);
 
@@ -655,36 +656,58 @@ export default function UltimateExperiencesPage() {
                           Family Recipes
                           <span className="ml-1.5 text-white/40 font-normal text-xs">(optional)</span>
                         </label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-                            if (!SR) {
-                              toast({ title: "Voice not supported", description: "Try typing instead.", duration: 3000 });
-                              return;
-                            }
-                            if (isListening) { setIsListening(false); return; }
-                            const rec = new SR();
-                            rec.lang = "en-US";
-                            rec.interimResults = false;
-                            rec.onstart = () => setIsListening(true);
-                            rec.onend = () => setIsListening(false);
-                            rec.onerror = () => setIsListening(false);
-                            rec.onresult = (e: any) => {
-                              const transcript = e.results[0][0].transcript;
-                              setFamilyRecipes((prev) => (prev ? prev + " " + transcript : transcript));
-                            };
-                            rec.start();
-                          }}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                            isListening
-                              ? "bg-orange-500/30 border-orange-400 text-orange-300 animate-pulse"
-                              : "bg-black/40 border-white/20 text-white/60 hover:border-orange-400/50 hover:text-white"
-                          }`}
-                        >
-                          {isListening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
-                          {isListening ? "Listening…" : "Voice"}
-                        </button>
+                        <div className="flex flex-col items-center gap-0.5">
+                          <PillButton
+                            type="button"
+                            active={isListening}
+                            variant="rose"
+                            onClick={() => {
+                              if (isListening) {
+                                recognitionRef.current?.stop();
+                                recognitionRef.current = null;
+                                setIsListening(false);
+                                return;
+                              }
+                              const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+                              if (!SR) {
+                                toast({ title: "Voice not supported", description: "Try typing instead.", duration: 3000 });
+                                return;
+                              }
+                              const rec = new SR();
+                              rec.lang = "en-US";
+                              rec.continuous = true;
+                              rec.interimResults = false;
+                              rec.onstart = () => setIsListening(true);
+                              rec.onend = () => {
+                                if (recognitionRef.current) {
+                                  setIsListening(false);
+                                  recognitionRef.current = null;
+                                }
+                              };
+                              rec.onerror = () => {
+                                setIsListening(false);
+                                recognitionRef.current = null;
+                              };
+                              rec.onresult = (e: any) => {
+                                const results = Array.from(e.results as SpeechRecognitionResultList);
+                                const newText = results
+                                  .slice(e.resultIndex)
+                                  .map((r: any) => r[0].transcript)
+                                  .join(" ");
+                                if (newText.trim()) {
+                                  setFamilyRecipes((prev) => (prev ? prev + " " + newText.trim() : newText.trim()));
+                                }
+                              };
+                              recognitionRef.current = rec;
+                              rec.start();
+                            }}
+                          >
+                            {isListening ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
+                          </PillButton>
+                          <span className={`text-[9px] font-semibold uppercase tracking-wide ${isListening ? "text-rose-400" : "text-white/50"}`}>
+                            {isListening ? "Stop" : "Voice"}
+                          </span>
+                        </div>
                       </div>
                       <textarea
                         value={familyRecipes}
@@ -1014,6 +1037,9 @@ export default function UltimateExperiencesPage() {
                           } else if (decision === "let_chef_adapt") {
                             setDietDecision("let_chef_adapt");
                             handleGenerateExperience(true, true);
+                          } else if (decision === "continue_anyway") {
+                            setDietDecision("continue_anyway");
+                            handleGenerateExperience(true);
                           }
                         }}
                         className="mt-3"
@@ -1517,11 +1543,12 @@ export default function UltimateExperiencesPage() {
                                 "mpm_chefs_kitchen_external_prepare",
                                 "true",
                               );
+                              localStorage.setItem("mpm_chefs_kitchen_origin", window.location.pathname);
                               setLocation("/lifestyle/chefs-kitchen");
                             }}
-                            className="flex-1 bg-orange-600 hover:bg-orange-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
+                            className="flex-1 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                           >
-                            Prepare with Chef
+                            Guided Cooking
                           </GlassButton>
                           <ShareRecipeButton
                             recipe={{

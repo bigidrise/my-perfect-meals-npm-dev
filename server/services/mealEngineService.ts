@@ -40,6 +40,9 @@ export interface UserOnboardingProfile {
   // Image policy
   allowImageGen?: boolean;
 
+  // Measurement system preference
+  measurementSystem?: "imperial" | "metric";
+
   // Palate preferences (flavor, not macros)
   palateSpiceTolerance?: "none" | "mild" | "medium" | "hot";
   palateSeasoningIntensity?: "light" | "balanced" | "bold";
@@ -167,6 +170,7 @@ async function fetchOnboardingProfile(
     palateSpiceTolerance: (p?.palateSpiceTolerance as any) || "mild",
     palateSeasoningIntensity: (p?.palateSeasoningIntensity as any) || "balanced",
     palateFlavorStyle: (p?.palateFlavorStyle as any) || "classic",
+    measurementSystem: ((p as any)?.measurementSystem as "imperial" | "metric") ?? "imperial",
   };
 }
 

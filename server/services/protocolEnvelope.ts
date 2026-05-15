@@ -485,6 +485,12 @@ export interface UserProtocolEnvelope {
    * Null when not disclosed. Used for medication timing guidance in meal generation.
    */
   thyroidMedication: string | null;
+
+  /**
+   * Measurement system preference — drives unit display and AI prompt formatting.
+   * Defaults to "imperial" for all users. Metric users get g/ml/kg in AI output.
+   */
+  measurementSystem: "imperial" | "metric";
 }
 
 /**
@@ -602,6 +608,8 @@ export async function loadUserProtocolEnvelope(
         specialtyCondition: users.specialtyCondition,
         specialtyConditions: users.specialtyConditions,
         thyroidMedication: users.thyroidMedication,
+        activeHouseholdProfileId: (users as any).activeHouseholdProfileId,
+        measurementSystem: users.measurementSystem,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -610,6 +618,41 @@ export async function loadUserProtocolEnvelope(
     if (!user) {
       console.warn(`[ProtocolEnvelope] User not found: ${userId}`);
       return null;
+    }
+
+    // ── HOUSEHOLD PROFILE OVERLAY ─────────────────────────────────────────────
+    // When the owner has switched to a household member's profile, overlay that
+    // profile's preference fields onto the envelope. Medical supervision fields
+    // (oncologySupportContext, thyroidMedication) always remain from the owner.
+    if ((user as any).activeHouseholdProfileId) {
+      try {
+        const { householdProfiles } = await import("@shared/schema");
+        const [hProfile] = await db
+          .select()
+          .from(householdProfiles)
+          .where(eq(householdProfiles.id, (user as any).activeHouseholdProfileId))
+          .limit(1);
+
+        if (hProfile && hProfile.ownerUserId === userId) {
+          console.log(`[ProtocolEnvelope] Applying household profile "${hProfile.displayName}" for user ${userId}`);
+          (user as any).dietaryRestrictions = hProfile.dietaryRestrictions ?? [];
+          (user as any).allergies = hProfile.allergies ?? [];
+          (user as any).healthConditions = hProfile.healthConditions ?? [];
+          (user as any).dislikedFoods = hProfile.dislikedFoods ?? [];
+          (user as any).avoidedFoods = hProfile.avoidedFoods ?? [];
+          (user as any).likedFoods = hProfile.likedFoods ?? [];
+          (user as any).preferredSweeteners = hProfile.preferredSweeteners ?? [];
+          (user as any).cuisinePreference = hProfile.cuisinePreference ?? null;
+          (user as any).cuisineIntensity = hProfile.cuisineIntensity ?? null;
+          (user as any).specialtyCondition = hProfile.specialtyCondition ?? null;
+          (user as any).specialtyConditions = hProfile.specialtyConditions ?? [];
+          // medicalConditions glp1 check uses household profile's conditions
+          (user as any)._householdMedicalConditions = hProfile.medicalConditions ?? [];
+          (user as any)._householdProfileName = hProfile.displayName;
+        }
+      } catch (hErr) {
+        console.warn("[ProtocolEnvelope] Could not load household profile, falling back to owner:", hErr);
+      }
     }
 
     const dietaryRestrictions: string[] = (user.dietaryRestrictions as string[]) || [];
@@ -624,8 +667,12 @@ export async function loadUserProtocolEnvelope(
     // protocol automatically when a user is on GLP-1 medication. Only 'glp1' is extracted —
     // other medicalConditions values (e.g. 'diabetes-type2') are builder-routing flags, not
     // guidance-layer condition keys, so they must not be injected into healthConditions.
-    const medicalConditionsGlp1 = (((user as any).medicalConditions as string[] | null) || [])
-      .filter((c: string) => c === "glp1");
+    // When a household profile is active, use its medicalConditions for GLP-1 detection.
+    const _activeMedicalConditions: string[] =
+      (user as any)._householdMedicalConditions ||
+      ((user as any).medicalConditions as string[] | null) ||
+      [];
+    const medicalConditionsGlp1 = _activeMedicalConditions.filter((c: string) => c === "glp1");
     const mergedHealthConditions = [...new Set([...healthConditions, ...specialtyConditionsArr, ...medicalConditionsGlp1])];
     const dislikedFoods: string[] = (user.dislikedFoods as string[]) || [];
     const avoidedFoods: string[] = (user.avoidedFoods as string[]) || [];
@@ -722,6 +769,7 @@ export async function loadUserProtocolEnvelope(
       conditionGuidanceBlocks,
       thyroidSupport,
       thyroidMedication,
+      measurementSystem: ((user as any).measurementSystem as "imperial" | "metric") ?? "imperial",
     };
   } catch (error) {
     console.error("[ProtocolEnvelope] Failed to load envelope:", error);
@@ -751,6 +799,7 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     conditionGuidanceBlocks: [],
     thyroidSupport: false,
     thyroidMedication: null,
+    measurementSystem: "imperial",
   };
 }
 

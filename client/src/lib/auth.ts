@@ -145,6 +145,9 @@ export interface User {
   cuisineIntensity?: string | null;
   // Admin access
   isAdmin?: boolean;
+  // International / Metric Support
+  measurementSystem?: "imperial" | "metric";
+  countryCode?: "US" | "CA" | "AU" | "UK" | "NZ";
 }
 
 export function getAuthToken(): string | null {

@@ -149,6 +149,7 @@ export default function GeneratedMealCard({
 
     localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
     localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
+    localStorage.setItem("mpm_chefs_kitchen_origin", window.location.pathname);
 
     setLocation("/lifestyle/chefs-kitchen");
   };
@@ -428,12 +429,12 @@ export default function GeneratedMealCard({
           {isFeatureEnabled('chefsKitchen') && (
             <Button
               size="sm"
-              className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1.5"
+              className="flex-1 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1.5"
               onClick={handlePrepareWithChef}
               disabled={!hasInstructions}
             >
               <ChefHat className="h-4 w-4" />
-              Enter Studio
+              Guided Cooking
             </Button>
           )}
           <ShareRecipeButton

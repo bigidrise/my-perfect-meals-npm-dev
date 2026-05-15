@@ -1438,7 +1438,7 @@ const FridgeRescuePage = () => {
                         <div className="grid grid-cols-2 gap-2">
                           <Button
                             size="sm"
-                            className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
+                            className="flex-1 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                             onClick={() => {
                               guardAction("Enter Studio is a premium feature. Upgrade to cook meals step-by-step with our AI chef.", () => {
                                 const mealData = {
@@ -1458,12 +1458,13 @@ const FridgeRescuePage = () => {
                                   "mpm_chefs_kitchen_external_prepare",
                                   "true",
                                 );
+                                localStorage.setItem("mpm_chefs_kitchen_origin", window.location.pathname);
                                 setLocation("/lifestyle/chefs-kitchen");
                               });
                             }}
                           >
                             {isFree && <Lock className="h-3 w-3" />}
-                            Enter Studio
+                            Guided Cooking
                           </Button>
                           <ShareRecipeButton
                             recipe={{

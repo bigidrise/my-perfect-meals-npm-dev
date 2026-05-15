@@ -84,6 +84,7 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ClinicalLabsCard from "@/components/biometrics/ClinicalLabsCard";
 import MacroConsistencyTimeline from "@/components/biometrics/MacroConsistencyTimeline";
 import { hasFeature } from "@/lib/entitlements";
+import { convertWeightLbsDisplay } from "@shared/units";
 
 // ============================== CONFIG ==============================
 const SYNC_ENDPOINT = ""; // optional API endpoint; if set, we POST after local save
@@ -2225,7 +2226,10 @@ export default function MyBiometrics() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mt-4">
               {latestWeight && (
-                <Summary label="Weight" value={`${latestWeight} lb`} />
+                <Summary
+                  label="Weight"
+                  value={convertWeightLbsDisplay(latestWeight, (user as any)?.measurementSystem ?? "imperial")}
+                />
               )}
               {latestWaist && (
                 <Summary label="Waist" value={`${latestWaist}"`} />

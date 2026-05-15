@@ -3,6 +3,7 @@
 // New 5-field structure: Category, Flavor Family, Specific Dessert, Serving Size, Dietary
 
 import { Router } from "express";
+import { getMeasurementPromptBlock, MeasurementSystem } from "../../shared/units";
 import OpenAI from "openai";
 import { computeMedicalBadges } from "../services/medicalBadges";
 import { normalizeIngredients } from "../services/ingredientNormalizer";
@@ -173,6 +174,7 @@ dessertCreatorRouter.post("/", async (req, res) => {
     // 🎨 PALATE PREFERENCES: Load flavor preferences for seasoning/flavor guidance
     let palateGuidance = "\nFLAVOR STYLE: Use light, neutral flavoring suitable for serving to guests or family.";
     let userDietaryRestrictions: string[] = [];
+    let dessertMeasurementSystem: MeasurementSystem = "imperial";
     if (userId && userId !== "1") {
       try {
         const [user] = await db.select({
@@ -183,10 +185,12 @@ dessertCreatorRouter.post("/", async (req, res) => {
           heatPreference: users.heatPreference,
           medicalConditions: users.medicalConditions,
           dietaryRestrictions: users.dietaryRestrictions,
+          measurementSystem: users.measurementSystem,
         }).from(users).where(eq(users.id, userId)).limit(1);
         
         if (user) {
           userDietaryRestrictions = (user.dietaryRestrictions as string[]) || [];
+          dessertMeasurementSystem = (user.measurementSystem as MeasurementSystem) ?? "imperial";
           if (!skipPalate && (user.flavorPreference || user.heatPreference || user.palateSpiceTolerance || user.palateSeasoningIntensity || user.palateFlavorStyle)) {
             const palatePrefs: PalatePreferences = {
               palateSpiceTolerance: user.palateSpiceTolerance as PalatePreferences['palateSpiceTolerance'],
@@ -343,23 +347,8 @@ GENERATION RULES:
 ${dessertCategory === "cake" ? `8. For CAKES: Include "perSliceNutrition" with nutrition per 1 oz slice, and "totalSlices" with the number of slices.` : ""}
 ${palateGuidance}
 
-🚨 U.S. MEASUREMENT RULES (CRITICAL):
-- Use ONLY these units: oz, lb, cup, tbsp, tsp, each (for eggs only), fl oz
-- NEVER use grams (g), milliliters (ml), or metric units
-- Baking ingredients: use cups, tbsp, tsp (e.g., "2 cups flour", "1/4 cup sugar")
-- Butter: use tbsp or cups (e.g., "4 tbsp butter", "1/2 cup butter")
-- Liquids: use cup, tbsp, tsp, fl oz (e.g., "1 cup milk", "2 tbsp vanilla extract")
+${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
 - DO NOT include macro/nutrition data in ingredient rows - macros go in the nutrition object only
-
-CORRECT INGREDIENT EXAMPLES:
-- {"name": "all-purpose flour", "amount": "2", "unit": "cup"}
-- {"name": "butter", "amount": "4", "unit": "tbsp", "preparationNote": "softened"}
-- {"name": "eggs", "amount": "2", "unit": "each"}
-- {"name": "vanilla extract", "amount": "1", "unit": "tsp"}
-
-INCORRECT (NEVER DO THIS):
-- {"name": "flour", "amount": "240", "unit": "g"} ❌ (use cups)
-- {"name": "butter", "amount": "113", "unit": "g"} ❌ (use tbsp)
 `;
 
     if (isDev) console.log("[DESSERT] Calling OpenAI GPT-4o...");

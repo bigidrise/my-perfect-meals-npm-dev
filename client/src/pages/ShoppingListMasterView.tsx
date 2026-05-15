@@ -33,6 +33,8 @@ import AddOtherItems from "@/components/AddOtherItems";
 import { readOtherItems } from "@/stores/otherItemsStore";
 import { buildWalmartSearchUrl } from "@/lib/walmartLinkBuilder";
 import { formatQuantity } from "@/lib/formatQuantity";
+import { convertServingDisplay } from "@shared/units";
+import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { ArrowLeft } from "lucide-react";
@@ -67,6 +69,8 @@ function sortedEntries<T>(grouped: Record<string, T>): [string, T][] {
 export default function ShoppingListMasterView() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const measurementSystem = ((user as any)?.measurementSystem ?? "imperial") as "imperial" | "metric";
   
   useGuestNavigationGuard("shopping-list");
 
@@ -739,6 +743,18 @@ export default function ShoppingListMasterView() {
                             {item.name}
                           </div>
                           {(() => {
+                            if (measurementSystem === "metric" && item.unit) {
+                              const converted = convertServingDisplay(
+                                item.quantity ?? 1,
+                                item.unit,
+                                "metric"
+                              );
+                              return (
+                                <div className="text-white/70 text-sm shrink-0">
+                                  {converted}
+                                </div>
+                              );
+                            }
                             const qty = getRetailQuantity(item);
                             if (!qty) return null;
                             return (

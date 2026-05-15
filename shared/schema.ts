@@ -63,6 +63,9 @@ export { savedMeals } from "../server/db/schema/savedMeals";
 export { studioTypeEnum, mealLibraryItems, mealLibraryUsage, mealGenerationJobs } from "../server/db/schema/mealLibrary";
 export type { MealLibraryItem, InsertMealLibraryItem, MealLibraryUsage, MealGenerationJob } from "../server/db/schema/mealLibrary";
 
+export { householdProfiles } from "../server/db/schema/householdProfiles";
+export type { HouseholdProfile, InsertHouseholdProfile } from "../server/db/schema/householdProfiles";
+
 export { creatorStatusEnum, creatorTierEnum, creators } from "../server/db/schema/creators";
 export type { Creator, InsertCreator } from "../server/db/schema/creators";
 export { creatorSystemConfigs } from "../server/db/schema/creatorSystemConfigs";
@@ -372,6 +375,9 @@ export const users = pgTable("users", {
   cuisineIntensity: text("cuisine_intensity").$type<"light"|"balanced"|"authentic">(), // how strongly to apply the cuisine
   // Display Preferences - accessibility settings
   fontSizePreference: text("font_size_preference").$type<"standard"|"large"|"xl">().default("standard"),
+  // International / Metric Support
+  measurementSystem: text("measurement_system").$type<"imperial"|"metric">().default("imperial"),
+  countryCode: text("country_code").$type<"US"|"CA"|"AU"|"UK"|"NZ">().default("US"),
   // ProCare Professional Onboarding - Phase 1
   professionalRole: text("professional_role").$type<"trainer"|"physician">(),
   professionalCategory: text("professional_category").$type<"certified"|"experienced"|"non_certified">(),
@@ -429,6 +435,10 @@ export const users = pgTable("users", {
   activeSystem: text("active_system").default("default"),
   // Admin access — server-enforced, never trust frontend alone
   isAdmin: boolean("is_admin").default(false),
+  // Household profile switching — which household_profiles row is currently "active"
+  // null = generating for the owner (normal mode)
+  // set = generating for that household member (protocol envelope loads from household_profiles)
+  activeHouseholdProfileId: uuid("active_household_profile_id"),
 }, (t) => ({
   resetTokenIdx: index("idx_reset_token_lookup").on(t.resetTokenHash, t.resetTokenExpires),
   authTokenIdx: uniqueIndex("idx_auth_token_lookup").on(t.authToken),

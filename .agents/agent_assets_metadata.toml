@@ -1,8 +1,61 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "rxxFP5EzX0xWj3Kt6ReiB"
 uri = "file://client/public/images/beverage-hub-hero.png"
 type = "image"
 title = "beverage hub hero drinks"
+
+[[generated]]
+id = "_tbWilsC-cWSK7GY-Et-f"
+uri = "file://artifacts/mockup-sandbox/public/images/chef-nolan-avatar.png"
+type = "image"
+title = "Chef Nolan Avatar"
+
+[[generated]]
+id = "-azCgNRHc3Jee99j1w9H9"
+uri = "file://artifacts/mockup-sandbox/public/images/southern-kitchen-bg.png"
+type = "image"
+title = "Southern Comfort Kitchen Background"
+
+[[generated]]
+id = "JmP9b4K88O0vAUA2tEbtP"
+uri = "file://artifacts/mockup-sandbox/public/images/brisket-mac.png"
+type = "image"
+title = "Smoked Brisket Mac and Cheese"
+
+[[generated]]
+id = "9l1F3d_R_WmozOCCCQczz"
+uri = "file://artifacts/mockup-sandbox/public/images/glazed-salmon.png"
+type = "image"
+title = "Peach Bourbon Glazed Salmon"
+
+[[generated]]
+id = "eOK6NtuPHgJ0i2zabEyGJ"
+uri = "file://artifacts/mockup-sandbox/public/images/cornbread.png"
+type = "image"
+title = "Cast Iron Cornbread"
+
+[[generated]]
+id = "ejrmDPaX7teNlC5EiGZcW"
+uri = "file://artifacts/mockup-sandbox/public/images/chef-nolan.png"
+type = "image"
+title = "Southern comfort chef avatar"
+
+[[generated]]
+id = "0JW5RA8M7haRCQE9jvApz"
+uri = "file://artifacts/mockup-sandbox/public/images/chef-rush.png"
+type = "image"
+title = "Performance athlete chef avatar"
+
+[[outputs]]
+id = "-FON7OPnx1Y51w6BHr36p"
+uri = "file://downloads/Chef-Nolan-Kitchen-Landing.png"
+type = "image"
+title = "Chef Nolan's Kitchen — Landing Page"
+
+[[outputs]]
+id = "LNGGDPjklBfjH--Xgmu2T"
+uri = "file://downloads/Lifestyle-Featured-Kitchens.png"
+type = "image"
+title = "Lifestyle Page — Featured Kitchens"

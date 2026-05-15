@@ -57,43 +57,8 @@ import {
   KITCHEN_TIMER_DONE,
   KITCHEN_PLATING,
   KITCHEN_COOK_SETUP,
-  EQUIPMENT_BY_METHOD,
+  extractEquipmentFromInstructions,
 } from "@/components/copilot/scripts/kitchenStudioScripts";
-
-const GENERIC_EQUIPMENT = [
-  "Knife",
-  "Cutting board",
-  "Mixing bowl",
-  "Measuring cups and spoons",
-];
-
-function inferCookMethod(instructions: string | string[]): string | null {
-  const text = Array.isArray(instructions)
-    ? instructions.join(" ")
-    : instructions || "";
-  const t = text.toLowerCase();
-  if (t.includes("air fryer")) return "Air Fryer";
-  if (t.includes("oven") || t.includes("bake") || t.includes("baking") || t.includes("roast")) return "Oven";
-  if (t.includes("grill")) return "Grill";
-  if (t.includes("pan") || t.includes("skillet") || t.includes("stovetop") || t.includes("sauté") || t.includes("saute")) return "Stovetop";
-  return null;
-}
-
-function normalizeMethodKey(method: string): string {
-  const m = method.toLowerCase();
-  if (m.includes("air") || m.includes("fryer")) return "Air Fryer";
-  if (m.includes("oven") || m.includes("bak") || m.includes("roast")) return "Oven";
-  if (m.includes("grill")) return "Grill";
-  return "Stovetop";
-}
-
-function resolveEquipment(cookMethodState: string, meal: GeneratedMeal): string[] {
-  const explicit = cookMethodState || (meal as any).cookMethod;
-  const method = explicit
-    ? normalizeMethodKey(explicit)
-    : (inferCookMethod(meal.instructions) ?? "Stovetop");
-  return EQUIPMENT_BY_METHOD[method] ?? GENERIC_EQUIPMENT;
-}
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
@@ -170,11 +135,22 @@ export default function ChefsKitchenPage() {
   const [mode, setMode] = useState<KitchenMode>(initialState.mode);
   const [externalMeal] = useState<GeneratedMeal | null>(initialState.meal);
 
+  // Capture origin before clearing it — used by the back button to return
+  // the user to whichever page launched Guided Cooking.
+  const [originPath] = useState<string>(() => {
+    try {
+      return localStorage.getItem("mpm_chefs_kitchen_origin") || "/lifestyle";
+    } catch {
+      return "/lifestyle";
+    }
+  });
+
   useEffect(() => {
     if (initialState.mode === "prepare") {
       window.scrollTo({ top: 0, behavior: "instant" });
     }
     localStorage.removeItem("mpm_chefs_kitchen_external_prepare");
+    localStorage.removeItem("mpm_chefs_kitchen_origin");
     localStorage.removeItem("mpm_chefs_kitchen_prep");
   }, []);
 
@@ -604,7 +580,7 @@ export default function ChefsKitchenPage() {
         >
           <div className="px-4 h-14 flex items-center gap-3">
             <button
-              onClick={() => setLocation("/lifestyle")}
+              onClick={() => setLocation(originPath)}
               className="flex items-center justify-center text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
               data-testid="button-back-to-lifestyle"
             >
@@ -1137,10 +1113,10 @@ export default function ChefsKitchenPage() {
                           setPrepStep(0);
                           setMode("prepare");
                         }}
-                        className="flex-1 py-2 rounded-xl bg-lime-600 hover:bg-lime-500 text-white font-semibold text-xs transition flex items-center justify-center gap-1.5"
+                        className="flex-1 py-2 rounded-xl bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold text-xs transition flex items-center justify-center gap-1.5"
                         data-testid="button-prepare-meal"
                       >
-                        Enter Studio
+                        Guided Cooking
                       </button>
                       <ShareRecipeButton
                         recipe={{
@@ -1192,7 +1168,7 @@ export default function ChefsKitchenPage() {
                     <div className="rounded-xl border border-amber-500/30 bg-amber-900/20 p-3">
                       <p className="text-sm font-semibold text-amber-300 mb-2">Equipment You'll Need</p>
                       <ul className="space-y-1">
-                        {resolveEquipment(cookMethod, generatedMeal).map((item, i) => (
+                        {extractEquipmentFromInstructions(generatedMeal.instructions).map((item, i) => (
                           <li key={i} className="text-sm text-white/70 flex items-center gap-2">
                             <span className="text-amber-400">•</span>
                             {item}
