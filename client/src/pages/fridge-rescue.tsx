@@ -1458,6 +1458,7 @@ const FridgeRescuePage = () => {
                                   "mpm_chefs_kitchen_external_prepare",
                                   "true",
                                 );
+                                localStorage.setItem("mpm_chefs_kitchen_origin", window.location.pathname);
                                 setLocation("/lifestyle/chefs-kitchen");
                               });
                             }}

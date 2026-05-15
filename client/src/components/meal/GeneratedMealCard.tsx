@@ -149,6 +149,7 @@ export default function GeneratedMealCard({
 
     localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
     localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
+    localStorage.setItem("mpm_chefs_kitchen_origin", window.location.pathname);
 
     setLocation("/lifestyle/chefs-kitchen");
   };
