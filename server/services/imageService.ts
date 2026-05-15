@@ -108,13 +108,12 @@ async function generateDalleImage(options: ImageGenerationOptions): Promise<stri
   try {
     const prompt = createImagePrompt(options);
     
-    const response = await getOpenAI().images.generate({
-      model: "dall-e-3",
+    const response = await (getOpenAI().images.generate as any)({
+      model: "gpt-image-1.5",
       prompt,
       n: 1,
       size: "1024x1024",
-      quality: "standard",
-      response_format: "url",
+      quality: "low",
     });
 
     const item = response.data?.[0];
