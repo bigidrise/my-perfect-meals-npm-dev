@@ -215,6 +215,7 @@ export default function UltimateExperiencesPage() {
   const [dishAccordionOpen, setDishAccordionOpen] = useState(false);
   const [dishTabFilter, setDishTabFilter] = useState<"all" | "appetizer" | "main" | "side" | "dessert">("all");
   const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const [totalCourses, setTotalCourses] = useState<3 | 4 | 5>(4);
   const [servings, setServings] = useState<number>(6);
 
@@ -658,32 +659,54 @@ export default function UltimateExperiencesPage() {
                         <button
                           type="button"
                           onClick={() => {
+                            if (isListening) {
+                              recognitionRef.current?.stop();
+                              recognitionRef.current = null;
+                              setIsListening(false);
+                              return;
+                            }
                             const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
                             if (!SR) {
                               toast({ title: "Voice not supported", description: "Try typing instead.", duration: 3000 });
                               return;
                             }
-                            if (isListening) { setIsListening(false); return; }
                             const rec = new SR();
                             rec.lang = "en-US";
+                            rec.continuous = true;
                             rec.interimResults = false;
                             rec.onstart = () => setIsListening(true);
-                            rec.onend = () => setIsListening(false);
-                            rec.onerror = () => setIsListening(false);
-                            rec.onresult = (e: any) => {
-                              const transcript = e.results[0][0].transcript;
-                              setFamilyRecipes((prev) => (prev ? prev + " " + transcript : transcript));
+                            rec.onend = () => {
+                              // Only clear if we didn't stop it manually
+                              if (recognitionRef.current) {
+                                setIsListening(false);
+                                recognitionRef.current = null;
+                              }
                             };
+                            rec.onerror = () => {
+                              setIsListening(false);
+                              recognitionRef.current = null;
+                            };
+                            rec.onresult = (e: any) => {
+                              const results = Array.from(e.results as SpeechRecognitionResultList);
+                              const newText = results
+                                .slice(e.resultIndex)
+                                .map((r: any) => r[0].transcript)
+                                .join(" ");
+                              if (newText.trim()) {
+                                setFamilyRecipes((prev) => (prev ? prev + " " + newText.trim() : newText.trim()));
+                              }
+                            };
+                            recognitionRef.current = rec;
                             rec.start();
                           }}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                             isListening
-                              ? "bg-orange-500/30 border-orange-400 text-orange-300 animate-pulse"
+                              ? "bg-red-500/30 border-red-400 text-red-300 animate-pulse"
                               : "bg-black/40 border-white/20 text-white/60 hover:border-orange-400/50 hover:text-white"
                           }`}
                         >
                           {isListening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
-                          {isListening ? "Listening…" : "Voice"}
+                          {isListening ? "Stop" : "Voice"}
                         </button>
                       </div>
                       <textarea
