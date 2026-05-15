@@ -550,6 +550,9 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
     };
   }
 
+  const _t0 = Date.now();
+  console.log(`⏱️ [IMG] START ${mealName}`);
+
   // ── LAYER 3: CHECK IN-MEMORY CACHE ─────────────────────────────────────────
   const memHit = memCache.get(cacheKey);
   if (memHit) {
@@ -564,6 +567,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
   }
 
   // ── LAYER 3: CHECK DB CACHE ─────────────────────────────────────────────────
+  console.log(`⏱️ [IMG] DB-check start +${Date.now()-_t0}ms`);
   try {
     const [dbRow] = await db
       .select({ imageUrl: mealImageCache.imageUrl, promptUsed: mealImageCache.promptUsed })
@@ -604,6 +608,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
 
   // ── LAYER 1: CALL DALL-E WITH TIMEOUT ──────────────────────────────────────
   let imageUrl: string | null = null;
+  console.log(`⏱️ [IMG] OpenAI call start +${Date.now()-_t0}ms`);
 
   try {
     const response = await withTimeout(
@@ -621,8 +626,9 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
     const item = response.data?.[0];
     if (item?.url) imageUrl = item.url;
     else if (item?.b64_json) imageUrl = `data:image/png;base64,${item.b64_json}`;
+    console.log(`⏱️ [IMG] OpenAI call done +${Date.now()-_t0}ms`);
   } catch (dalleErr: any) {
-    console.warn(`⚠️ DALL-E failed for "${mealName}": ${dalleErr.message}`);
+    console.warn(`⚠️ DALL-E failed for "${mealName}": ${dalleErr.message} +${Date.now()-_t0}ms`);
   }
 
   // ── LAYER 4: FALLBACK — NEVER RETURN NULL ──────────────────────────────────
