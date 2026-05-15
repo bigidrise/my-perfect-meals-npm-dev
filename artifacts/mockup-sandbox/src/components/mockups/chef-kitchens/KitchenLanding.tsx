@@ -36,11 +36,9 @@ export function KitchenLanding() {
 
           <div className="relative mb-6 group">
             <div className="absolute inset-0 bg-orange-500 rounded-full blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500"></div>
-            <img
-              src="/__mockup/images/chef-david-nolan.jpg"
-              alt="Chef David Nolan"
-              className="w-32 h-32 rounded-full border-4 border-orange-500 object-cover relative z-10 shadow-2xl"
-            />
+            <div className="w-32 h-32 rounded-full border-4 border-orange-500 relative z-10 shadow-2xl bg-gradient-to-br from-orange-900/60 to-black flex items-center justify-center">
+                <ChefHat size={48} className="text-orange-400" />
+              </div>
             <div className="absolute -bottom-3 -right-3 bg-[#0f0f0f] p-2 rounded-full border border-white/10 z-20">
               <ChefHat size={20} className="text-orange-500" />
             </div>

@@ -37,8 +37,8 @@ export function LifestylePage() {
               <div className="absolute top-0 right-0 w-32 h-32 bg-orange-600/20 blur-3xl rounded-full -mr-10 -mt-10" />
               
               <div className="flex justify-between items-start mb-4 relative z-10">
-                <div className="w-12 h-12 rounded-full border-2 border-orange-500/50 p-0.5">
-                  <img src="/__mockup/images/chef-david-nolan.jpg" alt="Chef Nolan" className="w-full h-full rounded-full object-cover" />
+                <div className="w-12 h-12 rounded-full border-2 border-orange-500/50 bg-gradient-to-br from-orange-900/60 to-black flex items-center justify-center">
+                  <ChefHat size={22} className="text-orange-400" />
                 </div>
                 <div className="bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[10px] uppercase font-bold px-2 py-1 rounded-full flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
