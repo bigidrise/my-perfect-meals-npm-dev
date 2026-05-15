@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "rxxFP5EzX0xWj3Kt6ReiB"
@@ -48,3 +47,15 @@ id = "0JW5RA8M7haRCQE9jvApz"
 uri = "file://artifacts/mockup-sandbox/public/images/chef-rush.png"
 type = "image"
 title = "Performance athlete chef avatar"
+
+[[outputs]]
+id = "-FON7OPnx1Y51w6BHr36p"
+uri = "file://downloads/Chef-Nolan-Kitchen-Landing.png"
+type = "image"
+title = "Chef Nolan's Kitchen — Landing Page"
+
+[[outputs]]
+id = "LNGGDPjklBfjH--Xgmu2T"
+uri = "file://downloads/Lifestyle-Featured-Kitchens.png"
+type = "image"
+title = "Lifestyle Page — Featured Kitchens"
