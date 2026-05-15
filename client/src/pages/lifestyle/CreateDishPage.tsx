@@ -32,6 +32,7 @@ import TranslateToggle from "@/components/TranslateToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
+import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
 import { KeepItSimpleToggle } from "@/components/KeepItSimpleToggle";
 import { useStarchGuardPrecheck } from "@/hooks/useStarchGuardPrecheck";
@@ -235,6 +236,15 @@ export default function CreateDishPage() {
     overrideToken,
     hasActiveOverride,
   } = useSafetyGuardPrecheck();
+  const [safetyEnabled, setSafetyEnabled] = useState(true);
+  const handleSafetyOverride = (enabled: boolean, token?: string) => {
+    setSafetyEnabled(enabled);
+    if (token) {
+      setOverrideToken(token);
+      clearSafetyAlert();
+      setPendingGeneration(true);
+    }
+  };
   const [pendingGeneration, setPendingGeneration] = useState(false);
 
   const { user } = useAuth();
@@ -373,14 +383,6 @@ export default function CreateDishPage() {
     return parts.join(". ");
   };
 
-  const handleSafetyOverride = (_enabled: boolean, token?: string) => {
-    if (token) {
-      setOverrideToken(token);
-      clearSafetyAlert();
-      setPendingGeneration(true);
-    }
-  };
-
   useEffect(() => {
     if (pendingGeneration && overrideToken && !isGenerating) {
       setPendingGeneration(false);
@@ -461,6 +463,8 @@ export default function CreateDishPage() {
           strictMode: keepItSimple,
           dietAdaptOverride,
           userDietOverride,
+          safetyMode: safetyEnabled ? "STRICT" : "DISABLED",
+          ...(overrideToken ? { overrideToken } : {}),
           ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
         }),
       });
@@ -752,6 +756,11 @@ export default function CreateDishPage() {
                       Meal Safety
                     </span>
 
+                    <SafetyGuardToggle
+                      safetyEnabled={safetyEnabled}
+                      onSafetyChange={handleSafetyOverride}
+                      disabled={isGenerating}
+                    />
                     <GlucoseGuardToggle disabled={isGenerating} />
                   </div>
 
