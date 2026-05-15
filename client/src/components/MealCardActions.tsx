@@ -149,7 +149,7 @@ export default function MealCardActions({
           title={!hasInstructions ? "No cooking instructions available" : undefined}
         >
           <ChefHat className="h-4 w-4" />
-          Enter Studio
+          Guided Cooking
         </Button>
       )}
     </div>

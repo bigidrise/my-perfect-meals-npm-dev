@@ -1524,7 +1524,7 @@ export default function UltimateExperiencesPage() {
                             }}
                             className="flex-1 bg-orange-600 hover:bg-orange-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                           >
-                            Prepare with Chef
+                            Guided Cooking
                           </GlassButton>
                           <ShareRecipeButton
                             recipe={{
