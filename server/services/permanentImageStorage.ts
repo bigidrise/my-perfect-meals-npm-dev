@@ -47,14 +47,25 @@ export async function uploadImageToPermanentStorage(
   try {
     console.log(`📦 Uploading image to S3: ${mealName}`);
 
-    // Download the image from DALL-E's temporary URL
-    const imageResponse = await fetch(imageUrl);
-    if (!imageResponse.ok) {
-      throw new Error(`Failed to download image: ${imageResponse.statusText}`);
-    }
+    // Handle data: URLs (base64 from gpt-image-1) directly — no HTTP fetch needed
+    let imageBuffer: Buffer;
+    let contentType: string;
 
-    const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
-    const contentType = imageResponse.headers.get('content-type') || 'image/png';
+    if (imageUrl.startsWith('data:')) {
+      const commaIdx = imageUrl.indexOf(',');
+      const meta = imageUrl.substring(5, commaIdx); // e.g. "image/png;base64"
+      contentType = meta.split(';')[0] || 'image/png';
+      const b64 = imageUrl.substring(commaIdx + 1);
+      imageBuffer = Buffer.from(b64, 'base64');
+    } else {
+      // Download the image from a remote URL
+      const imageResponse = await fetch(imageUrl);
+      if (!imageResponse.ok) {
+        throw new Error(`Failed to download image: ${imageResponse.statusText}`);
+      }
+      imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+      contentType = imageResponse.headers.get('content-type') || 'image/png';
+    }
 
     // Generate a unique filename using hash or random ID
     const fileExtension = contentType.includes('png') ? 'png' : 'jpg';
