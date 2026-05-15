@@ -94,11 +94,11 @@ async function generateImageFromDalle(prompt: string): Promise<string | null> {
   try {
     const response = await getOpenAI().images.generate(
       {
-        model: "dall-e-3",
+        model: "gpt-image-1",
         prompt: prompt,
         n: 1,
         size: "1024x1024",
-        quality: "standard",
+        quality: "low",
       },
       { signal: controller.signal },
     );

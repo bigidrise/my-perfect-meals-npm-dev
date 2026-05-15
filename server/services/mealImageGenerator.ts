@@ -612,6 +612,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
         prompt,
         n: 1,
         size: "1024x1024",
+        quality: "low",
       }),
       90000
     );
