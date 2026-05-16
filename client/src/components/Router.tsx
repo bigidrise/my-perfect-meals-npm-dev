@@ -334,6 +334,20 @@ export default function Router() {
     // They have their own onboarding path and do not need a macro profile to use the app.
     if (isProfessionalUser) return;
 
+    // Guard 0: Purchase-required mode — set when user arrives via /pricing?required=true
+    // Keeps the user on the pricing page until they have an active paid subscription.
+    const purchaseRequired = localStorage.getItem("mpm_purchase_required") === "true";
+    if (purchaseRequired) {
+      if (hasActivePaidSubscription(user)) {
+        localStorage.removeItem("mpm_purchase_required");
+      } else {
+        guardRedirectedRef.current = true;
+        setLocation("/pricing?required=true");
+        setTimeout(() => { guardRedirectedRef.current = false; }, 1000);
+        return;
+      }
+    }
+
     // Guard 1: Onboarding must be complete (only for paid consumers)
     if (hasActivePaidSubscription(user) && !user.onboardingCompletedAt) {
       guardRedirectedRef.current = true;

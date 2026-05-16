@@ -69,7 +69,13 @@ export default function Auth() {
       } else if (hasActivePaidSubscription(fullUser) && !onboardingDone) {
         setLocation("/onboarding");
       } else {
-        setLocation("/");
+        const pendingPlan = sessionStorage.getItem("mpm_pending_plan");
+        if (pendingPlan) {
+          sessionStorage.removeItem("mpm_pending_plan");
+          setLocation(`/pricing?plan=${pendingPlan}`);
+        } else {
+          setLocation("/");
+        }
       }
     } catch (e: any) {
       setErr(e?.message || "Authentication failed.");
