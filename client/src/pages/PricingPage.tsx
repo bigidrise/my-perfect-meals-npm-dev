@@ -62,6 +62,16 @@ export default function PricingPage() {
     ? (new URLSearchParams(window.location.search).get("plan") as LookupKey | null)
     : null;
 
+  const requiredFromUrl = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("required") === "true"
+    : false;
+
+  useEffect(() => {
+    if (requiredFromUrl) {
+      localStorage.setItem("mpm_purchase_required", "true");
+    }
+  }, [requiredFromUrl]);
+
   useEffect(() => {
     if (!planFromUrl || isIosNativeShell()) return;
     if (user && !user.id.startsWith("guest-")) {
