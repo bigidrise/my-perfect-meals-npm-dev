@@ -6,159 +6,46 @@ import { db } from "../db";
 import { users, mealInstances, userRecipes } from "@shared/schema";
 import { requireAuth } from "../middleware/requireAuth";
 import { getAuthUserId } from "../utils/getAuthUserId";
+import { generateMealImageUnified, type ImageSourceType } from "../services/mealImageGenerator";
 
 const router = express.Router();
 
 // ─────────────────────────────────────────────
 // Shared image generation endpoint (non-blocking, called in parallel by client)
-// Used by ALL AI meal generators after text is returned
-// 1 retry with simplified prompt on failure — never crashes the card
+// Used by ALL AI meal generators after text is returned.
+// Routes through the 4-layer system: memory cache → DB cache → S3 → DALL-E.
+// Cache hits are instant; new images are persisted so they never regenerate.
 // ─────────────────────────────────────────────
 router.post("/generate-image", async (req: any, res) => {
-  const { mealName, mealType = "dinner", dietType, ingredients } = req.body || {};
+  const { mealName, mealType = "dinner", ingredients } = req.body || {};
 
-  // SAFEGUARD: meal name is required and must be meaningful
   if (!mealName || mealName.trim().length < 3) {
     return res.status(400).json({ imageUrl: null });
   }
 
-  const { genImageFast } = await import("../utils/openaiSafe");
-
-  const isCarnivore = dietType === "carnivore";
-
-  // ─────────────────────────────────────────────────────────
-  // LAYER 1 — PRIMARY SUBJECT (LOCKED, NEVER REPLACED)
-  // The meal name is always the anchor. No exceptions.
-  // ─────────────────────────────────────────────────────────
-  const subject = mealName.trim();
-
-  // ─────────────────────────────────────────────────────────
-  // LAYER 2 — CONTROLLED CONTEXT (SUPPORT, NOT REPLACEMENT)
-  // Ingredients become descriptive context appended after the
-  // dish name — they never replace it.
-  // ─────────────────────────────────────────────────────────
-  let ingredientContext = "";
-  const cleanedIngredients: string[] = [];
-  if (Array.isArray(ingredients) && ingredients.length > 0) {
-    const topIngredients = ingredients
-      .slice(0, 4)
-      .map((ing: any) => {
-        const raw = typeof ing === "string" ? ing : (ing?.name ?? "");
-        return raw
-          .replace(/\d+[\d./]*\s*(oz|g|lb|lbs|cup|cups|tbsp|tsp|ml|kg)\.?/gi, "")
-          .replace(/\(.*?\)/g, "")
-          .replace(/,.*$/, "")
-          .trim();
-      })
-      .filter(Boolean);
-    if (topIngredients.length > 0) {
-      cleanedIngredients.push(...topIngredients);
-      ingredientContext = ` with ${topIngredients.join(", ")}`;
-    }
-  }
-
-  // ─────────────────────────────────────────────────────────
-  // LAYER 3 — TYPE RESOLUTION (AUTHORITATIVE → KEYWORD FALLBACK)
-  // mealType from the request is the primary source of truth.
-  // Keyword detection is backup only — never overrides explicit type.
-  // ─────────────────────────────────────────────────────────
-  const nameLower = subject.toLowerCase();
+  // Resolve sourceType from mealType so the 4-layer prompt builder
+  // uses the correct visual directive (beverage, snack, dessert, meal).
   const mealTypeLower = (mealType || "").toLowerCase();
+  const nameLower = mealName.toLowerCase();
 
-  // PRIMARY: explicit type from the creator (beverage creators send "beverages")
-  const isBeverageType = mealTypeLower === "beverages" || mealTypeLower === "beverage" || mealTypeLower === "drink";
-
-  // FALLBACK: keyword detection (expanded list, used only when type is generic)
-  const isDrinkKeyword = /smoothie|shake|juice|latte|coffee|tea|cocktail|mocktail|drink|beverage|lemonade|beer|wine|soda|protein shake|matcha|espresso|frappe|cooler|spritzer|tonic|punch|agua fresca|horchata|infusion|elixir/.test(nameLower);
-  const isDessertKeyword = /cake|pie|cookie|brownie|pudding|ice cream|cheesecake|tart|mousse|cupcake|donut|pastry|eclair|macaron|tiramisu|gelato|sorbet|sundae|fudge|truffle|crepe|waffle|pancake|parfait|cobbler/.test(nameLower);
-
-  const isDrink = isBeverageType || isDrinkKeyword;
-  const isDessert = !isDrink && isDessertKeyword;
-
-  // ─────────────────────────────────────────────────────────
-  // LAYER 4 — VISUAL DIRECTIVE (TYPE-ENFORCED, NOT GUESSED)
-  // Beverages get explicit "no food" guardrail to prevent
-  // DALL-E from generating food imagery for drink requests.
-  //
-  // GARNISH FILTER: Only visually recognizable drink garnishes
-  // are included in the prompt. Smoothie bases (banana, sweet
-  // potato, protein powder, almond milk) are intentionally
-  // excluded — they exist INSIDE the blender, not as garnishes,
-  // and feeding them to DALL-E causes it to generate food plates.
-  // ─────────────────────────────────────────────────────────
-
-  // Ingredients that look good visually on/in a drink
-  const GARNISH_TERMS = [
-    "lime", "lemon", "orange", "grapefruit", "mint", "basil", "rosemary",
-    "thyme", "lavender", "cherry", "strawberry", "raspberry", "blueberry",
-    "blackberry", "mango", "pineapple", "passion fruit", "cucumber",
-    "jalapeño", "jalapeño slice", "cinnamon", "cinnamon stick", "star anise",
-    "cardamom", "turmeric", "ginger", "coconut", "coconut flake", "matcha",
-    "espresso", "coffee", "cream", "whipped cream", "foam", "boba", "tapioca",
-    "pomegranate", "hibiscus", "rose", "elderflower", "beet", "tart cherry",
-    "ice", "sparkling water", "soda water", "tonic",
-  ];
-
-  // Glassware / vessel matched to drink subcategory
-  let glassware: string;
-  if (/smoothie|shake|protein shake|recovery shake|post.?workout/.test(nameLower)) {
-    glassware = "tall glass with a straw, smoothie texture visible";
-  } else if (/latte|coffee|cappuccino|espresso|americano|mocha|chai|hot chocolate|hot cocoa/.test(nameLower)) {
-    glassware = "ceramic mug or latte glass with latte art";
-  } else if (/cocktail|mocktail|martini|margarita|daiquiri|mojito|spritz|negroni|old fashioned/.test(nameLower)) {
-    glassware = "cocktail glass";
-  } else if (/juice|lemonade|agua fresca|horchata|punch/.test(nameLower)) {
-    glassware = "tall glass with ice";
-  } else if (/tea|matcha|infusion|elixir/.test(nameLower)) {
-    glassware = "glass or mug";
-  } else if (/beer|wine|cider|kombucha/.test(nameLower)) {
-    glassware = "appropriate glass for the drink type";
-  } else {
-    glassware = "glass or cup";
+  let sourceType: ImageSourceType = "meal";
+  if (mealTypeLower === "beverages" || mealTypeLower === "beverage" || mealTypeLower === "drink" ||
+      /smoothie|shake|juice|latte|coffee|tea|cocktail|mocktail|drink|beverage|lemonade/.test(nameLower)) {
+    sourceType = "beverage";
+  } else if (mealTypeLower === "snack" || mealTypeLower === "snacks") {
+    sourceType = "snack";
+  } else if (mealTypeLower === "dessert" || mealTypeLower === "desserts" ||
+      /cake|pie|cookie|brownie|pudding|ice cream|cheesecake|tart|mousse|cupcake/.test(nameLower)) {
+    sourceType = "dessert";
   }
 
-  let visualDirective: string;
-  if (isDrink) {
-    // Only pass ingredients that are recognizable visual garnishes
-    const visualGarnishes = cleanedIngredients.filter(ing =>
-      GARNISH_TERMS.some(term => ing.toLowerCase().includes(term))
-    );
-    const garnishHint = visualGarnishes.length > 0
-      ? `, garnished with ${visualGarnishes.join(", ")}`
-      : "";
-    // DALL-E 2: positive-only descriptions only — negations cause content policy rejections
-    visualDirective = `in a ${glassware}${garnishHint}, professional beverage photography, natural lighting, condensation on glass, vibrant color, appetizing drink`;
-  } else if (isDessert) {
-    visualDirective = "plated finished dessert, soft warm lighting, professional food photography, realistic, appetizing";
-  } else {
-    visualDirective = "plated finished dish, professional food photography, natural lighting, realistic, appetizing";
+  try {
+    const imageUrl = await generateMealImageUnified(mealName.trim(), ingredients || [], sourceType);
+    return res.json({ imageUrl });
+  } catch (err: any) {
+    console.error(`[generate-image] failed for "${mealName}":`, err.message);
+    return res.json({ imageUrl: null });
   }
-
-  // DALL-E 2: carnivore — describe what's present (meat/protein focus), not what's absent
-  const carnivoreConstraint = isCarnivore
-    ? ", meat-focused plating, rich savory tones, protein-forward food photography, warm color palette"
-    : "";
-
-  // SAFEGUARD: prompt must always lead with the dish name
-  const fullPrompt = `${subject}${ingredientContext}, ${visualDirective}${carnivoreConstraint}`;
-
-  let imageUrl: string | null = (await genImageFast(fullPrompt)) ?? null;
-
-  if (!imageUrl) {
-    console.log(`🔄 [generate-image] Retry for "${mealName}"`);
-    let retryPrompt: string;
-    if (isDrink) {
-      // Simplest possible positive prompt for retry
-      retryPrompt = `${subject}, professional drink photography, beautiful beverage in a glass, appetizing, realistic`;
-    } else if (isCarnivore) {
-      retryPrompt = `${subject}, food photography, savory meat dish, appetizing plating, warm tones`;
-    } else {
-      retryPrompt = `${subject}, food photography, plated finished dish, appetizing presentation, realistic`;
-    }
-    imageUrl = (await genImageFast(retryPrompt)) ?? null;
-  }
-
-  return res.json({ imageUrl });
 });
 
 // Utility to recalculate daily nutrition (mock implementation)
