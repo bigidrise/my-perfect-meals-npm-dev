@@ -2020,11 +2020,7 @@ export async function generateFridgeRescueUnified(
       id: meal.id,
       name: meal.name,
       description: meal.description,
-      ingredients: normalizeIngredients(meal.ingredients.map(ing => ({
-        name: ing.name,
-        quantity: String(ing.quantity),
-        unit: ing.unit
-      }))),
+      ingredients: normalizeIngredients(meal.ingredients || []),
       instructions: meal.instructions,
       calories: meal.calories,
       protein: meal.protein,
@@ -2073,11 +2069,7 @@ export async function generateFridgeRescueUnified(
             id: meal.id,
             name: meal.name,
             description: meal.description,
-            ingredients: normalizeIngredients(meal.ingredients.map(ing => ({
-              name: ing.name,
-              quantity: String(ing.quantity),
-              unit: ing.unit
-            }))),
+            ingredients: normalizeIngredients(meal.ingredients || []),
             instructions: meal.instructions,
             calories: meal.calories,
             protein: meal.protein,
@@ -2317,11 +2309,7 @@ GENERATION RULES:
     throw new Error('[CREATE-WITH-CHEF/BEVERAGE] Failed to parse beverage JSON from GPT');
   }
 
-  const ingredients = (bev.ingredients || []).map((ing: any) => ({
-    name: String(ing.name || ''),
-    quantity: String(ing.amount || ing.quantity || ''),
-    unit: String(ing.unit || ''),
-  }));
+  const ingredients = normalizeIngredients(bev.ingredients || []);
 
   const nutrition = bev.nutrition || {};
 
@@ -2669,11 +2657,7 @@ Create the recipe for: "${description}"`;
         id: `chef-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         name: culturalNameTransform(mealData.name, chefEnvelope.cuisinePreference),
         description: mealData.description,
-        ingredients: (mealData.ingredients || []).map((ing: any) => ({
-          name: ing.name,
-          quantity: String(ing.quantity || ''),
-          unit: ing.unit || ''
-        })),
+        ingredients: normalizeIngredients(mealData.ingredients || []),
         instructions: mealData.instructions,
         calories: mealData.calories || 400,
         protein: mealData.protein || 25,
@@ -2939,11 +2923,7 @@ Create the recipe for: "${description}"`;
       id: `chef-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: finalMealData.name,
       description: finalMealData.description,
-      ingredients: (finalMealData.ingredients || []).map((ing: any) => ({
-        name: ing.name,
-        quantity: String(ing.quantity || ''),
-        unit: ing.unit || ''
-      })),
+      ingredients: normalizeIngredients(finalMealData.ingredients || []),
       instructions: finalMealData.instructions,
       calories: finalMealData.calories || 400,
       protein: finalMealData.protein || 25,
@@ -3201,11 +3181,7 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
         id: `snack-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         name: snackData.name,
         description: snackData.description,
-        ingredients: (snackData.ingredients || []).map((ing: any) => ({
-          name: ing.name,
-          quantity: String(ing.quantity || ''),
-          unit: ing.unit || ''
-        })),
+        ingredients: normalizeIngredients(snackData.ingredients || []),
         instructions: snackData.instructions,
         calories: snackData.calories || 150,
         protein: snackData.protein || 8,
@@ -3362,11 +3338,7 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
       console.warn('⚠️ Image generation failed for snack, using fallback:', imgError);
     }
     
-    const snackIngredients = finalSnackData.tempSnackIngredients || (finalSnackData.ingredients || []).map((ing: any) => ({
-      name: ing.name,
-      quantity: String(ing.quantity || ''),
-      unit: ing.unit || ''
-    }));
+    const snackIngredients = finalSnackData.tempSnackIngredients || normalizeIngredients(finalSnackData.ingredients || []);
 
     const unifiedSnack: UnifiedMeal = {
       id: `snack-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
