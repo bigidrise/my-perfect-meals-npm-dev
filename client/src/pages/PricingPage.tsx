@@ -1,7 +1,7 @@
 import { useLocation } from "wouter";
 import { useOrgBranding } from "@/hooks/useOrgBranding";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
@@ -50,15 +50,34 @@ export default function PricingPage() {
   );
   const [restoringPurchases, setRestoringPurchases] = useState(false);
 
-  const [procareRole, setProcareRole] = useState<"trainer" | "physician" | null>(
-    () => (localStorage.getItem("procare_role") as "trainer" | "physician" | null) || null
+  const [procareRole, setProcareRole] = useState<"trainer" | "physician">(
+    () => (localStorage.getItem("procare_role") as "trainer" | "physician" | null) || "trainer"
   );
 
   const procareRolePlans = procareRole === "trainer"
     ? proPlans.filter((p) => p.sku.startsWith("mpm_trainer_"))
-    : procareRole === "physician"
-      ? proPlans.filter((p) => p.sku.startsWith("mpm_physician_"))
-      : [];
+    : proPlans.filter((p) => p.sku.startsWith("mpm_physician_"));
+
+  const planFromUrl = typeof window !== "undefined"
+    ? (new URLSearchParams(window.location.search).get("plan") as LookupKey | null)
+    : null;
+
+  useEffect(() => {
+    if (!planFromUrl || isIosNativeShell()) return;
+    if (user && !user.id.startsWith("guest-")) {
+      const t = setTimeout(async () => {
+        try {
+          await startCheckout(planFromUrl, { context: "website_deeplink" });
+        } catch {
+          // user can select the plan manually on the page
+        }
+      }, 600);
+      return () => clearTimeout(t);
+    } else {
+      sessionStorage.setItem("mpm_pending_plan", planFromUrl);
+      setLocation("/welcome");
+    }
+  }, [planFromUrl, user?.id]);
 
   async function handleIosPurchase(product: IosProduct) {
     setPurchasingProduct(product.productId);
@@ -470,6 +489,11 @@ export default function PricingPage() {
   };
 
   const handleSelectPlan = async (sku: string) => {
+    if (!user || user.id.startsWith("guest-")) {
+      sessionStorage.setItem("mpm_pending_plan", sku);
+      setLocation("/welcome");
+      return;
+    }
     try {
       await startCheckout(sku as any, { context: "pricing_page" });
     } catch (error) {
@@ -580,17 +604,33 @@ export default function PricingPage() {
         className="max-w-6xl mx-auto px-4 text-white space-y-8"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
-        {/* ProCare Professional Plans — shown when user arrived from ProCare onboarding */}
-        {procareRole && procareRolePlans.length > 0 && (
-          <div className="mb-10">
+        {/* ProCare Professional Plans */}
+        <div className="mb-10">
             <div className="text-center mb-6">
               <div className="inline-flex items-center gap-2 bg-blue-600/20 border border-blue-500/30 rounded-full px-4 py-2 mb-4">
                 <span className="text-blue-300 text-sm font-semibold tracking-wide uppercase">
                   ProCare Professional
                 </span>
               </div>
-              <h2 className="text-2xl font-bold text-white">Choose Your Provider Plan</h2>
+              <h2 className="text-2xl font-bold text-white">Coaching & Clinical Plans</h2>
               <p className="text-white/60 text-sm mt-2 max-w-lg mx-auto">
+                Built for trainers, coaches, and physicians managing clients inside My Perfect Meals.
+              </p>
+              <div className="flex justify-center gap-2 mt-4">
+                <button
+                  onClick={() => setProcareRole("trainer")}
+                  className={`px-5 py-2 rounded-full text-sm font-semibold border transition-colors ${procareRole === "trainer" ? "bg-blue-600 text-white border-blue-500" : "bg-white/5 text-white/60 border-white/15"}`}
+                >
+                  Trainer / Coach
+                </button>
+                <button
+                  onClick={() => setProcareRole("physician")}
+                  className={`px-5 py-2 rounded-full text-sm font-semibold border transition-colors ${procareRole === "physician" ? "bg-blue-600 text-white border-blue-500" : "bg-white/5 text-white/60 border-white/15"}`}
+                >
+                  Physician / Medical
+                </button>
+              </div>
+              <p className="text-white/50 text-xs mt-3 max-w-lg mx-auto">
                 {procareRole === "trainer"
                   ? "Select the plan that matches the number of clients you manage. You can upgrade any time."
                   : "Select the plan that fits your practice size. Includes full patient nutrition management tools."}
@@ -674,15 +714,11 @@ export default function PricingPage() {
             </div>
 
             <div className="text-center mt-6">
-              <button
-                onClick={() => setProcareRole(null)}
-                className="text-white/40 text-xs underline hover:text-white/60 transition-colors"
-              >
-                Looking for a personal subscription instead?
-              </button>
+              <p className="text-white/40 text-xs">
+                Personal and family subscription plans are below.
+              </p>
             </div>
           </div>
-        )}
 
         {/* Free Tier Card */}
         <div className="mb-2">
