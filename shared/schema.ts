@@ -439,9 +439,11 @@ export const users = pgTable("users", {
   // null = generating for the owner (normal mode)
   // set = generating for that household member (protocol envelope loads from household_profiles)
   activeHouseholdProfileId: uuid("active_household_profile_id"),
+  organizationId: uuid("organization_id"),
 }, (t) => ({
   resetTokenIdx: index("idx_reset_token_lookup").on(t.resetTokenHash, t.resetTokenExpires),
   authTokenIdx: uniqueIndex("idx_auth_token_lookup").on(t.authToken),
+  organizationIdx: index("idx_users_organization_id").on(t.organizationId),
 }));
 
 // Creator System — product code redemption log (future revenue tracking)

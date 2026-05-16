@@ -1,4 +1,5 @@
 import { useLocation } from "wouter";
+import { useOrgBranding } from "@/hooks/useOrgBranding";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -38,6 +39,7 @@ export default function PricingPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { supportEmail, supportUrl } = useOrgBranding();
 
   const consumerPlans = getPlansByGroup("consumer");
   const familyPlans = getPlansByGroup("family");
@@ -430,10 +432,10 @@ export default function PricingPage() {
             <p className="text-white/40 text-xs">
               Need help?{" "}
               <a
-                href="mailto:support@myperfectmeals.com"
+                href={supportUrl}
                 className="text-lime-400 underline"
               >
-                support@myperfectmeals.com
+                {supportEmail}
               </a>
             </p>
             <p className="text-white/40 text-xs">
@@ -1366,10 +1368,10 @@ export default function PricingPage() {
           <p className="text-white/50 text-xs text-center">
             Need help? Contact us at{" "}
             <a
-              href="mailto:support@myperfectmeals.com"
+              href={supportUrl}
               className="text-lime-400 underline hover:text-lime-300"
             >
-              support@myperfectmeals.com
+              {supportEmail}
             </a>
           </p>
           <p className="text-white/40 text-xs text-center mt-2">
