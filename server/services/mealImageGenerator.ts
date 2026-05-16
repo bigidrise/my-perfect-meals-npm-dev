@@ -612,13 +612,12 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
 
   try {
     const response = await withTimeout(
-      getOpenAI().images.generate({
-        model: "dall-e-3",
+      (getOpenAI().images.generate as any)({
+        model: "gpt-image-1",
         prompt,
         n: 1,
         size: "1024x1024",
-        quality: "standard",
-        response_format: "url",
+        quality: "low",
       }),
       60000
     );

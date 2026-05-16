@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { ArrowLeft } from "lucide-react";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { useOrgBranding } from "@/hooks/useOrgBranding";
 
 // ─────────────────────────────────────────────────────────────
 // FOUNDING COACHES LIST
@@ -45,6 +46,7 @@ const FOUNDING_COACHES: {
 
 export default function Founder() {
   const [, setLocation] = useLocation();
+  const { supportEmail, supportUrl, appName } = useOrgBranding();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 pt-0 pb-24">
@@ -291,16 +293,16 @@ export default function Founder() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <a
-              href="mailto:support@myperfectmeals.com"
+              href={supportUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-orange-600 text-white font-medium transition-colors ring-1 ring-white/20"
             >
-              support@myperfectmeals.com
+              {supportEmail}
             </a>
 
             <a
-              href="mailto:support@myperfectmeals.com?subject=My Perfect Meals Feedback"
+              href={`${supportUrl}${supportUrl?.startsWith("mailto:") ? `?subject=${appName} Feedback` : ""}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-white/10 text-white font-medium transition-colors ring-1 ring-white/20 hover:bg-white/20"
