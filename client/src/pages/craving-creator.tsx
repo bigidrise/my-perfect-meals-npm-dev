@@ -213,7 +213,7 @@ export default function CravingCreator() {
   const [generatedMeals, setGeneratedMeals] = useState<MealData[]>([]);
   const [mealOptions, setMealOptions] = useState<any[]>([]);
   const [isPlatingMeal, setIsPlatingMeal] = useState(false);
-  const { loadingImages, hydrateImages } = useMealImages(setGeneratedMeals, { mealType: "snacks", concurrency: 1 });
+  const { loadingImages, hydrateImages } = useMealImages(setGeneratedMeals, { mealType: "meal", concurrency: 1 });
 
   const getRecentMeals = (): string[] => {
     try { return JSON.parse(sessionStorage.getItem('cc_recent_meals') || '[]'); } catch { return []; }
