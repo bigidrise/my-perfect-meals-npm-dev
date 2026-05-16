@@ -140,23 +140,40 @@ export function convertToUserFriendlyUnits(input: any): any {
   if (Array.isArray(input)) {
     return input.map(ingredient => {
       if (ingredient.unit === 'g' || ingredient.unit === 'grams') {
-        const convertedText = convertMetricToUnits(`${ingredient.amount}g ${ingredient.name}`);
-        // Parse the converted text back to structured format
+        const inputText = `${ingredient.amount}g ${ingredient.name}`;
+        const convertedText = convertMetricToUnits(inputText);
+
+        // A gram-fallback result starts with digits followed immediately by "g " (e.g. "150g salmon fillet").
+        // A real cooking-unit hit returns just the measurement without the ingredient name (e.g. "5 oz", "1/2 cup").
+        // Detect which case we're in so we don't try to re-parse the wrong format.
+        const isGramsFallback = /^\d+g\s/.test(convertedText);
+
+        if (!isGramsFallback && convertedText !== inputText) {
+          // Real cooking-unit conversion found — set displayText which the frontend checks first.
+          // convertedText is something like "5 oz" or "1/2 cup"; append the ingredient name.
+          return {
+            ...ingredient,
+            displayText: `${convertedText} ${ingredient.name}`
+          };
+        }
+
+        // Grams fallback (e.g. "150g exotic spice") — parse the metric text to get structured fields.
         const match = convertedText.match(/^([\d\/\.\s]+)\s*([a-zA-Z]+)\s+(.+)$/);
         if (match) {
           const [, amountStr, unit, name] = match;
-          const amount = amountStr.includes('/') ? 
-            amountStr.split('/').reduce((a, b) => parseFloat(a.trim()) / parseFloat(b.trim())) : 
-            parseFloat(amountStr.trim());
+          const amount = amountStr.includes('/')
+            ? parseFloat(amountStr.split('/')[0].trim()) / parseFloat(amountStr.split('/')[1].trim())
+            : parseFloat(amountStr.trim());
           return {
             name: name.trim(),
-            amount: Math.round(amount * 1000) / 1000, // Round to avoid precision issues
+            amount: Math.round(amount * 1000) / 1000,
             unit: unit.toLowerCase(),
-            notes: ingredient.notes || ''
+            notes: ingredient.notes || '',
+            displayText: `${amountStr.trim()} ${unit} ${name.trim()}`
           };
         }
       }
-      // Return original if no conversion needed
+      // Return original if not a gram-based ingredient
       return ingredient;
     });
   }
