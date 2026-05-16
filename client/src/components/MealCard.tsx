@@ -314,9 +314,11 @@ export function MealCard({
                 const unit = ing.unit || "";
                 
                 // Use formatIngredientWithGrams for proper display
-                const ingDisplayText = qty && unit 
+                const ingDisplayText = (qty && unit)
                   ? formatIngredientWithGrams(qty, unit, name)
-                  : `${qty}${unit ? ` ${unit}` : ''} ${name}`.trim();
+                  : qty
+                    ? `${qty} ${name}`.trim()
+                    : name;
                 
                 return (
                   <li key={i} className="flex items-start">
