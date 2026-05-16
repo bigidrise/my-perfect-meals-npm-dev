@@ -1510,10 +1510,10 @@ export default function CravingCreator() {
                                   );
                                 }
 
-                                if (amount && unit) {
+                                if (amount) {
                                   return (
                                     <li key={i}>
-                                      {amount} {unit} {name}
+                                      {amount}{unit ? ` ${unit}` : ""} {name}
                                     </li>
                                   );
                                 }
