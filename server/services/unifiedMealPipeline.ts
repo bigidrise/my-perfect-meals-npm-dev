@@ -242,6 +242,11 @@ export interface UnifiedMeal {
   }>;
   source?: 'ai' | 'catalog' | 'fallback';
   /**
+   * Set to 'beverages' when Create With Chef detects beverage intent.
+   * Tells the client image hook to use beverage sourceType for image generation.
+   */
+  mealType?: string;
+  /**
    * True only when post-generation dietary validation confirmed full compliance
    * for vegan / vegetarian / pescatarian diets (isValid: true AND confidence: high).
    * Undefined / false means the badge should NOT be shown.
@@ -2215,6 +2220,141 @@ function buildDiversityGuidance(
   return lines.join("\n");
 }
 
+// ── Beverage intent detection for Create With Chef ───────────────────────────
+// Returns the beverage category if the description is a drink/beverage request,
+// null if it is a solid food or meal request. User intent takes priority over
+// slot context — "protein shake" in a breakfast slot → beverage pipeline.
+function detectBeverageIntent(description: string): string | null {
+  const t = description.toLowerCase();
+  if (/smoothie/.test(t)) return "smoothie";
+  if (/protein[\s-]shake|protein[\s-]smoothie|protein[\s-]drink|whey[\s-]shake|mass[\s-]gainer|post[\s-]workout[\s-]shake|pre[\s-]workout[\s-]shake|recovery[\s-]shake/.test(t)) return "protein-shake";
+  if (/milkshake|milk[\s-]shake/.test(t)) return "milkshake";
+  if (/\bshake\b/.test(t)) return "protein-shake";
+  if (/latte|espresso|cold[\s-]brew|americano|cappuccino|macchiato|frappuccino/.test(t)) return "coffee";
+  if (/matcha|chai|iced[\s-]tea|green[\s-]tea|herbal[\s-]tea/.test(t)) return "tea";
+  if (/lemonade|electrolyte|sports[\s-]drink|kombucha|infused[\s-]water/.test(t)) return "hydration";
+  if (/\bjuice\b/.test(t)) return "hydration";
+  if (/frappe|slushie|slush|frozen[\s-]drink/.test(t)) return "frozen";
+  if (/mocktail|virgin[\s-]drink|alcohol[\s-]free[\s-]drink/.test(t)) return "mocktail";
+  if (/\bdrink\b|\bbeverage\b/.test(t)) return "frozen";
+  return null;
+}
+
+// ── Inline beverage generation for Create With Chef ──────────────────────────
+// Called when detectBeverageIntent() returns a non-null category.
+// Reuses the same protocol envelope + GPT-4o model as the Beverage Creator,
+// but runs entirely inline — no HTTP redirect, completely seamless to the user.
+async function generateBeverageFromDescription(
+  description: string,
+  beverageCategory: string,
+  userId: string | undefined,
+  dietType?: DietType,
+  slotHint?: string,
+): Promise<MealGenerationResponse> {
+  console.log(`🍹 [CREATE-WITH-CHEF/BEVERAGE] "${beverageCategory}" intent detected — routing to beverage pipeline`);
+
+  const envelope = userId
+    ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+    : buildGuestEnvelope();
+  const protocolBlock = enforceBeforeGenerate(envelope, { generatorName: 'create_with_chef_beverage' }).combined;
+
+  const CATEGORY_RULES: Record<string, string> = {
+    'smoothie': '- Prioritize whole fruits and natural sweetness\n- Include a liquid base (milk, juice, water, coconut water)\n- Blend until smooth; suggest add-ins (chia seeds, flax, protein powder)',
+    'protein-shake': '- Prioritize macro balance and protein density\n- Include a protein source (whey, plant protein, Greek yogurt, cottage cheese, etc.)\n- Target at least 20g protein per serving\n- Keep ingredients practical and widely available',
+    'milkshake': '- Rich, indulgent, and satisfying\n- Include ice cream or frozen yogurt base\n- Blend until thick and creamy',
+    'coffee': '- Specify coffee type (espresso, cold brew, drip, etc.)\n- Include milk/cream choice with amounts\n- Include sweetener if applicable',
+    'tea': '- Specify tea type (green, black, herbal, matcha, chai, etc.)\n- Include steeping time and temperature\n- Hot or iced guidance',
+    'hydration': '- Focus on electrolytes and hydration\n- Use natural ingredients where possible\n- Include health benefit context',
+    'frozen': '- Must be blended or frozen\n- Include ice quantities and blending steps',
+    'mocktail': '- Must be completely alcohol-free\n- Use creative, sophisticated flavor combinations',
+  };
+
+  const slotContext = slotHint
+    ? `\nThis drink is for the user's ${slotHint} slot — adjust flavor profile, caffeine level, and macros appropriately for ${slotHint}.`
+    : '';
+
+  const prompt = `You are a professional beverage chef inside the My Perfect Meals system.
+Generate a complete, structured ${beverageCategory} recipe.
+${protocolBlock ? `\n${protocolBlock}\n` : ''}
+CRITICAL: The output MUST be a DRINK/BEVERAGE. Never generate solid food, meals, eggs, chicken, rice, or any non-drinkable item.
+
+TASK: Create a ${beverageCategory} based on this user request: "${description}"${slotContext}
+
+${CATEGORY_RULES[beverageCategory] ? `DRINK-SPECIFIC RULES:\n${CATEGORY_RULES[beverageCategory]}` : ''}
+
+Return JSON ONLY (no extra text), following this exact schema:
+{
+  "name": "",
+  "description": "",
+  "ingredients": [{"name": "", "amount": "", "unit": ""}],
+  "instructions": "",
+  "nutrition": {"calories": 0, "protein": 0, "carbs": 0, "fat": 0},
+  "reasoning": ""
+}
+
+GENERATION RULES:
+1. Output MUST be a DRINK — shake, smoothie, juice, coffee, etc.
+2. Create the EXACT drink the user requested.
+3. Instructions = clear step-by-step blending/mixing/brewing directions.
+4. Nutrition must be realistic for the drink size.
+5. Apply all dietary requirements strictly.
+`;
+
+  const OpenAI = (await import('openai')).default;
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [{ role: 'user', content: prompt }],
+    response_format: { type: 'json_object' },
+  });
+
+  const rawText = completion.choices[0]?.message?.content || '{}';
+  let bev: any;
+  try {
+    bev = JSON.parse(rawText);
+  } catch {
+    throw new Error('[CREATE-WITH-CHEF/BEVERAGE] Failed to parse beverage JSON from GPT');
+  }
+
+  const ingredients = (bev.ingredients || []).map((ing: any) => ({
+    name: String(ing.name || ''),
+    quantity: String(ing.amount || ing.quantity || ''),
+    unit: String(ing.unit || ''),
+  }));
+
+  const nutrition = bev.nutrition || {};
+
+  const unifiedMeal: UnifiedMeal = {
+    id: `chef-bev-${Date.now()}`,
+    name: bev.name || description,
+    description: bev.description || '',
+    ingredients,
+    instructions: bev.instructions || '',
+    calories: Number(nutrition.calories) || 0,
+    protein: Number(nutrition.protein) || 0,
+    carbs: Number(nutrition.carbs) ?? 0,
+    starchyCarbs: 0,
+    fibrousCarbs: 0,
+    fat: Number(nutrition.fat) || 0,
+    cookingTime: '5 minutes',
+    difficulty: 'Easy',
+    imageUrl: '/images/fallback/meal.svg',
+    medicalBadges: [],
+    source: 'ai',
+    mealType: 'beverages',
+  };
+
+  console.log(`✅ [CREATE-WITH-CHEF/BEVERAGE] Generated: ${unifiedMeal.name}`);
+
+  return {
+    success: true,
+    meal: unifiedMeal,
+    meals: [unifiedMeal],
+    source: 'ai',
+  };
+}
+
 export async function generateFromDescriptionUnified(
   description: string,
   mealType: string,
@@ -2231,7 +2371,16 @@ export async function generateFromDescriptionUnified(
   builderMode?: BuilderMode
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
-  
+
+  // ── INTENT DETECTION: Is the user asking for a drink? ────────────────────
+  // User intent takes absolute priority over slot context.
+  // "Make me a protein shake" in the breakfast slot → beverage pipeline.
+  // No redirect, no popup — completely seamless.
+  const beverageIntent = detectBeverageIntent(description);
+  if (beverageIntent) {
+    return generateBeverageFromDescription(description, beverageIntent, userId, dietType, mealType);
+  }
+
   // Auto-detect starchy foods in user's description and force starch if found
   // Uses shared STARCHY_KEYWORDS — same list the client uses for the indicator
   // The starch coaching system should NEVER override explicit user requests

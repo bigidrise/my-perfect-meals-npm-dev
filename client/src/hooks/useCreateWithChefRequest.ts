@@ -42,6 +42,7 @@ interface Meal {
   fat?: number;
   starchyCarbs?: number;
   fibrousCarbs?: number;
+  mealType?: string;
   nutrition?: {
     calories: number;
     protein: number;
@@ -190,6 +191,7 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
         fat: generatedMeal.fat,
         starchyCarbs: generatedMeal.starchyCarbs || 0,
         fibrousCarbs: generatedMeal.fibrousCarbs || 0,
+        mealType: generatedMeal.mealType || undefined,
         nutrition: {
           calories: generatedMeal.calories || 0,
           protein: generatedMeal.protein || 0,
