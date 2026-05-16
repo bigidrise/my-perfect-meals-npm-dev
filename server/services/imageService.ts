@@ -114,7 +114,6 @@ async function generateDalleImage(options: ImageGenerationOptions): Promise<stri
       n: 1,
       size: "1024x1024",
       quality: "standard",
-      response_format: "url",
     });
 
     const item = response.data?.[0];

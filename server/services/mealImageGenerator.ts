@@ -618,7 +618,6 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
         n: 1,
         size: "1024x1024",
         quality: "standard",
-        response_format: "url",
       }),
       60000
     );
