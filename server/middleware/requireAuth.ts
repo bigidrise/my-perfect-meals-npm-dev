@@ -3,6 +3,7 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { resolveAccessTier, getTrialDaysRemaining, type AccessTier } from "../lib/accessTier";
+import { loadOrgContext } from "../lib/orgContext";
 
 export interface AuthenticatedUser {
   id: string;
@@ -72,6 +73,7 @@ export async function requireAuth(
 
       if (user) {
         (req as AuthenticatedRequest).authUser = buildAuthUser(user);
+        (req as any).orgContext = await loadOrgContext(user.organizationId ?? null);
         return next();
       }
 
@@ -90,6 +92,7 @@ export async function requireAuth(
 
       if (user) {
         (req as AuthenticatedRequest).authUser = buildAuthUser(user);
+        (req as any).orgContext = await loadOrgContext(user.organizationId ?? null);
         return next();
       }
 

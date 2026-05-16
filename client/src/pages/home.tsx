@@ -1,3 +1,4 @@
+import { useOrgBranding } from "@/hooks/useOrgBranding";
 import Navigation from "@/components/ui/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,6 +31,7 @@ import {
 
 export default function Home() {
   const [, navigate] = useLocation();
+  const { appName, supportEmail, supportUrl } = useOrgBranding();
 
   const handleSignIn = () => {
     navigate("/auth");
@@ -48,7 +50,7 @@ export default function Home() {
       <div className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10">
         <div className="px-4 py-3 flex items-center gap-3">
           <Utensils className="h-6 w-6 text-orange-500" />
-          <h1 className="text-lg font-bold text-white">My Perfect Meals</h1>
+          <h1 className="text-lg font-bold text-white">{appName}</h1>
         </div>
       </div>
       </MobileHeaderGuard>
@@ -731,7 +733,7 @@ export default function Home() {
             <div className="md:col-span-2">
               <div className="flex items-center mb-6">
                 <Utensils className="text-primary text-2xl mr-2 h-6 w-6" />
-                <span className="text-xl font-bold">My Perfect Meals</span>
+                <span className="text-xl font-bold">{appName}</span>
               </div>
               <p className="text-background/70 leading-relaxed mb-6 max-w-md">
                 AI-powered personalized nutrition and meal planning for everyone. From busy families to professional athletes, we make healthy eating effortless.
@@ -765,7 +767,7 @@ export default function Home() {
             <div>
               <h3 className="font-semibold mb-4">Support</h3>
               <ul className="space-y-3 text-background/70">
-                <li><a href="mailto:support@myperfectmeals.com" className="text-background/70 hover:text-background">Contact Us</a></li>
+                <li><a href={supportUrl} className="text-background/70 hover:text-background">Contact Us</a></li>
                 <li><a href="/privacy-policy" className="text-background/70 hover:text-background text-sm">Privacy Policy</a></li>
                 <li><a href="/terms" className="text-background/70 hover:text-background text-sm">Terms of Service</a></li>
               </ul>
@@ -774,7 +776,7 @@ export default function Home() {
           
           <div className="border-t border-background/20 pt-8 flex flex-col md:flex-row justify-between items-center">
             <div className="text-background/70 mb-4 md:mb-0">
-              © 2024 My Perfect Meals. All rights reserved.
+              © 2024 {appName}. All rights reserved.
             </div>
             <div className="flex items-center space-x-4 text-background/70">
               <span>Made with</span>

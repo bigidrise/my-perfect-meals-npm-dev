@@ -3,9 +3,11 @@ import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { useOrgBranding } from "@/hooks/useOrgBranding";
 
 export default function DeleteAccount() {
   const [, setLocation] = useLocation();
+  const { supportEmail } = useOrgBranding();
 
   const handleBack = () => {
     if (window.history.length > 1) {
@@ -57,7 +59,7 @@ export default function DeleteAccount() {
               To request deletion of your My Perfect Meals account and all associated data, please email us at:
             </p>
             <div className="bg-white/5 rounded-lg border border-white/10 p-4">
-              <p className="text-orange-400 font-semibold text-sm">support@myperfectmeals.com</p>
+              <p className="text-orange-400 font-semibold text-sm">{supportEmail}</p>
               <p className="text-white/60 text-xs mt-1">Subject: "Account Deletion Request"</p>
             </div>
             <p className="text-white/80 text-sm leading-relaxed">
@@ -101,7 +103,7 @@ export default function DeleteAccount() {
 
           <div className="border-t border-white/10 pt-4">
             <p className="text-white/50 text-xs text-center">
-              If you have questions about data deletion, contact us at support@myperfectmeals.com
+              If you have questions about data deletion, contact us at {supportEmail}
             </p>
           </div>
         </div>

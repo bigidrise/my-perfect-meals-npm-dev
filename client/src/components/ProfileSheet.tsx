@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useOrgBranding } from "@/hooks/useOrgBranding";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import {
@@ -60,6 +61,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
   const [, setLocation] = useLocation();
   const { user, setUser, refreshUser } = useAuth();
   const { fontSize, setFontSize } = useFontSize();
+  const { supportEmail, appName } = useOrgBranding();
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -264,7 +266,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
     if (item.action === "restorePurchases") {
       handleRestorePurchases();
     } else if (item.action === "contactSupport") {
-      window.open("mailto:support@myperfectmeals.com?subject=My Perfect Meals Feedback", "_blank");
+      window.open(`mailto:${supportEmail}?subject=${appName} Feedback`, "_blank");
     } else if (item.route) {
       if (LEGAL_ROUTES.includes(item.route)) {
         window.location.href = item.route;

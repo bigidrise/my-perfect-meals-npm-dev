@@ -5,6 +5,7 @@ import * as mybestlifeSchema from "./db/schema/mybestlife";
 import { glp1Shots } from "./db/schema/glp1Shots";
 import { mealBoards, mealBoardItems } from "./db/schema/mealBoards";
 import { builderPlans } from "./db/schema/builderPlans";
+import { organizations } from "./db/schema/organizations";
 
 // Construct database connection URL, preferring Neon credentials over Railway
 function getDatabaseUrl(): string {
@@ -58,7 +59,8 @@ export const db = drizzle(pool, {
     glp1Shots, 
     mealBoards, 
     mealBoardItems, 
-    builderPlans 
+    builderPlans,
+    organizations,
   } 
 });
 

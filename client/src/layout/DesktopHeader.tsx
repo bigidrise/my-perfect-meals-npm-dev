@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCurrentPageTitle } from "@/contexts/PageTitleContext";
 import { ProfileSheet } from "@/components/ProfileSheet";
 import { HubControlIcon } from "@/components/icons/HubControlIcon";
+import { useOrgBranding } from "@/hooks/useOrgBranding";
 
 const ROUTE_TITLES: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -98,8 +99,10 @@ export default function DesktopHeader() {
   const [location] = useLocation();
   const { user } = useAuth();
   const contextTitle = useCurrentPageTitle();
+  const { appName } = useOrgBranding();
 
-  const title = contextTitle || getPageTitle(location);
+  const fallbackTitle = getPageTitle(location);
+  const title = contextTitle || (fallbackTitle === "My Perfect Meals" ? appName : fallbackTitle);
   const planLabel = getPlanLabel(user?.planLookupKey);
 
   return (

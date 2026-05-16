@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { OrgProvider } from "@/contexts/OrgContext";
 import { FontSizeProvider } from "@/contexts/FontSizeContext";
 import { HouseholdProvider } from "@/contexts/HouseholdContext";
 import { ProClientProvider } from "@/contexts/ProClientContext";
@@ -179,6 +180,7 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AuthProvider>
+            <OrgProvider>
             <HouseholdProvider>
             <FontSizeProvider>
             <AudioProvider>
@@ -206,6 +208,7 @@ export default function App() {
             </AudioProvider>
             </FontSizeProvider>
             </HouseholdProvider>
+            </OrgProvider>
           </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>

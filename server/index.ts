@@ -29,6 +29,9 @@ import { requireActiveAccess } from "./middleware/requireActiveAccess";
 import healthRouter from "./routes/health.routes";
 import keepaliveRouter from "./routes/keepalive";
 import legalPagesRouter from "./routes/legal-pages";
+import { loadOrgContext, loadOrgBySlug, getDefaultOrgContext } from "./lib/orgContext";
+import { users } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 // ⬇️ New: AI/Meals API router (this file must exist: server/routes/meals.ts)
 import mealsRouter from "./routes/meals";
@@ -647,6 +650,41 @@ app.get("/api/users/:id/streak", (req, res) => {
 const PORT = Number(process.env.PORT) || 5000;
 
 async function start() {
+  // Seed default organizations on every boot (idempotent)
+  try {
+    const { seedDefaultOrganizations } = await import("./lib/orgSeeder");
+    await seedDefaultOrganizations();
+  } catch (err) {
+    console.error("[Startup] Org seeder failed (non-fatal):", err);
+  }
+
+  // ── Org Config (public — must be registered BEFORE requireAuth middleware) ──
+  app.get("/api/org/config", async (req, res) => {
+    try {
+      if ((req as any).orgContext) {
+        return res.json((req as any).orgContext);
+      }
+      const sessionUserId = (req as any).session?.userId;
+      if (sessionUserId) {
+        const { db } = await import("./db");
+        const [user] = await db.select({ organizationId: users.organizationId })
+          .from(users).where(eq(users.id, sessionUserId)).limit(1);
+        if (user) {
+          return res.json(await loadOrgContext(user.organizationId ?? null));
+        }
+      }
+      const slugHeader = req.headers["x-org-slug"] as string | undefined;
+      if (slugHeader) {
+        const org = await loadOrgBySlug(slugHeader);
+        if (org) return res.json(org);
+      }
+      return res.json(getDefaultOrgContext());
+    } catch (err) {
+      console.error("[org/config] Error:", err);
+      return res.json(getDefaultOrgContext());
+    }
+  });
+
   // 🎯 CRITICAL: API routes FIRST to prevent Vite middleware interference
   await registerRoutes(app);
 
