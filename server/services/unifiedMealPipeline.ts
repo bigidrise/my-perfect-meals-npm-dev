@@ -1494,11 +1494,7 @@ function mapToUnifiedMeal(opt: any, idx: number, cravingInput: string, validMeal
     id: `variety-ai-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 9)}`,
     name: opt.name || `${cravingInput} Option ${idx + 1}`,
     description: opt.description || `A delicious ${validMealType} inspired by ${cravingInput}`,
-    ingredients: (opt.ingredients || []).map((i: any) => ({
-      name: i.name || '',
-      quantity: String(i.quantity || ''),
-      unit: i.unit || ''
-    })),
+    ingredients: normalizeIngredients(opt.ingredients || []),
     instructions: opt.instructions || "Cook as desired.",
     calories: opt.calories || 400,
     protein: opt.protein || 15,
