@@ -34,6 +34,7 @@ import {
 import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
 import { assignBuilderToClient } from "@/lib/assignBuilderToClient";
 import { useToast } from "@/hooks/use-toast";
+import { PillButton } from "@/components/ui/pill-button";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -520,9 +521,12 @@ export default function ClinicianClientDashboard() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8rem)" }}
       >
         <div className="rounded-2xl p-6 bg-white/5 border border-white/20">
-          <p className="text-white/90 text-lg font-semibold">
-            {client?.name || "Patient"}
-          </p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-white/90 text-lg font-semibold">
+              {client?.name || "Patient"}
+            </p>
+            <PillButton onClick={quickTour.openTour} className="shrink-0">How to Use</PillButton>
+          </div>
           {activeProtocolLabel && (
             <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
               Active Protocol: {activeProtocolLabel}

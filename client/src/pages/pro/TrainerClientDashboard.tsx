@@ -32,6 +32,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { PillButton } from "@/components/ui/pill-button";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -85,7 +86,7 @@ const SECTION_EXPLAINERS: Record<string, TourStep[]> = {
       icon: "📊",
       title: "Macro Targets & Coaching Setup",
       description:
-        "These are your controls as the trainer. Set protein, starchy carbs, fibrous carbs, and fat targets based on your client's performance goals. The AI uses these numbers as the framework for every meal it generates.\n\nIf a clinical protocol is active (like Cardiac or Renal), it will shape ingredient choices and meal composition within your targets — it does not override the numbers you set here. You own the macros. The system enforces safety inside them.",
+        "Set the client's daily nutrition targets here. These drive meal generation across the platform.\n\nProtein, carbs, and fat numbers are yours to set based on the client's goals. If a clinical protocol is active, it shapes ingredient choices within your targets — it does not override your numbers.",
     },
   ],
   mealMode: [
@@ -93,7 +94,7 @@ const SECTION_EXPLAINERS: Record<string, TourStep[]> = {
       icon: "🏋️",
       title: "Meal Mode",
       description:
-        "Meal Mode sets the coaching style and performance focus for this client's meals.\n\n• General Nutrition — balanced everyday eating\n• Beach Body — lean physique and body composition goals\n• Performance & Competition — high-output athletic fueling\n\nThis is your primary coaching decision. If a clinical protocol is active, the AI applies those medical rules on top of the Meal Mode you select — they work together. The Meal Mode determines the character of the meals; the protocol determines the clinical constraints.",
+        "Choose the coaching style for this client's meals.\n\n• General Nutrition — balanced everyday eating\n• Beach Body — lean physique and body composition\n• Performance & Competition — high-output athletic fueling\n\nIf a clinical protocol is active, it applies medical rules on top of the Meal Mode you select.",
     },
   ],
   protocols: [
@@ -101,7 +102,7 @@ const SECTION_EXPLAINERS: Record<string, TourStep[]> = {
       icon: "🩺",
       title: "System Protocols",
       description:
-        "System Protocols are clinical rules that have been activated for this client — either by their physician or triggered by lab values. These are not your controls as a trainer.\n\nThis section tells you what the AI is already enforcing so you can coach intelligently within those constraints. For example, if GLP-1 is active, you should not lower protein targets or increase starchy carbs — the system is already managing portions.\n\nAny changes to clinical protocols must go through the physician portal.",
+        "These are clinical rules active for this client — set by their physician or triggered by lab values. They are not your controls.\n\nUse this section to understand what the AI is already enforcing. If GLP-1 is active, do not lower protein targets or increase starchy carbs — the system manages portions.\n\nProtocol changes must go through the physician portal.",
     },
   ],
 };
@@ -501,10 +502,11 @@ export default function TrainerClientDashboard() {
             <ArrowLeft className="h-5 w-5" />
             <span className="text-sm font-medium">Back</span>
           </button>
-          <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="flex flex-col flex-1 min-w-0">
             <h1 className="text-base font-bold text-white truncate">
               Trainer Studio
             </h1>
+            <p className="text-[11px] text-white/50 truncate">Set meal strategy, macros, and coaching direction.</p>
           </div>
           <QuickTourButton onClick={quickTour.openTour} />
         </div>
@@ -517,9 +519,12 @@ export default function TrainerClientDashboard() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8rem)" }}
       >
         <div className="rounded-2xl p-6 bg-white/5 border border-white/20">
-          <p className="text-white/90 mt-3 text-lg">
-            {client?.name || "Client"}
-          </p>
+          <div className="flex items-center justify-between gap-3 mt-3">
+            <p className="text-white/90 text-lg">
+              {client?.name || "Client"}
+            </p>
+            <PillButton onClick={quickTour.openTour} className="shrink-0">How to Use</PillButton>
+          </div>
           {clientGoal?.goalType && (
             <div className="mt-3 flex items-center gap-3 rounded-xl bg-orange-500/10 border border-orange-500/30 px-4 py-3">
               <span className="text-2xl">
