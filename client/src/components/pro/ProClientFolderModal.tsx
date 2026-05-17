@@ -767,7 +767,10 @@ export default function ProClientFolderModal({
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-900 border-white/10 text-white max-w-md max-h-[90vh] overflow-y-auto [&>button.absolute]:hidden">
+      <DialogContent
+        className="bg-zinc-900 border-white/10 text-white max-w-md max-h-[90vh] overflow-y-auto [&>button.absolute]:hidden"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogHeader className="sticky top-0 z-10 bg-zinc-900 -mx-6 px-6 pt-2 pb-4 border-b border-white/10 mb-1">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
