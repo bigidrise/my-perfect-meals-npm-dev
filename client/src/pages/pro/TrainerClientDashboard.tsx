@@ -603,53 +603,20 @@ export default function TrainerClientDashboard() {
                   }`}>
                     {(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
                       ? `${recommendedProtocol} Directive Applied`
-                      : "Science-Backed Directive Recommended"}
+                      : "Clinical Protocol Recommended by System"}
                   </p>
                   <p className="text-xs text-white/60 leading-relaxed mb-3">
                     {(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
                       ? `This client's meal plan is following the ${recommendedProtocol} directive derived from their lab values. Macros and meals will reflect this protocol.`
-                      : `This client's lab results support the ${recommendedProtocol} directive within the Anti-Inflammatory builder. Applying it aligns their meals with clinical lab findings — the macro targets still apply.`}
+                      : `This client's lab results support the ${recommendedProtocol} directive. Clinical directives must be applied by a physician or qualified clinical professional — contact the assigned physician to activate this protocol.`}
                   </p>
-                  {!(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey] && (
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        const studioId = client?.studioId;
-                        const targetUserId = resolvedClientUserId;
-                        if (studioId && targetUserId) {
-                          try {
-                            const res = await fetch(
-                              apiUrl(`/api/studios/${studioId}/clients/${targetUserId}/apply-system-recommendation`),
-                              {
-                                method: "PATCH",
-                                headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-                                credentials: "include",
-                                body: JSON.stringify({
-                                  directiveKey: recommendedDirectiveKey,
-                                  directiveLabel: recommendedProtocol,
-                                  protocol: recommendedDirectiveKey,
-                                }),
-                              }
-                            );
-                            if (!res.ok) throw new Error("Server rejected recommendation");
-                          } catch {
-                            toast({ title: "Could not apply recommendation", description: "Please try again.", variant: "destructive" });
-                            return;
-                          }
-                        }
-                        const updated = { ...t, flags: { ...t.flags, [recommendedDirectiveKey]: true } };
-                        setT(updated);
-                        proStore.setTargets(clientId, updated);
-                        toast({ title: "System recommendation applied", description: `This client's plan now follows the ${recommendedProtocol} directive derived from their lab data.` });
-                      }}
-                      className="bg-amber-600 hover:bg-amber-500 text-white border-0 text-xs"
-                    >
-                      Apply System Recommendation
-                    </Button>
-                  )}
-                  {(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey] && (
+                  {(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey] ? (
                     <span className="inline-flex items-center gap-1.5 text-xs text-teal-400 font-medium">
                       <Check className="h-3.5 w-3.5" /> Active on this client
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-amber-400/80 font-medium">
+                      <Stethoscope className="h-3.5 w-3.5" /> Physician authorization required
                     </span>
                   )}
                 </div>
