@@ -1630,9 +1630,14 @@ export default function CravingCreator() {
                         {/* Row 3: Prepare with Chef + Share (50/50) */}
                         <div className="grid grid-cols-2 gap-2">
                           <GlassButton
+                            type="button"
                             onClick={() => {
+                              const safeId = meal.id ||
+                                (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                                  ? crypto.randomUUID()
+                                  : `craving-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`);
                               const mealData = {
-                                id: meal.id || crypto.randomUUID(),
+                                id: safeId,
                                 name: meal.name,
                                 description: meal.description,
                                 ingredients: meal.ingredients || [],
@@ -1650,6 +1655,7 @@ export default function CravingCreator() {
                               );
                               localStorage.setItem("mpm_chefs_kitchen_origin", window.location.pathname);
                               setLocation("/lifestyle/chefs-kitchen");
+                              window.scrollTo({ top: 0, behavior: "instant" });
                             }}
                             className="flex-1 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                           >
