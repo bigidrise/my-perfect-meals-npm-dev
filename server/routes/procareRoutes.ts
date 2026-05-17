@@ -27,10 +27,10 @@ import { z } from "zod";
 const router = Router();
 
 function getUserId(req: any): string {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  if (authUser?.id) return authUser.id;
   if (req.session?.userId) return req.session.userId as string;
-  const headerUserId = req.headers["x-user-id"] as string;
-  if (headerUserId) return headerUserId;
-  return "00000000-0000-0000-0000-000000000001";
+  return "";
 }
 
 /**
