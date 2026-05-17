@@ -5,8 +5,14 @@ import { glp1Shots } from "../db/schema/glp1Shots";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
+import { requireOrgFlag } from "../middleware/requireOrgFlag";
 
 const router = Router();
+
+// P3.3 — org flag gate: every GLP-1 route requires glp1Support.
+// Default org has glp1Support=true; white-label orgs can disable it.
+// requireAuth must have already set req.orgContext before this runs.
+router.use(requireAuth, requireOrgFlag("glp1Support"));
 
 const createShotSchema = z.object({
   dateUtc: z.string().datetime(),

@@ -49,6 +49,7 @@ import wmc2EnhancedRouter from "./routes/wmc2Enhanced";
 import qaRouter from "./routes/qa";
 import mealEngineRouter from "./routes/mealEngine.routes";
 import weeklyPlanRoutes from "./routes/weeklyPlan.routes";
+import macroCalculatorRoutes from "./routes/macroCalculatorRoutes";
 
 import mealPlanRoutesV1 from "./routes/mealPlans.routes";
 import mealScheduleRouter from "./routes/mealSchedule";
@@ -319,6 +320,7 @@ app.use("/api", wmc2EnhancedRouter);
 app.use("/admin", qaRouter);
 app.use("/api", mealEngineRouter);
 app.use("/api", weeklyPlanRoutes);
+app.use("/api", macroCalculatorRoutes);
 
 app.use("/api/meal-plan", mealPlanRoutesV1);
 app.use("/api/meal-plans", mealPlanRoutesV1); // ✅ Add plural version for frontend compatibility
