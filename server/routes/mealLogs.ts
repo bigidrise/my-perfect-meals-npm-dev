@@ -4,6 +4,8 @@ import { mealLog, mealLogsEnhanced, insertMealLogSchema } from "../../shared/sch
 import { and, eq, gte, lte, desc } from "drizzle-orm";
 import { z } from "zod";
 import { createInsertSchema } from "drizzle-zod";
+import { requireAuth } from "../middleware/requireAuth";
+import type { AuthenticatedRequest } from "../middleware/requireAuth";
 
 const router = express.Router();
 
@@ -12,20 +14,18 @@ const insertMealLogEnhancedSchema = createInsertSchema(mealLogsEnhanced).omit({
   createdAt: true,
 });
 
-router.post("/meal-logs", async (req, res) => {
+router.post("/meal-logs", requireAuth, async (req, res) => {
   try {
+    const authUser = (req as AuthenticatedRequest).authUser;
     const validation = insertMealLogEnhancedSchema.safeParse(req.body);
-    
     if (!validation.success) {
-      return res.status(400).json({ 
-        error: "Validation failed", 
-        details: validation.error.issues 
-      });
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
     }
-
+    if (validation.data.userId && validation.data.userId !== authUser.id) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
     const [row] = await db.insert(mealLogsEnhanced).values(validation.data).returning();
-    console.log("[meal-log][create]", { saved: row });
-    
+    console.log("[meal-log][create] id:", row.id);
     res.json(row);
   } catch (e: any) {
     console.error("create meal-log error", e);
@@ -33,10 +33,14 @@ router.post("/meal-logs", async (req, res) => {
   }
 });
 
-router.get("/meal-logs", async (req, res) => {
+router.get("/meal-logs", requireAuth, async (req, res) => {
   try {
+    const authUser = (req as AuthenticatedRequest).authUser;
     const userId = String(req.query.userId || "");
     if (!userId) return res.status(400).json({ error: "userId required" });
+    if (userId !== authUser.id) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
 
     const fromStr = (req.query.from as string) || null;
     const toStr = (req.query.to as string) || null;
@@ -48,10 +52,12 @@ router.get("/meal-logs", async (req, res) => {
     const whereParts: any[] = [
       eq(mealLogsEnhanced.userId, userId),
       gte(mealLogsEnhanced.date, from),
-      lte(mealLogsEnhanced.date, to)
+      lte(mealLogsEnhanced.date, to),
     ];
 
-    const rows = await db.select().from(mealLogsEnhanced)
+    const rows = await db
+      .select()
+      .from(mealLogsEnhanced)
       .where(and(...whereParts))
       .orderBy(desc(mealLogsEnhanced.date))
       .limit(limit);

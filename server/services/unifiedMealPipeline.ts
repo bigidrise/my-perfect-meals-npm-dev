@@ -1569,12 +1569,12 @@ export async function generateCravingMealOptions(
       const allergies: string[] = (u?.allergies as string[]) || [];
       if (allergies.length > 0) {
         allergyBlock = `\n🚨 ALLERGEN BLOCK — ABSOLUTE MEDICAL SAFETY REQUIREMENT:\nThis user has confirmed allergies to: ${allergies.join(', ')}.\nDo NOT include these ingredients or any derivative/hidden form in ANY of the 3 options. This overrides all other instructions.`;
-        console.log(`[VARIETY ENGINE] Allergy block active for user ${userId}: ${allergies.join(', ')}`);
+        console.log(`[VARIETY ENGINE] Allergy block active for user ${userId}: ${allergies.length} items`);
       }
 
       const healthConditions: string[] = (u?.healthConditions as string[]) || [];
       if (healthConditions.length > 0) {
-        console.log(`[VARIETY ENGINE] Health conditions for user ${userId}: ${healthConditions.join(', ')}`);
+        console.log(`[VARIETY ENGINE] Health conditions active for user ${userId}: ${healthConditions.length} items`);
       }
 
       // Merge dislikedFoods + avoidedFoods into a single avoidance list
@@ -1584,7 +1584,7 @@ export async function generateCravingMealOptions(
       ];
       if (rawAvoidances.length > 0) {
         avoidanceBlock = buildVarietyAvoidanceBlock(rawAvoidances);
-        console.log(`[VARIETY ENGINE] Avoidance block active for user ${userId}: ${rawAvoidances.join(', ')}`);
+        console.log(`[VARIETY ENGINE] Avoidance block active for user ${userId}: ${rawAvoidances.length} items`);
       }
     } catch (err) {
       console.warn("[VARIETY ENGINE] Could not fetch user profile:", err);
@@ -1631,7 +1631,7 @@ export async function generateCravingMealOptions(
   // but oncology is stored in specialtyCondition — NOT dietaryRestrictions — so
   // that check was structurally impossible and never activated. Fixed here.
   const _cravingMentionsOncology = /oncolog|cancer[\s\-]?support|cancer[\s\-]?protocol/i.test(cravingInput);
-  console.log(`🧬 [VARIETY ENGINE] Oncology check — specialtyConditions: ${JSON.stringify(_varietySpecialtyConditions)}, oncologyCtx.enabled: ${_varietyOncologyCtx?.enabled ?? null}, cravingTextMatch: ${_cravingMentionsOncology}`);
+  console.log(`🧬 [VARIETY ENGINE] Oncology check — active: ${_varietySpecialtyConditions.includes('oncology-support')}, oncologyCtx.enabled: ${_varietyOncologyCtx?.enabled ?? null}, cravingTextMatch: ${_cravingMentionsOncology}`);
   const isVarietyOncology =
     _varietySpecialtyCondition === 'oncology-support' ||
     _varietySpecialtyConditions.includes('oncology-support') ||
@@ -2485,7 +2485,7 @@ export async function generateFromDescriptionUnified(
           oncologyCtx = rawCtx;
           oncologyPromptSection = buildOncologySupportPrompt(rawCtx);
           const trigger = dietType === 'oncology-support' ? 'dietType' : 'text intent';
-          console.log(`🔬 [CREATE-WITH-CHEF] Oncology-support context loaded (trigger: ${trigger}) — symptoms: ${rawCtx.symptoms?.join(', ') || 'none'}`);
+          console.log(`🔬 [CREATE-WITH-CHEF] Oncology-support context loaded (trigger: ${trigger})`);
         } else {
           // No DB context but oncology triggered: apply default hard-block
           oncologyPromptSection = buildOncologySupportPrompt({

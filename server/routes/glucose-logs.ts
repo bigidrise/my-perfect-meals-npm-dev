@@ -3,6 +3,8 @@ import { z } from "zod";
 import { db } from "../db";
 import { glucoseLogs } from "../../shared/diabetes-schema";
 import { and, eq, gte, lte, desc } from "drizzle-orm";
+import { requireAuth } from "../middleware/requireAuth";
+import type { AuthenticatedRequest } from "../middleware/requireAuth";
 
 const router = Router();
 
@@ -15,13 +17,16 @@ const createGlucoseLogSchema = z.object({
 });
 
 // GET /api/users/:userId/glucose-logs
-router.get("/api/users/:userId/glucose-logs", async (req, res) => {
+router.get("/api/users/:userId/glucose-logs", requireAuth, async (req, res) => {
   try {
+    const authUser = (req as AuthenticatedRequest).authUser;
     const { userId } = req.params;
+    if (userId !== authUser.id) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
     const { startDate, endDate } = req.query;
 
     const conditions = [eq(glucoseLogs.userId, userId)];
-    
     if (startDate) {
       conditions.push(gte(glucoseLogs.recordedAt, new Date(startDate as string)));
     }
@@ -29,11 +34,7 @@ router.get("/api/users/:userId/glucose-logs", async (req, res) => {
       conditions.push(lte(glucoseLogs.recordedAt, new Date(endDate as string)));
     }
 
-    const logs = await db.select()
-      .from(glucoseLogs)
-      .where(and(...conditions))
-      .orderBy(desc(glucoseLogs.recordedAt));
-
+    const logs = await db.select().from(glucoseLogs).where(and(...conditions)).orderBy(desc(glucoseLogs.recordedAt));
     res.json(logs);
   } catch (error) {
     console.error("Error fetching glucose logs:", error);
@@ -42,11 +43,15 @@ router.get("/api/users/:userId/glucose-logs", async (req, res) => {
 });
 
 // GET /api/users/:userId/glucose-logs/latest
-router.get("/api/users/:userId/glucose-logs/latest", async (req, res) => {
+router.get("/api/users/:userId/glucose-logs/latest", requireAuth, async (req, res) => {
   try {
+    const authUser = (req as AuthenticatedRequest).authUser;
     const { userId } = req.params;
-
-    const [latestLog] = await db.select()
+    if (userId !== authUser.id) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    const [latestLog] = await db
+      .select()
       .from(glucoseLogs)
       .where(eq(glucoseLogs.userId, userId))
       .orderBy(desc(glucoseLogs.recordedAt))
@@ -55,7 +60,6 @@ router.get("/api/users/:userId/glucose-logs/latest", async (req, res) => {
     if (!latestLog) {
       return res.status(404).json({ error: "No glucose readings found" });
     }
-
     res.json(latestLog);
   } catch (error) {
     console.error("Error fetching latest glucose log:", error);
@@ -64,9 +68,13 @@ router.get("/api/users/:userId/glucose-logs/latest", async (req, res) => {
 });
 
 // POST /api/users/:userId/glucose-logs
-router.post("/api/users/:userId/glucose-logs", async (req, res) => {
+router.post("/api/users/:userId/glucose-logs", requireAuth, async (req, res) => {
   try {
+    const authUser = (req as AuthenticatedRequest).authUser;
     const { userId } = req.params;
+    if (userId !== authUser.id) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
     const data = createGlucoseLogSchema.parse(req.body);
 
     const [newLog] = await db.insert(glucoseLogs).values({
