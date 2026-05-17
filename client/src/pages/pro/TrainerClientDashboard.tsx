@@ -29,6 +29,7 @@ import {
   AlertTriangle,
   Sparkles,
   Trash2,
+  HelpCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuickTour } from "@/hooks/useQuickTour";
@@ -78,6 +79,33 @@ const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
   },
 ];
 
+const SECTION_EXPLAINERS: Record<string, TourStep[]> = {
+  macros: [
+    {
+      icon: "📊",
+      title: "Macro Targets & Coaching Setup",
+      description:
+        "These are your controls as the trainer. Set protein, starchy carbs, fibrous carbs, and fat targets based on your client's performance goals. The AI uses these numbers as the framework for every meal it generates.\n\nIf a clinical protocol is active (like Cardiac or Renal), it will shape ingredient choices and meal composition within your targets — it does not override the numbers you set here. You own the macros. The system enforces safety inside them.",
+    },
+  ],
+  mealMode: [
+    {
+      icon: "🏋️",
+      title: "Meal Mode",
+      description:
+        "Meal Mode sets the coaching style and performance focus for this client's meals.\n\n• General Nutrition — balanced everyday eating\n• Beach Body — lean physique and body composition goals\n• Performance & Competition — high-output athletic fueling\n\nThis is your primary coaching decision. If a clinical protocol is active, the AI applies those medical rules on top of the Meal Mode you select — they work together. The Meal Mode determines the character of the meals; the protocol determines the clinical constraints.",
+    },
+  ],
+  protocols: [
+    {
+      icon: "🩺",
+      title: "System Protocols",
+      description:
+        "System Protocols are clinical rules that have been activated for this client — either by their physician or triggered by lab values. These are not your controls as a trainer.\n\nThis section tells you what the AI is already enforcing so you can coach intelligently within those constraints. For example, if GLP-1 is active, you should not lower protein targets or increase starchy carbs — the system is already managing portions.\n\nAny changes to clinical protocols must go through the physician portal.",
+    },
+  ],
+};
+
 export default function TrainerClientDashboard() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -85,6 +113,7 @@ export default function TrainerClientDashboard() {
   const clientId = params?.id as string;
 
   const quickTour = useQuickTour("trainer-client-dashboard");
+  const [explainerStep, setExplainerStep] = useState<TourStep[] | null>(null);
 
   const [client, setClient] = useState(() => proStore.getClient(clientId));
   const resolvedClientUserId = client?.clientUserId || client?.userId || clientId;
@@ -671,6 +700,14 @@ export default function TrainerClientDashboard() {
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
               <Settings className="h-5 w-5" /> Macro Targets
+              <button
+                type="button"
+                onClick={() => setExplainerStep(SECTION_EXPLAINERS.macros)}
+                className="ml-auto text-white/30 hover:text-white/50 transition-colors"
+                aria-label="Learn about Macro Targets"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </button>
             </CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -886,6 +923,14 @@ export default function TrainerClientDashboard() {
                   <AlertTriangle className="h-4 w-4 text-amber-400 ml-1" />
                 </span>
               )}
+              <button
+                type="button"
+                onClick={() => setExplainerStep(SECTION_EXPLAINERS.mealMode)}
+                className="ml-auto text-white/30 hover:text-white/50 transition-colors"
+                aria-label="Learn about Meal Mode"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </button>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -1015,34 +1060,50 @@ export default function TrainerClientDashboard() {
           if (labDerivedConditions.includes("oncology-support") || !!(t?.flags as any)?.oncologySupport) activeProtocols.push("oncology");
           if (!!(t?.flags as any)?.glp1Protocol || assignedBuilder === "glp1") activeProtocols.push("glp1");
 
-          if (activeProtocols.length === 0) return null;
-
           return (
             <Card className="bg-white/5 border border-white/10">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
                   <Stethoscope className="h-5 w-5 text-white/50" />
                   System Protocols
-                  <span className="ml-auto text-xs text-white/30 font-normal normal-case tracking-normal">Read-only</span>
+                  <span className="ml-auto flex items-center gap-2">
+                    <span className="text-xs text-white/30 font-normal normal-case tracking-normal">Read-only</span>
+                    <button
+                      type="button"
+                      onClick={() => setExplainerStep(SECTION_EXPLAINERS.protocols)}
+                      className="text-white/30 hover:text-white/50 transition-colors"
+                      aria-label="Learn about System Protocols"
+                    >
+                      <HelpCircle className="h-4 w-4" />
+                    </button>
+                  </span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-white/50 text-xs">
-                  These protocols are actively shaping your client's meal generation. They are managed by the physician layer and cannot be changed here. Use this information to coach intelligently within the system's constraints.
-                </p>
-                {activeProtocols.map((key) => {
-                  const proto = PROTOCOL_COACHING_IMPLICATIONS[key];
-                  if (!proto) return null;
-                  return (
-                    <div key={key} className="flex items-start gap-3">
-                      <span className={`mt-1.5 h-2.5 w-2.5 rounded-full shrink-0 ${proto.dot}`} />
-                      <div>
-                        <p className="text-white/80 text-sm font-semibold">{proto.label}</p>
-                        <p className="text-white/50 text-xs mt-0.5 leading-relaxed">{proto.implication}</p>
-                      </div>
-                    </div>
-                  );
-                })}
+                {activeProtocols.length === 0 ? (
+                  <p className="text-white/40 text-xs">
+                    No active clinical protocols for this client. All meals follow the AI's standard generation rules within your macro targets.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-white/50 text-xs">
+                      These protocols are actively shaping your client's meal generation. They are managed by the physician layer and cannot be changed here. Use this information to coach intelligently within the system's constraints.
+                    </p>
+                    {activeProtocols.map((key) => {
+                      const proto = PROTOCOL_COACHING_IMPLICATIONS[key];
+                      if (!proto) return null;
+                      return (
+                        <div key={key} className="flex items-start gap-3">
+                          <span className={`mt-1.5 h-2.5 w-2.5 rounded-full shrink-0 ${proto.dot}`} />
+                          <div>
+                            <p className="text-white/80 text-sm font-semibold">{proto.label}</p>
+                            <p className="text-white/50 text-xs mt-0.5 leading-relaxed">{proto.implication}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
               </CardContent>
             </Card>
           );
@@ -1130,6 +1191,16 @@ export default function TrainerClientDashboard() {
         steps={TRAINER_DASHBOARD_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
+
+      {explainerStep && (
+        <QuickTourModal
+          isOpen={true}
+          onClose={() => setExplainerStep(null)}
+          title="How This Works"
+          steps={explainerStep}
+          onDisableAllTours={() => setExplainerStep(null)}
+        />
+      )}
     </motion.div>
   );
 }
