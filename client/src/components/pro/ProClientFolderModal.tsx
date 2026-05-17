@@ -1212,7 +1212,7 @@ export default function ProClientFolderModal({
     </Dialog>
     <QuickTourModal
       steps={FOLDER_TOUR_STEPS}
-      isOpen={folderTour.isOpen}
+      isOpen={folderTour.shouldShow}
       onClose={folderTour.closeTour}
       tourKey="client-folder"
     />
