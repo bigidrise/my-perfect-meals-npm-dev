@@ -130,6 +130,25 @@ type Sex = "male" | "female";
 type Units = "imperial" | "metric";
 type BodyType = "ecto" | "meso" | "endo";
 type UserType = "general" | "committed" | "athlete";
+type CutIntensity = "hard" | "moderate" | "none";
+type CutStyle = "balanced" | "lowCarb";
+type ActivityLevel = "sedentary" | "light" | "moderate" | "very" | "extra";
+
+type MacroComputeResult = {
+  bmr: number;
+  tdee: number;
+  target: number;
+  macros: {
+    calories: number;
+    protein: { g: number; kcal: number };
+    fat: { g: number; kcal: number };
+    carbs: { g: number; kcal: number; starchy: number; fibrous: number };
+    vegetableCupsPerMeal?: number;
+    vegetableCupsPerDay?: number;
+    safetyFloorUnmet?: boolean;
+    safetyFloorReason?: string;
+  };
+};
 
 const toNum = (v: string | number) => {
   const n = typeof v === "string" ? v.trim() : v;
@@ -219,327 +238,13 @@ function WaistEducationBlock({ waistCm, heightCm }: { waistCm: number; heightCm:
   );
 }
 
-const ACTIVITY_FACTORS = {
-  sedentary: 1.2,
-  light: 1.375,
-  moderate: 1.55,
-  very: 1.725,
-  extra: 1.9,
-};
+// [P3.2] Macro calculation engine moved server-side to protect proprietary IP.
+// BMR (Mifflin-St Jeor), tiered protein model, adaptive fibrous carb system,
+// clinical adjustments (insulin resistance, menopause, high stress, waist risk),
+// body-type tilt, strategy layer, and safety pass live exclusively in:
+//   server/services/macroCalculatorEngine.ts
+// Results are fetched via POST /api/macro-calculator/compute.
 
-function mifflin({
-  sex,
-  kg,
-  cm,
-  age,
-}: {
-  sex: Sex;
-  kg: number;
-  cm: number;
-  age: number;
-}) {
-  const b = 10 * kg + 6.25 * cm - 5 * age + (sex === "male" ? 5 : -161);
-  return Math.max(800, Math.round(b));
-}
-
-function goalAdjust(tdee: number, goal: Goal) {
-  if (goal === "loss") return Math.round(tdee * 0.85);
-  if (goal === "gain") return Math.round(tdee * 1.1);
-  return Math.round(tdee);
-}
-
-// Macro-first multipliers — macros drive the system, calories are a result
-const PROTEIN_MULT: Record<Goal, number> = { loss: 1.1,  maint: 0.9,  gain: 1.3  };
-const STARCHY_MULT: Record<Goal, number> = { loss: 0.25, maint: 0.55, gain: 1.25 }; // maint 0.55 = livable (was 0.8 = athlete-only)
-const FAT_MULT:     Record<Goal, number> = { loss: 0.35, maint: 0.42, gain: 0.5  };
-
-// Tiered protein model — scaled by user type for realistic compliance
-function calcProtein(lb: number, goal: Goal, userType: UserType = "general"): number {
-  let raw: number;
-
-  if (userType === "general") {
-    // Most users — adherence-first, still above RDA
-    if (goal === "loss")  raw = lb * 0.8;
-    else if (goal === "gain") raw = lb * 0.9;
-    else                  raw = lb * 0.7; // maint
-  } else if (userType === "committed") {
-    // Dedicated dieters / gym-goers — coach-level targets
-    if (goal === "loss")  raw = lb * 1.0;
-    else if (goal === "gain") raw = lb * 1.1;
-    else                  raw = lb * 0.9; // maint
-  } else {
-    // athlete — performance-level; same regardless of goal
-    raw = lb * 1.1;
-  }
-
-  return Math.min(260, Math.round(raw)); // global hard cap
-}
-
-function calcMacrosBase({ lb, goal, userType }: { lb: number; goal: Goal; userType: UserType }) {
-  // Step 1: Protein (anchor — tiered, user-type-aware, capped at 260g)
-  const proteinG = calcProtein(lb, goal, userType);
-
-  // Step 2: Fibrous carbs (non-negotiable floor — raised for satiety)
-  const fibrousG = Math.max(40, Math.round(lb * 0.25));
-
-  // Step 3: Starchy carbs (controlled variable by goal)
-  let starchyG = Math.round(lb * (STARCHY_MULT[goal] ?? 0.45));
-
-  // Step 4: Fat (support macro — NOT residual)
-  const fatG = Math.round(lb * (FAT_MULT[goal] ?? 0.35));
-
-  // Step 5: Totals derived from macros
-  let carbsG = starchyG + fibrousG;
-
-  // Step 6: Calories computed last — never used to determine macros
-  let calories = proteinG * 4 + carbsG * 4 + fatG * 9;
-
-  // Step 7: Safety — only starchy carbs adjusted, protein and fibrous stay fixed
-  if (calories < 1200) {
-    starchyG += Math.ceil((1200 - calories) / 4);
-    carbsG = starchyG + fibrousG;
-    calories = proteinG * 4 + carbsG * 4 + fatG * 9;
-  } else if (calories > 4000) {
-    starchyG = Math.max(0, starchyG - Math.ceil((calories - 4000) / 4));
-    carbsG = starchyG + fibrousG;
-    calories = proteinG * 4 + carbsG * 4 + fatG * 9;
-  }
-
-  return {
-    calories,
-    protein: { g: proteinG, kcal: proteinG * 4 },
-    fat: { g: fatG, kcal: fatG * 9 },
-    carbs: { g: carbsG, kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousG },
-  };
-}
-
-function applyBodyTypeTilt(base: any, bodyType: BodyType, activity: string) {
-  if (bodyType === "meso") return base; // mesomorph: no adjustment
-
-  const fibrousG = base.carbs.fibrous as number;
-  let starchyG = base.carbs.starchy as number;
-
-  if (bodyType === "endo") {
-    // Endomorph: reduce starchy carbs only — fat is never touched
-    const shiftPct = activity === "sedentary" ? 0.10 : activity === "light" ? 0.12 : 0.15;
-    starchyG = Math.max(0, Math.round(starchyG * (1 - shiftPct)));
-  } else if (bodyType === "ecto") {
-    // Ectomorph: increase starchy carbs — fat is never touched
-    starchyG = Math.round(starchyG * 1.15);
-  }
-
-  // Recompute derived totals — fat unchanged, fibrous unchanged
-  const carbsG = fibrousG + starchyG;
-  const calories = base.protein.g * 4 + carbsG * 4 + base.fat.g * 9;
-
-  return {
-    ...base,
-    calories,
-    carbs: { g: carbsG, kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousG },
-  };
-}
-
-// Pipeline step 1.5: Input adjustments — clinical flags, activity, waist risk
-// Inserted AFTER calcMacrosBase, BEFORE applyStrategyLayer
-interface InputAdjConfig {
-  age: number;
-  activity: string;
-  highWaistRisk: boolean;
-  menopause: boolean;
-  insulinResistance: boolean;
-  highStress: boolean;
-  mealsPerDay: number;
-  fibrousCarbSafetyCap_g: number;
-}
-
-function applyInputAdjustments(base: any, cfg: InputAdjConfig) {
-  const fibrousBase = base.carbs.fibrous as number;
-
-  // Activity starchy multiplier — direct lever on starchy, not just TDEE
-  const ACTIVITY_STARCH: Record<string, number> = {
-    sedentary: 0.85,
-    light:     0.95,
-    moderate:  1.00,
-    very:      1.10,
-    extra:     1.20,
-  };
-  let starchyG = Math.round((base.carbs.starchy as number) * (ACTIVITY_STARCH[cfg.activity] ?? 1.0));
-  const baselineAfterActivity = starchyG; // snapshot for fibrous scaling
-
-  // Priority-based clinical adjustments — capped stacking, not blind multiplication
-  let starchyMult = 1.0;
-  let proteinMult = 1.0;
-  let fatMult     = 1.0;
-  let extraCupsPerMeal = 0;
-
-  // Tier 1 — Insulin Resistance (strongest; waist risk softens when stacked)
-  if (cfg.insulinResistance) {
-    starchyMult *= 0.60;
-    if (cfg.highWaistRisk) starchyMult *= 0.85; // controlled stack, not full 0.75
-  } else if (cfg.highWaistRisk) {
-    starchyMult *= 0.75;
-  }
-
-  // Tier 2 — Age > 55
-  if (cfg.age > 55) {
-    starchyMult *= 0.90;
-    proteinMult *= 1.05;
-  }
-
-  // Tier 2 — Menopause
-  if (cfg.menopause) {
-    starchyMult *= 0.85;
-    fatMult     *= 1.10;
-  }
-
-  // Tier 3 — High Stress / Poor Sleep
-  if (cfg.highStress) {
-    starchyMult  *= 0.80;
-    proteinMult  *= 1.10;
-    extraCupsPerMeal += 1;
-  }
-
-  // Hard cap — starchy never drops below 50% of what activity already set
-  starchyMult = Math.max(starchyMult, 0.50);
-
-  starchyG = Math.max(0, Math.round(starchyG * starchyMult));
-  // Cap at 260g — clinical boosts can raise but never beyond the hard ceiling
-  let proteinG = Math.min(260, Math.round((base.protein.g as number) * proteinMult));
-  let fatG     = Math.round((base.fat.g as number)     * fatMult);
-
-  // Fibrous scales harder based on how much starchy dropped (not flat +1 cup)
-  const starchyReduction = baselineAfterActivity > 0 ? starchyG / baselineAfterActivity : 0;
-  if (starchyG === 0) {
-    extraCupsPerMeal += 2; // zero starch: maximum vegetable volume
-  } else if (starchyReduction < 0.50) {
-    extraCupsPerMeal += 2; // deep cut
-  } else if (starchyReduction < 0.75) {
-    extraCupsPerMeal += 1; // moderate cut
-  }
-
-  const addedFibrous = extraCupsPerMeal > 0 ? Math.round(cfg.mealsPerDay * extraCupsPerMeal * 5) : 0;
-  const fibrousG = Math.min(cfg.fibrousCarbSafetyCap_g, fibrousBase + addedFibrous);
-
-  const carbsG   = starchyG + fibrousG;
-  const calories = proteinG * 4 + carbsG * 4 + fatG * 9;
-
-  return {
-    calories,
-    protein: { g: proteinG, kcal: proteinG * 4 },
-    fat:     { g: fatG,     kcal: fatG * 9 },
-    carbs:   { g: carbsG,   kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousG },
-  };
-}
-
-// Strategy layer configuration
-type StrategyConfig = {
-  lb: number;
-  mealsPerDay: number;
-  cutIntensity: CutIntensity;
-  cutStyle: CutStyle;
-  starchyCarbCap_g: number | null;
-  allowZeroStarchyOnLowDay: boolean;
-  fibrousCarbSafetyCap_g: number;
-  strictMode: boolean;
-};
-
-// Pipeline step 2: strategy layer — applied after calcMacrosBase, before bodyType tilt
-function applyStrategyLayer(base: any, cfg: StrategyConfig) {
-  let proteinG   = base.protein.g as number;
-  let fatG       = base.fat.g as number;
-  let starchyG   = base.carbs.starchy as number;
-  const fibrousBase = Math.min(base.carbs.fibrous as number, cfg.fibrousCarbSafetyCap_g);
-  const baselineStarchyG = starchyG; // snapshot before any strategy modifications
-
-  // 1. Hard cut — adjusts protein, starchy, AND fat
-  if (cfg.cutIntensity === "hard") {
-    proteinG = Math.round(proteinG * 1.1);
-    if (cfg.cutStyle === "balanced") {
-      starchyG = Math.round(starchyG * 0.7);
-      fatG     = Math.round(cfg.lb * 0.30);
-    } else if (cfg.cutStyle === "lowCarb") {
-      starchyG = Math.round(starchyG * 0.4);
-      fatG     = Math.round(cfg.lb * 0.55);
-    }
-  }
-
-  // 2. Optional starchy cap (post-multiplier)
-  if (cfg.starchyCarbCap_g !== null && cfg.starchyCarbCap_g !== undefined) {
-    starchyG = Math.min(starchyG, cfg.starchyCarbCap_g);
-  }
-
-  // 5. Floor starchy at 0 — it can legally be 0
-  starchyG = Math.max(0, Math.round(starchyG));
-
-  // 6. ADAPTIVE FIBROUS — fiber goes UP when starch goes DOWN
-  //    Vegetable prescription: cups per meal × meals per day × 5g per cup
-  //    Rule: starch drop → more vegetables, never fewer than baseline
-  const starchyRatio = baselineStarchyG > 0 ? starchyG / baselineStarchyG : 0;
-  let cupsPerMeal: number;
-  if (starchyG === 0) {
-    cupsPerMeal = 6;    // zero starch day: maximum vegetable volume
-  } else if (starchyRatio < 0.25) {
-    cupsPerMeal = 5;    // deep cut: high vegetable replacement
-  } else if (starchyRatio < 0.5) {
-    cupsPerMeal = 4;    // low carb: elevated vegetables
-  } else if (starchyRatio < 0.75) {
-    cupsPerMeal = 3.5;  // moderate cut: slightly elevated
-  } else {
-    cupsPerMeal = 3;    // standard day: baseline vegetables (3 cups/meal)
-  }
-  const computedFibrous = Math.round(cfg.mealsPerDay * cupsPerMeal * 5);
-  // Never below baseline, never above safety cap
-  const fibrousG = Math.min(cfg.fibrousCarbSafetyCap_g, Math.max(fibrousBase, computedFibrous));
-  const vegetableCupsPerDay = Math.round(cfg.mealsPerDay * cupsPerMeal);
-
-  const carbsG   = starchyG + fibrousG;
-  const calories = proteinG * 4 + carbsG * 4 + fatG * 9;
-
-  return {
-    calories,
-    protein: { g: proteinG, kcal: proteinG * 4 },
-    fat: { g: fatG, kcal: fatG * 9 },
-    carbs: { g: carbsG, kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousG },
-    vegetableCupsPerMeal: cupsPerMeal,
-    vegetableCupsPerDay,
-  };
-}
-
-// Pipeline step 4 (final): safety pass — starchy-only correction; strict mode bypasses all
-function finalSafetyPass(base: any, { strictMode }: { strictMode: boolean }) {
-  if (strictMode) return base; // strict: no adjustments, raw macros only
-
-  let starchyG   = base.carbs.starchy as number;
-  const fibrousG = base.carbs.fibrous as number;
-  const proteinG = base.protein.g as number;
-  const fatG     = base.fat.g as number;
-
-  let carbsG   = starchyG + fibrousG;
-  let calories = proteinG * 4 + carbsG * 4 + fatG * 9;
-
-  if (calories < 1200) {
-    if (starchyG > 0) {
-      starchyG += Math.ceil((1200 - calories) / 4);
-      carbsG    = starchyG + fibrousG;
-      calories  = proteinG * 4 + carbsG * 4 + fatG * 9;
-    } else {
-      // starchy already at 0 — flag it, do NOT touch protein/fibrous/fat
-      // safetyFallbackAvailable = true (reserved for ProCare / advanced mode)
-      return { ...base, safetyFloorUnmet: true, safetyFloorReason: "starchy_at_zero" };
-    }
-  } else if (calories > 4000) {
-    starchyG = Math.max(0, starchyG - Math.ceil((calories - 4000) / 4));
-    carbsG   = starchyG + fibrousG;
-    calories = proteinG * 4 + carbsG * 4 + fatG * 9;
-  }
-
-  return {
-    calories,
-    protein: { g: proteinG, kcal: proteinG * 4 },
-    fat: { g: fatG, kcal: fatG * 9 },
-    carbs: { g: carbsG, kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousG },
-  };
-}
 
 function BodyTypeGuide() {
   return (
@@ -936,7 +641,7 @@ export default function MacroCounter() {
   const [waistCm, setWaistCm] = useState<number>(
     savedSettings?.waistCm ?? 0,
   );
-  const [activity, setActivity] = useState<keyof typeof ACTIVITY_FACTORS | "">(
+  const [activity, setActivity] = useState<ActivityLevel | "">(
     savedSettings?.activity ?? "sedentary",
   );
   const [proteinPerKg, setProteinPerKg] = useState<number>(
@@ -1392,61 +1097,66 @@ export default function MacroCounter() {
     }
   };
 
-  const results = useMemo(() => {
-    if (!isCalcInputValid) return null;
+  // [P3.2] Results are now computed server-side via POST /api/macro-calculator/compute.
+  const [results, setResults] = useState<MacroComputeResult | null>(null);
+  const [resultsLoading, setResultsLoading] = useState(false);
+  const computeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // BMR / TDEE kept for display purposes only — they no longer drive macro allocation
-    const bmr = mifflin({ sex, kg, cm, age });
-    const tdee = Math.round(
-      bmr * ACTIVITY_FACTORS[activity as keyof typeof ACTIVITY_FACTORS],
-    );
+  useEffect(() => {
+    if (!isCalcInputValid) {
+      setResults(null);
+      return;
+    }
 
-    // Macro-first engine — full 5-step pipeline
-    const lb = Math.round(kg * 2.20462);
-
-    // Compute waist risk for pipeline (separate from UI advisory)
+    // Waist risk is derived from shared utils (not proprietary) — computed client-side
     const waistCmForPipeline = units === "imperial" ? waistIn * 2.54 : waistCm;
     let highWaistRisk = false;
     if (waistCmForPipeline > 0 && cm > 0) {
       const ratio = calculateWaistHeightRatio(waistCmForPipeline, cm);
-      const risk  = classifyWaistRisk(ratio);
-      highWaistRisk = risk.level === "red"; // red = waist/height > 0.6 — metabolic high risk
+      const risk = classifyWaistRisk(ratio);
+      highWaistRisk = risk.level === "red";
     }
 
-    // Step 1: Base macros (protein → fibrous → starchy → fat → calories)
-    const base = calcMacrosBase({ lb, goal, userType });
+    if (computeDebounceRef.current) clearTimeout(computeDebounceRef.current);
+    setResultsLoading(true);
 
-    // Step 1.5: Input adjustments (age, activity, waist risk, clinical flags)
-    const adjResult = applyInputAdjustments(base, {
-      age,
-      activity: activity || "moderate",
-      highWaistRisk,
-      menopause:         !!(clinicalFlags.menopause?.enabled),
-      insulinResistance: !!(clinicalFlags.insulinResistance?.enabled),
-      highStress:        !!(clinicalFlags.highStress?.enabled),
-      mealsPerDay,
-      fibrousCarbSafetyCap_g,
-    });
+    computeDebounceRef.current = setTimeout(async () => {
+      try {
+        const response = await fetch(apiUrl("/api/macro-calculator/compute"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          credentials: "include",
+          body: JSON.stringify({
+            sex, kg, cm, age,
+            activity: activity || "moderate",
+            goal, userType, bodyType,
+            highWaistRisk,
+            menopause: !!(clinicalFlags.menopause?.enabled),
+            insulinResistance: !!(clinicalFlags.insulinResistance?.enabled),
+            highStress: !!(clinicalFlags.highStress?.enabled),
+            mealsPerDay, fibrousCarbSafetyCap_g,
+            cutIntensity, cutStyle,
+            starchyCarbCap_g, allowZeroStarchyOnLowDay, strictMode,
+          }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setResults(data);
+        }
+      } catch (err) {
+        console.error("[MacroCalculator] compute failed:", err);
+      } finally {
+        setResultsLoading(false);
+      }
+    }, 300);
 
-    // Step 2: Strategy layer (hard cut, carb/fat cycle, starchy cap, adaptive fibrous)
-    const stratResult = applyStrategyLayer(adjResult, {
-      lb, mealsPerDay, cutIntensity, cutStyle,
+    return () => {
+      if (computeDebounceRef.current) clearTimeout(computeDebounceRef.current);
+    };
+  }, [isCalcInputValid, sex, kg, cm, age, activity, goal, bodyType, userType,
+      mealsPerDay, cutIntensity, cutStyle,
       starchyCarbCap_g, allowZeroStarchyOnLowDay, fibrousCarbSafetyCap_g, strictMode,
-    });
-
-    // Step 3: Body-type tilt (starchy-only ecto/endo adjustment)
-    const tiltResult = applyBodyTypeTilt(stratResult, bodyType, activity);
-
-    // Step 4: Final safety pass (starchy-only correction; honours strictMode)
-    const macros = finalSafetyPass(tiltResult, { strictMode });
-
-    return { bmr, tdee, target: macros.calories, macros };
-  }, [
-    isCalcInputValid, sex, kg, cm, age, activity, goal, bodyType, userType,
-    mealsPerDay, cutIntensity, cutStyle,
-    starchyCarbCap_g, allowZeroStarchyOnLowDay, fibrousCarbSafetyCap_g, strictMode,
-    waistIn, waistCm, units, clinicalFlags,
-  ]);
+      waistIn, waistCm, units, clinicalFlags]);
 
   const estimatedBodyFat = useMemo(() => {
     const waistCmVal = units === "imperial" ? waistIn * 2.54 : waistCm;
@@ -2303,7 +2013,7 @@ export default function MacroCounter() {
                         <div
                           key={a.v}
                           onClick={() => {
-                            setActivity(a.v as keyof typeof ACTIVITY_FACTORS);
+                            setActivity(a.v as ActivityLevel);
                             advanceGuided("syncWeight");
                           }}
                           className={`w-full px-3 py-2 border rounded-lg cursor-pointer flex justify-between items-center ${activity === a.v ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
@@ -3435,7 +3145,7 @@ export default function MacroCounter() {
                       <RadioGroup
                         data-testid="macro-activity-selector"
                         value={activity}
-                        onValueChange={(v: keyof typeof ACTIVITY_FACTORS) => {
+                        onValueChange={(v: ActivityLevel) => {
                           setActivity(v);
                           advance("details");
                           // Auto-scroll to Sync Weight button after activity is selected
