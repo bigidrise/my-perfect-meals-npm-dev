@@ -767,8 +767,8 @@ export default function ProClientFolderModal({
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-900 border-white/10 text-white max-w-md flex flex-col [&>button.absolute]:hidden top-4 translate-y-0 max-h-[calc(100vh-2rem)] sm:top-[50%] sm:translate-y-[-50%] sm:max-h-[90vh]">
-        <DialogHeader className="shrink-0 border-b border-white/10 pb-4 mb-1">
+      <DialogContent className="bg-zinc-900 border-white/10 text-white max-w-md max-h-[90vh] overflow-y-auto [&>button.absolute]:hidden">
+        <DialogHeader className="sticky top-0 z-10 bg-zinc-900 -mx-6 px-6 pt-2 pb-4 border-b border-white/10 mb-1">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <DialogTitle className="text-xl text-white">{client.name}</DialogTitle>
@@ -783,7 +783,7 @@ export default function ProClientFolderModal({
           </div>
         </DialogHeader>
 
-        <div className="space-y-3 flex-1 overflow-y-auto mt-2">
+        <div className="space-y-3 mt-2">
           <div className="flex flex-wrap gap-2">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
               <CheckCircle2 className="h-3 w-3" />
