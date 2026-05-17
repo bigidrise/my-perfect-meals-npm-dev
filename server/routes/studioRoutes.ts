@@ -408,11 +408,19 @@ router.patch("/:studioId/clients/:clientUserId/assign", async (req, res) => {
       return res.status(404).json({ error: "Studio not found" });
     }
 
+    const CLINICAL_BUILDERS = ["diabetic", "glp1"];
+    if (CLINICAL_BUILDERS.includes(assignedBuilder) && studio.type !== "clinic") {
+      return res.status(403).json({
+        error: "ClinicalBuilderRestricted",
+        message: "Diabetic and GLP-1 builders require a verified physician workspace. Contact the assigned physician to assign clinical builders.",
+      });
+    }
+
     const [membership] = await db
       .update(studioMemberships)
       .set({
         assignedBuilder,
-        builderSource: "trainer",
+        builderSource: studio.type === "clinic" ? "clinical" : "trainer",
         activeBoardId,
         updatedAt: new Date(),
       })
@@ -474,6 +482,13 @@ router.patch("/:studioId/clients/:clientUserId/apply-system-recommendation", asy
 
     if (!studio) {
       return res.status(404).json({ error: "Studio not found" });
+    }
+
+    if (studio.type !== "clinic") {
+      return res.status(403).json({
+        error: "ClinicalDirectiveRestricted",
+        message: "Clinical directives can only be applied by a verified physician workspace. Contact the assigned physician to apply clinical protocols.",
+      });
     }
 
     const [membership] = await db

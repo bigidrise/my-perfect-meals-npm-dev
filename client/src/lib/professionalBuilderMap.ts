@@ -58,14 +58,14 @@ export const PROFESSIONAL_BUILDER_MAP: Record<
   },
   diabetic: {
     key: "diabetic",
-    role: "both",
+    role: "physician",
     label: "Diabetic",
     proRoute: "diabetic-builder",
     description: "Glucose-controlled meals for diabetic and pre-diabetic clients.",
   },
   glp1: {
     key: "glp1",
-    role: "both",
+    role: "physician",
     label: "GLP-1",
     proRoute: "glp1-builder",
     description: "Portion-aware meals for clients on GLP-1 medications.",

@@ -421,6 +421,20 @@ router.put("/oncology-support/:clientUserId", async (req, res) => {
       return res.status(403).json({ error: "You are not authorized to update this client's support context" });
     }
 
+    const [requesterOncologyStudio] = await db
+      .select({ type: studios.type })
+      .from(studios)
+      .where(eq(studios.ownerUserId, requesterId as any))
+      .limit(1);
+
+    if (!requesterOncologyStudio || requesterOncologyStudio.type !== "clinic") {
+      console.warn(`[oncology-support PUT] ROLE RESTRICTED: ${requesterId} (non-clinic workspace) attempted to assign oncology support for ${clientUserId}`);
+      return res.status(403).json({
+        error: "ClinicalRoleRequired",
+        message: "Oncology support can only be assigned by a verified physician workspace.",
+      });
+    }
+
     const body = oncologySupportSchema.parse(req.body);
 
     // Look up the physician's display name for the ownership trail
@@ -508,6 +522,20 @@ router.put("/glp1-protocol/:clientUserId", async (req, res) => {
     if (!hasAccess) {
       console.warn(`[glp1-protocol PUT] UNAUTHORIZED: ${requesterId} attempted to write GLP-1 protocol for ${clientUserId}`);
       return res.status(403).json({ error: "You are not authorized to update this client's protocol" });
+    }
+
+    const [requesterGlp1Studio] = await db
+      .select({ type: studios.type })
+      .from(studios)
+      .where(eq(studios.ownerUserId, requesterId as any))
+      .limit(1);
+
+    if (!requesterGlp1Studio || requesterGlp1Studio.type !== "clinic") {
+      console.warn(`[glp1-protocol PUT] ROLE RESTRICTED: ${requesterId} (non-clinic workspace) attempted to assign GLP-1 protocol for ${clientUserId}`);
+      return res.status(403).json({
+        error: "ClinicalRoleRequired",
+        message: "GLP-1 protocol can only be assigned by a verified physician workspace.",
+      });
     }
 
     const { enabled } = req.body;
