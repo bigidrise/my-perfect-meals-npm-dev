@@ -408,11 +408,11 @@ router.patch("/:studioId/clients/:clientUserId/assign", async (req, res) => {
       return res.status(404).json({ error: "Studio not found" });
     }
 
-    const CLINICAL_BUILDERS = ["diabetic", "glp1"];
+    const CLINICAL_BUILDERS = ["diabetic", "glp1", "anti_inflammatory", "weekly"];
     if (CLINICAL_BUILDERS.includes(assignedBuilder) && studio.type !== "clinic") {
       return res.status(403).json({
         error: "ClinicalBuilderRestricted",
-        message: "Diabetic and GLP-1 builders require a verified physician workspace. Contact the assigned physician to assign clinical builders.",
+        message: "This builder requires a verified physician workspace. Contact the assigned physician to assign clinical or protocol-based builders.",
       });
     }
 
