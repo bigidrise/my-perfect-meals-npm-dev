@@ -410,8 +410,10 @@ Remember: Only use ingredients from this list: ${fridgeItems.join(', ')}`;
 
     const content = text;
 
-    console.log("🤖 OpenAI fridge rescue response received, parsing...");
-    console.log("🧠 Raw OpenAI response content:", content);
+    if (process.env.NODE_ENV !== "production") {
+      console.log("🤖 OpenAI fridge rescue response received, parsing...");
+      console.log("🧠 Raw OpenAI response content:", content);
+    }
     
     let responseData;
     try {

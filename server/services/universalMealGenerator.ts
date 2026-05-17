@@ -115,9 +115,11 @@ async function generateImageFromDalle(prompt: string): Promise<string | null> {
   }
 }
 
+const _isDev = process.env.NODE_ENV !== "production";
+
 // 🔁 Universal AI Meal Generator for any craving
 export async function generateMealFromPrompt(prompt: string, mealType: MealType, userPrefs?: Partial<WeeklyMealReq> & { skipImage?: boolean }): Promise<FinalMeal> {
-  console.log("🌟 GPT-4 universal meal creation triggered with prompt:", prompt);
+  if (_isDev) console.log("🌟 GPT-4 universal meal creation triggered with prompt:", prompt);
   
   const sessionId = telemetry.createSession("universalMealGenerator");
 
