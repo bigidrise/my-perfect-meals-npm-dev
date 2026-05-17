@@ -378,6 +378,17 @@ export default function ProClientFolderModal({
     }
   }, [messages, notes, activeTab]);
 
+  useEffect(() => {
+    if (!open) return;
+    const reset = () => {
+      const el = document.querySelector<HTMLElement>("[data-radix-dialog-content]");
+      if (el) el.scrollTop = 0;
+    };
+    reset();
+    const t = setTimeout(reset, 80);
+    return () => clearTimeout(t);
+  }, [open]);
+
   const handleSendMessage = async () => {
     if (!msgInput.trim() || !clientId || sending) return;
     setSending(true);
