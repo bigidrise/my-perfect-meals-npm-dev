@@ -245,6 +245,21 @@ export default function CareTeamPage() {
         className="max-w-6xl mx-auto px-4 sm:px-6 space-y-6 pb-8"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        {/* Platform Features */}
+        <GlassCard className="border border-orange-500/20">
+          <GlassCardContent className="p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-white">Explore Platform Features</p>
+                <p className="text-xs text-white/50 mt-0.5 leading-snug">How My Perfect Meals works — AI systems, meal builders, clinical protocols, and more.</p>
+              </div>
+              <PillButton onClick={() => setLocation('/learn')} className="shrink-0">
+                Explore
+              </PillButton>
+            </div>
+          </GlassCardContent>
+        </GlassCard>
+
         {/* Availability Status */}
         <GlassCard className="border border-white/10">
           <GlassCardContent className="p-4 space-y-3">

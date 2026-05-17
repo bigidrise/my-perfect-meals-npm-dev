@@ -225,7 +225,7 @@ router.post('/log', requireAuth, async (req, res) => {
       }
     }).returning();
 
-    console.log("✅ Biometrics log saved:", insertedRow);
+    console.log("[biometrics] Log saved:", insertedRow.id);
 
     // Trigger UI refresh events
     res.status(201).json({ 
@@ -322,7 +322,7 @@ router.post('/weight', requireAuth, async (req, res) => {
       return sampleResult;
     });
 
-    console.log(`Weight saved for ${userId} on ${dayKey}: ${value} ${unit} (users.weight=${weightKg}kg)`);
+    console.log(`[biometrics] Weight saved for user ${userId}`);
 
     return res.json({ 
       ok: true,

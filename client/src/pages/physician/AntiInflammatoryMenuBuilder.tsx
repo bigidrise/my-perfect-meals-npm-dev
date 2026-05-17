@@ -173,6 +173,11 @@ export default function AntiInflammatoryMenuBuilder() {
   // additive modifier — it never changes the primary mode.
   const [thyroidFromSpecialtyCondition, setThyroidFromSpecialtyCondition] = React.useState(false);
 
+  // Tracks ALL active specialty/lab-derived conditions for multi-protocol indicator display.
+  // clinicalModeState can only hold ONE primary mode (the highest-priority one), but this
+  // array accumulates every active condition so all indicator dots light up simultaneously.
+  const [labDerivedConditions, setLabDerivedConditions] = React.useState<string[]>([]);
+
   // Redirect legacy clinical routes to canonical anti-inflammatory route.
   // Mode is now determined by physician flags, not by URL path.
   useEffect(() => {
@@ -271,6 +276,21 @@ export default function AntiInflammatoryMenuBuilder() {
         ) {
           setThyroidFromSpecialtyCondition(true);
         }
+
+        // Multi-protocol indicator: track ALL specialty conditions so every active
+        // dot lights up simultaneously — not just the single highest-priority mode.
+        const SC_TO_INDICATOR: Record<string, string> = {
+          'cardiac':          'heart-failure',
+          'renal':            'kidney-disease',
+          'liver-disease':    'liver-disease',
+          'liver-support':    'liver-support',
+          'oncology-support': 'oncology-support',
+        };
+        const allDerived = scConditions
+          .map((sc) => SC_TO_INDICATOR[sc])
+          .filter(Boolean) as string[];
+        if (allDerived.length > 0) setLabDerivedConditions(allDerived);
+
         if (data?.specialtyCondition) {
           const conditionModeMap: Record<string, ClinicalMode> = {
             'renal':            'kidney-disease',
@@ -294,6 +314,8 @@ export default function AntiInflammatoryMenuBuilder() {
         const labMode = data.protocolSignal.protocol as ClinicalMode;
         console.log("[AntiInflamBuilder] setting clinicalMode from labs →", labMode);
         setClinicalModeState(labMode);
+        // Also capture in labDerivedConditions so the indicator dot lights up.
+        setLabDerivedConditions((prev) => prev.includes(labMode) ? prev : [...prev, labMode]);
       })
       .catch(() => {/* silently ignore */});
     return () => { cancelled = true; };
@@ -312,7 +334,20 @@ export default function AntiInflammatoryMenuBuilder() {
   };
   const activePrimaryBadge: ProtocolBadge | null = CLINICAL_MODE_BADGE[clinicalModeState] ?? null;
 
-  const hasClinicalBadges = !!(activePrimaryBadge || resolvedProtocol.modifierBadges.length > 0);
+  // Derived badge map — used both in BuilderHeader protocols prop and contentPaddingTop calc.
+  const DERIVED_BADGE_MAP: Partial<Record<string, ProtocolBadge>> = {
+    'heart-failure':    { label: "Cardiac Health",   cls: "bg-red-600 text-white"     },
+    'kidney-disease':   { label: "Kidney Disease",   cls: "bg-sky-600 text-white"     },
+    'liver-support':    { label: "Liver Support",    cls: "bg-emerald-600 text-white"  },
+    'liver-disease':    { label: "Liver Disease",    cls: "bg-amber-600 text-white"    },
+    'oncology-support': { label: "Oncology Support", cls: "bg-rose-600 text-white"     },
+  };
+  // Badges for any labDerivedConditions not already captured by activePrimaryBadge.
+  const extraDerivedBadges: ProtocolBadge[] = labDerivedConditions
+    .map((k) => DERIVED_BADGE_MAP[k])
+    .filter((b): b is ProtocolBadge => !!b && b.label !== activePrimaryBadge?.label);
+
+  const hasClinicalBadges = !!(activePrimaryBadge || resolvedProtocol.modifierBadges.length > 0 || labDerivedConditions.length > 0);
   const contentPaddingTop = `calc(env(safe-area-inset-top, 0px) + ${
     proClientId
       ? (hasClinicalBadges ? '12rem' : '9rem')
@@ -1231,6 +1266,7 @@ export default function AntiInflammatoryMenuBuilder() {
       protocols={[
         activePrimaryBadge,
         ...resolvedProtocol.modifierBadges,
+        ...extraDerivedBadges,
       ].filter((b): b is { label: string; cls: string } => !!b)}
     />
     <motion.div
@@ -1322,7 +1358,7 @@ export default function AntiInflammatoryMenuBuilder() {
                   // (clinicalModeState stays 'anti-inflammatory' since thyroid is additive)
                   const isActive = key === "thyroid-support"
                     ? (resolvedProtocol.modifierBadges ?? []).some((b: { label: string }) => b.label === "Thyroid Support")
-                    : clinicalModeState === key;
+                    : clinicalModeState === key || labDerivedConditions.includes(key);
                   return (
                     <span
                       key={key}

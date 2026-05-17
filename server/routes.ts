@@ -2057,27 +2057,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User preferences routes
-  app.get("/api/users/:id/preferences", async (req, res) => {
+  // User preferences routes (notification settings only)
+  app.get("/api/users/:id/preferences", requireAuth, async (req: any, res) => {
     try {
+      const authReq = req as AuthenticatedRequest;
+      if (req.params.id !== authReq.authUser.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       const [user] = await db.select().from(users).where(eq(users.id, req.params.id)).limit(1);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      res.json(user);
+      res.json({
+        notifications: {
+          enabled: !!user.notificationsEnabled,
+          defaultLeadTimeMinutes: user.notificationDefaultLeadTimeMin ?? 30,
+        },
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
 
-  app.put("/api/users/:id/preferences", async (req, res) => {
+  app.put("/api/users/:id/preferences", requireAuth, async (req: any, res) => {
     try {
-      const preferences = req.body;
-      const [user] = await db.update(users).set(preferences).where(eq(users.id, req.params.id)).returning();
+      const authReq = req as AuthenticatedRequest;
+      if (req.params.id !== authReq.authUser.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const body = req.body?.notifications || {};
+      const allowedUpdate: any = {};
+      if (typeof body.enabled === "boolean") allowedUpdate.notificationsEnabled = body.enabled;
+      if (typeof body.defaultLeadTimeMinutes === "number") allowedUpdate.notificationDefaultLeadTimeMin = body.defaultLeadTimeMinutes;
+      const [user] = await db.update(users).set(allowedUpdate).where(eq(users.id, req.params.id)).returning();
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      res.json(user);
+      res.json({ ok: true });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -2312,7 +2328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           specialtyCondition: primaryCondition,
           specialtyConditions: conditions,
         } as any).where(eq(users.id, userId));
-        console.log(`[specialty-condition] User ${userId} multi-set → [${conditions.join(', ')}]`);
+        console.log(`[specialty-condition] User ${userId} multi-set → ${conditions.length} conditions`);
         return res.json({ ok: true, specialtyConditions: conditions, specialtyCondition: primaryCondition });
       }
 
@@ -2325,7 +2341,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         specialtyCondition: condition ?? null,
         specialtyConditions: newArray,
       } as any).where(eq(users.id, userId));
-      console.log(`[specialty-condition] User ${userId} set → ${condition ?? "null"}`);
+      console.log(`[specialty-condition] User ${userId} updated`);
       res.json({ ok: true, specialtyCondition: condition ?? null, specialtyConditions: newArray });
     } catch (error: any) {
       console.error("[specialty-condition PATCH]", error);
@@ -2637,7 +2653,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         oncologySupportIntentSetAt: intent ? new Date() : null,
         needsProfessionalFollowup: intent === "request_support",
       } as any).where(eq(users.id, userId));
-      console.log(`[oncology-support-intent] User ${userId} set intent → ${intent ?? "null"}`);
+      console.log(`[oncology-support-intent] User ${userId} updated`);
       res.json({ ok: true, intent });
     } catch (error: any) {
       console.error("[oncology-support-intent PATCH]", error);
@@ -5532,7 +5548,7 @@ function getMealIngredientsDatabase() {
         return res.status(400).json({ error: "Missing required fields: userId, localDate, mealSlot, mealName, nutrition" });
       }
 
-      console.log(`🍽️ Adding GLP-1 meal log: ${userId} | ${localDate} | ${mealSlot} | ${mealName}`);
+      console.log(`[GLP-1 meal log] userId=${userId} date=${localDate} slot=${mealSlot}`);
 
       // Use pre-calculated nutrition data from GLP-1 meals
       const calories = Math.round(nutrition.calories * servings);

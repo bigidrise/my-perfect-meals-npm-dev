@@ -23,7 +23,7 @@ export const PROFESSIONAL_BUILDER_MAP: Record<
 > = {
   weekly: {
     key: "weekly",
-    role: "both",
+    role: "physician",
     label: "Weekly Meal Board",
     proRoute: "weekly-builder",
     description: "A flexible weekly meal plan for general fitness clients.",
@@ -51,21 +51,21 @@ export const PROFESSIONAL_BUILDER_MAP: Record<
   },
   anti_inflammatory: {
     key: "anti_inflammatory",
-    role: "both",
+    role: "physician",
     label: "Anti-Inflammatory",
     proRoute: "anti-inflammatory-builder",
     description: "Whole-food, anti-inflammatory meals for recovery and chronic conditions.",
   },
   diabetic: {
     key: "diabetic",
-    role: "both",
+    role: "physician",
     label: "Diabetic",
     proRoute: "diabetic-builder",
     description: "Glucose-controlled meals for diabetic and pre-diabetic clients.",
   },
   glp1: {
     key: "glp1",
-    role: "both",
+    role: "physician",
     label: "GLP-1",
     proRoute: "glp1-builder",
     description: "Portion-aware meals for clients on GLP-1 medications.",

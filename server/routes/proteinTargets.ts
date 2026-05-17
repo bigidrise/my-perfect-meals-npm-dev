@@ -21,7 +21,7 @@ router.post("/users/:userId/macros/protein-target", async (req, res) => {
   const { userId, dailyTargetGrams, goal, unit, weight, rangeUnitLabel, minFactor, maxFactor } = parsed.data;
 
   // For now, just return success - you can connect to database later
-  console.log(`Saving protein target for user ${userId}: ${dailyTargetGrams}g/day (${goal}, ${unit}, ${weight}${unit})`);
+  console.log(`[protein-target] Saving for user ${userId}`);
   
   res.json({ 
     ok: true, 

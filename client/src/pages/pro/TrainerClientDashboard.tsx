@@ -29,8 +29,10 @@ import {
   AlertTriangle,
   Sparkles,
   Trash2,
+  HelpCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { PillButton } from "@/components/ui/pill-button";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -44,7 +46,7 @@ const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
     icon: "1",
     title: "Trainer Studio",
     description:
-      "Welcome to your coaching studio. Set macros, assign meal builders, and guide nutrition strategy here.",
+      "Welcome to your coaching studio. Set macros, select a Meal Mode, and guide your client's nutrition strategy here. Clinical protocols are managed by the physician layer and shown as read-only context.",
   },
   {
     icon: "2",
@@ -60,17 +62,50 @@ const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
   },
   {
     icon: "4",
-    title: "Assigned Meal Builder",
+    title: "Meal Mode",
     description:
-      "Choose which meal builder your client will use. This determines their entire in-app experience.",
+      "Select the coaching style for your client's meal plan — General Nutrition, Beach Body, or Performance. This determines the performance and lifestyle focus of their meals. Clinical protocols are set separately by the physician.",
   },
   {
     icon: "5",
-    title: "Client Meal Builder",
+    title: "Training View",
     description:
-      "Open your client's assigned meal builder directly. The button updates automatically when you change the assigned builder above.",
+      "Open your client's meal builder directly to build meals within the active Meal Mode. The button updates automatically when you change the Meal Mode above.",
+  },
+  {
+    icon: "6",
+    title: "System Protocols",
+    description:
+      "This section shows any active clinical protocols shaping your client's meals — like GLP-1, Cardiac Health, or Oncology Support. These are read-only and managed by the physician. Use them to understand why certain meals look the way they do.",
   },
 ];
+
+const SECTION_EXPLAINERS: Record<string, TourStep[]> = {
+  macros: [
+    {
+      icon: "📊",
+      title: "Macro Targets & Coaching Setup",
+      description:
+        "Set the client's daily nutrition targets here. These drive meal generation across the platform.\n\nProtein, carbs, and fat numbers are yours to set based on the client's goals. If a clinical protocol is active, it shapes ingredient choices within your targets — it does not override your numbers.",
+    },
+  ],
+  mealMode: [
+    {
+      icon: "🏋️",
+      title: "Meal Mode",
+      description:
+        "Choose the coaching style for this client's meals.\n\n• General Nutrition — balanced everyday eating\n• Beach Body — lean physique and body composition\n• Performance & Competition — high-output athletic fueling\n\nIf a clinical protocol is active, it applies medical rules on top of the Meal Mode you select.",
+    },
+  ],
+  protocols: [
+    {
+      icon: "🩺",
+      title: "System Protocols",
+      description:
+        "These are clinical rules active for this client — set by their physician or triggered by lab values. They are not your controls.\n\nUse this section to understand what the AI is already enforcing. If GLP-1 is active, do not lower protein targets or increase starchy carbs — the system manages portions.\n\nProtocol changes must go through the physician portal.",
+    },
+  ],
+};
 
 export default function TrainerClientDashboard() {
   const { toast } = useToast();
@@ -79,6 +114,7 @@ export default function TrainerClientDashboard() {
   const clientId = params?.id as string;
 
   const quickTour = useQuickTour("trainer-client-dashboard");
+  const [explainerStep, setExplainerStep] = useState<TourStep[] | null>(null);
 
   const [client, setClient] = useState(() => proStore.getClient(clientId));
   const resolvedClientUserId = client?.clientUserId || client?.userId || clientId;
@@ -413,7 +449,7 @@ export default function TrainerClientDashboard() {
     }
   };
 
-  const TRAINER_BUILDER_KEYS = getBuilderKeys("trainer");
+  const TRAINER_MEAL_MODE_KEYS = getBuilderKeys("trainer");
 
   const handleBuilderAssignment = async (builderKey: ProfessionalBuilderKey) => {
     if (!resolvedClientUserId) {
@@ -466,10 +502,11 @@ export default function TrainerClientDashboard() {
             <ArrowLeft className="h-5 w-5" />
             <span className="text-sm font-medium">Back</span>
           </button>
-          <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="flex flex-col flex-1 min-w-0">
             <h1 className="text-base font-bold text-white truncate">
               Trainer Studio
             </h1>
+            <p className="text-[11px] text-white/50 truncate">Set meal strategy, macros, and coaching direction.</p>
           </div>
           <QuickTourButton onClick={quickTour.openTour} />
         </div>
@@ -482,9 +519,12 @@ export default function TrainerClientDashboard() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8rem)" }}
       >
         <div className="rounded-2xl p-6 bg-white/5 border border-white/20">
-          <p className="text-white/90 mt-3 text-lg">
-            {client?.name || "Client"}
-          </p>
+          <div className="flex items-center justify-between gap-3 mt-3">
+            <p className="text-white/90 text-lg">
+              {client?.name || "Client"}
+            </p>
+            <PillButton onClick={quickTour.openTour} className="shrink-0">How to Use</PillButton>
+          </div>
           {clientGoal?.goalType && (
             <div className="mt-3 flex items-center gap-3 rounded-xl bg-orange-500/10 border border-orange-500/30 px-4 py-3">
               <span className="text-2xl">
@@ -603,53 +643,20 @@ export default function TrainerClientDashboard() {
                   }`}>
                     {(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
                       ? `${recommendedProtocol} Directive Applied`
-                      : "Science-Backed Directive Recommended"}
+                      : "Clinical Protocol Recommended by System"}
                   </p>
                   <p className="text-xs text-white/60 leading-relaxed mb-3">
                     {(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
                       ? `This client's meal plan is following the ${recommendedProtocol} directive derived from their lab values. Macros and meals will reflect this protocol.`
-                      : `This client's lab results support the ${recommendedProtocol} directive within the Anti-Inflammatory builder. Applying it aligns their meals with clinical lab findings — the macro targets still apply.`}
+                      : `This client's lab results support the ${recommendedProtocol} directive. Clinical directives must be applied by a physician or qualified clinical professional — contact the assigned physician to activate this protocol.`}
                   </p>
-                  {!(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey] && (
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        const studioId = client?.studioId;
-                        const targetUserId = resolvedClientUserId;
-                        if (studioId && targetUserId) {
-                          try {
-                            const res = await fetch(
-                              apiUrl(`/api/studios/${studioId}/clients/${targetUserId}/apply-system-recommendation`),
-                              {
-                                method: "PATCH",
-                                headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-                                credentials: "include",
-                                body: JSON.stringify({
-                                  directiveKey: recommendedDirectiveKey,
-                                  directiveLabel: recommendedProtocol,
-                                  protocol: recommendedDirectiveKey,
-                                }),
-                              }
-                            );
-                            if (!res.ok) throw new Error("Server rejected recommendation");
-                          } catch {
-                            toast({ title: "Could not apply recommendation", description: "Please try again.", variant: "destructive" });
-                            return;
-                          }
-                        }
-                        const updated = { ...t, flags: { ...t.flags, [recommendedDirectiveKey]: true } };
-                        setT(updated);
-                        proStore.setTargets(clientId, updated);
-                        toast({ title: "System recommendation applied", description: `This client's plan now follows the ${recommendedProtocol} directive derived from their lab data.` });
-                      }}
-                      className="bg-amber-600 hover:bg-amber-500 text-white border-0 text-xs"
-                    >
-                      Apply System Recommendation
-                    </Button>
-                  )}
-                  {(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey] && (
+                  {(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey] ? (
                     <span className="inline-flex items-center gap-1.5 text-xs text-teal-400 font-medium">
                       <Check className="h-3.5 w-3.5" /> Active on this client
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-amber-400/80 font-medium">
+                      <Stethoscope className="h-3.5 w-3.5" /> Physician authorization required
                     </span>
                   )}
                 </div>
@@ -698,6 +705,14 @@ export default function TrainerClientDashboard() {
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
               <Settings className="h-5 w-5" /> Macro Targets
+              <button
+                type="button"
+                onClick={() => setExplainerStep(SECTION_EXPLAINERS.macros)}
+                className="ml-auto text-white/30 hover:text-white/50 transition-colors"
+                aria-label="Learn about Macro Targets"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </button>
             </CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -895,10 +910,10 @@ export default function TrainerClientDashboard() {
           <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
             <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
             <div>
-              <p className="text-amber-300 text-md font-semibold">Clinically Assigned Builder</p>
+              <p className="text-amber-300 text-md font-semibold">Physician-Managed Meal Mode</p>
               <p className="text-amber-200/70 text-xs mt-0.5">
-                This client's meal plan builder was assigned based on clinical lab data.
-                Changing it is not recommended without medical authorization.
+                This client's Meal Mode was set by their physician based on clinical data.
+                Do not change it without medical authorization. See System Protocols below for coaching context.
               </p>
             </div>
           </div>
@@ -907,22 +922,30 @@ export default function TrainerClientDashboard() {
         <Card className="bg-white/5 border border-lime-500/30">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
-              <Trophy className="h-5 w-5 text-lime-400" /> Assigned Builder
+              <Trophy className="h-5 w-5 text-lime-400" /> Meal Mode
               {client?.builderSource === "clinical" && (
-                <span title="Clinically assigned — see advisory above">
+                <span title="Physician-managed — see advisory above">
                   <AlertTriangle className="h-4 w-4 text-amber-400 ml-1" />
                 </span>
               )}
+              <button
+                type="button"
+                onClick={() => setExplainerStep(SECTION_EXPLAINERS.mealMode)}
+                className="ml-auto text-white/30 hover:text-white/50 transition-colors"
+                aria-label="Learn about Meal Mode"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </button>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-white/70 text-sm">
-              Choose which meal builder this client will see in their app.
+              Select the coaching style for this client's meal plan.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {TRAINER_BUILDER_KEYS.map((key) => {
+              {TRAINER_MEAL_MODE_KEYS.map((key) => {
                 const entry = PROFESSIONAL_BUILDER_MAP[key];
-                const isActive = assignedBuilder === key;
+                const isActive = assignedBuilder === key || (key === "general_nutrition" && assignedBuilder === "weekly");
                 return (
                   <Button
                     key={key}
@@ -948,28 +971,24 @@ export default function TrainerClientDashboard() {
         <Card className="bg-white/5 border border-lime-500/30">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
-              <Dumbbell className="h-5 w-5 text-lime-400" /> Client Meal Builder
-              {client?.builderSource === "clinical" && (
-                <span title="Clinically assigned — see advisory above">
-                  <AlertTriangle className="h-4 w-4 text-amber-400 ml-1" />
-                </span>
-              )}
+              <Dumbbell className="h-5 w-5 text-lime-400" /> Training View
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-white/70 text-sm">
-              {assignedBuilder && PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey]
-                ? `Open the ${PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey].label} builder for ${client?.name || "this client"}.`
-                : `Assign a builder above first, then open it here.`}
+              {assignedBuilder
+                ? `Open the training view for ${client?.name || "this client"} and build meals within the active Meal Mode.`
+                : `Select a Meal Mode above first, then open the training view here.`}
             </p>
             <Button
               onClick={() => {
-                const key = assignedBuilder as ProfessionalBuilderKey;
-                const entry = key ? PROFESSIONAL_BUILDER_MAP[key] : null;
+                // weekly is infrastructure — always fall back to general_nutrition for trainer routing
+                const effectiveKey = (assignedBuilder === "weekly" ? "general_nutrition" : assignedBuilder) as ProfessionalBuilderKey;
+                const entry = effectiveKey ? PROFESSIONAL_BUILDER_MAP[effectiveKey] : null;
                 if (!entry) {
                   toast({
-                    title: "No Builder Assigned",
-                    description: "Please assign a meal builder to this client first.",
+                    title: "No Meal Mode Selected",
+                    description: "Please select a Meal Mode for this client first.",
                     variant: "destructive",
                   });
                   return;
@@ -992,12 +1011,108 @@ export default function TrainerClientDashboard() {
               className="w-full sm:w-[400px] bg-lime-600 border border-lime-400/30 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
               <Dumbbell className="h-4 w-4 mr-2" />
-              {assignedBuilder && PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey]
-                ? `Open ${PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey].label} Builder`
-                : "Assign Builder First"}
+              {assignedBuilder ? "Open Training View" : "Select Meal Mode First"}
             </Button>
           </CardContent>
         </Card>
+
+        {/* System Protocols — read-only educational section (Phase 2.2) */}
+        {(() => {
+          const PROTOCOL_COACHING_IMPLICATIONS: Record<string, { label: string; dot: string; implication: string }> = {
+            anti_inflammatory: {
+              label: "Anti-Inflammatory",
+              dot: "bg-emerald-400",
+              implication: "Seed oils, processed meats, and refined flour are removed from all meals. Omega-3 sources are prioritized. No action needed from you — the system handles this.",
+            },
+            cardiac: {
+              label: "Cardiac Health",
+              dot: "bg-red-400",
+              implication: "Sodium is capped across all meals. Saturated fat is limited. Do not increase fat targets above physician prescription.",
+            },
+            renal: {
+              label: "Kidney Disease",
+              dot: "bg-yellow-400",
+              implication: "Protein is moderated to reduce kidney workload. Do not increase protein targets for this client without physician approval.",
+            },
+            liver: {
+              label: "Liver Support",
+              dot: "bg-amber-400",
+              implication: "Nutrient loads that stress liver function are reduced. Maintain current macro targets — do not add supplements without physician clearance.",
+            },
+            oncology: {
+              label: "Oncology Support",
+              dot: "bg-purple-400",
+              implication: "Physician-assigned protocol. The system applies oncology-safe nutritional guidance to all meals. This protocol is not modifiable by coaching staff.",
+            },
+            thyroid: {
+              label: "Thyroid Support",
+              dot: "bg-blue-400",
+              implication: "Goitrogenic foods are moderated and iodine sources are prioritized. Maintain current macro targets.",
+            },
+            glp1: {
+              label: "GLP-1 Active",
+              dot: "bg-cyan-400",
+              implication: "Portion sizes are reduced and protein density is high to complement medication effect. Do not lower protein targets or increase starchy carbs.",
+            },
+          };
+
+          const activeProtocols: string[] = [];
+          if (labDerivedConditions.includes("anti-inflammatory") || assignedBuilder === "anti_inflammatory") activeProtocols.push("anti_inflammatory");
+          if (labDerivedConditions.includes("heart-failure") || !!(t?.flags as any)?.cardiac) activeProtocols.push("cardiac");
+          if (labDerivedConditions.includes("kidney-disease") || !!(t?.flags as any)?.renal) activeProtocols.push("renal");
+          if (labDerivedConditions.includes("liver-support") || labDerivedConditions.includes("liver-disease") || !!(t?.flags as any)?.liverSupport || !!(t?.flags as any)?.liverDisease) activeProtocols.push("liver");
+          if (labDerivedConditions.includes("thyroid")) activeProtocols.push("thyroid");
+          if (labDerivedConditions.includes("oncology-support") || !!(t?.flags as any)?.oncologySupport) activeProtocols.push("oncology");
+          if (!!(t?.flags as any)?.glp1Protocol || assignedBuilder === "glp1") activeProtocols.push("glp1");
+
+          return (
+            <Card className="bg-white/5 border border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
+                  <Stethoscope className="h-5 w-5 text-white/50" />
+                  System Protocols
+                  <span className="ml-auto flex items-center gap-2">
+                    <span className="text-xs text-white/30 font-normal normal-case tracking-normal">Read-only</span>
+                    <button
+                      type="button"
+                      onClick={() => setExplainerStep(SECTION_EXPLAINERS.protocols)}
+                      className="text-white/30 hover:text-white/50 transition-colors"
+                      aria-label="Learn about System Protocols"
+                    >
+                      <HelpCircle className="h-4 w-4" />
+                    </button>
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {activeProtocols.length === 0 ? (
+                  <p className="text-white/40 text-xs">
+                    No active clinical protocols for this client. All meals follow the AI's standard generation rules within your macro targets.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-white/50 text-xs">
+                      These protocols are actively shaping your client's meal generation. They are managed by the physician layer and cannot be changed here. Use this information to coach intelligently within the system's constraints.
+                    </p>
+                    {activeProtocols.map((key) => {
+                      const proto = PROTOCOL_COACHING_IMPLICATIONS[key];
+                      if (!proto) return null;
+                      return (
+                        <div key={key} className="flex items-start gap-3">
+                          <span className={`mt-1.5 h-2.5 w-2.5 rounded-full shrink-0 ${proto.dot}`} />
+                          <div>
+                            <p className="text-white/80 text-sm font-semibold">{proto.label}</p>
+                            <p className="text-white/50 text-xs mt-0.5 leading-relaxed">{proto.implication}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* Schedule Check-In */}
         <Card className="bg-white/5 border border-lime-500/30">
@@ -1081,6 +1196,16 @@ export default function TrainerClientDashboard() {
         steps={TRAINER_DASHBOARD_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
+
+      {explainerStep && (
+        <QuickTourModal
+          isOpen={true}
+          onClose={() => setExplainerStep(null)}
+          title="How This Works"
+          steps={explainerStep}
+          onDisableAllTours={() => setExplainerStep(null)}
+        />
+      )}
     </motion.div>
   );
 }

@@ -10,12 +10,14 @@ import { nanoid } from "nanoid";
 import { logClientActivity, logClientActivityForStudioMember } from "../services/activityLog";
 import { pushToUser } from "../services/pushNotify";
 import { deactivateProCareClient, ActivationError } from "../services/procareActivation";
+import { AuthenticatedRequest } from "../middleware/requireAuth";
 
 const router = Router();
 
 async function getUserId(req: any): Promise<string | null> {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  if (authUser?.id) return authUser.id;
   if (req.session?.userId) return req.session.userId as string;
-
   const authToken = req.headers["x-auth-token"] as string;
   if (authToken) {
     const [user] = await db
@@ -25,9 +27,6 @@ async function getUserId(req: any): Promise<string | null> {
       .limit(1);
     if (user) return user.id;
   }
-
-  const headerUserId = req.headers["x-user-id"] as string;
-  if (headerUserId) return headerUserId;
   return null;
 }
 
@@ -409,11 +408,19 @@ router.patch("/:studioId/clients/:clientUserId/assign", async (req, res) => {
       return res.status(404).json({ error: "Studio not found" });
     }
 
+    const CLINICAL_BUILDERS = ["diabetic", "glp1", "anti_inflammatory", "weekly"];
+    if (CLINICAL_BUILDERS.includes(assignedBuilder) && studio.type !== "clinic") {
+      return res.status(403).json({
+        error: "ClinicalBuilderRestricted",
+        message: "This builder requires a verified physician workspace. Contact the assigned physician to assign clinical or protocol-based builders.",
+      });
+    }
+
     const [membership] = await db
       .update(studioMemberships)
       .set({
         assignedBuilder,
-        builderSource: "trainer",
+        builderSource: studio.type === "clinic" ? "clinical" : "trainer",
         activeBoardId,
         updatedAt: new Date(),
       })
@@ -475,6 +482,13 @@ router.patch("/:studioId/clients/:clientUserId/apply-system-recommendation", asy
 
     if (!studio) {
       return res.status(404).json({ error: "Studio not found" });
+    }
+
+    if (studio.type !== "clinic") {
+      return res.status(403).json({
+        error: "ClinicalDirectiveRestricted",
+        message: "Clinical directives can only be applied by a verified physician workspace. Contact the assigned physician to apply clinical protocols.",
+      });
     }
 
     const [membership] = await db

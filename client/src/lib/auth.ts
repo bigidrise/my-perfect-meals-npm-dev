@@ -293,7 +293,7 @@ export async function signUp(email: string, password: string, procareData?: ProC
     localStorage.setItem("userId", user.id);
     localStorage.setItem("isAuthenticated", "true");
 
-    console.log("✅ NEW user created and saved:", user.email, "ID:", user.id);
+    console.log("✅ NEW user created and saved");
 
     return user;
   } catch (error: any) {
@@ -349,7 +349,7 @@ export async function login(email: string, password: string): Promise<User> {
       localStorage.removeItem("appleReviewFullAccess");
     }
 
-    console.log("✅ User logged in:", user.email, "ID:", user.id, "isProCare:", user.isProCare, "role:", user.professionalRole, "studioMembership:", !!user.studioMembership);
+    console.log("✅ User logged in — isProCare:", user.isProCare, "role:", user.professionalRole);
 
     return user;
   } catch (error: any) {

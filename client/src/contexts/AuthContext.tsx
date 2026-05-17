@@ -125,7 +125,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(updatedUser);
         localStorage.setItem("mpm_current_user", JSON.stringify(updatedUser));
         setUserContext(String(updatedUser.id), updatedUser.email);
-        console.log("✅ [AuthContext] User refreshed:", updatedUser.email);
+        console.log("✅ [AuthContext] User refreshed");
         return updatedUser;
       } else if (response.status === 401 || response.status === 403) {
         // Definitive auth rejection — token is invalid or revoked
