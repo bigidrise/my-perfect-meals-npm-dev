@@ -23,7 +23,7 @@ export const PROFESSIONAL_BUILDER_MAP: Record<
 > = {
   weekly: {
     key: "weekly",
-    role: "both",
+    role: "physician",
     label: "Weekly Meal Board",
     proRoute: "weekly-builder",
     description: "A flexible weekly meal plan for general fitness clients.",
@@ -51,7 +51,7 @@ export const PROFESSIONAL_BUILDER_MAP: Record<
   },
   anti_inflammatory: {
     key: "anti_inflammatory",
-    role: "both",
+    role: "physician",
     label: "Anti-Inflammatory",
     proRoute: "anti-inflammatory-builder",
     description: "Whole-food, anti-inflammatory meals for recovery and chronic conditions.",
