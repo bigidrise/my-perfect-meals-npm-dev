@@ -44,39 +44,39 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 const CLINICIAN_DASHBOARD_TOUR_STEPS: TourStep[] = [
   {
     icon: "1",
-    title: "Physicians Clinic",
+    title: "Physician Clinical Workspace",
     description:
-      "Welcome to your clinical workspace. Set macro targets, clinical context, and guide patient nutrition with medical oversight.",
+      "This is your clinical authority layer. You set medical flags, clinical context, and protocol assignments. The AI assembles your active protocols into a Protocol Envelope and enforces all of them on every meal this patient generates. Your assigned trainer coaches within the boundaries you establish here.",
   },
   {
     icon: "2",
     title: "Macro Targets",
     description:
-      "Set protein, carbs, and fats for your patient. These targets drive every meal they see in the app.",
+      "Set protein, carbs, and fats for your patient. These targets frame the AI's meal generation. Clinical protocols shape ingredient selection and meal composition inside these numbers — they do not override your targets, but they ensure every meal is clinically safe within your prescribed framework.",
   },
   {
     icon: "3",
-    title: "Medical Directives",
+    title: "Medical Directives — Protocol Stack",
     description:
-      "Toggle clinical dietary flags like Diabetes-Friendly, Low-Sodium, GLP-1 Support, and more to guide meal generation.",
+      "Each flag you activate adds a guidance block to the AI's Protocol Envelope for this patient. Cardiac adds sodium caps and saturated fat limits. Renal moderates protein. GLP-1 reduces portions and boosts protein density. Multiple flags stack simultaneously — the AI enforces all of them together on every meal generated.",
   },
   {
     icon: "4",
     title: "Clinical Context",
     description:
-      "Document diagnosis, clinical tags, and patient notes for comprehensive medical nutrition therapy.",
+      "Document diagnosis, clinical tags, and patient notes for comprehensive medical nutrition therapy. This context informs the AI and is visible to assigned trainers as read-only coaching guidance — giving them the coaching implications without exposing full clinical detail.",
   },
   {
     icon: "5",
     title: "Patient Meal Board",
     description:
-      "View and edit your patient's weekly meal plan directly. Add meals, remove items, or repeat a day across the week. Every change is tracked so the patient knows who updated their plan.",
+      "View and edit your patient's weekly meal plan directly. All meals generated here respect every active clinical protocol in the Protocol Envelope. Add meals, remove items, or repeat a day across the week.",
   },
   {
     icon: "6",
-    title: "Medical Hubs",
+    title: "Clinical Meal Builders",
     description:
-      "Access condition-specific meal builders like Diabetic, GLP-1, and Anti-Inflammatory to guide patient nutrition safely.",
+      "Access protocol-specific builders — Diabetic, GLP-1, and Anti-Inflammatory — for direct clinical meal generation. These builders apply the full Protocol Envelope: all active medical flags enforce simultaneously, including any secondary conditions like Cardiac, Thyroid, or Renal stacked on top of the primary builder.",
   },
 ];
 
