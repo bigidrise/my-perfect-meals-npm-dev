@@ -16,6 +16,7 @@ import { getAuthHeaders } from "@/lib/auth";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { PillButton } from "@/components/ui/pill-button";
 
 const FOLDER_TOUR_STEPS: TourStep[] = [
   {
@@ -766,7 +767,7 @@ export default function ProClientFolderModal({
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-900 border-white/10 text-white max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-zinc-900 border-white/10 text-white max-w-md max-h-[90vh] overflow-y-auto [&>button.absolute]:hidden">
         <DialogHeader>
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
@@ -775,7 +776,10 @@ export default function ProClientFolderModal({
                 {client.email || "No email on file"}
               </DialogDescription>
             </div>
-            <QuickTourButton onClick={folderTour.openTour} />
+            <div className="flex items-center gap-2 shrink-0">
+              <PillButton onClick={folderTour.openTour}>How to Use</PillButton>
+              <PillButton onClick={() => onOpenChange(false)}>Close</PillButton>
+            </div>
           </div>
         </DialogHeader>
 
