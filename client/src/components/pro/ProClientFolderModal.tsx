@@ -767,7 +767,7 @@ export default function ProClientFolderModal({
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-900 border-white/10 text-white max-w-md max-h-[90vh] overflow-y-auto [&>button.absolute]:hidden">
+      <DialogContent className="bg-zinc-900 border-white/10 text-white max-w-md overflow-y-auto [&>button.absolute]:hidden top-4 translate-y-0 max-h-[calc(100vh-2rem)] sm:top-[50%] sm:translate-y-[-50%] sm:max-h-[90vh]">
         <DialogHeader>
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
