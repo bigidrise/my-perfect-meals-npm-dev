@@ -10,12 +10,14 @@ import { nanoid } from "nanoid";
 import { logClientActivity, logClientActivityForStudioMember } from "../services/activityLog";
 import { pushToUser } from "../services/pushNotify";
 import { deactivateProCareClient, ActivationError } from "../services/procareActivation";
+import { AuthenticatedRequest } from "../middleware/requireAuth";
 
 const router = Router();
 
 async function getUserId(req: any): Promise<string | null> {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  if (authUser?.id) return authUser.id;
   if (req.session?.userId) return req.session.userId as string;
-
   const authToken = req.headers["x-auth-token"] as string;
   if (authToken) {
     const [user] = await db
@@ -25,9 +27,6 @@ async function getUserId(req: any): Promise<string | null> {
       .limit(1);
     if (user) return user.id;
   }
-
-  const headerUserId = req.headers["x-user-id"] as string;
-  if (headerUserId) return headerUserId;
   return null;
 }
 
