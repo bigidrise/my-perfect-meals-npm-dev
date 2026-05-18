@@ -652,6 +652,20 @@ export default function SignatureKitchenPage() {
         <p className="text-center text-[10px] text-white/20 pb-2">
           Powered by My Perfect Meals AI — your dietary protocols and medical guidelines always apply.
         </p>
+
+        {/* Chef acquisition — subtle, non-intrusive */}
+        <div className="flex flex-col items-center gap-2 pb-2">
+          <div className="h-px w-16 bg-white/8" />
+          <p className="text-[10px] text-white/20 text-center">Are you a chef or culinary creator?</p>
+          <button
+            type="button"
+            onClick={() => setLocation("/kitchens")}
+            className="text-[11px] font-medium transition-opacity active:opacity-60"
+            style={{ color: "#ea580c88" }}
+          >
+            Open your Signature Kitchen →
+          </button>
+        </div>
       </div>
     </motion.div>
   );
