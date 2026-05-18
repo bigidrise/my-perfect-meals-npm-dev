@@ -1,5 +1,5 @@
 import { useState, useEffect, type ReactNode } from "react";
-import { useLocation, useParams } from "wouter";
+import { useLocation, useRoute } from "wouter";
 import { motion } from "framer-motion";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -97,7 +97,7 @@ function IdentitySection({
 
 export default function SignatureKitchenPage() {
   const [, setLocation] = useLocation();
-  const params = useParams<{ slug: string }>();
+  const [, params] = useRoute<{ slug: string }>("/kitchen/:slug");
   const slug = params?.slug ?? "";
   const [kitchen, setKitchen] = useState<KitchenProfile | null>(null);
   const [loading, setLoading] = useState(true);
