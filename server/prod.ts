@@ -266,6 +266,20 @@ async function initializeApp() {
     app.use("/api", manualMacrosRouter);
     app.use("/api/biometrics/labs", clinicalLabsRouter);
     app.use("/api/translate", requireAuth, requireActiveAccess, translateRouter);
+
+    // Kitchen routes — must be mounted before registerRoutes() and the /api 404 catch
+    const kitchensRouter = (await import("./routes/kitchens")).default;
+    const kitchenLibraryRouter = (await import("./routes/kitchenLibrary")).default;
+    const adminChefKitchensRouter = (await import("./routes/admin/chefKitchens")).default;
+    const adminSignatureLibraryRouter = (await import("./routes/admin/signatureLibrary")).default;
+    const adminKitchenImportsRouter = (await import("./routes/admin/kitchenImports")).default;
+    const { requireAdmin } = await import("./middleware/requireAdmin");
+    app.use("/api/kitchens", requireAuth, kitchensRouter);
+    app.use("/api/kitchens", requireAuth, kitchenLibraryRouter);
+    app.use("/api/admin/chef-kitchens", requireAuth, requireAdmin, adminChefKitchensRouter);
+    app.use("/api/admin/chef-kitchens", requireAuth, requireAdmin, adminSignatureLibraryRouter);
+    app.use("/api/admin/chef-kitchens", requireAuth, requireAdmin, adminKitchenImportsRouter);
+
     console.log("✅ [INIT] Additional routes mounted");
     
     // Register main routes
