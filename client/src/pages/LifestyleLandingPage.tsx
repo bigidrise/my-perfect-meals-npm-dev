@@ -197,35 +197,39 @@ export default function LifestyleLandingPage() {
                       className="relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 hover:scale-[1.02] bg-gradient-to-r from-black via-orange-950/30 to-black backdrop-blur-lg border border-orange-400/30 hover:border-orange-500/50"
                       onClick={() => setLocation(`/kitchen/${k.slug}`)}
                     >
-                      {kitchensIsAdmin && !k.isActive && (
-                        <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-black via-amber-900/80 to-black rounded-full border border-amber-500/40 z-10">
-                          <Sparkles className="h-2.5 w-2.5 text-amber-400" />
-                          <span className="text-amber-300 font-semibold text-[8px] tracking-wide">Admin Preview</span>
-                        </div>
-                      )}
-                      {k.isFeatured && k.isActive && (
-                        <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-black via-amber-700/80 to-black rounded-full border border-amber-400/30 z-10">
-                          <Star className="h-2.5 w-2.5 text-amber-400" />
-                          <span className="text-amber-200 font-semibold text-[8px] tracking-wide">Featured</span>
-                        </div>
-                      )}
                       <CardContent className="p-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-lg bg-orange-500/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center flex-shrink-0 overflow-hidden mt-0.5">
                             {k.logoUrl ? (
                               <img src={k.logoUrl} alt="" className="w-full h-full object-cover" />
                             ) : (
-                              <ChefHat className="h-4 w-4 text-orange-400" />
+                              <ChefHat className="h-5 w-5 text-orange-400" />
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-sm font-semibold text-white">{k.displayName}</h3>
-                            {k.bio && <p className="text-xs text-white/60 truncate">{k.bio}</p>}
+                            <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                              <h3 className="text-sm font-semibold text-white leading-tight">{k.displayName}</h3>
+                              {k.isFeatured && k.isActive && (
+                                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-400/40 bg-amber-500/15 flex-shrink-0">
+                                  <Star className="h-2.5 w-2.5 text-amber-400 flex-shrink-0" />
+                                  <span className="text-amber-200 font-semibold text-[10px] tracking-wide">Featured</span>
+                                </div>
+                              )}
+                              {kitchensIsAdmin && !k.isActive && (
+                                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-500/40 bg-amber-900/25 flex-shrink-0">
+                                  <Sparkles className="h-2.5 w-2.5 text-amber-400 flex-shrink-0" />
+                                  <span className="text-amber-300 font-semibold text-[10px] tracking-wide">Admin Preview</span>
+                                </div>
+                              )}
+                            </div>
+                            {k.bio && (
+                              <p className="text-xs text-white/75 leading-relaxed line-clamp-2">{k.bio}</p>
+                            )}
                             {(k.cuisineTypes ?? []).length > 0 && (
-                              <p className="text-[10px] text-orange-400/70 mt-0.5">{(k.cuisineTypes ?? []).slice(0, 3).join(" · ")}</p>
+                              <p className="text-[10px] text-orange-400/80 mt-1">{(k.cuisineTypes ?? []).slice(0, 3).join(" · ")}</p>
                             )}
                           </div>
-                          <ArrowRight className="h-4 w-4 text-orange-400 flex-shrink-0" />
+                          <ArrowRight className="h-4 w-4 text-orange-400 flex-shrink-0 mt-1" />
                         </div>
                       </CardContent>
                     </Card>
