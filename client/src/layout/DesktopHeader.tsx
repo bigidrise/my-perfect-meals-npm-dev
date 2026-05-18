@@ -92,6 +92,8 @@ function getPageTitle(location: string): string {
   if (location.startsWith("/pro/")) return "Professional Workspace";
   if (location.startsWith("/lifestyle/")) return "Lifestyle Hub";
   if (location.startsWith("/builder") || location.includes("-builder")) return "Meal Builder";
+  if (location === "/kitchens") return "The Kitchen Network";
+  if (location.startsWith("/kitchen/")) return "Signature Kitchen";
   return "My Perfect Meals";
 }
 

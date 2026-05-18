@@ -20,7 +20,7 @@ This becomes the foundation of your kitchen's presence and culinary fingerprint.
 | Field | Details |
 |---|---|
 | Full name / Chef name | Professional or culinary name as you want it displayed |
-| Kitchen name | Your Signature Kitchen display name (e.g., "Chef Nolan's Kitchen") |
+| Kitchen name | Your Signature Kitchen display name (e.g., "Chef Maria's Kitchen") |
 | Cuisine category | Primary cuisine focus (e.g., Cajun, Mediterranean, Plant-Based) |
 | Chef category | Chef / Nutritionist / Athlete / Physician / Restaurant Group |
 
