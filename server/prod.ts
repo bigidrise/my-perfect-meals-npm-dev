@@ -130,16 +130,27 @@ async function initializeApp() {
       console.warn("⚠️ [INIT] Missing env vars:", envValidation.missing.join(', '));
     }
     
-    // Safe column migrations (adds missing columns without altering types)
+    // Safe column migrations — wrapped in a hard 6 s timeout so a locked table
+    // never stalls the full boot sequence. Columns were added in earlier deploys;
+    // this is a no-op on a live DB and can safely be skipped if slow.
     console.log("📋 [INIT] Running safe column migrations...");
     try {
+      const migTimeout = (ms: number) =>
+        new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error(`Migration timed out after ${ms}ms`)), ms)
+        );
       const { db: database } = await import("./db");
       const { sql } = await import("drizzle-orm");
-      await database.execute(sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS starchy_carbs numeric DEFAULT '0' NOT NULL`);
-      await database.execute(sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS fibrous_carbs numeric DEFAULT '0' NOT NULL`);
+      await Promise.race([
+        (async () => {
+          await database.execute(sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS starchy_carbs numeric DEFAULT '0' NOT NULL`);
+          await database.execute(sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS fibrous_carbs numeric DEFAULT '0' NOT NULL`);
+        })(),
+        migTimeout(6000),
+      ]);
       console.log("✅ [INIT] Column migrations complete");
     } catch (migErr) {
-      console.warn("⚠️ [INIT] Column migration warning:", migErr);
+      console.warn("⚠️ [INIT] Column migration skipped (timeout or error):", (migErr as Error).message);
     }
 
     // Import middleware
