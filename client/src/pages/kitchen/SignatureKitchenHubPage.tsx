@@ -77,7 +77,7 @@ function HowItWorksStep({
           </span>
           <span className="text-sm font-semibold text-white">{title}</span>
         </div>
-        <p className="text-xs text-white/50 leading-relaxed">{body}</p>
+        <p className="text-xs text-white/80 leading-relaxed">{body}</p>
       </div>
     </div>
   );
@@ -128,7 +128,7 @@ function KitchenCard({ kitchen, onNavigate }: { kitchen: Kitchen; onNavigate: ()
           </div>
         </div>
         {kitchen.bio && (
-          <p className="text-white/40 text-xs leading-relaxed line-clamp-2">{kitchen.bio}</p>
+          <p className="text-white/75 text-xs leading-relaxed line-clamp-2">{kitchen.bio}</p>
         )}
         <div className="flex items-center gap-1 text-xs font-medium pt-0.5" style={{ color: primary }}>
           <span>Explore kitchen</span>
@@ -161,11 +161,11 @@ function FoundingKitchenCard({ name, tags, color }: { name: string; tags: string
             <ChefHat className="h-4 w-4" style={{ color, opacity: 0.5 }} />
           </div>
           <div className="min-w-0">
-            <p className="text-white/60 font-semibold text-sm leading-tight truncate">{name}</p>
-            <p className="text-xs mt-0.5 truncate" style={{ color: `${color}80` }}>{tags}</p>
+            <p className="text-white font-semibold text-sm leading-tight truncate">{name}</p>
+            <p className="text-xs mt-0.5 truncate" style={{ color: `${color}cc` }}>{tags}</p>
           </div>
         </div>
-        <div className="flex items-center gap-1 text-xs font-medium pt-0.5 text-white/20">
+        <div className="flex items-center gap-1 text-xs font-medium pt-0.5 text-white/55">
           <span>Launching soon</span>
         </div>
       </div>
@@ -250,7 +250,7 @@ export default function SignatureKitchenHubPage() {
           {/* Eyebrow */}
           <div className="flex items-center gap-2 mb-4">
             <div className="h-px flex-1 bg-gradient-to-r from-transparent to-orange-500/40" />
-            <span className="text-[9px] font-black uppercase tracking-[0.4em] text-orange-500/70">My Perfect Meals</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.4em] text-orange-500/90">My Perfect Meals</span>
             <div className="h-px flex-1 bg-gradient-to-l from-transparent to-orange-500/40" />
           </div>
 
@@ -259,7 +259,7 @@ export default function SignatureKitchenHubPage() {
             <span style={{ color: "#ea580c" }}>Network.</span>
           </h1>
 
-          <p className="text-sm text-white/55 leading-relaxed mb-6 max-w-xs">
+          <p className="text-sm text-white/85 leading-relaxed mb-6 max-w-xs">
             Where culinary identity becomes adaptive, searchable, scalable, and personalized — for every user, every time.
           </p>
 
@@ -320,7 +320,7 @@ export default function SignatureKitchenHubPage() {
               </h2>
             </div>
             {activeKitchens.length === 0 && !loadingKitchens && (
-              <span className="text-[10px] font-bold uppercase tracking-widest text-orange-500/50 px-2 py-1 rounded-full"
+              <span className="text-[10px] font-bold uppercase tracking-widest text-orange-500/90 px-2 py-1 rounded-full"
                 style={{ background: "#ea580c12", border: "1px solid #ea580c25" }}>
                 Early Access
               </span>
@@ -328,7 +328,7 @@ export default function SignatureKitchenHubPage() {
           </div>
 
           {activeKitchens.length === 0 && !loadingKitchens && (
-            <p className="text-xs text-white/30 leading-relaxed">
+            <p className="text-xs text-white/65 leading-relaxed">
               The first wave of Signature Kitchens currently in development inside The Kitchen Network.
             </p>
           )}
@@ -368,7 +368,7 @@ export default function SignatureKitchenHubPage() {
             <Layers className="h-4 w-4 text-orange-400" />
             <h2 className="text-base font-semibold text-white">Open Your Kitchen</h2>
           </div>
-          <p className="text-sm text-white/45 leading-relaxed -mt-1">
+          <p className="text-sm text-white/80 leading-relaxed -mt-1">
             We're building a network of the most forward-thinking culinary voices in the world. Three ways to start.
           </p>
 
@@ -383,7 +383,7 @@ export default function SignatureKitchenHubPage() {
                 </div>
                 <div>
                   <p className="text-white font-semibold text-sm">Apply for a Signature Kitchen</p>
-                  <p className="text-white/45 text-xs mt-0.5 leading-relaxed">
+                  <p className="text-white/75 text-xs mt-0.5 leading-relaxed">
                     Submit your chef identity, brand assets, and content catalog. Our team reviews every application personally.
                   </p>
                 </div>
@@ -401,14 +401,14 @@ export default function SignatureKitchenHubPage() {
                 style={{ background: "#ffffff06", border: "1px solid #ffffff10" }}>
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center"
                   style={{ backgroundColor: "#ffffff0a", border: "1px solid #ffffff15" }}>
-                  <CalendarDays className="h-3.5 w-3.5 text-white/50" />
+                  <CalendarDays className="h-3.5 w-3.5 text-white/85" />
                 </div>
                 <div>
-                  <p className="text-white/80 text-sm font-semibold leading-tight">Book a Discovery Call</p>
-                  <p className="text-white/35 text-xs mt-1 leading-relaxed">Talk with our partnerships team before you commit.</p>
+                  <p className="text-white text-sm font-semibold leading-tight">Book a Discovery Call</p>
+                  <p className="text-white/70 text-xs mt-1 leading-relaxed">Talk with our partnerships team before you commit.</p>
                 </div>
                 <button type="button" onClick={handleBook}
-                  className="w-full py-2.5 rounded-lg text-white/80 font-medium text-xs transition-transform active:scale-[0.98]"
+                  className="w-full py-2.5 rounded-lg text-white font-medium text-xs transition-transform active:scale-[0.98]"
                   style={{ backgroundColor: "#ffffff0f", border: "1px solid #ffffff18" }}>
                   Book a Call
                 </button>
@@ -418,14 +418,14 @@ export default function SignatureKitchenHubPage() {
                 style={{ background: "#ffffff06", border: "1px solid #ffffff10" }}>
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center"
                   style={{ backgroundColor: "#ffffff0a", border: "1px solid #ffffff15" }}>
-                  <MessageSquare className="h-3.5 w-3.5 text-white/50" />
+                  <MessageSquare className="h-3.5 w-3.5 text-white/85" />
                 </div>
                 <div>
-                  <p className="text-white/80 text-sm font-semibold leading-tight">Contact Partnerships</p>
-                  <p className="text-white/35 text-xs mt-1 leading-relaxed">Questions? Our team responds within 48 hours.</p>
+                  <p className="text-white text-sm font-semibold leading-tight">Contact Partnerships</p>
+                  <p className="text-white/70 text-xs mt-1 leading-relaxed">Questions? Our team responds within 48 hours.</p>
                 </div>
                 <button type="button" onClick={handleContact}
-                  className="w-full py-2.5 rounded-lg text-white/80 font-medium text-xs transition-transform active:scale-[0.98]"
+                  className="w-full py-2.5 rounded-lg text-white font-medium text-xs transition-transform active:scale-[0.98]"
                   style={{ backgroundColor: "#ffffff0f", border: "1px solid #ffffff18" }}>
                   Get in Touch
                 </button>
@@ -438,22 +438,22 @@ export default function SignatureKitchenHubPage() {
 
         {/* ── FUTURE KITCHEN CATEGORIES (teaser) ── */}
         <div className="space-y-3">
-          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/25">Coming to the Network</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/60">Coming to the Network</p>
           <div className="flex flex-wrap gap-2">
             {["Wellness Kitchen", "Athlete Kitchen", "Clinical Kitchen", "Restaurant Kitchen", "Performance Kitchen"].map(label => (
               <span key={label} className="px-3 py-1.5 rounded-full text-xs font-medium"
-                style={{ backgroundColor: "#ffffff08", border: "1px solid #ffffff12", color: "rgba(255,255,255,0.35)" }}>
+                style={{ backgroundColor: "#ffffff08", border: "1px solid #ffffff20", color: "rgba(255,255,255,0.80)" }}>
                 {label}
               </span>
             ))}
           </div>
-          <p className="text-[11px] text-white/25 leading-relaxed pt-1">
+          <p className="text-[11px] text-white/65 leading-relaxed pt-1">
             The Signature Kitchen infrastructure supports chef kitchens, wellness professionals, athletes, physicians, and restaurant groups — all under one adaptive platform.
           </p>
         </div>
 
         {/* Footer */}
-        <p className="text-center text-[10px] text-white/18 pb-2 leading-relaxed">
+        <p className="text-center text-[10px] text-white/50 pb-2 leading-relaxed">
           Powered by My Perfect Meals Adaptive Culinary Intelligence<br />
           partnerships@myperfectmeals.com
         </p>
