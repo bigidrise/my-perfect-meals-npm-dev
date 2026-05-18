@@ -23,7 +23,7 @@ router.get("/featured", async (req, res) => {
 
     const isAdmin = adminRow?.isAdmin ?? false;
 
-    const kitchens = await db
+    const rows = await db
       .select({
         slug: creators.slug,
         displayName: creators.displayName,
@@ -35,14 +35,35 @@ router.get("/featured", async (req, res) => {
         isActive: creators.isActive,
         displayPriority: creators.displayPriority,
         creatorCategory: creators.creatorCategory,
+        configJson: creatorSystemConfigs.configJson,
       })
       .from(creators)
+      .leftJoin(creatorSystemConfigs, eq(creatorSystemConfigs.creatorId, creators.id))
       .where(
         isAdmin
           ? eq(creators.creatorCategory, "chef_kitchen")
           : and(eq(creators.isVisible, true), eq(creators.creatorCategory, "chef_kitchen"))
       )
       .orderBy(asc(creators.displayPriority));
+
+    const kitchens = rows.map(r => {
+      const cfg = (r.configJson as any) ?? {};
+      return {
+        slug: r.slug,
+        displayName: r.displayName,
+        bio: r.bio,
+        logoUrl: r.logoUrl,
+        heroImageUrl: r.heroImageUrl,
+        brandingImageUrl: r.brandingImageUrl,
+        isFeatured: r.isFeatured,
+        isActive: r.isActive,
+        displayPriority: r.displayPriority,
+        creatorCategory: r.creatorCategory,
+        cuisineTypes: cfg.cuisineTypes ?? [],
+        flavorProfiles: cfg.style?.flavorProfiles ?? [],
+        primaryColor: cfg.primaryColor ?? null,
+      };
+    });
 
     return res.json({ kitchens, isAdmin });
   } catch (err: any) {
