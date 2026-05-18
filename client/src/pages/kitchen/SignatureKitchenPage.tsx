@@ -14,6 +14,8 @@ type KitchenProfile = {
   heroImageUrl: string | null;
   brandingImageUrl: string | null;
   isFeatured: boolean;
+  isActive: boolean;
+  isAdmin: boolean;
   creatorCategory: string;
   cuisineTypes: string[];
   flavorProfiles: string[];
@@ -161,23 +163,43 @@ export default function SignatureKitchenPage() {
         {/* Divider */}
         <div className="border-t border-white/10" />
 
-        {/* CTA */}
-        <div className="rounded-xl bg-gradient-to-br from-orange-950/40 via-black to-black border border-orange-500/20 p-5 space-y-3">
-          <div className="flex items-center gap-2">
-            <Utensils className="h-5 w-5 text-orange-400" />
-            <h2 className="text-white font-semibold">Create a Dish</h2>
+        {/* Admin Preview Banner */}
+        {kitchen.isAdmin && !kitchen.isActive && (
+          <div className="rounded-xl bg-amber-500/10 border border-amber-400/30 px-4 py-3 flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-amber-400 flex-shrink-0" />
+            <p className="text-xs text-amber-300 leading-relaxed">
+              <span className="font-semibold">Admin Preview</span> — this kitchen is not yet live. Only you can see this page.
+            </p>
           </div>
-          <p className="text-sm text-white/60 leading-relaxed">
-            Generate a personalized recipe crafted in the style of {kitchen.displayName}. Your dietary rules, macros, and health protocols are always respected.
-          </p>
-          <button
-            type="button"
-            onClick={() => setLocation("/lifestyle/create-a-dish")}
-            className="w-full py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors active:scale-95"
-          >
-            Create a Dish with {kitchen.displayName}
-          </button>
-        </div>
+        )}
+
+        {/* CTA — full for admin or active kitchen; teaser for regular users */}
+        {(kitchen.isAdmin || kitchen.isActive) ? (
+          <div className="rounded-xl bg-gradient-to-br from-orange-950/40 via-black to-black border border-orange-500/20 p-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <Utensils className="h-5 w-5 text-orange-400" />
+              <h2 className="text-white font-semibold">Create a Dish</h2>
+            </div>
+            <p className="text-sm text-white/60 leading-relaxed">
+              Generate a personalized recipe crafted in the style of {kitchen.displayName}. Your dietary rules, macros, and health protocols are always respected.
+            </p>
+            <button
+              type="button"
+              onClick={() => setLocation("/lifestyle/create-a-dish")}
+              className="w-full py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm transition-colors active:scale-95"
+            >
+              Create a Dish with {kitchen.displayName}
+            </button>
+          </div>
+        ) : (
+          <div className="rounded-xl bg-white/5 border border-white/10 p-5 space-y-3 text-center">
+            <Sparkles className="h-8 w-8 text-orange-400/50 mx-auto" />
+            <h2 className="text-white font-semibold">Coming Soon</h2>
+            <p className="text-sm text-white/50 leading-relaxed">
+              {kitchen.displayName} is opening soon. Stay tuned for personalized AI-powered recipes crafted in this kitchen's style.
+            </p>
+          </div>
+        )}
 
         <p className="text-center text-xs text-white/25 pb-2">
           Powered by My Perfect Meals AI — your dietary protocols and medical guidelines always apply.

@@ -38,6 +38,7 @@ type FeaturedKitchen = {
   logoUrl: string | null;
   heroImageUrl: string | null;
   isFeatured: boolean;
+  isActive: boolean;
   creatorCategory: string;
   cuisineTypes: string[];
   flavorProfiles: string[];
@@ -49,11 +50,15 @@ export default function LifestyleLandingPage() {
   const { isFree, showLockModal, lockMessage, guardAction, closeLockModal } = useFreeLock();
   const { user } = useAuth();
   const [featuredKitchens, setFeaturedKitchens] = useState<FeaturedKitchen[]>([]);
+  const [kitchensIsAdmin, setKitchensIsAdmin] = useState(false);
 
   useEffect(() => {
     fetch(apiUrl("/api/kitchens/featured"), { headers: getAuthHeaders() })
-      .then(r => r.ok ? r.json() : { kitchens: [] })
-      .then(d => setFeaturedKitchens(d.kitchens ?? []))
+      .then(r => r.ok ? r.json() : { kitchens: [], isAdmin: false })
+      .then(d => {
+        setFeaturedKitchens(d.kitchens ?? []);
+        setKitchensIsAdmin(d.isAdmin ?? false);
+      })
       .catch(() => {});
   }, []);
 
@@ -192,7 +197,13 @@ export default function LifestyleLandingPage() {
                       className="relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 hover:scale-[1.02] bg-gradient-to-r from-black via-orange-950/30 to-black backdrop-blur-lg border border-orange-400/30 hover:border-orange-500/50"
                       onClick={() => setLocation(`/kitchen/${k.slug}`)}
                     >
-                      {k.isFeatured && (
+                      {kitchensIsAdmin && !k.isActive && (
+                        <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-black via-amber-900/80 to-black rounded-full border border-amber-500/40 z-10">
+                          <Sparkles className="h-2.5 w-2.5 text-amber-400" />
+                          <span className="text-amber-300 font-semibold text-[8px] tracking-wide">Admin Preview</span>
+                        </div>
+                      )}
+                      {k.isFeatured && k.isActive && (
                         <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-black via-amber-700/80 to-black rounded-full border border-amber-400/30 z-10">
                           <Star className="h-2.5 w-2.5 text-amber-400" />
                           <span className="text-amber-200 font-semibold text-[8px] tracking-wide">Featured</span>
