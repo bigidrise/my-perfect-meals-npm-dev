@@ -452,7 +452,7 @@ function KitchenForm({
           <input
             type="text"
             className={inputCls}
-            placeholder="chef-nolan"
+            placeholder="signature-chef"
             value={form.slug}
             onChange={e => onChange("slug", e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "-"))}
           />
@@ -464,7 +464,7 @@ function KitchenForm({
         <input
           type="text"
           className={inputCls}
-          placeholder="Chef Nolan's Kitchen"
+          placeholder="Chef [Name]'s Kitchen"
           value={form.displayName}
           onChange={e => onChange("displayName", e.target.value)}
         />
@@ -504,7 +504,7 @@ function KitchenForm({
         <label className={labelCls}>Chef Persona Prompt <span className="text-white/30">(injected into AI generation)</span></label>
         <textarea
           className={`${inputCls} h-24 resize-none`}
-          placeholder="Generate meals inspired by Chef Nolan's elevated comfort-food style with bold seasoning, layered textures, and restaurant-quality plating…"
+          placeholder="Generate meals inspired by this chef's signature style — bold seasoning, layered textures, and restaurant-quality plating…"
           value={form.personaPrompt}
           onChange={e => onChange("personaPrompt", e.target.value)}
         />
