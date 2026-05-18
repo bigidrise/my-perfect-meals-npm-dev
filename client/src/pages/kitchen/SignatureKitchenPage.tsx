@@ -173,17 +173,18 @@ export default function SignatureKitchenPage() {
       </div>
 
       {/* Hero */}
-      <div className="relative h-80 w-full overflow-hidden">
+      <div className="relative w-full overflow-hidden">
         {kitchen.heroImageUrl ? (
           <img
             src={kitchen.heroImageUrl}
             alt={kitchen.displayName}
-            className="w-full h-full object-cover"
+            className="w-full h-auto block"
           />
         ) : (
           <div
-            className="w-full h-full flex items-center justify-center"
+            className="w-full flex items-center justify-center"
             style={{
+              minHeight: "320px",
               background: `radial-gradient(ellipse at center, #1a0a00 0%, #0a0500 60%, #000 100%)`,
             }}
           >
