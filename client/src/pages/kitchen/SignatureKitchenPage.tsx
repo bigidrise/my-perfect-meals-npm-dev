@@ -173,7 +173,7 @@ export default function SignatureKitchenPage() {
       </div>
 
       {/* Hero */}
-      <div className="relative h-72 w-full overflow-hidden">
+      <div className="relative h-80 w-full overflow-hidden">
         {kitchen.heroImageUrl ? (
           <img
             src={kitchen.heroImageUrl}
@@ -182,11 +182,100 @@ export default function SignatureKitchenPage() {
           />
         ) : (
           <div
-            className="w-full h-full"
+            className="w-full h-full flex items-center justify-center"
             style={{
-              background: `linear-gradient(135deg, #000 0%, ${primary}55 50%, #000 100%)`,
+              background: `radial-gradient(ellipse at center, #1a0a00 0%, #0a0500 60%, #000 100%)`,
             }}
-          />
+          >
+            {/* Marquee sign */}
+            <div className="relative mx-6 w-full max-w-sm">
+              {/* Outer border with bulbs */}
+              <div
+                className="relative rounded-sm px-6 py-5"
+                style={{
+                  border: `3px solid ${primary}`,
+                  boxShadow: `0 0 30px ${primary}55, 0 0 60px ${primary}22, inset 0 0 20px #00000088`,
+                  background: `linear-gradient(160deg, #0f0700 0%, #1a0c00 100%)`,
+                }}
+              >
+                {/* Corner bulbs */}
+                {[
+                  "absolute -top-2 -left-2",
+                  "absolute -top-2 -right-2",
+                  "absolute -bottom-2 -left-2",
+                  "absolute -bottom-2 -right-2",
+                ].map((pos, i) => (
+                  <span
+                    key={i}
+                    className={`${pos} w-3.5 h-3.5 rounded-full`}
+                    style={{
+                      backgroundColor: primary,
+                      boxShadow: `0 0 8px ${primary}, 0 0 16px ${primary}88`,
+                    }}
+                  />
+                ))}
+
+                {/* Top row of small bulbs */}
+                <div className="absolute -top-1.5 left-6 right-6 flex justify-between px-2">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <span
+                      key={i}
+                      className="w-2 h-2 rounded-full"
+                      style={{
+                        backgroundColor: i % 2 === 0 ? primary : accent,
+                        boxShadow: `0 0 6px ${i % 2 === 0 ? primary : accent}`,
+                        opacity: 0.9,
+                      }}
+                    />
+                  ))}
+                </div>
+                {/* Bottom row of small bulbs */}
+                <div className="absolute -bottom-1.5 left-6 right-6 flex justify-between px-2">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <span
+                      key={i}
+                      className="w-2 h-2 rounded-full"
+                      style={{
+                        backgroundColor: i % 2 === 0 ? accent : primary,
+                        boxShadow: `0 0 6px ${i % 2 === 0 ? accent : primary}`,
+                        opacity: 0.9,
+                      }}
+                    />
+                  ))}
+                </div>
+
+                {/* Sign text */}
+                <div className="text-center space-y-1">
+                  <p
+                    className="text-[10px] font-bold uppercase tracking-[0.3em]"
+                    style={{ color: `${primary}99` }}
+                  >
+                    ★ &nbsp; Welcome to &nbsp; ★
+                  </p>
+                  <h2
+                    className="text-2xl font-black uppercase tracking-wide leading-tight"
+                    style={{
+                      color: primary,
+                      textShadow: `0 0 20px ${primary}99, 0 0 40px ${primary}44`,
+                      fontFamily: "Georgia, serif",
+                    }}
+                  >
+                    {kitchen.displayName}
+                  </h2>
+                  <div
+                    className="h-px w-16 mx-auto my-1"
+                    style={{ backgroundColor: `${primary}60` }}
+                  />
+                  <p
+                    className="text-[10px] font-semibold uppercase tracking-[0.25em]"
+                    style={{ color: `${accent}bb` }}
+                  >
+                    Signature Kitchen
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
         {/* Gradient overlay */}
         <div
