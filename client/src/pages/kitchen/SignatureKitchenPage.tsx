@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useLocation, useParams } from "wouter";
 import { motion } from "framer-motion";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -74,7 +74,7 @@ function IdentitySection({
   items,
   color,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   items: string[];
   color: string;
