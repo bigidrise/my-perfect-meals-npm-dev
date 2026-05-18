@@ -82,6 +82,8 @@ import HouseholdProfilesPage from "@/pages/HouseholdProfilesPage";
 import ProCareInfoPage from "@/pages/ProCareInfoPage";
 import PersonalGuidanceInfoPage from "@/pages/PersonalGuidanceInfoPage";
 import AdminModerationPage from "@/pages/admin-moderation";
+import ChefKitchensAdmin from "@/pages/admin/ChefKitchensAdmin";
+import SignatureKitchenPage from "@/pages/kitchen/SignatureKitchenPage";
 import ConsumerWelcome from "@/pages/ConsumerWelcome";
 import ProCareWelcome from "@/pages/procare/ProCareWelcome";
 import ProCareIdentity from "@/pages/procare/ProCareIdentity";
@@ -408,6 +410,8 @@ export default function Router() {
         <Route path="/procare-info" component={ProCareInfoPage} />
         <Route path="/personal-guidance-info" component={PersonalGuidanceInfoPage} />
         <Route path="/admin-moderation" component={AdminModerationPage} />
+        <Route path="/admin/chef-kitchens" component={ChefKitchensAdmin} />
+        <Route path="/kitchen/:slug" component={SignatureKitchenPage} />
         <Route path="/consumer-welcome" component={ConsumerWelcome} />
         <Route path="/procare-welcome" component={ProCareWelcome} />
         <Route path="/trainer-welcome" component={ProCareWelcome} />
