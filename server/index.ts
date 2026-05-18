@@ -528,6 +528,8 @@ import adminChefKitchensRouter from "./routes/adminChefKitchens";
 app.use("/api/admin/chef-kitchens", requireAuth, requireAdmin, adminChefKitchensRouter);
 import adminSignatureLibraryRouter from "./routes/adminSignatureLibrary";
 app.use("/api/admin/chef-kitchens", requireAuth, requireAdmin, adminSignatureLibraryRouter);
+import adminKitchenImportsRouter from "./routes/adminKitchenImports";
+app.use("/api/admin/chef-kitchens", requireAuth, requireAdmin, adminKitchenImportsRouter);
 import kitchensRouter from "./routes/kitchens";
 app.use("/api/kitchens", requireAuth, kitchensRouter);
 import kitchenLibraryRouter from "./routes/kitchenLibrary";

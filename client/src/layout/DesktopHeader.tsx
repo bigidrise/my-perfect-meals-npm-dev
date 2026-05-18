@@ -102,7 +102,7 @@ export default function DesktopHeader() {
   const { appName } = useOrgBranding();
 
   const fallbackTitle = getPageTitle(location);
-  const title = contextTitle || (fallbackTitle === "My Perfect Meals" ? appName : fallbackTitle);
+  const title = contextTitle || (fallbackTitle === "Signature Kitchen Experience" ? appName : fallbackTitle);
   const planLabel = getPlanLabel(user?.planLookupKey);
 
   return (

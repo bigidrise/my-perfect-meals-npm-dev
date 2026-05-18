@@ -3658,7 +3658,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/meals/craving-creator", async (req, res) => {
     try {
-      const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode, dietAdaptOverride, userDietOverride, cultureOverride } = req.body;
+      const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode, dietAdaptOverride, userDietOverride, cultureOverride, kitchenSlug } = req.body;
 
       // Adaptation block is built AFTER user is fetched (so we know their actual diet).
       // Start with the raw input — the safety check at line 3441 runs on clean input.
@@ -3825,13 +3825,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let scannedOptions = cleanOptions;
 
       // Creator System 2-pass transformation — applied AFTER all safety/protocol filters.
-      // Modifies only name, description, instructions. Macros, ingredients, servings untouched.
+      // If kitchenSlug is provided, the kitchen config takes priority over the user's own active system.
+      // Modifies only name, description, instructions. Macros, ingredients, servings NEVER touched.
       if (user) {
         try {
           const { resolveActiveSystem } = await import("./services/creatorSystems/resolver");
           const { applyCreatorTransformation } = await import("./services/creatorSystems/applyCreatorTransformation");
-          const creatorSystem = resolveActiveSystem(user);
-          if (creatorSystem.id !== "default" && creatorSystem.stylePrompt) {
+          const { resolveKitchenSystem } = await import("./services/creatorSystems/resolveKitchenSystem");
+
+          let creatorSystem = resolveActiveSystem(user);
+
+          // Kitchen overlay: kitchen slug takes priority over user's personal active system
+          if (kitchenSlug && typeof kitchenSlug === "string" && kitchenSlug.trim()) {
+            const kitchenSystem = await resolveKitchenSystem(kitchenSlug.trim());
+            if (kitchenSystem) {
+              creatorSystem = kitchenSystem;
+              console.log(`[Kitchen] Style overlay applied: ${kitchenSlug}`);
+            } else {
+              console.warn(`[Kitchen] Slug "${kitchenSlug}" not found or inactive — falling back to user system`);
+            }
+          }
+
+          if (creatorSystem.id !== "default") {
             scannedOptions = await Promise.all(
               scannedOptions.map(meal => applyCreatorTransformation(meal, creatorSystem, "meal"))
             );
