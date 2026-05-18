@@ -526,8 +526,12 @@ import { requireAdmin } from "./middleware/requireAdmin";
 app.use("/api/admin", requireAuth, requireAdmin, adminRouter);
 import adminChefKitchensRouter from "./routes/adminChefKitchens";
 app.use("/api/admin/chef-kitchens", requireAuth, requireAdmin, adminChefKitchensRouter);
+import adminSignatureLibraryRouter from "./routes/adminSignatureLibrary";
+app.use("/api/admin/chef-kitchens", requireAuth, requireAdmin, adminSignatureLibraryRouter);
 import kitchensRouter from "./routes/kitchens";
 app.use("/api/kitchens", requireAuth, kitchensRouter);
+import kitchenLibraryRouter from "./routes/kitchenLibrary";
+app.use("/api/kitchens", requireAuth, kitchenLibraryRouter);
 
 // Initialize SMS worker (side-effect import)
 import "./workers/smsWorker";
