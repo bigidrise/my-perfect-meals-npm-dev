@@ -221,8 +221,8 @@ export default function LifestyleLandingPage() {
                           <div className="flex-1 min-w-0">
                             <h3 className="text-sm font-semibold text-white">{k.displayName}</h3>
                             {k.bio && <p className="text-xs text-white/60 truncate">{k.bio}</p>}
-                            {k.cuisineTypes.length > 0 && (
-                              <p className="text-[10px] text-orange-400/70 mt-0.5">{k.cuisineTypes.slice(0, 3).join(" · ")}</p>
+                            {(k.cuisineTypes ?? []).length > 0 && (
+                              <p className="text-[10px] text-orange-400/70 mt-0.5">{(k.cuisineTypes ?? []).slice(0, 3).join(" · ")}</p>
                             )}
                           </div>
                           <ArrowRight className="h-4 w-4 text-orange-400 flex-shrink-0" />
