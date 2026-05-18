@@ -671,6 +671,26 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
       "Welcome to the Sushi Creator. This is where you build healthier versions of the sushi and Japanese dishes you love. Whether you are craving a classic roll, a poke bowl, or something more creative, just describe what you want and the system takes care of the rest. Every creation is built around your nutrition goals, so macros, calories, and protein are all part of the equation. Your dietary profile travels with you here, so allergies, restrictions, and health settings are all respected automatically. If you have saved a food culture in your profile, it will guide the ingredient choices and cooking style the app uses. You can adjust your servings, save anything you enjoy, and add it straight to your meal plan or shopping list. Just describe your craving, set your servings, and tap Create.",
     autoClose: true,
   },
+
+  "/kitchens": {
+    pageId: "kitchen-network-hub",
+    title: "The Kitchen Network",
+    description:
+      "Discover Signature Kitchens built by real chefs and culinary creators. Every kitchen extends a chef's actual style into personalized meals — shaped by their flavors and techniques, adapted to your health goals.",
+    spokenText:
+      "Welcome to The Kitchen Network. This is where culinary identity meets adaptive personalization inside My Perfect Meals. Signature Kitchens are branded culinary spaces built by real chefs, coaches, and food creators — people whose culinary voice is now embedded into the platform. When you cook inside a Signature Kitchen, every meal you generate is shaped by that chef's actual style — their flavors, their techniques, their philosophy — adapted to your dietary needs and health goals at the same time. You can browse the available kitchens, explore a chef's signature library, and generate personalized dishes in their voice. The platform handles your health protocols automatically, so your allergies, dietary restrictions, and clinical guidelines are always respected, no matter whose kitchen you are cooking in. If you are a chef or culinary creator yourself, tap Start Here to take the Kitchen CoPilot walkthrough, which will walk you through exactly how a Signature Kitchen works and how to open your own.",
+    autoClose: true,
+  },
+
+  "/kitchen/:slug": {
+    pageId: "signature-kitchen",
+    title: "Signature Kitchen",
+    description:
+      "You are inside a Signature Kitchen. Browse the chef's library, explore their collections, and generate personalized meals in their culinary style.",
+    spokenText:
+      "You are now inside a Signature Kitchen. This is a branded culinary space built around a real chef's identity — their dishes, their techniques, their flavor philosophy. You can browse the chef's signature library to explore the dishes and recipes that define their style. If you see collections, those are curated groupings the chef has organized around themes, occasions, or ingredients. When you are ready to create, tap Create With Chef to generate a personalized meal in this kitchen's style. The platform will honor your dietary restrictions, allergies, and health protocols automatically — the chef's style influences the flavor and technique, while your personal settings keep everything safe and relevant to your goals.",
+    autoClose: true,
+  },
 };
 
 export function getPageExplanation(pathname: string): PageExplanation | null {

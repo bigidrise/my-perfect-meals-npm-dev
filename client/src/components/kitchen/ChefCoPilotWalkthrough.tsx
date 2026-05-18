@@ -1,23 +1,23 @@
 // client/src/components/kitchen/ChefCoPilotWalkthrough.tsx
 // 9-step guided walkthrough for chef/partner onboarding on the Signature Kitchen Hub.
-// Phase 1 narration: browser SpeechSynthesis. Architecture allows swap to ElevenLabs/OpenAI.
+// Voice narration uses the same ElevenLabs TTS service as the rest of the app CoPilot.
 // Dismiss:    localStorage key  mpm.dismiss.chefCoPilotWalkthrough
 // Narration:  localStorage key  mpm.copilot.narration.enabled
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChefHat, BookOpen, Wand2, ShieldCheck, Globe, Sparkles,
   TrendingUp, Handshake, ArrowRight, ChevronLeft, ChevronRight,
   X, Volume2, VolumeX, Pause, Play,
 } from "lucide-react";
+import { ttsService } from "@/lib/tts";
 
-const DISMISS_KEY    = "mpm.dismiss.chefCoPilotWalkthrough";
-const NARRATION_KEY  = "mpm.copilot.narration.enabled";
+const DISMISS_KEY   = "mpm.dismiss.chefCoPilotWalkthrough";
+const NARRATION_KEY = "mpm.copilot.narration.enabled";
 
-// ── Narration text per step ─────────────────────────────────────────────────
-// Deliberately written as spoken sentences, not read-aloud text blocks.
-// Pause cues come naturally from punctuation in the TTS engine.
+// ── Narration scripts ───────────────────────────────────────────────────────
+// Written as spoken sentences for the ElevenLabs CoPilot voice.
 const NARRATION_SCRIPTS = [
   "Welcome to the Kitchen Network. A Signature Kitchen is your permanent branded space inside My Perfect Meals. Your culinary identity — your dishes, your style, your philosophy — lives here, and reaches every user, personalized to their life. Not a recipe page. A living culinary presence.",
   "Your Culinary Library. Your library is your catalog. Real dishes, sauces, techniques, and recipes that define your approach. Every item you add teaches the platform what your kitchen stands for. The richer your library, the more authentically your identity comes through in every meal generated.",
@@ -106,41 +106,6 @@ const STEPS: Step[] = [
   },
 ];
 
-// ── SpeechSynthesis engine ──────────────────────────────────────────────────
-// Isolated here so it can be swapped for ElevenLabs / OpenAI TTS in Phase 2.
-// Phase 2 hook: replace `browserSpeak` with an async streaming fetch.
-
-function getPreferredVoice(): SpeechSynthesisVoice | null {
-  if (typeof window === "undefined" || !window.speechSynthesis) return null;
-  const voices = speechSynthesis.getVoices();
-  // Ordered by cinematic/premium quality across platforms
-  const preferred = ["Samantha", "Karen", "Moira", "Victoria", "Fiona", "Zira", "Microsoft Zira"];
-  for (const name of preferred) {
-    const v = voices.find(v => v.name.includes(name) && v.lang.startsWith("en"));
-    if (v) return v;
-  }
-  return voices.find(v => v.lang.startsWith("en-")) ?? voices[0] ?? null;
-}
-
-type SpeakOptions = { onEnd?: () => void; onStart?: () => void };
-function browserSpeak(text: string, opts: SpeakOptions = {}): SpeechSynthesisUtterance | null {
-  if (typeof window === "undefined" || !window.speechSynthesis) return null;
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.rate  = 0.88;   // slightly slower = cinematic
-  u.pitch = 0.97;   // ever-so-slightly deeper
-  u.volume = 1.0;
-  const voice = getPreferredVoice();
-  if (voice) u.voice = voice;
-  u.onstart = () => opts.onStart?.();
-  u.onend   = () => opts.onEnd?.();
-  u.onerror = () => opts.onEnd?.();  // treat error as end so state doesn't get stuck
-  speechSynthesis.speak(u);
-  return u;
-}
-
-// ── Component ───────────────────────────────────────────────────────────────
-
 type Props = {
   isOpen: boolean;
   onClose: () => void;
@@ -149,15 +114,16 @@ type Props = {
   onContact: () => void;
 };
 
-type NarrationState = "off" | "speaking" | "paused";
+type NarrationState = "idle" | "loading" | "playing" | "paused";
 
 export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBook, onContact }: Props) {
   const [step, setStep] = useState(0);
   const [narrationEnabled, setNarrationEnabled] = useState<boolean>(
     () => localStorage.getItem(NARRATION_KEY) === "true",
   );
-  const [narrationState, setNarrationState] = useState<NarrationState>("off");
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const [narrationState, setNarrationState] = useState<NarrationState>("idle");
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioBlobUrlRef = useRef<string | null>(null);
 
   const current = STEPS[step];
   const Icon    = current.icon;
@@ -165,54 +131,102 @@ export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBoo
   const isLast  = step === STEPS.length - 1;
   const progress = ((step + 1) / STEPS.length) * 100;
 
-  // ── Narration control ──────────────────────────────────────────────────────
-  const stopNarration = useCallback(() => {
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      speechSynthesis.cancel();
+  // ── Audio cleanup ───────────────────────────────────────────────────────────
+  function stopAudio() {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current.src = "";
     }
-    setNarrationState("off");
-  }, []);
+    if (audioBlobUrlRef.current) {
+      URL.revokeObjectURL(audioBlobUrlRef.current);
+      audioBlobUrlRef.current = null;
+    }
+    setNarrationState("idle");
+  }
 
-  const speakCurrentStep = useCallback((stepIndex: number) => {
+  // ── Speak a step via ElevenLabs (same ttsService as app CoPilot) ────────────
+  async function speakStep(stepIndex: number) {
+    stopAudio();
+    setNarrationState("loading");
     const text = NARRATION_SCRIPTS[stepIndex];
-    setNarrationState("speaking");
-    const u = browserSpeak(text, {
-      onStart: () => setNarrationState("speaking"),
-      onEnd:   () => setNarrationState("off"),
-    });
-    utteranceRef.current = u;
-  }, []);
 
-  // When narration is enabled and step changes, speak the new step
+    try {
+      const result = await ttsService.speak(text, {
+        onStart: () => setNarrationState("playing"),
+        onEnd:   () => setNarrationState("idle"),
+        onError: () => setNarrationState("idle"),
+      });
+
+      if (result.audioUrl) {
+        audioBlobUrlRef.current = result.audioUrl;
+        if (!audioRef.current) {
+          audioRef.current = new Audio();
+        }
+        const audio = audioRef.current;
+        audio.src = result.audioUrl;
+        audio.onplay  = () => setNarrationState("playing");
+        audio.onended = () => setNarrationState("idle");
+        audio.onerror = () => setNarrationState("idle");
+        audio.onpause = () => {
+          // Only mark paused if not at the end
+          if (!audio.ended) setNarrationState("paused");
+        };
+        await audio.play();
+      } else {
+        // Silent mode (ElevenLabs unavailable) — just stay idle
+        setNarrationState("idle");
+      }
+    } catch {
+      setNarrationState("idle");
+    }
+  }
+
+  function pauseAudio() {
+    audioRef.current?.pause();
+    setNarrationState("paused");
+  }
+
+  function resumeAudio() {
+    audioRef.current?.play();
+    setNarrationState("playing");
+  }
+
+  function replayAudio() {
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play();
+      setNarrationState("playing");
+    } else {
+      speakStep(step);
+    }
+  }
+
+  // ── Step change: re-narrate if enabled ─────────────────────────────────────
   useEffect(() => {
     if (!isOpen) return;
-    if (narrationEnabled) {
-      speakCurrentStep(step);
-    } else {
-      stopNarration();
-    }
+    if (narrationEnabled) speakStep(step);
+    else stopAudio();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, isOpen]);
 
-  // When narration is toggled on mid-walkthrough, start speaking immediately
+  // ── Narration toggle ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) return;
     if (narrationEnabled) {
-      speakCurrentStep(step);
+      speakStep(step);
     } else {
-      stopNarration();
+      stopAudio();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [narrationEnabled]);
 
-  // Stop narration when panel closes
+  // ── Close: stop audio ──────────────────────────────────────────────────────
   useEffect(() => {
-    if (!isOpen) {
-      stopNarration();
-    }
-  }, [isOpen, stopNarration]);
+    if (!isOpen) stopAudio();
+  }, [isOpen]);
 
-  // Reset to step 0 each time the sheet opens
+  // ── Reset step on open ─────────────────────────────────────────────────────
   useEffect(() => {
     if (isOpen) setStep(0);
   }, [isOpen]);
@@ -223,41 +237,20 @@ export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBoo
     setNarrationEnabled(next);
   }
 
-  function handlePause() {
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      speechSynthesis.pause();
-    }
-    setNarrationState("paused");
-  }
-
-  function handleResume() {
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      speechSynthesis.resume();
-    }
-    setNarrationState("speaking");
-  }
-
-  function handleReplay() {
-    speakCurrentStep(step);
-  }
-
   function handleClose() {
-    stopNarration();
+    stopAudio();
     localStorage.setItem(DISMISS_KEY, "true");
     onClose();
   }
 
   function goToStep(next: number) {
-    stopNarration();
+    stopAudio();
     setStep(next);
-    // The step useEffect will fire narration if enabled
   }
 
-  // ── Narration button UI ────────────────────────────────────────────────────
-  // Three micro-states: off / speaking / paused
+  // ── Narration controls ─────────────────────────────────────────────────────
   function NarrationControls() {
     if (!narrationEnabled) {
-      // Off → single speaker-off icon, tap to enable
       return (
         <button
           type="button"
@@ -271,11 +264,35 @@ export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBoo
       );
     }
 
-    if (narrationState === "speaking") {
-      // Speaking → animated pulse dot + pause button
+    if (narrationState === "loading") {
       return (
         <div className="flex items-center gap-1.5">
-          {/* Animated waveform indicator */}
+          <div className="flex items-center gap-0.5 h-4">
+            {[0, 1, 2].map(i => (
+              <motion.div
+                key={i}
+                className="w-0.5 rounded-full"
+                style={{ backgroundColor: "#ea580c60" }}
+                animate={{ height: ["3px", "10px", "3px"] }}
+                transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15, ease: "easeInOut" }}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={toggleNarration}
+            className="p-1.5 rounded-full active:scale-95"
+            style={{ backgroundColor: "#ffffff08" }}
+          >
+            <VolumeX className="h-3 w-3 text-white/30" />
+          </button>
+        </div>
+      );
+    }
+
+    if (narrationState === "playing") {
+      return (
+        <div className="flex items-center gap-1.5">
           <div className="flex items-center gap-0.5 h-4">
             {[0, 1, 2].map(i => (
               <motion.div
@@ -283,20 +300,15 @@ export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBoo
                 className="w-0.5 rounded-full"
                 style={{ backgroundColor: "#ea580c" }}
                 animate={{ height: ["4px", "12px", "4px"] }}
-                transition={{
-                  duration: 0.7,
-                  repeat: Infinity,
-                  delay: i * 0.15,
-                  ease: "easeInOut",
-                }}
+                transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.15, ease: "easeInOut" }}
               />
             ))}
           </div>
           <button
             type="button"
-            onClick={handlePause}
-            title="Pause narration"
-            className="p-1.5 rounded-full transition-transform active:scale-95"
+            onClick={pauseAudio}
+            title="Pause"
+            className="p-1.5 rounded-full active:scale-95"
             style={{ backgroundColor: "#ea580c22" }}
           >
             <Pause className="h-3 w-3 text-orange-400" />
@@ -304,8 +316,8 @@ export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBoo
           <button
             type="button"
             onClick={toggleNarration}
-            title="Turn off narration"
-            className="p-1.5 rounded-full transition-transform active:scale-95"
+            title="Turn off"
+            className="p-1.5 rounded-full active:scale-95"
             style={{ backgroundColor: "#ffffff08" }}
           >
             <VolumeX className="h-3 w-3 text-white/30" />
@@ -315,14 +327,13 @@ export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBoo
     }
 
     if (narrationState === "paused") {
-      // Paused → resume + mute options
       return (
         <div className="flex items-center gap-1.5">
           <button
             type="button"
-            onClick={handleResume}
-            title="Resume narration"
-            className="p-1.5 rounded-full transition-transform active:scale-95"
+            onClick={resumeAudio}
+            title="Resume"
+            className="p-1.5 rounded-full active:scale-95"
             style={{ backgroundColor: "#ea580c22" }}
           >
             <Play className="h-3 w-3 text-orange-400" />
@@ -330,8 +341,8 @@ export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBoo
           <button
             type="button"
             onClick={toggleNarration}
-            title="Turn off narration"
-            className="p-1.5 rounded-full transition-transform active:scale-95"
+            title="Turn off"
+            className="p-1.5 rounded-full active:scale-95"
             style={{ backgroundColor: "#ffffff08" }}
           >
             <VolumeX className="h-3 w-3 text-white/30" />
@@ -340,14 +351,14 @@ export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBoo
       );
     }
 
-    // Narration enabled but idle (finished or not yet started) → show replay + mute
+    // idle + narration enabled → replay button
     return (
       <div className="flex items-center gap-1.5">
         <button
           type="button"
-          onClick={handleReplay}
-          title="Replay narration"
-          className="p-1.5 rounded-full transition-transform active:scale-95"
+          onClick={replayAudio}
+          title="Replay"
+          className="p-1.5 rounded-full active:scale-95"
           style={{ backgroundColor: "#ea580c22" }}
         >
           <Volume2 className="h-3.5 w-3.5 text-orange-400" />
@@ -356,7 +367,7 @@ export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBoo
           type="button"
           onClick={toggleNarration}
           title="Turn off narration"
-          className="p-1.5 rounded-full transition-transform active:scale-95"
+          className="p-1.5 rounded-full active:scale-95"
           style={{ backgroundColor: "#ffffff08" }}
         >
           <VolumeX className="h-3 w-3 text-white/30" />
@@ -410,19 +421,15 @@ export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBoo
                 <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-orange-500/70">
                   Kitchen CoPilot
                 </span>
-                {/* Narration label when active */}
-                {narrationEnabled && (
+                {narrationEnabled && narrationState !== "idle" && (
                   <span className="text-[9px] font-medium uppercase tracking-widest text-orange-400/50">
-                    Narration
+                    {narrationState === "loading" ? "Loading…" : narrationState === "playing" ? "Narrating" : "Paused"}
                   </span>
                 )}
               </div>
 
               <div className="flex items-center gap-2">
-                {/* Narration controls */}
                 <NarrationControls />
-
-                {/* Close */}
                 <button
                   type="button"
                   onClick={handleClose}
@@ -447,18 +454,14 @@ export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBoo
                   {current.eyebrow}
                 </p>
 
-                {/* Icon + title — subtle orange ring when narrating */}
+                {/* Icon + title */}
                 <div className="flex items-start gap-4">
                   <div
                     className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all duration-500"
                     style={{
                       background: "linear-gradient(135deg, #ea580c18 0%, #7c2d1210 100%)",
-                      border: narrationState === "speaking"
-                        ? "1.5px solid #ea580c70"
-                        : "1px solid #ea580c30",
-                      boxShadow: narrationState === "speaking"
-                        ? "0 0 12px #ea580c25"
-                        : "none",
+                      border: narrationState === "playing" ? "1.5px solid #ea580c70" : "1px solid #ea580c30",
+                      boxShadow: narrationState === "playing" ? "0 0 12px #ea580c25" : "none",
                     }}
                   >
                     <Icon className={`h-5 w-5 ${current.accentClass}`} />
@@ -469,7 +472,7 @@ export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBoo
                 {/* Body */}
                 <p
                   className="text-sm leading-relaxed transition-colors duration-300"
-                  style={{ color: narrationState === "speaking" ? "rgba(255,255,255,0.80)" : "rgba(255,255,255,0.65)" }}
+                  style={{ color: narrationState === "playing" ? "rgba(255,255,255,0.80)" : "rgba(255,255,255,0.65)" }}
                 >
                   {current.body}
                 </p>
@@ -559,7 +562,7 @@ export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBoo
                   )}
                 </div>
 
-                {/* Narration footer hint — only shown when narration is off and not yet tried */}
+                {/* Narration off hint */}
                 {!narrationEnabled && (
                   <button
                     type="button"
