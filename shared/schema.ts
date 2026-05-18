@@ -66,7 +66,7 @@ export type { MealLibraryItem, InsertMealLibraryItem, MealLibraryUsage, MealGene
 export { householdProfiles } from "../server/db/schema/householdProfiles";
 export type { HouseholdProfile, InsertHouseholdProfile } from "../server/db/schema/householdProfiles";
 
-export { creatorStatusEnum, creatorTierEnum, creators } from "../server/db/schema/creators";
+export { creatorStatusEnum, creatorTierEnum, creatorSourceEnum, creatorCategoryEnum, creators } from "../server/db/schema/creators";
 export type { Creator, InsertCreator } from "../server/db/schema/creators";
 export { creatorSystemConfigs } from "../server/db/schema/creatorSystemConfigs";
 export type { CreatorSystemConfigRow, InsertCreatorSystemConfig } from "../server/db/schema/creatorSystemConfigs";
@@ -74,6 +74,10 @@ export { creatorOnboardingSubmissions } from "../server/db/schema/creatorOnboard
 export type { CreatorOnboardingSubmission, InsertCreatorOnboardingSubmission } from "../server/db/schema/creatorOnboardingSubmissions";
 export { creatorMeals } from "../server/db/schema/creatorMeals";
 export type { CreatorMeal, InsertCreatorMeal } from "../server/db/schema/creatorMeals";
+export { signatureItemKindEnum, chefSignatureItems, chefSignatureCollections, chefSignatureCollectionItems } from "../server/db/schema/chefSignatureLibrary";
+export type { ChefSignatureItem, InsertChefSignatureItem, ChefSignatureCollection, InsertChefSignatureCollection, ChefSignatureCollectionItem } from "../server/db/schema/chefSignatureLibrary";
+export { chefSignatureImports } from "../server/db/schema/chefSignatureImports";
+export type { ChefSignatureImport, NewChefSignatureImport } from "../server/db/schema/chefSignatureImports";
 
 export { 
   professionalSpaceTypeEnum, noteTypeEnum, noteVisibilityEnum, activityActionEnum,

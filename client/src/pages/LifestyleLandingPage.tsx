@@ -1,6 +1,8 @@
 import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Sparkles,
@@ -11,6 +13,7 @@ import {
   Lock,
   Star,
   ArrowRight,
+  Plus,
 } from "lucide-react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useFreeLock } from "@/hooks/useFreeLock";
@@ -28,11 +31,36 @@ interface AIFeature {
   badge?: "emotion" | "behavioral";
 }
 
+type FeaturedKitchen = {
+  slug: string;
+  displayName: string;
+  bio: string | null;
+  logoUrl: string | null;
+  heroImageUrl: string | null;
+  isFeatured: boolean;
+  isActive: boolean;
+  creatorCategory: string;
+  cuisineTypes: string[];
+  flavorProfiles: string[];
+};
+
 export default function LifestyleLandingPage() {
   const [, setLocation] = useLocation();
   const isDesktop = useIsDesktop();
   const { isFree, showLockModal, lockMessage, guardAction, closeLockModal } = useFreeLock();
   const { user } = useAuth();
+  const [featuredKitchens, setFeaturedKitchens] = useState<FeaturedKitchen[]>([]);
+  const [kitchensIsAdmin, setKitchensIsAdmin] = useState(false);
+
+  useEffect(() => {
+    fetch(apiUrl("/api/kitchens/featured"), { headers: getAuthHeaders() })
+      .then(r => r.ok ? r.json() : { kitchens: [], isAdmin: false })
+      .then(d => {
+        setFeaturedKitchens(d.kitchens ?? []);
+        setKitchensIsAdmin(d.isAdmin ?? false);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     document.title = "Lifestyle | My Perfect Meals";
@@ -144,6 +172,84 @@ export default function LifestyleLandingPage() {
               </p>
             </div>
           </div>
+
+          {/* ── Featured Kitchens — admin only until kitchens go live ── */}
+          {kitchensIsAdmin && <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <ChefHat className="h-4 w-4 text-orange-400" />
+                <h2 className="text-sm font-bold text-white">Featured Kitchens</h2>
+              </div>
+              {featuredKitchens.length > 0 && (
+                <span className="text-[10px] text-white/40">Powered by My Perfect Meals AI</span>
+              )}
+            </div>
+
+            {featuredKitchens.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                {featuredKitchens.map(k => (
+                  <div key={k.slug} className="relative">
+                    <div
+                      className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-60"
+                      style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(251,146,60,0.5), rgba(239,68,68,0.2), rgba(0,0,0,0))" }}
+                    />
+                    <Card
+                      className="relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 hover:scale-[1.02] bg-gradient-to-r from-black via-orange-950/30 to-black backdrop-blur-lg border border-orange-400/30 hover:border-orange-500/50"
+                      onClick={() => setLocation(`/kitchen/${k.slug}`)}
+                    >
+                      {kitchensIsAdmin && !k.isActive && (
+                        <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-black via-amber-900/80 to-black rounded-full border border-amber-500/40 z-10">
+                          <Sparkles className="h-2.5 w-2.5 text-amber-400" />
+                          <span className="text-amber-300 font-semibold text-[8px] tracking-wide">Admin Preview</span>
+                        </div>
+                      )}
+                      {k.isFeatured && k.isActive && (
+                        <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-black via-amber-700/80 to-black rounded-full border border-amber-400/30 z-10">
+                          <Star className="h-2.5 w-2.5 text-amber-400" />
+                          <span className="text-amber-200 font-semibold text-[8px] tracking-wide">Featured</span>
+                        </div>
+                      )}
+                      <CardContent className="p-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-orange-500/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                            {k.logoUrl ? (
+                              <img src={k.logoUrl} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <ChefHat className="h-4 w-4 text-orange-400" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-sm font-semibold text-white">{k.displayName}</h3>
+                            {k.bio && <p className="text-xs text-white/60 truncate">{k.bio}</p>}
+                            {(k.cuisineTypes ?? []).length > 0 && (
+                              <p className="text-[10px] text-orange-400/70 mt-0.5">{(k.cuisineTypes ?? []).slice(0, 3).join(" · ")}</p>
+                            )}
+                          </div>
+                          <ArrowRight className="h-4 w-4 text-orange-400 flex-shrink-0" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <Card className="rounded-xl overflow-hidden bg-black/20 backdrop-blur-lg border border-dashed border-orange-400/20">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-orange-500/10 flex-shrink-0 mt-0.5">
+                      <Plus className="h-4 w-4 text-orange-400/60" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-white/60">Your Chef Kitchen Could Be Here</h3>
+                      <p className="text-xs text-white/30 mt-0.5 leading-relaxed">
+                        Featured kitchens are coming soon. Chefs, brands, and coaches — stay tuned.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>}
 
           {/* ── My Perfect Gatherings premium card ── */}
           <div className="relative">
