@@ -44,9 +44,13 @@ export async function resolveKitchenSystem(slug: string): Promise<CreatorSystemC
         },
         description: cfg.style?.description ?? { tone: "chef", forbidWords: [] },
       },
-      // personaPrompt is attached as an extra field; applyCreatorTransformation reads it
+      // personaPrompt — admin-written chef voice amplifier
       ...(cfg.personaPrompt ? { personaPrompt: cfg.personaPrompt } : {}),
-    } as CreatorSystemConfig & { personaPrompt?: string };
+      // styleFingerprint — dynamic summary derived from published signature items (Phase 2A)
+      ...(cfg.styleFingerprint ? { styleFingerprint: cfg.styleFingerprint } : {}),
+      // cuisine/flavor context from config (passed to fingerprint for enrichment)
+      ...(cfg.cuisineTypes ? { cuisineTypes: cfg.cuisineTypes } : {}),
+    } as CreatorSystemConfig & { personaPrompt?: string; styleFingerprint?: any; cuisineTypes?: string[] };
 
     return system;
   } catch (err) {

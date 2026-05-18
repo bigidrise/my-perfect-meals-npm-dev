@@ -1,5 +1,7 @@
 // server/routes/adminSignatureLibrary.ts
 // Admin CRUD for chef signature items and collections (Phase 1).
+// Phase 2A: Added fingerprint rebuild on publish/unpublish.
+// Phase 2B: Added ownership publish gate for import-sourced items.
 // Mounted at /api/admin/chef-kitchens — requires requireAuth + requireAdmin.
 
 import { Router } from "express";
@@ -9,6 +11,7 @@ import {
   chefSignatureItems,
   chefSignatureCollections,
   chefSignatureCollectionItems,
+  chefSignatureImports,
 } from "@shared/schema";
 import { eq, and, asc } from "drizzle-orm";
 import { z } from "zod";
@@ -124,6 +127,21 @@ router.patch("/:slug/items/:itemId", async (req, res) => {
     if (d.isFeatured !== undefined) update.isFeatured = d.isFeatured;
     if (d.sortOrder !== undefined) update.sortOrder = d.sortOrder;
     if (d.isPublished !== undefined) {
+      // OWNERSHIP GATE (Phase 2B): if trying to publish, check if this item came from an
+      // unconfirmed import. ownership_confirmed must be true before a sourced item can go live.
+      if (d.isPublished === true) {
+        const [linkedImport] = await db
+          .select({ id: chefSignatureImports.id, ownershipConfirmed: chefSignatureImports.ownershipConfirmed })
+          .from(chefSignatureImports)
+          .where(eq(chefSignatureImports.parsedItemId, itemId))
+          .limit(1);
+        if (linkedImport && !linkedImport.ownershipConfirmed) {
+          return res.status(403).json({
+            error: "OWNERSHIP_NOT_CONFIRMED",
+            message: "This item was created from an import. You must confirm ownership before publishing.",
+          });
+        }
+      }
       update.isPublished = d.isPublished;
       if (d.isPublished) update.publishedAt = new Date();
     }
@@ -132,6 +150,16 @@ router.patch("/:slug/items/:itemId", async (req, res) => {
       .update(chefSignatureItems)
       .set(update)
       .where(and(eq(chefSignatureItems.id, itemId), eq(chefSignatureItems.creatorId, creator.id)));
+
+    // FINGERPRINT REBUILD (Phase 2A): triggered whenever publish state changes.
+    // Fires async — does not block the response.
+    if (d.isPublished !== undefined) {
+      import("../services/creatorSystems/buildChefFingerprint").then(({ rebuildAndStoreFingerprint }) => {
+        rebuildAndStoreFingerprint(slug).catch(err =>
+          console.error("[AdminLib] fingerprint rebuild failed:", err)
+        );
+      }).catch(() => {});
+    }
 
     return res.json({ success: true });
   } catch (err: any) {
