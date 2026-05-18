@@ -6,6 +6,9 @@ import { db } from "../db";
 import { creators, creatorSystemConfigs, users } from "@shared/schema";
 import { eq, and, asc } from "drizzle-orm";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
+import { sendEmail } from "../emailService";
+
+const PARTNERSHIPS_EMAIL = "partnerships@myperfectmeals.com";
 
 const router = Router();
 
@@ -136,6 +139,104 @@ router.get("/:slug", async (req, res) => {
   } catch (err: any) {
     console.error("[Kitchens] get error:", err);
     return res.status(500).json({ error: "Failed to fetch kitchen" });
+  }
+});
+
+// POST /api/kitchens/partner-inquiry
+// Receives a 5-step partnership intake form and emails the partnerships team.
+// No auth required — prospective partners may not have accounts.
+router.post("/partner-inquiry", async (req, res) => {
+  try {
+    const {
+      fullName, chefBrandName, email, phone, location,
+      cuisineFocus, cookingPhilosophy, signatureStyles, wellnessPhilosophy,
+      youtube, instagram, tiktok, website,
+      partnershipTypes,
+    } = req.body;
+
+    if (!fullName || !email) {
+      return res.status(400).json({ message: "Name and email are required." });
+    }
+
+    const lines = [
+      `== Signature Kitchen Partnership Application ==`,
+      ``,
+      `Name:          ${fullName}`,
+      `Brand:         ${chefBrandName || "(not provided)"}`,
+      `Email:         ${email}`,
+      `Phone:         ${phone || "(not provided)"}`,
+      `Location:      ${location || "(not provided)"}`,
+      ``,
+      `-- Culinary Identity --`,
+      `Cuisine Focus:       ${cuisineFocus || "(not provided)"}`,
+      `Cooking Philosophy:  ${cookingPhilosophy || "(not provided)"}`,
+      `Signature Styles:    ${signatureStyles || "(not provided)"}`,
+      `Wellness Philosophy: ${wellnessPhilosophy || "(not provided)"}`,
+      ``,
+      `-- Platform Presence --`,
+      `YouTube:   ${youtube || "(not provided)"}`,
+      `Instagram: ${instagram || "(not provided)"}`,
+      `TikTok:    ${tiktok || "(not provided)"}`,
+      `Website:   ${website || "(not provided)"}`,
+      ``,
+      `-- Partnership Interest --`,
+      `Types: ${Array.isArray(partnershipTypes) ? partnershipTypes.join(", ") : "(not provided)"}`,
+    ];
+
+    const text = lines.join("\n");
+    const html = `<pre style="font-family:monospace;font-size:13px;line-height:1.7">${text}</pre>`;
+
+    await sendEmail({
+      to: PARTNERSHIPS_EMAIL,
+      subject: `Kitchen Partnership Application — ${fullName}${chefBrandName ? ` (${chefBrandName})` : ""}`,
+      text,
+      html,
+    });
+
+    console.log(`[Kitchens] Partner inquiry received from ${email}`);
+    return res.json({ ok: true });
+  } catch (err: any) {
+    console.error("[Kitchens] partner-inquiry error:", err);
+    return res.status(500).json({ message: "Failed to submit application. Please try again." });
+  }
+});
+
+// POST /api/kitchens/contact-inquiry
+// General partnerships contact form.
+router.post("/contact-inquiry", async (req, res) => {
+  try {
+    const { name, email, company, subject, message } = req.body;
+
+    if (!name || !email || !message) {
+      return res.status(400).json({ message: "Name, email, and message are required." });
+    }
+
+    const text = [
+      `== Kitchen Network Contact Form ==`,
+      ``,
+      `Name:    ${name}`,
+      `Email:   ${email}`,
+      `Company: ${company || "(not provided)"}`,
+      `Subject: ${subject || "(not provided)"}`,
+      ``,
+      `Message:`,
+      message,
+    ].join("\n");
+
+    const html = `<pre style="font-family:monospace;font-size:13px;line-height:1.7">${text}</pre>`;
+
+    await sendEmail({
+      to: PARTNERSHIPS_EMAIL,
+      subject: `Kitchen Network Inquiry${subject ? ` — ${subject}` : ""} — ${name}`,
+      text,
+      html,
+    });
+
+    console.log(`[Kitchens] Contact inquiry received from ${email}`);
+    return res.json({ ok: true });
+  } catch (err: any) {
+    console.error("[Kitchens] contact-inquiry error:", err);
+    return res.status(500).json({ message: "Failed to send message. Please try again." });
   }
 });
 
