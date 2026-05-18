@@ -74,7 +74,7 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
+      <label className="text-[11px] font-semibold uppercase tracking-widest text-white/80">
         {label}{required && <span className="text-orange-500 ml-0.5">*</span>}
       </label>
       <input
@@ -103,7 +103,7 @@ function Textarea({
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{label}</label>
+      <label className="text-[11px] font-semibold uppercase tracking-widest text-white/80">{label}</label>
       <textarea
         value={value}
         onChange={e => onChange(e.target.value)}
@@ -231,10 +231,10 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
             {/* Header */}
             <div className="flex-shrink-0 px-6 pt-5 pb-3 flex items-center justify-between">
               <div>
-                <p className="text-[9px] font-black uppercase tracking-[0.35em] text-orange-500/60">
+                <p className="text-[9px] font-black uppercase tracking-[0.35em] text-orange-500/90">
                   Partnership Review
                 </p>
-                <p className="text-[11px] text-white/30 mt-0.5">{STEPS[step].eyebrow} — {STEPS[step].label}</p>
+                <p className="text-[11px] text-white/70 mt-0.5">{STEPS[step].eyebrow} — {STEPS[step].label}</p>
               </div>
               <button type="button" onClick={handleClose}
                 className="p-1.5 rounded-full bg-white/8 text-white/40 active:scale-95 transition-transform">
@@ -256,7 +256,7 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                     <>
                       <div className="space-y-1 mb-5">
                         <h2 className="text-xl font-bold text-white">Tell us about yourself.</h2>
-                        <p className="text-xs text-white/35 leading-relaxed">Basic identity and contact information.</p>
+                        <p className="text-xs text-white/70 leading-relaxed">Basic identity and contact information.</p>
                       </div>
                       <Field label="Full Name" value={form.fullName} onChange={set("fullName")} placeholder="Your full name" required />
                       <Field label="Chef / Brand Name" value={form.chefBrandName} onChange={set("chefBrandName")} placeholder="Your public culinary brand" />
@@ -271,7 +271,7 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                     <>
                       <div className="space-y-1 mb-5">
                         <h2 className="text-xl font-bold text-white">Your culinary identity.</h2>
-                        <p className="text-xs text-white/35 leading-relaxed">This shapes how your kitchen is built inside the platform.</p>
+                        <p className="text-xs text-white/70 leading-relaxed">This shapes how your kitchen is built inside the platform.</p>
                       </div>
                       <Field label="Cuisine Focus" value={form.cuisineFocus} onChange={set("cuisineFocus")} placeholder="e.g. Southern, Japanese, Mediterranean" />
                       <Textarea label="Cooking Philosophy" value={form.cookingPhilosophy} onChange={set("cookingPhilosophy")}
@@ -288,10 +288,10 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                     <>
                       <div className="space-y-1 mb-5">
                         <h2 className="text-xl font-bold text-white">Where is your audience?</h2>
-                        <p className="text-xs text-white/35 leading-relaxed">Share your social and web presence. All fields optional.</p>
+                        <p className="text-xs text-white/70 leading-relaxed">Share your social and web presence. All fields optional.</p>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[11px] font-semibold uppercase tracking-widest text-white/40 flex items-center gap-1.5">
+                        <label className="text-[11px] font-semibold uppercase tracking-widest text-white/80 flex items-center gap-1.5">
                           <Youtube className="h-3 w-3" /> YouTube
                         </label>
                         <input type="url" value={form.youtube} onChange={e => set("youtube")(e.target.value)}
@@ -302,7 +302,7 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                           onBlur={e => { e.currentTarget.style.borderColor = "#ffffff14"; }} />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[11px] font-semibold uppercase tracking-widest text-white/40 flex items-center gap-1.5">
+                        <label className="text-[11px] font-semibold uppercase tracking-widest text-white/80 flex items-center gap-1.5">
                           <Instagram className="h-3 w-3" /> Instagram
                         </label>
                         <input type="url" value={form.instagram} onChange={e => set("instagram")(e.target.value)}
@@ -313,7 +313,7 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                           onBlur={e => { e.currentTarget.style.borderColor = "#ffffff14"; }} />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[11px] font-semibold uppercase tracking-widest text-white/40">TikTok</label>
+                        <label className="text-[11px] font-semibold uppercase tracking-widest text-white/80">TikTok</label>
                         <input type="url" value={form.tiktok} onChange={e => set("tiktok")(e.target.value)}
                           placeholder="https://tiktok.com/@yourhandle"
                           className="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none"
@@ -322,7 +322,7 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                           onBlur={e => { e.currentTarget.style.borderColor = "#ffffff14"; }} />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[11px] font-semibold uppercase tracking-widest text-white/40 flex items-center gap-1.5">
+                        <label className="text-[11px] font-semibold uppercase tracking-widest text-white/80 flex items-center gap-1.5">
                           <Globe className="h-3 w-3" /> Website
                         </label>
                         <input type="url" value={form.website} onChange={e => set("website")(e.target.value)}
@@ -340,7 +340,7 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                     <>
                       <div className="space-y-1 mb-5">
                         <h2 className="text-xl font-bold text-white">What interests you?</h2>
-                        <p className="text-xs text-white/35 leading-relaxed">Select all that apply. You can have more than one.</p>
+                        <p className="text-xs text-white/70 leading-relaxed">Select all that apply. You can have more than one.</p>
                       </div>
                       <div className="space-y-2.5">
                         {PARTNERSHIP_OPTIONS.map(opt => {
@@ -360,7 +360,7 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                                 <p className="text-sm font-semibold" style={{ color: selected ? "#fb923c" : "rgba(255,255,255,0.75)" }}>
                                   {opt.label}
                                 </p>
-                                <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>{opt.desc}</p>
+                                <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.75)" }}>{opt.desc}</p>
                               </div>
                             </button>
                           );
@@ -374,14 +374,14 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                     <>
                       <div className="space-y-1 mb-5">
                         <h2 className="text-xl font-bold text-white">Ready to submit.</h2>
-                        <p className="text-xs text-white/35 leading-relaxed">
+                        <p className="text-xs text-white/70 leading-relaxed">
                           Our partnerships team reviews every application personally. You'll hear from us within 3–5 business days.
                         </p>
                       </div>
 
                       {/* Summary */}
                       <div className="rounded-xl p-4 space-y-2" style={{ background: "#ffffff06", border: "1px solid #ffffff10" }}>
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">Application Summary</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/65">Application Summary</p>
                         {form.fullName && <SummaryRow label="Name" value={form.fullName} />}
                         {form.chefBrandName && <SummaryRow label="Brand" value={form.chefBrandName} />}
                         {form.email && <SummaryRow label="Email" value={form.email} />}
@@ -395,7 +395,7 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                       </div>
 
                       <div className="rounded-xl p-4" style={{ background: "#ea580c0d", border: "1px solid #ea580c22" }}>
-                        <p className="text-xs text-white/40 leading-relaxed">
+                        <p className="text-xs text-white/70 leading-relaxed">
                           By submitting, you agree that My Perfect Meals may use the information you've provided to evaluate your partnership application. No commitments are made until a formal agreement is signed.
                         </p>
                       </div>
@@ -426,7 +426,7 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                       </div>
                       <div className="space-y-2">
                         <h2 className="text-xl font-bold text-white">Application Received.</h2>
-                        <p className="text-sm text-white/45 leading-relaxed max-w-xs">
+                        <p className="text-sm text-white/80 leading-relaxed max-w-xs">
                           Our partnerships team will review your application and reach out within 3–5 business days. We review every application personally.
                         </p>
                       </div>
@@ -436,7 +436,7 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                         </p>
                       </div>
                       <button type="button" onClick={handleClose}
-                        className="px-8 py-3 rounded-xl text-white/70 font-medium text-sm"
+                        className="px-8 py-3 rounded-xl text-white font-medium text-sm"
                         style={{ backgroundColor: "#ffffff0f", border: "1px solid #ffffff18" }}>
                         Done
                       </button>
@@ -490,8 +490,8 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex gap-2">
-      <span className="text-[11px] text-white/30 w-14 flex-shrink-0">{label}</span>
-      <span className="text-[11px] text-white/60 min-w-0 break-words">{value}</span>
+      <span className="text-[11px] text-white/60 w-14 flex-shrink-0">{label}</span>
+      <span className="text-[11px] text-white min-w-0 break-words">{value}</span>
     </div>
   );
 }
