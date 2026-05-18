@@ -74,6 +74,8 @@ export { creatorOnboardingSubmissions } from "../server/db/schema/creatorOnboard
 export type { CreatorOnboardingSubmission, InsertCreatorOnboardingSubmission } from "../server/db/schema/creatorOnboardingSubmissions";
 export { creatorMeals } from "../server/db/schema/creatorMeals";
 export type { CreatorMeal, InsertCreatorMeal } from "../server/db/schema/creatorMeals";
+export { signatureItemKindEnum, chefSignatureItems, chefSignatureCollections, chefSignatureCollectionItems } from "../server/db/schema/chefSignatureLibrary";
+export type { ChefSignatureItem, InsertChefSignatureItem, ChefSignatureCollection, InsertChefSignatureCollection, ChefSignatureCollectionItem } from "../server/db/schema/chefSignatureLibrary";
 
 export { 
   professionalSpaceTypeEnum, noteTypeEnum, noteVisibilityEnum, activityActionEnum,
