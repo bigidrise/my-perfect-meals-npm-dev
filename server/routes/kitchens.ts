@@ -108,6 +108,7 @@ router.get("/:slug", async (req, res) => {
       isAdmin,
       cuisineTypes: config.cuisineTypes ?? [],
       flavorProfiles: config.style?.flavorProfiles ?? [],
+      techniques: config.style?.techniques ?? [],
       primaryColor: config.primaryColor ?? null,
       accentColor: config.accentColor ?? null,
     });
