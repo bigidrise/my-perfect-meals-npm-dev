@@ -1180,10 +1180,12 @@ export default function ChefsKitchenPage() {
                     <div className="rounded-xl border border-white/20 bg-black/40 p-3">
                       <p className="text-sm font-semibold text-white mb-2">Ingredients</p>
                       <ul className="space-y-1">
-                        {generatedMeal.ingredients.map((ing, i) => (
+                        {(Array.isArray(generatedMeal.ingredients) ? generatedMeal.ingredients : []).map((ing, i) => (
                           <li key={i} className="text-sm text-white/70 flex items-center gap-2">
                             <span className="text-lime-500">•</span>
-                            {ing.amount ?? ing.quantity} {ing.unit} {ing.name}
+                            {typeof ing === "string"
+                              ? ing
+                              : `${(ing.amount ?? ing.quantity) || ""} ${ing.unit || ""} ${ing.name || ""}`.trim()}
                           </li>
                         ))}
                       </ul>
