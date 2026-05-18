@@ -147,7 +147,7 @@ type NarrationState = "idle" | "loading" | "playing" | "paused";
 export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBook, onContact }: Props) {
   const [step, setStep] = useState(0);
   const [narrationEnabled, setNarrationEnabled] = useState<boolean>(
-    () => localStorage.getItem(NARRATION_KEY) === "true",
+    () => localStorage.getItem(NARRATION_KEY) !== "false",
   );
   const [narrationState, setNarrationState] = useState<NarrationState>("idle");
   const audioRef       = useRef<HTMLAudioElement | null>(null);

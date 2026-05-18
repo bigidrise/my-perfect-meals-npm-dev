@@ -233,7 +233,7 @@ export default function SignatureKitchenHubPage() {
               style={{ background: "linear-gradient(135deg, #ea580c 0%, #c2410c 100%)", boxShadow: "0 8px 24px #ea580c30" }}
             >
               <Sparkles className="h-4 w-4" />
-              {hasDismissed ? "Reopen Kitchen Guide" : "Start Here — Kitchen CoPilot"}
+              Inside the Kitchen Network
             </button>
 
             <div className="grid grid-cols-2 gap-2">
