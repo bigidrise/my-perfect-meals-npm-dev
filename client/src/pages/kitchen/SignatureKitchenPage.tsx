@@ -173,12 +173,13 @@ export default function SignatureKitchenPage() {
       </div>
 
       {/* Hero */}
-      <div className="relative w-full overflow-hidden">
+      <div className="relative w-full overflow-hidden bg-black" style={{ maxHeight: "420px" }}>
         {kitchen.heroImageUrl ? (
           <img
             src={kitchen.heroImageUrl}
             alt={kitchen.displayName}
-            className="w-full h-auto block"
+            className="w-full h-full object-contain"
+            style={{ maxHeight: "420px" }}
           />
         ) : (
           <div
