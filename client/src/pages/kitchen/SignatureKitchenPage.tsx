@@ -278,59 +278,52 @@ export default function SignatureKitchenPage() {
             </div>
           </div>
         )}
-        {/* Gradient overlay */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: `linear-gradient(to top, #000 0%, ${primary}22 50%, transparent 100%)`,
-          }}
-        />
+      </div>
 
-        {/* Identity row */}
-        <div className="absolute bottom-5 left-4 right-4">
-          <div className="flex items-end gap-4">
-            {kitchen.logoUrl ? (
-              <img
-                src={kitchen.logoUrl}
-                alt=""
-                className="w-16 h-16 rounded-2xl object-cover flex-shrink-0 shadow-lg"
-                style={{ border: `2px solid ${primary}60` }}
-              />
-            ) : (
-              <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg"
-                style={{
-                  backgroundColor: `${primary}22`,
-                  border: `2px solid ${primary}60`,
-                }}
-              >
-                <ChefHat className="h-8 w-8" style={{ color: primary }} />
+      {/* Identity row — below the hero image, not on top of it */}
+      <div className="px-4 pt-5 pb-2 max-w-xl mx-auto">
+        <div className="flex items-center gap-4">
+          {kitchen.logoUrl ? (
+            <img
+              src={kitchen.logoUrl}
+              alt=""
+              className="w-16 h-16 rounded-2xl object-cover flex-shrink-0 shadow-lg"
+              style={{ border: `2px solid ${primary}60` }}
+            />
+          ) : (
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg"
+              style={{
+                backgroundColor: `${primary}22`,
+                border: `2px solid ${primary}60`,
+              }}
+            >
+              <ChefHat className="h-8 w-8" style={{ color: primary }} />
+            </div>
+          )}
+          <div className="min-w-0">
+            {kitchen.isFeatured && (
+              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/30 mb-1.5">
+                <Sparkles className="h-3 w-3 text-amber-400" />
+                <span className="text-[9px] font-bold uppercase tracking-widest text-amber-300">
+                  Featured Kitchen
+                </span>
               </div>
             )}
-            <div className="min-w-0 pb-1">
-              {kitchen.isFeatured && (
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/30 mb-1.5">
-                  <Sparkles className="h-3 w-3 text-amber-400" />
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-amber-300">
-                    Featured Kitchen
-                  </span>
-                </div>
-              )}
-              <h1 className="text-2xl font-bold text-white leading-tight tracking-tight">
-                {kitchen.displayName}
-              </h1>
-              {kitchen.cuisineTypes.length > 0 && (
-                <p className="text-sm mt-0.5" style={{ color: `${primary}cc` }}>
-                  {kitchen.cuisineTypes.slice(0, 2).join(" · ")}
-                </p>
-              )}
-            </div>
+            <h1 className="text-2xl font-bold text-white leading-tight tracking-tight">
+              {kitchen.displayName}
+            </h1>
+            {kitchen.cuisineTypes.length > 0 && (
+              <p className="text-sm mt-0.5" style={{ color: `${primary}cc` }}>
+                {kitchen.cuisineTypes.slice(0, 2).join(" · ")}
+              </p>
+            )}
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-xl mx-auto px-4 py-4 space-y-6">
 
         {/* Admin Preview Banner */}
         {kitchen.isAdmin && !kitchen.isActive && (
