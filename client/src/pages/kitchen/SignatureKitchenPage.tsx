@@ -19,6 +19,8 @@ type KitchenProfile = {
   creatorCategory: string;
   cuisineTypes: string[];
   flavorProfiles: string[];
+  primaryColor: string | null;
+  accentColor: string | null;
 };
 
 export default function SignatureKitchenPage() {
@@ -185,8 +187,9 @@ export default function SignatureKitchenPage() {
             </p>
             <button
               type="button"
-              onClick={() => setLocation("/lifestyle/create-a-dish")}
-              className="w-full py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm transition-colors active:scale-95"
+              onClick={() => setLocation(`/lifestyle/create-a-dish?kitchen=${kitchen.slug}`)}
+              className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-colors active:scale-95"
+              style={{ backgroundColor: kitchen.primaryColor ?? "#ea580c" }}
             >
               Create a Dish with {kitchen.displayName}
             </button>

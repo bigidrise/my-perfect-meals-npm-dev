@@ -56,6 +56,8 @@ type KitchenFormData = {
   flavorProfiles: string;
   cuisineTypes: string;
   techniques: string;
+  primaryColor: string;
+  accentColor: string;
 };
 
 const BLANK_FORM: KitchenFormData = {
@@ -71,6 +73,8 @@ const BLANK_FORM: KitchenFormData = {
   flavorProfiles: "",
   cuisineTypes: "",
   techniques: "",
+  primaryColor: "",
+  accentColor: "",
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -179,6 +183,8 @@ export default function ChefKitchensAdmin() {
         flavorProfiles: (cfg.style?.flavorProfiles ?? []).join(", "),
         cuisineTypes: (cfg.cuisineTypes ?? []).join(", "),
         techniques: (cfg.style?.techniques ?? []).join(", "),
+        primaryColor: cfg.primaryColor ?? "",
+        accentColor: cfg.accentColor ?? "",
       });
     } catch {
       toast({ title: "Failed to load kitchen config", variant: "destructive" });
@@ -201,6 +207,8 @@ export default function ChefKitchensAdmin() {
       flavorProfiles: form.flavorProfiles.split(",").map(s => s.trim()).filter(Boolean),
       cuisineTypes: form.cuisineTypes.split(",").map(s => s.trim()).filter(Boolean),
       techniques: form.techniques.split(",").map(s => s.trim()).filter(Boolean),
+      primaryColor: form.primaryColor.trim() || undefined,
+      accentColor: form.accentColor.trim() || undefined,
     };
     try {
       await apiAction("POST", "", payload, `Kitchen "${payload.displayName}" created`);
@@ -222,6 +230,8 @@ export default function ChefKitchensAdmin() {
       flavorProfiles: form.flavorProfiles.split(",").map(s => s.trim()).filter(Boolean),
       cuisineTypes: form.cuisineTypes.split(",").map(s => s.trim()).filter(Boolean),
       techniques: form.techniques.split(",").map(s => s.trim()).filter(Boolean),
+      primaryColor: form.primaryColor.trim() || null,
+      accentColor: form.accentColor.trim() || null,
     };
     try {
       await apiAction("PATCH", `/${editTarget.slug}`, payload, "Saved");
@@ -531,6 +541,45 @@ function KitchenForm({
           value={form.techniques}
           onChange={e => onChange("techniques", e.target.value)}
         />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={labelCls}>Primary Color <span className="text-white/30">(hex)</span></label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              className="w-9 h-9 rounded cursor-pointer bg-transparent border-0 p-0 flex-shrink-0"
+              value={form.primaryColor || "#ea580c"}
+              onChange={e => onChange("primaryColor", e.target.value)}
+            />
+            <input
+              type="text"
+              className={inputCls}
+              placeholder="#ea580c"
+              value={form.primaryColor}
+              onChange={e => onChange("primaryColor", e.target.value)}
+            />
+          </div>
+        </div>
+        <div>
+          <label className={labelCls}>Accent Color <span className="text-white/30">(hex)</span></label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              className="w-9 h-9 rounded cursor-pointer bg-transparent border-0 p-0 flex-shrink-0"
+              value={form.accentColor || "#f97316"}
+              onChange={e => onChange("accentColor", e.target.value)}
+            />
+            <input
+              type="text"
+              className={inputCls}
+              placeholder="#f97316"
+              value={form.accentColor}
+              onChange={e => onChange("accentColor", e.target.value)}
+            />
+          </div>
+        </div>
       </div>
 
       <div>

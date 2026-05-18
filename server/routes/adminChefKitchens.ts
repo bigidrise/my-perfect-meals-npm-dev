@@ -98,6 +98,8 @@ const createSchema = z.object({
   flavorProfiles: z.array(z.string()).optional(),
   cuisineTypes: z.array(z.string()).optional(),
   techniques: z.array(z.string()).optional(),
+  primaryColor: z.string().max(20).optional().nullable(),
+  accentColor: z.string().max(20).optional().nullable(),
 });
 
 router.post("/", async (req, res) => {
@@ -143,6 +145,8 @@ router.post("/", async (req, res) => {
       supports: { meals: true, desserts: true, beverages: true },
       personaPrompt: data.personaPrompt ?? null,
       cuisineTypes: data.cuisineTypes ?? [],
+      primaryColor: data.primaryColor ?? null,
+      accentColor: data.accentColor ?? null,
       style: {
         techniques: data.techniques ?? [],
         flavorProfiles: data.flavorProfiles ?? [],
@@ -187,6 +191,8 @@ const updateSchema = z.object({
   flavorProfiles: z.array(z.string()).optional(),
   cuisineTypes: z.array(z.string()).optional(),
   techniques: z.array(z.string()).optional(),
+  primaryColor: z.string().max(20).optional().nullable(),
+  accentColor: z.string().max(20).optional().nullable(),
 });
 
 router.patch("/:slug", async (req, res) => {
@@ -227,7 +233,9 @@ router.patch("/:slug", async (req, res) => {
       data.personaPrompt !== undefined ||
       data.flavorProfiles !== undefined ||
       data.cuisineTypes !== undefined ||
-      data.techniques !== undefined;
+      data.techniques !== undefined ||
+      data.primaryColor !== undefined ||
+      data.accentColor !== undefined;
 
     if (configChanged) {
       const [configRow] = await db
@@ -248,6 +256,8 @@ router.patch("/:slug", async (req, res) => {
           style: updatedStyle,
           ...(data.personaPrompt !== undefined ? { personaPrompt: data.personaPrompt } : {}),
           ...(data.cuisineTypes !== undefined ? { cuisineTypes: data.cuisineTypes } : {}),
+          ...(data.primaryColor !== undefined ? { primaryColor: data.primaryColor } : {}),
+          ...(data.accentColor !== undefined ? { accentColor: data.accentColor } : {}),
         };
         await db
           .update(creatorSystemConfigs)
