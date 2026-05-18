@@ -173,8 +173,8 @@ export default function LifestyleLandingPage() {
             </div>
           </div>
 
-          {/* ── Featured Kitchens ── */}
-          <div>
+          {/* ── Featured Kitchens — admin only until kitchens go live ── */}
+          {kitchensIsAdmin && <div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <ChefHat className="h-4 w-4 text-orange-400" />
@@ -249,7 +249,7 @@ export default function LifestyleLandingPage() {
                 </CardContent>
               </Card>
             )}
-          </div>
+          </div>}
 
           {/* ── My Perfect Gatherings premium card ── */}
           <div className="relative">
