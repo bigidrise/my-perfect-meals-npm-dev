@@ -150,8 +150,15 @@ export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBoo
     () => localStorage.getItem(NARRATION_KEY) !== "false",
   );
   const [narrationState, setNarrationState] = useState<NarrationState>("idle");
-  const audioRef       = useRef<HTMLAudioElement | null>(null);
-  const blobUrlRef     = useRef<string | null>(null);
+  const audioRef           = useRef<HTMLAudioElement | null>(null);
+  const blobUrlRef         = useRef<string | null>(null);
+  const stepRef            = useRef(step);          // always current step, safe in event handlers
+  const narrationEnabledRef = useRef(narrationEnabled);
+  const autoAdvanceTimer   = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Keep refs in sync
+  useEffect(() => { stepRef.current = step; }, [step]);
+  useEffect(() => { narrationEnabledRef.current = narrationEnabled; }, [narrationEnabled]);
 
   const current  = STEPS[step];
   const Icon     = current.icon;
@@ -159,8 +166,29 @@ export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBoo
   const isLast   = step === STEPS.length - 1;
   const progress = ((step + 1) / STEPS.length) * 100;
 
+  // ── Auto-advance after narration ends ───────────────────────────────────────
+  function scheduleAutoAdvance() {
+    if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
+    autoAdvanceTimer.current = setTimeout(() => {
+      const currentStep = stepRef.current;
+      if (currentStep < STEPS.length - 1 && narrationEnabledRef.current) {
+        setStep(currentStep + 1);
+      } else {
+        setNarrationState("idle");
+      }
+    }, 800);
+  }
+
+  function cancelAutoAdvance() {
+    if (autoAdvanceTimer.current) {
+      clearTimeout(autoAdvanceTimer.current);
+      autoAdvanceTimer.current = null;
+    }
+  }
+
   // ── Audio helpers ───────────────────────────────────────────────────────────
   function stopAudio() {
+    cancelAutoAdvance();
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -189,7 +217,7 @@ export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBoo
         const audio = audioRef.current;
         audio.src     = result.audioUrl;
         audio.onplay  = () => setNarrationState("playing");
-        audio.onended = () => setNarrationState("idle");
+        audio.onended = () => scheduleAutoAdvance();
         audio.onerror = () => setNarrationState("idle");
         audio.onpause = () => { if (!audio.ended) setNarrationState("paused"); };
         await audio.play();
