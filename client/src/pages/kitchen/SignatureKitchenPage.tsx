@@ -173,12 +173,12 @@ export default function SignatureKitchenPage() {
       </div>
 
       {/* Hero */}
-      <div className="relative h-80 w-full overflow-hidden">
+      <div className="relative h-96 w-full overflow-hidden">
         {kitchen.heroImageUrl ? (
           <img
             src={kitchen.heroImageUrl}
             alt={kitchen.displayName}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-top"
           />
         ) : (
           <div
