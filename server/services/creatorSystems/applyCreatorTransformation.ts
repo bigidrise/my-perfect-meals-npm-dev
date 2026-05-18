@@ -1,5 +1,6 @@
 // server/services/creatorSystems/applyCreatorTransformation.ts
 // Phase 2.2 — prompt is built from structured config, not free text.
+// Phase 1 Chef Kitchen — personaPrompt field injected as personality amplifier.
 //
 // CONTRACT:
 //   - ONLY modifies: name, description, instructions
@@ -16,12 +17,10 @@ export type EngineType = "meal" | "dessert" | "beverage";
 function buildCreatorPrompt(system: CreatorSystemConfig, baseMeal: any): string {
   const s = system.style;
 
-  // 1. Default fallback guards — prevents empty/awkward LLM instructions
   const techniques = s.techniques.length ? s.techniques.join(", ") : "standard cooking techniques";
   const flavors = s.flavorProfiles.length ? s.flavorProfiles.join(", ") : "balanced flavors";
   const bias = s.ingredientBias.length ? s.ingredientBias.join(", ") : "no specific ingredient bias";
 
-  // 2. Naming pattern enforcement — explicit instruction based on config
   const namingPatternInstruction = s.naming.pattern === "technique-first"
     ? `The dish name MUST start with the cooking technique (e.g., "Pan-Seared...", "Charred...", "Roasted..."). The technique word must be the first word.`
     : `The dish name should lead with the dominant flavor identity (e.g., "Smoky...", "Citrus-Forward...", "Bold...").`;
@@ -44,11 +43,18 @@ function buildCreatorPrompt(system: CreatorSystemConfig, baseMeal: any): string 
     ? `Forbidden words in description: ${s.description.forbidWords.join(", ")}.`
     : "";
 
+  // Chef Kitchen persona prompt — injected as a voice/identity amplifier above the structured rules.
+  // This is from the admin-configured "personaPrompt" field on chef kitchens.
+  const personaPrompt = (system as any).personaPrompt;
+  const personaBlock = personaPrompt
+    ? `CHEF IDENTITY:\n${personaPrompt}\n\nApply this chef's identity and voice throughout the name, description, and instructions.\n`
+    : "";
+
   return `You are transforming an existing meal into a ${system.type} system style.
 Return a JSON object with exactly three keys: "name", "description", "instructions".
 "instructions" must match the same format as in the original meal (array or string).
 
-COOKING TECHNIQUES:
+${personaBlock}COOKING TECHNIQUES:
 Use one of these techniques: ${techniques}.
 
 FLAVOR PROFILE:
@@ -83,20 +89,16 @@ export async function applyCreatorTransformation(
   system: CreatorSystemConfig,
   engineType: EngineType
 ): Promise<any> {
-  // 3. Always tag with creatorSystem id — even on early returns (powers catalog + analytics)
   const tag = (meal: any) => ({ ...meal, creatorSystem: system.id });
 
-  // Skip default system — no style transformation needed
   if (!system || system.id === "default") return tag(baseMeal);
 
-  // Capability check — only apply where system supports it
   if (engineType === "meal" && !system.supports.meals) return tag(baseMeal);
   if (engineType === "dessert" && !system.supports.desserts) return tag(baseMeal);
   if (engineType === "beverage" && !system.supports.beverages) return tag(baseMeal);
 
   try {
     const prompt = buildCreatorPrompt(system, baseMeal);
-
     const styled = await chatJson({ user: prompt });
 
     if (!styled || typeof styled !== "object") {

@@ -66,7 +66,7 @@ export type { MealLibraryItem, InsertMealLibraryItem, MealLibraryUsage, MealGene
 export { householdProfiles } from "../server/db/schema/householdProfiles";
 export type { HouseholdProfile, InsertHouseholdProfile } from "../server/db/schema/householdProfiles";
 
-export { creatorStatusEnum, creatorTierEnum, creators } from "../server/db/schema/creators";
+export { creatorStatusEnum, creatorTierEnum, creatorSourceEnum, creatorCategoryEnum, creators } from "../server/db/schema/creators";
 export type { Creator, InsertCreator } from "../server/db/schema/creators";
 export { creatorSystemConfigs } from "../server/db/schema/creatorSystemConfigs";
 export type { CreatorSystemConfigRow, InsertCreatorSystemConfig } from "../server/db/schema/creatorSystemConfigs";

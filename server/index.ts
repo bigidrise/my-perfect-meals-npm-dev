@@ -524,6 +524,10 @@ app.use("/api/check-in-schedules", checkInSchedulesRouter);
 // Admin dashboard — requires both auth + admin role (server-enforced)
 import { requireAdmin } from "./middleware/requireAdmin";
 app.use("/api/admin", requireAuth, requireAdmin, adminRouter);
+import adminChefKitchensRouter from "./routes/adminChefKitchens";
+app.use("/api/admin/chef-kitchens", requireAuth, requireAdmin, adminChefKitchensRouter);
+import kitchensRouter from "./routes/kitchens";
+app.use("/api/kitchens", requireAuth, kitchensRouter);
 
 // Initialize SMS worker (side-effect import)
 import "./workers/smsWorker";
