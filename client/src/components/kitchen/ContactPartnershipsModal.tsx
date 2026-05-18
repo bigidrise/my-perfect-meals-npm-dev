@@ -107,7 +107,7 @@ export default function ContactPartnershipsModal({ isOpen, onClose }: Props) {
             {/* Header */}
             <div className="flex-shrink-0 px-6 pt-6 pb-4 flex items-center justify-between">
               <div>
-                <p className="text-[9px] font-black uppercase tracking-[0.35em] text-orange-500/60">
+                <p className="text-[9px] font-black uppercase tracking-[0.35em] text-orange-500/90">
                   The Kitchen Network
                 </p>
                 <h2 className="text-lg font-bold text-white mt-1">Contact Partnerships</h2>
@@ -130,12 +130,12 @@ export default function ContactPartnershipsModal({ isOpen, onClose }: Props) {
                     </div>
                     <div className="space-y-2">
                       <h3 className="text-xl font-bold text-white">Message Sent.</h3>
-                      <p className="text-sm text-white/45 leading-relaxed max-w-xs">
+                      <p className="text-sm text-white/80 leading-relaxed max-w-xs">
                         Our partnerships team will respond within 48 hours.
                       </p>
                     </div>
                     <button type="button" onClick={handleClose}
-                      className="px-8 py-3 rounded-xl text-white/70 font-medium text-sm"
+                      className="px-8 py-3 rounded-xl text-white font-medium text-sm"
                       style={{ backgroundColor: "#ffffff0f", border: "1px solid #ffffff18" }}>
                       Done
                     </button>
@@ -143,7 +143,7 @@ export default function ContactPartnershipsModal({ isOpen, onClose }: Props) {
                 ) : (
                   <motion.div key="form" className="space-y-4">
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
+                      <label className="text-[11px] font-semibold uppercase tracking-widest text-white/80">
                         Name <span className="text-orange-500">*</span>
                       </label>
                       <input type="text" value={name} onChange={e => setName(e.target.value)}
@@ -152,7 +152,7 @@ export default function ContactPartnershipsModal({ isOpen, onClose }: Props) {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
+                      <label className="text-[11px] font-semibold uppercase tracking-widest text-white/80">
                         Email <span className="text-orange-500">*</span>
                       </label>
                       <input type="email" value={email} onChange={e => setEmail(e.target.value)}
@@ -161,14 +161,14 @@ export default function ContactPartnershipsModal({ isOpen, onClose }: Props) {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-semibold uppercase tracking-widest text-white/40">Company / Brand</label>
+                      <label className="text-[11px] font-semibold uppercase tracking-widest text-white/80">Company / Brand</label>
                       <input type="text" value={company} onChange={e => setCompany(e.target.value)}
                         placeholder="Optional" className={inputClass} style={inputStyle}
                         onFocus={focusBorder} onBlur={blurBorder} />
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-semibold uppercase tracking-widest text-white/40">Subject</label>
+                      <label className="text-[11px] font-semibold uppercase tracking-widest text-white/80">Subject</label>
                       <select value={subject} onChange={e => setSubject(e.target.value)}
                         className={inputClass} style={{ ...inputStyle, color: subject ? "white" : "rgba(255,255,255,0.25)" }}
                         onFocus={focusBorder} onBlur={blurBorder}>
@@ -180,7 +180,7 @@ export default function ContactPartnershipsModal({ isOpen, onClose }: Props) {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
+                      <label className="text-[11px] font-semibold uppercase tracking-widest text-white/80">
                         Message <span className="text-orange-500">*</span>
                       </label>
                       <textarea value={message} onChange={e => setMessage(e.target.value)}
@@ -201,7 +201,7 @@ export default function ContactPartnershipsModal({ isOpen, onClose }: Props) {
                       )}
                     </button>
 
-                    <p className="text-center text-[10px] text-white/20">
+                    <p className="text-center text-[10px] text-white/60">
                       Our team responds within 48 hours.
                     </p>
                   </motion.div>
