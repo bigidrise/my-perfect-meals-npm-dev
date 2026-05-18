@@ -655,13 +655,13 @@ export default function SignatureKitchenPage() {
 
         {/* Chef acquisition — subtle, non-intrusive */}
         <div className="flex flex-col items-center gap-2 pb-2">
-          <div className="h-px w-16 bg-white/8" />
-          <p className="text-[10px] text-white/20 text-center">Are you a chef or culinary creator?</p>
+          <div className="h-px w-16 bg-white/20" />
+          <p className="text-sm text-white text-center">Are you a chef or culinary creator?</p>
           <button
             type="button"
             onClick={() => setLocation("/kitchens")}
-            className="text-[11px] font-medium transition-opacity active:opacity-60"
-            style={{ color: "#ea580c88" }}
+            className="text-sm font-semibold transition-opacity active:opacity-60"
+            style={{ color: "#ea580c" }}
           >
             Open your Signature Kitchen →
           </button>
