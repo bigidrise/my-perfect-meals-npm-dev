@@ -15,6 +15,7 @@ import { runEnforcement } from "../services/enforcementGateway";
 import { sanitizeMealName } from "../utils/mealNameSanitizer";
 import { resolveActiveSystem } from "../services/creatorSystems/resolver";
 import { applyCreatorTransformation } from "../services/creatorSystems/applyCreatorTransformation";
+import { resolveKitchenSystem } from "../services/creatorSystems/resolveKitchenSystem";
 
 const router = express.Router();
 
@@ -170,9 +171,19 @@ router.post('/generate', requireAuth, async (req, res) => {
     }
 
     // Creator System 2-pass transformation — runs AFTER all safety/avoidance checks.
-    // Uses the already-fetched user object to resolve system — no extra DB query.
+    // If kitchenSlug is set, the kitchen overlay takes priority over the user's active system.
     if (user) {
-      const creatorSystem = resolveActiveSystem(user);
+      const kitchenSlug = req.body.kitchenSlug as string | undefined;
+      let creatorSystem = resolveActiveSystem(user);
+      if (kitchenSlug) {
+        const kitchenSystem = await resolveKitchenSystem(kitchenSlug);
+        if (kitchenSystem) {
+          creatorSystem = kitchenSystem;
+          console.log(`[Kitchen] Overlay applied: ${kitchenSlug}`);
+        } else {
+          console.warn(`[Kitchen] Slug "${kitchenSlug}" not found — falling back to user system`);
+        }
+      }
       generatedMeal = await applyCreatorTransformation(generatedMeal, creatorSystem, "meal");
     }
 

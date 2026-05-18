@@ -193,6 +193,24 @@ export default function CreateDishPage() {
   const [mealOptions, setMealOptions] = useState<any[]>([]);
   const [isPlatingMeal, setIsPlatingMeal] = useState(false);
 
+  // Kitchen context — set when navigating from a /kitchen/:slug page
+  const [activeKitchenSlug, setActiveKitchenSlug] = useState<string | null>(null);
+  const [activeKitchenName, setActiveKitchenName] = useState<string | null>(null);
+
+  // Read ?kitchen=slug from URL on mount and fetch the kitchen's display name
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get("kitchen");
+    if (!slug) return;
+    setActiveKitchenSlug(slug);
+    fetch(apiUrl(`/api/kitchens/${slug}`), {
+      headers: { "Content-Type": "application/json" },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.displayName) setActiveKitchenName(d.displayName); })
+      .catch(() => {});
+  }, []);
+
   const getRecentMeals = (): string[] => {
     try {
       return JSON.parse(sessionStorage.getItem("cd_recent_meals") || "[]");
@@ -466,6 +484,7 @@ export default function CreateDishPage() {
           safetyMode: safetyEnabled ? "STRICT" : "DISABLED",
           ...(overrideToken ? { overrideToken } : {}),
           ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
+          ...(activeKitchenSlug ? { kitchenSlug: activeKitchenSlug } : {}),
         }),
       });
 
@@ -569,7 +588,7 @@ export default function CreateDishPage() {
               </button>
 
               <h1 className="text-lg font-bold text-white truncate min-w-0">
-                Create a Dish
+                {activeKitchenName ? `${activeKitchenName}` : "Create a Dish"}
               </h1>
 
               <div className="flex-grow" />
@@ -580,6 +599,27 @@ export default function CreateDishPage() {
         <div
           className={`max-w-2xl mx-auto px-4 pt-28 ${generatedMeals.length > 0 ? "pb-32" : "pb-8"}`}
         >
+          {/* Kitchen context banner */}
+          {activeKitchenSlug && (
+            <div className="max-w-xl mx-auto mb-3 flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-orange-500/10 border border-orange-500/20">
+              <div className="flex items-center gap-2 min-w-0">
+                <ChefHat className="h-3.5 w-3.5 text-orange-400 flex-shrink-0" />
+                <span className="text-xs text-orange-200 truncate">
+                  {activeKitchenName ? (
+                    <><span className="font-semibold">{activeKitchenName}</span> style — your dietary rules always apply</>
+                  ) : "Kitchen style active"}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setActiveKitchenSlug(null); setActiveKitchenName(null); }}
+                className="text-[10px] text-white/40 hover:text-white/60 flex-shrink-0 px-1"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+
           <div className="w-full max-w-4xl mx-auto">
             <div>
               <Card className="shadow-2xl bg-black/40 backdrop-blur-lg border border-orange-400/20 w-full max-w-xl mx-auto">
