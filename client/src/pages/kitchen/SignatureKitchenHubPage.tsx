@@ -24,9 +24,8 @@ import ChefCoPilotWalkthrough from "@/components/kitchen/ChefCoPilotWalkthrough"
 import KitchenPartnerIntakeModal from "@/components/kitchen/KitchenPartnerIntakeModal";
 import ContactPartnershipsModal from "@/components/kitchen/ContactPartnershipsModal";
 
-// ── Calendly ─────────────────────────────────────────────────────────────────
-// Replace with your dedicated partnerships Calendly link when ready.
-const CALENDLY_URL = "https://calendly.com/myperfectmeals/signature-kitchen-discovery";
+// ── Discovery Call booking link ───────────────────────────────────────────────
+const CALENDLY_URL = "https://calendar.google.com/appointments/schedules/AcZssZ3-T8oyodIiQLTCSAovJJXGE5-OFFa-EISMK9r9oDg6sz4f1TndarR5GkZ5pYz7QB9phcmnnr98";
 
 const DISMISS_KEY = "mpm.dismiss.chefCoPilotWalkthrough";
 
