@@ -281,7 +281,7 @@ export default function SignatureKitchenPage() {
       </div>
 
       {/* Identity row — below the hero image, not on top of it */}
-      <div className="px-4 pt-5 pb-2 max-w-xl mx-auto">
+      <div className="px-4 pt-8 pb-2 max-w-xl mx-auto">
         <div className="flex items-center gap-4">
           {kitchen.logoUrl ? (
             <img
