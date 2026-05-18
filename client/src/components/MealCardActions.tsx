@@ -61,12 +61,24 @@ export default function MealCardActions({
   const handlePrepareWithChef = () => {
     if (!hasInstructions) return;
 
+    // Normalize ingredients to always be an array of objects regardless of source format
+    const rawIngredients = meal.ingredients;
+    const normalizedIngredients: Array<{ name: string; amount?: string; unit?: string }> = !rawIngredients
+      ? []
+      : !Array.isArray(rawIngredients)
+        ? []
+        : rawIngredients.map((ing) =>
+            typeof ing === "string"
+              ? { name: ing }
+              : { name: (ing as any).name || (ing as any).item || "", amount: String((ing as any).amount ?? (ing as any).quantity ?? ""), unit: (ing as any).unit || "" }
+          );
+
     const mealData = {
       id: meal.id || crypto.randomUUID(),
       name: meal.name,
       description: meal.description,
       mealType: meal.mealType,
-      ingredients: meal.ingredients || [],
+      ingredients: normalizedIngredients,
       instructions: meal.instructions,
       imageUrl: meal.imageUrl,
       calories: meal.nutrition?.calories || meal.calories,
