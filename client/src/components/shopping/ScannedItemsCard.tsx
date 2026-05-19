@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Trash2, ListChecks, Pencil, Check } from "lucide-react";
+import { Trash2, Camera, Pencil, Check } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   readOtherItems,
@@ -10,9 +10,9 @@ import {
   type OtherItem,
 } from "@/stores/otherItemsStore";
 
-export default function MyListCard() {
+export default function ScannedItemsCard() {
   const [items, setItems] = useState<OtherItem[]>(() =>
-    readOtherItems().items.filter((i) => i.source !== "scanned")
+    readOtherItems().items.filter((i) => i.source === "scanned")
   );
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -20,7 +20,7 @@ export default function MyListCard() {
 
   useEffect(() => {
     const onUpdate = () =>
-      setItems(readOtherItems().items.filter((i) => i.source !== "scanned"));
+      setItems(readOtherItems().items.filter((i) => i.source === "scanned"));
     window.addEventListener("other:items:updated", onUpdate);
     return () => window.removeEventListener("other:items:updated", onUpdate);
   }, []);
@@ -43,11 +43,11 @@ export default function MyListCard() {
   const checked = items.filter((i) => i.checked);
 
   return (
-    <div className="rounded-2xl border border-white/20 bg-black/60 text-white p-4 sm:p-5">
+    <div className="rounded-2xl border border-cyan-500/25 bg-black/60 text-white p-4 sm:p-5">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <ListChecks className="h-5 w-5 text-orange-400" />
-          <h3 className="text-base font-semibold">My List</h3>
+          <Camera className="h-5 w-5 text-cyan-400" />
+          <h3 className="text-base font-semibold">Scanned Items</h3>
           <span className="text-xs text-white/40 ml-1">
             {unchecked.length} item{unchecked.length !== 1 ? "s" : ""}
           </span>
@@ -98,15 +98,7 @@ export default function MyListCard() {
                     item.checked ? "line-through text-white/40" : "text-white"
                   }`}
                 >
-                  {item.brand ? (
-                    <span className="text-orange-300/80">{item.brand} </span>
-                  ) : null}
                   {item.name}
-                </span>
-              )}
-              {editingId !== item.id && (item.qty !== 1 || item.unit !== "item") && (
-                <span className="text-xs text-white/40 ml-2">
-                  {item.qty} {item.unit}
                 </span>
               )}
             </div>
@@ -138,6 +130,10 @@ export default function MyListCard() {
           </div>
         ))}
       </div>
+
+      <p className="text-[10px] text-white/25 mt-3 text-center leading-relaxed">
+        Tap the pencil to rename any scanned item.
+      </p>
     </div>
   );
 }
