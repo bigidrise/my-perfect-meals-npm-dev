@@ -68,25 +68,28 @@ router.get("/", async (req: Request, res: Response) => {
     return;
   }
 
-  const entries = await db
-    .select({
-      id: clientNotes.id,
-      body: clientNotes.body,
-      authorUserId: clientNotes.authorUserId,
-      entryType: clientNotes.entryType,
-      sender: clientNotes.sender,
-      createdAt: clientNotes.createdAt,
-    })
-    .from(clientNotes)
-    .where(
-      and(
-        eq(clientNotes.clientUserId, authUser.id),
-        eq(clientNotes.entryType, "message"),
-        eq(clientNotes.visibility, "shared_with_client")
-      )
-    )
-    .orderBy(asc(clientNotes.createdAt))
-    .limit(200);
+  const result = await db.execute(sql`
+    SELECT
+      id,
+      body,
+      author_user_id AS "authorUserId",
+      entry_type     AS "entryType",
+      sender,
+      created_at     AS "createdAt",
+      content_type   AS "contentType",
+      audio_object_key  AS "audioObjectKey",
+      audio_duration_sec AS "audioDurationSec",
+      transcript,
+      transcript_status AS "transcriptStatus"
+    FROM client_notes
+    WHERE client_user_id = ${authUser.id}
+      AND entry_type     = 'message'
+      AND visibility     = 'shared_with_client'
+    ORDER BY created_at ASC
+    LIMIT 200
+  `);
+
+  const entries = result.rows;
 
   res.set("Cache-Control", "no-store");
   res.json({ messages: entries });

@@ -38,6 +38,9 @@ import {
   ChevronUp,
   Trash2,
   Lock,
+  Play,
+  Pause,
+  Mic,
 } from "lucide-react";
 import { ProfileSheet } from "@/components/ProfileSheet";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
@@ -100,6 +103,9 @@ export default function DashboardNew() {
   const tabletScrollRef = useRef<HTMLDivElement>(null);
   const tabletTranslationCache = useRef(new Map<string, string>());
   const tabletInitialLoad = useRef(true);
+  const [tabletPlayingId, setTabletPlayingId] = useState<string | null>(null);
+  const tabletAudioCache = useRef<Record<string, string>>({});
+  const tabletAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Provider inbox — completely separate from client tablet
   const [providerOpen, setProviderOpen] = useState(false);
@@ -257,6 +263,49 @@ export default function DashboardNew() {
       setTabletMessages((prev) => prev.filter((m: any) => m.id !== entry.id));
     } catch {
       setTabletError("Failed to delete message");
+    }
+  };
+
+  const handleTabletPlay = async (entry: any) => {
+    if (tabletPlayingId === entry.id) {
+      tabletAudioRef.current?.pause();
+      setTabletPlayingId(null);
+      return;
+    }
+    tabletAudioRef.current?.pause();
+    setTabletPlayingId(entry.id);
+    try {
+      let url = tabletAudioCache.current[entry.id];
+      if (!url) {
+        const res = await fetch(apiUrl(`/api/client/tablet/audio/${entry.id}`), {
+          headers: { ...getAuthHeaders() },
+          credentials: "include",
+        });
+        if (!res.ok) {
+          setTabletError("Audio not available yet — try again shortly");
+          setTabletPlayingId(null);
+          return;
+        }
+        const data = await res.json();
+        if (data.pending) {
+          setTabletError("Still transcribing — try again in a moment");
+          setTabletPlayingId(null);
+          return;
+        }
+        url = data.url;
+        tabletAudioCache.current[entry.id] = url;
+      }
+      const audio = new Audio(url);
+      tabletAudioRef.current = audio;
+      audio.onended = () => setTabletPlayingId(null);
+      audio.onerror = () => {
+        setTabletError("Could not play audio");
+        setTabletPlayingId(null);
+      };
+      audio.play();
+    } catch {
+      setTabletError("Could not load audio");
+      setTabletPlayingId(null);
     }
   };
 
@@ -847,13 +896,57 @@ export default function DashboardNew() {
                             </button>
                           </div>
                         </div>
-                        <p className="text-xs text-white/80 leading-relaxed whitespace-pre-wrap">
-                          {entry.translatedBody || entry.body}
-                        </p>
-                        {entry.translatedBody && (
-                          <p className="text-[10px] text-white/30 mt-1 italic">
-                            Original: {entry.body}
-                          </p>
+
+                        {entry.contentType === "voice" ? (
+                          <div className="space-y-2">
+                            {/* Play button row */}
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleTabletPlay(entry)}
+                                className={`flex items-center justify-center w-8 h-8 rounded-full shrink-0 ${
+                                  tabletPlayingId === entry.id
+                                    ? "bg-orange-500 text-white"
+                                    : "bg-white/10 text-white/70"
+                                }`}
+                              >
+                                {tabletPlayingId === entry.id ? (
+                                  <Pause className="w-3.5 h-3.5" />
+                                ) : (
+                                  <Play className="w-3.5 h-3.5 ml-0.5" />
+                                )}
+                              </button>
+                              <div className="flex items-center gap-1.5">
+                                <Mic className="w-3 h-3 text-orange-400" />
+                                <span className="text-[11px] text-orange-300 font-medium">
+                                  Voice Note
+                                  {entry.audioDurationSec
+                                    ? ` · ${Math.floor(entry.audioDurationSec / 60)}:${String(entry.audioDurationSec % 60).padStart(2, "0")}`
+                                    : ""}
+                                </span>
+                              </div>
+                            </div>
+                            {/* Transcript */}
+                            {entry.transcriptStatus === "completed" && entry.transcript ? (
+                              <p className="text-xs text-white/75 leading-relaxed italic border-l-2 border-orange-500/40 pl-2">
+                                {entry.translatedBody || entry.transcript}
+                              </p>
+                            ) : entry.transcriptStatus === "failed" ? (
+                              <p className="text-[10px] text-white/35 italic">Transcript unavailable</p>
+                            ) : (
+                              <p className="text-[10px] text-white/35 italic">Transcribing…</p>
+                            )}
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-xs text-white/80 leading-relaxed whitespace-pre-wrap">
+                              {entry.translatedBody || entry.body}
+                            </p>
+                            {entry.translatedBody && (
+                              <p className="text-[10px] text-white/30 mt-1 italic">
+                                Original: {entry.body}
+                              </p>
+                            )}
+                          </>
                         )}
                       </div>
                     ))}
@@ -863,7 +956,7 @@ export default function DashboardNew() {
                       value={tabletInput}
                       onChange={(e) => setTabletInput(e.target.value)}
                       placeholder="Reply to your coach..."
-                      className="flex-1 bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-white placeholder:text-white/30 resize-none focus:outline-none focus:border-purple-500/50"
+                      className="flex-1 bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-white placeholder:text-white/30 resize-none focus:outline-none focus:border-orange-500/50"
                       rows={2}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) {
@@ -876,7 +969,7 @@ export default function DashboardNew() {
                       size="sm"
                       disabled={!tabletInput.trim() || tabletSending}
                       onClick={handleTabletSend}
-                      className="bg-purple-600 hover:bg-purple-700 px-3 self-end"
+                      className="bg-orange-600 px-3 self-end"
                     >
                       {tabletSending ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
