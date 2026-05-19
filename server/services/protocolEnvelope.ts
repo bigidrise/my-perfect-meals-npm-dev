@@ -491,6 +491,26 @@ export interface UserProtocolEnvelope {
    * Defaults to "imperial" for all users. Metric users get g/ml/kg in AI output.
    */
   measurementSystem: "imperial" | "metric";
+
+  /**
+   * User's primary fitness/nutrition goal — from onboarding.
+   * Examples: "weight_loss", "muscle_gain", "maintenance", "endurance"
+   * Null when not set.
+   */
+  fitnessGoal: string | null;
+
+  /**
+   * User's goal direction — from onboarding goals step.
+   * "lose" | "maintain" | "gain" — the directional intent behind the fitness goal.
+   * Null when not set.
+   */
+  goalType: "lose" | "maintain" | "gain" | null;
+
+  /**
+   * User's goal target description — from onboarding (e.g. "20 lbs", "10 kg").
+   * Null when not set.
+   */
+  goalTarget: string | null;
 }
 
 /**
@@ -610,6 +630,9 @@ export async function loadUserProtocolEnvelope(
         thyroidMedication: users.thyroidMedication,
         activeHouseholdProfileId: (users as any).activeHouseholdProfileId,
         measurementSystem: users.measurementSystem,
+        fitnessGoal: users.fitnessGoal,
+        goalType: (users as any).goalType,
+        goalTarget: (users as any).goalTarget,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -770,6 +793,9 @@ export async function loadUserProtocolEnvelope(
       thyroidSupport,
       thyroidMedication,
       measurementSystem: ((user as any).measurementSystem as "imperial" | "metric") ?? "imperial",
+      fitnessGoal: (user.fitnessGoal as string | null) ?? null,
+      goalType: ((user as any).goalType as "lose" | "maintain" | "gain" | null) ?? null,
+      goalTarget: ((user as any).goalTarget as string | null) ?? null,
     };
   } catch (error) {
     console.error("[ProtocolEnvelope] Failed to load envelope:", error);
@@ -800,6 +826,9 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     thyroidSupport: false,
     thyroidMedication: null,
     measurementSystem: "imperial",
+    fitnessGoal: null,
+    goalType: null,
+    goalTarget: null,
   };
 }
 

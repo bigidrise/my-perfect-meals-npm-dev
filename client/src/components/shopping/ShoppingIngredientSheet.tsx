@@ -19,8 +19,17 @@ const GRADE_CONFIG = {
   D: { label: "D", color: "text-rose-400", bg: "bg-rose-500/20 border-rose-500/40", desc: "Notable Conflicts" },
 };
 
-const LEARN_WHY_CONSIDERATIONS =
-  "These are specific ingredients found in this product that may warrant attention based on your health profile. We flag them so you can make an informed choice — not to tell you what to eat.";
+const VERDICT_CONFIG = {
+  buy: { bg: "bg-emerald-500/15 border-emerald-500/30", icon: "✓", color: "text-emerald-400", label: "Good to Buy" },
+  caution: { bg: "bg-amber-500/15 border-amber-500/30", icon: "!", color: "text-amber-400", label: "Buy With Caution" },
+  skip: { bg: "bg-rose-500/15 border-rose-500/30", icon: "✕", color: "text-rose-400", label: "Consider Skipping" },
+};
+
+const FLAG_CONFIG = {
+  ok: { dot: "bg-emerald-400", text: "text-white/60" },
+  watch: { dot: "bg-amber-400", text: "text-white/70" },
+  avoid: { dot: "bg-rose-400", text: "text-white/80" },
+};
 
 export function ShoppingIngredientSheet({
   open,
@@ -30,9 +39,12 @@ export function ShoppingIngredientSheet({
   onSaveForReview,
   onLearnWhy,
 }: Props) {
+  const [decoderExpanded, setDecoderExpanded] = useState(false);
   const [considerationsExpanded, setConsiderationsExpanded] = useState(false);
   const grade = result ? GRADE_CONFIG[result.alignmentGrade] ?? GRADE_CONFIG.B : null;
+  const verdictCfg = result ? VERDICT_CONFIG[result.verdictLevel ?? 'caution'] : null;
   const topConsiderations = result?.ingredientConsiderations.slice(0, 3) ?? [];
+  const decoder = result?.ingredientDecoder ?? [];
 
   return (
     <AnimatePresence>
@@ -79,11 +91,26 @@ export function ShoppingIngredientSheet({
 
               {/* Grade */}
               {grade && (
-                <div className={`rounded-xl border p-4 mb-4 flex items-center gap-4 ${grade.bg}`}>
+                <div className={`rounded-xl border p-4 mb-3 flex items-center gap-4 ${grade.bg}`}>
                   <div className={`text-5xl font-black ${grade.color}`}>{grade.label}</div>
                   <div>
                     <p className={`font-bold text-base ${grade.color}`}>{grade.desc}</p>
                     <p className="text-xs text-white/50 mt-0.5">Based on your health profile</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Verdict */}
+              {verdictCfg && result.verdict && (
+                <div className={`rounded-xl border p-3.5 mb-4 flex items-start gap-3 ${verdictCfg.bg}`}>
+                  <span className={`text-lg font-black leading-none mt-0.5 ${verdictCfg.color}`}>
+                    {verdictCfg.icon}
+                  </span>
+                  <div>
+                    <p className={`text-xs font-bold uppercase tracking-wide mb-0.5 ${verdictCfg.color}`}>
+                      {verdictCfg.label}
+                    </p>
+                    <p className="text-sm text-white/85 leading-snug">{result.verdict}</p>
                   </div>
                 </div>
               )}
@@ -102,11 +129,77 @@ export function ShoppingIngredientSheet({
                 <p className="text-sm text-white/90 leading-relaxed">{result.overallSummary}</p>
               </div>
 
+              {/* Ingredient Decoder */}
+              {decoder.length > 0 && (
+                <div className="mb-4">
+                  <button
+                    onClick={() => setDecoderExpanded((v) => !v)}
+                    className="w-full flex items-center justify-between mb-2"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-wide text-white/50">
+                      🔬 What's In This?
+                    </p>
+                    {decoderExpanded
+                      ? <ChevronUp className="w-3.5 h-3.5 text-white/30" />
+                      : <ChevronDown className="w-3.5 h-3.5 text-white/30" />
+                    }
+                  </button>
+                  <AnimatePresence>
+                    {decoderExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="space-y-2">
+                          {decoder.map((item, i) => (
+                            <div key={i} className="rounded-lg bg-white/5 border border-white/8 px-3 py-2.5 flex items-start gap-2.5">
+                              <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${FLAG_CONFIG[item.flag].dot}`} />
+                              <div>
+                                <p className="text-xs font-semibold text-white/80">{item.name}</p>
+                                <p className="text-xs text-white/55 leading-snug mt-0.5">{item.plain}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-white/30 mt-2 pl-1">
+                          Green dot = generally recognized safe · Yellow = worth knowing · Red = may conflict with your profile
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  {!decoderExpanded && (
+                    <p className="text-xs text-orange-400/70 font-medium">
+                      Tap to decode {decoder.length} ingredient{decoder.length !== 1 ? "s" : ""} in plain English
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Household Notes */}
+              {result.householdNotes.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-white/50 mb-2">
+                    🏠 Family & Kids
+                  </p>
+                  <ul className="space-y-1">
+                    {result.householdNotes.map((note, i) => (
+                      <li key={i} className="text-sm text-white/80 flex items-start gap-2">
+                        <span className="text-white/30 mt-0.5">•</span>
+                        <span>{note}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {/* Considerations — capped at 3 */}
               {topConsiderations.length > 0 && (
                 <div className="mb-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-white/50 mb-2">
-                    🔍 Ingredient Considerations
+                    🔍 Considerations
                   </p>
                   <ul className="space-y-1">
                     {topConsiderations.map((item, i) => (
@@ -138,29 +231,12 @@ export function ShoppingIngredientSheet({
                           className="overflow-hidden"
                         >
                           <p className="text-xs text-white/50 leading-relaxed mt-2 pl-1 border-l border-orange-500/30">
-                            {LEARN_WHY_CONSIDERATIONS}
+                            These are specific ingredients found in this product that may warrant attention based on your health profile. We flag them so you can make an informed choice — not to tell you what to eat.
                           </p>
                         </motion.div>
                       )}
                     </AnimatePresence>
                   </div>
-                </div>
-              )}
-
-              {/* Household Notes */}
-              {result.householdNotes.length > 0 && (
-                <div className="mb-5">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-white/50 mb-2">
-                    🏠 Household Notes
-                  </p>
-                  <ul className="space-y-1">
-                    {result.householdNotes.map((note, i) => (
-                      <li key={i} className="text-sm text-white/80 flex items-start gap-2">
-                        <span className="text-white/30 mt-0.5">•</span>
-                        <span>{note}</span>
-                      </li>
-                    ))}
-                  </ul>
                 </div>
               )}
 
@@ -189,18 +265,13 @@ export function ShoppingIngredientSheet({
                     className="flex items-center justify-center gap-1.5 bg-white/8 border border-white/10 rounded-xl py-3 text-white/70 text-sm"
                   >
                     <BookOpen className="w-3.5 h-3.5" />
-                    Learn Why
+                    Full Analysis
                   </button>
                 </div>
               </div>
 
-              {/* Better Choice coming soon microcopy */}
-              <p className="text-xs text-white/25 text-center mt-4 leading-relaxed">
-                Future updates will include healthier product alternatives.
-              </p>
-
               {/* Educational footer */}
-              <p className="text-[10px] text-white/20 text-center mt-2 leading-relaxed px-2">
+              <p className="text-[10px] text-white/20 text-center mt-4 leading-relaxed px-2">
                 Analysis is educational and personalized to your profile. Not a medical recommendation.
               </p>
             </div>
