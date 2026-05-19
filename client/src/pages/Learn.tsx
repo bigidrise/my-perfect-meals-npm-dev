@@ -29,6 +29,7 @@ import {
   Refrigerator,
   Star,
   ShoppingCart,
+  ListChecks,
   Activity,
   Fish,
   Globe,
@@ -527,6 +528,40 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
     },
   },
   {
+    id: "my-list",
+    title: "My List — Your Personal Shopping Section",
+    subtitle: "Manually added items and Smart Scan results, all in one place",
+    icon: ListChecks,
+    content: {
+      sections: [
+        {
+          heading: "What My List Is",
+          text: "My List is your personal section of the shopping list — completely separate from the AI-generated grocery categories. It holds two types of items: things you add manually by typing them in, and products you scan using Smart Scan. Unlike the AI grocery sections that get built from your meal plan, My List is entirely under your control.",
+        },
+        {
+          heading: "Manually Added Items",
+          text: "Tap the Add to My List section at the bottom of the shopping list to type in anything you need — brand name, product name, quantity, unit. Fill in as much or as little as you want, then tap Add to My List and it appears instantly in the My List section above. This is useful for household staples, specialty ingredients, or anything else your meal plan does not automatically include.",
+        },
+        {
+          heading: "Smart Scan Items",
+          text: "When you use Smart Scan to photograph a product's ingredient label and tap Add to Shopping List, that item lands in My List — not in the AI grocery categories. This is intentional. Scanned products are things you personally chose, not AI-recommended ingredients, so they belong in your own section. They appear with a Scanned badge so you can see at a glance where they came from.",
+        },
+        {
+          heading: "Checking Off Items",
+          text: "Tap the checkbox next to any item to mark it as checked. The item stays visible but is visually marked so you can track what you have already picked up. When you are done shopping, tap Clear Checked to remove everything you marked — the number in parentheses tells you exactly how many items will be cleared.",
+        },
+        {
+          heading: "The Scanned Badge",
+          text: "Items from Smart Scan show a small orange Scanned badge with a camera icon. This tells you the item came from a label scan rather than being typed manually. It helps you remember where each item came from, especially when your list is a mix of manual adds and scan results.",
+        },
+        {
+          heading: "How My List Fits Into the Full Shopping List",
+          text: "The full shopping list is organized in layers. The AI-generated sections — Produce, Protein, Dairy, Pantry, and others — are built from your meal plan and live at the top. My List sits below those AI sections, above the Add to My List form. This keeps your AI-planned groceries and your personal items clearly separated so nothing gets confused.",
+        },
+      ],
+    },
+  },
+  {
     id: "biometrics-tracking",
     title: "My Biometrics — Every Feature Explained",
     subtitle: "Macros, scanning, body stats, labs, and water tracking",
@@ -566,8 +601,24 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
           text: "Track your estimated body fat percentage using the U.S. Navy Body Fat Formula — a validated method that uses simple tape measurements like waist, neck, height, and hips. You can log these measurements directly in the app and watch your body composition trend over time. If you have more accurate readings from a DEXA scan, InBody, or another source, you can enter those too. You can also set a body fat goal and track your progress toward it.",
         },
         {
-          heading: "Clinical Labs",
-          text: "The clinical labs section lets you log your lab values — blood glucose, HbA1c, cholesterol, triglycerides, and other markers — so everything lives in one place. If you are working with a physician or coach through ProCare, they can see these values and factor them into your plan. Logging labs is optional, but it gives you a more complete picture of how nutrition is affecting your health over time.",
+          heading: "Clinical Labs — What You Can Track",
+          text: "The clinical labs section lets you log your lab values so everything lives in one place. Markers you can track include:",
+          list: [
+            "Blood glucose and HbA1c — blood sugar and diabetes management",
+            "LDL, HDL, total cholesterol, and triglycerides — cardiovascular health",
+            "ALT and AST — liver enzyme markers",
+            "Creatinine and BUN — kidney function markers",
+            "TSH, Free T4, and Free T3 — thyroid hormone markers",
+            "Prealbumin (transthyretin) — a nutritional status biomarker used in recovery and oncology-supportive care to track protein status and nutritional adequacy over time",
+          ],
+        },
+        {
+          heading: "How Lab Values Are Used",
+          text: "When you log a lab value, the system evaluates it against established clinical thresholds. Markers that cross a threshold are flagged so you and your care team are aware. Some clinical protocols — such as cardiac, renal, and thyroid support — can activate automatically when the corresponding lab values cross their respective thresholds. Physician-assigned supports like Oncology Support always require direct physician assignment and are never triggered automatically.",
+        },
+        {
+          heading: "Labs and ProCare",
+          text: "If you are working with a physician or coach through ProCare, they can view your logged lab values and factor them into your plan. This makes the clinical labs section most powerful when used alongside ProCare oversight — but logging is always optional and useful on its own as a personal health record.",
         },
         {
           heading: "Water Log — Daily Hydration Tracker",
@@ -629,6 +680,10 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
         {
           heading: "Educational, Not Diagnostic",
           text: "Ingredient Intelligence was designed to make packaged food more understandable for everyday people — not to create fear or replace professional guidance. Results are always framed around your personal goals and context, never as warnings that apply universally. When in doubt about a specific ingredient and your health, talk to your care team.",
+        },
+        {
+          heading: "Adding a Scanned Product to Your Shopping List",
+          text: "After a scan, tap Add to Shopping List to send the product directly to your My List section. My List is the personal, user-controlled part of the shopping list — kept entirely separate from the AI-generated grocery categories like Produce, Protein, and Pantry. Scanned items appear in My List with an orange Scanned badge so you can always tell them apart from manually added items. If you are not ready to commit, tap Save for Review instead to hold the item without adding it to the list right away.",
         },
       ],
     },
