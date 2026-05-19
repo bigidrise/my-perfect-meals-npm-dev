@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { useState } from 'react';
+import { X, ChevronDown, ChevronUp } from 'lucide-react';
 import type { IngredientScanResult } from '@/lib/photoIngredientCapture';
 
 interface Props {
@@ -15,8 +16,26 @@ const GRADE_CONFIG = {
   D: { label: 'D', color: 'text-rose-400', bg: 'bg-rose-500/20 border-rose-500/40', desc: 'Notable Conflicts' },
 };
 
-function Section({ title, items, icon }: { title: string; items: string[]; icon: string }) {
+const LEARN_WHY: Record<string, string> = {
+  considerations: "These are specific ingredients found in this product that may warrant attention based on your health profile. We flag them so you can make an informed choice — not to tell you what to eat.",
+  notAlign: "This section is personalized to you. The same product can produce completely different guidance for different users depending on their unique goals, health conditions, and dietary protocols. Someone else scanning this exact product may see a very different result.",
+  household: "If you're shopping for a family or household, some ingredients may affect other members differently — especially children, people with sensitivities, or those with different dietary needs than you.",
+};
+
+function Section({
+  title,
+  items,
+  icon,
+  learnWhyKey,
+}: {
+  title: string;
+  items: string[];
+  icon: string;
+  learnWhyKey?: keyof typeof LEARN_WHY;
+}) {
+  const [expanded, setExpanded] = useState(false);
   if (!items.length) return null;
+  const explanation = learnWhyKey ? LEARN_WHY[learnWhyKey] : undefined;
   return (
     <div className="mb-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-white/50 mb-2">
@@ -30,6 +49,32 @@ function Section({ title, items, icon }: { title: string; items: string[]; icon:
           </li>
         ))}
       </ul>
+      {explanation && (
+        <div className="mt-2">
+          <button
+            onClick={() => setExpanded((v) => !v)}
+            className="flex items-center gap-1 text-xs text-orange-400/80 font-medium"
+          >
+            {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            Learn Why
+          </button>
+          <AnimatePresence>
+            {expanded && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <p className="text-xs text-white/50 leading-relaxed mt-2 pl-1 border-l border-orange-500/30">
+                  {explanation}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
     </div>
   );
 }
@@ -110,6 +155,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
                 title="Ingredient Considerations"
                 items={result.ingredientConsiderations}
                 icon="🔍"
+                learnWhyKey="considerations"
               />
 
               {/* May Not Align With */}
@@ -117,6 +163,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
                 title="May Not Align Well With"
                 items={result.mayNotAlignWith}
                 icon="⚠️"
+                learnWhyKey="notAlign"
               />
 
               {/* Better For */}
@@ -131,6 +178,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
                 title="Household Notes"
                 items={result.householdNotes}
                 icon="🏠"
+                learnWhyKey="household"
               />
 
               {/* Extracted Ingredients (collapsible preview) */}

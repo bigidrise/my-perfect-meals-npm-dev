@@ -581,6 +581,55 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
             "Carnivore and keto users see rotating hydration coaching tips throughout the day, since high-protein eating increases hydration needs",
           ],
         },
+        {
+          heading: "Ingredient Intelligence — Personalized Label Scan",
+          text: "Tap Ingredient Intelligence and point your camera at the ingredients list on any packaged food. The system reads the label and then checks every ingredient against your personal health profile — your conditions, dietary protocol, goals, and preferences — to give you a personalized alignment report.",
+        },
+      ],
+    },
+  },
+  {
+    id: "ingredient-intelligence",
+    title: "What Is Ingredient Intelligence?",
+    subtitle: "Personalized food label analysis powered by your health profile",
+    icon: Activity,
+    content: {
+      sections: [
+        {
+          heading: "What It Does",
+          text: "Ingredient Intelligence scans the ingredients list on any packaged food and gives you a personalized alignment report based on your unique health profile. Point your camera at the back of a product, and within seconds you get an Alignment Grade (A through D), a plain-English summary, and a breakdown of what aligns with your goals — and what may not.",
+        },
+        {
+          heading: "What It Does NOT Do",
+          text: "Ingredient Intelligence is not a medical tool. It does not diagnose conditions, replace your doctor or dietitian, or tell you whether a food is safe or unsafe for you. Every result comes with an educational framing — not a verdict. The system helps you think, not decide for you.",
+        },
+        {
+          heading: "Why You and a Friend Get Different Results",
+          text: "The same product will produce different guidance for different users. A protein bar that rates B for a general fitness user might rate C for someone on a GLP-1 medication, or D for someone managing blood sugar closely. This is intentional — the entire analysis is run against your personal protocol, not a generic standard. There is no universal 'good' or 'bad' ingredient list.",
+        },
+        {
+          heading: "What Goes Into the Analysis",
+          list: [
+            "Your medical conditions and any clinical protocols assigned to your account",
+            "Your dietary identity — Kosher, Halal, Vegan, Carnivore, Keto, and others",
+            "Your food allergies and personal avoidances",
+            "Your current wellness goals — fat loss, muscle gain, blood sugar stability, anti-inflammatory eating, and more",
+            "Your GLP-1, oncology support, diabetes, or thyroid protocol if active",
+            "Household context — dye sensitivities, children in the home, or other family members with different needs",
+          ],
+        },
+        {
+          heading: "The Alignment Grade",
+          text: "Each scan produces a grade from A to D based on how well the product's ingredient profile aligns with your specific health context. A means strong alignment — nothing notable conflicts with your goals or conditions. D means several ingredients are worth paying attention to given your profile. The grade is a starting point for awareness, not a final judgment.",
+        },
+        {
+          heading: "Learn Why",
+          text: "Inside every result you will see 'Learn Why' under certain sections. Tap it to read a plain-English explanation of what that section means and why it matters to you specifically. This turns a scan into a moment of learning — helping you understand food, not just grade it.",
+        },
+        {
+          heading: "Educational, Not Diagnostic",
+          text: "Ingredient Intelligence was designed to make packaged food more understandable for everyday people — not to create fear or replace professional guidance. Results are always framed around your personal goals and context, never as warnings that apply universally. When in doubt about a specific ingredient and your health, talk to your care team.",
+        },
       ],
     },
   },
