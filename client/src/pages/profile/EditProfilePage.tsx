@@ -286,14 +286,13 @@ export default function EditProfilePage() {
   const physicianOncologyLocked = physicianOncologyActive && !!(user?.isProCare);
   const [physicianProtocolClearing, setPhysicianProtocolClearing] = useState(false);
 
-  // ── Three-tier hierarchy ──────────────────────────────────────────────────
-  // Tier 1: General physician lock (controls ALL conditions, not just oncology)
+  // ── Control hierarchy ────────────────────────────────────────────────────
+  // Only a physician assignment locks conditions. Lab values are guidance only —
+  // the user always has final say ("last decision wins").
   const physicianLocked: boolean = !!(user as any)?.physicianLocked;
-  // Tier 2: Lab-driven conditions — cannot be changed in Edit Profile; must go through Biometrics
+  // Still fetch labDrivenConditions for informational display (not for locking)
   const labDrivenConditions: string[] = (user as any)?.labDrivenConditions ?? [];
-  // A condition is locked if physician controls it OR if labs are driving it
-  const isConditionLocked = (val: string): boolean =>
-    physicianLocked || labDrivenConditions.includes(val);
+  const isConditionLocked = (val: string): boolean => physicianLocked;
 
   const [allergiesUnlocked, setAllergiesUnlocked] = useState(false);
   const [allergyEditToken, setAllergyEditToken] = useState<string | null>(null);
