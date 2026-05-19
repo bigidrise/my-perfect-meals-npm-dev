@@ -564,18 +564,18 @@ export default function ShoppingListMasterView() {
 
           {/* Smart Scan — Ingredient Intelligence */}
           <div className="relative mt-2">
-            <div className="absolute inset-0 rounded-2xl bg-orange-500/15 blur-md scale-105" />
+            <div className="absolute inset-0 rounded-2xl bg-cyan-500/10 blur-md scale-105" />
             <Button
               onClick={handleShoppingScan}
-              className="relative w-full flex items-center gap-3 bg-gradient-to-r from-orange-600 to-orange-500 rounded-2xl py-3 h-auto border border-orange-400/40 text-left"
+              className="relative w-full flex items-center gap-3 bg-gradient-to-r from-cyan-900/70 to-blue-950/80 rounded-2xl py-3 h-auto border border-cyan-500/30 text-left"
               data-testid="button-shopping-smart-scan"
             >
               <span className="text-xl">🧾</span>
               <span className="flex-1 min-w-0">
                 <span className="block text-white font-semibold text-sm leading-tight">Smart Scan</span>
-                <span className="block text-orange-100/70 text-xs mt-0.5">Analyze ingredients before you buy</span>
+                <span className="block text-cyan-300/60 text-xs mt-0.5">Analyze ingredients before you buy</span>
               </span>
-              <span className="bg-white/20 rounded-lg px-2 py-0.5 text-[10px] text-white font-semibold uppercase tracking-wide flex-shrink-0">
+              <span className="bg-cyan-500/20 border border-cyan-400/20 rounded-lg px-2 py-0.5 text-[10px] text-cyan-300 font-semibold uppercase tracking-wide flex-shrink-0">
                 New
               </span>
             </Button>
