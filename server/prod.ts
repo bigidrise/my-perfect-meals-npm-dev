@@ -130,19 +130,36 @@ async function initializeApp() {
       console.warn("⚠️ [INIT] Missing env vars:", envValidation.missing.join(', '));
     }
     
-    // Safe column migrations (adds missing columns without altering types)
+    // Safe column migrations — wrapped in a hard 6 s timeout so a locked table
+    // never stalls the full boot sequence. Columns were added in earlier deploys;
+    // this is a no-op on a live DB and can safely be skipped if slow.
     console.log("📋 [INIT] Running safe column migrations...");
-    try {
-      const { db: database } = await import("./db");
-      const { sql } = await import("drizzle-orm");
-      await database.execute(sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS starchy_carbs numeric DEFAULT '0' NOT NULL`);
-      await database.execute(sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS fibrous_carbs numeric DEFAULT '0' NOT NULL`);
-      await database.execute(sql`ALTER TABLE client_links ADD COLUMN IF NOT EXISTS meal_board_control text NOT NULL DEFAULT 'client'`);
-      await database.execute(sql`ALTER TABLE client_links ADD COLUMN IF NOT EXISTS board_control_updated_at timestamptz`);
-      console.log("✅ [INIT] Column migrations complete");
-    } catch (migErr) {
-      console.warn("⚠️ [INIT] Column migration warning:", migErr);
-    }
+  try {
+    const migTimeout = (ms: number) =>
+      new Promise<void>((_, reject) =>
+        setTimeout(() => reject(new Error(`Migration timed out after ${ms}ms`)), ms)
+      );
+
+    const { db: database } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+
+    await Promise.race([
+      (async () => {
+        await database.execute(sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS starchy_carbs numeric DEFAULT '0' NOT NULL`);
+        await database.execute(sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS fibrous_carbs numeric DEFAULT '0' NOT NULL`);
+        await database.execute(sql`ALTER TABLE client_links ADD COLUMN IF NOT EXISTS meal_board_control text NOT NULL DEFAULT 'client'`);
+        await database.execute(sql`ALTER TABLE client_links ADD COLUMN IF NOT EXISTS board_control_updated_at timestamptz`);
+      })(),
+      migTimeout(6000),
+    ]);
+
+    console.log("✅ [INIT] Column migrations complete");
+  } catch (migErr) {
+    console.warn(
+      "⚠️ [INIT] Column migration skipped (timeout or error):",
+      (migErr as Error).message
+    );
+  }
 
     // Import middleware
     console.log("📋 [INIT] Loading middleware...");
@@ -269,10 +286,25 @@ async function initializeApp() {
     app.use("/api/biometrics/labs", clinicalLabsRouter);
     app.use("/api/translate", requireAuth, requireActiveAccess, translateRouter);
 
+<<<<<<< HEAD
     // Explicitly mount check-in-schedules BEFORE registerRoutes so the
     // DELETE /:id handler is always present even if registerRoutes changes.
     const checkInSchedulesRouter = (await import("./routes/checkInSchedules")).default;
     app.use("/api/check-in-schedules", checkInSchedulesRouter);
+=======
+    // Kitchen routes — must be mounted before registerRoutes() and the /api 404 catch
+    const kitchensRouter = (await import("./routes/kitchens")).default;
+    const kitchenLibraryRouter = (await import("./routes/kitchenLibrary")).default;
+    const adminChefKitchensRouter = (await import("./routes/adminChefKitchens")).default;
+    const adminSignatureLibraryRouter = (await import("./routes/adminSignatureLibrary")).default;
+    const adminKitchenImportsRouter = (await import("./routes/adminKitchenImports")).default;
+    const { requireAdmin } = await import("./middleware/requireAdmin");
+    app.use("/api/kitchens", requireAuth, kitchensRouter);
+    app.use("/api/kitchens", requireAuth, kitchenLibraryRouter);
+    app.use("/api/admin/chef-kitchens", requireAuth, requireAdmin, adminChefKitchensRouter);
+    app.use("/api/admin/chef-kitchens", requireAuth, requireAdmin, adminSignatureLibraryRouter);
+    app.use("/api/admin/chef-kitchens", requireAuth, requireAdmin, adminKitchenImportsRouter);
+>>>>>>> dev
 
     console.log("✅ [INIT] Additional routes mounted");
     
