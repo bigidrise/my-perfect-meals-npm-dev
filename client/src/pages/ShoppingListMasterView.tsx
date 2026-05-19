@@ -981,11 +981,11 @@ export default function ShoppingListMasterView() {
           open={shoppingSheetOpen}
           result={shoppingSheetResult}
           onClose={() => setShoppingSheetOpen(false)}
-          onAddAnyway={() => {
+          onAddAnyway={(name) => {
             if (shoppingSheetResult) {
-              addItem({ name: "Scanned Product", quantity: 1, unit: "item" });
+              addItem({ name, quantity: 1, unit: "item" });
               saveProductScan({
-                productName: "Scanned Product",
+                productName: name,
                 ingredients: shoppingSheetResult.extractedIngredients,
                 score: shoppingSheetResult.alignmentGrade,
                 householdFlags: shoppingSheetResult.householdNotes,
@@ -998,12 +998,12 @@ export default function ShoppingListMasterView() {
             }
             setShoppingSheetOpen(false);
             setScanRefreshKey((k) => k + 1);
-            toast({ title: "Added to shopping list", description: "Balance matters more than perfection." });
+            toast({ title: `"${name}" added to shopping list`, description: "Balance matters more than perfection." });
           }}
-          onSaveForReview={() => {
+          onSaveForReview={(name) => {
             if (shoppingSheetResult) {
               saveProductScan({
-                productName: "Scanned Product",
+                productName: name,
                 ingredients: shoppingSheetResult.extractedIngredients,
                 score: shoppingSheetResult.alignmentGrade,
                 householdFlags: shoppingSheetResult.householdNotes,
@@ -1016,7 +1016,7 @@ export default function ShoppingListMasterView() {
             }
             setShoppingSheetOpen(false);
             setScanRefreshKey((k) => k + 1);
-            toast({ title: "Saved for review", description: "You can revisit this scan anytime from this page." });
+            toast({ title: `"${name}" saved for review`, description: "You can revisit this scan anytime from this page." });
           }}
           onLearnWhy={() => {
             setShoppingSheetOpen(false);
