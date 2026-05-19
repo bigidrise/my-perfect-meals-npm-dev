@@ -16,6 +16,18 @@ const GRADE_CONFIG = {
   D: { label: 'D', color: 'text-rose-400', bg: 'bg-rose-500/20 border-rose-500/40', desc: 'Notable Conflicts' },
 };
 
+const VERDICT_CONFIG = {
+  buy: { bg: 'bg-emerald-500/15 border-emerald-500/30', icon: '✓', color: 'text-emerald-400', label: 'Good to Buy' },
+  caution: { bg: 'bg-amber-500/15 border-amber-500/30', icon: '!', color: 'text-amber-400', label: 'Buy With Caution' },
+  skip: { bg: 'bg-rose-500/15 border-rose-500/30', icon: '✕', color: 'text-rose-400', label: 'Consider Skipping' },
+};
+
+const FLAG_CONFIG = {
+  ok: { dot: 'bg-emerald-400', label: 'Safe' },
+  watch: { dot: 'bg-amber-400', label: 'Worth knowing' },
+  avoid: { dot: 'bg-rose-400', label: 'Conflicts with your profile' },
+};
+
 const LEARN_WHY: Record<string, string> = {
   considerations: "These are specific ingredients found in this product that may warrant attention based on your health profile. We flag them so you can make an informed choice — not to tell you what to eat.",
   notAlign: "This section is personalized to you. The same product can produce completely different guidance for different users depending on their unique goals, health conditions, and dietary protocols. Someone else scanning this exact product may see a very different result.",
@@ -79,8 +91,60 @@ function Section({
   );
 }
 
+function IngredientDecoder({ items }: { items: IngredientScanResult['ingredientDecoder'] }) {
+  const [expanded, setExpanded] = useState(true);
+  if (!items || items.length === 0) return null;
+  return (
+    <div className="mb-4">
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full flex items-center justify-between mb-2"
+      >
+        <p className="text-xs font-semibold uppercase tracking-wide text-white/50">
+          🔬 What's In This? Plain English Decoder
+        </p>
+        {expanded
+          ? <ChevronUp className="w-3.5 h-3.5 text-white/30" />
+          : <ChevronDown className="w-3.5 h-3.5 text-white/30" />
+        }
+      </button>
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-2">
+              {items.map((item, i) => (
+                <div
+                  key={i}
+                  className="rounded-lg bg-white/5 border border-white/8 px-3 py-2.5 flex items-start gap-2.5"
+                >
+                  <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${FLAG_CONFIG[item.flag].dot}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-white/85">{item.name}</p>
+                    <p className="text-xs text-white/55 leading-snug mt-0.5">{item.plain}</p>
+                  </div>
+                  <span className="text-[10px] text-white/25 shrink-0 mt-0.5">{FLAG_CONFIG[item.flag].label}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-white/25 mt-2 pl-1">
+              Green = generally recognized safe · Yellow = worth being aware of · Red = may conflict with your profile
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
   const grade = result ? GRADE_CONFIG[result.alignmentGrade] ?? GRADE_CONFIG.B : null;
+  const verdictCfg = result ? VERDICT_CONFIG[result.verdictLevel ?? 'caution'] : null;
 
   return (
     <AnimatePresence>
@@ -114,7 +178,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
                     Ingredient Intelligence
                   </p>
                   <h2 className="text-white font-bold text-lg leading-tight">
-                    Product Analysis
+                    Full Analysis
                   </h2>
                 </div>
                 <button
@@ -127,11 +191,26 @@ export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
 
               {/* Alignment Grade */}
               {grade && (
-                <div className={`rounded-xl border p-4 mb-4 flex items-center gap-4 ${grade.bg}`}>
+                <div className={`rounded-xl border p-4 mb-3 flex items-center gap-4 ${grade.bg}`}>
                   <div className={`text-5xl font-black ${grade.color}`}>{grade.label}</div>
                   <div>
                     <p className={`font-bold text-base ${grade.color}`}>{grade.desc}</p>
                     <p className="text-xs text-white/50 mt-0.5">Based on your health profile</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Verdict — the "should I buy it" answer */}
+              {verdictCfg && result.verdict && (
+                <div className={`rounded-xl border p-3.5 mb-4 flex items-start gap-3 ${verdictCfg.bg}`}>
+                  <span className={`text-lg font-black leading-none mt-0.5 ${verdictCfg.color}`}>
+                    {verdictCfg.icon}
+                  </span>
+                  <div>
+                    <p className={`text-xs font-bold uppercase tracking-wide mb-0.5 ${verdictCfg.color}`}>
+                      {verdictCfg.label}
+                    </p>
+                    <p className="text-sm text-white/85 leading-snug">{result.verdict}</p>
                   </div>
                 </div>
               )}
@@ -150,6 +229,17 @@ export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
                 <p className="text-sm text-white/90 leading-relaxed">{result.overallSummary}</p>
               </div>
 
+              {/* Plain English Ingredient Decoder — first-class feature */}
+              <IngredientDecoder items={result.ingredientDecoder ?? []} />
+
+              {/* Household & Kids */}
+              <Section
+                title="Family & Kids"
+                items={result.householdNotes}
+                icon="🏠"
+                learnWhyKey="household"
+              />
+
               {/* Ingredient Considerations */}
               <Section
                 title="Ingredient Considerations"
@@ -160,7 +250,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
 
               {/* May Not Align With */}
               <Section
-                title="May Not Align Well With"
+                title="May Not Align Well With Your Goals"
                 items={result.mayNotAlignWith}
                 icon="⚠️"
                 learnWhyKey="notAlign"
@@ -168,17 +258,9 @@ export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
 
               {/* Better For */}
               <Section
-                title="Better For"
+                title="Works Well For"
                 items={result.betterFor}
                 icon="✓"
-              />
-
-              {/* Household Notes */}
-              <Section
-                title="Household Notes"
-                items={result.householdNotes}
-                icon="🏠"
-                learnWhyKey="household"
               />
 
               {/* Extracted Ingredients (collapsible preview) */}

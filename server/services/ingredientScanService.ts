@@ -12,6 +12,9 @@ export interface HighRiskFlag {
 export interface IngredientScanResult {
   alignmentGrade: 'A' | 'B' | 'C' | 'D';
   overallSummary: string;
+  verdict: string;
+  verdictLevel: 'buy' | 'caution' | 'skip';
+  ingredientDecoder: Array<{ name: string; plain: string; flag: 'ok' | 'watch' | 'avoid' }>;
   ingredientConsiderations: string[];
   mayNotAlignWith: string[];
   betterFor: string[];
@@ -25,6 +28,24 @@ export interface IngredientScanResult {
 
 function buildCompactProtocolContext(envelope: UserProtocolEnvelope): string {
   const lines: string[] = [];
+
+  // ── Fitness goals (set during onboarding) ────────────────────────────────
+  if (envelope.goalType || envelope.fitnessGoal) {
+    const goalParts: string[] = [];
+    if (envelope.goalType) {
+      const goalLabel =
+        envelope.goalType === 'lose' ? 'weight loss'
+        : envelope.goalType === 'gain' ? 'muscle/weight gain'
+        : 'weight maintenance';
+      goalParts.push(goalLabel);
+    }
+    if (envelope.fitnessGoal && envelope.fitnessGoal !== envelope.goalType) {
+      goalParts.push(envelope.fitnessGoal.replace(/_/g, ' '));
+    }
+    if (envelope.goalTarget) goalParts.push(`target: ${envelope.goalTarget}`);
+    lines.push(`Primary nutrition goal: ${goalParts.join(', ')}`);
+  }
+
   if (envelope.dietaryIdentity.length)
     lines.push(`Dietary identity: ${envelope.dietaryIdentity.join(', ')}`);
   if (envelope.allergies.length)
@@ -44,14 +65,19 @@ function buildCompactProtocolContext(envelope: UserProtocolEnvelope): string {
     lines.push('Thyroid support protocol: active');
   if (envelope.avoidances.length)
     lines.push(`Avoidances/preferences: ${envelope.avoidances.join(', ')}`);
+
   return lines.length ? lines.join('\n') : 'No specific dietary or medical constraints on file.';
 }
 
 const ALIGNMENT_SYSTEM_PROMPT = `You are a personalized food intelligence advisor for a nutrition app called MyPerfectMeals.
 Analyze a food product's ingredient list and provide a calibrated, educational alignment assessment based on the user's specific health profile.
 
+CORE PURPOSE:
+Most people cannot understand complex chemical ingredient names. Your job is to (1) decode those names into plain everyday English, (2) tell the user whether this product aligns with their personal health goals and medical needs, and (3) give them a clear, personalized verdict so they can decide whether to buy it.
+
 TONE RULES (non-negotiable):
 - Educational, calm, factual, personalized. NEVER fear-based, alarmist, or conspiratorial.
+- Use plain everyday language — write like a knowledgeable friend, not a scientist.
 - Use language like "may not align with your [goal/condition]" — NEVER "toxic", "poison", "dangerous chemical", "harmful to everyone"
 - Personalize everything: the same product may be appropriate for one user and not another
 - If the user has no relevant conditions matching a concern, do not flag it
@@ -62,13 +88,38 @@ TONE RULES (non-negotiable):
 RESPONSE FORMAT (strict JSON only):
 {
   "alignmentGrade": "A" | "B" | "C" | "D",
-  "overallSummary": "1-2 sentence calm educational summary personalized to this user",
-  "ingredientConsiderations": ["neutral factual observations about the ingredient list"],
-  "mayNotAlignWith": ["personalized conflicts with user goals/conditions, or empty array"],
-  "betterFor": ["contextual positives or appropriate use cases, or empty array"],
-  "householdNotes": ["family/child-relevant observations if applicable, or empty array"],
-  "educationalFooter": "brief non-diagnostic disclaimer"
+  "overallSummary": "1-2 sentence plain-language summary personalized to this user and their goals",
+  "verdict": "One clear sentence — should this user buy this product or not, and why? Be direct and personal.",
+  "verdictLevel": "buy" | "caution" | "skip",
+  "ingredientDecoder": [
+    {
+      "name": "Exact ingredient name as it appears on the label",
+      "plain": "Plain English explanation of what this ingredient is and what it does in food — 1 sentence, simple language anyone can understand",
+      "flag": "ok" | "watch" | "avoid"
+    }
+  ],
+  "ingredientConsiderations": ["Factual observations about specific ingredients relevant to this user's health profile"],
+  "mayNotAlignWith": ["Personalized conflicts with this user's goals/conditions — only include if genuinely relevant. Empty array if none."],
+  "betterFor": ["Contextual positives or appropriate use cases for this user — or empty array"],
+  "householdNotes": ["Child safety notes, family member considerations, or sensitivity warnings for household use. Always include if any child-relevant ingredients (artificial dyes, high sugar, preservatives, caffeine) are present."],
+  "educationalFooter": "Brief non-diagnostic disclaimer"
 }
+
+ingredientDecoder rules:
+- Decode ALL chemical-sounding, unfamiliar, or hard-to-pronounce ingredients (e.g., Red 40, TBHQ, carrageenan, sodium benzoate, BHA, BHT, MSG, xanthan gum, maltodextrin, etc.)
+- Skip simple common ingredients that everyone already knows (salt, water, sugar, flour, butter, eggs, milk)
+- flag: "ok" = generally well-recognized, "watch" = worth being aware of for some people, "avoid" = conflicts with this user's specific profile
+- Aim for 3–8 decoded ingredients. If the list is clean, return an empty array.
+
+verdictLevel:
+- "buy" = overall aligns well with this user
+- "caution" = some considerations but not a deal-breaker for this user
+- "skip" = notable conflicts with this user's active health protocols
+
+householdNotes rules:
+- Always check for: artificial colors (Red 40, Yellow 5, etc.), high added sugar, caffeine, common allergens, synthetic preservatives, artificial sweeteners
+- If any are present, note them with plain explanations of why they matter for kids or sensitive family members
+- If no household concerns, return an empty array
 
 Grade rubric:
 A = aligns well with this user's profile
@@ -123,6 +174,9 @@ const LOW_CONFIDENCE_RESULT: IngredientScanResult = {
   alignmentGrade: 'B',
   overallSummary:
     "We couldn't clearly read the ingredients from this image. Try retaking the photo in better lighting with the full ingredients panel visible and in focus.",
+  verdict: "Try retaking the photo so we can give you a personalized assessment.",
+  verdictLevel: 'caution',
+  ingredientDecoder: [],
   ingredientConsiderations: [],
   mayNotAlignWith: [],
   betterFor: [],
@@ -196,11 +250,25 @@ Analyze how this product aligns with this specific user's health profile.`;
       temperature: 0.2,
     });
 
+    const rawDecoder = Array.isArray(alignment.ingredientDecoder) ? alignment.ingredientDecoder : [];
+    const ingredientDecoder = rawDecoder
+      .filter((d: any) => d && typeof d.name === 'string' && typeof d.plain === 'string')
+      .map((d: any) => ({
+        name: d.name as string,
+        plain: d.plain as string,
+        flag: (['ok', 'watch', 'avoid'] as const).includes(d.flag) ? d.flag : 'watch' as const,
+      }));
+
     return {
       alignmentGrade: (['A', 'B', 'C', 'D'] as const).includes(alignment.alignmentGrade)
         ? alignment.alignmentGrade
         : 'B',
       overallSummary: typeof alignment.overallSummary === 'string' ? alignment.overallSummary : 'Analysis complete.',
+      verdict: typeof alignment.verdict === 'string' ? alignment.verdict : '',
+      verdictLevel: (['buy', 'caution', 'skip'] as const).includes(alignment.verdictLevel)
+        ? alignment.verdictLevel
+        : 'caution',
+      ingredientDecoder,
       ingredientConsiderations: Array.isArray(alignment.ingredientConsiderations)
         ? alignment.ingredientConsiderations
         : [],
@@ -220,6 +288,9 @@ Analyze how this product aligns with this specific user's health profile.`;
     return {
       alignmentGrade: 'B',
       overallSummary: 'We encountered an issue analyzing this product. Please try again.',
+      verdict: '',
+      verdictLevel: 'caution',
+      ingredientDecoder: [],
       ingredientConsiderations: [],
       mayNotAlignWith: [],
       betterFor: [],
