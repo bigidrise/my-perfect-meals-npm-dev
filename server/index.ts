@@ -563,6 +563,17 @@ const initCheckInAlertLazy = async () => {
 };
 setTimeout(initCheckInAlertLazy, 3000);
 
+// Data retention cron (daily 2 AM — purge meal logs >365d, meal cache >90d)
+let dataRetentionInitialized = false;
+const initDataRetentionLazy = async () => {
+  if (!dataRetentionInitialized) {
+    const { initDataRetentionCron } = await import("./cron/dataRetention");
+    initDataRetentionCron();
+    dataRetentionInitialized = true;
+  }
+};
+setTimeout(initDataRetentionLazy, 5000);
+
 // Import and start warmup service
 import { warmupService } from "./services/warmupService";
 import { reminderService } from "./reminderService";

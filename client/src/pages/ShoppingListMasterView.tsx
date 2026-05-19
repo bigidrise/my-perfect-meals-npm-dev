@@ -39,6 +39,7 @@ import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
 import { launchIngredientPhotoCapture, type IngredientScanResult } from "@/lib/photoIngredientCapture";
 import { ShoppingIngredientSheet } from "@/components/shopping/ShoppingIngredientSheet";
 import { saveProductScan } from "@/lib/shoppingScanStorage";
+import RecentScans from "@/components/shopping/RecentScans";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { ArrowLeft } from "lucide-react";
 import { recordShoppingToBiometricsTransition, hasCompletedFirstLoop } from "@/lib/guestSuiteNavigator";
@@ -127,6 +128,9 @@ export default function ShoppingListMasterView() {
   const [barcodeModalOpen, setBarcodeModalOpen] = useState(false);
   const [shoppingSheetOpen, setShoppingSheetOpen] = useState(false);
   const [shoppingSheetResult, setShoppingSheetResult] = useState<IngredientScanResult | null>(null);
+  const [scanState, setScanState] = useState<"idle" | "scanning" | "ready">("idle");
+  const [scanMessageIdx, setScanMessageIdx] = useState(0);
+  const [scanRefreshKey, setScanRefreshKey] = useState(0);
   const [voiceText, setVoiceText] = useState("");
   const [bulkText, setBulkText] = useState("");
   const [barcodeText, setBarcodeText] = useState("");
@@ -155,24 +159,38 @@ export default function ShoppingListMasterView() {
     });
   }, []);
 
+  const SCAN_MESSAGES = [
+    "Reviewing ingredients…",
+    "Checking additives and oils…",
+    "Comparing with your goals…",
+    "Analyzing against your profile…",
+  ];
+
+  useEffect(() => {
+    if (scanState !== "scanning") return;
+    const interval = setInterval(() => {
+      setScanMessageIdx((i) => i + 1);
+    }, 1800);
+    return () => clearInterval(interval);
+  }, [scanState]);
+
   const handleShoppingScan = async () => {
     await launchIngredientPhotoCapture({
       onAnalyzing: () => {
-        toast({
-          title: "Analyzing ingredients...",
-          description: "Reading the label and checking your profile — just a moment.",
-        });
+        setScanState("scanning");
+        setScanMessageIdx(0);
       },
       onSuccess: (result) => {
+        setScanState("ready");
         setShoppingSheetResult(result);
-        setShoppingSheetOpen(true);
+        setTimeout(() => {
+          setScanState("idle");
+          setShoppingSheetOpen(true);
+        }, 500);
       },
       onError: (error) => {
-        toast({
-          title: "Scan failed",
-          description: error,
-          variant: "destructive",
-        });
+        setScanState("idle");
+        toast({ title: "Scan failed", description: error, variant: "destructive" });
       },
     });
   };
@@ -563,6 +581,9 @@ export default function ShoppingListMasterView() {
             </Button>
           </div>
 
+          {/* Recent Scans — refreshes after each scan action */}
+          <RecentScans key={scanRefreshKey} refreshKey={scanRefreshKey} />
+
           {/* Options - Group by aisle is default ON, rounding hidden */}
           <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center gap-3">
             <Button
@@ -909,6 +930,43 @@ export default function ShoppingListMasterView() {
             )}
           </div>
         )}
+        {/* Scanning overlay — shown during AI analysis */}
+        {scanState !== "idle" && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-6 px-8 text-center max-w-xs">
+              {scanState === "ready" ? (
+                <>
+                  <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
+                    <span className="text-3xl">✓</span>
+                  </div>
+                  <p className="text-white font-semibold text-lg">Analysis ready</p>
+                </>
+              ) : (
+                <>
+                  <div className="relative w-16 h-16">
+                    <div className="absolute inset-0 rounded-full bg-orange-500/20 animate-ping" />
+                    <div className="relative w-16 h-16 rounded-full bg-orange-500/30 border border-orange-500/60 flex items-center justify-center">
+                      <span className="text-2xl">🧾</span>
+                    </div>
+                  </div>
+                  <p className="text-white font-medium text-base">
+                    {SCAN_MESSAGES[scanMessageIdx % SCAN_MESSAGES.length]}
+                  </p>
+                  <div className="flex gap-1.5">
+                    {[0, 1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className="w-2 h-2 rounded-full bg-orange-400 animate-bounce"
+                        style={{ animationDelay: `${i * 0.15}s` }}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Shopping Ingredient Intelligence Sheet */}
         <ShoppingIngredientSheet
           open={shoppingSheetOpen}
@@ -916,6 +974,7 @@ export default function ShoppingListMasterView() {
           onClose={() => setShoppingSheetOpen(false)}
           onAddAnyway={() => {
             if (shoppingSheetResult) {
+              addItem({ name: "Scanned Product", quantity: 1, unit: "item" });
               saveProductScan({
                 productName: "Scanned Product",
                 ingredients: shoppingSheetResult.extractedIngredients,
@@ -924,10 +983,13 @@ export default function ShoppingListMasterView() {
                 scanDate: new Date().toISOString(),
                 userDecision: "added",
                 scanSource: "shopping",
+                overallSummary: shoppingSheetResult.overallSummary,
+                considerations: shoppingSheetResult.ingredientConsiderations,
               });
             }
             setShoppingSheetOpen(false);
-            toast({ title: "Added to cart", description: "Scan saved to your shopping history." });
+            setScanRefreshKey((k) => k + 1);
+            toast({ title: "Added to shopping list", description: "Balance matters more than perfection." });
           }}
           onSaveForReview={() => {
             if (shoppingSheetResult) {
@@ -939,10 +1001,13 @@ export default function ShoppingListMasterView() {
                 scanDate: new Date().toISOString(),
                 userDecision: "saved",
                 scanSource: "shopping",
+                overallSummary: shoppingSheetResult.overallSummary,
+                considerations: shoppingSheetResult.ingredientConsiderations,
               });
             }
             setShoppingSheetOpen(false);
-            toast({ title: "Saved for review", description: "You can revisit this product scan anytime." });
+            setScanRefreshKey((k) => k + 1);
+            toast({ title: "Saved for review", description: "You can revisit this scan anytime from this page." });
           }}
           onLearnWhy={() => {
             setShoppingSheetOpen(false);

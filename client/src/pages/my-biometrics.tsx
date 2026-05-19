@@ -219,7 +219,7 @@ export default function MyBiometrics() {
 
     const end = new Date();
     const start = new Date();
-    start.setDate(end.getDate() - 90);
+    start.setDate(end.getDate() - 365);
     const startISO = start.toISOString();
     const endISO = end.toISOString();
 
@@ -254,7 +254,7 @@ export default function MyBiometrics() {
     const refetch = () => {
       const end = new Date();
       const start = new Date();
-      start.setDate(end.getDate() - 90);
+      start.setDate(end.getDate() - 365);
       fetch(`/api/users/${userId}/macro-logs/daily-with-source?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`, {
         credentials: "include",
         headers: { ...getAuthHeaders() },

@@ -171,8 +171,11 @@ export function ShoppingIngredientSheet({
                   className="w-full flex items-center justify-center gap-2 bg-orange-600 rounded-2xl py-3.5 text-white font-semibold text-sm"
                 >
                   <ShoppingBag className="w-4 h-4" />
-                  Add to Cart Anyway
+                  Add to Shopping List
                 </button>
+                <p className="text-xs text-white/35 text-center -mt-1">
+                  Balance matters more than perfection.
+                </p>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={onSaveForReview}
