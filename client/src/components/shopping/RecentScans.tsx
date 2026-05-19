@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { getTodayShoppingScans, deleteProductScan, type SavedProductScan } from "@/lib/shoppingScanStorage";
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
-import { ChevronDown, ChevronUp, ExternalLink, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { PillButton } from "@/components/ui/pill-button";
 
 const GRADE_COLORS: Record<string, string> = {
   A: "bg-emerald-500/20 border-emerald-500/40 text-emerald-400",
@@ -126,14 +127,18 @@ export default function RecentScans({ refreshKey, onReopen }: Props) {
                     </div>
                   </button>
 
-                  {/* Trash button — always visible, no hover required */}
-                  <button
-                    onClick={(e) => handleDelete(e, scan.id)}
-                    className="shrink-0 flex items-center justify-center w-11 border-l border-white/8 text-white/25 active:text-red-400 transition-colors"
-                    aria-label="Delete this scan"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {/* Remove pill button */}
+                  <div className="shrink-0 flex items-center justify-center px-2 border-l border-white/8">
+                    <PillButton
+                      variant="rose"
+                      active
+                      onClick={(e) => handleDelete(e, scan.id)}
+                      aria-label="Remove this scan"
+                      className="text-xs px-3 py-1.5 h-auto"
+                    >
+                      Remove
+                    </PillButton>
+                  </div>
                 </div>
 
                 {isExpanded && (
