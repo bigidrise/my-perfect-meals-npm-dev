@@ -170,7 +170,7 @@ function CollapsibleSection({
   const status = evalStatus(form, section.checks);
 
   return (
-    <div className="rounded-xl border border-white/8 overflow-hidden bg-black/20">
+    <div className="rounded-xl border border-white/20 overflow-hidden bg-black/20">
       <button
         onClick={onToggle}
         className="w-full flex items-center justify-between px-4 py-3 text-left active:opacity-80"
@@ -191,7 +191,7 @@ function CollapsibleSection({
         </div>
       </button>
       {open && (
-        <div className="px-4 pb-4 pt-1 space-y-3 border-t border-white/8">
+        <div className="px-4 pb-4 pt-1 space-y-3 border-t border-white/20">
           {section.content(form, onChange)}
         </div>
       )}
@@ -688,7 +688,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
                 const open = openSections.has("oncology");
 
                 return (
-                  <div className="rounded-xl border border-rose-800/25 overflow-hidden bg-rose-950/10">
+                  <div className="rounded-xl border border-white/20 overflow-hidden bg-rose-950/10">
                     <button
                       onClick={() => toggleSection("oncology")}
                       className="w-full flex items-center justify-between px-4 py-3 text-left active:opacity-80"
@@ -709,7 +709,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
                       </div>
                     </button>
                     {open && (
-                      <div className="px-4 pb-4 pt-1 space-y-3 border-t border-rose-800/20">
+                      <div className="px-4 pb-4 pt-1 space-y-3 border-t border-white/20">
                         {/* Physician-controlled banner */}
                         {isPhysicianControlled && (
                           <div className="flex items-start gap-2 bg-rose-950/40 border border-rose-800/30 rounded-lg px-3 py-2.5 mt-2">
