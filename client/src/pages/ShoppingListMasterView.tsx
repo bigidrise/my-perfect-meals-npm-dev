@@ -31,7 +31,7 @@ import { MACRO_SOURCES, getMacroSourceBySlug } from "@/lib/macroSourcesConfig";
 import { getRetailQuantity } from "@/lib/retailIntelligence";
 import AddOtherItems from "@/components/AddOtherItems";
 import MyListCard from "@/components/shopping/MyListCard";
-import { readOtherItems, addOtherItem } from "@/stores/otherItemsStore";
+import { readOtherItems } from "@/stores/otherItemsStore";
 import { buildWalmartSearchUrl } from "@/lib/walmartLinkBuilder";
 import { formatQuantity } from "@/lib/formatQuantity";
 import { convertServingDisplay } from "@shared/units";
@@ -39,6 +39,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
 import { launchIngredientPhotoCapture, type IngredientScanResult } from "@/lib/photoIngredientCapture";
 import { ShoppingIngredientSheet } from "@/components/shopping/ShoppingIngredientSheet";
+import ScanNameModal from "@/components/shopping/ScanNameModal";
 import { saveProductScan, clearExpiredShoppingScans } from "@/lib/shoppingScanStorage";
 import RecentScans from "@/components/shopping/RecentScans";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
@@ -131,6 +132,7 @@ export default function ShoppingListMasterView() {
   const [barcodeModalOpen, setBarcodeModalOpen] = useState(false);
   const [shoppingSheetOpen, setShoppingSheetOpen] = useState(false);
   const [shoppingSheetResult, setShoppingSheetResult] = useState<IngredientScanResult | null>(null);
+  const [scanNameModalOpen, setScanNameModalOpen] = useState(false);
   const [scanState, setScanState] = useState<"idle" | "scanning" | "ready">("idle");
   const [scanMessageIdx, setScanMessageIdx] = useState(0);
   const [scanRefreshKey, setScanRefreshKey] = useState(0);
@@ -610,7 +612,7 @@ export default function ShoppingListMasterView() {
             </Button>
           </div>
         </div>
-        {/* My List — manual + scanned items displayed here */}
+        {/* My List — household / other manually-added items */}
         <MyListCard />
         {/* Add Other Items Section */}
         <AddOtherItems />
@@ -984,29 +986,14 @@ export default function ShoppingListMasterView() {
           open={shoppingSheetOpen}
           result={shoppingSheetResult}
           onClose={() => setShoppingSheetOpen(false)}
-          onAddAnyway={(name) => {
-            if (shoppingSheetResult) {
-              addOtherItem({ name, qty: 1, unit: "item", category: "Misc", source: "scanned" });
-              saveProductScan({
-                productName: name,
-                ingredients: shoppingSheetResult.extractedIngredients,
-                score: shoppingSheetResult.alignmentGrade,
-                householdFlags: shoppingSheetResult.householdNotes,
-                scanDate: new Date().toISOString(),
-                userDecision: "added",
-                scanSource: "shopping",
-                overallSummary: shoppingSheetResult.overallSummary,
-                considerations: shoppingSheetResult.ingredientConsiderations,
-              });
-            }
+          onAddAnyway={() => {
             setShoppingSheetOpen(false);
-            setScanRefreshKey((k) => k + 1);
-            toast({ title: `"${name}" added to shopping list`, description: "Balance matters more than perfection." });
+            setScanNameModalOpen(true);
           }}
-          onSaveForReview={(name) => {
+          onSaveForReview={() => {
             if (shoppingSheetResult) {
               saveProductScan({
-                productName: name,
+                productName: "Scanned Item",
                 ingredients: shoppingSheetResult.extractedIngredients,
                 score: shoppingSheetResult.alignmentGrade,
                 householdFlags: shoppingSheetResult.householdNotes,
@@ -1019,12 +1006,37 @@ export default function ShoppingListMasterView() {
             }
             setShoppingSheetOpen(false);
             setScanRefreshKey((k) => k + 1);
-            toast({ title: `"${name}" saved for review`, description: "You can revisit this scan anytime from this page." });
+            toast({ title: "Saved for review", description: "You can revisit this scan anytime from this page." });
           }}
           onLearnWhy={() => {
             setShoppingSheetOpen(false);
             setLocation("/learn?topic=ingredient-intelligence");
           }}
+        />
+
+        {/* Scan Name Modal — appears after "Add to Shopping List" tap in analysis sheet */}
+        <ScanNameModal
+          open={scanNameModalOpen}
+          onConfirm={(name) => {
+            addItem({ name, quantity: 1, unit: "item" });
+            if (shoppingSheetResult) {
+              saveProductScan({
+                productName: name,
+                ingredients: shoppingSheetResult.extractedIngredients,
+                score: shoppingSheetResult.alignmentGrade,
+                householdFlags: shoppingSheetResult.householdNotes,
+                scanDate: new Date().toISOString(),
+                userDecision: "added",
+                scanSource: "shopping",
+                overallSummary: shoppingSheetResult.overallSummary,
+                considerations: shoppingSheetResult.ingredientConsiderations,
+              });
+            }
+            setScanNameModalOpen(false);
+            setScanRefreshKey((k) => k + 1);
+            toast({ title: `"${name}" added to your shopping list`, description: "Balance matters more than perfection." });
+          }}
+          onCancel={() => setScanNameModalOpen(false)}
         />
 
         {/* Voice Add Modal */}
