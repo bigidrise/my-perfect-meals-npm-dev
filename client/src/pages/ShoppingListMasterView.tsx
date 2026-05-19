@@ -38,7 +38,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
 import { launchIngredientPhotoCapture, type IngredientScanResult } from "@/lib/photoIngredientCapture";
 import { ShoppingIngredientSheet } from "@/components/shopping/ShoppingIngredientSheet";
-import { saveProductScan } from "@/lib/shoppingScanStorage";
+import { saveProductScan, clearExpiredShoppingScans } from "@/lib/shoppingScanStorage";
 import RecentScans from "@/components/shopping/RecentScans";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { ArrowLeft } from "lucide-react";
@@ -97,8 +97,10 @@ export default function ShoppingListMasterView() {
   const replaceItems = useShoppingListStore((s) => s.replaceItems);
 
   // Guardrail 3: Hydrate from server on mount (no empty flicker — local items show immediately)
+  // Also clear any shopping scans from previous days — they are session memory, not permanent archive.
   useEffect(() => {
     hydrate();
+    clearExpiredShoppingScans();
   }, [hydrate]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -582,7 +584,14 @@ export default function ShoppingListMasterView() {
           </div>
 
           {/* Recent Scans — refreshes after each scan action */}
-          <RecentScans key={scanRefreshKey} refreshKey={scanRefreshKey} />
+          <RecentScans
+            key={scanRefreshKey}
+            refreshKey={scanRefreshKey}
+            onReopen={(result) => {
+              setShoppingSheetResult(result);
+              setShoppingSheetOpen(true);
+            }}
+          />
 
           {/* Options - Group by aisle is default ON, rounding hidden */}
           <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center gap-3">

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { getSavedProducts, type SavedProductScan } from "@/lib/shoppingScanStorage";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { getTodayShoppingScans, type SavedProductScan } from "@/lib/shoppingScanStorage";
+import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
+import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 
 const GRADE_COLORS: Record<string, string> = {
   A: "bg-emerald-500/20 border-emerald-500/40 text-emerald-400",
@@ -23,25 +24,35 @@ function formatRelativeDate(iso: string): string {
   if (diffMins < 60) return `${diffMins}m ago`;
   const diffHours = Math.floor(diffMins / 60);
   if (diffHours < 24) return `${diffHours}h ago`;
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return then.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return "Earlier today";
+}
+
+/** Reconstruct a full IngredientScanResult from a saved scan so the sheet can reopen. */
+function reconstructResult(scan: SavedProductScan): IngredientScanResult {
+  return {
+    alignmentGrade: (scan.score as "A" | "B" | "C" | "D") ?? "B",
+    overallSummary: scan.overallSummary ?? "",
+    ingredientConsiderations: scan.considerations ?? [],
+    extractedIngredients: scan.ingredients ?? [],
+    householdNotes: scan.householdFlags ?? [],
+    ocrConfidenceLow: false,
+  };
 }
 
 interface Props {
   refreshKey?: number;
+  onReopen?: (result: IngredientScanResult) => void;
 }
 
-export default function RecentScans({ refreshKey }: Props) {
+export default function RecentScans({ refreshKey, onReopen }: Props) {
   const [scans, setScans] = useState<SavedProductScan[]>([]);
   const [open, setOpen] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
-    const all = getSavedProducts().filter((s) => s.scanSource === "shopping");
-    setScans(all.slice(0, 5));
-    if (all.length > 0) setOpen(true);
+    const todayScans = getTodayShoppingScans().slice(0, 5);
+    setScans(todayScans);
+    if (todayScans.length > 0) setOpen(true);
   }, [refreshKey]);
 
   if (scans.length === 0) return null;
@@ -53,16 +64,19 @@ export default function RecentScans({ refreshKey }: Props) {
         className="w-full flex items-center justify-between px-4 py-3 text-left"
       >
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-white/80">Recent Scans</span>
-          <span className="text-[10px] font-bold bg-orange-600/70 text-white rounded-full px-1.5 py-0.5 leading-none">
+          <span className="text-sm font-semibold text-white/80">Today's Scans</span>
+          <span className="text-[10px] font-bold bg-cyan-700/60 text-white rounded-full px-1.5 py-0.5 leading-none">
             {scans.length}
           </span>
         </div>
-        {open ? (
-          <ChevronUp className="w-4 h-4 text-white/40" />
-        ) : (
-          <ChevronDown className="w-4 h-4 text-white/40" />
-        )}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-white/25">Clears tonight</span>
+          {open ? (
+            <ChevronUp className="w-4 h-4 text-white/40" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-white/40" />
+          )}
+        </div>
       </button>
 
       {open && (
@@ -71,45 +85,67 @@ export default function RecentScans({ refreshKey }: Props) {
             const gradeStyle = GRADE_COLORS[scan.score] ?? GRADE_COLORS.B;
             const decision = DECISION_LABELS[scan.userDecision] ?? DECISION_LABELS.skipped;
             const isExpanded = expandedId === scan.id;
+            const canReopen = !!(scan.overallSummary || scan.considerations?.length);
 
             return (
-              <button
+              <div
                 key={scan.id}
-                onClick={() => setExpandedId(isExpanded ? null : scan.id)}
-                className="w-full text-left rounded-xl bg-black/30 border border-white/8 p-3 flex items-start gap-3 active:opacity-80 transition-opacity"
+                className="rounded-xl bg-black/30 border border-white/8 overflow-hidden"
               >
-                <div
-                  className={`shrink-0 w-9 h-9 rounded-lg border flex items-center justify-center font-black text-base ${gradeStyle}`}
+                <button
+                  onClick={() => setExpandedId(isExpanded ? null : scan.id)}
+                  className="w-full text-left p-3 flex items-start gap-3 active:opacity-80 transition-opacity"
                 >
-                  {scan.score}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm text-white/90 font-medium leading-tight truncate">
-                      {scan.productName || "Scanned Product"}
-                    </p>
-                    <span className={`text-[10px] font-semibold shrink-0 ${decision.color}`}>
-                      {decision.label}
-                    </span>
+                  <div
+                    className={`shrink-0 w-9 h-9 rounded-lg border flex items-center justify-center font-black text-base ${gradeStyle}`}
+                  >
+                    {scan.score}
                   </div>
-                  <p className="text-[11px] text-white/40 mt-0.5">{formatRelativeDate(scan.scanDate)}</p>
-                  {isExpanded && scan.overallSummary && (
-                    <p className="text-xs text-white/60 leading-relaxed mt-2 border-t border-white/10 pt-2">
-                      {scan.overallSummary}
-                    </p>
-                  )}
-                  {isExpanded && scan.considerations && scan.considerations.length > 0 && (
-                    <ul className="mt-1.5 space-y-1">
-                      {scan.considerations.slice(0, 3).map((c, i) => (
-                        <li key={i} className="text-[11px] text-white/50 flex items-start gap-1.5">
-                          <span className="text-white/20 mt-0.5 shrink-0">•</span>
-                          {c}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm text-white/90 font-medium leading-tight truncate">
+                        {scan.productName || "Scanned Product"}
+                      </p>
+                      <span className={`text-[10px] font-semibold shrink-0 ${decision.color}`}>
+                        {decision.label}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-white/40 mt-0.5">{formatRelativeDate(scan.scanDate)}</p>
+                  </div>
+                </button>
+
+                {isExpanded && (
+                  <div className="px-3 pb-3 border-t border-white/8 pt-2 space-y-2">
+                    {scan.overallSummary && (
+                      <p className="text-xs text-white/60 leading-relaxed">
+                        {scan.overallSummary}
+                      </p>
+                    )}
+                    {scan.considerations && scan.considerations.length > 0 && (
+                      <ul className="space-y-1">
+                        {scan.considerations.slice(0, 3).map((c, i) => (
+                          <li key={i} className="text-[11px] text-white/50 flex items-start gap-1.5">
+                            <span className="text-white/20 mt-0.5 shrink-0">•</span>
+                            {c}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {canReopen && onReopen && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onReopen(reconstructResult(scan));
+                        }}
+                        className="w-full flex items-center justify-center gap-1.5 mt-1 rounded-lg bg-cyan-900/50 border border-cyan-500/20 py-2 text-xs text-cyan-300 font-medium active:opacity-70"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        View Full Analysis
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
