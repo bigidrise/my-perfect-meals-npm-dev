@@ -1,14 +1,14 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
-import { X, ShoppingBag, Bookmark, BookOpen, ChevronDown, ChevronUp, Tag } from "lucide-react";
+import { useState } from "react";
+import { X, ShoppingBag, Bookmark, BookOpen, ChevronDown, ChevronUp } from "lucide-react";
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 
 interface Props {
   open: boolean;
   result: IngredientScanResult | null;
   onClose: () => void;
-  onAddAnyway: (name: string) => void;
-  onSaveForReview: (name: string) => void;
+  onAddAnyway: () => void;
+  onSaveForReview: () => void;
   onLearnWhy: () => void;
 }
 
@@ -31,35 +31,8 @@ export function ShoppingIngredientSheet({
   onLearnWhy,
 }: Props) {
   const [considerationsExpanded, setConsiderationsExpanded] = useState(false);
-  const [editableName, setEditableName] = useState("");
-  const [listening, setListening] = useState(false);
   const grade = result ? GRADE_CONFIG[result.alignmentGrade] ?? GRADE_CONFIG.B : null;
   const topConsiderations = result?.ingredientConsiderations.slice(0, 3) ?? [];
-
-  // Reset name field each time a new scan opens
-  useEffect(() => {
-    if (open) setEditableName("");
-  }, [open]);
-
-  function startVoice() {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) return;
-    const rec = new SR();
-    rec.lang = "en-US";
-    rec.interimResults = false;
-    rec.maxAlternatives = 1;
-    setListening(true);
-    rec.onresult = (e: any) => {
-      const transcript: string = e.results[0][0].transcript;
-      setEditableName(transcript.trim());
-      setListening(false);
-    };
-    rec.onerror = () => setListening(false);
-    rec.onend = () => setListening(false);
-    rec.start();
-  }
-
-  const resolvedName = editableName.trim() || "Scanned Item";
 
   return (
     <AnimatePresence>
@@ -191,43 +164,11 @@ export function ShoppingIngredientSheet({
                 </div>
               )}
 
-              {/* ── Name this item ───────────────────────────────────────── */}
-              <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 mb-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40 mb-2 flex items-center gap-1.5">
-                  <Tag className="w-3 h-3" />
-                  Name this item
-                </p>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={editableName}
-                    onChange={(e) => setEditableName(e.target.value)}
-                    placeholder="e.g. Rao's Marinara, Fairlife Shake…"
-                    className="flex-1 bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-orange-500/50 caret-white"
-                  />
-                  <button
-                    onClick={startVoice}
-                    disabled={listening}
-                    className={`shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
-                      listening
-                        ? "bg-orange-500/30 border border-orange-400/50 animate-pulse"
-                        : "bg-white/8 border border-white/15 active:opacity-70"
-                    }`}
-                    aria-label="Voice input"
-                  >
-                    <span className="text-base">{listening ? "🎙️" : "🎤"}</span>
-                  </button>
-                </div>
-                <p className="text-[10px] text-white/25 mt-1.5 leading-relaxed">
-                  Optional — tap the mic or type. Helps you find it later in your scan history.
-                </p>
-              </div>
-
               {/* Action buttons */}
               <div className="space-y-2 mt-2">
                 <button
-                  onClick={() => onAddAnyway(resolvedName)}
-                  className="w-full flex items-center justify-center gap-2 bg-orange-600 rounded-2xl py-3.5 text-white font-semibold text-sm"
+                  onClick={onAddAnyway}
+                  className="w-full flex items-center justify-center gap-2 bg-orange-600 rounded-2xl py-3.5 text-white font-semibold text-sm active:scale-[.98] transition-transform"
                 >
                   <ShoppingBag className="w-4 h-4" />
                   Add to Shopping List
@@ -237,7 +178,7 @@ export function ShoppingIngredientSheet({
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   <button
-                    onClick={() => onSaveForReview(resolvedName)}
+                    onClick={onSaveForReview}
                     className="flex items-center justify-center gap-1.5 bg-white/8 border border-white/10 rounded-xl py-3 text-white/70 text-sm"
                   >
                     <Bookmark className="w-3.5 h-3.5" />
