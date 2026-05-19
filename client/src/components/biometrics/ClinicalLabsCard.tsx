@@ -8,12 +8,23 @@ import { useToast } from "@/hooks/use-toast";
 import {
   FlaskConical, Loader2, Save,
   ChevronDown, ChevronUp,
-  Heart, Droplets, Brain, Beaker, Activity, Flame, Wind,
+  Heart, Droplets, Brain, Beaker, Activity, Flame, Wind, Ribbon,
+  ShieldCheck, Lock,
 } from "lucide-react";
+
 import ProtocolRecommendationModal from "@/components/clinical/ProtocolRecommendationModal";
 import ThyroidRecommendationModal from "@/components/clinical/ThyroidRecommendationModal";
 import ProtocolDowngradeModal from "@/components/clinical/ProtocolDowngradeModal";
 import type { LabProtocolSignal, ThyroidLabSignal, LabDowngradeSignal } from "@shared/clinical/protocolDecision";
+
+interface OncologySupportCtx {
+  enabled: boolean;
+  source?: string;
+  locked?: boolean;
+  ownerName?: string | null;
+  symptoms?: string[];
+  emphasis?: { highProteinNutrientDensity?: boolean };
+}
 
 function todayIso() {
   return new Date().toISOString().split("T")[0];
@@ -54,6 +65,8 @@ interface LabValues {
   inr: string;
   // Inflammation & Recovery
   crp: string;
+  // Oncology & Recovery
+  prealbumin: string;
   // Metadata
   notes: string;
   lab_date: string;
@@ -68,6 +81,7 @@ const EMPTY_LABS: LabValues = {
   tsh: "", free_t4: "", free_t3: "", tpo_antibodies: "", thyroglobulin_antibodies: "",
   creatinine: "", bun: "", inr: "",
   crp: "",
+  prealbumin: "",
   notes: "",
   lab_date: todayIso(),
 };
@@ -211,6 +225,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
 
   const [downgradeQueue, setDowngradeQueue] = useState<LabDowngradeSignal[]>([]);
   const [showDowngradeModal, setShowDowngradeModal] = useState(false);
+  const [oncologyCtx, setOncologyCtx] = useState<OncologySupportCtx | null>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -249,6 +264,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
             bun:                     l.bun                     != null ? String(l.bun)                     : "",
             inr:                     l.inr                     != null ? String(l.inr)                     : "",
             crp:                     l.crp                     != null ? String(l.crp)                     : "",
+            prealbumin:              l.prealbumin              != null ? String(l.prealbumin)              : "",
             notes:    l.notes    || "",
             lab_date: l.lab_date || todayIso(),
           };
@@ -263,6 +279,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
           if ([loaded.tsh, loaded.free_t4, loaded.free_t3, loaded.tpo_antibodies, loaded.thyroglobulin_antibodies].some(Boolean)) sectionsWithData.add("thyroid");
           if ([loaded.creatinine, loaded.bun, loaded.inr].some(Boolean)) sectionsWithData.add("kidney");
           if (loaded.crp) sectionsWithData.add("inflammation");
+          if (loaded.prealbumin) sectionsWithData.add("oncology");
           setOpenSections(sectionsWithData);
 
           setLastSaved(
@@ -270,6 +287,9 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
               month: "short", day: "numeric", year: "numeric",
             })
           );
+        }
+        if (data.oncologySupportContext) {
+          setOncologyCtx(data.oncologySupportContext as OncologySupportCtx);
         }
       } catch {
         // silently ignore
@@ -314,6 +334,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
         "tsh", "free_t4", "free_t3", "tpo_antibodies", "thyroglobulin_antibodies",
         "creatinine", "bun", "inr",
         "crp",
+        "prealbumin",
       ];
       for (const field of numFields) {
         const v = (form[field] as string).trim();
@@ -646,6 +667,127 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
                   onChange={handleChange}
                 />
               ))}
+
+              {/* Oncology & Recovery — pink/rose accent, physician-controlled aware */}
+              {(() => {
+                const isPhysicianControlled = !!(oncologyCtx?.locked && oncologyCtx?.source === "physician");
+                const prealbuminVal = parseFloat(form.prealbumin);
+                const prealbuminEntered = form.prealbumin.trim() !== "" && isFinite(prealbuminVal);
+                const prealbuminLow = prealbuminEntered && prealbuminVal < 15;
+
+                // Derive status chip
+                let oncologyStatus: { label: string; cls: string } | null = null;
+                if (prealbuminEntered) {
+                  oncologyStatus = prealbuminLow
+                    ? { label: "Needs attention", cls: "text-rose-300 bg-rose-500/10 border-rose-400/30" }
+                    : { label: "Normal", cls: "text-emerald-400 bg-emerald-500/10 border-emerald-500/25" };
+                } else if (oncologyCtx?.enabled) {
+                  oncologyStatus = { label: isPhysicianControlled ? "Physician-guided" : "Active", cls: "text-rose-300 bg-rose-500/10 border-rose-400/30" };
+                }
+
+                const open = openSections.has("oncology");
+
+                return (
+                  <div className="rounded-xl border border-rose-800/25 overflow-hidden bg-rose-950/10">
+                    <button
+                      onClick={() => toggleSection("oncology")}
+                      className="w-full flex items-center justify-between px-4 py-3 text-left active:opacity-80"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Ribbon className="w-4 h-4 text-rose-400 shrink-0" />
+                        <span className="text-sm font-medium text-rose-200/90">Oncology & Recovery</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {oncologyStatus && (
+                          <span className={`text-[10px] font-semibold border rounded-full px-2 py-0.5 leading-none ${oncologyStatus.cls}`}>
+                            {oncologyStatus.label}
+                          </span>
+                        )}
+                        {open
+                          ? <ChevronUp className="w-4 h-4 text-rose-400/40" />
+                          : <ChevronDown className="w-4 h-4 text-rose-400/40" />}
+                      </div>
+                    </button>
+                    {open && (
+                      <div className="px-4 pb-4 pt-1 space-y-3 border-t border-rose-800/20">
+                        {/* Physician-controlled banner */}
+                        {isPhysicianControlled && (
+                          <div className="flex items-start gap-2 bg-rose-950/40 border border-rose-800/30 rounded-lg px-3 py-2.5 mt-2">
+                            <Lock className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-xs font-semibold text-rose-300">Physician-guided protocol active</p>
+                              {oncologyCtx?.ownerName && (
+                                <p className="text-[10px] text-rose-400/70 mt-0.5">
+                                  Assigned by {oncologyCtx.ownerName}
+                                </p>
+                              )}
+                              <p className="text-[10px] text-rose-400/60 mt-1 leading-relaxed">
+                                Your oncology support context is managed by your care team. Labs entered here are informational and support nutrition tracking only.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Self-guided info banner when oncology enabled but not physician-controlled */}
+                        {oncologyCtx?.enabled && !isPhysicianControlled && (
+                          <div className="flex items-start gap-2 bg-rose-950/20 border border-rose-800/20 rounded-lg px-3 py-2 mt-1">
+                            <ShieldCheck className="w-3.5 h-3.5 text-rose-400/70 shrink-0 mt-0.5" />
+                            <p className="text-[10px] text-rose-300/60 leading-relaxed">
+                              Recovery & oncology support is active. Lab values here support adaptive nutrition guidance only — not diagnosis or treatment assessment.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Prealbumin — entry field */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-rose-200/50 w-36 shrink-0">Prealbumin</span>
+                          <div className="flex items-center gap-1 flex-1">
+                            <Input
+                              type="number" inputMode="decimal" step="any"
+                              value={form.prealbumin}
+                              placeholder="e.g. 22"
+                              disabled={isPhysicianControlled}
+                              onChange={(e) => handleChange("prealbumin", e.target.value)}
+                              className="bg-black/40 border-rose-900/40 text-rose-100 placeholder:text-rose-300/20 text-sm h-8 focus:bg-black/40 focus:text-white caret-white disabled:opacity-40"
+                            />
+                            <span className="text-[10px] text-rose-300/30 shrink-0">mg/dL</span>
+                          </div>
+                        </div>
+                        {prealbuminEntered && (
+                          <p className={`text-[10px] pl-[9.5rem] leading-relaxed ${prealbuminLow ? "text-rose-400/70" : "text-emerald-400/60"}`}>
+                            {prealbuminLow
+                              ? "Below normal range (15–35 mg/dL). Supportive high-protein nutrition may be beneficial."
+                              : "Within normal range (15–35 mg/dL)."}
+                          </p>
+                        )}
+
+                        {/* Albumin reference — read from Liver Panel */}
+                        {form.albumin && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-rose-200/40 w-36 shrink-0">Albumin (ref.)</span>
+                            <span className="text-sm text-rose-100/50 font-mono">{form.albumin} g/dL</span>
+                            <span className="text-[10px] text-rose-300/30">from Liver Panel</span>
+                          </div>
+                        )}
+
+                        {/* CRP reference — read from Inflammation & Recovery */}
+                        {form.crp && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-rose-200/40 w-36 shrink-0">CRP (ref.)</span>
+                            <span className="text-sm text-rose-100/50 font-mono">{form.crp} mg/L</span>
+                            <span className="text-[10px] text-rose-300/30">from Inflammation</span>
+                          </div>
+                        )}
+
+                        {/* Guidance note */}
+                        <p className="text-[10px] text-rose-300/40 leading-relaxed pt-1 border-t border-rose-800/15">
+                          These values support adaptive nutrition guidance only. Always follow your care team's recommendations.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Notes — always visible */}
               <div className="flex items-start gap-2 pt-2">
