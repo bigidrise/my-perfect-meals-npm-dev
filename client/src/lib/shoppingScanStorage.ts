@@ -76,6 +76,13 @@ export function clearExpiredShoppingScans(): void {
   }
 }
 
+export function deleteProductScan(id: string): void {
+  const kept = readAll().filter((s) => s.id !== id);
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(kept));
+  } catch {}
+}
+
 export function clearSavedProducts(): void {
   try {
     localStorage.removeItem(STORAGE_KEY);

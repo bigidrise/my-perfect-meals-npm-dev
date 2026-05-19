@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { getTodayShoppingScans, type SavedProductScan } from "@/lib/shoppingScanStorage";
+import { getTodayShoppingScans, deleteProductScan, type SavedProductScan } from "@/lib/shoppingScanStorage";
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
-import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { ChevronDown, ChevronUp, ExternalLink, Trash2 } from "lucide-react";
 
 const GRADE_COLORS: Record<string, string> = {
   A: "bg-emerald-500/20 border-emerald-500/40 text-emerald-400",
@@ -49,11 +49,22 @@ export default function RecentScans({ refreshKey, onReopen }: Props) {
   const [open, setOpen] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const todayScans = getTodayShoppingScans().slice(0, 5);
+  function loadScans() {
+    const todayScans = getTodayShoppingScans().slice(0, 20);
     setScans(todayScans);
     if (todayScans.length > 0) setOpen(true);
+  }
+
+  useEffect(() => {
+    loadScans();
   }, [refreshKey]);
+
+  function handleDelete(e: React.MouseEvent, id: string) {
+    e.stopPropagation();
+    deleteProductScan(id);
+    setScans((prev) => prev.filter((s) => s.id !== id));
+    if (expandedId === id) setExpandedId(null);
+  }
 
   if (scans.length === 0) return null;
 
@@ -92,27 +103,38 @@ export default function RecentScans({ refreshKey, onReopen }: Props) {
                 key={scan.id}
                 className="rounded-xl bg-black/30 border border-white/8 overflow-hidden"
               >
-                <button
-                  onClick={() => setExpandedId(isExpanded ? null : scan.id)}
-                  className="w-full text-left p-3 flex items-start gap-3 active:opacity-80 transition-opacity"
-                >
-                  <div
-                    className={`shrink-0 w-9 h-9 rounded-lg border flex items-center justify-center font-black text-base ${gradeStyle}`}
+                <div className="flex items-stretch">
+                  <button
+                    onClick={() => setExpandedId(isExpanded ? null : scan.id)}
+                    className="flex-1 text-left p-3 flex items-start gap-3 active:opacity-80 transition-opacity min-w-0"
                   >
-                    {scan.score}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm text-white/90 font-medium leading-tight truncate">
-                        {scan.productName || "Scanned Product"}
-                      </p>
-                      <span className={`text-[10px] font-semibold shrink-0 ${decision.color}`}>
-                        {decision.label}
-                      </span>
+                    <div
+                      className={`shrink-0 w-9 h-9 rounded-lg border flex items-center justify-center font-black text-base ${gradeStyle}`}
+                    >
+                      {scan.score}
                     </div>
-                    <p className="text-[11px] text-white/40 mt-0.5">{formatRelativeDate(scan.scanDate)}</p>
-                  </div>
-                </button>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm text-white/90 font-medium leading-tight truncate">
+                          {scan.productName || "Scanned Product"}
+                        </p>
+                        <span className={`text-[10px] font-semibold shrink-0 ${decision.color}`}>
+                          {decision.label}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-white/40 mt-0.5">{formatRelativeDate(scan.scanDate)}</p>
+                    </div>
+                  </button>
+
+                  {/* Trash button — always visible, no hover required */}
+                  <button
+                    onClick={(e) => handleDelete(e, scan.id)}
+                    className="shrink-0 flex items-center justify-center w-11 border-l border-white/8 text-white/25 active:text-red-400 transition-colors"
+                    aria-label="Delete this scan"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
 
                 {isExpanded && (
                   <div className="px-3 pb-3 border-t border-white/8 pt-2 space-y-2">
