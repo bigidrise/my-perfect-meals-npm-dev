@@ -31,7 +31,8 @@ import { MACRO_SOURCES, getMacroSourceBySlug } from "@/lib/macroSourcesConfig";
 import { getRetailQuantity } from "@/lib/retailIntelligence";
 import AddOtherItems from "@/components/AddOtherItems";
 import MyListCard from "@/components/shopping/MyListCard";
-import { readOtherItems } from "@/stores/otherItemsStore";
+import ScannedItemsCard from "@/components/shopping/ScannedItemsCard";
+import { readOtherItems, addOtherItem } from "@/stores/otherItemsStore";
 import { buildWalmartSearchUrl } from "@/lib/walmartLinkBuilder";
 import { formatQuantity } from "@/lib/formatQuantity";
 import { convertServingDisplay } from "@shared/units";
@@ -612,10 +613,6 @@ export default function ShoppingListMasterView() {
             </Button>
           </div>
         </div>
-        {/* My List — household / other manually-added items */}
-        <MyListCard />
-        {/* Add Other Items Section */}
-        <AddOtherItems />
         {/* Walmart Card - Coming Soon */}
         <div className="rounded-2xl border border-white/20 bg-black/60 text-white p-4 sm:p-5 opacity-70">
           <div className="flex items-center justify-between gap-3">
@@ -944,6 +941,11 @@ export default function ShoppingListMasterView() {
             )}
           </div>
         )}
+        {/* ── Bottom cards: My List + Scanned Items (below all AI categories) ── */}
+        <MyListCard />
+        <AddOtherItems />
+        <ScannedItemsCard />
+
         {/* Scanning overlay — shown during AI analysis */}
         {scanState !== "idle" && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm">
@@ -1018,7 +1020,7 @@ export default function ShoppingListMasterView() {
         <ScanNameModal
           open={scanNameModalOpen}
           onConfirm={(name) => {
-            addItem({ name, quantity: 1, unit: "item" });
+            addOtherItem({ name, qty: 1, unit: "item", category: "Misc", source: "scanned" });
             if (shoppingSheetResult) {
               saveProductScan({
                 productName: name,

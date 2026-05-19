@@ -1,22 +1,41 @@
-import { useState, useEffect } from "react";
-import { Trash2, ListChecks, Camera } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Trash2, ListChecks, Pencil, Check } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   readOtherItems,
   deleteOtherItem,
   toggleOtherItemChecked,
   clearCheckedOtherItems,
+  updateOtherItem,
   type OtherItem,
 } from "@/stores/otherItemsStore";
 
 export default function MyListCard() {
-  const [items, setItems] = useState<OtherItem[]>(() => readOtherItems().items);
+  const [items, setItems] = useState<OtherItem[]>(() =>
+    readOtherItems().items.filter((i) => i.source !== "scanned")
+  );
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const onUpdate = () => setItems(readOtherItems().items);
+    const onUpdate = () =>
+      setItems(readOtherItems().items.filter((i) => i.source !== "scanned"));
     window.addEventListener("other:items:updated", onUpdate);
     return () => window.removeEventListener("other:items:updated", onUpdate);
   }, []);
+
+  function startEdit(item: OtherItem) {
+    setEditingId(item.id);
+    setEditValue(item.name);
+    setTimeout(() => editInputRef.current?.focus(), 50);
+  }
+
+  function commitEdit(id: string) {
+    const trimmed = editValue.trim();
+    if (trimmed) updateOtherItem(id, { name: trimmed });
+    setEditingId(null);
+  }
 
   if (items.length === 0) return null;
 
@@ -36,7 +55,7 @@ export default function MyListCard() {
         {checked.length > 0 && (
           <button
             onClick={() => clearCheckedOtherItems()}
-            className="text-[11px] text-white/40 hover:text-white/70 transition-colors"
+            className="text-[11px] text-white/40 active:text-white/70 transition-colors"
           >
             Clear checked ({checked.length})
           </button>
@@ -60,33 +79,58 @@ export default function MyListCard() {
             />
 
             <div className="flex-1 min-w-0">
-              <span
-                className={`text-sm font-medium ${
-                  item.checked ? "line-through text-white/40" : "text-white"
-                }`}
-              >
-                {item.brand ? (
-                  <span className="text-orange-300/80">{item.brand} </span>
-                ) : null}
-                {item.name}
-              </span>
-              {(item.qty !== 1 || item.unit !== "item") && (
+              {editingId === item.id ? (
+                <input
+                  ref={editInputRef}
+                  type="text"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onBlur={() => commitEdit(item.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") commitEdit(item.id);
+                    if (e.key === "Escape") setEditingId(null);
+                  }}
+                  className="w-full bg-black/60 border border-orange-500/40 rounded-lg px-2 py-1 text-sm text-white focus:outline-none caret-white"
+                />
+              ) : (
+                <span
+                  className={`text-sm font-medium ${
+                    item.checked ? "line-through text-white/40" : "text-white"
+                  }`}
+                >
+                  {item.brand ? (
+                    <span className="text-orange-300/80">{item.brand} </span>
+                  ) : null}
+                  {item.name}
+                </span>
+              )}
+              {editingId !== item.id && (item.qty !== 1 || item.unit !== "item") && (
                 <span className="text-xs text-white/40 ml-2">
                   {item.qty} {item.unit}
                 </span>
               )}
             </div>
 
-            {item.source === "scanned" && (
-              <span className="shrink-0 flex items-center gap-1 text-[10px] text-orange-400/70 bg-orange-500/10 border border-orange-500/20 rounded-full px-2 py-0.5">
-                <Camera className="w-2.5 h-2.5" />
-                Scanned
-              </span>
+            {editingId === item.id ? (
+              <button
+                onClick={() => commitEdit(item.id)}
+                className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-orange-500/20 border border-orange-500/30 text-orange-400"
+              >
+                <Check className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <button
+                onClick={() => startEdit(item)}
+                className="shrink-0 text-white/25 active:text-white/60 transition-colors p-1"
+                aria-label="Rename item"
+              >
+                <Pencil className="w-3 h-3" />
+              </button>
             )}
 
             <button
               onClick={() => deleteOtherItem(item.id)}
-              className="shrink-0 text-white/20 hover:text-red-400 transition-colors p-1"
+              className="shrink-0 text-white/20 active:text-red-400 transition-colors p-1"
               aria-label="Remove item"
             >
               <Trash2 className="w-3.5 h-3.5" />
