@@ -17,18 +17,24 @@ import type { LabProtocolSignal } from "@shared/clinical/protocolDecision";
 // Citation map — protocol → authoritative guideline reference
 // ---------------------------------------------------------------------------
 const CITATIONS: Record<string, string> = {
-  "kidney-disease": "KDIGO / NKF Clinical Practice Guidelines",
-  "heart-failure": "ACC / AHA Heart Failure Guidelines",
-  "liver-support": "AASLD / NIH Nutritional Support Guidelines",
-  "liver-disease": "AASLD / EASL Liver Disease Guidelines",
+  "kidney-disease":       "KDIGO / NKF Clinical Practice Guidelines",
+  "heart-failure":        "ACC / AHA Heart Failure Guidelines",
+  "liver-support":        "AASLD / NIH Nutritional Support Guidelines",
+  "liver-disease":        "AASLD / EASL Liver Disease Guidelines",
+  "metabolic-support":    "ADA Standards of Medical Care in Diabetes; AHA Metabolic Risk",
+  "inflammation-support": "AHA / CDC Joint hsCRP Scientific Statement",
+  "metabolic-stress":     "Endocrine Society Clinical Practice Guidelines",
 };
 
 // Protocol → human-readable title
 const PROTOCOL_TITLE: Record<string, string> = {
-  "kidney-disease": "Kidney Support Nutrition Protocol",
-  "heart-failure": "Cardiac Health Nutrition Protocol",
-  "liver-support": "Liver Support Nutrition Protocol",
-  "liver-disease": "Liver Disease Nutrition Protocol",
+  "kidney-disease":       "Kidney Support Nutrition Protocol",
+  "heart-failure":        "Cardiac Health Nutrition Protocol",
+  "liver-support":        "Liver Support Nutrition Protocol",
+  "liver-disease":        "Liver Disease Nutrition Protocol",
+  "metabolic-support":    "Metabolic Support Nutrition Protocol",
+  "inflammation-support": "Inflammation Support Nutrition Protocol",
+  "metabolic-stress":     "Metabolic Stress Support Protocol",
 };
 
 // Confidence → colour classes
@@ -41,15 +47,23 @@ const CONFIDENCE_COLOR: Record<string, string> = {
 // Trigger field → readable label
 function labelTrigger(field: string): string {
   const map: Record<string, string> = {
-    alt: "ALT (liver enzyme)",
-    ast: "AST (liver enzyme)",
-    bilirubin: "Bilirubin",
-    albumin: "Albumin",
-    creatinine: "Creatinine",
-    bun: "BUN",
-    ldl: "LDL cholesterol",
+    alt:                     "ALT (liver enzyme)",
+    ast:                     "AST (liver enzyme)",
+    bilirubin:               "Bilirubin",
+    albumin:                 "Albumin",
+    creatinine:              "Creatinine",
+    bun:                     "BUN",
+    ldl:                     "LDL cholesterol",
     blood_pressure_systolic: "Systolic blood pressure",
-    ejection_fraction: "Ejection fraction",
+    ejection_fraction:       "Ejection fraction",
+    // Phase 4
+    a1c:                     "A1C",
+    glucose:                 "Fasting glucose",
+    fasting_insulin:         "Fasting insulin",
+    triglycerides:           "Triglycerides",
+    tg_hdl_ratio:            "TG/HDL ratio",
+    crp:                     "CRP (C-Reactive Protein)",
+    cortisol:                "Cortisol",
   };
   return map[field] ?? field;
 }
