@@ -506,7 +506,9 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                                 {formatRelativeTime(msg.createdAt)}
                               </span>
                             </div>
-                            <p className="text-xs text-white/60 truncate mt-0.5">{msg.body}</p>
+                            <p className="text-xs text-white/60 truncate mt-0.5">
+                              {msg.contentType === "voice" ? "🎤 Voice message" : msg.body}
+                            </p>
                           </div>
                         </div>
                       );
