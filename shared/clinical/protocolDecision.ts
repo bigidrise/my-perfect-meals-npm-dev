@@ -1,17 +1,19 @@
 /**
- * Protocol Decision Contract — Phase 2
+ * Protocol Decision Contract — Phase 4
  *
  * This file is the single source of truth for:
- *   1. safeNum()       — guards every lab comparison against null / NaN / blank
- *   2. ProtocolDecision — the typed union of all possible protocol outcomes
- *   3. LabProtocolSignal — the structured output of resolveProtocolFromLabs()
- *   4. LAB_THRESHOLDS   — every numeric threshold used by the resolver
+ *   1. safeNum()          — guards every lab comparison against null / NaN / blank
+ *   2. ProtocolDecision   — typed union of all possible protocol outcomes
+ *   3. LabProtocolSignal  — structured output of resolveProtocolFromLabs()
+ *   4. LAB_THRESHOLDS     — every numeric threshold used by the resolver
  *
  * NEVER hardcode threshold values anywhere else.
  * NEVER compare a raw lab value without first passing it through safeNum().
  *
  * Precedence order (must match clinicalModeResolver.ts exactly):
- *   liver-disease > kidney-disease > heart-failure > liver-support > anti-inflammatory
+ *   liver-disease > kidney-disease > heart-failure > liver-support >
+ *   metabolic-support > inflammation-support > metabolic-stress >
+ *   anti-inflammatory (base, no signal)
  */
 
 // ---------------------------------------------------------------------------
@@ -40,6 +42,9 @@ export type ProtocolDecision =
   | 'kidney-disease'
   | 'heart-failure'
   | 'liver-support'
+  | 'metabolic-support'      // Phase 4 — insulin resistance / metabolic / diabetic-aware
+  | 'inflammation-support'   // Phase 4 — CRP-driven anti-inflammatory escalation
+  | 'metabolic-stress'       // Phase 4 — cortisol-driven metabolic stress support
   | 'anti-inflammatory';
 
 // ---------------------------------------------------------------------------
@@ -79,10 +84,14 @@ export interface LabProtocolSignal {
  *   Low   = value must be BELOW this to trigger
  *
  * Sources:
- *   liver-disease:  AASLD / EASL guidelines
- *   liver-support:  AASLD / NIH clinical reference ranges
- *   kidney-disease: KDIGO / NKF guidelines
- *   cardiac:        ACC / AHA guidelines
+ *   liver-disease:       AASLD / EASL guidelines
+ *   liver-support:       AASLD / NIH clinical reference ranges
+ *   kidney-disease:      KDIGO / NKF guidelines
+ *   cardiac:             ACC / AHA guidelines
+ *   thyroid:             ATA / AACE / Endocrine Society
+ *   metabolic:           ADA / AHA metabolic risk thresholds
+ *   inflammation:        AHA / CDC high-sensitivity CRP classification
+ *   metabolicStress:     Endocrine Society / standard clinical lab reference ranges
  */
 export const LAB_THRESHOLDS = {
   liverDisease: {
@@ -109,8 +118,7 @@ export const LAB_THRESHOLDS = {
   },
 
   // Thyroid Support — additive modifier layer, not a primary protocol override.
-  // Sources: American Thyroid Association (ATA), American Association of Clinical
-  // Endocrinology (AACE), Endocrine Society clinical practice guidelines.
+  // Sources: ATA, AACE, Endocrine Society clinical practice guidelines.
   thyroid: {
     tshHigh:                    4.5,  // mIU/L  — TSH > 4.5 suggests hypothyroid (ATA/AACE)
     tshLow:                     0.4,  // mIU/L  — TSH < 0.4 suggests hyperthyroid (ATA/AACE)
@@ -119,12 +127,34 @@ export const LAB_THRESHOLDS = {
     tpoAntibodiesHigh:          9,    // IU/mL  — TPO Ab > 9 suggests autoimmune thyroid (Hashimoto's)
     thyroglobulinAntibodiesHigh: 1,   // IU/mL  — TgAb > 1 suggests autoimmune thyroid activity
   },
+
+  // Metabolic Support — insulin resistance / diabetic-aware support.
+  // Sources: ADA Standards of Medical Care in Diabetes, AHA metabolic risk.
+  metabolic: {
+    a1cHigh:             5.7,   // %       — pre-diabetic range (ADA)
+    glucoseHigh:         100,   // mg/dL   — impaired fasting glucose (ADA)
+    fastingInsulinHigh:  15,    // µIU/mL  — above optimal functional range
+    triglyceridesHigh:   150,   // mg/dL   — borderline high triglycerides (AHA)
+    tgHdlRatioHigh:      3.5,   // ratio   — TG/HDL > 3.5 signals insulin resistance
+  },
+
+  // Inflammation Support — CRP-driven anti-inflammatory escalation.
+  // Sources: AHA / CDC high-sensitivity CRP classification (2003 joint statement).
+  inflammation: {
+    crpHigh: 3.0,  // mg/L — > 3.0 = high cardiovascular inflammation risk (AHA/CDC)
+  },
+
+  // Metabolic Stress Support — cortisol-driven.
+  // Sources: Endocrine Society, standard clinical lab reference ranges (AM draw).
+  metabolicStress: {
+    cortisolHigh: 20,  // µg/dL — > 20 above optimal AM range (clinical lab refs)
+  },
 } as const;
 
 export type LabThresholds = typeof LAB_THRESHOLDS;
 
 // ---------------------------------------------------------------------------
-// 6. LabDowngradeSignal — returned when a user is already on a protocol and
+// 5. LabDowngradeSignal — returned when a user is already on a protocol and
 //    their new lab values are now within the normal reference range for that
 //    protocol's activation markers. Offers the user the option to step down
 //    to the Anti-Inflammatory foundation. Never auto-applied.
@@ -133,7 +163,6 @@ export type LabThresholds = typeof LAB_THRESHOLDS;
 export interface LabDowngradeSignal {
   /**
    * The protocol the user is currently on that may no longer be needed.
-   * 'thyroid-support' | 'liver-disease' | 'kidney-disease' | 'heart-failure' | 'liver-support'
    */
   protocol: string;
 
@@ -155,7 +184,7 @@ export interface LabDowngradeSignal {
 }
 
 // ---------------------------------------------------------------------------
-// 5. ThyroidLabSignal — separate from LabProtocolSignal because thyroid is
+// 6. ThyroidLabSignal — separate from LabProtocolSignal because thyroid is
 //    an additive modifier, not a primary protocol override.
 // ---------------------------------------------------------------------------
 
