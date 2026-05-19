@@ -36,6 +36,9 @@ import { formatQuantity } from "@/lib/formatQuantity";
 import { convertServingDisplay } from "@shared/units";
 import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
+import { launchIngredientPhotoCapture, type IngredientScanResult } from "@/lib/photoIngredientCapture";
+import { ShoppingIngredientSheet } from "@/components/shopping/ShoppingIngredientSheet";
+import { saveProductScan } from "@/lib/shoppingScanStorage";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { ArrowLeft } from "lucide-react";
 import { recordShoppingToBiometricsTransition, hasCompletedFirstLoop } from "@/lib/guestSuiteNavigator";
@@ -122,6 +125,8 @@ export default function ShoppingListMasterView() {
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [barcodeModalOpen, setBarcodeModalOpen] = useState(false);
+  const [shoppingSheetOpen, setShoppingSheetOpen] = useState(false);
+  const [shoppingSheetResult, setShoppingSheetResult] = useState<IngredientScanResult | null>(null);
   const [voiceText, setVoiceText] = useState("");
   const [bulkText, setBulkText] = useState("");
   const [barcodeText, setBarcodeText] = useState("");
@@ -149,6 +154,28 @@ export default function ShoppingListMasterView() {
       return next;
     });
   }, []);
+
+  const handleShoppingScan = async () => {
+    await launchIngredientPhotoCapture({
+      onAnalyzing: () => {
+        toast({
+          title: "Analyzing ingredients...",
+          description: "Reading the label and checking your profile — just a moment.",
+        });
+      },
+      onSuccess: (result) => {
+        setShoppingSheetResult(result);
+        setShoppingSheetOpen(true);
+      },
+      onError: (error) => {
+        toast({
+          title: "Scan failed",
+          description: error,
+          variant: "destructive",
+        });
+      },
+    });
+  };
 
   // Wrapper for toggleItem with walkthrough event
   const handleToggleItem = useCallback(
@@ -517,6 +544,25 @@ export default function ShoppingListMasterView() {
             </Button>
           </div>
 
+          {/* Smart Scan — Ingredient Intelligence */}
+          <div className="relative mt-2">
+            <div className="absolute inset-0 rounded-2xl bg-orange-500/15 blur-md scale-105" />
+            <Button
+              onClick={handleShoppingScan}
+              className="relative w-full flex items-center gap-3 bg-gradient-to-r from-orange-600 to-orange-500 rounded-2xl py-3 h-auto border border-orange-400/40 text-left"
+              data-testid="button-shopping-smart-scan"
+            >
+              <span className="text-xl">🧾</span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-white font-semibold text-sm leading-tight">Smart Scan</span>
+                <span className="block text-orange-100/70 text-xs mt-0.5">Analyze ingredients before you buy</span>
+              </span>
+              <span className="bg-white/20 rounded-lg px-2 py-0.5 text-[10px] text-white font-semibold uppercase tracking-wide flex-shrink-0">
+                New
+              </span>
+            </Button>
+          </div>
+
           {/* Options - Group by aisle is default ON, rounding hidden */}
           <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center gap-3">
             <Button
@@ -863,6 +909,47 @@ export default function ShoppingListMasterView() {
             )}
           </div>
         )}
+        {/* Shopping Ingredient Intelligence Sheet */}
+        <ShoppingIngredientSheet
+          open={shoppingSheetOpen}
+          result={shoppingSheetResult}
+          onClose={() => setShoppingSheetOpen(false)}
+          onAddAnyway={() => {
+            if (shoppingSheetResult) {
+              saveProductScan({
+                productName: "Scanned Product",
+                ingredients: shoppingSheetResult.extractedIngredients,
+                score: shoppingSheetResult.alignmentGrade,
+                householdFlags: shoppingSheetResult.householdNotes,
+                scanDate: new Date().toISOString(),
+                userDecision: "added",
+                scanSource: "shopping",
+              });
+            }
+            setShoppingSheetOpen(false);
+            toast({ title: "Added to cart", description: "Scan saved to your shopping history." });
+          }}
+          onSaveForReview={() => {
+            if (shoppingSheetResult) {
+              saveProductScan({
+                productName: "Scanned Product",
+                ingredients: shoppingSheetResult.extractedIngredients,
+                score: shoppingSheetResult.alignmentGrade,
+                householdFlags: shoppingSheetResult.householdNotes,
+                scanDate: new Date().toISOString(),
+                userDecision: "saved",
+                scanSource: "shopping",
+              });
+            }
+            setShoppingSheetOpen(false);
+            toast({ title: "Saved for review", description: "You can revisit this product scan anytime." });
+          }}
+          onLearnWhy={() => {
+            setShoppingSheetOpen(false);
+            setLocation("/learn?topic=ingredient-intelligence");
+          }}
+        />
+
         {/* Voice Add Modal */}
         {voiceModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
