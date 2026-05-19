@@ -30,6 +30,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "AI Fridge Rescue (1x per week)",
       "Macro Calculator",
       "MacroScan",
+      "Ingredient Intelligence (personalized label scan)",
       "Biometrics Tracking",
       "Copilot Voice Guidance",
       "Daily Journal",
