@@ -4,5 +4,7 @@ export const modules: ModuleMap = {
   "./components/mockups/chef-kitchens/KitchenLanding.tsx": () => import("../components/mockups/chef-kitchens/KitchenLanding.tsx"),
   "./components/mockups/chef-kitchens/LifestylePage.tsx": () => import("../components/mockups/chef-kitchens/LifestylePage.tsx"),
   "./components/mockups/chef-kitchens/OnboardingPacket.tsx": () => import("../components/mockups/chef-kitchens/OnboardingPacket.tsx"),
-  "./components/mockups/chef-kitchens/RushKitchenLanding.tsx": () => import("../components/mockups/chef-kitchens/RushKitchenLanding.tsx")
+  "./components/mockups/chef-kitchens/RushKitchenLanding.tsx": () => import("../components/mockups/chef-kitchens/RushKitchenLanding.tsx"),
+  "./components/mockups/shopping-scan/ResultSheet.tsx": () => import("../components/mockups/shopping-scan/ResultSheet.tsx"),
+  "./components/mockups/shopping-scan/ShoppingPage.tsx": () => import("../components/mockups/shopping-scan/ShoppingPage.tsx")
 };
