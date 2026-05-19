@@ -1,14 +1,14 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
-import { X, ShoppingBag, Bookmark, BookOpen, ChevronDown, ChevronUp } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, ShoppingBag, Bookmark, BookOpen, ChevronDown, ChevronUp, Tag } from "lucide-react";
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 
 interface Props {
   open: boolean;
   result: IngredientScanResult | null;
   onClose: () => void;
-  onAddAnyway: () => void;
-  onSaveForReview: () => void;
+  onAddAnyway: (name: string) => void;
+  onSaveForReview: (name: string) => void;
   onLearnWhy: () => void;
 }
 
