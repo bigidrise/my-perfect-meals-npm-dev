@@ -34,6 +34,8 @@ export const clinicalLabs = pgTable("clinical_labs", {
   crp: numeric("crp", { precision: 6, scale: 2 }),  // mg/L — C-Reactive Protein
   // Hormonal / Stress — drives metabolic-stress protocol
   cortisol: numeric("cortisol", { precision: 6, scale: 2 }), // µg/dL
+  // Oncology & Recovery support — nutrition status markers
+  prealbumin: numeric("prealbumin", { precision: 5, scale: 2 }), // mg/dL (transthyretin — short-term nutrition status)
   notes: text("notes"),
   labDate: date("lab_date"),
   recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
@@ -66,6 +68,7 @@ export const insertClinicalLabsSchema = createInsertSchema(clinicalLabs, {
   triglycerides:  z.string().or(z.number()).optional().nullable(),
   crp:            z.string().or(z.number()).optional().nullable(),
   cortisol:       z.string().or(z.number()).optional().nullable(),
+  prealbumin:     z.string().or(z.number()).optional().nullable(),
   notes: z.string().optional().nullable(),
   recordedAt: z.string().or(z.date()),
 }).omit({ id: true, createdAt: true });

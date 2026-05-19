@@ -67,6 +67,8 @@ const labsPayloadSchema = z.object({
   crp:             z.number().optional().nullable(),  // mg/L — C-Reactive Protein
   // Hormonal / Stress
   cortisol:        z.number().optional().nullable(),  // µg/dL
+  // Oncology & Recovery — nutrition status markers
+  prealbumin:      z.number().optional().nullable(),  // mg/dL (transthyretin)
   // ── Metadata ───────────────────────────────────────────────────────────────
   notes: z.string().optional().nullable(),
   recorded_at: z.string().optional(),
@@ -176,6 +178,7 @@ router.post("/", requireAuth, async (req, res) => {
         triglycerides:  body.triglycerides   != null ? String(body.triglycerides)   : null,
         crp:            body.crp             != null ? String(body.crp)             : null,
         cortisol:       body.cortisol        != null ? String(body.cortisol)        : null,
+        prealbumin:     body.prealbumin      != null ? String(body.prealbumin)      : null,
         notes: body.notes || null,
         labDate: body.lab_date || new Date().toISOString().split("T")[0],
         recordedAt: body.recorded_at ? new Date(body.recorded_at) : new Date(),
@@ -427,6 +430,7 @@ router.get("/:userId", requireAuth, async (req, res) => {
       return res.json({
         labs: null,
         oncologySupportEnabled: !!(oncologyCtx0?.enabled),
+        oncologySupportContext: userRows0[0]?.oncologySupportContext ?? null,
         specialtyCondition: userRows0[0]?.specialtyCondition ?? null,
         specialtyConditions: (userRows0[0]?.specialtyConditions as string[]) ?? [],
       });
@@ -497,6 +501,7 @@ router.get("/:userId", requireAuth, async (req, res) => {
         triglycerides:   r.triglycerides  ? parseFloat(r.triglycerides)  : null,
         crp:             r.crp            ? parseFloat(r.crp)            : null,
         cortisol:        r.cortisol       ? parseFloat(r.cortisol)       : null,
+        prealbumin:      r.prealbumin     ? parseFloat(r.prealbumin)     : null,
         // ── Metadata ──────────────────────────────────────────────────────────
         notes: r.notes,
         lab_date: r.labDate || null,
@@ -506,6 +511,7 @@ router.get("/:userId", requireAuth, async (req, res) => {
       protocolSubtitle: labSignalToSubtitle(protocolSignal),
       thyroidSignal,
       oncologySupportEnabled: !!(oncologyCtx?.enabled),
+      oncologySupportContext: userRows[0]?.oncologySupportContext ?? null,
       specialtyCondition: userRows[0]?.specialtyCondition ?? null,
       specialtyConditions: (userRows[0]?.specialtyConditions as string[]) ?? [],
     });
