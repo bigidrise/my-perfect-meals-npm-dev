@@ -1,5 +1,5 @@
 /**
- * resolveProtocolFromLabs — Phase 3
+ * resolveProtocolFromLabs — Phase 4
  *
  * Evaluates a set of clinical lab values against the locked LAB_THRESHOLDS,
  * applies the canonical precedence order, and returns the highest-priority
@@ -7,14 +7,15 @@
  * the base anti-inflammatory protocol).
  *
  * Precedence (must match clinicalModeResolver.ts exactly):
- *   liver-disease > kidney-disease > heart-failure > liver-support > null
+ *   liver-disease > kidney-disease > heart-failure > liver-support >
+ *   metabolic-support > inflammation-support > metabolic-stress > null
  *
  * Rules:
  *   - Every value passes through safeNum() before any comparison.
  *     NaN / null / blank NEVER trigger a protocol.
  *   - Reason strings are advisory only ("may benefit from", "suggests").
  *     They never make diagnostic claims ("you have", "you need").
- *   - Citations are embedded in the reason for modal display (Phase 4).
+ *   - Citations are embedded in the reason for modal display.
  *   - All thresholds come exclusively from LAB_THRESHOLDS. No magic numbers here.
  */
 
@@ -33,13 +34,17 @@ import {
  * All fields are optional — missing fields simply don't trigger.
  */
 export interface LabInputForProtocol {
+  // Liver panel
   alt?: string | number | null;
   ast?: string | number | null;
   bilirubin?: string | number | null;
   albumin?: string | number | null;
+  // Kidney
   creatinine?: string | number | null;
   bun?: string | number | null;
+  // Cardiac
   ldl?: string | number | null;
+  hdl?: string | number | null;
   bloodPressureSystolic?: string | number | null;
   ejectionFraction?: string | number | null;
   // Thyroid panel — Phase 1
@@ -48,6 +53,15 @@ export interface LabInputForProtocol {
   freeT3?: string | number | null;
   tpoAntibodies?: string | number | null;
   thyroglobulinAntibodies?: string | number | null;
+  // Metabolic / Insulin Resistance — Phase 4
+  a1c?: string | number | null;
+  glucose?: string | number | null;         // fasting glucose, mg/dL
+  fastingInsulin?: string | number | null;  // µIU/mL
+  triglycerides?: string | number | null;   // mg/dL
+  // Inflammation — Phase 4
+  crp?: string | number | null;             // mg/L
+  // Hormonal / Stress — Phase 4
+  cortisol?: string | number | null;        // µg/dL
 }
 
 export function resolveProtocolFromLabs(
@@ -56,8 +70,6 @@ export function resolveProtocolFromLabs(
   const t = LAB_THRESHOLDS;
 
   // ── Normalize every field through safeNum ──────────────────────────────────
-  // Returns null for null / undefined / '' / NaN / Infinity.
-  // A null value NEVER triggers a threshold — the condition is simply skipped.
   const alt        = safeNum(labs.alt);
   const ast        = safeNum(labs.ast);
   const bilirubin  = safeNum(labs.bilirubin);
@@ -65,13 +77,22 @@ export function resolveProtocolFromLabs(
   const creatinine = safeNum(labs.creatinine);
   const bun        = safeNum(labs.bun);
   const ldl        = safeNum(labs.ldl);
+  const hdl        = safeNum(labs.hdl);
   const bpSys      = safeNum(labs.bloodPressureSystolic);
   const ef         = safeNum(labs.ejectionFraction);
+  const a1c        = safeNum(labs.a1c);
+  const glucose    = safeNum(labs.glucose);
+  const fastingInsulin = safeNum(labs.fastingInsulin);
+  const triglycerides  = safeNum(labs.triglycerides);
+  const crp        = safeNum(labs.crp);
+  const cortisol   = safeNum(labs.cortisol);
+
+  // TG/HDL ratio — insulin resistance marker (requires both values present)
+  const tgHdlRatio = (triglycerides !== null && hdl !== null && hdl > 0)
+    ? triglycerides / hdl
+    : null;
 
   // ── 1. Liver Disease (highest precedence) ─────────────────────────────────
-  // Triggered by: ALT > 200 U/L  OR  AST > 200 U/L
-  //               OR  Bilirubin > 1.2 mg/dL  OR  Albumin < 3.4 g/dL
-  // Source: AASLD / EASL guidelines
   {
     const triggers: string[] = [];
     if (alt       !== null && alt       > t.liverDisease.altHigh)       triggers.push('alt');
@@ -95,8 +116,6 @@ export function resolveProtocolFromLabs(
   }
 
   // ── 2. Kidney Disease ─────────────────────────────────────────────────────
-  // Triggered by: Creatinine > 1.2 mg/dL  OR  BUN > 20 mg/dL
-  // Source: KDIGO / NKF guidelines
   {
     const triggers: string[] = [];
     if (creatinine !== null && creatinine > t.kidney.creatinineHigh) triggers.push('creatinine');
@@ -117,10 +136,6 @@ export function resolveProtocolFromLabs(
   }
 
   // ── 3. Heart Failure / Cardiac Health ────────────────────────────────────
-  // Triggered by: LDL ≥ 130 mg/dL  OR  BP systolic > 130 mmHg
-  //               OR  Ejection fraction < 50 %
-  // Note: LDL uses >= (ACC/AHA 2019 threshold)
-  // Source: ACC / AHA guidelines
   {
     const triggers: string[] = [];
     if (ldl   !== null && ldl   >= t.cardiac.ldlHigh)             triggers.push('ldl');
@@ -142,9 +157,6 @@ export function resolveProtocolFromLabs(
   }
 
   // ── 4. Liver Support ─────────────────────────────────────────────────────
-  // Triggered by: ALT > 36 U/L  OR  AST > 33 U/L
-  // (Upper end of normal — below liver-disease threshold)
-  // Source: AASLD / NIH clinical reference ranges
   {
     const triggers: string[] = [];
     if (alt !== null && alt > t.liverSupport.altHigh) triggers.push('alt');
@@ -165,9 +177,74 @@ export function resolveProtocolFromLabs(
     }
   }
 
+  // ── 5. Metabolic Support — insulin resistance / diabetic-aware ───────────
+  // Triggered by: A1C > 5.7%  OR  fasting glucose > 100  OR  fasting insulin > 15
+  //               OR  TG/HDL ratio > 3.5  OR  triglycerides > 150
+  // Sources: ADA Standards of Medical Care in Diabetes; AHA metabolic risk classification
+  {
+    const triggers: string[] = [];
+    if (a1c            !== null && a1c            > t.metabolic.a1cHigh)             triggers.push('a1c');
+    if (glucose        !== null && glucose        > t.metabolic.glucoseHigh)         triggers.push('glucose');
+    if (fastingInsulin !== null && fastingInsulin > t.metabolic.fastingInsulinHigh)  triggers.push('fasting_insulin');
+    if (triglycerides  !== null && triglycerides  > t.metabolic.triglyceridesHigh)   triggers.push('triglycerides');
+    if (tgHdlRatio     !== null && tgHdlRatio     > t.metabolic.tgHdlRatioHigh)      triggers.push('tg_hdl_ratio');
+
+    if (triggers.length > 0) {
+      const hasRatioTrigger = triggers.includes('tg_hdl_ratio');
+      return {
+        protocol: 'metabolic-support',
+        reason:
+          'One or more of your metabolic markers — A1C, fasting glucose, fasting insulin, ' +
+          'triglycerides' + (hasRatioTrigger ? ', or TG/HDL ratio' : '') + ' — ' +
+          'suggests your body may benefit from metabolic-aware nutritional support. ' +
+          'A Metabolic Support approach emphasizes fiber-rich complex carbohydrates, ' +
+          'blood-sugar-stabilizing meal patterns, reduced refined carbohydrates, and ' +
+          'protein-forward meals to support insulin sensitivity. (ADA / AHA)',
+        confidence: triggers.length >= 2 ? 'high' : 'moderate',
+        triggerFields: triggers,
+      };
+    }
+  }
+
+  // ── 6. Inflammation Support — CRP-driven ─────────────────────────────────
+  // Triggered by: CRP > 3.0 mg/L (high cardiovascular inflammation risk)
+  // Source: AHA / CDC Joint Scientific Statement on hsCRP (2003)
+  {
+    if (crp !== null && crp > t.inflammation.crpHigh) {
+      return {
+        protocol: 'inflammation-support',
+        reason:
+          'Your C-Reactive Protein (CRP) level suggests elevated systemic inflammation. ' +
+          'An Inflammation Support approach may benefit you by emphasizing omega-3-rich ' +
+          'foods, colorful vegetables, olive oil, and other anti-inflammatory patterns ' +
+          'while reducing processed foods, refined sugars, and inflammatory oils. ' +
+          '(AHA / CDC)',
+        confidence: crp > 10 ? 'high' : 'moderate',
+        triggerFields: ['crp'],
+      };
+    }
+  }
+
+  // ── 7. Metabolic Stress Support — cortisol-driven ─────────────────────────
+  // Triggered by: cortisol > 20 µg/dL (above optimal AM range)
+  // Source: Endocrine Society clinical practice guidelines; standard lab reference ranges
+  {
+    if (cortisol !== null && cortisol > t.metabolicStress.cortisolHigh) {
+      return {
+        protocol: 'metabolic-stress',
+        reason:
+          'Your cortisol level is above the optimal reference range, which may suggest ' +
+          'elevated physiological or metabolic stress. A Metabolic Stress Support approach ' +
+          'may benefit you by emphasizing balanced meal timing, blood-sugar-stabilizing ' +
+          'foods, adequate protein, and nutrients that support adrenal and stress recovery ' +
+          'such as magnesium, B vitamins, and omega-3 sources. (Endocrine Society)',
+        confidence: cortisol > 30 ? 'high' : 'moderate',
+        triggerFields: ['cortisol'],
+      };
+    }
+  }
+
   // ── No thresholds crossed ─────────────────────────────────────────────────
-  // Returning null signals that base anti-inflammatory is the appropriate
-  // protocol — no recommendation modal should be shown.
   return null;
 }
 
@@ -176,26 +253,21 @@ export function resolveProtocolFromLabs(
  * who is already on one or more clinical protocols.
  *
  * A downgrade signal fires when ALL of these are true:
- *   1. The user is currently on protocol X (via specialtyConditions or previousProtocol)
+ *   1. The user is currently on protocol X
  *   2. The new labs include at least one marker relevant to protocol X
  *   3. None of those entered markers exceed the activation thresholds for X
  *
- * Oncology is NEVER included here — it is physician-assigned and must be
- * removed by the clinical team, not by lab values alone.
- *
- * Returns an array (may be empty) — one signal per protocol that qualifies
- * for a step-down reassessment. Never auto-removes anything; the user must
- * confirm via the ProtocolDowngradeModal.
+ * Oncology is NEVER included here — it is physician-assigned.
+ * Returns an array (may be empty) — one signal per protocol qualifying for step-down.
+ * Never auto-removes anything; user must confirm via ProtocolDowngradeModal.
  */
 export function resolveDowngradeSignals(
   labs: LabInputForProtocol,
   opts: {
-    /** User's current specialtyConditions array (from DB) */
     currentSpecialtyConditions: string[];
     /**
      * The primary clinical protocol the user was on BEFORE this lab save,
      * derived by running resolveProtocolFromLabs() on their previous lab record.
-     * null = user was on base anti-inflammatory (no primary protocol).
      */
     previousProtocol: string | null;
   },
@@ -204,8 +276,6 @@ export function resolveDowngradeSignals(
   const signals: LabDowngradeSignal[] = [];
 
   // ── Thyroid downgrade ────────────────────────────────────────────────────
-  // Fires when user has 'thyroid-support' in specialtyConditions and all
-  // entered thyroid markers are now within the normal reference range.
   if (opts.currentSpecialtyConditions.includes('thyroid-support')) {
     const tsh    = safeNum(labs.tsh);
     const freeT4 = safeNum(labs.freeT4);
@@ -247,7 +317,7 @@ export function resolveDowngradeSignals(
   }
 
   // ── Cardiac (heart-failure) downgrade ────────────────────────────────────
-  if (opts.previousProtocol === 'heart-failure') {
+  if (opts.previousProtocol === 'heart-failure' || opts.currentSpecialtyConditions.includes('heart-failure')) {
     const ldl   = safeNum(labs.ldl);
     const bpSys = safeNum(labs.bloodPressureSystolic);
     const ef    = safeNum(labs.ejectionFraction);
@@ -282,7 +352,7 @@ export function resolveDowngradeSignals(
   }
 
   // ── Kidney Disease downgrade ──────────────────────────────────────────────
-  if (opts.previousProtocol === 'kidney-disease') {
+  if (opts.previousProtocol === 'kidney-disease' || opts.currentSpecialtyConditions.includes('kidney-disease')) {
     const creatinine = safeNum(labs.creatinine);
     const bun        = safeNum(labs.bun);
 
@@ -314,7 +384,7 @@ export function resolveDowngradeSignals(
   }
 
   // ── Liver Disease downgrade ───────────────────────────────────────────────
-  if (opts.previousProtocol === 'liver-disease') {
+  if (opts.previousProtocol === 'liver-disease' || opts.currentSpecialtyConditions.includes('liver-disease')) {
     const alt       = safeNum(labs.alt);
     const ast       = safeNum(labs.ast);
     const bilirubin = safeNum(labs.bilirubin);
@@ -352,7 +422,7 @@ export function resolveDowngradeSignals(
   }
 
   // ── Liver Support downgrade ───────────────────────────────────────────────
-  if (opts.previousProtocol === 'liver-support') {
+  if (opts.previousProtocol === 'liver-support' || opts.currentSpecialtyConditions.includes('liver-support')) {
     const alt = safeNum(labs.alt);
     const ast = safeNum(labs.ast);
 
@@ -382,44 +452,117 @@ export function resolveDowngradeSignals(
     }
   }
 
+  // ── Metabolic Support downgrade ───────────────────────────────────────────
+  if (opts.previousProtocol === 'metabolic-support' || opts.currentSpecialtyConditions.includes('metabolic-support')) {
+    const a1c            = safeNum(labs.a1c);
+    const glucose        = safeNum(labs.glucose);
+    const fastingInsulin = safeNum(labs.fastingInsulin);
+    const triglycerides  = safeNum(labs.triglycerides);
+    const hdl            = safeNum(labs.hdl);
+    const tgHdlRatio     = (triglycerides !== null && hdl !== null && hdl > 0) ? triglycerides / hdl : null;
+
+    const anyMetabolicEntered = [a1c, glucose, fastingInsulin, triglycerides].some(v => v !== null);
+
+    if (anyMetabolicEntered) {
+      const hasAbnormal =
+        (a1c            !== null && a1c            > t.metabolic.a1cHigh)            ||
+        (glucose        !== null && glucose        > t.metabolic.glucoseHigh)        ||
+        (fastingInsulin !== null && fastingInsulin > t.metabolic.fastingInsulinHigh) ||
+        (triglycerides  !== null && triglycerides  > t.metabolic.triglyceridesHigh)  ||
+        (tgHdlRatio     !== null && tgHdlRatio     > t.metabolic.tgHdlRatioHigh);
+
+      if (!hasAbnormal) {
+        const normalFields: string[] = [];
+        if (a1c            !== null) normalFields.push('a1c');
+        if (glucose        !== null) normalFields.push('glucose');
+        if (fastingInsulin !== null) normalFields.push('fasting_insulin');
+        if (triglycerides  !== null) normalFields.push('triglycerides');
+
+        signals.push({
+          protocol:      'metabolic-support',
+          protocolLabel: 'Metabolic Support',
+          normalFields,
+          reason:
+            'Your metabolic markers — A1C, fasting glucose, insulin, and/or triglycerides — ' +
+            'are now within the normal reference range. Based on your updated values, you may ' +
+            'be ready to transition back to the Anti-Inflammatory foundation. A physician ' +
+            'would typically confirm metabolic stability before stepping down from a metabolic ' +
+            'nutrition protocol. (ADA / AHA)',
+        });
+      }
+    }
+  }
+
+  // ── Inflammation Support downgrade ────────────────────────────────────────
+  if (opts.previousProtocol === 'inflammation-support' || opts.currentSpecialtyConditions.includes('inflammation-support')) {
+    const crp = safeNum(labs.crp);
+
+    if (crp !== null) {
+      const hasAbnormal = crp > t.inflammation.crpHigh;
+
+      if (!hasAbnormal) {
+        signals.push({
+          protocol:      'inflammation-support',
+          protocolLabel: 'Inflammation Support',
+          normalFields:  ['crp'],
+          reason:
+            'Your CRP level has returned to the normal reference range, suggesting ' +
+            'reduced systemic inflammation. Based on your updated markers, you may ' +
+            'be ready to transition back to the Anti-Inflammatory foundation. ' +
+            '(AHA / CDC)',
+        });
+      }
+    }
+  }
+
+  // ── Metabolic Stress downgrade ────────────────────────────────────────────
+  if (opts.previousProtocol === 'metabolic-stress' || opts.currentSpecialtyConditions.includes('metabolic-stress')) {
+    const cortisol = safeNum(labs.cortisol);
+
+    if (cortisol !== null) {
+      const hasAbnormal = cortisol > t.metabolicStress.cortisolHigh;
+
+      if (!hasAbnormal) {
+        signals.push({
+          protocol:      'metabolic-stress',
+          protocolLabel: 'Metabolic Stress Support',
+          normalFields:  ['cortisol'],
+          reason:
+            'Your cortisol level is now within the normal reference range. Based on your ' +
+            'updated values, you may be ready to transition back to the Anti-Inflammatory ' +
+            'foundation. A physician would typically reassess adrenal and stress markers ' +
+            'before stepping down from a metabolic stress protocol. (Endocrine Society)',
+        });
+      }
+    }
+  }
+
   return signals;
 }
 
 /**
  * Maps a LabProtocolSignal's protocol (or null) to the human-readable
  * subtitle shown in builder headers and dashboards.
- *
- * This is the single authoritative subtitle source for lab-driven protocol
- * display. It intentionally mirrors resolveClinicalProtocolLabel() so that
- * flag-driven and lab-driven subtitles are always in sync.
  */
 export function labSignalToSubtitle(signal: LabProtocolSignal | null): string {
   if (!signal) return 'Anti-Inflammatory';
   const labels: Record<string, string> = {
-    'liver-disease':     'Liver Disease',
-    'kidney-disease':    'Kidney Disease',
-    'heart-failure':     'Cardiac Health',
-    'liver-support':     'Liver Support',
-    'anti-inflammatory': 'Anti-Inflammatory',
+    'liver-disease':       'Liver Disease',
+    'kidney-disease':      'Kidney Disease',
+    'heart-failure':       'Cardiac Health',
+    'liver-support':       'Liver Support',
+    'metabolic-support':   'Metabolic Support',
+    'inflammation-support':'Inflammation Support',
+    'metabolic-stress':    'Metabolic Stress Support',
+    'anti-inflammatory':   'Anti-Inflammatory',
   };
   return labels[signal.protocol] ?? 'Anti-Inflammatory';
 }
 
 /**
  * Resolve thyroid indicators from lab values.
- *
- * Unlike resolveProtocolFromLabs(), this function returns a ThyroidLabSignal
- * rather than a LabProtocolSignal because thyroid is an ADDITIVE MODIFIER,
- * not a primary protocol override. It can co-exist with any primary protocol.
- *
- * Triggers on:
- *   - TSH > 4.5 mIU/L (hypothyroid range) or < 0.4 mIU/L (hyperthyroid range)
- *   - Free T4 < 0.8 ng/dL (low hormone level)
- *   - Free T3 < 2.3 pg/mL (low active thyroid hormone)
- *   - TPO antibodies > 9 IU/mL (autoimmune thyroid — Hashimoto's pattern)
- *   - Thyroglobulin antibodies > 1 IU/mL (autoimmune thyroid activity)
- *
- * Sources: ATA, AACE, Endocrine Society, NIH.
+ * Thyroid is an ADDITIVE MODIFIER — not a primary protocol override.
+ * It can co-exist with any primary protocol.
  */
 export function resolveThyroidFromLabs(
   labs: Pick<LabInputForProtocol, 'tsh' | 'freeT4' | 'freeT3' | 'tpoAntibodies' | 'thyroglobulinAntibodies'>,
@@ -435,26 +578,15 @@ export function resolveThyroidFromLabs(
   const triggers: string[] = [];
   let isAutoimmune = false;
 
-  // TSH out of range (either direction)
   if (tsh !== null && tsh > t.tshHigh) triggers.push('tsh_high');
   if (tsh !== null && tsh < t.tshLow)  triggers.push('tsh_low');
-
-  // Low thyroid hormone levels
   if (freeT4 !== null && freeT4 < t.freeT4Low) triggers.push('free_t4_low');
   if (freeT3 !== null && freeT3 < t.freeT3Low) triggers.push('free_t3_low');
-
-  // Antibody markers — autoimmune thyroid pattern
   if (tpo  !== null && tpo  > t.tpoAntibodiesHigh)          { triggers.push('tpo_antibodies'); isAutoimmune = true; }
   if (tgab !== null && tgab > t.thyroglobulinAntibodiesHigh) { triggers.push('thyroglobulin_antibodies'); isAutoimmune = true; }
 
   if (triggers.length === 0) {
-    return {
-      hasThyroidIndicators: false,
-      reason: '',
-      triggerFields: [],
-      confidence: 'low',
-      isAutoimmune: false,
-    };
+    return { hasThyroidIndicators: false, reason: '', triggerFields: [], confidence: 'low', isAutoimmune: false };
   }
 
   const hasHormoneSignal  = triggers.some(f => ['tsh_high', 'tsh_low', 'free_t4_low', 'free_t3_low'].includes(f));
@@ -485,11 +617,5 @@ export function resolveThyroidFromLabs(
     triggers.length >= 2 ? 'moderate' :
     'low';
 
-  return {
-    hasThyroidIndicators: true,
-    reason,
-    triggerFields: triggers,
-    confidence,
-    isAutoimmune,
-  };
+  return { hasThyroidIndicators: true, reason, triggerFields: triggers, confidence, isAutoimmune };
 }

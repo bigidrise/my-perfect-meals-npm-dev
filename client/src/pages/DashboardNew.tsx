@@ -38,6 +38,10 @@ import {
   ChevronUp,
   Trash2,
   Lock,
+  Play,
+  Pause,
+  Mic,
+  Square,
 } from "lucide-react";
 import { ProfileSheet } from "@/components/ProfileSheet";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
@@ -100,6 +104,16 @@ export default function DashboardNew() {
   const tabletScrollRef = useRef<HTMLDivElement>(null);
   const tabletTranslationCache = useRef(new Map<string, string>());
   const tabletInitialLoad = useRef(true);
+  const [tabletPlayingId, setTabletPlayingId] = useState<string | null>(null);
+  const tabletAudioCache = useRef<Record<string, string>>({});
+  const tabletAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [tabletRecording, setTabletRecording] = useState(false);
+  const [tabletAudioBlob, setTabletAudioBlob] = useState<Blob | null>(null);
+  const [tabletVoiceSending, setTabletVoiceSending] = useState(false);
+  const [tabletRecordingSec, setTabletRecordingSec] = useState(0);
+  const tabletMediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const tabletRecordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const tabletStreamRef = useRef<MediaStream | null>(null);
 
   // Provider inbox — completely separate from client tablet
   const [providerOpen, setProviderOpen] = useState(false);
@@ -257,6 +271,139 @@ export default function DashboardNew() {
       setTabletMessages((prev) => prev.filter((m: any) => m.id !== entry.id));
     } catch {
       setTabletError("Failed to delete message");
+    }
+  };
+
+  const handleTabletPlay = async (entry: any) => {
+    if (tabletPlayingId === entry.id) {
+      tabletAudioRef.current?.pause();
+      setTabletPlayingId(null);
+      return;
+    }
+    tabletAudioRef.current?.pause();
+    setTabletPlayingId(entry.id);
+    try {
+      let url = tabletAudioCache.current[entry.id];
+      if (!url) {
+        const res = await fetch(apiUrl(`/api/client/tablet/audio/${entry.id}`), {
+          headers: { ...getAuthHeaders() },
+          credentials: "include",
+        });
+        if (!res.ok) {
+          setTabletError("Audio not available yet — try again shortly");
+          setTabletPlayingId(null);
+          return;
+        }
+        const data = await res.json();
+        if (data.pending) {
+          setTabletError("Still transcribing — try again in a moment");
+          setTabletPlayingId(null);
+          return;
+        }
+        url = data.url;
+        tabletAudioCache.current[entry.id] = url;
+      }
+      const audio = new Audio(url);
+      tabletAudioRef.current = audio;
+      audio.onended = () => setTabletPlayingId(null);
+      audio.onerror = () => {
+        setTabletError("Could not play audio");
+        setTabletPlayingId(null);
+      };
+      audio.play();
+    } catch {
+      setTabletError("Could not load audio");
+      setTabletPlayingId(null);
+    }
+  };
+
+  const startTabletRecording = async () => {
+    setTabletError(null);
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setTabletError("Audio recording not supported in this browser");
+        return;
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      tabletStreamRef.current = stream;
+
+      let mimeType = "audio/webm;codecs=opus";
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "audio/webm";
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "audio/mp4";
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "";
+
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      tabletMediaRecorderRef.current = recorder;
+      const chunks: Blob[] = [];
+
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
+        setTabletAudioBlob(blob);
+        stream.getTracks().forEach((t) => t.stop());
+        tabletStreamRef.current = null;
+        if (tabletRecordingTimerRef.current) {
+          clearInterval(tabletRecordingTimerRef.current);
+          tabletRecordingTimerRef.current = null;
+        }
+      };
+
+      recorder.start(500);
+      setTabletRecording(true);
+      setTabletRecordingSec(0);
+      tabletRecordingTimerRef.current = setInterval(() => {
+        setTabletRecordingSec((s) => s + 1);
+      }, 1000);
+    } catch (err: any) {
+      if (err?.name === "NotAllowedError") {
+        setTabletError("Microphone access denied — please allow it in your browser settings");
+      } else {
+        setTabletError("Could not start recording");
+      }
+    }
+  };
+
+  const stopTabletRecording = () => {
+    tabletMediaRecorderRef.current?.stop();
+    setTabletRecording(false);
+    if (tabletRecordingTimerRef.current) {
+      clearInterval(tabletRecordingTimerRef.current);
+      tabletRecordingTimerRef.current = null;
+    }
+  };
+
+  const discardTabletVoice = () => {
+    setTabletAudioBlob(null);
+    setTabletRecordingSec(0);
+    tabletStreamRef.current?.getTracks().forEach((t) => t.stop());
+    tabletStreamRef.current = null;
+  };
+
+  const sendTabletVoice = async () => {
+    if (!tabletAudioBlob || tabletVoiceSending) return;
+    setTabletVoiceSending(true);
+    try {
+      const formData = new FormData();
+      formData.append("audio", tabletAudioBlob, "voice-message.webm");
+      const res = await fetch(apiUrl("/api/client/tablet/voice-message"), {
+        method: "POST",
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+        body: formData,
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        setTabletError(errData.error || "Failed to send voice message");
+        return;
+      }
+      const data = await res.json();
+      setTabletMessages((prev) => [...prev, data.entry]);
+      setTabletAudioBlob(null);
+      setTabletRecordingSec(0);
+    } catch {
+      setTabletError("Failed to send voice message");
+    } finally {
+      setTabletVoiceSending(false);
     }
   };
 
@@ -847,44 +994,139 @@ export default function DashboardNew() {
                             </button>
                           </div>
                         </div>
-                        <p className="text-xs text-white/80 leading-relaxed whitespace-pre-wrap">
-                          {entry.translatedBody || entry.body}
-                        </p>
-                        {entry.translatedBody && (
-                          <p className="text-[10px] text-white/30 mt-1 italic">
-                            Original: {entry.body}
-                          </p>
+
+                        {entry.contentType === "voice" ? (
+                          <div className="space-y-2">
+                            {/* Play button row */}
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleTabletPlay(entry)}
+                                className={`flex items-center justify-center w-8 h-8 rounded-full shrink-0 ${
+                                  tabletPlayingId === entry.id
+                                    ? "bg-orange-500 text-white"
+                                    : "bg-white/10 text-white/70"
+                                }`}
+                              >
+                                {tabletPlayingId === entry.id ? (
+                                  <Pause className="w-3.5 h-3.5" />
+                                ) : (
+                                  <Play className="w-3.5 h-3.5 ml-0.5" />
+                                )}
+                              </button>
+                              <div className="flex items-center gap-1.5">
+                                <Mic className="w-3 h-3 text-orange-400" />
+                                <span className="text-[11px] text-orange-300 font-medium">
+                                  Voice Note
+                                  {entry.audioDurationSec
+                                    ? ` · ${Math.floor(entry.audioDurationSec / 60)}:${String(entry.audioDurationSec % 60).padStart(2, "0")}`
+                                    : ""}
+                                </span>
+                              </div>
+                            </div>
+                            {/* Transcript */}
+                            {entry.transcriptStatus === "completed" && entry.transcript ? (
+                              <p className="text-xs text-white/75 leading-relaxed italic border-l-2 border-orange-500/40 pl-2">
+                                {entry.translatedBody || entry.transcript}
+                              </p>
+                            ) : entry.transcriptStatus === "failed" ? (
+                              <p className="text-[10px] text-white/35 italic">Transcript unavailable</p>
+                            ) : (
+                              <p className="text-[10px] text-white/35 italic">Transcribing…</p>
+                            )}
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-xs text-white/80 leading-relaxed whitespace-pre-wrap">
+                              {entry.translatedBody || entry.body}
+                            </p>
+                            {entry.translatedBody && (
+                              <p className="text-[10px] text-white/30 mt-1 italic">
+                                Original: {entry.body}
+                              </p>
+                            )}
+                          </>
                         )}
                       </div>
                     ))}
                   </div>
-                  <div className="flex gap-2">
-                    <textarea
-                      value={tabletInput}
-                      onChange={(e) => setTabletInput(e.target.value)}
-                      placeholder="Reply to your coach..."
-                      className="flex-1 bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-white placeholder:text-white/30 resize-none focus:outline-none focus:border-purple-500/50"
-                      rows={2}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          handleTabletSend();
-                        }
-                      }}
-                    />
-                    <Button
-                      size="sm"
-                      disabled={!tabletInput.trim() || tabletSending}
-                      onClick={handleTabletSend}
-                      className="bg-purple-600 hover:bg-purple-700 px-3 self-end"
-                    >
-                      {tabletSending ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Send className="w-3.5 h-3.5" />
-                      )}
-                    </Button>
-                  </div>
+                  {tabletRecording ? (
+                    <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-md px-3 py-2">
+                      <Mic className="w-4 h-4 text-red-400 animate-pulse shrink-0" />
+                      <span className="text-sm text-red-300 flex-1">
+                        Recording… {Math.floor(tabletRecordingSec / 60)}:{String(tabletRecordingSec % 60).padStart(2, "0")}
+                      </span>
+                      <button
+                        onClick={stopTabletRecording}
+                        className="flex items-center justify-center w-8 h-8 rounded-full bg-red-500 text-white shrink-0"
+                        title="Stop recording"
+                      >
+                        <Square className="w-3.5 h-3.5 fill-white" />
+                      </button>
+                    </div>
+                  ) : tabletAudioBlob ? (
+                    <div className="flex items-center gap-2 bg-orange-500/10 border border-orange-500/30 rounded-md px-3 py-2">
+                      <Mic className="w-4 h-4 text-orange-400 shrink-0" />
+                      <span className="text-sm text-orange-300 flex-1">
+                        Voice message ready · {Math.floor(tabletRecordingSec / 60)}:{String(tabletRecordingSec % 60).padStart(2, "0")}
+                      </span>
+                      <button
+                        onClick={discardTabletVoice}
+                        className="text-white/40 px-1 text-xs shrink-0"
+                        title="Discard"
+                      >
+                        ✕
+                      </button>
+                      <Button
+                        size="sm"
+                        disabled={tabletVoiceSending}
+                        onClick={sendTabletVoice}
+                        className="bg-orange-600 px-3 shrink-0"
+                      >
+                        {tabletVoiceSending ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Send className="w-3.5 h-3.5" />
+                        )}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <textarea
+                        value={tabletInput}
+                        onChange={(e) => setTabletInput(e.target.value)}
+                        placeholder="Reply to your coach..."
+                        className="flex-1 bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-white placeholder:text-white/30 resize-none focus:outline-none focus:border-orange-500/50"
+                        rows={2}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleTabletSend();
+                          }
+                        }}
+                      />
+                      <div className="flex flex-col gap-1.5 self-end">
+                        <button
+                          onClick={startTabletRecording}
+                          className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 text-white/60"
+                          title="Send a voice message"
+                        >
+                          <Mic className="w-4 h-4" />
+                        </button>
+                        <Button
+                          size="sm"
+                          disabled={!tabletInput.trim() || tabletSending}
+                          onClick={handleTabletSend}
+                          className="bg-orange-600 px-3"
+                        >
+                          {tabletSending ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Send className="w-3.5 h-3.5" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>

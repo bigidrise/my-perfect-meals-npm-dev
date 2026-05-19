@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import multer from "multer";
 import { db } from "../db";
 import { clientNotes, studios, studioMemberships } from "../db/schema/studio";
 import { clientLinks } from "../db/schema/procare";
@@ -9,7 +10,13 @@ import { moderateContent, BLOCKED_MESSAGE } from "../services/tabletModerationSe
 import { notifyProfessionalOfMessage } from "../services/tabletNotificationService";
 import { logClientActivity } from "../services/activityLog";
 import { sendCoachMessageAlert } from "../services/emailService";
-import { getSignedPlaybackUrl } from "../services/tabletVoiceService";
+import {
+  getSignedPlaybackUrl,
+  uploadVoiceToS3,
+  getVoiceObjectKey,
+} from "../services/tabletVoiceService";
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
 const router = Router();
 
@@ -68,25 +75,28 @@ router.get("/", async (req: Request, res: Response) => {
     return;
   }
 
-  const entries = await db
-    .select({
-      id: clientNotes.id,
-      body: clientNotes.body,
-      authorUserId: clientNotes.authorUserId,
-      entryType: clientNotes.entryType,
-      sender: clientNotes.sender,
-      createdAt: clientNotes.createdAt,
-    })
-    .from(clientNotes)
-    .where(
-      and(
-        eq(clientNotes.clientUserId, authUser.id),
-        eq(clientNotes.entryType, "message"),
-        eq(clientNotes.visibility, "shared_with_client")
-      )
-    )
-    .orderBy(asc(clientNotes.createdAt))
-    .limit(200);
+  const result = await db.execute(sql`
+    SELECT
+      id,
+      body,
+      author_user_id AS "authorUserId",
+      entry_type     AS "entryType",
+      sender,
+      created_at     AS "createdAt",
+      content_type   AS "contentType",
+      audio_object_key  AS "audioObjectKey",
+      audio_duration_sec AS "audioDurationSec",
+      transcript,
+      transcript_status AS "transcriptStatus"
+    FROM client_notes
+    WHERE client_user_id = ${authUser.id}
+      AND entry_type     = 'message'
+      AND visibility     = 'shared_with_client'
+    ORDER BY created_at ASC
+    LIMIT 200
+  `);
+
+  const entries = result.rows;
 
   res.set("Cache-Control", "no-store");
   res.json({ messages: entries });
@@ -213,6 +223,125 @@ router.post("/message", async (req: Request, res: Response) => {
   })();
 
   res.status(201).json({ entry });
+});
+
+router.post("/voice-message", upload.single("audio"), async (req: Request, res: Response) => {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  if (!authUser) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+
+  if (!req.file) {
+    res.status(400).json({ error: "audio file is required" });
+    return;
+  }
+
+  const mimeType = req.file.mimetype || "audio/webm";
+  const buffer = req.file.buffer;
+
+  if (buffer.length > 15 * 1024 * 1024) {
+    res.status(400).json({ error: "Audio file too large (max 15 MB)" });
+    return;
+  }
+
+  const studioId = await resolveStudioId(authUser.id);
+  if (!studioId) {
+    res.status(404).json({ error: "No active professional connection" });
+    return;
+  }
+
+  const placeholder = "🎤 Voice message — transcribing…";
+
+  const [entry] = await db
+    .insert(clientNotes)
+    .values({
+      studioId,
+      clientUserId: authUser.id,
+      authorUserId: authUser.id,
+      body: placeholder,
+      noteType: "general",
+      visibility: "shared_with_client",
+      entryType: "message",
+      sender: "client",
+      contentType: "voice",
+      audioMimeType: mimeType,
+      transcriptStatus: "pending",
+      moderationStatus: "pending",
+    } as any)
+    .returning({ id: clientNotes.id, createdAt: clientNotes.createdAt });
+
+  const objectKey = getVoiceObjectKey(entry.id, mimeType);
+  await uploadVoiceToS3(buffer, mimeType, objectKey);
+
+  await db.execute(sql`
+    UPDATE client_notes SET audio_object_key = ${objectKey} WHERE id = ${entry.id}
+  `);
+
+  await db.execute(sql`
+    INSERT INTO tablet_voice_jobs (note_id, status) VALUES (${entry.id}, 'pending')
+  `);
+
+  logClientActivity(
+    studioId,
+    authUser.id,
+    authUser.id,
+    "message_sent",
+    "message",
+    entry.id,
+    { type: "voice", sender: "client" }
+  );
+
+  const [clientUser] = await db
+    .select({ firstName: users.firstName, nickname: users.nickname })
+    .from(users)
+    .where(eq(users.id, authUser.id))
+    .limit(1);
+  const clientName = clientUser?.nickname || clientUser?.firstName || "Client";
+
+  notifyProfessionalOfMessage(authUser.id, clientName);
+
+  (async () => {
+    try {
+      const [studio] = await db
+        .select({ ownerUserId: studios.ownerUserId })
+        .from(studios)
+        .where(eq(studios.id, studioId))
+        .limit(1);
+      if (!studio) return;
+
+      const [coach] = await db
+        .select({ email: users.email, firstName: users.firstName, nickname: users.nickname })
+        .from(users)
+        .where(eq(users.id, studio.ownerUserId))
+        .limit(1);
+      if (!coach?.email) return;
+
+      const coachName = coach.nickname || coach.firstName || "Coach";
+      await sendCoachMessageAlert({
+        to: coach.email,
+        coachName,
+        clientName,
+        messagePreview: "🎤 Sent you a voice message",
+        portalUrl: "https://app.myperfectmeals.com/pro/clients",
+      });
+    } catch (err) {
+      console.warn("[CoachAlert] Non-fatal email error:", err);
+    }
+  })();
+
+  res.status(201).json({
+    entry: {
+      id: entry.id,
+      body: placeholder,
+      sender: "client",
+      entryType: "message",
+      contentType: "voice",
+      transcriptStatus: "pending",
+      audioObjectKey: objectKey,
+      createdAt: entry.createdAt,
+    },
+  });
 });
 
 router.delete("/entry/:entryId", async (req: Request, res: Response) => {

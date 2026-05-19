@@ -36,6 +36,11 @@ import { formatQuantity } from "@/lib/formatQuantity";
 import { convertServingDisplay } from "@shared/units";
 import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
+import { launchIngredientPhotoCapture, type IngredientScanResult } from "@/lib/photoIngredientCapture";
+import { ShoppingIngredientSheet } from "@/components/shopping/ShoppingIngredientSheet";
+
+import { saveProductScan, clearExpiredShoppingScans } from "@/lib/shoppingScanStorage";
+import RecentScans from "@/components/shopping/RecentScans";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { ArrowLeft } from "lucide-react";
 import { recordShoppingToBiometricsTransition, hasCompletedFirstLoop } from "@/lib/guestSuiteNavigator";
@@ -93,8 +98,10 @@ export default function ShoppingListMasterView() {
   const replaceItems = useShoppingListStore((s) => s.replaceItems);
 
   // Guardrail 3: Hydrate from server on mount (no empty flicker — local items show immediately)
+  // Also clear any shopping scans from previous days — they are session memory, not permanent archive.
   useEffect(() => {
     hydrate();
+    clearExpiredShoppingScans();
   }, [hydrate]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -122,6 +129,12 @@ export default function ShoppingListMasterView() {
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [barcodeModalOpen, setBarcodeModalOpen] = useState(false);
+  const [shoppingSheetOpen, setShoppingSheetOpen] = useState(false);
+  const [shoppingSheetResult, setShoppingSheetResult] = useState<IngredientScanResult | null>(null);
+
+  const [scanState, setScanState] = useState<"idle" | "scanning" | "ready">("idle");
+  const [scanMessageIdx, setScanMessageIdx] = useState(0);
+  const [scanRefreshKey, setScanRefreshKey] = useState(0);
   const [voiceText, setVoiceText] = useState("");
   const [bulkText, setBulkText] = useState("");
   const [barcodeText, setBarcodeText] = useState("");
@@ -149,6 +162,42 @@ export default function ShoppingListMasterView() {
       return next;
     });
   }, []);
+
+  const SCAN_MESSAGES = [
+    "Reviewing ingredients…",
+    "Checking additives and oils…",
+    "Comparing with your goals…",
+    "Analyzing against your profile…",
+  ];
+
+  useEffect(() => {
+    if (scanState !== "scanning") return;
+    const interval = setInterval(() => {
+      setScanMessageIdx((i) => i + 1);
+    }, 1800);
+    return () => clearInterval(interval);
+  }, [scanState]);
+
+  const handleShoppingScan = async () => {
+    await launchIngredientPhotoCapture({
+      onAnalyzing: () => {
+        setScanState("scanning");
+        setScanMessageIdx(0);
+      },
+      onSuccess: (result) => {
+        setScanState("ready");
+        setShoppingSheetResult(result);
+        setTimeout(() => {
+          setScanState("idle");
+          setShoppingSheetOpen(true);
+        }, 500);
+      },
+      onError: (error) => {
+        setScanState("idle");
+        toast({ title: "Scan failed", description: error, variant: "destructive" });
+      },
+    });
+  };
 
   // Wrapper for toggleItem with walkthrough event
   const handleToggleItem = useCallback(
@@ -517,6 +566,35 @@ export default function ShoppingListMasterView() {
             </Button>
           </div>
 
+          {/* Smart Scan — Ingredient Intelligence */}
+          <div className="relative mt-2">
+            <div className="absolute inset-0 rounded-2xl bg-cyan-500/10 blur-md scale-105" />
+            <Button
+              onClick={handleShoppingScan}
+              className="relative w-full flex items-center gap-3 bg-gradient-to-r from-cyan-900/70 to-blue-950/80 rounded-2xl py-3 h-auto border border-cyan-500/30 text-left"
+              data-testid="button-shopping-smart-scan"
+            >
+              <span className="text-xl">🧾</span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-white font-semibold text-sm leading-tight">Smart Scan</span>
+                <span className="block text-cyan-300/60 text-xs mt-0.5">Analyze ingredients before you buy</span>
+              </span>
+              <span className="bg-cyan-500/20 border border-cyan-400/20 rounded-lg px-2 py-0.5 text-[10px] text-cyan-300 font-semibold uppercase tracking-wide flex-shrink-0">
+                New
+              </span>
+            </Button>
+          </div>
+
+          {/* Recent Scans — refreshes after each scan action */}
+          <RecentScans
+            key={scanRefreshKey}
+            refreshKey={scanRefreshKey}
+            onReopen={(result) => {
+              setShoppingSheetResult(result);
+              setShoppingSheetOpen(true);
+            }}
+          />
+
           {/* Options - Group by aisle is default ON, rounding hidden */}
           <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center gap-3">
             <Button
@@ -533,7 +611,7 @@ export default function ShoppingListMasterView() {
             </Button>
           </div>
         </div>
-        {/* Add Other Items Section */}
+        {/* Add Other Items — feeds the Other section in the main list */}
         <AddOtherItems />
         {/* Walmart Card - Coming Soon */}
         <div className="rounded-2xl border border-white/20 bg-black/60 text-white p-4 sm:p-5 opacity-70">
@@ -863,6 +941,78 @@ export default function ShoppingListMasterView() {
             )}
           </div>
         )}
+        {/* Scanning overlay — shown during AI analysis */}
+        {scanState !== "idle" && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-6 px-8 text-center max-w-xs">
+              {scanState === "ready" ? (
+                <>
+                  <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
+                    <span className="text-3xl">✓</span>
+                  </div>
+                  <p className="text-white font-semibold text-lg">Analysis ready</p>
+                </>
+              ) : (
+                <>
+                  <div className="relative w-16 h-16">
+                    <div className="absolute inset-0 rounded-full bg-orange-500/20 animate-ping" />
+                    <div className="relative w-16 h-16 rounded-full bg-orange-500/30 border border-orange-500/60 flex items-center justify-center">
+                      <span className="text-2xl">🧾</span>
+                    </div>
+                  </div>
+                  <p className="text-white font-medium text-base">
+                    {SCAN_MESSAGES[scanMessageIdx % SCAN_MESSAGES.length]}
+                  </p>
+                  <div className="flex gap-1.5">
+                    {[0, 1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className="w-2 h-2 rounded-full bg-orange-400 animate-bounce"
+                        style={{ animationDelay: `${i * 0.15}s` }}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Shopping Ingredient Intelligence Sheet */}
+        <ShoppingIngredientSheet
+          open={shoppingSheetOpen}
+          result={shoppingSheetResult}
+          onClose={() => setShoppingSheetOpen(false)}
+          onAddAnyway={() => {
+            setShoppingSheetOpen(false);
+            setTimeout(() => {
+              document.getElementById("add-other-items")?.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 150);
+          }}
+          onSaveForReview={() => {
+            if (shoppingSheetResult) {
+              saveProductScan({
+                productName: "Scanned Item",
+                ingredients: shoppingSheetResult.extractedIngredients,
+                score: shoppingSheetResult.alignmentGrade,
+                householdFlags: shoppingSheetResult.householdNotes,
+                scanDate: new Date().toISOString(),
+                userDecision: "saved",
+                scanSource: "shopping",
+                overallSummary: shoppingSheetResult.overallSummary,
+                considerations: shoppingSheetResult.ingredientConsiderations,
+              });
+            }
+            setShoppingSheetOpen(false);
+            setScanRefreshKey((k) => k + 1);
+            toast({ title: "Saved for review", description: "You can revisit this scan anytime from this page." });
+          }}
+          onLearnWhy={() => {
+            setShoppingSheetOpen(false);
+            setLocation("/learn?topic=ingredient-intelligence");
+          }}
+        />
+
         {/* Voice Add Modal */}
         {voiceModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">

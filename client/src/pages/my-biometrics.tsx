@@ -71,6 +71,8 @@ import { useToast } from "@/hooks/use-toast";
 import { MACRO_SOURCES, getMacroSourceBySlug } from "@/lib/macroSourcesConfig";
 import ReadOnlyNote from "@/components/ReadOnlyNote";
 import { launchMacroPhotoCapture } from "@/lib/photoMacroCapture";
+import { launchIngredientPhotoCapture, type IngredientScanResult } from "@/lib/photoIngredientCapture";
+import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -217,7 +219,7 @@ export default function MyBiometrics() {
 
     const end = new Date();
     const start = new Date();
-    start.setDate(end.getDate() - 90);
+    start.setDate(end.getDate() - 365);
     const startISO = start.toISOString();
     const endISO = end.toISOString();
 
@@ -252,7 +254,7 @@ export default function MyBiometrics() {
     const refetch = () => {
       const end = new Date();
       const start = new Date();
-      start.setDate(end.getDate() - 90);
+      start.setDate(end.getDate() - 365);
       fetch(`/api/users/${userId}/macro-logs/daily-with-source?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`, {
         credentials: "include",
         headers: { ...getAuthHeaders() },
@@ -315,6 +317,8 @@ export default function MyBiometrics() {
   const [k, setK] = useState("");
   const [sc, setSc] = useState(""); // starchyCarbs
   const [fc, setFc] = useState(""); // fibrousCarbs
+  const [ingredientSheetOpen, setIngredientSheetOpen] = useState(false);
+  const [ingredientResult, setIngredientResult] = useState<IngredientScanResult | null>(null);
 
   // Check URL params for pre-filled values from photo log
   useEffect(() => {
@@ -785,6 +789,28 @@ export default function MyBiometrics() {
     toast({
       title: "Reset Complete",
       description: "Today's macros have been cleared.",
+    });
+  };
+
+  const handleIngredientScan = async () => {
+    await launchIngredientPhotoCapture({
+      onAnalyzing: () => {
+        toast({
+          title: "Analyzing ingredients...",
+          description: "Reading the label and checking your profile — just a moment.",
+        });
+      },
+      onSuccess: (result) => {
+        setIngredientResult(result);
+        setIngredientSheetOpen(true);
+      },
+      onError: (error) => {
+        toast({
+          title: "Scan failed",
+          description: error,
+          variant: "destructive",
+        });
+      },
     });
   };
 
@@ -1911,6 +1937,17 @@ export default function MyBiometrics() {
               ✏️ Just Describe It
             </Button>
 
+            <Button
+              onClick={handleIngredientScan}
+              className="w-full bg-orange-600/80 text-md text-white mb-1"
+              data-testid="button-ingredient-intelligence"
+            >
+              🧾 Ingredient Intelligence
+            </Button>
+            <p className="text-xs text-white/40 text-center leading-snug mb-3 px-2">
+              Understand packaged foods using your wellness profile, dietary preferences, and health goals.
+            </p>
+
             {/* Quick View Panel (display only, no auto-logging) */}
             {qv && (
               <div
@@ -2460,6 +2497,12 @@ export default function MyBiometrics() {
         steps={biometricsTourSteps}
         title="How to Use Biometrics"
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
+      />
+
+      <IngredientIntelligenceSheet
+        open={ingredientSheetOpen}
+        result={ingredientResult}
+        onClose={() => setIngredientSheetOpen(false)}
       />
 
       <JustDescribeItModal

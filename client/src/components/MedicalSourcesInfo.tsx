@@ -109,6 +109,58 @@ export function MedicalSourcesInfo({
 
           <section>
             <h3 className="text-lg font-semibold text-white mb-3">
+              Clinical lab values &amp; biomarker reference sources
+            </h3>
+            <p className="text-white/60 text-xs mb-3">
+              Reference ranges and clinical thresholds used in the Clinical Labs
+              section — including glucose, HbA1c, lipid panels, liver enzymes,
+              kidney markers, and nutritional biomarkers such as prealbumin
+              (transthyretin) — are informed by the following professional
+              and institutional sources. These references are used for general
+              health tracking and educational flagging only, not clinical
+              diagnosis or individualized medical interpretation.
+            </p>
+            <ul className="space-y-3">
+              <SourceItem
+                title="American Society for Parenteral and Enteral Nutrition (ASPEN)"
+                description="Clinical guidelines for nutritional biomarkers including prealbumin (transthyretin) as a marker of nutritional status and acute-phase response in clinical nutrition assessment"
+                url="https://www.nutritioncare.org/"
+              />
+              <SourceItem
+                title="Lab Tests Online — AACC"
+                description="Reference ranges, interpretation guidance, and clinical context for common laboratory markers including metabolic panels, lipid panels, liver function, and kidney function tests"
+                url="https://labtestsonline.org/"
+              />
+              <SourceItem
+                title="American Heart Association (AHA) — Cholesterol & Lipid Guidelines"
+                description="Evidence-based reference ranges for LDL, HDL, total cholesterol, and triglycerides; clinical thresholds for cardiovascular risk stratification"
+                url="https://www.heart.org/en/health-topics/cholesterol/about-cholesterol"
+              />
+              <SourceItem
+                title="American Diabetes Association (ADA) — Standards of Care"
+                description="Clinical reference ranges for fasting blood glucose, HbA1c, and postprandial glucose; thresholds for prediabetes and diabetes classification"
+                url="https://diabetesjournals.org/care/issue/46/Supplement_1"
+              />
+              <SourceItem
+                title="National Kidney Foundation — KDOQI Guidelines"
+                description="Clinical reference thresholds for creatinine, BUN, eGFR, and kidney disease staging used to inform renal protocol activation"
+                url="https://www.kidney.org/professionals/guidelines"
+              />
+              <SourceItem
+                title="American Association for the Study of Liver Diseases (AASLD)"
+                description="Reference guidance for liver enzyme interpretation (ALT, AST) and hepatic function markers used to inform liver support and liver disease protocol thresholds"
+                url="https://www.aasld.org/"
+              />
+              <SourceItem
+                title="American Thyroid Association (ATA) — TSH Reference Ranges"
+                description="Clinical reference ranges for TSH, Free T4, and Free T3 used to support thyroid protocol detection and thyroid-aware meal guidance"
+                url="https://www.thyroid.org/professionals/ata-professional-guidelines/"
+              />
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-semibold text-white mb-3">
               Oncology and cancer-support nutrition references
             </h3>
             <p className="text-white/60 text-xs mb-3">
@@ -185,6 +237,47 @@ export function MedicalSourcesInfo({
                 url="https://ods.od.nih.gov/factsheets/Iodine-HealthProfessional/"
               />
             </ul>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-semibold text-white mb-3">
+              Smart Scan &amp; ingredient intelligence sources
+            </h3>
+            <p className="text-white/60 text-xs mb-3">
+              Smart Scan uses two types of data: product nutrition databases
+              for barcode lookups, and AI-powered ingredient analysis for label
+              photo scans. Both are described below.
+            </p>
+            <ul className="space-y-3">
+              <SourceItem
+                title="Open Food Facts"
+                description="Primary source for product nutrition data retrieved via barcode scan — calories, macronutrients, fiber, sugar, and sodium values per serving. Open Food Facts is a free, open, collaborative food product database."
+                url="https://world.openfoodfacts.org/"
+              />
+              <SourceItem
+                title="UPCitemdb"
+                description="Secondary source used for product name and brand identification when Open Food Facts does not have a matching product. UPCitemdb is a product catalog database; nutrition values are not sourced from this service."
+                url="https://www.upcitemdb.com/"
+              />
+              <SourceItem
+                title="USDA FoodData Central — produce &amp; whole foods"
+                description="Reference data for unpackaged produce and whole foods (fresh fruits, vegetables) where no barcode exists. Nutritional values for these items are drawn from USDA FoodData Central."
+                url="https://fdc.nal.usda.gov/"
+              />
+              <SourceItem
+                title="OpenAI — ingredient label analysis"
+                description="When you photograph an ingredient label, My Perfect Meals uses OpenAI's vision model to extract the ingredient list, identify potential conflicts with your health profile, generate the alignment grade (A–D), ingredient considerations, and household notes. This analysis is AI-generated, personalized to your profile, and is provided for educational purposes only — not as a medical or dietary recommendation."
+                url="https://openai.com/safety"
+              />
+            </ul>
+            <p className="text-white/60 text-xs mt-3 leading-relaxed">
+              Nutrition values from barcode scans reflect the product's
+              nutrition label data as recorded in the source database. Values
+              may vary by product batch, region, or formulation. AI-generated
+              ingredient analysis reflects the ingredients visible in the
+              scanned image and may be affected by image quality, label
+              legibility, and OCR accuracy.
+            </p>
           </section>
 
           <section>

@@ -2292,32 +2292,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // ── Tier 2: Lab-value lock ────────────────────────────────────────────
-      // Determine what conditions the user currently has and what they're requesting.
-      const requestedNew: string[] = conditions !== undefined
-        ? (Array.isArray(conditions) ? conditions : [])
-        : (condition ? [condition] : []);
+      // ── Tier 2 (REMOVED): Lab values are guidance only, not locks ────────────
+      // Users always have final say over their own protocols unless a physician
+      // has explicitly taken control. "Last decision wins."
 
-      const labDriven = await getLabDrivenConditions(userId);
-      if (labDriven.length > 0) {
-        const currentUser = await db
-          .select({ specialtyConditions: (users as any).specialtyConditions })
-          .from(users)
-          .where(eq(users.id, userId))
-          .limit(1);
-        const current: string[] = (currentUser[0]?.specialtyConditions as string[]) ?? [];
-        // Block if any lab-driven condition is being REMOVED (present now but absent in the new list)
-        const blockedRemovals = labDriven.filter(c => current.includes(c) && !requestedNew.includes(c));
-        if (blockedRemovals.length > 0) {
-          return res.status(403).json({
-            error: "lab_driven",
-            message: "One or more protocols are controlled by your lab values. Update your labs in Biometrics to change them.",
-            locked: blockedRemovals,
-          });
-        }
-      }
-
-      // ── Tier 3: Self-select — apply the change ────────────────────────────
+      // ── Tier 2/3: Self-select — apply the change ─────────────────────────
       // Multi-condition path: conditions[]
       if (conditions !== undefined) {
         if (!Array.isArray(conditions)) return res.status(400).json({ error: "conditions must be an array" });

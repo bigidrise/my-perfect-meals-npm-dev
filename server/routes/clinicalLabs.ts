@@ -22,28 +22,24 @@ const router = express.Router();
  *   Database→  column names:            snake_case  (e.g. blood_pressure_systolic)
  *
  * Single-word fields (a1c, ldl, hdl, creatinine, bun, inr, alt, ast,
- * bilirubin, albumin, tsh) are identical in all three layers — no mapping needed.
+ * bilirubin, albumin, tsh, crp, glucose, cortisol, triglycerides) are identical
+ * in all three layers — no mapping needed.
  * Multi-word fields require explicit snake→camel mapping in the POST handler
  * and explicit camel→snake mapping in the GET response.
- * Thyroid fields: tsh (single-word, no mapping), free_t4→freeT4, free_t3→freeT3,
- * tpo_antibodies→tpoAntibodies, thyroglobulin_antibodies→thyroglobulinAntibodies.
  *
- * Protocol precedence (must match clinicalModeResolver.ts exactly):
- *   liver-disease > kidney-disease > heart-failure > liver-support > base
- *
- * Future fields: follow this convention. Add to labsPayloadSchema,
- * the Drizzle schema, the POST insert, and the GET response shape.
+ * Protocol precedence (must match resolveProtocolFromLabs exactly):
+ *   liver-disease > kidney-disease > heart-failure > liver-support >
+ *   metabolic-support > inflammation-support > metabolic-stress > null
  *
  * Authorization model:
  *   A requester may read or write clinical data for targetUserId only if:
  *   (a) requester IS the target user (self-access), OR
  *   (b) requester owns a studio that the target user is a member of
- *       (verified clinician-client relationship — see verifyClinicalAccess).
- *   Any other attempt returns 403.
  */
 
 const labsPayloadSchema = z.object({
   userId: z.string().optional(),
+  // ── Existing fields ────────────────────────────────────────────────────────
   a1c: z.number().optional().nullable(),
   ldl: z.number().optional().nullable(),
   hdl: z.number().optional().nullable(),
@@ -53,28 +49,34 @@ const labsPayloadSchema = z.object({
   creatinine: z.number().optional().nullable(),
   bun: z.number().optional().nullable(),
   inr: z.number().optional().nullable(),
-  // Liver panel — single-word fields, identical across all three layers (no mapping needed)
   alt:       z.number().optional().nullable(),
   ast:       z.number().optional().nullable(),
   bilirubin: z.number().optional().nullable(),
   albumin:   z.number().optional().nullable(),
-  // Thyroid panel — Phase 1 (ATA/AACE/Endocrine Society thresholds)
-  tsh:                      z.number().optional().nullable(), // mIU/L — single-word, no mapping
-  free_t4:                  z.number().optional().nullable(), // ng/dL
-  free_t3:                  z.number().optional().nullable(), // pg/mL
-  tpo_antibodies:           z.number().optional().nullable(), // IU/mL
-  thyroglobulin_antibodies: z.number().optional().nullable(), // IU/mL
+  tsh:                      z.number().optional().nullable(),
+  free_t4:                  z.number().optional().nullable(),
+  free_t3:                  z.number().optional().nullable(),
+  tpo_antibodies:           z.number().optional().nullable(),
+  thyroglobulin_antibodies: z.number().optional().nullable(),
+  // ── Phase 4 fields ────────────────────────────────────────────────────────
+  // Metabolic / Insulin Resistance
+  fasting_insulin: z.number().optional().nullable(),  // µIU/mL
+  glucose:         z.number().optional().nullable(),  // mg/dL (fasting)
+  triglycerides:   z.number().optional().nullable(),  // mg/dL
+  // Inflammation
+  crp:             z.number().optional().nullable(),  // mg/L — C-Reactive Protein
+  // Hormonal / Stress
+  cortisol:        z.number().optional().nullable(),  // µg/dL
+  // Oncology & Recovery — nutrition status markers
+  prealbumin:      z.number().optional().nullable(),  // mg/dL (transthyretin)
+  // ── Metadata ───────────────────────────────────────────────────────────────
   notes: z.string().optional().nullable(),
   recorded_at: z.string().optional(),
   lab_date: z.string().optional().nullable(),
 });
 
 /**
- * Check whether a physician has already explicitly assigned a builder to this user
- * via an ACTIVE, non-archived studio membership.
- *
- * Intentionally mirrors the same filters used in loadStudioMembership() so that
- * disconnected/archived memberships never trigger the physician lock.
+ * Check whether a physician has already explicitly assigned a builder to this user.
  */
 async function getPhysicianLock(userId: string): Promise<boolean> {
   try {
@@ -89,7 +91,6 @@ async function getPhysicianLock(userId: string): Promise<boolean> {
         )
       )
       .limit(1);
-
     return rows.length > 0 && !!rows[0].assignedBuilder;
   } catch {
     return false;
@@ -107,7 +108,6 @@ router.post("/", requireAuth, async (req, res) => {
 
     const targetUserId = body.userId || requesterId;
 
-    // Security: verify the requester is allowed to write for this target user
     const hasAccess = await verifyClinicalAccess(requesterId as string, targetUserId as string);
     if (!hasAccess) {
       console.warn(`[clinicalLabs POST] UNAUTHORIZED: requester ${requesterId} attempted to write labs for user ${targetUserId}`);
@@ -115,7 +115,6 @@ router.post("/", requireAuth, async (req, res) => {
     }
 
     // ── Pre-insert: fetch user state + previous labs for downgrade detection ──
-    // Must run BEFORE insert so we compare new values against the prior state.
     const [userState, previousLabRows] = await Promise.all([
       db.select({ specialtyConditions: users.specialtyConditions, specialtyCondition: users.specialtyCondition })
         .from(users)
@@ -130,16 +129,22 @@ router.post("/", requireAuth, async (req, res) => {
 
     const currentSpecialtyConditions = (userState[0]?.specialtyConditions as string[]) ?? [];
 
-    // Derive the protocol the user was previously on by running the resolver
-    // against their most recent saved lab record (before the new insert).
+    // Derive previous protocol by running resolver on prior lab record
     let previousProtocol: string | null = null;
     if (previousLabRows.length > 0) {
       const pr = previousLabRows[0];
       const prevSignal = resolveProtocolFromLabs({
         alt: pr.alt, ast: pr.ast, bilirubin: pr.bilirubin, albumin: pr.albumin,
-        creatinine: pr.creatinine, bun: pr.bun, ldl: pr.ldl,
+        creatinine: pr.creatinine, bun: pr.bun,
+        ldl: pr.ldl, hdl: pr.hdl,
         bloodPressureSystolic: pr.bloodPressureSystolic,
         ejectionFraction: pr.ejectionFraction,
+        a1c: pr.a1c,
+        glucose: pr.glucose,
+        fastingInsulin: pr.fastingInsulin,
+        triglycerides: pr.triglycerides,
+        crp: pr.crp,
+        cortisol: pr.cortisol,
       });
       previousProtocol = prevSignal?.protocol ?? null;
     }
@@ -167,6 +172,13 @@ router.post("/", requireAuth, async (req, res) => {
         freeT3:                  body.free_t3                  != null ? String(body.free_t3)                  : null,
         tpoAntibodies:           body.tpo_antibodies           != null ? String(body.tpo_antibodies)           : null,
         thyroglobulinAntibodies: body.thyroglobulin_antibodies != null ? String(body.thyroglobulin_antibodies) : null,
+        // Phase 4 — snake→camel mapping
+        fastingInsulin: body.fasting_insulin != null ? String(body.fasting_insulin) : null,
+        glucose:        body.glucose         != null ? String(body.glucose)         : null,
+        triglycerides:  body.triglycerides   != null ? String(body.triglycerides)   : null,
+        crp:            body.crp             != null ? String(body.crp)             : null,
+        cortisol:       body.cortisol        != null ? String(body.cortisol)        : null,
+        prealbumin:     body.prealbumin      != null ? String(body.prealbumin)      : null,
         notes: body.notes || null,
         labDate: body.lab_date || new Date().toISOString().split("T")[0],
         recordedAt: body.recorded_at ? new Date(body.recorded_at) : new Date(),
@@ -184,11 +196,18 @@ router.post("/", requireAuth, async (req, res) => {
       creatinine:            body.creatinine,
       bun:                   body.bun,
       ldl:                   body.ldl,
+      hdl:                   body.hdl,
       bloodPressureSystolic: body.blood_pressure_systolic,
       ejectionFraction:      body.ejection_fraction,
+      a1c:                   body.a1c,
+      glucose:               body.glucose,
+      fastingInsulin:        body.fasting_insulin,
+      triglycerides:         body.triglycerides,
+      crp:                   body.crp,
+      cortisol:              body.cortisol,
     });
 
-    // Thyroid resolver runs as a SEPARATE signal — additive modifier, not primary override
+    // Thyroid resolver — additive modifier, separate signal
     const thyroidSignalRaw = resolveThyroidFromLabs({
       tsh:                     body.tsh,
       freeT4:                  body.free_t4,
@@ -197,9 +216,7 @@ router.post("/", requireAuth, async (req, res) => {
       thyroglobulinAntibodies: body.thyroglobulin_antibodies,
     });
 
-    // ── Downgrade detection ───────────────────────────────────────────────────
-    // If the user is already on a protocol and their new labs are now normal,
-    // return a downgrade signal instead of (or in addition to) an activation.
+    // Downgrade detection — runs against new values vs. previous state
     const downgradeSignals = resolveDowngradeSignals(
       {
         alt:                   body.alt,
@@ -209,6 +226,7 @@ router.post("/", requireAuth, async (req, res) => {
         creatinine:            body.creatinine,
         bun:                   body.bun,
         ldl:                   body.ldl,
+        hdl:                   body.hdl,
         bloodPressureSystolic: body.blood_pressure_systolic,
         ejectionFraction:      body.ejection_fraction,
         tsh:                   body.tsh,
@@ -216,32 +234,28 @@ router.post("/", requireAuth, async (req, res) => {
         freeT3:                body.free_t3,
         tpoAntibodies:         body.tpo_antibodies,
         thyroglobulinAntibodies: body.thyroglobulin_antibodies,
+        a1c:                   body.a1c,
+        glucose:               body.glucose,
+        fastingInsulin:        body.fasting_insulin,
+        triglycerides:         body.triglycerides,
+        crp:                   body.crp,
+        cortisol:              body.cortisol,
       },
       { currentSpecialtyConditions, previousProtocol },
     );
 
-    // ── Skip activation signals the user is already on ────────────────────────
-    // Avoid showing "activate thyroid" when user already has thyroid-support,
-    // and avoid showing "activate protocol X" when user was already on X.
-    const alreadyOnThyroid = currentSpecialtyConditions.includes('thyroid-support');
-    const alreadyOnProtocol = protocolSignal?.protocol === previousProtocol && previousProtocol !== null;
+    const alreadyOnThyroid   = currentSpecialtyConditions.includes('thyroid-support');
+    const alreadyOnProtocol  = protocolSignal?.protocol === previousProtocol && previousProtocol !== null;
 
-    const effectiveProtocolSignal  = alreadyOnProtocol  ? null : protocolSignal;
-    const effectiveThyroidSignal   = alreadyOnThyroid   ? null : (thyroidSignalRaw.hasThyroidIndicators ? thyroidSignalRaw : null);
+    const effectiveProtocolSignal = alreadyOnProtocol ? null : protocolSignal;
+    const effectiveThyroidSignal  = alreadyOnThyroid  ? null : (thyroidSignalRaw.hasThyroidIndicators ? thyroidSignalRaw : null);
 
-    // ── Thyroid still-elevated monitoring signal ──────────────────────────────
-    // Fires when the user is already on thyroid-support, submitted thyroid
-    // values that are still elevated (so no downgrade fires), and no new
-    // activation modal is needed. This lets the frontend show a "still
-    // monitoring" toast instead of the generic "Labs Saved" message.
     const thyroidMonitoring =
       alreadyOnThyroid &&
       thyroidSignalRaw.hasThyroidIndicators &&
       downgradeSignals.length === 0;
 
-    const [physicianLocked] = await Promise.all([
-      getPhysicianLock(targetUserId as string),
-    ]);
+    const [physicianLocked] = await Promise.all([getPhysicianLock(targetUserId as string)]);
 
     res.status(201).json({
       success: true,
@@ -290,47 +304,32 @@ router.post("/recommendation", requireAuth, async (req, res) => {
       reason:              body.reason ?? null,
     });
 
-    // On "removed" (downgrade accepted): remove the protocol from user's state
+    // ── On "removed" (downgrade accepted): remove the protocol from user's state ──
     if (body.status === "removed") {
-      if (body.protocol === "thyroid-support") {
-        // Strip thyroid-support from both specialtyConditions array and singular field.
-        const [currentUser] = await db
-          .select({ specialtyConditions: users.specialtyConditions, specialtyCondition: users.specialtyCondition })
-          .from(users)
-          .where(eq(users.id, userId as any))
-          .limit(1);
+      const [currentUser] = await db
+        .select({ specialtyConditions: users.specialtyConditions, specialtyCondition: users.specialtyCondition })
+        .from(users)
+        .where(eq(users.id, userId as any))
+        .limit(1);
 
-        const currentConditions = (currentUser?.specialtyConditions as string[]) ?? [];
-        const newConditions = currentConditions.filter(c => c !== 'thyroid-support');
-        // Clear the singular field only if it was pointing at thyroid-support
-        const newPrimary = currentUser?.specialtyCondition === 'thyroid-support'
-          ? (newConditions[0] ?? null)
-          : (currentUser?.specialtyCondition ?? null);
+      const currentConditions = (currentUser?.specialtyConditions as string[]) ?? [];
+      const newConditions = currentConditions.filter(c => c !== body.protocol);
+      const newPrimary = currentUser?.specialtyCondition === body.protocol
+        ? (newConditions[0] ?? null)
+        : (currentUser?.specialtyCondition ?? null);
 
-        await db
-          .update(users)
-          .set({ specialtyConditions: newConditions, specialtyCondition: newPrimary, updatedAt: new Date() } as any)
-          .where(eq(users.id, userId as any));
+      await db
+        .update(users)
+        .set({ specialtyConditions: newConditions, specialtyCondition: newPrimary, updatedAt: new Date() } as any)
+        .where(eq(users.id, userId as any));
 
-        console.log(`[labs/recommendation] User ${userId} removed thyroid-support → specialty_conditions updated`);
-      } else {
-        // Primary protocols (heart-failure, kidney-disease, liver-disease, liver-support) are
-        // lab-derived, not persistently stored. When the user accepts the downgrade, the
-        // new labs already carry normalized values — the protocol resolver will return null
-        // on the next builder load, naturally stepping them back to anti-inflammatory.
-        // No user-record change needed; audit entry (written above) is the only write.
-        console.log(`[labs/recommendation] User ${userId} removed ${body.protocol} → lab-derived protocol will resolve to anti-inflammatory on next load`);
-      }
+      console.log(`[labs/recommendation] User ${userId} removed ${body.protocol} → specialty_conditions updated`);
     }
 
-    // On accept: action depends on protocol type
+    // ── On accept: activate the protocol ─────────────────────────────────────
     if (body.status === "accepted") {
       if (body.protocol === "thyroid-support") {
-        // Thyroid is an ADDITIVE modifier — it does not change the meal builder.
-        // Mirror the same write pattern as PATCH /api/user/specialty-condition:
-        //   - specialtyConditions (array): append 'thyroid-support' if not present
-        //   - specialtyCondition  (singular): set only when currently null (non-destructive)
-        // Both fields must be written so every builder's indicator light fires correctly.
+        // Thyroid is ADDITIVE — does not change the meal builder.
         const [currentUser] = await db
           .select({ specialtyConditions: users.specialtyConditions, specialtyCondition: users.specialtyCondition })
           .from(users)
@@ -340,29 +339,43 @@ router.post("/recommendation", requireAuth, async (req, res) => {
         const currentConditions = (currentUser?.specialtyConditions as string[]) ?? [];
         if (!currentConditions.includes("thyroid-support")) {
           const newConditions = [...currentConditions, "thyroid-support"];
-          // Only promote to primary if user has no existing primary specialty condition
           const newPrimary = currentUser?.specialtyCondition ?? "thyroid-support";
           await db
             .update(users)
-            .set({
-              specialtyConditions: newConditions,
-              specialtyCondition:  newPrimary,
-              updatedAt: new Date(),
-            } as any)
+            .set({ specialtyConditions: newConditions, specialtyCondition: newPrimary, updatedAt: new Date() } as any)
             .where(eq(users.id, userId as any));
         }
         console.log(`[labs/recommendation] User ${userId} accepted thyroid-support → specialty_conditions updated`);
       } else {
-        // Non-thyroid clinical protocols → switch the user's meal builder to anti_inflammatory
-        // (all clinical protocol variants live under this builder)
+        // All non-thyroid clinical protocols:
+        //   1. Switch meal builder to anti_inflammatory (enables clinical protocol routing)
+        //   2. Write protocol to specialtyCondition + specialtyConditions (explicit state,
+        //      enables downgrade detection and indicator lights without re-running resolver)
+        const [currentUser] = await db
+          .select({ specialtyConditions: users.specialtyConditions, specialtyCondition: users.specialtyCondition })
+          .from(users)
+          .where(eq(users.id, userId as any))
+          .limit(1);
+
+        const currentConditions = (currentUser?.specialtyConditions as string[]) ?? [];
+        // Add to conditions array if not already present
+        const newConditions = currentConditions.includes(body.protocol)
+          ? currentConditions
+          : [...currentConditions, body.protocol];
+        // Promote to primary only if no existing primary specialty condition
+        const newPrimary = currentUser?.specialtyCondition ?? body.protocol;
+
         await db
           .update(users)
-          .set({ selectedMealBuilder: "anti_inflammatory", updatedAt: new Date() })
+          .set({
+            selectedMealBuilder: "anti_inflammatory",
+            specialtyConditions: newConditions,
+            specialtyCondition:  newPrimary,
+            updatedAt: new Date(),
+          } as any)
           .where(eq(users.id, userId as any));
 
-        // Stamp active studio memberships for this user as clinically assigned.
-        // Inactive/archived memberships are intentionally excluded so a past coaching
-        // relationship cannot block the user's own lab-based builder selection.
+        // Stamp active studio memberships as clinically assigned
         await db
           .update(studioMemberships)
           .set({ assignedBuilder: "anti_inflammatory", builderSource: "clinical", updatedAt: new Date() } as any)
@@ -374,7 +387,7 @@ router.post("/recommendation", requireAuth, async (req, res) => {
             )
           );
 
-        console.log(`[labs/recommendation] User ${userId} accepted ${body.protocol} → builder set to anti_inflammatory (source: clinical)`);
+        console.log(`[labs/recommendation] User ${userId} accepted ${body.protocol} → builder=anti_inflammatory, specialty_conditions updated`);
       }
     }
 
@@ -394,7 +407,6 @@ router.get("/:userId", requireAuth, async (req, res) => {
     const requesterId = getAuthUserId(req);
     const { userId } = req.params;
 
-    // Security: verify the requester is allowed to read data for this user
     const hasAccess = await verifyClinicalAccess(requesterId as string, userId);
     if (!hasAccess) {
       console.warn(`[clinicalLabs GET] UNAUTHORIZED: requester ${requesterId} attempted to read labs for user ${userId}`);
@@ -409,7 +421,6 @@ router.get("/:userId", requireAuth, async (req, res) => {
       .limit(1);
 
     if (rows.length === 0) {
-      // Still check oncologySupportEnabled + specialtyCondition even with no labs on file
       const userRows0 = await db
         .select({ oncologySupportContext: users.oncologySupportContext, specialtyCondition: users.specialtyCondition, specialtyConditions: users.specialtyConditions })
         .from(users)
@@ -419,6 +430,7 @@ router.get("/:userId", requireAuth, async (req, res) => {
       return res.json({
         labs: null,
         oncologySupportEnabled: !!(oncologyCtx0?.enabled),
+        oncologySupportContext: userRows0[0]?.oncologySupportContext ?? null,
         specialtyCondition: userRows0[0]?.specialtyCondition ?? null,
         specialtyConditions: (userRows0[0]?.specialtyConditions as string[]) ?? [],
       });
@@ -426,8 +438,6 @@ router.get("/:userId", requireAuth, async (req, res) => {
 
     const r = rows[0];
 
-    // Run the resolver against the raw Drizzle row (accepts string | number | null).
-    // Returns LabProtocolSignal | null — null means base anti-inflammatory.
     const protocolSignal = resolveProtocolFromLabs({
       alt:                   r.alt,
       ast:                   r.ast,
@@ -436,11 +446,17 @@ router.get("/:userId", requireAuth, async (req, res) => {
       creatinine:            r.creatinine,
       bun:                   r.bun,
       ldl:                   r.ldl,
+      hdl:                   r.hdl,
       bloodPressureSystolic: r.bloodPressureSystolic,
       ejectionFraction:      r.ejectionFraction,
+      a1c:                   r.a1c,
+      glucose:               r.glucose,
+      fastingInsulin:        r.fastingInsulin,
+      triglycerides:         r.triglycerides,
+      crp:                   r.crp,
+      cortisol:              r.cortisol,
     });
 
-    // Thyroid resolver — additive modifier, separate from primary protocol chain
     const thyroidSignal = resolveThyroidFromLabs({
       tsh:                     r.tsh,
       freeT4:                  r.freeT4,
@@ -449,7 +465,6 @@ router.get("/:userId", requireAuth, async (req, res) => {
       thyroglobulinAntibodies: r.thyroglobulinAntibodies,
     });
 
-    // Fetch the user's oncologySupportContext + specialtyCondition to include in the response
     const userRows = await db
       .select({ oncologySupportContext: users.oncologySupportContext, specialtyCondition: users.specialtyCondition, specialtyConditions: users.specialtyConditions })
       .from(users)
@@ -461,10 +476,11 @@ router.get("/:userId", requireAuth, async (req, res) => {
       labs: {
         id: r.id,
         userId: r.userId,
+        // ── Existing fields ─────────────────────────────────────────────────
         a1c: r.a1c ? parseFloat(r.a1c) : null,
         ldl: r.ldl ? parseFloat(r.ldl) : null,
         hdl: r.hdl ? parseFloat(r.hdl) : null,
-        blood_pressure_systolic: r.bloodPressureSystolic ? parseFloat(r.bloodPressureSystolic) : null,
+        blood_pressure_systolic:  r.bloodPressureSystolic  ? parseFloat(r.bloodPressureSystolic)  : null,
         blood_pressure_diastolic: r.bloodPressureDiastolic ? parseFloat(r.bloodPressureDiastolic) : null,
         ejection_fraction: r.ejectionFraction ? parseFloat(r.ejectionFraction) : null,
         creatinine: r.creatinine ? parseFloat(r.creatinine) : null,
@@ -474,24 +490,28 @@ router.get("/:userId", requireAuth, async (req, res) => {
         ast:       r.ast       ? parseFloat(r.ast)       : null,
         bilirubin: r.bilirubin ? parseFloat(r.bilirubin) : null,
         albumin:   r.albumin   ? parseFloat(r.albumin)   : null,
-        // Thyroid panel
         tsh:                     r.tsh                     ? parseFloat(r.tsh)                     : null,
         free_t4:                 r.freeT4                  ? parseFloat(r.freeT4)                  : null,
         free_t3:                 r.freeT3                  ? parseFloat(r.freeT3)                  : null,
         tpo_antibodies:          r.tpoAntibodies           ? parseFloat(r.tpoAntibodies)           : null,
         thyroglobulin_antibodies:r.thyroglobulinAntibodies ? parseFloat(r.thyroglobulinAntibodies) : null,
+        // ── Phase 4 fields — camel→snake ─────────────────────────────────────
+        fasting_insulin: r.fastingInsulin ? parseFloat(r.fastingInsulin) : null,
+        glucose:         r.glucose        ? parseFloat(r.glucose)        : null,
+        triglycerides:   r.triglycerides  ? parseFloat(r.triglycerides)  : null,
+        crp:             r.crp            ? parseFloat(r.crp)            : null,
+        cortisol:        r.cortisol       ? parseFloat(r.cortisol)       : null,
+        prealbumin:      r.prealbumin     ? parseFloat(r.prealbumin)     : null,
+        // ── Metadata ──────────────────────────────────────────────────────────
         notes: r.notes,
         lab_date: r.labDate || null,
         recorded_at: r.recordedAt,
       },
-      // Primary protocol signal — null = base anti-inflammatory.
       protocolSignal,
       protocolSubtitle: labSignalToSubtitle(protocolSignal),
-      // Thyroid modifier signal — separate from primary protocol (additive, not override).
-      thyroidSignal: thyroidSignal.hasThyroidIndicators ? thyroidSignal : null,
-      // Physician-assigned oncology support overlay (independent of lab values)
+      thyroidSignal,
       oncologySupportEnabled: !!(oncologyCtx?.enabled),
-      // User self-selected specialty condition (activates protocol without lab entry)
+      oncologySupportContext: userRows[0]?.oncologySupportContext ?? null,
       specialtyCondition: userRows[0]?.specialtyCondition ?? null,
       specialtyConditions: (userRows[0]?.specialtyConditions as string[]) ?? [],
     });

@@ -111,8 +111,9 @@ router.get("/all-messages", async (req: Request, res: Response) => {
       authorUserId: clientNotes.authorUserId,
       entryType: clientNotes.entryType,
       sender: clientNotes.sender,
+      contentType: clientNotes.contentType,
       createdAt: clientNotes.createdAt,
-    })
+    } as any)
     .from(clientNotes)
     .where(
       and(

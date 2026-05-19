@@ -21,13 +21,21 @@ export const clinicalLabs = pgTable("clinical_labs", {
   bilirubin: numeric("bilirubin", { precision: 5, scale: 2 }),
   albumin:   numeric("albumin",   { precision: 4, scale: 2 }),
   // Thyroid panel — drives thyroid-support adaptive modifier activation
-  // Phase 1: TSH, Free T4, Free T3, TPO antibodies, Thyroglobulin antibodies
-  // Phase 2: Reverse T3, Thyroglobulin (protein, not antibody)
   tsh:                      numeric("tsh",                       { precision: 6, scale: 3 }), // mIU/L
   freeT4:                   numeric("free_t4",                   { precision: 5, scale: 2 }), // ng/dL
   freeT3:                   numeric("free_t3",                   { precision: 5, scale: 2 }), // pg/mL
   tpoAntibodies:            numeric("tpo_antibodies",            { precision: 8, scale: 2 }), // IU/mL
   thyroglobulinAntibodies:  numeric("thyroglobulin_antibodies",  { precision: 8, scale: 2 }), // IU/mL
+  // Metabolic / Insulin Resistance — drives metabolic-support protocol
+  fastingInsulin: numeric("fasting_insulin", { precision: 7, scale: 2 }),  // µIU/mL
+  glucose:        numeric("glucose",         { precision: 6, scale: 1 }),  // mg/dL (fasting)
+  triglycerides:  numeric("triglycerides",   { precision: 6, scale: 1 }),  // mg/dL
+  // Inflammation — drives inflammation-support protocol escalation
+  crp: numeric("crp", { precision: 6, scale: 2 }),  // mg/L — C-Reactive Protein
+  // Hormonal / Stress — drives metabolic-stress protocol
+  cortisol: numeric("cortisol", { precision: 6, scale: 2 }), // µg/dL
+  // Oncology & Recovery support — nutrition status markers
+  prealbumin: numeric("prealbumin", { precision: 5, scale: 2 }), // mg/dL (transthyretin — short-term nutrition status)
   notes: text("notes"),
   labDate: date("lab_date"),
   recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
@@ -55,6 +63,12 @@ export const insertClinicalLabsSchema = createInsertSchema(clinicalLabs, {
   freeT3:                  z.string().or(z.number()).optional().nullable(),
   tpoAntibodies:           z.string().or(z.number()).optional().nullable(),
   thyroglobulinAntibodies: z.string().or(z.number()).optional().nullable(),
+  fastingInsulin: z.string().or(z.number()).optional().nullable(),
+  glucose:        z.string().or(z.number()).optional().nullable(),
+  triglycerides:  z.string().or(z.number()).optional().nullable(),
+  crp:            z.string().or(z.number()).optional().nullable(),
+  cortisol:       z.string().or(z.number()).optional().nullable(),
+  prealbumin:     z.string().or(z.number()).optional().nullable(),
   notes: z.string().optional().nullable(),
   recordedAt: z.string().or(z.date()),
 }).omit({ id: true, createdAt: true });

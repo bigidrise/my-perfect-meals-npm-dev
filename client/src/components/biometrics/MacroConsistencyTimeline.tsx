@@ -119,10 +119,36 @@ const CustomTooltip = ({ active, payload }: any) => {
   );
 };
 
+type ViewKey = "7" | "30" | "90" | "180" | "365";
+
+const VIEW_OPTIONS: { key: ViewKey; label: string }[] = [
+  { key: "7",   label: "1W"  },
+  { key: "30",  label: "1M"  },
+  { key: "90",  label: "3M"  },
+  { key: "180", label: "6M"  },
+  { key: "365", label: "12M" },
+];
+
+function tickIntervalFor(v: ViewKey): number {
+  if (v === "7")   return 0;
+  if (v === "30")  return 4;
+  if (v === "90")  return 8;
+  if (v === "180") return 14;
+  return 29;
+}
+
+function barSizeFor(v: ViewKey): number {
+  if (v === "7")   return 22;
+  if (v === "30")  return 7;
+  if (v === "90")  return 4;
+  if (v === "180") return 3;
+  return 2;
+}
+
 export default function MacroConsistencyTimeline({ macroRows }: Props) {
-  const [view, setView] = useState<"7" | "30">("7");
+  const [view, setView] = useState<ViewKey>("7");
   const days = useMemo(
-    () => buildDays(macroRows, view === "7" ? 7 : 30),
+    () => buildDays(macroRows, parseInt(view)),
     [macroRows, view]
   );
 
@@ -130,8 +156,8 @@ export default function MacroConsistencyTimeline({ macroRows }: Props) {
     (d) => d.protein > 0 || d.carbs > 0 || d.fat > 0
   );
   const anyCarbSplit = days.some((d) => d.hasCarbSplit);
-  const tickInterval = view === "30" ? 4 : 0;
-  const barSize = view === "7" ? 22 : 7;
+  const tickInterval = tickIntervalFor(view);
+  const barSize = barSizeFor(view);
 
   return (
     <Card
@@ -148,16 +174,16 @@ export default function MacroConsistencyTimeline({ macroRows }: Props) {
             Protein · Carbs · Fat · {anyCarbSplit ? "Carb split in tooltip" : "Log meals to see trends"}
           </p>
         </div>
-        <div className="flex gap-1 bg-black/30 p-1 rounded-lg shrink-0">
-          {(["7", "30"] as const).map((v) => (
+        <div className="flex gap-0.5 bg-black/30 p-1 rounded-lg shrink-0">
+          {VIEW_OPTIONS.map(({ key, label }) => (
             <button
-              key={v}
-              onClick={() => setView(v)}
-              className={`px-3 py-1 rounded text-xs font-medium transition ${
-                view === v ? "bg-white/20 text-white" : "text-white/60"
+              key={key}
+              onClick={() => setView(key)}
+              className={`px-2 py-1 rounded text-xs font-medium transition ${
+                view === key ? "bg-white/20 text-white" : "text-white/60"
               }`}
             >
-              {v === "7" ? "7 Days" : "30 Days"}
+              {label}
             </button>
           ))}
         </div>

@@ -286,14 +286,13 @@ export default function EditProfilePage() {
   const physicianOncologyLocked = physicianOncologyActive && !!(user?.isProCare);
   const [physicianProtocolClearing, setPhysicianProtocolClearing] = useState(false);
 
-  // ── Three-tier hierarchy ──────────────────────────────────────────────────
-  // Tier 1: General physician lock (controls ALL conditions, not just oncology)
+  // ── Control hierarchy ────────────────────────────────────────────────────
+  // Only a physician assignment locks conditions. Lab values are guidance only —
+  // the user always has final say ("last decision wins").
   const physicianLocked: boolean = !!(user as any)?.physicianLocked;
-  // Tier 2: Lab-driven conditions — cannot be changed in Edit Profile; must go through Biometrics
+  // Still fetch labDrivenConditions for informational display (not for locking)
   const labDrivenConditions: string[] = (user as any)?.labDrivenConditions ?? [];
-  // A condition is locked if physician controls it OR if labs are driving it
-  const isConditionLocked = (val: string): boolean =>
-    physicianLocked || labDrivenConditions.includes(val);
+  const isConditionLocked = (val: string): boolean => physicianLocked;
 
   const [allergiesUnlocked, setAllergiesUnlocked] = useState(false);
   const [allergyEditToken, setAllergyEditToken] = useState<string | null>(null);
@@ -1081,16 +1080,10 @@ export default function EditProfilePage() {
 
                 {/* ── Lab-driven lock banner ─────────────────────────────── */}
                 {labDrivenConditions.length > 0 && !physicianLocked && (
-                  <div className="mb-3 rounded-xl border border-blue-500/40 bg-blue-950/30 p-3">
-                    <div className="flex items-start gap-2">
-                      <Lock className="h-3.5 w-3.5 text-blue-400 mt-0.5 shrink-0" />
-                      <div>
-                        <p className="text-blue-300 text-xs font-semibold mb-0.5">Protocol Controlled by Lab Values</p>
-                        <p className="text-white/60 text-xs leading-relaxed">
-                          One or more of your protocols were set based on your lab results. These are locked here — go to <span className="text-white font-medium">Biometrics &rarr; Lab Values</span> and save updated labs to change them.
-                        </p>
-                      </div>
-                    </div>
+                  <div className="mb-3 rounded-xl border border-white/10 bg-white/5 p-3">
+                    <p className="text-white/50 text-xs leading-relaxed">
+                      Some protocols below were recommended based on your lab results. You can turn any of them on or off freely.
+                    </p>
                   </div>
                 )}
 
@@ -1125,15 +1118,13 @@ export default function EditProfilePage() {
                         active={specialtyConditions.includes(opt.value)}
                         onClick={() => {
                           if (locked) return;
-                          // Legacy oncology physician lock (specific to physician-assigned oncology)
                           if (physicianOncologyLocked && opt.value === "oncology-support") return;
                           setSpecialtyConditions((prev) =>
                             prev.includes(opt.value) ? prev.filter(c => c !== opt.value) : [...prev, opt.value]
                           );
                         }}
-                        className={locked || (physicianOncologyLocked && opt.value === "oncology-support") ? "opacity-60 cursor-not-allowed" : ""}
+                        className={(physicianOncologyLocked && opt.value === "oncology-support") ? "opacity-60 cursor-not-allowed" : ""}
                       >
-                        {locked && <Lock className="h-3 w-3 mr-1 inline-block" />}
                         {opt.label}
                       </PillButton>
                     );
@@ -1148,8 +1139,7 @@ export default function EditProfilePage() {
                     <PillButton
                       active={false}
                       onClick={() => {
-                        // Only clear conditions that are NOT lab-driven
-                        setSpecialtyConditions(prev => prev.filter(c => labDrivenConditions.includes(c)));
+                        setSpecialtyConditions([]);
                         setGlp1Active(false);
                       }}
                     >
