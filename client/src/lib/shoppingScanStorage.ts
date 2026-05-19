@@ -14,6 +14,8 @@ export interface SavedProductScan {
   category?: string;
   image?: string;
   scanSource: "shopping" | "biometrics";
+  overallSummary?: string;
+  considerations?: string[];
 }
 
 function readAll(): SavedProductScan[] {
