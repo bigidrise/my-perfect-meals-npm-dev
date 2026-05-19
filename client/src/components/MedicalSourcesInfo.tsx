@@ -241,6 +241,47 @@ export function MedicalSourcesInfo({
 
           <section>
             <h3 className="text-lg font-semibold text-white mb-3">
+              Smart Scan &amp; ingredient intelligence sources
+            </h3>
+            <p className="text-white/60 text-xs mb-3">
+              Smart Scan uses two types of data: product nutrition databases
+              for barcode lookups, and AI-powered ingredient analysis for label
+              photo scans. Both are described below.
+            </p>
+            <ul className="space-y-3">
+              <SourceItem
+                title="Open Food Facts"
+                description="Primary source for product nutrition data retrieved via barcode scan — calories, macronutrients, fiber, sugar, and sodium values per serving. Open Food Facts is a free, open, collaborative food product database."
+                url="https://world.openfoodfacts.org/"
+              />
+              <SourceItem
+                title="UPCitemdb"
+                description="Secondary source used for product name and brand identification when Open Food Facts does not have a matching product. UPCitemdb is a product catalog database; nutrition values are not sourced from this service."
+                url="https://www.upcitemdb.com/"
+              />
+              <SourceItem
+                title="USDA FoodData Central — produce &amp; whole foods"
+                description="Reference data for unpackaged produce and whole foods (fresh fruits, vegetables) where no barcode exists. Nutritional values for these items are drawn from USDA FoodData Central."
+                url="https://fdc.nal.usda.gov/"
+              />
+              <SourceItem
+                title="OpenAI — ingredient label analysis"
+                description="When you photograph an ingredient label, My Perfect Meals uses OpenAI's vision model to extract the ingredient list, identify potential conflicts with your health profile, generate the alignment grade (A–D), ingredient considerations, and household notes. This analysis is AI-generated, personalized to your profile, and is provided for educational purposes only — not as a medical or dietary recommendation."
+                url="https://openai.com/safety"
+              />
+            </ul>
+            <p className="text-white/60 text-xs mt-3 leading-relaxed">
+              Nutrition values from barcode scans reflect the product's
+              nutrition label data as recorded in the source database. Values
+              may vary by product batch, region, or formulation. AI-generated
+              ingredient analysis reflects the ingredients visible in the
+              scanned image and may be affected by image quality, label
+              legibility, and OCR accuracy.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-semibold text-white mb-3">
               Allergen taxonomy knowledge sources
             </h3>
             <p className="text-white/60 text-xs mb-3">
