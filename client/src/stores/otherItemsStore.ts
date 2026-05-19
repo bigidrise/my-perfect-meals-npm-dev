@@ -8,6 +8,7 @@ export type OtherItem = {
   category: "Household" | "Personal Care" | "Pets" | "Baby" | "Pharmacy" | "Misc";
   notes?: string;
   checked?: boolean;
+  source?: "manual" | "scanned"; // "scanned" = came from Smart Scan photo
 };
 
 type OtherItemsStore = {

@@ -1,17 +1,11 @@
-import { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, Package } from "lucide-react";
+import { useState } from "react";
+import { Plus, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import {
-  readOtherItems,
-  addOtherItem,
-  updateOtherItem,
-  deleteOtherItem,
-  type OtherItem
-} from "@/stores/otherItemsStore";
+import { addOtherItem } from "@/stores/otherItemsStore";
 
 const CATEGORIES = ["Household", "Personal Care", "Pets", "Baby", "Pharmacy", "Misc"] as const;
 const QUICK_SUGGESTIONS = [
@@ -31,9 +25,7 @@ const QUICK_SUGGESTIONS = [
 
 export default function AddOtherItems() {
   const { toast } = useToast();
-  const [items, setItems] = useState<OtherItem[]>(() => readOtherItems().items);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  
+
   // Form state
   const [name, setName] = useState("");
   const [brand, setBrand] = useState("");
@@ -42,19 +34,12 @@ export default function AddOtherItems() {
   const [category, setCategory] = useState<typeof CATEGORIES[number]>("Household");
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  useEffect(() => {
-    const onUpdate = () => setItems(readOtherItems().items);
-    window.addEventListener("other:items:updated", onUpdate);
-    return () => window.removeEventListener("other:items:updated", onUpdate);
-  }, []);
-
   function resetForm() {
     setName("");
     setBrand("");
     setQty("1");
     setUnit("unit");
     setCategory("Household");
-    setEditingId(null);
   }
 
   function handleAdd() {
@@ -62,47 +47,17 @@ export default function AddOtherItems() {
       toast({ title: "Item name required", variant: "destructive" });
       return;
     }
-
-    if (editingId) {
-      // Update existing
-      updateOtherItem(editingId, {
-        name: name.trim(),
-        brand: brand.trim() || undefined,
-        qty: parseFloat(qty) || 1,
-        unit: unit.trim(),
-        category
-      });
-      toast({ title: "Item updated" });
-    } else {
-      // Add new
-      addOtherItem({
-        name: name.trim(),
-        brand: brand.trim() || undefined,
-        qty: parseFloat(qty) || 1,
-        unit: unit.trim(),
-        category
-      });
-      toast({ title: "Item added", description: brand ? `${brand} ${name}` : name });
-    }
-    
+    addOtherItem({
+      name: name.trim(),
+      brand: brand.trim() || undefined,
+      qty: parseFloat(qty) || 1,
+      unit: unit.trim(),
+      category,
+      source: "manual",
+    });
+    toast({ title: "Added to My List", description: brand ? `${brand} ${name}` : name });
     resetForm();
     setShowSuggestions(false);
-  }
-
-  function handleEdit(item: OtherItem) {
-    setEditingId(item.id);
-    setName(item.name);
-    setBrand(item.brand || "");
-    setQty(item.qty.toString());
-    setUnit(item.unit);
-    setCategory(item.category);
-  }
-
-  function handleDelete(id: string) {
-    if (confirm("Remove this item?")) {
-      deleteOtherItem(id);
-      toast({ title: "Item removed" });
-    }
   }
 
   function handleSuggestionClick(suggestion: string) {
@@ -229,73 +184,14 @@ export default function AddOtherItems() {
         <Button
           onClick={handleAdd}
           disabled={!name.trim()}
-          className="w-full bg-blue-600/20 border border-blue-400/30 text-blue-200 hover:bg-blue-600/30"
+          className="w-full bg-orange-600/20 border border-orange-400/30 text-orange-200"
           data-testid="button-add-other-item"
         >
           <Plus className="h-4 w-4 mr-2" />
-          {editingId ? "Update Item" : "Add Item"}
+          Add to My List
         </Button>
-        
-        {editingId && (
-          <Button
-            onClick={resetForm}
-            variant="ghost"
-            className="w-full text-white/70 hover:text-white"
-          >
-            Cancel Edit
-          </Button>
-        )}
       </div>
 
-      {/* Items List */}
-      {items.length > 0 && (
-        <div className="space-y-2">
-          <div className="text-sm font-semibold text-white/80 mb-2">
-            Your Other Items ({items.length})
-          </div>
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between gap-3 p-3 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
-              data-testid={`other-item-${item.id}`}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-white">
-                  {item.brand && <span className="text-blue-300">{item.brand} </span>}
-                  {item.name}
-                </div>
-                <div className="text-xs text-white/60 flex items-center gap-3 mt-1">
-                  <span>{item.qty} {item.unit}</span>
-                  <span className="px-2 py-0.5 rounded-full bg-white/10 border border-white/20">
-                    {item.category}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleEdit(item)}
-                  className="h-8 w-8 p-0 hover:bg-white/20"
-                  data-testid={`button-edit-other-${item.id}`}
-                >
-                  <Edit2 className="h-4 w-4 text-yellow-400" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleDelete(item.id)}
-                  className="h-8 w-8 p-0 hover:bg-white/20"
-                  data-testid={`button-delete-other-${item.id}`}
-                >
-                  <Trash2 className="h-4 w-4 text-red-400" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

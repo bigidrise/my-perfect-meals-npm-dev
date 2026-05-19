@@ -30,7 +30,8 @@ import {
 import { MACRO_SOURCES, getMacroSourceBySlug } from "@/lib/macroSourcesConfig";
 import { getRetailQuantity } from "@/lib/retailIntelligence";
 import AddOtherItems from "@/components/AddOtherItems";
-import { readOtherItems } from "@/stores/otherItemsStore";
+import MyListCard from "@/components/shopping/MyListCard";
+import { readOtherItems, addOtherItem } from "@/stores/otherItemsStore";
 import { buildWalmartSearchUrl } from "@/lib/walmartLinkBuilder";
 import { formatQuantity } from "@/lib/formatQuantity";
 import { convertServingDisplay } from "@shared/units";
@@ -609,6 +610,8 @@ export default function ShoppingListMasterView() {
             </Button>
           </div>
         </div>
+        {/* My List — manual + scanned items displayed here */}
+        <MyListCard />
         {/* Add Other Items Section */}
         <AddOtherItems />
         {/* Walmart Card - Coming Soon */}
@@ -983,7 +986,7 @@ export default function ShoppingListMasterView() {
           onClose={() => setShoppingSheetOpen(false)}
           onAddAnyway={(name) => {
             if (shoppingSheetResult) {
-              addItem({ name, quantity: 1, unit: "item" });
+              addOtherItem({ name, qty: 1, unit: "item", category: "Misc", source: "scanned" });
               saveProductScan({
                 productName: name,
                 ingredients: shoppingSheetResult.extractedIngredients,
