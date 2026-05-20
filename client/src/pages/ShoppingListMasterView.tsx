@@ -9,6 +9,7 @@ import {
   ShoppingCart,
   Mic,
   ListPlus,
+  ExternalLink,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import TrashButton from "@/components/ui/TrashButton";
@@ -31,7 +32,7 @@ import { MACRO_SOURCES, getMacroSourceBySlug } from "@/lib/macroSourcesConfig";
 import { getRetailQuantity } from "@/lib/retailIntelligence";
 import AddOtherItems from "@/components/AddOtherItems";
 import { readOtherItems } from "@/stores/otherItemsStore";
-import { buildWalmartSearchUrl } from "@/lib/walmartLinkBuilder";
+import { GROCERY_RETAILERS, type GroceryRetailerId } from "@/lib/groceryRetailers";
 import { formatQuantity } from "@/lib/formatQuantity";
 import { convertServingDisplay } from "@shared/units";
 import { useAuth } from "@/contexts/AuthContext";
@@ -334,26 +335,21 @@ export default function ShoppingListMasterView() {
     return filtered;
   }, [items, opts.excludePantryStaples]);
 
-  const handleShopAtWalmart = useCallback(() => {
+  const handleGroceryDelivery = useCallback((retailerId: GroceryRetailerId) => {
     const activeItems = items.filter((i) => !i.isChecked);
 
     if (activeItems.length === 0) {
       toast({
         title: "No items to send",
-        description:
-          "Add items to your shopping list before sending to Walmart.",
+        description: "Add items to your list or uncheck items you haven't bought yet.",
       });
       return;
     }
 
-    const url = buildWalmartSearchUrl(activeItems);
+    const retailer = GROCERY_RETAILERS.find((r) => r.id === retailerId);
+    if (!retailer) return;
 
-    // fail-safe: if something goes wrong, just land them on walmart.com
-    if (!url || typeof url !== "string") {
-      window.open("https://www.walmart.com/", "_blank", "noopener,noreferrer");
-      return;
-    }
-
+    const url = retailer.buildUrl(activeItems.map((i) => i.name));
     window.open(url, "_blank", "noopener,noreferrer");
   }, [items, toast]);
 
@@ -576,34 +572,55 @@ export default function ShoppingListMasterView() {
           prefillName={addOtherPrefill}
           onPrefillConsumed={() => setAddOtherPrefill(undefined)}
         />
-        {/* Walmart Card - Coming Soon */}
-        <div className="rounded-2xl border border-white/20 bg-black/60 text-white p-4 sm:p-5 opacity-70">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-lg font-semibold flex items-center gap-2">
-                Walmart Grocery
-                <span className="rounded-full px-2 py-0.5 bg-amber-500/30 border border-amber-400/50 text-amber-200 text-[10px] font-medium">
-                  Coming Soon
-                </span>
+        {/* Order Groceries Online */}
+        {uncheckedItems.length > 0 && (
+          <div className="rounded-2xl border border-orange-400/20 bg-black/40 backdrop-blur p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <div className="text-white font-semibold text-sm leading-tight">
+                  Order Groceries Online
+                </div>
+                <div className="text-white/50 text-xs mt-0.5">
+                  {uncheckedItems.length} item{uncheckedItems.length !== 1 ? "s" : ""} · opens in your browser
+                </div>
               </div>
-              <div className="text-xs text-white/60 mt-1">
-                Full cart & delivery integration pending Walmart approval
-              </div>
-              <div className="text-xs text-white/50 mt-2 max-w-md">
-                Soon you'll be able to send your shopping list directly to
-                Walmart for pickup or delivery.
-              </div>
+              <ExternalLink className="h-4 w-4 text-white/30 flex-shrink-0" />
             </div>
-
-            <Button
-              data-testid="shopping-send-to-store"
-              disabled
-              className="rounded-xl px-4 py-2 border border-white/20 bg-zinc-700/50 text-white/50 text-sm whitespace-nowrap cursor-not-allowed"
-            >
-              Shop on Walmart
-            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                data-testid="grocery-delivery-walmart"
+                onClick={() => handleGroceryDelivery("walmart")}
+                className="bg-blue-800/40 border border-blue-500/30 text-white h-11 text-sm font-medium"
+              >
+                Walmart
+              </Button>
+              <Button
+                data-testid="grocery-delivery-instacart"
+                onClick={() => handleGroceryDelivery("instacart")}
+                className="bg-green-800/40 border border-green-500/30 text-white h-11 text-sm font-medium"
+              >
+                Instacart
+              </Button>
+              <Button
+                data-testid="grocery-delivery-amazon-fresh"
+                onClick={() => handleGroceryDelivery("amazon-fresh")}
+                className="bg-orange-800/40 border border-orange-500/30 text-white h-11 text-sm font-medium"
+              >
+                Amazon Fresh
+              </Button>
+              <Button
+                data-testid="grocery-delivery-kroger"
+                onClick={() => handleGroceryDelivery("kroger")}
+                className="bg-blue-900/40 border border-blue-400/30 text-white h-11 text-sm font-medium"
+              >
+                Kroger
+              </Button>
+            </div>
+            <p className="text-white/25 text-[10px] leading-tight">
+              Search results open on the retailer's site. My Perfect Meals does not process payments or handle delivery.
+            </p>
           </div>
-        </div>
+        )}
         {/* Actions */}
         {(counts.checked > 0 || counts.total > 0) && (
           <div
