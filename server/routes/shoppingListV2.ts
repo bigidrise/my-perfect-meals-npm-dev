@@ -215,4 +215,57 @@ shoppingRouter.delete("/", requireAuth, async (req: any, res: any) => {
   }
 });
 
+shoppingRouter.post("/parse-voice", requireAuth, async (req: any, res: any) => {
+  try {
+    const { transcript } = req.body;
+    if (!transcript?.trim()) {
+      return res.status(400).json({ error: "transcript required" });
+    }
+
+    const OpenAI = (await import("openai")).default;
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `You are a shopping list parser. Extract every distinct shopping item from the user's spoken text.
+
+Return a JSON object with an "items" array. Each item has:
+- "name": the product name, capitalized naturally. Include brand names if mentioned (e.g. "Great Value Honey Roasted Peanuts", "Sprite Zero Sugar", "Kleenex").
+- "quantity": a positive number (default 1 if not stated)
+- "unit": the unit string (e.g. "pack", "box", "bottle", "bag", "can", "lb", "oz") — empty string "" if just a count
+
+Rules:
+- "a six pack of Sprite" → name: "Sprite Zero Sugar", quantity: 6, unit: "pack" (NOT 1 six-pack)
+- "two boxes of Kleenex" → name: "Kleenex", quantity: 2, unit: "box"
+- Ignore filler words like "I want", "I need", "can you add", "also get me", "oh and"
+- If quantity/unit is ambiguous, default to quantity: 1, unit: ""
+- Never return an empty items array — if you cannot parse anything, return your best guess
+
+Only return valid JSON.`,
+        },
+        {
+          role: "user",
+          content: transcript,
+        },
+      ],
+      response_format: { type: "json_object" },
+    });
+
+    const raw = JSON.parse(response.choices[0].message.content || "{}");
+    const items = Array.isArray(raw)
+      ? raw
+      : Array.isArray(raw.items)
+      ? raw.items
+      : [];
+
+    res.json({ items });
+  } catch (error: any) {
+    console.error("parse-voice error:", error);
+    res.status(500).json({ error: "Failed to parse voice transcript" });
+  }
+});
+
 export default shoppingRouter;

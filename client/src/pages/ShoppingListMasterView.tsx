@@ -38,6 +38,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
 import { launchIngredientPhotoCapture, type IngredientScanResult } from "@/lib/photoIngredientCapture";
 import { ShoppingIngredientSheet } from "@/components/shopping/ShoppingIngredientSheet";
+import VoiceShoppingModal from "@/components/shopping/VoiceShoppingModal";
 
 import { saveProductScan, clearExpiredShoppingScans } from "@/lib/shoppingScanStorage";
 import RecentScans from "@/components/shopping/RecentScans";
@@ -136,11 +137,8 @@ export default function ShoppingListMasterView() {
   const [scanState, setScanState] = useState<"idle" | "scanning" | "ready">("idle");
   const [scanMessageIdx, setScanMessageIdx] = useState(0);
   const [scanRefreshKey, setScanRefreshKey] = useState(0);
-  const [voiceText, setVoiceText] = useState("");
   const [bulkText, setBulkText] = useState("");
   const [barcodeText, setBarcodeText] = useState("");
-  const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<any | null>(null);
 
   type ShoppingOpts = typeof opts;
   
@@ -407,60 +405,21 @@ export default function ShoppingListMasterView() {
     [addItem, parseItemsFromText, toast],
   );
 
-  const startListening = useCallback(() => {
-    try {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition ||
-        (window as any).webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        toast({
-          title: "Voice not supported",
-          description:
-            "Your browser does not support voice input. You can type items instead.",
-        });
-        return;
-      }
-
-      const recognition = new SpeechRecognition();
-      recognition.lang = "en-US";
-      recognition.continuous = false;
-      recognition.interimResults = false;
-
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript as string;
-        setVoiceText((prev) => (prev ? `${prev}, ${transcript}` : transcript));
-      };
-
-      recognition.onerror = () => {
-        setIsListening(false);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current = recognition;
-      recognition.start();
-      setIsListening(true);
-    } catch {
-      toast({
-        title: "Voice error",
-        description: "Unable to start voice recognition.",
+  const handleVoiceConfirm = useCallback(
+    (items: { name: string; quantity: number; unit: string }[]) => {
+      items.forEach(({ name, quantity, unit }) => {
+        addItem({ name, quantity, unit: unit || "", category: "Other" });
       });
-      setIsListening(false);
-    }
-  }, [toast]);
-
-  const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch {
-        // ignore
-      }
-    }
-    setIsListening(false);
-  }, []);
+      toast({
+        title: "Items added",
+        description: `${items.length} item${items.length !== 1 ? "s" : ""} added to your list.`,
+      });
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent("walkthrough:event", { detail: { testId: "shopping-list-interacted", event: "interacted" } }));
+      }, 300);
+    },
+    [addItem, toast],
+  );
 
   const groupedUnchecked = useMemo(() => {
     if (!opts.groupByAisle) return { All: uncheckedItems };
@@ -1015,85 +974,11 @@ export default function ShoppingListMasterView() {
         />
 
         {/* Voice Add Modal */}
-        {voiceModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-            <div className="w-full max-w-md rounded-2xl bg-black/90 border border-white/20 p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-white text-lg font-semibold">
-                  Voice Add Items
-                </h2>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="text-white hover:bg-white/10"
-                  onClick={() => {
-                    stopListening();
-                    setVoiceModalOpen(false);
-                  }}
-                >
-                  ✕
-                </Button>
-              </div>
-              <p className="text-xs text-white/70">
-                Speak your items naturally, like:{" "}
-                <span className="italic">
-                  "milk, eggs, chicken breast, spinach"
-                </span>
-                . You can also edit the text below before adding.
-              </p>
-              <textarea
-                value={voiceText}
-                onChange={(e) => setVoiceText(e.target.value)}
-                rows={4}
-                className="w-full rounded-xl bg-black/60 border border-white/25 text-white text-sm p-2 focus:outline-none focus:ring-1 focus:ring-white/50"
-                placeholder="milk, eggs, chicken breast, spinach..."
-              />
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-white/60">
-                  {isListening
-                    ? "Listening..."
-                    : "Tap Start to capture your voice."}
-                </div>
-                <div className="flex gap-2">
-                  {!isListening ? (
-                    <Button
-                      size="sm"
-                      className="bg-emerald-600/30 border border-emerald-400/40 text-emerald-100 hover:bg-emerald-600/40"
-                      onClick={startListening}
-                      data-testid="button-voice-start"
-                    >
-                      <Mic className="h-4 w-4 mr-1" />
-                      Start
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      className="bg-red-600/30 border border-red-400/40 text-red-100 hover:bg-red-600/40"
-                      onClick={stopListening}
-                      data-testid="button-voice-stop"
-                    >
-                      Stop
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    className="bg-blue-600/30 border border-blue-400/40 text-blue-100 hover:bg-blue-600/40"
-                    onClick={() => {
-                      addManyItems(voiceText);
-                      setVoiceText("");
-                      stopListening();
-                      setVoiceModalOpen(false);
-                    }}
-                    disabled={!voiceText.trim()}
-                    data-testid="button-voice-add-items"
-                  >
-                    Add Items
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <VoiceShoppingModal
+          open={voiceModalOpen}
+          onClose={() => setVoiceModalOpen(false)}
+          onConfirm={handleVoiceConfirm}
+        />
         {/* Barcode Manual Entry Modal */}
         {barcodeModalOpen && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
