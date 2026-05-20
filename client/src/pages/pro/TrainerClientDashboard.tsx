@@ -378,9 +378,9 @@ export default function TrainerClientDashboard() {
   };
 
   const scheduleCheckIn = async () => {
-    const weeks = ctx.checkInWeeks;
-    if (!weeks) {
-      toast({ title: "Select weeks", description: "Choose 2, 4, 8, or 12 weeks for the check-in." });
+    const dateStr = ctx.checkInDate;
+    if (!dateStr) {
+      toast({ title: "Select a date", description: "Pick a check-in date above." });
       return;
     }
 
@@ -396,9 +396,8 @@ export default function TrainerClientDashboard() {
       return;
     }
 
-    const nextDate = new Date();
-    nextDate.setDate(nextDate.getDate() + weeks * 7);
-    const nextISO = nextDate.toISOString().split("T")[0];
+    const nextDate = new Date(dateStr + "T12:00:00");
+    const nextISO = dateStr;
     const label = nextDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
     try {
@@ -418,12 +417,12 @@ export default function TrainerClientDashboard() {
         throw new Error(err.error || "Failed to schedule check-in");
       }
 
-      proStore.setContext(clientId, { ...ctx, nextCheckInISO: nextISO, checkInWeeks: weeks });
-      setCtx({ ...ctx, nextCheckInISO: nextISO, checkInWeeks: weeks });
+      proStore.setContext(clientId, { ...ctx, nextCheckInISO: nextISO, checkInDate: dateStr });
+      setCtx({ ...ctx, nextCheckInISO: nextISO, checkInDate: dateStr });
       fetchUpcomingCheckIns();
       toast({
         title: "Check-in scheduled",
-        description: `Next check-in set for ${label} (${weeks} weeks). Client has been notified.`,
+        description: `Next check-in set for ${label}. Client has been notified.`,
       });
     } catch (err) {
       toast({
@@ -1147,26 +1146,38 @@ export default function TrainerClientDashboard() {
               </div>
             )}
             <p className="text-white/70 text-sm">
-              Set a check-in reminder for this client. Select how many weeks out and tap Schedule.
+              Set a check-in reminder for this client. Pick a date or use a quick preset.
             </p>
             <div>
-              <p className="text-xs text-white/50 mb-2">Weeks until check-in</p>
-              <div className="grid grid-cols-4 gap-2">
-                {([2, 4, 8, 12] as const).map((w) => (
-                  <button
-                    key={w}
-                    type="button"
-                    onClick={() => setCtx({ ...ctx, checkInWeeks: w })}
-                    className={`py-2 rounded-xl border text-sm font-semibold transition-all active:scale-[0.97] ${
-                      ctx.checkInWeeks === w
-                        ? "bg-lime-600 border-lime-400 text-white"
-                        : "bg-black/30 border-white/20 text-white/70"
-                    }`}
-                  >
-                    {w}w
-                  </button>
-                ))}
+              <p className="text-xs text-white/50 mb-2">Quick presets</p>
+              <div className="flex gap-2 flex-wrap mb-3">
+                {([2, 4, 8] as const).map((w) => {
+                  const d = new Date();
+                  d.setDate(d.getDate() + w * 7);
+                  const iso = d.toISOString().split("T")[0];
+                  return (
+                    <button
+                      key={w}
+                      type="button"
+                      onClick={() => setCtx({ ...ctx, checkInDate: iso })}
+                      className={`px-4 py-1.5 rounded-xl border text-sm font-semibold transition-all active:scale-[0.97] ${
+                        ctx.checkInDate === iso
+                          ? "bg-lime-600 border-lime-400 text-white"
+                          : "bg-black/30 border-white/20 text-white/70"
+                      }`}
+                    >
+                      {w}w
+                    </button>
+                  );
+                })}
               </div>
+              <input
+                type="date"
+                value={ctx.checkInDate || ""}
+                min={new Date().toISOString().split("T")[0]}
+                onChange={(e) => setCtx({ ...ctx, checkInDate: e.target.value })}
+                className="w-full bg-white/5 border border-white/20 rounded-xl px-3 py-2 text-sm text-white [color-scheme:dark]"
+              />
             </div>
             <div>
               <p className="text-xs text-white/50 mb-1">Coaching notes for this check-in</p>
