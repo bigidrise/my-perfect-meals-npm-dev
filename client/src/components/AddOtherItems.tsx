@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,7 @@ interface Props {
 export default function AddOtherItems({ prefillName, onPrefillConsumed }: Props) {
   const { toast } = useToast();
   const { addItem } = useShoppingListStore();
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState("");
   const [brand, setBrand] = useState("");
@@ -40,6 +41,10 @@ export default function AddOtherItems({ prefillName, onPrefillConsumed }: Props)
     if (prefillName) {
       setName(prefillName);
       onPrefillConsumed?.();
+      setTimeout(() => {
+        nameInputRef.current?.focus();
+        nameInputRef.current?.select();
+      }, 300);
     }
   }, [prefillName]);
 
@@ -89,6 +94,7 @@ export default function AddOtherItems({ prefillName, onPrefillConsumed }: Props)
           <div className="relative">
             <Label className="text-white/80 text-sm mb-1 block">Item Name</Label>
             <Input
+              ref={nameInputRef}
               placeholder="e.g., Paper Towels, Rao's Marinara"
               value={name}
               onChange={(e) => {

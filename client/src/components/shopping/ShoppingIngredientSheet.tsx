@@ -198,9 +198,9 @@ export function ShoppingIngredientSheet({
                   className="w-full flex items-center justify-center gap-2 bg-orange-600 rounded-2xl py-3.5 text-white font-semibold text-sm active:scale-[.98] transition-transform"
                 >
                   <ShoppingBag className="w-4 h-4" />
-                  Add to Shopping List
+                  Add to List — Name It Below
                 </button>
-                <p className="text-xs text-white/30 text-center -mt-1">Balance matters more than perfection.</p>
+                <p className="text-xs text-white/30 text-center -mt-1">You'll type the product name in the form below.</p>
                 <button
                   onClick={onSaveForReview}
                   className="w-full flex items-center justify-center gap-1.5 bg-white/8 border border-white/10 rounded-xl py-3 text-white/70 text-sm"
