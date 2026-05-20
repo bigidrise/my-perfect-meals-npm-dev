@@ -355,8 +355,9 @@ export default function ClinicianClientDashboard() {
   const resolvedClientUserId = client?.clientUserId || client?.userId || clientId;
 
   const scheduleFollowUp = async () => {
-    if (!ctx.followupWeeks) {
-      toast({ title: "Select weeks", description: "Choose 4, 8, or 12 weeks for follow-up." });
+    const dateStr = ctx.followupDate;
+    if (!dateStr) {
+      toast({ title: "Select a date", description: "Pick a follow-up date above." });
       return;
     }
     const linkedUserId = resolvedClientUserId !== clientId ? resolvedClientUserId : undefined;
@@ -369,8 +370,8 @@ export default function ClinicianClientDashboard() {
       return;
     }
 
-    const due = new Date();
-    due.setDate(due.getDate() + ctx.followupWeeks * 7);
+    const due = new Date(dateStr + "T12:00:00");
+    const label = due.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
     try {
       const res = await fetch(apiUrl("/api/check-in-schedules"), {
@@ -387,10 +388,10 @@ export default function ClinicianClientDashboard() {
         const errBody = await res.json().catch(() => ({}));
         throw new Error((errBody as { error?: string }).error || "Failed to schedule follow-up");
       }
-      proStore.scheduleFollowUp(clientId, ctx.followupWeeks, ctx.patientNote || "Follow-up scheduled");
+      proStore.setContext(clientId, { ...ctx, followupDate: undefined, patientNote: undefined });
       fetchUpcomingCheckIns();
-      toast({ title: "Follow-up scheduled", description: `${ctx.followupWeeks}-week follow-up added. Patient has been notified.` });
-      setCtx({ ...ctx, followupWeeks: undefined, patientNote: undefined });
+      toast({ title: "Follow-up scheduled", description: `Follow-up set for ${label}. Patient has been notified.` });
+      setCtx({ ...ctx, followupDate: undefined, patientNote: undefined });
     } catch (err) {
       toast({
         title: "Scheduling failed",
@@ -1045,26 +1046,38 @@ export default function ClinicianClientDashboard() {
               </div>
             )}
             <p className="text-white/70 text-sm">
-              Set a follow-up appointment for this patient. Select how many weeks out and tap Schedule.
+              Set a follow-up appointment for this patient. Pick a date or use a quick preset.
             </p>
             <div>
-              <p className="text-xs text-white/50 mb-2">Weeks until follow-up</p>
-              <div className="grid grid-cols-3 gap-2">
-                {([4, 8, 12] as const).map((w) => (
-                  <button
-                    key={w}
-                    type="button"
-                    onClick={() => setCtx({ ...ctx, followupWeeks: w })}
-                    className={`py-2 rounded-xl border text-sm font-semibold transition-all active:scale-[0.97] ${
-                      ctx.followupWeeks === w
-                        ? "bg-blue-600 border-blue-400 text-white"
-                        : "bg-black/30 border-white/20 text-white/70"
-                    }`}
-                  >
-                    {w}w
-                  </button>
-                ))}
+              <p className="text-xs text-white/50 mb-2">Quick presets</p>
+              <div className="flex gap-2 flex-wrap mb-3">
+                {([2, 4, 8] as const).map((w) => {
+                  const d = new Date();
+                  d.setDate(d.getDate() + w * 7);
+                  const iso = d.toISOString().split("T")[0];
+                  return (
+                    <button
+                      key={w}
+                      type="button"
+                      onClick={() => setCtx({ ...ctx, followupDate: iso })}
+                      className={`px-4 py-1.5 rounded-xl border text-sm font-semibold transition-all active:scale-[0.97] ${
+                        ctx.followupDate === iso
+                          ? "bg-blue-600 border-blue-400 text-white"
+                          : "bg-black/30 border-white/20 text-white/70"
+                      }`}
+                    >
+                      {w}w
+                    </button>
+                  );
+                })}
               </div>
+              <input
+                type="date"
+                value={ctx.followupDate || ""}
+                min={new Date().toISOString().split("T")[0]}
+                onChange={(e) => setCtx({ ...ctx, followupDate: e.target.value })}
+                className="w-full bg-white/5 border border-white/20 rounded-xl px-3 py-2 text-sm text-white [color-scheme:dark]"
+              />
             </div>
             <div>
               <p className="text-xs text-white/50 mb-1">Notes for this appointment</p>
