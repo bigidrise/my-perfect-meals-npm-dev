@@ -138,8 +138,8 @@ export default function VoiceShoppingModal({ open, onClose, onConfirm }: Props) 
       <div
         className="w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-[#0f0f0f] border border-white/15 flex flex-col overflow-hidden"
         style={{
-          maxHeight: "calc(85dvh - env(safe-area-inset-bottom))",
-          paddingBottom: "env(safe-area-inset-bottom)",
+          maxHeight: "calc(85dvh - var(--safe-bottom, 0px))",
+          paddingBottom: "var(--safe-bottom, 0px)",
         }}
       >
 
