@@ -5,7 +5,7 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import path from "path";
 import fs from "fs";
-import { fileURLToPath } from 'url';
+import { fileURLToPath } from "url";
 import pg from "pg";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -13,24 +13,23 @@ const __dirname = path.dirname(__filename);
 
 console.log("🚀 [BOOT] Production server starting...");
 console.log(`🕐 [BOOT] Start time: ${new Date().toISOString()}`);
-console.log(`📍 [BOOT] PORT env: ${process.env.PORT || '5000 (default)'}`);
-console.log(`📍 [BOOT] NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+console.log(`📍 [BOOT] PORT env: ${process.env.PORT || "5000 (default)"}`);
+console.log(`📍 [BOOT] NODE_ENV: ${process.env.NODE_ENV || "not set"}`);
 
 // Crash prevention: log errors instead of dying silently
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('🚨 UNHANDLED REJECTION:', reason);
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("🚨 UNHANDLED REJECTION:", reason);
 });
 
-process.on('uncaughtException', (error) => {
-  console.error('🚨 UNCAUGHT EXCEPTION:', error);
+process.on("uncaughtException", (error) => {
+  console.error("🚨 UNCAUGHT EXCEPTION:", error);
 });
 
 const app = express();
 app.set("trust proxy", 1);
 
-
 // Trust proxy for correct IP handling (Cloud Run uses 1 proxy hop)
-app.set('trust proxy', 1);
+app.set("trust proxy", 1);
 
 // Track initialization state
 let isInitialized = false;
@@ -50,12 +49,14 @@ app.get("/", (_req, res, next) => {
 });
 
 app.get("/google0c1c00ed46ab3246.html", (_req, res) => {
-  res.type("text/html").send("google-site-verification: google0c1c00ed46ab3246.html\n");
+  res
+    .type("text/html")
+    .send("google-site-verification: google0c1c00ed46ab3246.html\n");
 });
 
 app.get("/api/health", (_req, res) => {
-  res.json({ 
-    ok: true, 
+  res.json({
+    ok: true,
     initialized: isInitialized,
     initError: initError?.message || null,
     timestamp: new Date().toISOString(),
@@ -70,17 +71,19 @@ app.get("/api/health", (_req, res) => {
 const port = Number(process.env.PORT || 5000);
 const server = app.listen(port, "0.0.0.0", () => {
   console.log(`✅ [BOOT] Server listening on 0.0.0.0:${port}`);
-  console.log(`⏱️ [BOOT] Ready for health checks at: ${new Date().toISOString()}`);
-  
+  console.log(
+    `⏱️ [BOOT] Ready for health checks at: ${new Date().toISOString()}`,
+  );
+
   // Now initialize everything else in background
-  initializeApp().catch(err => {
+  initializeApp().catch((err) => {
     console.error("❌ [INIT] Background initialization failed:", err);
     initError = err;
   });
 });
 
-server.on('error', (err) => {
-  console.error('🚨 [BOOT] Server error:', err);
+server.on("error", (err) => {
+  console.error("🚨 [BOOT] Server error:", err);
 });
 
 // EARLY: Register static files and SPA fallback immediately so client routes
@@ -89,15 +92,20 @@ server.on('error', (err) => {
 const clientDistEarly = path.resolve(__dirname, "../client/dist");
 if (fs.existsSync(clientDistEarly)) {
   // Serve static assets (JS bundles, CSS, images, etc.)
-  app.use(express.static(clientDistEarly, {
-    setHeaders: (res, filePath) => {
-      if (/\.(js|css)$/i.test(filePath) && /[\.\-][a-f0-9]{8,}\./.test(filePath)) {
-        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-      } else if (/index\.html$/i.test(filePath)) {
-        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      }
-    }
-  }));
+  app.use(
+    express.static(clientDistEarly, {
+      setHeaders: (res, filePath) => {
+        if (
+          /\.(js|css)$/i.test(filePath) &&
+          /[\.\-][a-f0-9]{8,}\./.test(filePath)
+        ) {
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        } else if (/index\.html$/i.test(filePath)) {
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        }
+      },
+    }),
+  );
   // SPA fallback for all non-API GET routes — catches /sushi-creator, /lifestyle/*, etc.
   // Uses app.use() (middleware, not a named route) to avoid breaking Express route audits
   // that call .startsWith() on route paths — RegExp paths don't support .startsWith().
@@ -115,21 +123,26 @@ if (fs.existsSync(clientDistEarly)) {
 async function initializeApp() {
   const startTime = Date.now();
   console.log("📋 [INIT] Starting background initialization...");
-  
+
   try {
     // Import bootstrap modules
     console.log("📋 [INIT] Loading bootstrap modules...");
     await import("./bootstrap-fetch");
     await import("./bootstrap/envSetup");
-    
-    const { logBootStatus, validateCriticalEnv } = await import("./bootstrap/envSetup");
-    logBootStatus('production');
-    
+
+    const { logBootStatus, validateCriticalEnv } = await import(
+      "./bootstrap/envSetup"
+    );
+    logBootStatus("production");
+
     const envValidation = validateCriticalEnv();
     if (!envValidation.valid) {
-      console.warn("⚠️ [INIT] Missing env vars:", envValidation.missing.join(', '));
+      console.warn(
+        "⚠️ [INIT] Missing env vars:",
+        envValidation.missing.join(", "),
+      );
     }
-    
+
     // Safe column migrations — wrapped in a hard 6 s timeout so a locked table
     // never stalls the full boot sequence. Columns were added in earlier deploys;
     // this is a no-op on a live DB and can safely be skipped if slow.
@@ -137,20 +150,39 @@ async function initializeApp() {
     try {
       const migTimeout = (ms: number) =>
         new Promise<void>((_, reject) =>
-          setTimeout(() => reject(new Error(`Migration timed out after ${ms}ms`)), ms)
+          setTimeout(
+            () => reject(new Error(`Migration timed out after ${ms}ms`)),
+            ms,
+          ),
         );
+
       const { db: database } = await import("./db");
       const { sql } = await import("drizzle-orm");
+
       await Promise.race([
         (async () => {
-          await database.execute(sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS starchy_carbs numeric DEFAULT '0' NOT NULL`);
-          await database.execute(sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS fibrous_carbs numeric DEFAULT '0' NOT NULL`);
+          await database.execute(
+            sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS starchy_carbs numeric DEFAULT '0' NOT NULL`,
+          );
+          await database.execute(
+            sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS fibrous_carbs numeric DEFAULT '0' NOT NULL`,
+          );
+          await database.execute(
+            sql`ALTER TABLE client_links ADD COLUMN IF NOT EXISTS meal_board_control text NOT NULL DEFAULT 'client'`,
+          );
+          await database.execute(
+            sql`ALTER TABLE client_links ADD COLUMN IF NOT EXISTS board_control_updated_at timestamptz`,
+          );
         })(),
         migTimeout(6000),
       ]);
+
       console.log("✅ [INIT] Column migrations complete");
     } catch (migErr) {
-      console.warn("⚠️ [INIT] Column migration skipped (timeout or error):", (migErr as Error).message);
+      console.warn(
+        "⚠️ [INIT] Column migration skipped (timeout or error):",
+        (migErr as Error).message,
+      );
     }
 
     // Import middleware
@@ -159,8 +191,10 @@ async function initializeApp() {
     const { logger } = await import("./middleware/logger");
     const { createApiRateLimit } = await import("./middleware/rateLimit");
     const { errorHandler } = await import("./middleware/errorHandler");
-    const { resolveCuisineMiddleware } = await import("./middleware/resolveCuisineMiddleware");
-    
+    const { resolveCuisineMiddleware } = await import(
+      "./middleware/resolveCuisineMiddleware"
+    );
+
     // CORS — registered first so OPTIONS preflights are answered before
     // requestId, logger, auth, or rate-limiting can interfere.
     app.use((req, res, next) => {
@@ -171,28 +205,34 @@ async function initializeApp() {
 
       const allowed =
         !normalizedOrigin ||
-        normalizedOrigin.endsWith('.replit.app') ||
-        normalizedOrigin.endsWith('.replit.dev') ||
-        normalizedOrigin.endsWith('.repl.co') ||
-        normalizedOrigin.endsWith('.vercel.app') ||
-        normalizedOrigin === 'https://myperfectmeals.com' ||
-        normalizedOrigin === 'https://www.myperfectmeals.com' ||
-        normalizedOrigin === 'https://app.myperfectmeals.com' ||
+        normalizedOrigin.endsWith(".replit.app") ||
+        normalizedOrigin.endsWith(".replit.dev") ||
+        normalizedOrigin.endsWith(".repl.co") ||
+        normalizedOrigin.endsWith(".vercel.app") ||
+        normalizedOrigin === "https://myperfectmeals.com" ||
+        normalizedOrigin === "https://www.myperfectmeals.com" ||
+        normalizedOrigin === "https://app.myperfectmeals.com" ||
         // Capacitor / Ionic native origins
-        normalizedOrigin === 'https://localhost' ||   // Android Capacitor
-        normalizedOrigin === 'http://localhost' ||    // Android fallback
-        normalizedOrigin === 'capacitor://localhost' || // iOS Capacitor
-        normalizedOrigin === 'ionic://localhost';     // Ionic WebView
+        normalizedOrigin === "https://localhost" || // Android Capacitor
+        normalizedOrigin === "http://localhost" || // Android fallback
+        normalizedOrigin === "capacitor://localhost" || // iOS Capacitor
+        normalizedOrigin === "ionic://localhost"; // Ionic WebView
 
       if (allowed) {
-        res.header('Access-Control-Allow-Origin', normalizedOrigin ?? '*');
-        res.header('Access-Control-Allow-Credentials', 'true');
+        res.header("Access-Control-Allow-Origin", normalizedOrigin ?? "*");
+        res.header("Access-Control-Allow-Credentials", "true");
       }
 
-      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-device-id, x-auth-token');
+      res.header(
+        "Access-Control-Allow-Methods",
+        "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+      );
+      res.header(
+        "Access-Control-Allow-Headers",
+        "Content-Type, Authorization, x-user-id, x-device-id, x-auth-token",
+      );
 
-      if (req.method === 'OPTIONS') {
+      if (req.method === "OPTIONS") {
         return res.sendStatus(204);
       }
       next();
@@ -208,15 +248,15 @@ async function initializeApp() {
     // PostgreSQL-backed session store (production-ready, no MemoryStore)
     // Guarded: if DATABASE_URL is missing, fall back to MemoryStore with warning
     const sessionConfig: session.SessionOptions = {
-      secret: process.env.SESSION_SECRET || 'mpm-session-secret-dev-only',
+      secret: process.env.SESSION_SECRET || "mpm-session-secret-dev-only",
       resave: false,
       saveUninitialized: false,
       cookie: {
         secure: true,
         httpOnly: true,
         maxAge: 7 * 24 * 60 * 60 * 1000,
-        sameSite: 'none' as const,
-      }
+        sameSite: "none" as const,
+      },
     };
 
     if (process.env.DATABASE_URL) {
@@ -225,22 +265,27 @@ async function initializeApp() {
         const sessionPool = new pg.Pool({
           connectionString: process.env.DATABASE_URL,
           max: 5,
-          ssl: process.env.DATABASE_URL.includes('sslmode=require') 
-            ? { rejectUnauthorized: false } 
+          ssl: process.env.DATABASE_URL.includes("sslmode=require")
+            ? { rejectUnauthorized: false }
             : undefined,
         });
         sessionConfig.store = new PgSession({
           pool: sessionPool,
-          tableName: 'session',
+          tableName: "session",
           createTableIfMissing: true,
           pruneSessionInterval: 60 * 15,
         });
         console.log("✅ [INIT] PostgreSQL session store configured");
       } catch (pgSessionErr) {
-        console.warn("⚠️ [INIT] Failed to create PG session store, using default:", pgSessionErr);
+        console.warn(
+          "⚠️ [INIT] Failed to create PG session store, using default:",
+          pgSessionErr,
+        );
       }
     } else {
-      console.warn("⚠️ [INIT] DATABASE_URL not set, sessions will use default MemoryStore");
+      console.warn(
+        "⚠️ [INIT] DATABASE_URL not set, sessions will use default MemoryStore",
+      );
     }
 
     app.use(session(sessionConfig));
@@ -257,47 +302,86 @@ async function initializeApp() {
 
     const apiRateLimit = createApiRateLimit();
     app.use("/api", apiRateLimit);
-    
+
     // Import and mount routers
     console.log("📋 [INIT] Loading routes...");
-    const dessertCreatorRouter = (await import("./routes/dessert-creator")).default;
-    const beverageCreatorRouter = (await import("./routes/beverage-creator")).default;
+    const dessertCreatorRouter = (await import("./routes/dessert-creator"))
+      .default;
+    const beverageCreatorRouter = (await import("./routes/beverage-creator"))
+      .default;
     const restaurantRoutes = (await import("./routes/restaurants")).default;
     const manualMacrosRouter = (await import("./routes/manualMacros")).default;
     const clinicalLabsRouter = (await import("./routes/clinicalLabs")).default;
     const translateRouter = (await import("./routes/translate")).default;
     const mealsRouter = (await import("./routes/meals")).default;
     const { requireAuth } = await import("./middleware/requireAuth");
-    const { requireActiveAccess } = await import("./middleware/requireActiveAccess");
-    
+    const { requireActiveAccess } = await import(
+      "./middleware/requireActiveAccess"
+    );
+
     app.use("/api/meals/dessert-creator", dessertCreatorRouter);
     app.use("/api/meals/beverage-creator", beverageCreatorRouter);
     app.use("/api/meals", mealsRouter);
     app.use("/api/restaurants", resolveCuisineMiddleware, restaurantRoutes);
     app.use("/api", manualMacrosRouter);
     app.use("/api/biometrics/labs", clinicalLabsRouter);
-    app.use("/api/translate", requireAuth, requireActiveAccess, translateRouter);
+    app.use(
+      "/api/translate",
+      requireAuth,
+      requireActiveAccess,
+      translateRouter,
+    );
+
+    // Explicitly mount check-in-schedules BEFORE registerRoutes so the
+    // DELETE /:id handler is always present even if registerRoutes changes.
+    const checkInSchedulesRouter = (await import("./routes/checkInSchedules"))
+      .default;
+    app.use("/api/check-in-schedules", checkInSchedulesRouter);
 
     // Kitchen routes — must be mounted before registerRoutes() and the /api 404 catch
     const kitchensRouter = (await import("./routes/kitchens")).default;
-    const kitchenLibraryRouter = (await import("./routes/kitchenLibrary")).default;
-    const adminChefKitchensRouter = (await import("./routes/adminChefKitchens")).default;
-    const adminSignatureLibraryRouter = (await import("./routes/adminSignatureLibrary")).default;
-    const adminKitchenImportsRouter = (await import("./routes/adminKitchenImports")).default;
+    const kitchenLibraryRouter = (await import("./routes/kitchenLibrary"))
+      .default;
+    const adminChefKitchensRouter = (await import("./routes/adminChefKitchens"))
+      .default;
+    const adminSignatureLibraryRouter = (
+      await import("./routes/adminSignatureLibrary")
+    ).default;
+    const adminKitchenImportsRouter = (
+      await import("./routes/adminKitchenImports")
+    ).default;
     const { requireAdmin } = await import("./middleware/requireAdmin");
+
     app.use("/api/kitchens", requireAuth, kitchensRouter);
     app.use("/api/kitchens", requireAuth, kitchenLibraryRouter);
-    app.use("/api/admin/chef-kitchens", requireAuth, requireAdmin, adminChefKitchensRouter);
-    app.use("/api/admin/chef-kitchens", requireAuth, requireAdmin, adminSignatureLibraryRouter);
-    app.use("/api/admin/chef-kitchens", requireAuth, requireAdmin, adminKitchenImportsRouter);
+    app.use(
+      "/api/admin/chef-kitchens",
+      requireAuth,
+      requireAdmin,
+      adminChefKitchensRouter,
+    );
+    app.use(
+      "/api/admin/chef-kitchens",
+      requireAuth,
+      requireAdmin,
+      adminSignatureLibraryRouter,
+    );
+    app.use(
+      "/api/admin/chef-kitchens",
+      requireAuth,
+      requireAdmin,
+      adminKitchenImportsRouter,
+    );
 
     console.log("✅ [INIT] Additional routes mounted");
-    
+
     // Register main routes
     console.log("📋 [INIT] Registering main routes...");
     const { registerRoutes } = await import("./routes");
     await registerRoutes(app);
-    console.log(`✅ [INIT] Main routes registered in ${Date.now() - startTime}ms`);
+    console.log(
+      `✅ [INIT] Main routes registered in ${Date.now() - startTime}ms`,
+    );
 
     // API 404 handler
     app.use("/api", (req, res) => {
@@ -307,33 +391,46 @@ async function initializeApp() {
     // Serve static files
     const clientDist = path.resolve(__dirname, "../client/dist");
     console.log("📁 [INIT] Serving static files from:", clientDist);
-    
-    app.use(express.static(clientDist, {
-      setHeaders: (res, filePath) => {
-        if (/\.(js|css)$/i.test(filePath) && /[\.\-][a-f0-9]{8,}\./.test(filePath)) {
-          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-        } else if (/\.(png|jpg|jpeg|gif|svg|woff2?)$/i.test(filePath)) {
-          res.setHeader("Cache-Control", "public, max-age=86400");
-        } else if (/index\.html$/i.test(filePath)) {
-          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-        } else {
-          res.setHeader("Cache-Control", "no-cache, must-revalidate");
-        }
-      }
-    }));
+
+    app.use(
+      express.static(clientDist, {
+        setHeaders: (res, filePath) => {
+          if (
+            /\.(js|css)$/i.test(filePath) &&
+            /[\.\-][a-f0-9]{8,}\./.test(filePath)
+          ) {
+            res.setHeader(
+              "Cache-Control",
+              "public, max-age=31536000, immutable",
+            );
+          } else if (/\.(png|jpg|jpeg|gif|svg|woff2?)$/i.test(filePath)) {
+            res.setHeader("Cache-Control", "public, max-age=86400");
+          } else if (/index\.html$/i.test(filePath)) {
+            res.setHeader(
+              "Cache-Control",
+              "no-cache, no-store, must-revalidate",
+            );
+          } else {
+            res.setHeader("Cache-Control", "no-cache, must-revalidate");
+          }
+        },
+      }),
+    );
 
     // SPA fallback
     app.get("*", (_req, res) => {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       res.sendFile(path.join(clientDist, "index.html"));
     });
 
     // Error handler LAST
     app.use(errorHandler);
-    
+
     // Mark as fully initialized
     isInitialized = true;
-    console.log(`🎉 [INIT] Full initialization complete in ${Date.now() - startTime}ms`);
+    console.log(
+      `🎉 [INIT] Full initialization complete in ${Date.now() - startTime}ms`,
+    );
     console.log(`✅ [INIT] Server fully ready at: ${new Date().toISOString()}`);
 
     // Background services - AFTER full initialization (non-blocking)
@@ -347,7 +444,6 @@ async function initializeApp() {
         console.warn("⚠️ [BG] Background service warning:", bgErr);
       }
     }, 5000);
-
   } catch (error) {
     console.error("❌ [INIT] Initialization failed:", error);
     initError = error instanceof Error ? error : new Error(String(error));

@@ -10,25 +10,27 @@ const keyMode = stripeKey.startsWith("sk_live_")
 
 console.log(`🔑 Stripe key mode: ${keyMode}`);
 
-function requirePrice(envVarName: string, planLabel: string): string {
+/**
+ * NEVER crash the server on missing env vars.
+ * Required plans log an error, optional plans log a warning.
+ */
+
+function safePrice(
+  envVarName: string,
+  planLabel: string,
+  required = true,
+): string {
   const value = process.env[envVarName]?.trim();
 
   if (!value) {
-    throw new Error(
-      `Missing required env var ${envVarName} for plan "${planLabel}"`,
-    );
-  }
+    const message = `${required ? "❌ Missing" : "⚠️ Missing"} env var ${envVarName} for "${planLabel}"`;
 
-  return value;
-}
+    if (required) {
+      console.error(message);
+    } else {
+      console.warn(message);
+    }
 
-function optionalPrice(envVarName: string, planLabel: string): string {
-  const value = process.env[envVarName]?.trim();
-
-  if (!value) {
-    console.warn(
-      `⚠️ Optional env var ${envVarName} not set — "${planLabel}" checkout will be unavailable`,
-    );
     return "";
   }
 
@@ -37,41 +39,68 @@ function optionalPrice(envVarName: string, planLabel: string): string {
 
 /* Consumer Plans */
 
-const basic = requirePrice("STRIPE_PRICE_BASIC", "Basic");
-const premium = requirePrice("STRIPE_PRICE_PREMIUM", "Premium");
-const ultimate = requirePrice("STRIPE_PRICE_ULTIMATE", "Ultimate");
+const basic = safePrice("STRIPE_PRICE_BASIC", "Basic");
+const premium = safePrice("STRIPE_PRICE_PREMIUM", "Premium");
+const ultimate = safePrice("STRIPE_PRICE_ULTIMATE", "Ultimate");
 
 /* Family Plans */
 
-const familyBase = requirePrice("STRIPE_PRICE_FAMILY_BASE", "Family Base");
-const familyPremium = requirePrice("STRIPE_PRICE_FAMILY_ALL_PREMIUM", "Family Premium");
-const familyUltimate = requirePrice(
+const familyBase = safePrice("STRIPE_PRICE_FAMILY_BASE", "Family Base");
+const familyPremium = safePrice(
+  "STRIPE_PRICE_FAMILY_ALL_PREMIUM",
+  "Family Premium",
+);
+const familyUltimate = safePrice(
   "STRIPE_PRICE_FAMILY_ALL_ULTIMATE",
   "Family Ultimate",
 );
 
 /* Trainer Plans */
 
-const trainer5 = requirePrice("STRIPE_PRICE_PROCARE_TRAINER_5", "Trainer 5");
-const trainer10 = requirePrice("STRIPE_PRICE_PROCARE_TRAINER_10", "Trainer 10");
-const trainer25 = requirePrice("STRIPE_PRICE_PROCARE_TRAINER_25", "Trainer 25");
-const trainer50 = requirePrice("STRIPE_PRICE_PROCARE_TRAINER_50_PLUS", "Trainer 50");
+const trainer5 = safePrice("STRIPE_PRICE_PROCARE_TRAINER_5", "Trainer 5");
+const trainer10 = safePrice("STRIPE_PRICE_PROCARE_TRAINER_10", "Trainer 10");
+const trainer25 = safePrice("STRIPE_PRICE_PROCARE_TRAINER_25", "Trainer 25");
+const trainer50 = safePrice(
+  "STRIPE_PRICE_PROCARE_TRAINER_50_PLUS",
+  "Trainer 50",
+);
 
 /* Physician Plans */
 
-const physician50 = requirePrice("STRIPE_PRICE_PROCARE_PHYSICIAN_50", "Physician 50");
-const physician150 = requirePrice("STRIPE_PRICE_PROCARE_PROFESSIONAL_150", "Physician 150");
+const physician50 = safePrice(
+  "STRIPE_PRICE_PROCARE_PHYSICIAN_50",
+  "Physician 50",
+);
+const physician150 = safePrice(
+  "STRIPE_PRICE_PROCARE_PROFESSIONAL_150",
+  "Physician 150",
+);
 
 /* ProCare / Guidance */
 
-const procare = requirePrice("STRIPE_PRICE_PROCARE", "ProCare");
-const guidance = requirePrice("STRIPE_PRICE_PROCARE_PROFESSIONAL", "Personal Guidance");
+const procare = safePrice("STRIPE_PRICE_PROCARE", "ProCare");
+const guidance = safePrice(
+  "STRIPE_PRICE_PROCARE_PROFESSIONAL",
+  "Personal Guidance",
+);
 
-/* Signature Kitchen */
+/* Signature Kitchen (OPTIONAL — NEVER crashes server) */
 
-const signatureKitchenStarter = optionalPrice("STRIPE_PRICE_SIGNATURE_KITCHEN_STARTER", "Signature Kitchen Starter");
-const signatureKitchenPro = optionalPrice("STRIPE_PRICE_SIGNATURE_KITCHEN_PRO", "Signature Kitchen Pro");
-const signatureKitchenPartner = optionalPrice("STRIPE_PRICE_SIGNATURE_KITCHEN_PARTNER", "Signature Kitchen Partner");
+const signatureKitchenStarter = safePrice(
+  "STRIPE_PRICE_SIGNATURE_KITCHEN_STARTER",
+  "Signature Kitchen Starter",
+  false,
+);
+const signatureKitchenPro = safePrice(
+  "STRIPE_PRICE_SIGNATURE_KITCHEN_PRO",
+  "Signature Kitchen Pro",
+  false,
+);
+const signatureKitchenPartner = safePrice(
+  "STRIPE_PRICE_SIGNATURE_KITCHEN_PARTNER",
+  "Signature Kitchen Partner",
+  false,
+);
 
 /* Mapping must match LookupKey exactly */
 

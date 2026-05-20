@@ -90,6 +90,20 @@ export function linkUserToClient(userId: string, clientId: string) {
   }
 }
 
+// Remove a user's ProCare mapping from localStorage (called when isProCare = false)
+export function unlinkUser(userId: string) {
+  try {
+    const map = getUserClientMap();
+    if (map[userId]) {
+      delete map[userId];
+      localStorage.setItem(LS_USER_CLIENT_MAP, JSON.stringify(map));
+      clearResolvedTargetsCache();
+    }
+  } catch (e) {
+    console.error('Failed to unlink user from ProCare client map:', e);
+  }
+}
+
 function getSelfTargets(userId?: string): MacroTargets | null {
   return getMacroTargets(userId);
 }
