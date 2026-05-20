@@ -98,10 +98,12 @@ export type ClinicalContext = {
     | "General"
   )[];
   followupWeeks?: 4 | 8 | 12;
+  followupDate?: string;
   patientNote?: string;
   coachNote?: string;
   advisory?: ClinicalAdvisory;
   checkInWeeks?: 2 | 4 | 8 | 12;
+  checkInDate?: string;
   nextCheckInISO?: string;
 };
 
@@ -468,10 +470,12 @@ export const proStore = {
       diagnosis: ctx.diagnosis?.trim() || undefined,
       clinicalTags: ctx.clinicalTags?.length ? [...new Set(ctx.clinicalTags)] : undefined,
       followupWeeks: ctx.followupWeeks,
+      followupDate: ctx.followupDate,
       patientNote: ctx.patientNote?.trim() || undefined,
       coachNote: ctx.coachNote?.trim() || undefined,
       advisory: ctx.advisory,
       checkInWeeks: ctx.checkInWeeks,
+      checkInDate: ctx.checkInDate,
       nextCheckInISO: ctx.nextCheckInISO,
     };
     saveState(state);

@@ -125,7 +125,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
 
-type Goal = "loss" | "maint" | "gain";
+type Goal = "loss" | "maint" | "gain" | "contest_prep";
 type Sex = "male" | "female";
 type Units = "imperial" | "metric";
 type BodyType = "ecto" | "meso" | "endo";
@@ -1129,14 +1129,17 @@ export default function MacroCounter() {
           body: JSON.stringify({
             sex, kg, cm, age,
             activity: activity || "moderate",
-            goal, userType, bodyType,
+            goal: goal === "contest_prep" ? "loss" : goal,
+            userType, bodyType,
             highWaistRisk,
             menopause: !!(clinicalFlags.menopause?.enabled),
             insulinResistance: !!(clinicalFlags.insulinResistance?.enabled),
             highStress: !!(clinicalFlags.highStress?.enabled),
             mealsPerDay, fibrousCarbSafetyCap_g,
-            cutIntensity, cutStyle,
-            starchyCarbCap_g, allowZeroStarchyOnLowDay, strictMode,
+            cutIntensity: goal === "contest_prep" ? "hard" : cutIntensity,
+            cutStyle: goal === "contest_prep" ? "lowCarb" : cutStyle,
+            starchyCarbCap_g: goal === "contest_prep" ? 30 : starchyCarbCap_g,
+            allowZeroStarchyOnLowDay, strictMode,
           }),
         });
         if (response.ok) {
@@ -1427,16 +1430,22 @@ export default function MacroCounter() {
                       What are we trying to do with our nutrition? What's your
                       ultimate goal?
                     </p>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                       {[
                         { v: "loss", label: "Cut" },
                         { v: "maint", label: "Maintain" },
                         { v: "gain", label: "Gain" },
+                        { v: "contest_prep", label: "Contest Prep" },
                       ].map((g) => (
                         <div
                           key={g.v}
                           onClick={() => {
                             setGoal(g.v as Goal);
+                            if (g.v === "contest_prep") {
+                              setCutIntensity("hard");
+                              setCutStyle("lowCarb");
+                              setStarchyCarbCap_g(30);
+                            }
                             advanceGuided("commitmentLevel");
                           }}
                           className={`px-3 py-2 border rounded-lg cursor-pointer text-center ${goal === g.v ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
@@ -1463,11 +1472,13 @@ export default function MacroCounter() {
                 <div className="rounded-xl border border-white/20 bg-black/40 p-3">
                   <p className="text-sm text-white/60">
                     Goal:{" "}
-                    {goal === "loss"
-                      ? "Cut"
-                      : goal === "maint"
-                        ? "Maintain"
-                        : "Gain"}
+                    {goal === "contest_prep"
+                      ? "Contest Prep"
+                      : goal === "loss"
+                        ? "Cut"
+                        : goal === "maint"
+                          ? "Maintain"
+                          : "Gain"}
                   </p>
                 </div>
 
@@ -1536,11 +1547,13 @@ export default function MacroCounter() {
                     <p className="text-sm text-white/90 font-medium flex items-center gap-2">
                       <Check className="h-4 w-4 text-lime-500 flex-shrink-0" />
                       Goal:{" "}
-                      {goal === "loss"
-                        ? "Cut"
-                        : goal === "maint"
-                          ? "Maintain"
-                          : "Gain"}
+                      {goal === "contest_prep"
+                        ? "Contest Prep"
+                        : goal === "loss"
+                          ? "Cut"
+                          : goal === "maint"
+                            ? "Maintain"
+                            : "Gain"}
                     </p>
                   </div>
                   <div className="rounded-xl border border-orange-400/30 bg-orange-500/10 p-3">
@@ -1606,11 +1619,13 @@ export default function MacroCounter() {
                     <p className="text-sm text-white/90 font-medium flex items-center gap-2">
                       <Check className="h-4 w-4 text-lime-500" />
                       Goal:{" "}
-                      {goal === "loss"
-                        ? "Cut"
-                        : goal === "maint"
-                          ? "Maintain"
-                          : "Gain"}
+                      {goal === "contest_prep"
+                        ? "Contest Prep"
+                        : goal === "loss"
+                          ? "Cut"
+                          : goal === "maint"
+                            ? "Maintain"
+                            : "Gain"}
                     </p>
                   </div>
                   <div className="rounded-xl border border-white/20 bg-black/40 p-3">
@@ -2788,22 +2803,32 @@ export default function MacroCounter() {
                       value={goal}
                       onValueChange={(v: Goal) => {
                         setGoal(v);
+                        if (v === "contest_prep") {
+                          setCutIntensity("hard");
+                          setCutStyle("lowCarb");
+                          setStarchyCarbCap_g(30);
+                        }
                         advance("goal");
                       }}
-                      className="mt-3 grid grid-cols-3 gap-3"
+                      className="mt-3 grid grid-cols-2 gap-3"
                     >
                       {[
                         { v: "loss", label: "Cut" },
                         { v: "maint", label: "Maintain" },
                         { v: "gain", label: "Gain" },
+                        { v: "contest_prep", label: "Contest Prep" },
                       ].map((g) => (
                         <Label
                           key={g.v}
                           htmlFor={g.v}
                           onClick={() => {
                             setGoal(g.v as Goal);
+                            if (g.v === "contest_prep") {
+                              setCutIntensity("hard");
+                              setCutStyle("lowCarb");
+                              setStarchyCarbCap_g(30);
+                            }
                             advance("goal");
-                            // Auto-scroll to body type card on every click
                             setTimeout(() => {
                               const bodyCard =
                                 document.getElementById("bodytype-card");
@@ -2826,6 +2851,12 @@ export default function MacroCounter() {
                         </Label>
                       ))}
                     </RadioGroup>
+                    {goal === "contest_prep" && (
+                      <div className="mt-3 rounded-lg bg-orange-900/30 border border-orange-500/40 px-3 py-2 text-xs text-orange-200 leading-relaxed">
+                        <span className="font-semibold text-orange-300">Contest Prep preset active.</span>{" "}
+                        Hard cut · low-carb split · starchy carb cap 30g. All values can still be adjusted below.
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
