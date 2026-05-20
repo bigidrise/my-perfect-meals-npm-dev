@@ -23,6 +23,8 @@ import {
   MACRO_CALC_STARCH,
   MACRO_CALC_BODY_COMPOSITION,
   MACRO_CALC_SAVE,
+  MACRO_CALC_SAVE_CONTEST_PREP,
+  MACRO_CALC_CONTEST_PREP,
   MACRO_CALC_DONE,
 } from "@/components/copilot/scripts/macroCalculatorScripts";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -739,10 +741,10 @@ export default function MacroCounter() {
       nutritionStrategy: "",
       starch: MACRO_CALC_STARCH,
       bodyComposition: MACRO_CALC_BODY_COMPOSITION,
-      save: MACRO_CALC_SAVE,
+      save: goal === "contest_prep" ? MACRO_CALC_SAVE_CONTEST_PREP : MACRO_CALC_SAVE,
       done: MACRO_CALC_DONE,
     }),
-    [],
+    [goal],
   );
 
   // Helper to advance to next step with voice
@@ -1433,10 +1435,10 @@ export default function MacroCounter() {
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                       {[
-                        { v: "loss", label: "Cut" },
-                        { v: "maint", label: "Maintain" },
-                        { v: "gain", label: "Gain" },
-                        { v: "contest_prep", label: "Contest Prep" },
+                        { v: "loss", label: "Cut", sub: null },
+                        { v: "maint", label: "Maintain", sub: null },
+                        { v: "gain", label: "Gain", sub: null },
+                        { v: "contest_prep", label: "Contest Prep", sub: "Competition protocol" },
                       ].map((g) => (
                         <div
                           key={g.v}
@@ -1446,15 +1448,46 @@ export default function MacroCounter() {
                               setCutIntensity("hard");
                               setCutStyle("lowCarb");
                               setStarchyCarbCap_g(30);
+                              stop();
+                              speak(MACRO_CALC_CONTEST_PREP);
+                              // Don't advance yet — show the overlay callout + Continue button
+                            } else {
+                              advanceGuided("commitmentLevel");
                             }
-                            advanceGuided("commitmentLevel");
                           }}
                           className={`px-3 py-2 border rounded-lg cursor-pointer text-center ${goal === g.v ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
                         >
-                          {g.label}
+                          <div>{g.label}</div>
+                          {g.sub && (
+                            <div className="text-xs text-white/50 mt-0.5">{g.sub}</div>
+                          )}
                         </div>
                       ))}
                     </div>
+
+                    {/* Contest Prep overlay explanation — shown after selection, before advancing */}
+                    {goal === "contest_prep" && guidedStep === "goal" && (
+                      <div className="rounded-xl bg-orange-950/50 border border-orange-500/40 p-4 space-y-3">
+                        <p className="text-sm font-semibold text-orange-300">Competition Prep mode activated</p>
+                        <div className="text-sm text-white/75 leading-relaxed space-y-1">
+                          <p>Your calculator is now set to:</p>
+                          <ul className="list-none space-y-1 mt-1">
+                            <li className="flex items-start gap-2"><span className="text-orange-400 mt-0.5">›</span><span>Hard cut — aggressive fat-loss calorie target</span></li>
+                            <li className="flex items-start gap-2"><span className="text-orange-400 mt-0.5">›</span><span>Low-carb split — minimal starchy carbs</span></li>
+                            <li className="flex items-start gap-2"><span className="text-orange-400 mt-0.5">›</span><span>30g starchy carb cap per day</span></li>
+                          </ul>
+                        </div>
+                        <p className="text-xs text-white/55 leading-relaxed">
+                          This is a metabolic overlay — not just a calculator preset. It carries into every meal generator in the app, telling them to use lean proteins, fibrous carbs, and competition-clean preparations. You can apply it to your full app profile at the save step.
+                        </p>
+                        <button
+                          onClick={() => advanceGuided("commitmentLevel")}
+                          className="w-full py-2.5 bg-orange-600 text-white font-semibold rounded-lg text-sm"
+                        >
+                          Got it, continue
+                        </button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
@@ -2851,10 +2884,10 @@ export default function MacroCounter() {
                       className="mt-3 grid grid-cols-2 gap-3"
                     >
                       {[
-                        { v: "loss", label: "Cut" },
-                        { v: "maint", label: "Maintain" },
-                        { v: "gain", label: "Gain" },
-                        { v: "contest_prep", label: "Contest Prep" },
+                        { v: "loss", label: "Cut", sub: null },
+                        { v: "maint", label: "Maintain", sub: null },
+                        { v: "gain", label: "Gain", sub: null },
+                        { v: "contest_prep", label: "Contest Prep", sub: "Competition protocol" },
                       ].map((g) => (
                         <Label
                           key={g.v}
@@ -2885,7 +2918,10 @@ export default function MacroCounter() {
                             value={g.v}
                             className="sr-only"
                           />
-                          {g.label}
+                          <div>{g.label}</div>
+                          {g.sub && (
+                            <div className="text-xs text-white/50 mt-0.5">{g.sub}</div>
+                          )}
                         </Label>
                       ))}
                     </RadioGroup>
