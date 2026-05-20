@@ -1300,34 +1300,36 @@ export default function DashboardNew() {
           </Card>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35, duration: 0.5 }}
-          className="mb-4"
-        >
-          <Card
-            className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50 rounded-xl group"
-            onClick={handlePhotoLog}
-            data-testid="card-photo-log"
+        {!isDesktop && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35, duration: 0.5 }}
+            className="mb-4"
           >
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-700/20 border border-orange-500/30 group-hover:from-orange-500/30 group-hover:to-orange-700/30 transition-all">
-                  <Camera className="h-6 w-6 text-orange-500" />
+            <Card
+              className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50 rounded-xl group"
+              onClick={handlePhotoLog}
+              data-testid="card-photo-log"
+            >
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-700/20 border border-orange-500/30 group-hover:from-orange-500/30 group-hover:to-orange-700/30 transition-all">
+                    <Camera className="h-6 w-6 text-orange-500" />
+                  </div>
+                  <div className="flex-1">
+                    <CardTitle className="text-white text-lg">
+                      MacroScan
+                    </CardTitle>
+                    <CardDescription className="text-white/70 text-sm mt-1">
+                      Scan nutrition. Log macros instantly
+                    </CardDescription>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <CardTitle className="text-white text-lg">
-                    MacroScan
-                  </CardTitle>
-                  <CardDescription className="text-white/70 text-sm mt-1">
-                    Scan nutrition. Log macros instantly
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
-        </motion.div>
+              </CardHeader>
+            </Card>
+          </motion.div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {features.map((feature, index) => {
