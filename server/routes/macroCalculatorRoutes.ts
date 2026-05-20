@@ -7,7 +7,12 @@
  */
 import { Router } from "express";
 import { requireAuth } from "../middleware/requireAuth";
-import { computeMacros, type MacroComputeInput } from "../services/macroCalculatorEngine";
+import {
+  computeMacros,
+  resolvePerformanceMacroStrategy,
+  type MacroComputeInput,
+  type PerformanceOverlay,
+} from "../services/macroCalculatorEngine";
 
 const router = Router();
 
@@ -18,10 +23,22 @@ const VALID_USER_TYPE = new Set(["general", "committed", "athlete"]);
 const VALID_CUT_INTENSITY = new Set(["hard", "moderate", "none"]);
 const VALID_CUT_STYLE = new Set(["balanced", "lowCarb"]);
 const VALID_ACTIVITY = new Set(["sedentary", "light", "moderate", "very", "extra"]);
+const VALID_OVERLAY = new Set<PerformanceOverlay>(["standard", "performance", "competition_prep", "recovery", "recomp"]);
 
 router.post("/macro-calculator/compute", requireAuth, (req, res) => {
   try {
-    const b = req.body as Partial<MacroComputeInput>;
+    const body = req.body as Partial<MacroComputeInput> & { performanceOverlay?: string };
+
+    // ── Optional performance overlay ──────────────────────────────────────────
+    // When provided, overlay defaults fill in any unset macro strategy fields.
+    // Explicit values from the caller always win over overlay defaults.
+    const rawOverlay = body.performanceOverlay ?? "standard";
+    const overlay: PerformanceOverlay = VALID_OVERLAY.has(rawOverlay as PerformanceOverlay)
+      ? (rawOverlay as PerformanceOverlay)
+      : "standard";
+
+    // Apply resolver: merges overlay defaults with explicit body values
+    const b = resolvePerformanceMacroStrategy(body as Partial<MacroComputeInput>, overlay) as Partial<MacroComputeInput>;
 
     if (!VALID_SEX.has(b.sex as string)) {
       return res.status(400).json({ ok: false, error: "Invalid sex" });
