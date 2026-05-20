@@ -134,8 +134,14 @@ export default function VoiceShoppingModal({ open, onClose, onConfirm }: Props) 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 px-0 sm:px-4">
-      <div className="w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-[#0f0f0f] border border-white/15 overflow-hidden">
+    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/70 px-0 sm:px-4">
+      <div
+        className="w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-[#0f0f0f] border border-white/15 flex flex-col overflow-hidden"
+        style={{
+          maxHeight: "calc(85dvh - env(safe-area-inset-bottom))",
+          paddingBottom: "env(safe-area-inset-bottom)",
+        }}
+      >
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
