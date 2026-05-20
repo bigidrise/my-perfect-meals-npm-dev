@@ -4,6 +4,11 @@
 // surface (RemainingMacrosFooter, DailyTargetsCard, Biometrics) reflects it
 // immediately — without a page refresh.
 //
+// Also handles cross-device hydration for self-managed users: on mount, if
+// localStorage has no macro targets (e.g. fresh desktop browser), it fetches
+// from the server and writes to localStorage so NutritionBudgetBanner and all
+// other target-dependent surfaces appear correctly.
+//
 // Trigger points:
 //   1. On mount (catches targets set while the app was closed / tab was inactive)
 //   2. On document visibilitychange → visible (catches pro saving in another tab)
@@ -12,11 +17,12 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { proStore } from "@/lib/proData";
-import { getResolvedTargets, clearResolvedTargetsCache } from "@/lib/macroResolver";
+import { getResolvedTargets, clearResolvedTargetsCache, unlinkUser } from "@/lib/macroResolver";
 import { getAuthHeaders } from "@/lib/auth";
 
 const POLL_INTERVAL_MS = 45_000;
 const LS_USER_CLIENT_MAP = "mpm_user_client_map";
+const TARGETS_LS_KEY = (userId: string) => `mpm.macroTargets.${userId}`;
 
 function getClientId(userId: string): string | null {
   try {
@@ -26,6 +32,17 @@ function getClientId(userId: string): string | null {
     return map[userId] || null;
   } catch {
     return null;
+  }
+}
+
+function hasSelfTargetsInLocalStorage(userId: string): boolean {
+  try {
+    const stored = localStorage.getItem(TARGETS_LS_KEY(userId));
+    if (!stored) return false;
+    const parsed = JSON.parse(stored);
+    return !!(parsed?.protein_g > 0 || parsed?.carbs_g > 0 || parsed?.fat_g > 0);
+  } catch {
+    return false;
   }
 }
 
@@ -44,27 +61,72 @@ export function useMacroTargetSync() {
       const userId = userIdRef.current;
       if (!userId) return;
 
-      // Protocol Ownership Model: if the user is no longer connected to a physician,
-      // strip any stale physician medical flags from localStorage so they don't
-      // persist across sessions and incorrectly activate clinical protocols.
+      // Protocol Ownership Model: if the user is no longer connected to ProCare,
+      // clear the stale client mapping AND strip any physician medical flags from
+      // localStorage so they don't persist and incorrectly attribute macro targets
+      // or clinical protocols to a physician/professional.
       if (isProCareRef.current === false) {
         const clientId = getClientId(userId);
         if (clientId) {
-          const stripped = proStore.stripMedicalFlags(clientId);
-          if (stripped) {
-            clearResolvedTargetsCache();
-            window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
-            console.log("[MacroTargetSync] Stripped stale physician medical flags — ProCare ended.");
-          }
+          proStore.stripMedicalFlags(clientId);
+          unlinkUser(userId);
+          clearResolvedTargetsCache();
+          window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
+          console.log("[MacroTargetSync] Cleared ProCare mapping — isProCare=false, stale clientId removed.");
         }
       }
 
-      // Only sync for clients who are linked to a pro (have a clientId mapping).
-      // Self-managed clients update their own localStorage directly via Macro Calculator
-      // and fire mpm:targetsUpdated in the same session — no sync needed.
       const clientId = getClientId(userId);
-      if (!clientId) return;
 
+      if (!clientId) {
+        // Self-managed user: hydrate localStorage from the server only when it is
+        // empty (e.g. fresh browser / new device). If localStorage already has
+        // targets the user set them locally — those are authoritative and we leave
+        // them alone.
+        if (hasSelfTargetsInLocalStorage(userId)) return;
+
+        try {
+          const res = await fetch(`/api/users/${userId}/macro-targets`, {
+            credentials: "include",
+            headers: { ...getAuthHeaders() },
+            cache: "no-store",
+          });
+          if (!res.ok) return;
+
+          const data = await res.json();
+          if (!data.hasTargets) return;
+
+          // Write server targets into localStorage so the resolver finds them.
+          const targets = {
+            calories: data.calories ?? 0,
+            protein_g: data.protein_g ?? 0,
+            carbs_g: data.carbs_g ?? 0,
+            fat_g: data.fat_g ?? 0,
+            starchyCarbs_g: data.starchyCarbs_g ?? 0,
+            fibrousCarbs_g: data.fibrousCarbs_g ?? 0,
+            ...(data.cutIntensity && { cutIntensity: data.cutIntensity }),
+            ...(data.cutStyle && { cutStyle: data.cutStyle }),
+            ...(data.cycleMode && { cycleMode: data.cycleMode }),
+            ...(data.cycleDayType && { cycleDayType: data.cycleDayType }),
+            ...(data.mealsPerDay && { mealsPerDay: data.mealsPerDay }),
+          };
+
+          localStorage.setItem(TARGETS_LS_KEY(userId), JSON.stringify(targets));
+          clearResolvedTargetsCache();
+          window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
+
+          console.log(
+            "[MacroTargetSync] Self-managed targets hydrated from server →",
+            `protein=${data.protein_g} carbs=${data.carbs_g} fat=${data.fat_g}`
+          );
+        } catch {
+          // Silent — network failures should not surface to the user
+        }
+
+        return;
+      }
+
+      // ProCare client: sync from DB into proStore
       try {
         const res = await fetch(`/api/users/${userId}/macro-targets`, {
           credentials: "include",
@@ -108,7 +170,7 @@ export function useMacroTargetSync() {
         window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
 
         console.log(
-          "[MacroTargetSync] Targets updated from API →",
+          "[MacroTargetSync] ProCare targets updated from API →",
           `protein=${apiProtein} starchy=${apiStarchy} fibrous=${apiFibrous} fat=${apiFat}`
         );
       } catch {
