@@ -771,10 +771,27 @@ export default function MyBiometrics() {
           source: "manual",
         }),
       })
-        .then((r) => {
-          if (r.ok) window.dispatchEvent(new Event("macros:updated"));
+        .then(async (r) => {
+          if (r.ok) {
+            window.dispatchEvent(new Event("macros:updated"));
+          } else {
+            const body = await r.json().catch(() => ({}));
+            console.error("[MACROS/LOG] write failed", r.status, body);
+            toast({
+              title: "Macros not saved",
+              description: "Your entry was added locally but couldn't be saved to your account. Check your connection and try again.",
+              variant: "destructive",
+            });
+          }
         })
-        .catch(() => {});
+        .catch((err) => {
+          console.error("[MACROS/LOG] network error", err);
+          toast({
+            title: "Macros not saved",
+            description: "Network error — your entry wasn't persisted. Please try again.",
+            variant: "destructive",
+          });
+        });
     }
   };
 
@@ -1069,10 +1086,27 @@ export default function MyBiometrics() {
           source: "manual",
         }),
       })
-        .then((r) => {
-          if (r.ok) window.dispatchEvent(new Event("macros:updated"));
+        .then(async (r) => {
+          if (r.ok) {
+            window.dispatchEvent(new Event("macros:updated"));
+          } else {
+            const body = await r.json().catch(() => ({}));
+            console.error("[MACROS/LOG] paste write failed", r.status, body);
+            toast({
+              title: "Macros not saved",
+              description: "Your entry was added locally but couldn't be saved to your account. Check your connection and try again.",
+              variant: "destructive",
+            });
+          }
         })
-        .catch(() => {});
+        .catch((err) => {
+          console.error("[MACROS/LOG] paste network error", err);
+          toast({
+            title: "Macros not saved",
+            description: "Network error — your entry wasn't persisted. Please try again.",
+            variant: "destructive",
+          });
+        });
     }
   }
 
