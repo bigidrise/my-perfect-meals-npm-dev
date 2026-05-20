@@ -329,8 +329,24 @@ export const useShoppingListStore = create<ShoppingListStore>()(
         let mergedUnit = '';
 
         set((state) => {
-          const { canonicalName, normalizedName, normQty, normUnit, category, isPantryStaple } =
-            normalizeForAggregation(item.name, item.quantity, item.unit);
+          // For manually-entered items (category: "Other"), skip ingredient normalization
+          // so that brand names like "Planters cashews" are preserved verbatim and never
+          // collapsed into an existing "cashews" entry via deduplication.
+          const isManualEntry = item.category === 'Other';
+          const rawName = item.name.trim();
+          let canonicalName: string, normalizedName: string, normQty: number, normUnit: string, category: IngredientCategory, isPantryStaple: boolean;
+          if (isManualEntry) {
+            const nu = normalizeUnit(item.quantity, item.unit);
+            canonicalName = rawName;
+            normalizedName = rawName.toLowerCase();
+            normQty = nu.quantity;
+            normUnit = nu.unit;
+            category = 'Other';
+            isPantryStaple = false;
+          } else {
+            ({ canonicalName, normalizedName, normQty, normUnit, category, isPantryStaple } =
+              normalizeForAggregation(item.name, item.quantity, item.unit));
+          }
 
           const existingIndex = findMergeable(state.items, normalizedName, normUnit);
 
