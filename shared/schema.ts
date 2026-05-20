@@ -431,6 +431,16 @@ export const users = pgTable("users", {
   goalTarget: text("goal_target"), // e.g. "20 lbs" or "10 kg"
   goalTimelineWeeks: integer("goal_timeline_weeks"), // e.g. 12
   goalStartDate: timestamp("goal_start_date", { withTimezone: true }),
+  // Performance Overlay — metabolic operating mode (Tier 5 of the Protocol Envelope).
+  // Stacks ON TOP of medical/dietary safety layers — never replaces them.
+  // Activation: Macro Calculator. Management: Edit Goals / Profile.
+  // "standard" = no overlay (default). Coach-controlled mode requires verified studio relationship.
+  performanceOverlay: text("performance_overlay")
+    .$type<"standard"|"performance"|"competition_prep"|"recovery"|"recomp">()
+    .notNull().default("standard"),
+  performanceControlMode: text("performance_control_mode")
+    .$type<"self_guided"|"coach_controlled">()
+    .notNull().default("self_guided"),
   // Coach / Provider Availability — controlled from Care Team page (professionals only)
   availabilityStatus: text("availability_status").$type<"available"|"busy"|"away"|"offline">().default("available"),
   backAt: timestamp("back_at", { withTimezone: true }), // optional return date / end of away period
