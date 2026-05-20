@@ -103,42 +103,62 @@ TONE RULES (non-negotiable):
 RESPONSE FORMAT (strict JSON only):
 {
   "alignmentGrade": "A" | "B" | "C" | "D",
-  "overallSummary": "1-2 sentence plain-language summary personalized to this user and their goals",
-  "verdict": "One clear sentence — should this user buy this product or not, and why? Be direct and personal.",
+  "overallSummary": "1-2 sentence plain-language summary personalized to this user and their goals. Friendly coach tone.",
+  "verdict": "One clear, direct sentence — should this user buy this product? Be warm and personal, like a friend giving advice.",
   "verdictLevel": "buy" | "caution" | "skip",
+  "scoreCards": {
+    "kids": {
+      "verdict": "thumbsUp" | "thumbsDown" | "neutral",
+      "reason": "One plain-English sentence about why this is or isn't good for kids. Always check for: artificial dyes (Red 40, Yellow 5, etc.), high sugar, caffeine, artificial sweeteners, preservatives."
+    },
+    "adults": {
+      "verdict": "thumbsUp" | "thumbsDown" | "neutral",
+      "reason": "One plain-English sentence about general adult suitability — common allergens, sodium, saturated fat, additives."
+    },
+    "diet": {
+      "verdict": "thumbsUp" | "thumbsDown" | "neutral",
+      "reason": "One sentence about how this fits the user's dietary identity (vegan, keto, gluten-free, etc.). If no dietary restrictions are on file, give general nutrition quality feedback."
+    },
+    "fitnessGoal": {
+      "verdict": "thumbsUp" | "thumbsDown" | "neutral",
+      "reason": "One sentence connecting this product to the user's fitness/weight goal (weight loss, muscle gain, maintenance). If no goal is on file, give general comment on macros."
+    }
+  },
   "ingredientDecoder": [
     {
       "name": "Exact ingredient name as it appears on the label",
-      "plain": "Plain English explanation of what this ingredient is and what it does in food — 1 sentence, simple language anyone can understand",
+      "plain": "Plain English: what is this ingredient and what does it do in food? 1 simple sentence anyone can understand.",
       "flag": "ok" | "watch" | "avoid"
     }
   ],
   "ingredientConsiderations": ["Factual observations about specific ingredients relevant to this user's health profile"],
-  "mayNotAlignWith": ["Personalized conflicts with this user's goals/conditions — only include if genuinely relevant. Empty array if none."],
-  "betterFor": ["Contextual positives or appropriate use cases for this user — or empty array"],
-  "householdNotes": ["Child safety notes, family member considerations, or sensitivity warnings for household use. Always include if any child-relevant ingredients (artificial dyes, high sugar, preservatives, caffeine) are present."],
-  "educationalFooter": "Brief non-diagnostic disclaimer"
+  "mayNotAlignWith": ["Personalized conflicts with this user's goals/conditions — only if genuinely relevant. Empty array if none."],
+  "betterFor": ["Contextual positives or appropriate use cases — or empty array"],
+  "householdNotes": ["Any additional household member notes beyond the kids scorecard — or empty array"],
+  "educationalFooter": "Brief friendly non-diagnostic note"
 }
+
+scoreCards rules:
+- ALWAYS return all 4 scoreCards — never omit any
+- neutral = it's fine, no strong signals either way
+- thumbsUp = genuinely good signal for this category
+- thumbsDown = notable concern for this category
+- Keep reasons short, friendly, and coach-like — not scary
 
 ingredientDecoder rules:
 - Decode ALL chemical-sounding, unfamiliar, or hard-to-pronounce ingredients (e.g., Red 40, TBHQ, carrageenan, sodium benzoate, BHA, BHT, MSG, xanthan gum, maltodextrin, etc.)
-- Skip simple common ingredients that everyone already knows (salt, water, sugar, flour, butter, eggs, milk)
-- flag: "ok" = generally well-recognized, "watch" = worth being aware of for some people, "avoid" = conflicts with this user's specific profile
-- Aim for 3–8 decoded ingredients. If the list is clean, return an empty array.
+- Skip simple common ingredients everyone already knows (salt, water, sugar, flour, butter, eggs, milk)
+- flag: "ok" = generally recognized safe, "watch" = worth knowing about, "avoid" = conflicts with this user's specific profile
+- Aim for 3–8 decoded ingredients. Empty array if the list is clean.
 
 verdictLevel:
 - "buy" = overall aligns well with this user
-- "caution" = some considerations but not a deal-breaker for this user
+- "caution" = some considerations but not a deal-breaker
 - "skip" = notable conflicts with this user's active health protocols
-
-householdNotes rules:
-- Always check for: artificial colors (Red 40, Yellow 5, etc.), high added sugar, caffeine, common allergens, synthetic preservatives, artificial sweeteners
-- If any are present, note them with plain explanations of why they matter for kids or sensitive family members
-- If no household concerns, return an empty array
 
 Grade rubric:
 A = aligns well with this user's profile
-B = minor considerations, mostly fine for this user
+B = minor considerations, mostly fine
 C = notable considerations for this user's specific goals
 D = significant conflicts with this user's active health protocols`;
 
@@ -185,12 +205,34 @@ Do NOT invent or guess ingredients. If text is partially obscured, set confidenc
   };
 }
 
+const DEFAULT_SCORE_CARDS: ScanScoreCards = {
+  kids: { verdict: 'neutral', reason: 'No specific child concerns detected.' },
+  adults: { verdict: 'neutral', reason: 'No major adult concerns detected.' },
+  diet: { verdict: 'neutral', reason: 'No dietary conflicts identified.' },
+  fitnessGoal: { verdict: 'neutral', reason: 'No strong signals relative to your goal.' },
+};
+
+function parseScoreCards(raw: any): ScanScoreCards {
+  const verdicts: ScoreVerdict[] = ['thumbsUp', 'thumbsDown', 'neutral'];
+  const parseCard = (card: any): ScoreCard => ({
+    verdict: verdicts.includes(card?.verdict) ? card.verdict : 'neutral',
+    reason: typeof card?.reason === 'string' ? card.reason : '',
+  });
+  return {
+    kids: parseCard(raw?.kids),
+    adults: parseCard(raw?.adults),
+    diet: parseCard(raw?.diet),
+    fitnessGoal: parseCard(raw?.fitnessGoal),
+  };
+}
+
 const LOW_CONFIDENCE_RESULT: IngredientScanResult = {
   alignmentGrade: 'B',
   overallSummary:
     "We couldn't clearly read the ingredients from this image. Try retaking the photo in better lighting with the full ingredients panel visible and in focus.",
   verdict: "Try retaking the photo so we can give you a personalized assessment.",
   verdictLevel: 'caution',
+  scoreCards: DEFAULT_SCORE_CARDS,
   ingredientDecoder: [],
   ingredientConsiderations: [],
   mayNotAlignWith: [],
@@ -283,6 +325,7 @@ Analyze how this product aligns with this specific user's health profile.`;
       verdictLevel: (['buy', 'caution', 'skip'] as const).includes(alignment.verdictLevel)
         ? alignment.verdictLevel
         : 'caution',
+      scoreCards: parseScoreCards(alignment.scoreCards),
       ingredientDecoder,
       ingredientConsiderations: Array.isArray(alignment.ingredientConsiderations)
         ? alignment.ingredientConsiderations
@@ -305,6 +348,7 @@ Analyze how this product aligns with this specific user's health profile.`;
       overallSummary: 'We encountered an issue analyzing this product. Please try again.',
       verdict: '',
       verdictLevel: 'caution',
+      scoreCards: DEFAULT_SCORE_CARDS,
       ingredientDecoder: [],
       ingredientConsiderations: [],
       mayNotAlignWith: [],
