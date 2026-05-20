@@ -1007,10 +1007,6 @@ export default function ShoppingListMasterView() {
             setScanRefreshKey((k) => k + 1);
             toast({ title: "Saved for review", description: "You can revisit this scan anytime from this page." });
           }}
-          onLearnWhy={() => {
-            setShoppingSheetOpen(false);
-            setLocation("/learn?topic=ingredient-intelligence");
-          }}
         />
 
         {/* Voice Add Modal */}

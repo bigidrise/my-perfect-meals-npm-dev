@@ -30,13 +30,28 @@ function formatRelativeDate(iso: string): string {
 
 /** Reconstruct a full IngredientScanResult from a saved scan so the sheet can reopen. */
 function reconstructResult(scan: SavedProductScan): IngredientScanResult {
+  const DEFAULT_SCORE_CARDS = {
+    kids:        { verdict: "neutral" as const, reason: "" },
+    adults:      { verdict: "neutral" as const, reason: "" },
+    diet:        { verdict: "neutral" as const, reason: "" },
+    fitnessGoal: { verdict: "neutral" as const, reason: "" },
+  };
   return {
     alignmentGrade: (scan.score as "A" | "B" | "C" | "D") ?? "B",
     overallSummary: scan.overallSummary ?? "",
+    verdict: "",
+    verdictLevel: "caution",
+    scoreCards: DEFAULT_SCORE_CARDS,
+    ingredientDecoder: [],
     ingredientConsiderations: scan.considerations ?? [],
+    mayNotAlignWith: [],
+    betterFor: [],
     extractedIngredients: scan.ingredients ?? [],
     householdNotes: scan.householdFlags ?? [],
+    educationalFooter: "This analysis is for general wellness education and is not medical advice.",
+    highRiskFindings: [],
     ocrConfidenceLow: false,
+    fallbackUsed: false,
   };
 }
 
