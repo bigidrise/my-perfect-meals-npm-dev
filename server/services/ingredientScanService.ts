@@ -9,9 +9,27 @@ export interface HighRiskFlag {
   failClosed: boolean;
 }
 
+export type ScoreVerdict = 'thumbsUp' | 'thumbsDown' | 'neutral';
+
+export interface ScoreCard {
+  verdict: ScoreVerdict;
+  reason: string;
+}
+
+export interface ScanScoreCards {
+  kids: ScoreCard;
+  adults: ScoreCard;
+  diet: ScoreCard;
+  fitnessGoal: ScoreCard;
+}
+
 export interface IngredientScanResult {
   alignmentGrade: 'A' | 'B' | 'C' | 'D';
   overallSummary: string;
+  verdict: string;
+  verdictLevel: 'buy' | 'caution' | 'skip';
+  scoreCards: ScanScoreCards;
+  ingredientDecoder: Array<{ name: string; plain: string; flag: 'ok' | 'watch' | 'avoid' }>;
   ingredientConsiderations: string[];
   mayNotAlignWith: string[];
   betterFor: string[];
@@ -25,6 +43,24 @@ export interface IngredientScanResult {
 
 function buildCompactProtocolContext(envelope: UserProtocolEnvelope): string {
   const lines: string[] = [];
+
+  // ── Fitness goals (set during onboarding) ────────────────────────────────
+  if (envelope.goalType || envelope.fitnessGoal) {
+    const goalParts: string[] = [];
+    if (envelope.goalType) {
+      const goalLabel =
+        envelope.goalType === 'lose' ? 'weight loss'
+        : envelope.goalType === 'gain' ? 'muscle/weight gain'
+        : 'weight maintenance';
+      goalParts.push(goalLabel);
+    }
+    if (envelope.fitnessGoal && envelope.fitnessGoal !== envelope.goalType) {
+      goalParts.push(envelope.fitnessGoal.replace(/_/g, ' '));
+    }
+    if (envelope.goalTarget) goalParts.push(`target: ${envelope.goalTarget}`);
+    lines.push(`Primary nutrition goal: ${goalParts.join(', ')}`);
+  }
+
   if (envelope.dietaryIdentity.length)
     lines.push(`Dietary identity: ${envelope.dietaryIdentity.join(', ')}`);
   if (envelope.allergies.length)
@@ -44,14 +80,19 @@ function buildCompactProtocolContext(envelope: UserProtocolEnvelope): string {
     lines.push('Thyroid support protocol: active');
   if (envelope.avoidances.length)
     lines.push(`Avoidances/preferences: ${envelope.avoidances.join(', ')}`);
+
   return lines.length ? lines.join('\n') : 'No specific dietary or medical constraints on file.';
 }
 
 const ALIGNMENT_SYSTEM_PROMPT = `You are a personalized food intelligence advisor for a nutrition app called MyPerfectMeals.
 Analyze a food product's ingredient list and provide a calibrated, educational alignment assessment based on the user's specific health profile.
 
+CORE PURPOSE:
+Most people cannot understand complex chemical ingredient names. Your job is to (1) decode those names into plain everyday English, (2) tell the user whether this product aligns with their personal health goals and medical needs, and (3) give them a clear, personalized verdict so they can decide whether to buy it.
+
 TONE RULES (non-negotiable):
 - Educational, calm, factual, personalized. NEVER fear-based, alarmist, or conspiratorial.
+- Use plain everyday language — write like a knowledgeable friend, not a scientist.
 - Use language like "may not align with your [goal/condition]" — NEVER "toxic", "poison", "dangerous chemical", "harmful to everyone"
 - Personalize everything: the same product may be appropriate for one user and not another
 - If the user has no relevant conditions matching a concern, do not flag it
@@ -62,17 +103,62 @@ TONE RULES (non-negotiable):
 RESPONSE FORMAT (strict JSON only):
 {
   "alignmentGrade": "A" | "B" | "C" | "D",
-  "overallSummary": "1-2 sentence calm educational summary personalized to this user",
-  "ingredientConsiderations": ["neutral factual observations about the ingredient list"],
-  "mayNotAlignWith": ["personalized conflicts with user goals/conditions, or empty array"],
-  "betterFor": ["contextual positives or appropriate use cases, or empty array"],
-  "householdNotes": ["family/child-relevant observations if applicable, or empty array"],
-  "educationalFooter": "brief non-diagnostic disclaimer"
+  "overallSummary": "1-2 sentence plain-language summary personalized to this user and their goals. Friendly coach tone.",
+  "verdict": "One clear, direct sentence — should this user buy this product? Be warm and personal, like a friend giving advice.",
+  "verdictLevel": "buy" | "caution" | "skip",
+  "scoreCards": {
+    "kids": {
+      "verdict": "thumbsUp" | "thumbsDown" | "neutral",
+      "reason": "One plain-English sentence about why this is or isn't good for kids. Always check for: artificial dyes (Red 40, Yellow 5, etc.), high sugar, caffeine, artificial sweeteners, preservatives."
+    },
+    "adults": {
+      "verdict": "thumbsUp" | "thumbsDown" | "neutral",
+      "reason": "One plain-English sentence about general adult suitability — common allergens, sodium, saturated fat, additives."
+    },
+    "diet": {
+      "verdict": "thumbsUp" | "thumbsDown" | "neutral",
+      "reason": "One sentence about how this fits the user's dietary identity (vegan, keto, gluten-free, etc.). If no dietary restrictions are on file, give general nutrition quality feedback."
+    },
+    "fitnessGoal": {
+      "verdict": "thumbsUp" | "thumbsDown" | "neutral",
+      "reason": "One sentence connecting this product to the user's fitness/weight goal (weight loss, muscle gain, maintenance). If no goal is on file, give general comment on macros."
+    }
+  },
+  "ingredientDecoder": [
+    {
+      "name": "Exact ingredient name as it appears on the label",
+      "plain": "Plain English: what is this ingredient and what does it do in food? 1 simple sentence anyone can understand.",
+      "flag": "ok" | "watch" | "avoid"
+    }
+  ],
+  "ingredientConsiderations": ["Factual observations about specific ingredients relevant to this user's health profile"],
+  "mayNotAlignWith": ["Personalized conflicts with this user's goals/conditions — only if genuinely relevant. Empty array if none."],
+  "betterFor": ["Contextual positives or appropriate use cases — or empty array"],
+  "householdNotes": ["Any additional household member notes beyond the kids scorecard — or empty array"],
+  "educationalFooter": "Brief friendly non-diagnostic note"
 }
+
+scoreCards rules:
+- ALWAYS return all 4 scoreCards — never omit any
+- neutral = it's fine, no strong signals either way
+- thumbsUp = genuinely good signal for this category
+- thumbsDown = notable concern for this category
+- Keep reasons short, friendly, and coach-like — not scary
+
+ingredientDecoder rules:
+- Decode ALL chemical-sounding, unfamiliar, or hard-to-pronounce ingredients (e.g., Red 40, TBHQ, carrageenan, sodium benzoate, BHA, BHT, MSG, xanthan gum, maltodextrin, etc.)
+- Skip simple common ingredients everyone already knows (salt, water, sugar, flour, butter, eggs, milk)
+- flag: "ok" = generally recognized safe, "watch" = worth knowing about, "avoid" = conflicts with this user's specific profile
+- Aim for 3–8 decoded ingredients. Empty array if the list is clean.
+
+verdictLevel:
+- "buy" = overall aligns well with this user
+- "caution" = some considerations but not a deal-breaker
+- "skip" = notable conflicts with this user's active health protocols
 
 Grade rubric:
 A = aligns well with this user's profile
-B = minor considerations, mostly fine for this user
+B = minor considerations, mostly fine
 C = notable considerations for this user's specific goals
 D = significant conflicts with this user's active health protocols`;
 
@@ -119,10 +205,35 @@ Do NOT invent or guess ingredients. If text is partially obscured, set confidenc
   };
 }
 
+const DEFAULT_SCORE_CARDS: ScanScoreCards = {
+  kids: { verdict: 'neutral', reason: 'No specific child concerns detected.' },
+  adults: { verdict: 'neutral', reason: 'No major adult concerns detected.' },
+  diet: { verdict: 'neutral', reason: 'No dietary conflicts identified.' },
+  fitnessGoal: { verdict: 'neutral', reason: 'No strong signals relative to your goal.' },
+};
+
+function parseScoreCards(raw: any): ScanScoreCards {
+  const verdicts: ScoreVerdict[] = ['thumbsUp', 'thumbsDown', 'neutral'];
+  const parseCard = (card: any): ScoreCard => ({
+    verdict: verdicts.includes(card?.verdict) ? card.verdict : 'neutral',
+    reason: typeof card?.reason === 'string' ? card.reason : '',
+  });
+  return {
+    kids: parseCard(raw?.kids),
+    adults: parseCard(raw?.adults),
+    diet: parseCard(raw?.diet),
+    fitnessGoal: parseCard(raw?.fitnessGoal),
+  };
+}
+
 const LOW_CONFIDENCE_RESULT: IngredientScanResult = {
   alignmentGrade: 'B',
   overallSummary:
     "We couldn't clearly read the ingredients from this image. Try retaking the photo in better lighting with the full ingredients panel visible and in focus.",
+  verdict: "Try retaking the photo so we can give you a personalized assessment.",
+  verdictLevel: 'caution',
+  scoreCards: DEFAULT_SCORE_CARDS,
+  ingredientDecoder: [],
   ingredientConsiderations: [],
   mayNotAlignWith: [],
   betterFor: [],
@@ -196,11 +307,26 @@ Analyze how this product aligns with this specific user's health profile.`;
       temperature: 0.2,
     });
 
+    const rawDecoder = Array.isArray(alignment.ingredientDecoder) ? alignment.ingredientDecoder : [];
+    const ingredientDecoder = rawDecoder
+      .filter((d: any) => d && typeof d.name === 'string' && typeof d.plain === 'string')
+      .map((d: any) => ({
+        name: d.name as string,
+        plain: d.plain as string,
+        flag: (['ok', 'watch', 'avoid'] as const).includes(d.flag) ? d.flag : 'watch' as const,
+      }));
+
     return {
       alignmentGrade: (['A', 'B', 'C', 'D'] as const).includes(alignment.alignmentGrade)
         ? alignment.alignmentGrade
         : 'B',
       overallSummary: typeof alignment.overallSummary === 'string' ? alignment.overallSummary : 'Analysis complete.',
+      verdict: typeof alignment.verdict === 'string' ? alignment.verdict : '',
+      verdictLevel: (['buy', 'caution', 'skip'] as const).includes(alignment.verdictLevel)
+        ? alignment.verdictLevel
+        : 'caution',
+      scoreCards: parseScoreCards(alignment.scoreCards),
+      ingredientDecoder,
       ingredientConsiderations: Array.isArray(alignment.ingredientConsiderations)
         ? alignment.ingredientConsiderations
         : [],
@@ -220,6 +346,10 @@ Analyze how this product aligns with this specific user's health profile.`;
     return {
       alignmentGrade: 'B',
       overallSummary: 'We encountered an issue analyzing this product. Please try again.',
+      verdict: '',
+      verdictLevel: 'caution',
+      scoreCards: DEFAULT_SCORE_CARDS,
+      ingredientDecoder: [],
       ingredientConsiderations: [],
       mayNotAlignWith: [],
       betterFor: [],

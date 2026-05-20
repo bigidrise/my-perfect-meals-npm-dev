@@ -2,9 +2,27 @@ import { captureImage } from './photoCaptureBase';
 import { apiUrl } from './resolveApiBase';
 import { getAuthHeaders } from './auth';
 
+export type ScoreVerdict = 'thumbsUp' | 'thumbsDown' | 'neutral';
+
+export interface ScoreCard {
+  verdict: ScoreVerdict;
+  reason: string;
+}
+
+export interface ScanScoreCards {
+  kids: ScoreCard;
+  adults: ScoreCard;
+  diet: ScoreCard;
+  fitnessGoal: ScoreCard;
+}
+
 export interface IngredientScanResult {
   alignmentGrade: 'A' | 'B' | 'C' | 'D';
   overallSummary: string;
+  verdict: string;
+  verdictLevel: 'buy' | 'caution' | 'skip';
+  scoreCards: ScanScoreCards;
+  ingredientDecoder: Array<{ name: string; plain: string; flag: 'ok' | 'watch' | 'avoid' }>;
   ingredientConsiderations: string[];
   mayNotAlignWith: string[];
   betterFor: string[];

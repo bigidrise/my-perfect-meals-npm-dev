@@ -131,6 +131,7 @@ export default function ShoppingListMasterView() {
   const [barcodeModalOpen, setBarcodeModalOpen] = useState(false);
   const [shoppingSheetOpen, setShoppingSheetOpen] = useState(false);
   const [shoppingSheetResult, setShoppingSheetResult] = useState<IngredientScanResult | null>(null);
+  const [addOtherPrefill, setAddOtherPrefill] = useState<string | undefined>(undefined);
 
   const [scanState, setScanState] = useState<"idle" | "scanning" | "ready">("idle");
   const [scanMessageIdx, setScanMessageIdx] = useState(0);
@@ -612,7 +613,10 @@ export default function ShoppingListMasterView() {
           </div>
         </div>
         {/* Add Other Items — feeds the Other section in the main list */}
-        <AddOtherItems />
+        <AddOtherItems
+          prefillName={addOtherPrefill}
+          onPrefillConsumed={() => setAddOtherPrefill(undefined)}
+        />
         {/* Walmart Card - Coming Soon */}
         <div className="rounded-2xl border border-white/20 bg-black/60 text-white p-4 sm:p-5 opacity-70">
           <div className="flex items-center justify-between gap-3">
@@ -985,9 +989,10 @@ export default function ShoppingListMasterView() {
           onClose={() => setShoppingSheetOpen(false)}
           onAddAnyway={() => {
             setShoppingSheetOpen(false);
+            setAddOtherPrefill("Scanned Item");
             setTimeout(() => {
               document.getElementById("add-other-items")?.scrollIntoView({ behavior: "smooth", block: "center" });
-            }, 150);
+            }, 200);
           }}
           onSaveForReview={() => {
             if (shoppingSheetResult) {
@@ -1006,10 +1011,6 @@ export default function ShoppingListMasterView() {
             setShoppingSheetOpen(false);
             setScanRefreshKey((k) => k + 1);
             toast({ title: "Saved for review", description: "You can revisit this scan anytime from this page." });
-          }}
-          onLearnWhy={() => {
-            setShoppingSheetOpen(false);
-            setLocation("/learn?topic=ingredient-intelligence");
           }}
         />
 
