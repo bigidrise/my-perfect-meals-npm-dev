@@ -47,6 +47,7 @@ import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { ArrowLeft } from "lucide-react";
 import { recordShoppingToBiometricsTransition, hasCompletedFirstLoop } from "@/lib/guestSuiteNavigator";
 import { useGuestNavigationGuard } from "@/hooks/useGuestNavigationGuard";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 const CATEGORY_ORDER = [
@@ -105,6 +106,8 @@ export default function ShoppingListMasterView() {
     hydrate();
     clearExpiredShoppingScans();
   }, [hydrate]);
+
+  const isDesktop = useIsDesktop();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   
@@ -522,34 +525,38 @@ export default function ShoppingListMasterView() {
             </Button>
           </div>
 
-          {/* Smart Scan — Ingredient Intelligence */}
-          <div className="relative mt-2">
-            <div className="absolute inset-0 rounded-2xl bg-cyan-500/10 blur-md scale-105" />
-            <Button
-              onClick={handleShoppingScan}
-              className="relative w-full flex items-center gap-3 bg-gradient-to-r from-cyan-900/70 to-blue-950/80 rounded-2xl py-3 h-auto border border-cyan-500/30 text-left"
-              data-testid="button-shopping-smart-scan"
-            >
-              <span className="text-xl">🧾</span>
-              <span className="flex-1 min-w-0">
-                <span className="block text-white font-semibold text-sm leading-tight">Smart Scan</span>
-                <span className="block text-cyan-300/60 text-xs mt-0.5">Analyze ingredients before you buy</span>
-              </span>
-              <span className="bg-cyan-500/20 border border-cyan-400/20 rounded-lg px-2 py-0.5 text-[10px] text-cyan-300 font-semibold uppercase tracking-wide flex-shrink-0">
-                New
-              </span>
-            </Button>
-          </div>
+          {/* Smart Scan — Ingredient Intelligence (mobile/tablet only) */}
+          {!isDesktop && (
+            <div className="relative mt-2">
+              <div className="absolute inset-0 rounded-2xl bg-cyan-500/10 blur-md scale-105" />
+              <Button
+                onClick={handleShoppingScan}
+                className="relative w-full flex items-center gap-3 bg-gradient-to-r from-cyan-900/70 to-blue-950/80 rounded-2xl py-3 h-auto border border-cyan-500/30 text-left"
+                data-testid="button-shopping-smart-scan"
+              >
+                <span className="text-xl">🧾</span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-white font-semibold text-sm leading-tight">Smart Scan</span>
+                  <span className="block text-cyan-300/60 text-xs mt-0.5">Analyze ingredients before you buy</span>
+                </span>
+                <span className="bg-cyan-500/20 border border-cyan-400/20 rounded-lg px-2 py-0.5 text-[10px] text-cyan-300 font-semibold uppercase tracking-wide flex-shrink-0">
+                  New
+                </span>
+              </Button>
+            </div>
+          )}
 
-          {/* Recent Scans — refreshes after each scan action */}
-          <RecentScans
-            key={scanRefreshKey}
-            refreshKey={scanRefreshKey}
-            onReopen={(result) => {
-              setShoppingSheetResult(result);
-              setShoppingSheetOpen(true);
-            }}
-          />
+          {/* Recent Scans — mobile/tablet only (camera scan history) */}
+          {!isDesktop && (
+            <RecentScans
+              key={scanRefreshKey}
+              refreshKey={scanRefreshKey}
+              onReopen={(result) => {
+                setShoppingSheetResult(result);
+                setShoppingSheetOpen(true);
+              }}
+            />
+          )}
 
           {/* Options - Group by aisle is default ON, rounding hidden */}
           <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center gap-3">
