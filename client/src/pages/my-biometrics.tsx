@@ -80,6 +80,7 @@ import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { markFirstLoopComplete, hasCompletedFirstLoop } from "@/lib/guestSuiteNavigator";
 import { useGuestNavigationGuard } from "@/hooks/useGuestNavigationGuard";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { JustDescribeItModal } from "@/components/JustDescribeItModal";
 import { getCurrentUser } from "@/lib/auth";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
@@ -140,6 +141,7 @@ const saveJSON = (k: string, v: any) => {
 export default function MyBiometrics() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const isDesktop = useIsDesktop();
   
   const [isProSession] = useState(() => localStorage.getItem("pro-session") === "true");
 
@@ -1919,15 +1921,17 @@ export default function MyBiometrics() {
               )}
             </div>
 
-            {/* Photo Upload Button */}
-            <Button
-              data-wt="bio-scan-button"
-              onClick={handlePhotoUpload}
-              className="w-full bg-lime-600 hover:bg-lime-600 text-md text-white mb-3"
-              data-testid="button-photo-upload"
-            >
-              📸 MacroScan
-            </Button>
+            {/* Photo Upload Button — mobile/tablet only */}
+            {!isDesktop && (
+              <Button
+                data-wt="bio-scan-button"
+                onClick={handlePhotoUpload}
+                className="w-full bg-lime-600 hover:bg-lime-600 text-md text-white mb-3"
+                data-testid="button-photo-upload"
+              >
+                📸 MacroScan
+              </Button>
+            )}
 
             <Button
               onClick={() => setOpenDescribe(true)}
@@ -1937,16 +1941,21 @@ export default function MyBiometrics() {
               ✏️ Just Describe It
             </Button>
 
-            <Button
-              onClick={handleIngredientScan}
-              className="w-full bg-orange-600/80 text-md text-white mb-1"
-              data-testid="button-ingredient-intelligence"
-            >
-              🧾 Ingredient Intelligence
-            </Button>
-            <p className="text-xs text-white/40 text-center leading-snug mb-3 px-2">
-              Understand packaged foods using your wellness profile, dietary preferences, and health goals.
-            </p>
+            {/* Ingredient Intelligence — mobile/tablet only */}
+            {!isDesktop && (
+              <>
+                <Button
+                  onClick={handleIngredientScan}
+                  className="w-full bg-orange-600/80 text-md text-white mb-1"
+                  data-testid="button-ingredient-intelligence"
+                >
+                  🧾 Ingredient Intelligence
+                </Button>
+                <p className="text-xs text-white/40 text-center leading-snug mb-3 px-2">
+                  Understand packaged foods using your wellness profile, dietary preferences, and health goals.
+                </p>
+              </>
+            )}
 
             {/* Quick View Panel (display only, no auto-logging) */}
             {qv && (
