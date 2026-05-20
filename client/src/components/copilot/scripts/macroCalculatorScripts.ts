@@ -5,7 +5,7 @@ export const MACRO_CALC_ENTRY =
   "Hey, nice to meet you. If you're looking for the perfect meal, you're in the right place. I'm Chef Copilot, and I'm going to walk you through the Macro Calculator. Together we'll set up your numbers so everything in this app is built around your goals. Tap Start when you're ready.";
 
 export const MACRO_CALC_GOAL =
-  "What's your goal? Are you wanting to cut, maintain, or build?";
+  "What's your goal? Choose Cut if you're working on fat loss. Maintain to hold your current weight. Build if you're adding muscle. Or Contest Prep — that's our competition protocol. It activates a special metabolic mode with high protein, very low starchy carbs, and lean-source-only settings that carry over into every meal generator in the app.";
 
 export const MACRO_CALC_COMMITMENT_LEVEL =
   "Next, tell me your commitment level. General means you're an everyday eater looking for realistic, sustainable targets. Committed means you're a consistent gym-goer or dieter and want more structured numbers. Athlete means performance is your priority, we'll push protein to its maximum regardless of your goal. Pick the one that best describes where you are right now.";
@@ -47,6 +47,12 @@ export const MACRO_CALC_BODY_COMPOSITION =
 
 export const MACRO_CALC_SAVE =
   "Perfect! Hit save and you're all set. Your macros are locked in. Let's head over to our meal builder";
+
+export const MACRO_CALC_SAVE_CONTEST_PREP =
+  "Your competition prep macros are locked in. Before you head to the meal builder, tap Apply below to activate Contest Prep mode across the whole app. That tells every single meal generator to match your competition standards — lean proteins, fibrous carbs, and clean preparations only. Once you hit Apply, you're locked in and ready to build.";
+
+export const MACRO_CALC_CONTEST_PREP =
+  "You're in Competition Prep mode. Here's what that means. I've set you up with a hard cut, a low-carb split, and a 30-gram starchy carb cap. But here's what makes this different from a regular cut — Contest Prep is a metabolic overlay. That means it doesn't just change your numbers. It tells every single meal generator in this app to give you lean protein sources, fibrous carbs, and competition-clean preparations. When you get to the save step, there's an Apply button that locks this mode in across the whole app. Tap Continue when you're ready.";
 
 export const MACRO_CALC_DONE = "";
 
