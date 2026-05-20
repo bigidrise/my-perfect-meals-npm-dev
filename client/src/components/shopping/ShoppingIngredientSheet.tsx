@@ -9,7 +9,6 @@ interface Props {
   onClose: () => void;
   onAddAnyway: () => void;
   onSaveForReview: () => void;
-  onLearnWhy: () => void;
 }
 
 const GRADE_CONFIG = {
@@ -47,7 +46,7 @@ const SCORE_CARDS_META = [
 ];
 
 export function ShoppingIngredientSheet({
-  open, result, onClose, onAddAnyway, onSaveForReview, onLearnWhy,
+  open, result, onClose, onAddAnyway, onSaveForReview,
 }: Props) {
   const [decoderExpanded, setDecoderExpanded] = useState(false);
   const grade = result ? GRADE_CONFIG[result.alignmentGrade] ?? GRADE_CONFIG.B : null;
@@ -202,22 +201,13 @@ export function ShoppingIngredientSheet({
                   Add to Shopping List
                 </button>
                 <p className="text-xs text-white/30 text-center -mt-1">Balance matters more than perfection.</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={onSaveForReview}
-                    className="flex items-center justify-center gap-1.5 bg-white/8 border border-white/10 rounded-xl py-3 text-white/70 text-sm"
-                  >
-                    <Bookmark className="w-3.5 h-3.5" />
-                    Save for Review
-                  </button>
-                  <button
-                    onClick={onLearnWhy}
-                    className="flex items-center justify-center gap-1.5 bg-white/8 border border-white/10 rounded-xl py-3 text-white/70 text-sm"
-                  >
-                    <img src="/icons/ChefMascotLogo.png" alt="" className="w-4 h-4 rounded-full" />
-                    Full Analysis
-                  </button>
-                </div>
+                <button
+                  onClick={onSaveForReview}
+                  className="w-full flex items-center justify-center gap-1.5 bg-white/8 border border-white/10 rounded-xl py-3 text-white/70 text-sm"
+                >
+                  <Bookmark className="w-3.5 h-3.5" />
+                  Save Scan
+                </button>
               </div>
 
               <p className="text-[10px] text-white/15 text-center mt-4 leading-relaxed px-2">
