@@ -118,15 +118,15 @@ export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
           >
-            <div className="px-4 pt-4 pb-8 max-w-lg mx-auto">
-              <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-3" />
+            <div className="px-4 pt-10 pb-8 max-w-lg mx-auto">
+              <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-5" />
 
               {/* Header with chef mascot */}
               <div className="flex items-center gap-3 mb-4">
                 <img
                   src="/icons/ChefMascotLogo.png"
                   alt="Chef"
-                  className="w-12 h-12 rounded-full object-cover border-2 border-orange-500/40"
+                  className="w-24 h-24 rounded-full object-cover border-2 border-orange-500/40"
                 />
                 <div className="flex-1">
                   <p className="text-xs text-orange-400 font-bold uppercase tracking-wide">Ingredient Intelligence</p>
