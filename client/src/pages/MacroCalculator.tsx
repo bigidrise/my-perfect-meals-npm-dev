@@ -583,6 +583,8 @@ export default function MacroCounter() {
   const { toast } = useToast();
   const { user, refreshUser } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
+  const [isApplyingOverlay, setIsApplyingOverlay] = useState(false);
+  const [overlayApplied, setOverlayApplied] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const isDirtyFirstRenderRef = useRef(true);
   const [isProSession] = useState(() => localStorage.getItem("pro-session") === "true");
@@ -1130,15 +1132,14 @@ export default function MacroCounter() {
             sex, kg, cm, age,
             activity: activity || "moderate",
             goal: goal === "contest_prep" ? "loss" : goal,
+            performanceOverlay: goal === "contest_prep" ? "competition_prep" : "standard",
             userType, bodyType,
             highWaistRisk,
             menopause: !!(clinicalFlags.menopause?.enabled),
             insulinResistance: !!(clinicalFlags.insulinResistance?.enabled),
             highStress: !!(clinicalFlags.highStress?.enabled),
             mealsPerDay, fibrousCarbSafetyCap_g,
-            cutIntensity: goal === "contest_prep" ? "hard" : cutIntensity,
-            cutStyle: goal === "contest_prep" ? "lowCarb" : cutStyle,
-            starchyCarbCap_g: goal === "contest_prep" ? 30 : starchyCarbCap_g,
+            cutIntensity, cutStyle, starchyCarbCap_g,
             allowZeroStarchyOnLowDay, strictMode,
           }),
         });
@@ -2591,6 +2592,43 @@ export default function MacroCounter() {
                         </span>
                       </div>
                     </div>
+
+                    {/* Performance Overlay — Apply to Profile */}
+                    {goal === "contest_prep" && (
+                      <div className="bg-orange-950/40 border border-orange-500/30 rounded-xl p-4 space-y-2">
+                        <p className="text-sm font-semibold text-orange-300">Use Competition Prep Across My App</p>
+                        <p className="text-xs text-white/60">
+                          Apply this metabolic mode so all of your meal generators match your prep goals.
+                        </p>
+                        <button
+                          disabled={isApplyingOverlay || overlayApplied}
+                          onClick={async () => {
+                            setIsApplyingOverlay(true);
+                            try {
+                              const res = await fetch(apiUrl("/api/users/profile"), {
+                                method: "PUT",
+                                headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+                                credentials: "include",
+                                body: JSON.stringify({ performanceOverlay: "competition_prep" }),
+                              });
+                              if (res.ok) {
+                                setOverlayApplied(true);
+                                toast({ title: "Metabolic mode applied", description: "Competition Prep is now active across your app." });
+                              } else {
+                                toast({ title: "Could not apply", description: "Please try again.", variant: "destructive" });
+                              }
+                            } catch {
+                              toast({ title: "Could not apply", description: "Please try again.", variant: "destructive" });
+                            } finally {
+                              setIsApplyingOverlay(false);
+                            }
+                          }}
+                          className="w-full py-2 bg-orange-600 disabled:opacity-50 text-white text-sm font-semibold rounded-lg"
+                        >
+                          {overlayApplied ? "✓ Applied" : isApplyingOverlay ? "Applying…" : "Apply"}
+                        </button>
+                      </div>
+                    )}
 
                     <Button
                       disabled={!isCalcInputValid || isSaving}

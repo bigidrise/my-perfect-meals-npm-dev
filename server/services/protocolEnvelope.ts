@@ -412,7 +412,16 @@ export interface UserProtocolEnvelope {
    *           GLP-1 optimization (high protein, soft textures, smaller volume). */
   medicalOptimization: string[];
 
-  /** Tier 5 — Avoidances: foods the user has marked as unwanted.
+  /**
+   * Tier 5 — Performance Intent: metabolic operating mode stored on the user profile.
+   * Shapes macro bias, protein floor, carb structure, and AI meal generation emphasis.
+   * NEVER overrides Tiers 1–4. Medical safety and dietary identity always win.
+   * "standard" = no performance shaping applied (default for all users).
+   */
+  performanceOverlay: "standard" | "performance" | "competition_prep" | "recovery" | "recomp";
+  performanceControlMode: "self_guided" | "coach_controlled";
+
+  /** Tier 6 — Avoidances: foods the user has marked as unwanted.
    * Examples: seafood, pork, mushrooms, cilantro, spicy.
    * Expanded automatically via AVOIDANCE_EXPANSION. */
   avoidances: string[];
@@ -526,6 +535,7 @@ export interface ProtocolPromptBlock {
     dietaryIdentity: string;
     allergies: string;
     medicalHardLimits: string;
+    performanceIntent: string;
     avoidances: string;
     procedural: string;
     preferences: string;
@@ -633,6 +643,8 @@ export async function loadUserProtocolEnvelope(
         fitnessGoal: users.fitnessGoal,
         goalType: (users as any).goalType,
         goalTarget: (users as any).goalTarget,
+        performanceOverlay: (users as any).performanceOverlay,
+        performanceControlMode: (users as any).performanceControlMode,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -796,6 +808,8 @@ export async function loadUserProtocolEnvelope(
       fitnessGoal: (user.fitnessGoal as string | null) ?? null,
       goalType: ((user as any).goalType as "lose" | "maintain" | "gain" | null) ?? null,
       goalTarget: ((user as any).goalTarget as string | null) ?? null,
+      performanceOverlay: (((user as any).performanceOverlay as string | null) ?? "standard") as "standard"|"performance"|"competition_prep"|"recovery"|"recomp",
+      performanceControlMode: (((user as any).performanceControlMode as string | null) ?? "self_guided") as "self_guided"|"coach_controlled",
     };
   } catch (error) {
     console.error("[ProtocolEnvelope] Failed to load envelope:", error);
@@ -829,6 +843,8 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     fitnessGoal: null,
     goalType: null,
     goalTarget: null,
+    performanceOverlay: "standard",
+    performanceControlMode: "self_guided",
   };
 }
 
@@ -880,6 +896,7 @@ export function enforceBeforeGenerate(
     dietaryIdentity: "",
     allergies: "",
     medicalHardLimits: "",
+    performanceIntent: "",
     avoidances: "",
     procedural: "",
     preferences: "",
@@ -987,7 +1004,30 @@ A meal can be ingredient-correct and still be protocol-wrong if the instructions
 ${proceduralParts.join("\n")}`;
   }
 
-  // ── TIER 5: Avoidances ────────────────────────────────────────────────────
+  // ── TIER 5: Performance Intent ────────────────────────────────────────────
+  // Shapes macro bias, protein floor, carb allocation, and AI generation emphasis.
+  // Sits below all medical/safety tiers — never overrides them.
+  if (envelope.performanceOverlay && envelope.performanceOverlay !== "standard") {
+    const overlayLabels: Record<string, string> = {
+      performance:      "Performance",
+      competition_prep: "Competition Prep",
+      recovery:         "Recovery",
+      recomp:           "Body Recomposition",
+    };
+    const overlayLabel = overlayLabels[envelope.performanceOverlay] ?? envelope.performanceOverlay;
+    const directives: Record<string, string> = {
+      performance: `This user is in Performance mode. Within all medical/dietary constraints above:\n- Prioritize adequate protein for muscle recovery (lean sources preferred)\n- Include balanced complex carbohydrates for training energy\n- Emphasize whole food nutrient density\n- Support meal timing context (pre/post workout when relevant)`,
+      competition_prep: `This user is in Competition Prep mode. Within all medical/dietary constraints above:\n- Prioritize high protein from lean sources (chicken breast, white fish, egg whites, lean turkey, Greek yogurt)\n- Minimize starchy carbs — prefer fibrous carbohydrates (leafy greens, non-starchy vegetables)\n- Avoid sugar and heavily processed ingredients\n- Use lean preparation methods (grilled, baked, steamed — not fried or cream-sauced)\n- Maximize satiety despite lower caloric density\nThis tightens within active constraints — it never replaces medical or dietary rules.`,
+      recovery: `This user is in Recovery mode. Within all medical/dietary constraints above:\n- Prioritize anti-inflammatory foods (omega-3 proteins, colorful vegetables, berries)\n- Adequate protein for muscle repair\n- Complex carbohydrates for glycogen replenishment\n- Easy-to-digest preparations and gentle cooking methods`,
+      recomp: `This user is in Body Recomposition mode. Within all medical/dietary constraints above:\n- Protein-first in every meal (lean, high-quality sources)\n- Moderate complex carbohydrates timed around activity\n- Controlled portions with high nutrient density\n- Balanced macros without aggressive caloric deficit`,
+    };
+    const directive = directives[envelope.performanceOverlay];
+    if (directive) {
+      layers.performanceIntent = `\n🏋️ PERFORMANCE INTENT — ${overlayLabel.toUpperCase()} (applies within all safety and medical rules above):\n${directive}`;
+    }
+  }
+
+  // ── TIER 6: Avoidances ────────────────────────────────────────────────────
   if (envelope.avoidances.length > 0) {
     const expandedAvoidances = expandAvoidances(envelope.avoidances);
     const avoidList = expandedAvoidances.join(", ");
@@ -1000,7 +1040,7 @@ The user has marked these as foods they do not eat: ${avoidList}
 - This rule has no exceptions once dietary identity and medical limits are satisfied.`;
   }
 
-  // ── TIER 6: Preferences ───────────────────────────────────────────────────
+  // ── TIER 7: Preferences ───────────────────────────────────────────────────
   if (envelope.preferences.length > 0) {
     const prefList = envelope.preferences.join(", ");
     layers.preferences = `\n✅ PREFERENCES (apply last, only within all constraints above):
@@ -1120,6 +1160,7 @@ SELF-CHECK before responding: Verify the meal reflects at least 3 of these authe
     layers.allergies,
     layers.medicalHardLimits,
     layers.procedural,
+    layers.performanceIntent,
     layers.avoidances,
     layers.preferences,
   ]

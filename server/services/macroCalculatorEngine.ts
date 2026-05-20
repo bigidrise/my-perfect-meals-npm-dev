@@ -16,6 +16,38 @@ export type UserType = "general" | "committed" | "athlete";
 export type CutIntensity = "hard" | "moderate" | "none";
 export type CutStyle = "balanced" | "lowCarb";
 
+export type PerformanceOverlay = "standard" | "performance" | "competition_prep" | "recovery" | "recomp";
+export type PerformanceControlMode = "self_guided" | "coach_controlled";
+
+const OVERLAY_MACRO_DEFAULTS: Record<PerformanceOverlay, Partial<Pick<MacroComputeInput, "goal"|"cutIntensity"|"cutStyle"|"starchyCarbCap_g">>> = {
+  standard:          {},
+  performance:       { cutIntensity: "none" },
+  competition_prep:  { goal: "loss", cutIntensity: "hard", cutStyle: "lowCarb", starchyCarbCap_g: 30 },
+  recovery:          { cutIntensity: "none", cutStyle: "balanced" },
+  recomp:            { goal: "maint", cutIntensity: "moderate", cutStyle: "balanced" },
+};
+
+/**
+ * Applies performance overlay defaults to a partial MacroComputeInput.
+ * Overlay defaults are applied ONLY for fields not explicitly provided (undefined).
+ * Explicit caller-provided values always win.
+ * Returns the merged input — does not mutate the original.
+ */
+export function resolvePerformanceMacroStrategy(
+  base: Partial<MacroComputeInput>,
+  overlay: PerformanceOverlay,
+): Partial<MacroComputeInput> {
+  if (overlay === "standard") return base;
+  const defaults = OVERLAY_MACRO_DEFAULTS[overlay] ?? {};
+  const merged: Partial<MacroComputeInput> = { ...defaults };
+  for (const key of Object.keys(base) as (keyof MacroComputeInput)[]) {
+    if (base[key] !== undefined) {
+      (merged as any)[key] = base[key];
+    }
+  }
+  return merged;
+}
+
 export interface MacroComputeInput {
   sex: Sex;
   kg: number;
