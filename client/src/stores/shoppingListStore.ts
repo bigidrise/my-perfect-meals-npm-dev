@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { classifyIngredient, normalizeIngredientName } from '@/utils/ingredientClassifier';
 import { normalizeIngredient } from '@shared/ingredientNormalizer';
 import type { IngredientCategory } from '@/data/ingredientCategories';
+import { getAuthHeaders } from '@/lib/auth';
 
 // ── Cross-unit conversion tables ──────────────────────────────────────────────
 const VOLUME_TO_ML: Record<string, number> = {
@@ -204,7 +205,7 @@ function serverPost(items: ShoppingListItem[]) {
   fetch('/api/shopping-list', {
     method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify({
       items,
       scopeType: 'adhoc',
@@ -220,7 +221,7 @@ function serverPatch(serverId: string, quantity: number, unit: string) {
   fetch(`/api/shopping-list-v2/${serverId}`, {
     method: 'PATCH',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify({ quantity: quantity.toString(), unit }),
   }).catch(() => {});
 }
@@ -242,7 +243,7 @@ export const useShoppingListStore = create<ShoppingListStore>()(
         set({ isHydrating: true });
 
         try {
-          const res = await fetch('/api/shopping-list-v2/', { credentials: 'include' });
+          const res = await fetch('/api/shopping-list-v2/', { credentials: 'include', headers: getAuthHeaders() });
           if (!res.ok) {
             set({ isHydrating: false });
             return;
@@ -285,7 +286,7 @@ export const useShoppingListStore = create<ShoppingListStore>()(
               await fetch('/api/shopping-list', {
                 method: 'POST',
                 credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                 body: JSON.stringify({
                   items: localOnly,
                   scopeType: 'adhoc',
@@ -294,7 +295,7 @@ export const useShoppingListStore = create<ShoppingListStore>()(
               });
 
               // Re-fetch to get server UUIDs for all items (including just-pushed ones)
-              const res2 = await fetch('/api/shopping-list-v2/', { credentials: 'include' });
+              const res2 = await fetch('/api/shopping-list-v2/', { credentials: 'include', headers: getAuthHeaders() });
               if (res2.ok) {
                 const { items: refreshed } = await res2.json() as { items: any[] };
                 const all = deduplicateServerItems(refreshed.map(mapServerItem));

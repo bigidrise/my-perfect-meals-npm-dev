@@ -984,10 +984,11 @@ export default function ShoppingListMasterView() {
           result={shoppingSheetResult}
           onClose={() => setShoppingSheetOpen(false)}
           onAddAnyway={() => {
+            if (shoppingSheetResult) {
+              addItem({ name: "Scanned Item", quantity: 1, unit: "" });
+              toast({ title: "Added to list", description: "You can rename it by tapping the item." });
+            }
             setShoppingSheetOpen(false);
-            setTimeout(() => {
-              document.getElementById("add-other-items")?.scrollIntoView({ behavior: "smooth", block: "center" });
-            }, 150);
           }}
           onSaveForReview={() => {
             if (shoppingSheetResult) {
