@@ -675,7 +675,7 @@ export default function MacroCounter() {
 
   // Strategy layer state
   const [cutIntensity, setCutIntensity] = useState<CutIntensity>(
-    existingTargets?.cutIntensity ?? "standard"
+    (existingTargets?.cutIntensity === "standard" ? "none" : existingTargets?.cutIntensity) ?? "none"
   );
   const [cutStyle, setCutStyle] = useState<CutStyle>(
     existingTargets?.cutStyle ?? "balanced"
@@ -2344,14 +2344,14 @@ export default function MacroCounter() {
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-white/80">Cut Intensity</p>
                       <div className="space-y-3">
-                        <div className={`p-4 rounded-xl border transition-all ${cutIntensity === "standard" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                        <div className={`p-4 rounded-xl border transition-all ${cutIntensity === "none" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
                           <div className="flex items-center justify-between">
                             <div>
                               <span className="text-sm font-medium text-white">Standard</span>
                               <p className="text-xs text-white/60 mt-0.5">Balanced deficit — recommended for most goals</p>
                             </div>
-                            <PillButton onClick={() => setCutIntensity("standard")} active={cutIntensity === "standard"}>
-                              {cutIntensity === "standard" ? "On" : "Off"}
+                            <PillButton onClick={() => setCutIntensity("none")} active={cutIntensity === "none"}>
+                              {cutIntensity === "none" ? "On" : "Off"}
                             </PillButton>
                           </div>
                         </div>
