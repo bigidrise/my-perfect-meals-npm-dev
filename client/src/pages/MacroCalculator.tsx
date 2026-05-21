@@ -2605,8 +2605,22 @@ export default function MacroCounter() {
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-white/70">Carbs:</span>
+                        <span className="text-white/70">Starchy Carbs:</span>
                         <span className="text-white font-semibold">
+                          {Math.max(0, results.macros.carbs.starchy + (advisoryDeltas.carbs > 0 ? Math.round(advisoryDeltas.carbs * 0.4) : Math.round(advisoryDeltas.carbs * 0.4)))}
+                          g
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/70">Fibrous Carbs:</span>
+                        <span className="text-white font-semibold">
+                          {Math.max(0, results.macros.carbs.fibrous + (advisoryDeltas.carbs > 0 ? Math.round(advisoryDeltas.carbs * 0.6) : Math.round(advisoryDeltas.carbs * 0.6)))}
+                          g
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm border-t border-white/10 pt-2">
+                        <span className="text-white/50 text-xs">Total Carbs:</span>
+                        <span className="text-white/50 text-xs font-medium">
                           {Math.max(
                             0,
                             results.macros.carbs.g + advisoryDeltas.carbs,
