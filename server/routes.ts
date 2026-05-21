@@ -6956,6 +6956,9 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   const { default: manualMacrosRouterShared } = await import("./routes/manualMacros");
   app.use("/api", manualMacrosRouterShared);
 
+  const { default: patternAlertsRouter } = await import("./routes/patternAlerts");
+  app.use("/api", patternAlertsRouter);
+
   const { default: clinicalLabsRouterShared } = await import("./routes/clinicalLabs");
   app.use("/api/biometrics/labs", clinicalLabsRouterShared);
 
