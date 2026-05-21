@@ -1471,7 +1471,7 @@ export default function AntiInflammatoryMenuBuilder() {
                                 } else {
                                   const updatedDayLists = { ...dayLists, [key]: dayLists[key as keyof typeof dayLists].map((e, i) => i === idx ? m : e) };
                                   const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
-                                  putWeekBoard(weekStartISO, updatedBoard, proClientId).then(({ week }) => setBoard(week));
+                                  putWeekBoard(weekStartISO, updatedBoard, proClientId).then(({ week }) => { if (week) setBoard(week); });
                                 }
                               }}
                             />
@@ -1532,7 +1532,7 @@ export default function AntiInflammatoryMenuBuilder() {
                 );
               })()
             : // WEEK MODE: Meal 1/2/3 only
-              lists.map(([key, label]) => (
+              board ? lists.map(([key, label]) => (
                 <section key={key} data-meal-id={key} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-white/90 text-lg font-medium">{label}</h2>
@@ -1571,7 +1571,7 @@ export default function AntiInflammatoryMenuBuilder() {
                     )}
                   </div>
                 </section>
-              ))}
+              )) : null}
 
           {/* Pro Tip Card */}
           <ProTipCard />
