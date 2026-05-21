@@ -81,6 +81,13 @@ export const KEYWORD_FEATURE_MAP: FeatureMapping[] = [
     walkthroughId: "macro-calculator",
     keywords: ["macros", "macro calculator", "protein calculator", "calorie calculator", "macro counter", "calculator", "calculate", "macro setup", "macro goals", "macro tool", "calculate macros", "macro math", "macro calc"],
   },
+
+  // Performance Modes / Competition Prep
+  {
+    path: "/macro-counter",
+    walkthroughId: "macro-calculator",
+    keywords: ["competition prep", "contest prep", "competition prep mode", "contest prep mode", "performance mode", "performance modes", "performance overlay", "metabolic mode", "comp prep", "prep mode", "stage prep mode", "competition mode"],
+  },
   
   // My Diet Biometrics
   {
