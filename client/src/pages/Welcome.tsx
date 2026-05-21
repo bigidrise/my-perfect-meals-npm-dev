@@ -385,7 +385,7 @@ export default function Welcome() {
           <img
             src="/icons/ChefMPMLogo.png"
             alt="My Perfect Meals"
-            className="h-56 w-auto mx-auto drop-shadow-[0_0_24px_rgba(251,146,60,0.3)]"
+            className="h-56 w-auto mx-auto"
           />
         </div>
 
