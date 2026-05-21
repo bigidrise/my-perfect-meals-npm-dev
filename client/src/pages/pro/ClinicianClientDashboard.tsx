@@ -1078,7 +1078,7 @@ export default function ClinicianClientDashboard() {
                   value={ctx.followupDate || ""}
                   min={new Date().toISOString().split("T")[0]}
                   onChange={(e) => setCtx({ ...ctx, followupDate: e.target.value })}
-                  className="w-full bg-white/5 border border-white/20 rounded-xl px-3 py-2 pr-10 text-sm text-white [color-scheme:dark]"
+                  className="w-full bg-white/5 border border-white/20 rounded-xl px-3 py-2 pr-10 text-sm text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute"
                 />
                 <button
                   type="button"
