@@ -16,8 +16,9 @@ import { requirePremiumAccess } from "./middleware/requirePremiumAccess";
 import { requireMacroProfile } from "./middleware/requireMacroProfile";
 import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems, savedMeals as savedMealsTable, creators } from "@shared/schema";
 import { studioMemberships, studios } from "./db/schema/studio";
+import { mealImageCache } from "./db/schema/mealImageCache";
 import { db } from "./db";
-import { and, eq, gte, lte, desc, sql } from "drizzle-orm";
+import { and, eq, gte, lte, desc, sql, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { reminderService } from "./reminderService";
 import { generateMealPlan } from "./ai-service";
@@ -6689,12 +6690,40 @@ Provide a single exceptional meal recommendation in JSON format with the followi
         return res.json({ saved: false, id: null });
       }
 
+      // Swap in the permanent S3 URL before storing so saved meals always
+      // have a durable image URL rather than a base64 data URL or temp link.
+      let finalMealData: any = { ...mealData };
+      try {
+        const [cached] = await db
+          .select({ imageUrl: mealImageCache.imageUrl })
+          .from(mealImageCache)
+          .where(eq(mealImageCache.mealName, title.trim()))
+          .limit(1);
+
+        if (cached && cached.imageUrl.includes("amazonaws.com")) {
+          finalMealData = { ...finalMealData, imageUrl: cached.imageUrl };
+        } else {
+          // Strip data URLs (too large for JSONB) and expiring temp URLs
+          const img: string | undefined = mealData.imageUrl;
+          if (
+            img &&
+            (img.startsWith("data:") ||
+              img.includes("oaidalleapiprodscus") ||
+              img.includes("blob.core.windows"))
+          ) {
+            finalMealData = { ...finalMealData, imageUrl: null };
+          }
+        }
+      } catch {
+        // non-fatal — save with whatever imageUrl is present
+      }
+
       const [row] = await db.insert(savedMealsTable).values({
         userId: String(userId),
         title: title.trim(),
         sourceType: sourceType || "unknown",
         signatureHash: hash,
-        mealData,
+        mealData: finalMealData,
       }).returning();
 
       return res.json({ saved: true, id: row.id });
@@ -6712,7 +6741,42 @@ Provide a single exceptional meal recommendation in JSON format with the followi
         .where(eq(savedMealsTable.userId, String(userId)))
         .orderBy(desc(savedMealsTable.createdAt));
 
-      res.json(rows);
+      // Back-fill permanent S3 URLs for any meals stored without one
+      let enrichedRows: typeof rows = rows;
+      const needsEnrich = rows.filter(r => {
+        const img = (r.mealData as any)?.imageUrl as string | undefined;
+        return !img || img.startsWith("data:") || img.includes("oaidalleapiprodscus");
+      });
+      if (needsEnrich.length > 0) {
+        try {
+          const names = [...new Set(needsEnrich.map(r => r.title.trim()))];
+          const cachedEntries = await db
+            .select({ mealName: mealImageCache.mealName, imageUrl: mealImageCache.imageUrl })
+            .from(mealImageCache)
+            .where(inArray(mealImageCache.mealName, names));
+          const byName = new Map(
+            cachedEntries
+              .filter(c => c.imageUrl.includes("amazonaws.com"))
+              .map(c => [c.mealName, c.imageUrl])
+          );
+          if (byName.size > 0) {
+            enrichedRows = rows.map(r => {
+              const img = (r.mealData as any)?.imageUrl as string | undefined;
+              if (!img || img.startsWith("data:") || img.includes("oaidalleapiprodscus")) {
+                const s3Url = byName.get(r.title.trim());
+                if (s3Url) {
+                  return { ...r, mealData: { ...(r.mealData as any), imageUrl: s3Url } };
+                }
+              }
+              return r;
+            });
+          }
+        } catch {
+          // non-fatal — return original rows if enrichment fails
+        }
+      }
+
+      res.json(enrichedRows);
     } catch (error) {
       console.error("Error listing saved meals:", error);
       res.status(500).json({ error: "Failed to list saved meals" });
