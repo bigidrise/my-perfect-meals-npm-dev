@@ -25,10 +25,11 @@ type ChartDay = {
   label: string;
   fullDate: string;
   protein: number;
-  carbs: number;
-  fat: number;
+  unsplitCarbs: number;
   starchyCarbs: number;
   fibrousCarbs: number;
+  fat: number;
+  totalCarbs: number;
   kcal: number;
   hasCarbSplit: boolean;
 };
@@ -56,16 +57,25 @@ function buildDays(macroRows: OfflineDay[], n: number): ChartDay[] {
     d.setDate(d.getDate() - i);
     const key = makeKey(d);
     const row = byDay.get(key);
+
     const sc = Number(row?.starchyCarbs) || 0;
     const fc = Number(row?.fibrousCarbs) || 0;
+    const totalCarbs = Number(row?.carbs) || 0;
+    // Unsplit carbs = whatever carbs are NOT already accounted for by starchy/fibrous
+    // When split mode is used: carbs = SC + FC, so unsplitCarbs = 0
+    // When non-split: carbs = total, SC = FC = 0, so unsplitCarbs = total
+    // Mixed days: correctly preserves both portions
+    const unsplitCarbs = Math.max(0, totalCarbs - sc - fc);
+
     out.push({
       label: formatLabel(key),
       fullDate: key,
       protein: Number(row?.protein) || 0,
-      carbs: Number(row?.carbs) || 0,
-      fat: Number(row?.fat) || 0,
+      unsplitCarbs,
       starchyCarbs: sc,
       fibrousCarbs: fc,
+      fat: Number(row?.fat) || 0,
+      totalCarbs,
       kcal: Number(row?.kcal) || 0,
       hasCarbSplit: sc > 0 || fc > 0,
     });
@@ -85,24 +95,31 @@ const CustomTooltip = ({ active, payload }: any) => {
       </div>
       {d.hasCarbSplit ? (
         <>
+          {d.unsplitCarbs > 0 && (
+            <div className="flex justify-between gap-6">
+              <span className="text-amber-400">Carbs</span>
+              <span className="font-medium">{d.unsplitCarbs}g</span>
+            </div>
+          )}
           <div className="flex justify-between gap-6">
-            <span className="text-amber-400">Starchy Carbs</span>
+            <span className="text-yellow-300">Starchy Carbs</span>
             <span className="font-medium">{d.starchyCarbs}g</span>
           </div>
           <div className="flex justify-between gap-6">
             <span className="text-lime-400">Fibrous Carbs</span>
             <span className="font-medium">{d.fibrousCarbs}g</span>
           </div>
+          {d.totalCarbs > 0 && (
+            <div className="flex justify-between gap-6 border-t border-white/10 pt-1 text-white/40">
+              <span>Total Carbs</span>
+              <span>{d.totalCarbs}g</span>
+            </div>
+          )}
         </>
       ) : (
         <div className="flex justify-between gap-6">
-          <span className="text-amber-400">
-            Carbs
-            {d.carbs > 0 && (
-              <span className="text-white/30 ml-1">(split unavailable)</span>
-            )}
-          </span>
-          <span className="font-medium">{d.carbs}g</span>
+          <span className="text-amber-400">Carbs</span>
+          <span className="font-medium">{d.totalCarbs}g</span>
         </div>
       )}
       <div className="flex justify-between gap-6">
@@ -153,7 +170,7 @@ export default function MacroConsistencyTimeline({ macroRows }: Props) {
   );
 
   const hasAnyData = days.some(
-    (d) => d.protein > 0 || d.carbs > 0 || d.fat > 0
+    (d) => d.protein > 0 || d.totalCarbs > 0 || d.fat > 0
   );
   const anyCarbSplit = days.some((d) => d.hasCarbSplit);
   const tickInterval = tickIntervalFor(view);
@@ -171,7 +188,9 @@ export default function MacroConsistencyTimeline({ macroRows }: Props) {
             Macro Consistency
           </CardTitle>
           <p className="text-xs text-white/40 mt-0.5">
-            Protein · Carbs · Fat · {anyCarbSplit ? "Carb split in tooltip" : "Log meals to see trends"}
+            {anyCarbSplit
+              ? "Protein · Starchy · Fibrous · Fat"
+              : "Protein · Carbs · Fat · Log meals to see trends"}
           </p>
         </div>
         <div className="flex gap-0.5 bg-black/30 p-1 rounded-lg shrink-0">
@@ -240,10 +259,22 @@ export default function MacroConsistencyTimeline({ macroRows }: Props) {
                     fill="#f97316"
                   />
                   <Bar
-                    dataKey="carbs"
+                    dataKey="unsplitCarbs"
                     name="Carbs"
                     stackId="macros"
                     fill="#fbbf24"
+                  />
+                  <Bar
+                    dataKey="starchyCarbs"
+                    name="Starchy Carbs"
+                    stackId="macros"
+                    fill="#eab308"
+                  />
+                  <Bar
+                    dataKey="fibrousCarbs"
+                    name="Fibrous Carbs"
+                    stackId="macros"
+                    fill="#84cc16"
                   />
                   <Bar
                     dataKey="fat"
@@ -261,19 +292,27 @@ export default function MacroConsistencyTimeline({ macroRows }: Props) {
                 <div className="w-3 h-3 rounded-sm bg-orange-500 shrink-0" />
                 <span>Protein</span>
               </div>
-              <div className="flex items-center gap-1.5 text-xs text-white/70">
-                <div className="w-3 h-3 rounded-sm bg-amber-400 shrink-0" />
-                <span>Carbs</span>
-              </div>
+              {anyCarbSplit ? (
+                <>
+                  <div className="flex items-center gap-1.5 text-xs text-white/70">
+                    <div className="w-3 h-3 rounded-sm bg-yellow-500 shrink-0" />
+                    <span>Starchy</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-white/70">
+                    <div className="w-3 h-3 rounded-sm bg-lime-500 shrink-0" />
+                    <span>Fibrous</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-1.5 text-xs text-white/70">
+                  <div className="w-3 h-3 rounded-sm bg-amber-400 shrink-0" />
+                  <span>Carbs</span>
+                </div>
+              )}
               <div className="flex items-center gap-1.5 text-xs text-white/70">
                 <div className="w-3 h-3 rounded-sm bg-slate-500 shrink-0" />
                 <span>Fat</span>
               </div>
-              {anyCarbSplit && (
-                <span className="text-xs text-white/30 ml-auto">
-                  Tap bar for carb split
-                </span>
-              )}
             </div>
 
             <p className="text-xs text-white/25 text-center mt-3">
