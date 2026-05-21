@@ -1194,13 +1194,27 @@ export default function TrainerClientDashboard() {
                   );
                 })}
               </div>
-              <input
-                type="date"
-                value={ctx.checkInDate || ""}
-                min={new Date().toISOString().split("T")[0]}
-                onChange={(e) => setCtx({ ...ctx, checkInDate: e.target.value })}
-                className="w-full bg-white/5 border border-white/20 rounded-xl px-3 py-2 text-sm text-white [color-scheme:dark]"
-              />
+              <div className="relative">
+                <input
+                  id="trainer-checkin-date"
+                  type="date"
+                  value={ctx.checkInDate || ""}
+                  min={new Date().toISOString().split("T")[0]}
+                  onChange={(e) => setCtx({ ...ctx, checkInDate: e.target.value })}
+                  className="w-full bg-white/5 border border-white/20 rounded-xl px-3 py-2 pr-10 text-sm text-white [color-scheme:dark]"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById("trainer-checkin-date") as HTMLInputElement | null;
+                    if (el) { try { (el as any).showPicker(); } catch { el.focus(); } }
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-white/80 p-1 rounded-lg bg-white/10 active:scale-[0.95]"
+                  aria-label="Open date picker"
+                >
+                  <CalendarCheck className="h-4 w-4" />
+                </button>
+              </div>
             </div>
             <div>
               <p className="text-xs text-white/50 mb-1">Coaching notes for this check-in</p>
