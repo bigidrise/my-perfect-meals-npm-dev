@@ -460,7 +460,7 @@ export function getSemanticFallback(mealName: string): string {
 // Bump "v2", "v3" etc. to invalidate all cached images after prompt changes.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 
 export function buildStableCacheKey(mealName: string, ingredients: string[]): string {
   const normalizedName = mealName.toLowerCase().trim();

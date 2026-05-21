@@ -6698,6 +6698,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
           .select({ imageUrl: mealImageCache.imageUrl })
           .from(mealImageCache)
           .where(eq(mealImageCache.mealName, title.trim()))
+          .orderBy(desc(mealImageCache.createdAt))
           .limit(1);
 
         if (cached && cached.imageUrl.includes("amazonaws.com")) {
@@ -6751,14 +6752,17 @@ Provide a single exceptional meal recommendation in JSON format with the followi
         try {
           const names = [...new Set(needsEnrich.map(r => r.title.trim()))];
           const cachedEntries = await db
-            .select({ mealName: mealImageCache.mealName, imageUrl: mealImageCache.imageUrl })
+            .select({ mealName: mealImageCache.mealName, imageUrl: mealImageCache.imageUrl, createdAt: mealImageCache.createdAt })
             .from(mealImageCache)
-            .where(inArray(mealImageCache.mealName, names));
-          const byName = new Map(
-            cachedEntries
-              .filter(c => c.imageUrl.includes("amazonaws.com"))
-              .map(c => [c.mealName, c.imageUrl])
-          );
+            .where(inArray(mealImageCache.mealName, names))
+            .orderBy(desc(mealImageCache.createdAt));
+          // Build map keeping only the most-recent S3 entry per meal name
+          const byName = new Map<string, string>();
+          for (const c of cachedEntries) {
+            if (!byName.has(c.mealName) && c.imageUrl.includes("amazonaws.com")) {
+              byName.set(c.mealName, c.imageUrl);
+            }
+          }
           if (byName.size > 0) {
             enrichedRows = rows.map(r => {
               const img = (r.mealData as any)?.imageUrl as string | undefined;
