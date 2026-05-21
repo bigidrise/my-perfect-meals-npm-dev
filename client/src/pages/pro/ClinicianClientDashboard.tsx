@@ -32,6 +32,7 @@ import {
   type ProfessionalBuilderKey,
 } from "@/lib/professionalBuilderMap";
 import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
+import AddToCalendarButtons from "@/components/AddToCalendarButtons";
 import { assignBuilderToClient } from "@/lib/assignBuilderToClient";
 import { useToast } from "@/hooks/use-toast";
 import { PillButton } from "@/components/ui/pill-button";
@@ -1025,22 +1026,40 @@ export default function ClinicianClientDashboard() {
               <div className="space-y-2">
                 <p className="text-xs text-blue-400 font-semibold uppercase tracking-wide">Upcoming Appointments</p>
                 {upcomingCheckIns.map((ci) => (
-                  <div key={ci.id} className="flex items-center gap-3 p-3 rounded-xl bg-blue-900/20 border border-blue-400/30">
-                    <CalendarCheck className="h-4 w-4 text-blue-400 shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-white">
-                        {new Date(ci.dueAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-                      </p>
-                      <p className="text-xs text-white/50">with {ci.coachDisplayName}</p>
+                  <div key={ci.id} className="p-3 rounded-xl bg-blue-900/20 border border-blue-400/30">
+                    <div className="flex items-center gap-3">
+                      <CalendarCheck className="h-4 w-4 text-blue-400 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-white">
+                          {new Date(ci.dueAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                        </p>
+                        <p className="text-xs text-white/50">with {ci.coachDisplayName}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => cancelCheckIn(ci.id)}
+                        className="shrink-0 p-1.5 rounded-lg text-red-400/60 active:text-red-400 active:bg-red-900/30"
+                        title="Cancel appointment"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => cancelCheckIn(ci.id)}
-                      className="shrink-0 p-1.5 rounded-lg text-red-400/60 hover:text-red-400 hover:bg-red-900/30 transition-colors"
-                      title="Cancel appointment"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <AddToCalendarButtons
+                      accentClass="text-blue-400/60"
+                      event={{
+                        title: `Follow-Up — ${client?.name || "Patient"}`,
+                        startAt: new Date(ci.dueAt),
+                        durationMinutes: 60,
+                        description: `Follow-up appointment scheduled via My Perfect Meals.\nPhysician: ${ci.coachDisplayName}`,
+                        meta: {
+                          type: "followup",
+                          source: "coach",
+                          priority: "normal",
+                          escalationEligible: true,
+                          linkedMetrics: ["macro_consistency", "weight_trend", "lab_values"],
+                        },
+                      }}
+                    />
                   </div>
                 ))}
               </div>

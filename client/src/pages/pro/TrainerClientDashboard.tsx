@@ -40,6 +40,7 @@ import { ProClientBanner } from "@/components/pro/ProClientBanner";
 import WeeklyWeightTrendCard from "@/components/pro/WeeklyWeightTrendCard";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
+import AddToCalendarButtons from "@/components/AddToCalendarButtons";
 
 const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
   {
@@ -1148,22 +1149,40 @@ export default function TrainerClientDashboard() {
               <div className="space-y-2">
                 <p className="text-xs text-lime-400 font-semibold uppercase tracking-wide">Upcoming Check-Ins</p>
                 {upcomingCheckIns.map((ci) => (
-                  <div key={ci.id} className="flex items-center gap-3 p-3 rounded-xl bg-lime-900/20 border border-lime-400/30">
-                    <CalendarCheck className="h-4 w-4 text-lime-400 shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-white">
-                        {new Date(ci.dueAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-                      </p>
-                      <p className="text-xs text-white/50">with {ci.coachDisplayName}</p>
+                  <div key={ci.id} className="p-3 rounded-xl bg-lime-900/20 border border-lime-400/30">
+                    <div className="flex items-center gap-3">
+                      <CalendarCheck className="h-4 w-4 text-lime-400 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-white">
+                          {new Date(ci.dueAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                        </p>
+                        <p className="text-xs text-white/50">with {ci.coachDisplayName}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => cancelCheckIn(ci.id)}
+                        className="shrink-0 p-1.5 rounded-lg text-red-400/60 active:text-red-400 active:bg-red-900/30"
+                        title="Cancel check-in"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => cancelCheckIn(ci.id)}
-                      className="shrink-0 p-1.5 rounded-lg text-red-400/60 hover:text-red-400 hover:bg-red-900/30 transition-colors"
-                      title="Cancel check-in"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <AddToCalendarButtons
+                      accentClass="text-lime-400/60"
+                      event={{
+                        title: `Check-in — ${client?.name || "Client"}`,
+                        startAt: new Date(ci.dueAt),
+                        durationMinutes: 60,
+                        description: `Check-in session scheduled via My Perfect Meals.\nCoach: ${ci.coachDisplayName}`,
+                        meta: {
+                          type: "checkin",
+                          source: "coach",
+                          priority: "normal",
+                          escalationEligible: true,
+                          linkedMetrics: ["macro_consistency", "weight_trend"],
+                        },
+                      }}
+                    />
                   </div>
                 ))}
               </div>
