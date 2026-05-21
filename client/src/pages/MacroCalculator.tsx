@@ -2628,11 +2628,27 @@ export default function MacroCounter() {
 
                     {/* Performance Overlay — Apply to Profile */}
                     {goal === "contest_prep" && (
-                      <div className="bg-orange-950/40 border border-orange-500/30 rounded-xl p-4 space-y-2">
+                      <div className="bg-orange-950/40 border border-orange-500/30 rounded-xl p-4 space-y-3">
                         <p className="text-sm font-semibold text-orange-300">Use Competition Prep Across My App</p>
                         <p className="text-xs text-white/60">
                           Apply this metabolic mode so all of your meal generators match your prep goals.
                         </p>
+                        <div className="bg-black/30 rounded-lg p-3 space-y-1.5">
+                          <p className="text-[11px] font-semibold text-orange-400 uppercase tracking-wide">What this does</p>
+                          <ul className="space-y-1">
+                            {[
+                              "Every meal builder switches to competition standards",
+                              "30g starchy carb cap enforced app-wide",
+                              "Hard cut macros and lean ingredient selection everywhere",
+                              "Your medical and allergy protections stay fully active",
+                            ].map((item) => (
+                              <li key={item} className="flex items-start gap-2 text-[11px] text-white/60">
+                                <span className="text-orange-500 mt-0.5 flex-shrink-0">•</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
                         <button
                           disabled={isApplyingOverlay || overlayApplied}
                           onClick={async () => {
