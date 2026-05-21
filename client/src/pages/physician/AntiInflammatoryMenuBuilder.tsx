@@ -550,7 +550,7 @@ export default function AntiInflammatoryMenuBuilder() {
             ...board,
             lists: {
               ...board.lists,
-              snacks: [...board.lists.snacks, snack],
+              snacks: [...(board.lists.snacks || []), snack],
             },
             version: board.version + 1,
             meta: {
@@ -619,7 +619,7 @@ export default function AntiInflammatoryMenuBuilder() {
             ...board,
             lists: {
               ...board.lists,
-              [premadePickerSlot]: [...board.lists[premadePickerSlot], meal],
+              [premadePickerSlot]: [...(board.lists[premadePickerSlot] || []), meal],
             },
             version: board.version + 1,
             meta: {
@@ -1139,7 +1139,7 @@ export default function AntiInflammatoryMenuBuilder() {
           ...board,
           lists: {
             ...board.lists,
-            [list]: [...board.lists[list], meal],
+            [list]: [...(board.lists[list] || []), meal],
           },
           version: board.version + 1,
           meta: {
@@ -1194,10 +1194,10 @@ export default function AntiInflammatoryMenuBuilder() {
 
     try {
       const allMeals = [
-        ...board.lists.breakfast,
-        ...board.lists.lunch,
-        ...board.lists.dinner,
-        ...board.lists.snacks,
+        ...(board.lists.breakfast || []),
+        ...(board.lists.lunch || []),
+        ...(board.lists.dinner || []),
+        ...(board.lists.snacks || []),
       ];
 
       if (allMeals.length === 0) {
@@ -1541,14 +1541,14 @@ export default function AntiInflammatoryMenuBuilder() {
                     </div>
                   </div>
                   <div className="space-y-3">
-                    {board.lists[key].map((meal: Meal, idx: number) => (
+                    {(board.lists[key] || []).map((meal: Meal, idx: number) => (
                       <MealCard key={meal.id} date={"board"} slot={key} meal={meal} showStarchBadge={true} builderType={clinicalModeState}
                         onUpdated={(m) => {
                           if (m === null) {
                             if (!board) return;
                             const updatedBoard = {
                               ...board,
-                              lists: { ...board.lists, [key]: board.lists[key].filter((item: Meal) => item.id !== meal.id) },
+                              lists: { ...board.lists, [key]: (board.lists[key] || []).filter((item: Meal) => item.id !== meal.id) },
                               version: board.version + 1,
                               meta: { ...board.meta, lastUpdatedAt: new Date().toISOString() },
                             };
@@ -1563,7 +1563,7 @@ export default function AntiInflammatoryMenuBuilder() {
                         }}
                       />
                     ))}
-                    {board.lists[key].length === 0 && (
+                    {(board.lists[key] || []).length === 0 && (
                       <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
                         <p className="mb-2">No {label.toLowerCase()} yet</p>
                         <p className="text-xs text-white/40">Use "Create with Chef" or "+" to add meals</p>
