@@ -58,27 +58,22 @@ export async function setMacroTargets(targets: MacroTargets, userId?: string): P
     return;
   }
 
-  // For real users, also save to the database
-  try {
-    const response = await fetch(apiUrl(`/api/users/${userId}/macro-targets`), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-      credentials: 'include',
-      body: JSON.stringify(targets),
-    });
+  // For real users, also save to the database.
+  // NOTE: localStorage was already saved above, so it's safe to throw here —
+  // the data is not lost, it just won't persist across devices/logouts.
+  const response = await fetch(apiUrl(`/api/users/${userId}/macro-targets`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    credentials: 'include',
+    body: JSON.stringify(targets),
+  });
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Database save failed, but localStorage save succeeded:', error);
-      // Don't throw - localStorage save already succeeded
-      return;
-    }
-
-    console.log('✅ Macro targets saved to database and localStorage');
-  } catch (error) {
-    console.error('Failed to save macro targets to database:', error);
-    // Don't throw - localStorage save already succeeded
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({ error: `Server error ${response.status}` }));
+    throw new Error(body.error || `Failed to save macro targets (${response.status})`);
   }
+
+  console.log('✅ Macro targets saved to database and localStorage');
 }
 
 export function getMacroTargets(userId?: string): MacroTargets | null {

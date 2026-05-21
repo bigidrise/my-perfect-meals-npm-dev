@@ -381,15 +381,15 @@ export default function Welcome() {
       <div className="relative min-h-screen bg-black text-white flex flex-col items-center justify-center px-6">
         {renderModal()}
 
-        <div className="mb-8">
+        <div className="mb-4">
           <img
-            src="/icons/MPMFlameChefLogoBlack.png"
-            alt="My Perfect Meals Logo"
-            className="h-40 w-auto mx-auto"
+            src="/icons/ChefMPMLogo.png"
+            alt="My Perfect Meals"
+            className="h-56 w-auto mx-auto"
           />
         </div>
 
-        <h1 className="text-2xl md:text-2xl font-bold text-center mb-3">
+        <h1 className="text-2xl font-bold text-center text-white mb-2 tracking-wide">
           My Perfect Meals
         </h1>
 

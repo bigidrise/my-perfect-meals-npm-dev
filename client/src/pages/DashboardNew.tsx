@@ -61,6 +61,7 @@ import { ComplianceCard } from "@/components/dashboard/ComplianceCard";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useProUnreadCount } from "@/hooks/useProUnreadCount";
+import { PatternAlertBanner } from "@/components/PatternAlertBanner";
 
 interface FeatureCard {
   title: string;
@@ -716,6 +717,8 @@ export default function DashboardNew() {
             : "calc(env(safe-area-inset-top, 0px) + 6rem)",
         }}
       >
+        <PatternAlertBanner />
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

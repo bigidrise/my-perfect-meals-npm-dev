@@ -36,6 +36,9 @@ const UpdateProfileSchema = z.object({
   goalTarget: z.string().max(100).optional().nullable(),
   goalTimelineWeeks: z.number().int().min(1).max(260).optional().nullable(),
   goalStartDate: z.string().optional().nullable(),
+  // Performance Overlay
+  performanceOverlay: z.enum(["standard", "performance", "competition_prep", "recovery", "recomp"]).optional(),
+  performanceControlMode: z.enum(["self_guided", "coach_controlled"]).optional(),
 });
 
 router.put("/profile", requireAuth, async (req, res) => {
@@ -92,6 +95,8 @@ router.put("/profile", requireAuth, async (req, res) => {
     if (patch.goalTarget !== undefined) updateData.goalTarget = patch.goalTarget;
     if (patch.goalTimelineWeeks !== undefined) updateData.goalTimelineWeeks = patch.goalTimelineWeeks;
     if (patch.goalStartDate !== undefined) updateData.goalStartDate = patch.goalStartDate ? new Date(patch.goalStartDate) : null;
+    if (patch.performanceOverlay !== undefined) updateData.performanceOverlay = patch.performanceOverlay;
+    if (patch.performanceControlMode !== undefined) updateData.performanceControlMode = patch.performanceControlMode;
 
     const updatedFields = Object.keys(updateData).filter(k => k !== 'updatedAt').join(', ');
     console.log(`✅ Profile updated for user ${userId}: ${updatedFields}`);

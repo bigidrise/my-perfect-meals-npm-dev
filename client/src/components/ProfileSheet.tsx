@@ -39,6 +39,7 @@ import {
   ImageIcon,
   Users,
   LifeBuoy,
+  Sparkles,
 } from "lucide-react";
 import { logout, getAuthToken } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
@@ -325,6 +326,13 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       icon: User,
       route: "/profile",
       testId: "menu-my-profile",
+    },
+    {
+      title: "AI Coaching Preferences",
+      description: "Control your coaching style, focus areas, and check-in frequency",
+      icon: Sparkles,
+      route: "/coaching-preferences",
+      testId: "menu-coaching-preferences",
     },
     {
       title: "Contact & Support",

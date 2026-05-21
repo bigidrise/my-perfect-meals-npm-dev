@@ -40,6 +40,7 @@ import { ProClientBanner } from "@/components/pro/ProClientBanner";
 import WeeklyWeightTrendCard from "@/components/pro/WeeklyWeightTrendCard";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
+import AddToCalendarButtons from "@/components/AddToCalendarButtons";
 
 const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
   {
@@ -310,46 +311,69 @@ export default function TrainerClientDashboard() {
     const totalCal = (t.protein * 4) + (totalCarbs * 4) + (t.fat * 9);
     const dbUserId = client?.clientUserId || client?.userId;
 
-    if (dbUserId) {
-      try {
-        const res = await fetch(apiUrl(`/api/users/${dbUserId}/macro-targets`), {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-          credentials: "include",
-          body: JSON.stringify({
-            calories: totalCal,
-            protein_g: t.protein,
-            carbs_g: totalCarbs,
-            fat_g: t.fat,
-            starchyCarbs_g: t.starchyCarbs,
-            fibrousCarbs_g: t.fibrousCarbs,
-          }),
-        });
-        if (!res.ok) {
-          console.error("Failed to sync macro targets to database:", res.status);
-        }
-      } catch (e) {
-        console.error("Failed to sync macro targets to database:", e);
+    // If the client hasn't linked their account yet, dbUserId will be the
+    // local proStore ID (not a real DB user ID). We save to proStore only
+    // and warn the trainer — we do NOT silently fire a doomed DB request.
+    if (!dbUserId || dbUserId === clientId) {
+      linkUserToClient(clientId, clientId);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
       }
+      setIsDirty(false);
+      toast({
+        title: "Targets saved locally",
+        description: "This client hasn't linked their account yet. Targets are saved on your device — they'll sync to the client once they enter their access code.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-      // Mirror to localStorage so RemainingMacrosFooter resolves targets
-      // across sessions without needing "Send Macros to Biometrics" separately
-      try {
-        const { setMacroTargets } = await import("@/lib/dailyLimits");
-        await setMacroTargets(
-          {
-            calories: totalCal,
-            protein_g: t.protein,
-            carbs_g: totalCarbs,
-            fat_g: t.fat,
-            starchyCarbs_g: t.starchyCarbs,
-            fibrousCarbs_g: t.fibrousCarbs,
-          },
-          dbUserId,
-        );
-      } catch (e) {
-        console.error("Failed to mirror macro targets to localStorage:", e);
+    // Client is linked — persist to their DB account
+    try {
+      const res = await fetch(apiUrl(`/api/users/${dbUserId}/macro-targets`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({
+          calories: totalCal,
+          protein_g: t.protein,
+          carbs_g: totalCarbs,
+          fat_g: t.fat,
+          starchyCarbs_g: t.starchyCarbs,
+          fibrousCarbs_g: t.fibrousCarbs,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Server error ${res.status}`);
       }
+    } catch (e) {
+      toast({
+        title: "Failed to save targets",
+        description: e instanceof Error ? e.message : "Could not sync targets to client's account. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Mirror to localStorage so RemainingMacrosFooter resolves targets
+    // across sessions without needing "Send Macros to Biometrics" separately
+    try {
+      const { setMacroTargets } = await import("@/lib/dailyLimits");
+      await setMacroTargets(
+        {
+          calories: totalCal,
+          protein_g: t.protein,
+          carbs_g: totalCarbs,
+          fat_g: t.fat,
+          starchyCarbs_g: t.starchyCarbs,
+          fibrousCarbs_g: t.fibrousCarbs,
+        },
+        dbUserId,
+      );
+    } catch (e) {
+      // localStorage mirror failed — not fatal, DB already saved
+      console.warn("Failed to mirror macro targets to localStorage:", e);
     }
 
     // Link both the proStore clientId and the real user ID so builders
@@ -365,7 +389,7 @@ export default function TrainerClientDashboard() {
     setIsDirty(false);
     toast({
       title: "Targets saved",
-      description: "Macro targets updated successfully.",
+      description: "Macro targets synced to client's account.",
     });
   };
 
@@ -378,9 +402,9 @@ export default function TrainerClientDashboard() {
   };
 
   const scheduleCheckIn = async () => {
-    const weeks = ctx.checkInWeeks;
-    if (!weeks) {
-      toast({ title: "Select weeks", description: "Choose 2, 4, 8, or 12 weeks for the check-in." });
+    const dateStr = ctx.checkInDate;
+    if (!dateStr) {
+      toast({ title: "Select a date", description: "Pick a check-in date above." });
       return;
     }
 
@@ -396,9 +420,8 @@ export default function TrainerClientDashboard() {
       return;
     }
 
-    const nextDate = new Date();
-    nextDate.setDate(nextDate.getDate() + weeks * 7);
-    const nextISO = nextDate.toISOString().split("T")[0];
+    const nextDate = new Date(dateStr + "T12:00:00");
+    const nextISO = dateStr;
     const label = nextDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
     try {
@@ -418,12 +441,12 @@ export default function TrainerClientDashboard() {
         throw new Error(err.error || "Failed to schedule check-in");
       }
 
-      proStore.setContext(clientId, { ...ctx, nextCheckInISO: nextISO, checkInWeeks: weeks });
-      setCtx({ ...ctx, nextCheckInISO: nextISO, checkInWeeks: weeks });
+      proStore.setContext(clientId, { ...ctx, nextCheckInISO: nextISO, checkInDate: dateStr });
+      setCtx({ ...ctx, nextCheckInISO: nextISO, checkInDate: dateStr });
       fetchUpcomingCheckIns();
       toast({
         title: "Check-in scheduled",
-        description: `Next check-in set for ${label} (${weeks} weeks). Client has been notified.`,
+        description: `Next check-in set for ${label}. Client has been notified.`,
       });
     } catch (err) {
       toast({
@@ -1126,47 +1149,77 @@ export default function TrainerClientDashboard() {
               <div className="space-y-2">
                 <p className="text-xs text-lime-400 font-semibold uppercase tracking-wide">Upcoming Check-Ins</p>
                 {upcomingCheckIns.map((ci) => (
-                  <div key={ci.id} className="flex items-center gap-3 p-3 rounded-xl bg-lime-900/20 border border-lime-400/30">
-                    <CalendarCheck className="h-4 w-4 text-lime-400 shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-white">
-                        {new Date(ci.dueAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-                      </p>
-                      <p className="text-xs text-white/50">with {ci.coachDisplayName}</p>
+                  <div key={ci.id} className="p-3 rounded-xl bg-lime-900/20 border border-lime-400/30">
+                    <div className="flex items-center gap-3">
+                      <CalendarCheck className="h-4 w-4 text-lime-400 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-white">
+                          {new Date(ci.dueAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                        </p>
+                        <p className="text-xs text-white/50">with {ci.coachDisplayName}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => cancelCheckIn(ci.id)}
+                        className="shrink-0 p-1.5 rounded-lg text-red-400/60 active:text-red-400 active:bg-red-900/30"
+                        title="Cancel check-in"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => cancelCheckIn(ci.id)}
-                      className="shrink-0 p-1.5 rounded-lg text-red-400/60 hover:text-red-400 hover:bg-red-900/30 transition-colors"
-                      title="Cancel check-in"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <AddToCalendarButtons
+                      accentClass="text-lime-400/60"
+                      event={{
+                        title: `Check-in — ${client?.name || "Client"}`,
+                        startAt: new Date(ci.dueAt),
+                        durationMinutes: 60,
+                        description: `Check-in session scheduled via My Perfect Meals.\nCoach: ${ci.coachDisplayName}`,
+                        meta: {
+                          type: "checkin",
+                          source: "coach",
+                          priority: "normal",
+                          escalationEligible: true,
+                          linkedMetrics: ["macro_consistency", "weight_trend"],
+                        },
+                      }}
+                    />
                   </div>
                 ))}
               </div>
             )}
             <p className="text-white/70 text-sm">
-              Set a check-in reminder for this client. Select how many weeks out and tap Schedule.
+              Set a check-in reminder for this client. Pick a date or use a quick preset.
             </p>
             <div>
-              <p className="text-xs text-white/50 mb-2">Weeks until check-in</p>
-              <div className="grid grid-cols-4 gap-2">
-                {([2, 4, 8, 12] as const).map((w) => (
-                  <button
-                    key={w}
-                    type="button"
-                    onClick={() => setCtx({ ...ctx, checkInWeeks: w })}
-                    className={`py-2 rounded-xl border text-sm font-semibold transition-all active:scale-[0.97] ${
-                      ctx.checkInWeeks === w
-                        ? "bg-lime-600 border-lime-400 text-white"
-                        : "bg-black/30 border-white/20 text-white/70"
-                    }`}
-                  >
-                    {w}w
-                  </button>
-                ))}
+              <p className="text-xs text-white/50 mb-2">Quick presets</p>
+              <div className="flex gap-2 flex-wrap mb-3">
+                {([2, 4, 8] as const).map((w) => {
+                  const d = new Date();
+                  d.setDate(d.getDate() + w * 7);
+                  const iso = d.toISOString().split("T")[0];
+                  return (
+                    <button
+                      key={w}
+                      type="button"
+                      onClick={() => setCtx({ ...ctx, checkInDate: iso })}
+                      className={`px-4 py-1.5 rounded-xl border text-sm font-semibold transition-all active:scale-[0.97] ${
+                        ctx.checkInDate === iso
+                          ? "bg-lime-600 border-lime-400 text-white"
+                          : "bg-black/30 border-white/20 text-white/70"
+                      }`}
+                    >
+                      {w}w
+                    </button>
+                  );
+                })}
               </div>
+              <input
+                type="date"
+                value={ctx.checkInDate || ""}
+                min={new Date().toISOString().split("T")[0]}
+                onChange={(e) => setCtx({ ...ctx, checkInDate: e.target.value })}
+                className="w-full bg-white/5 border border-white/20 rounded-xl px-3 py-2 text-sm text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-80 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+              />
             </div>
             <div>
               <p className="text-xs text-white/50 mb-1">Coaching notes for this check-in</p>

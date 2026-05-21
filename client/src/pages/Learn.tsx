@@ -1905,6 +1905,152 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
   },
 ];
 
+const SECTION_PERFORMANCE_MODES: LibraryTopic[] = [
+  {
+    id: "performance-modes-overview",
+    title: "What Are Performance Modes?",
+    subtitle: "App-wide metabolic settings for athletic and physique goals",
+    icon: Zap,
+    content: {
+      sections: [
+        {
+          heading: "A Mode That Follows You Everywhere",
+          text: "A Performance Mode is an app-wide metabolic setting that changes how every meal generator in the app approaches your nutrition. When a mode is active, it's not just applied to one builder — it travels with you across Create a Dish, Chef's Kitchen, the Weekly Planner, Fridge Rescue, and every other tool.",
+        },
+        {
+          heading: "Different From Your Meal Builder",
+          text: "Your meal builder (General Nutrition, Anti-Inflammatory, Diabetic, etc.) determines the type and foundation of your meals. A Performance Mode is a layer on top of that foundation — a metabolic direction that shapes macros, ingredient choices, and carb handling without changing your underlying plan.",
+        },
+        {
+          heading: "Standard",
+          text: "Balanced everyday nutrition. No special adjustments. This is the default for most users.",
+        },
+        {
+          heading: "Competition Prep",
+          text: "Tighter carb control and lean-focused meal recommendations. Designed for physique competition prep phases. Hard cut macros, low-carb split, and a 30g cap on starchy carbs per meal.",
+        },
+        {
+          heading: "Where to Set It",
+          text: "Open the Macro Calculator, select your goal, and choose Competition Prep. After calculating, tap the Apply button at the save step. The mode becomes active across the entire app immediately.",
+        },
+      ],
+    },
+  },
+  {
+    id: "competition-prep-mode",
+    title: "Competition Prep Mode — How It Works",
+    subtitle: "What changes across your app when prep mode is active",
+    icon: Flame,
+    content: {
+      sections: [
+        {
+          heading: "This Is Not Just a Cut",
+          text: "Competition Prep is not a standard fat-loss goal. It is a metabolic overlay that changes how the entire app generates food for you. Every tool — not just the macro calculator — operates under competition standards when this mode is active.",
+        },
+        {
+          heading: "The Three Core Changes",
+          list: [
+            "Hard cut — macros are calculated for an aggressive deficit, not a moderate cut",
+            "Low-carb split — carbohydrates are significantly reduced in favor of protein and strategic fats",
+            "30g starchy carb cap — no meal in any builder will exceed 30 grams of starchy carbohydrates",
+          ],
+        },
+        {
+          heading: "Where It Applies",
+          list: [
+            "Create a Dish — dishes are generated lean with low starch",
+            "Chef's Kitchen — chef-guided meals follow prep standards",
+            "Weekly Meal Planner — full week of meals built to competition specs",
+            "Fridge Rescue — ingredient-based meals stay within the carb cap",
+            "Snack Creator — snacks are protein-forward and low-carb",
+            "Beverage Creator — beverages follow low-sugar, performance guidelines",
+          ],
+        },
+        {
+          heading: "How to Activate It",
+          list: [
+            "Open the Macro Calculator",
+            "In the goal step, tap the Competition Prep pill",
+            "Review your calculated macros",
+            "At the save step, tap the Apply button under the results",
+            "The mode is now active app-wide",
+          ],
+        },
+        {
+          heading: "How to Turn It Off",
+          text: "Return to the Macro Calculator, select a different goal (Fat Loss, Maintain, or Build Muscle), recalculate, and save. The overlay automatically reverts to Standard mode.",
+        },
+      ],
+    },
+  },
+  {
+    id: "performance-modes-safety",
+    title: "Works With Your Existing Builder",
+    subtitle: "Medical and dietary protections always stay active",
+    icon: Shield,
+    content: {
+      sections: [
+        {
+          heading: "This Is the Most Important Thing to Understand",
+          text: "Performance Modes work alongside your existing health and dietary settings. Your diabetic guardrails, anti-inflammatory protocols, allergy protections, and physician safety rules always remain active — a Performance Mode cannot override them.",
+        },
+        {
+          heading: "What This Means in Practice",
+          text: "If you are diabetic and activate Competition Prep mode, the app applies the comp prep carb cap AND your diabetic carb ceiling simultaneously — whichever is stricter wins. If you have a tree nut allergy, no Competition Prep meal will ever contain tree nuts. Your safety layer is always the outermost wall.",
+        },
+        {
+          heading: "The Priority Order",
+          list: [
+            "Medical protections (always highest — physician-assigned rules and clinical safety)",
+            "Dietary identity (kosher, halal, vegan, gluten-free — cannot be overridden)",
+            "Health conditions (diabetic, anti-inflammatory, GLP-1 settings)",
+            "Performance Mode (applies within all the above constraints)",
+            "Flavor and behavioral preferences (softest layer, shapes meals within everything above)",
+          ],
+        },
+        {
+          heading: "Why This Matters",
+          text: "Some users worry that activating competition prep will cancel their diabetic or cardiac protections. It will not. The medical guardrails are structural — they run underneath everything else and can never be switched off by a goal selection.",
+        },
+      ],
+    },
+  },
+  {
+    id: "performance-modes-control",
+    title: "Self-Guided vs Coach-Controlled",
+    subtitle: "How performance settings work with and without a coach",
+    icon: Users,
+    content: {
+      sections: [
+        {
+          heading: "Two Ways Performance Modes Can Be Set",
+          text: "Performance Modes can be activated in two ways — self-guided by you directly in the Macro Calculator, or coach-controlled when a professional coach is managing your plan through ProCare.",
+        },
+        {
+          heading: "Self-Guided",
+          text: "You open the Macro Calculator, select your goal, and apply the mode yourself. The app safely automates the macro adjustments based on proven contest prep principles. This works well for general competition prep and gives you full control.",
+        },
+        {
+          heading: "Coach-Controlled",
+          text: "A connected coach can make advanced adjustments such as carb cycling, refeed days, peak week protocols, and competition-specific strategies through the Pro portal. When coach-controlled mode is active, your coach's settings take priority over manual changes — protecting the integrity of their program.",
+        },
+        {
+          heading: "Which Should I Use?",
+          list: [
+            "Self-guided is right if you're prepping independently and understand your own nutrition",
+            "Coach-controlled is right if a competition coach or dietitian is managing your plan",
+            "If a coach is involved, always let them set the mode — they can see your full picture",
+          ],
+        },
+        {
+          heading: "A Note for ProCare Users",
+          text: "If your coach has set your performance mode, you will see it reflected in your macro calculator results. Manual changes you make may be overridden by your coach's program settings if they are actively managing your plan.",
+        },
+      ],
+    },
+  },
+];
+
 const LIBRARY_SECTIONS: LibrarySection[] = [
   {
     id: "start-here",
@@ -1923,6 +2069,12 @@ const LIBRARY_SECTIONS: LibrarySection[] = [
     label: "NUTRITION STRATEGY",
     description: "User-facing systems",
     topics: SECTION_NUTRITION_STRATEGY,
+  },
+  {
+    id: "performance-modes",
+    label: "PERFORMANCE MODES",
+    description: "Competition prep & athletic overlays",
+    topics: SECTION_PERFORMANCE_MODES,
   },
   {
     id: "health-safety",

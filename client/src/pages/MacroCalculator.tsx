@@ -23,6 +23,8 @@ import {
   MACRO_CALC_STARCH,
   MACRO_CALC_BODY_COMPOSITION,
   MACRO_CALC_SAVE,
+  MACRO_CALC_SAVE_CONTEST_PREP,
+  MACRO_CALC_CONTEST_PREP,
   MACRO_CALC_DONE,
 } from "@/components/copilot/scripts/macroCalculatorScripts";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -125,7 +127,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
 
-type Goal = "loss" | "maint" | "gain";
+type Goal = "loss" | "maint" | "gain" | "contest_prep";
 type Sex = "male" | "female";
 type Units = "imperial" | "metric";
 type BodyType = "ecto" | "meso" | "endo";
@@ -583,6 +585,8 @@ export default function MacroCounter() {
   const { toast } = useToast();
   const { user, refreshUser } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
+  const [isApplyingOverlay, setIsApplyingOverlay] = useState(false);
+  const [overlayApplied, setOverlayApplied] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const isDirtyFirstRenderRef = useRef(true);
   const [isProSession] = useState(() => localStorage.getItem("pro-session") === "true");
@@ -671,7 +675,7 @@ export default function MacroCounter() {
 
   // Strategy layer state
   const [cutIntensity, setCutIntensity] = useState<CutIntensity>(
-    existingTargets?.cutIntensity ?? "standard"
+    (existingTargets?.cutIntensity === "standard" ? "none" : existingTargets?.cutIntensity) ?? "none"
   );
   const [cutStyle, setCutStyle] = useState<CutStyle>(
     existingTargets?.cutStyle ?? "balanced"
@@ -737,10 +741,10 @@ export default function MacroCounter() {
       nutritionStrategy: "",
       starch: MACRO_CALC_STARCH,
       bodyComposition: MACRO_CALC_BODY_COMPOSITION,
-      save: MACRO_CALC_SAVE,
+      save: goal === "contest_prep" ? MACRO_CALC_SAVE_CONTEST_PREP : MACRO_CALC_SAVE,
       done: MACRO_CALC_DONE,
     }),
-    [],
+    [goal],
   );
 
   // Helper to advance to next step with voice
@@ -1129,14 +1133,16 @@ export default function MacroCounter() {
           body: JSON.stringify({
             sex, kg, cm, age,
             activity: activity || "moderate",
-            goal, userType, bodyType,
+            goal: goal === "contest_prep" ? "loss" : goal,
+            performanceOverlay: goal === "contest_prep" ? "competition_prep" : "standard",
+            userType, bodyType,
             highWaistRisk,
             menopause: !!(clinicalFlags.menopause?.enabled),
             insulinResistance: !!(clinicalFlags.insulinResistance?.enabled),
             highStress: !!(clinicalFlags.highStress?.enabled),
             mealsPerDay, fibrousCarbSafetyCap_g,
-            cutIntensity, cutStyle,
-            starchyCarbCap_g, allowZeroStarchyOnLowDay, strictMode,
+            cutIntensity, cutStyle, starchyCarbCap_g,
+            allowZeroStarchyOnLowDay, strictMode,
           }),
         });
         if (response.ok) {
@@ -1427,24 +1433,61 @@ export default function MacroCounter() {
                       What are we trying to do with our nutrition? What's your
                       ultimate goal?
                     </p>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                       {[
-                        { v: "loss", label: "Cut" },
-                        { v: "maint", label: "Maintain" },
-                        { v: "gain", label: "Gain" },
+                        { v: "loss", label: "Cut", sub: null },
+                        { v: "maint", label: "Maintain", sub: null },
+                        { v: "gain", label: "Gain", sub: null },
+                        { v: "contest_prep", label: "Contest Prep", sub: "Competition protocol" },
                       ].map((g) => (
                         <div
                           key={g.v}
                           onClick={() => {
                             setGoal(g.v as Goal);
-                            advanceGuided("commitmentLevel");
+                            if (g.v === "contest_prep") {
+                              setCutIntensity("hard");
+                              setCutStyle("lowCarb");
+                              setStarchyCarbCap_g(30);
+                              stop();
+                              speak(MACRO_CALC_CONTEST_PREP);
+                              // Don't advance yet — show the overlay callout + Continue button
+                            } else {
+                              advanceGuided("commitmentLevel");
+                            }
                           }}
                           className={`px-3 py-2 border rounded-lg cursor-pointer text-center ${goal === g.v ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
                         >
-                          {g.label}
+                          <div>{g.label}</div>
+                          {g.sub && (
+                            <div className="text-xs text-white/50 mt-0.5">{g.sub}</div>
+                          )}
                         </div>
                       ))}
                     </div>
+
+                    {/* Contest Prep overlay explanation — shown after selection, before advancing */}
+                    {goal === "contest_prep" && guidedStep === "goal" && (
+                      <div className="rounded-xl bg-orange-950/50 border border-orange-500/40 p-4 space-y-3">
+                        <p className="text-sm font-semibold text-orange-300">Competition Prep mode activated</p>
+                        <div className="text-sm text-white/75 leading-relaxed space-y-1">
+                          <p>Your calculator is now set to:</p>
+                          <ul className="list-none space-y-1 mt-1">
+                            <li className="flex items-start gap-2"><span className="text-orange-400 mt-0.5">›</span><span>Hard cut — aggressive fat-loss calorie target</span></li>
+                            <li className="flex items-start gap-2"><span className="text-orange-400 mt-0.5">›</span><span>Low-carb split — minimal starchy carbs</span></li>
+                            <li className="flex items-start gap-2"><span className="text-orange-400 mt-0.5">›</span><span>30g starchy carb cap per day</span></li>
+                          </ul>
+                        </div>
+                        <p className="text-xs text-white/55 leading-relaxed">
+                          This is a metabolic overlay — not just a calculator preset. It carries into every meal generator in the app, telling them to use lean proteins, fibrous carbs, and competition-clean preparations. You can apply it to your full app profile at the save step.
+                        </p>
+                        <button
+                          onClick={() => advanceGuided("commitmentLevel")}
+                          className="w-full py-2.5 bg-orange-600 text-white font-semibold rounded-lg text-sm"
+                        >
+                          Got it, continue
+                        </button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
@@ -1463,11 +1506,13 @@ export default function MacroCounter() {
                 <div className="rounded-xl border border-white/20 bg-black/40 p-3">
                   <p className="text-sm text-white/60">
                     Goal:{" "}
-                    {goal === "loss"
-                      ? "Cut"
-                      : goal === "maint"
-                        ? "Maintain"
-                        : "Gain"}
+                    {goal === "contest_prep"
+                      ? "Contest Prep"
+                      : goal === "loss"
+                        ? "Cut"
+                        : goal === "maint"
+                          ? "Maintain"
+                          : "Gain"}
                   </p>
                 </div>
 
@@ -1536,11 +1581,13 @@ export default function MacroCounter() {
                     <p className="text-sm text-white/90 font-medium flex items-center gap-2">
                       <Check className="h-4 w-4 text-lime-500 flex-shrink-0" />
                       Goal:{" "}
-                      {goal === "loss"
-                        ? "Cut"
-                        : goal === "maint"
-                          ? "Maintain"
-                          : "Gain"}
+                      {goal === "contest_prep"
+                        ? "Contest Prep"
+                        : goal === "loss"
+                          ? "Cut"
+                          : goal === "maint"
+                            ? "Maintain"
+                            : "Gain"}
                     </p>
                   </div>
                   <div className="rounded-xl border border-orange-400/30 bg-orange-500/10 p-3">
@@ -1606,11 +1653,13 @@ export default function MacroCounter() {
                     <p className="text-sm text-white/90 font-medium flex items-center gap-2">
                       <Check className="h-4 w-4 text-lime-500" />
                       Goal:{" "}
-                      {goal === "loss"
-                        ? "Cut"
-                        : goal === "maint"
-                          ? "Maintain"
-                          : "Gain"}
+                      {goal === "contest_prep"
+                        ? "Contest Prep"
+                        : goal === "loss"
+                          ? "Cut"
+                          : goal === "maint"
+                            ? "Maintain"
+                            : "Gain"}
                     </p>
                   </div>
                   <div className="rounded-xl border border-white/20 bg-black/40 p-3">
@@ -2295,14 +2344,14 @@ export default function MacroCounter() {
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-white/80">Cut Intensity</p>
                       <div className="space-y-3">
-                        <div className={`p-4 rounded-xl border transition-all ${cutIntensity === "standard" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                        <div className={`p-4 rounded-xl border transition-all ${cutIntensity === "none" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
                           <div className="flex items-center justify-between">
                             <div>
                               <span className="text-sm font-medium text-white">Standard</span>
                               <p className="text-xs text-white/60 mt-0.5">Balanced deficit — recommended for most goals</p>
                             </div>
-                            <PillButton onClick={() => setCutIntensity("standard")} active={cutIntensity === "standard"}>
-                              {cutIntensity === "standard" ? "On" : "Off"}
+                            <PillButton onClick={() => setCutIntensity("none")} active={cutIntensity === "none"}>
+                              {cutIntensity === "none" ? "On" : "Off"}
                             </PillButton>
                           </div>
                         </div>
@@ -2556,8 +2605,22 @@ export default function MacroCounter() {
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-white/70">Carbs:</span>
+                        <span className="text-white/70">Starchy Carbs:</span>
                         <span className="text-white font-semibold">
+                          {Math.max(0, results.macros.carbs.starchy + (advisoryDeltas.carbs > 0 ? Math.round(advisoryDeltas.carbs * 0.4) : Math.round(advisoryDeltas.carbs * 0.4)))}
+                          g
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/70">Fibrous Carbs:</span>
+                        <span className="text-white font-semibold">
+                          {Math.max(0, results.macros.carbs.fibrous + (advisoryDeltas.carbs > 0 ? Math.round(advisoryDeltas.carbs * 0.6) : Math.round(advisoryDeltas.carbs * 0.6)))}
+                          g
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm border-t border-white/10 pt-2">
+                        <span className="text-white/50 text-xs">Total Carbs:</span>
+                        <span className="text-white/50 text-xs font-medium">
                           {Math.max(
                             0,
                             results.macros.carbs.g + advisoryDeltas.carbs,
@@ -2576,6 +2639,59 @@ export default function MacroCounter() {
                         </span>
                       </div>
                     </div>
+
+                    {/* Performance Overlay — Apply to Profile */}
+                    {goal === "contest_prep" && (
+                      <div className="bg-orange-950/40 border border-orange-500/30 rounded-xl p-4 space-y-3">
+                        <p className="text-sm font-semibold text-orange-300">Use Competition Prep Across My App</p>
+                        <p className="text-xs text-white/60">
+                          Apply this metabolic mode so all of your meal generators match your prep goals.
+                        </p>
+                        <div className="bg-black/30 rounded-lg p-3 space-y-1.5">
+                          <p className="text-[11px] font-semibold text-orange-400 uppercase tracking-wide">What this does</p>
+                          <ul className="space-y-1">
+                            {[
+                              "Every meal builder switches to competition standards",
+                              "30g starchy carb cap enforced app-wide",
+                              "Hard cut macros and lean ingredient selection everywhere",
+                              "Your medical and allergy protections stay fully active",
+                            ].map((item) => (
+                              <li key={item} className="flex items-start gap-2 text-[11px] text-white/60">
+                                <span className="text-orange-500 mt-0.5 flex-shrink-0">•</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <button
+                          disabled={isApplyingOverlay || overlayApplied}
+                          onClick={async () => {
+                            setIsApplyingOverlay(true);
+                            try {
+                              const res = await fetch(apiUrl("/api/users/profile"), {
+                                method: "PUT",
+                                headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+                                credentials: "include",
+                                body: JSON.stringify({ performanceOverlay: "competition_prep" }),
+                              });
+                              if (res.ok) {
+                                setOverlayApplied(true);
+                                toast({ title: "Metabolic mode applied", description: "Competition Prep is now active across your app." });
+                              } else {
+                                toast({ title: "Could not apply", description: "Please try again.", variant: "destructive" });
+                              }
+                            } catch {
+                              toast({ title: "Could not apply", description: "Please try again.", variant: "destructive" });
+                            } finally {
+                              setIsApplyingOverlay(false);
+                            }
+                          }}
+                          className="w-full py-2 bg-orange-600 disabled:opacity-50 text-white text-sm font-semibold rounded-lg"
+                        >
+                          {overlayApplied ? "✓ Applied" : isApplyingOverlay ? "Applying…" : "Apply"}
+                        </button>
+                      </div>
+                    )}
 
                     <Button
                       disabled={!isCalcInputValid || isSaving}
@@ -2788,22 +2904,32 @@ export default function MacroCounter() {
                       value={goal}
                       onValueChange={(v: Goal) => {
                         setGoal(v);
+                        if (v === "contest_prep") {
+                          setCutIntensity("hard");
+                          setCutStyle("lowCarb");
+                          setStarchyCarbCap_g(30);
+                        }
                         advance("goal");
                       }}
-                      className="mt-3 grid grid-cols-3 gap-3"
+                      className="mt-3 grid grid-cols-2 gap-3"
                     >
                       {[
-                        { v: "loss", label: "Cut" },
-                        { v: "maint", label: "Maintain" },
-                        { v: "gain", label: "Gain" },
+                        { v: "loss", label: "Cut", sub: null },
+                        { v: "maint", label: "Maintain", sub: null },
+                        { v: "gain", label: "Gain", sub: null },
+                        { v: "contest_prep", label: "Contest Prep", sub: "Competition protocol" },
                       ].map((g) => (
                         <Label
                           key={g.v}
                           htmlFor={g.v}
                           onClick={() => {
                             setGoal(g.v as Goal);
+                            if (g.v === "contest_prep") {
+                              setCutIntensity("hard");
+                              setCutStyle("lowCarb");
+                              setStarchyCarbCap_g(30);
+                            }
                             advance("goal");
-                            // Auto-scroll to body type card on every click
                             setTimeout(() => {
                               const bodyCard =
                                 document.getElementById("bodytype-card");
@@ -2822,10 +2948,19 @@ export default function MacroCounter() {
                             value={g.v}
                             className="sr-only"
                           />
-                          {g.label}
+                          <div>{g.label}</div>
+                          {g.sub && (
+                            <div className="text-xs text-white/50 mt-0.5">{g.sub}</div>
+                          )}
                         </Label>
                       ))}
                     </RadioGroup>
+                    {goal === "contest_prep" && (
+                      <div className="mt-3 rounded-lg bg-orange-900/30 border border-orange-500/40 px-3 py-2 text-xs text-orange-200 leading-relaxed">
+                        <span className="font-semibold text-orange-300">Contest Prep preset active.</span>{" "}
+                        Hard cut · low-carb split · starchy carb cap 30g. All values can still be adjusted below.
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 

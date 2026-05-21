@@ -32,6 +32,7 @@ import {
   type ProfessionalBuilderKey,
 } from "@/lib/professionalBuilderMap";
 import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
+import AddToCalendarButtons from "@/components/AddToCalendarButtons";
 import { assignBuilderToClient } from "@/lib/assignBuilderToClient";
 import { useToast } from "@/hooks/use-toast";
 import { PillButton } from "@/components/ui/pill-button";
@@ -355,8 +356,9 @@ export default function ClinicianClientDashboard() {
   const resolvedClientUserId = client?.clientUserId || client?.userId || clientId;
 
   const scheduleFollowUp = async () => {
-    if (!ctx.followupWeeks) {
-      toast({ title: "Select weeks", description: "Choose 4, 8, or 12 weeks for follow-up." });
+    const dateStr = ctx.followupDate;
+    if (!dateStr) {
+      toast({ title: "Select a date", description: "Pick a follow-up date above." });
       return;
     }
     const linkedUserId = resolvedClientUserId !== clientId ? resolvedClientUserId : undefined;
@@ -369,8 +371,8 @@ export default function ClinicianClientDashboard() {
       return;
     }
 
-    const due = new Date();
-    due.setDate(due.getDate() + ctx.followupWeeks * 7);
+    const due = new Date(dateStr + "T12:00:00");
+    const label = due.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
     try {
       const res = await fetch(apiUrl("/api/check-in-schedules"), {
@@ -387,10 +389,10 @@ export default function ClinicianClientDashboard() {
         const errBody = await res.json().catch(() => ({}));
         throw new Error((errBody as { error?: string }).error || "Failed to schedule follow-up");
       }
-      proStore.scheduleFollowUp(clientId, ctx.followupWeeks, ctx.patientNote || "Follow-up scheduled");
+      proStore.setContext(clientId, { ...ctx, followupDate: undefined, patientNote: undefined });
       fetchUpcomingCheckIns();
-      toast({ title: "Follow-up scheduled", description: `${ctx.followupWeeks}-week follow-up added. Patient has been notified.` });
-      setCtx({ ...ctx, followupWeeks: undefined, patientNote: undefined });
+      toast({ title: "Follow-up scheduled", description: `Follow-up set for ${label}. Patient has been notified.` });
+      setCtx({ ...ctx, followupDate: undefined, patientNote: undefined });
     } catch (err) {
       toast({
         title: "Scheduling failed",
@@ -1024,47 +1026,77 @@ export default function ClinicianClientDashboard() {
               <div className="space-y-2">
                 <p className="text-xs text-blue-400 font-semibold uppercase tracking-wide">Upcoming Appointments</p>
                 {upcomingCheckIns.map((ci) => (
-                  <div key={ci.id} className="flex items-center gap-3 p-3 rounded-xl bg-blue-900/20 border border-blue-400/30">
-                    <CalendarCheck className="h-4 w-4 text-blue-400 shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-white">
-                        {new Date(ci.dueAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-                      </p>
-                      <p className="text-xs text-white/50">with {ci.coachDisplayName}</p>
+                  <div key={ci.id} className="p-3 rounded-xl bg-blue-900/20 border border-blue-400/30">
+                    <div className="flex items-center gap-3">
+                      <CalendarCheck className="h-4 w-4 text-blue-400 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-white">
+                          {new Date(ci.dueAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                        </p>
+                        <p className="text-xs text-white/50">with {ci.coachDisplayName}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => cancelCheckIn(ci.id)}
+                        className="shrink-0 p-1.5 rounded-lg text-red-400/60 active:text-red-400 active:bg-red-900/30"
+                        title="Cancel appointment"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => cancelCheckIn(ci.id)}
-                      className="shrink-0 p-1.5 rounded-lg text-red-400/60 hover:text-red-400 hover:bg-red-900/30 transition-colors"
-                      title="Cancel appointment"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <AddToCalendarButtons
+                      accentClass="text-blue-400/60"
+                      event={{
+                        title: `Follow-Up — ${client?.name || "Patient"}`,
+                        startAt: new Date(ci.dueAt),
+                        durationMinutes: 60,
+                        description: `Follow-up appointment scheduled via My Perfect Meals.\nPhysician: ${ci.coachDisplayName}`,
+                        meta: {
+                          type: "followup",
+                          source: "coach",
+                          priority: "normal",
+                          escalationEligible: true,
+                          linkedMetrics: ["macro_consistency", "weight_trend", "lab_values"],
+                        },
+                      }}
+                    />
                   </div>
                 ))}
               </div>
             )}
             <p className="text-white/70 text-sm">
-              Set a follow-up appointment for this patient. Select how many weeks out and tap Schedule.
+              Set a follow-up appointment for this patient. Pick a date or use a quick preset.
             </p>
             <div>
-              <p className="text-xs text-white/50 mb-2">Weeks until follow-up</p>
-              <div className="grid grid-cols-3 gap-2">
-                {([4, 8, 12] as const).map((w) => (
-                  <button
-                    key={w}
-                    type="button"
-                    onClick={() => setCtx({ ...ctx, followupWeeks: w })}
-                    className={`py-2 rounded-xl border text-sm font-semibold transition-all active:scale-[0.97] ${
-                      ctx.followupWeeks === w
-                        ? "bg-blue-600 border-blue-400 text-white"
-                        : "bg-black/30 border-white/20 text-white/70"
-                    }`}
-                  >
-                    {w}w
-                  </button>
-                ))}
+              <p className="text-xs text-white/50 mb-2">Quick presets</p>
+              <div className="flex gap-2 flex-wrap mb-3">
+                {([2, 4, 8] as const).map((w) => {
+                  const d = new Date();
+                  d.setDate(d.getDate() + w * 7);
+                  const iso = d.toISOString().split("T")[0];
+                  return (
+                    <button
+                      key={w}
+                      type="button"
+                      onClick={() => setCtx({ ...ctx, followupDate: iso })}
+                      className={`px-4 py-1.5 rounded-xl border text-sm font-semibold transition-all active:scale-[0.97] ${
+                        ctx.followupDate === iso
+                          ? "bg-blue-600 border-blue-400 text-white"
+                          : "bg-black/30 border-white/20 text-white/70"
+                      }`}
+                    >
+                      {w}w
+                    </button>
+                  );
+                })}
               </div>
+              <input
+                type="date"
+                value={ctx.followupDate || ""}
+                min={new Date().toISOString().split("T")[0]}
+                onChange={(e) => setCtx({ ...ctx, followupDate: e.target.value })}
+                className="w-full bg-white/5 border border-white/20 rounded-xl px-3 py-2 text-sm text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-80 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+              />
             </div>
             <div>
               <p className="text-xs text-white/50 mb-1">Notes for this appointment</p>
