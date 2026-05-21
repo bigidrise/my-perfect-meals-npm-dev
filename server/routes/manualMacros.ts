@@ -84,12 +84,12 @@ router.post("/macros/log", requireAuth, async (req, res) => {
       const [updated] = await db
         .update(macroLogs)
         .set({
-          kcal: sql`(${macroLogs.kcal}::numeric + ${resolvedKcal})::text`,
-          protein: sql`(${macroLogs.protein}::numeric + ${Number(proteinVal) || 0})::text`,
-          carbs: sql`(${macroLogs.carbs}::numeric + ${Number(carbsVal) || 0})::text`,
-          fat: sql`(${macroLogs.fat}::numeric + ${Number(fatVal) || 0})::text`,
-          starchyCarbs: sql`(COALESCE(${macroLogs.starchyCarbs}::numeric, 0) + ${starchyCarbsVal})::text`,
-          fibrousCarbs: sql`(COALESCE(${macroLogs.fibrousCarbs}::numeric, 0) + ${fibrousCarbsVal})::text`,
+          kcal: sql`${macroLogs.kcal} + ${resolvedKcal}`,
+          protein: sql`${macroLogs.protein} + ${Number(proteinVal) || 0}`,
+          carbs: sql`${macroLogs.carbs} + ${Number(carbsVal) || 0}`,
+          fat: sql`${macroLogs.fat} + ${Number(fatVal) || 0}`,
+          starchyCarbs: sql`COALESCE(${macroLogs.starchyCarbs}, 0) + ${starchyCarbsVal}`,
+          fibrousCarbs: sql`COALESCE(${macroLogs.fibrousCarbs}, 0) + ${fibrousCarbsVal}`,
         })
         .where(and(
           eq(macroLogs.userId, userId),
