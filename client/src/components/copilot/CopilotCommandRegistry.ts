@@ -615,6 +615,52 @@ const Commands: Record<string, CommandHandler> = {
     responseCallback(response);
   },
 
+  "explain.performance-modes": async () => {
+    if (!responseCallback) return;
+    responseCallback({
+      title: "Performance Modes",
+      description:
+        "Performance Modes are app-wide metabolic settings that change how every meal generator approaches your nutrition. When active, the mode travels with you across every builder — from Create a Dish to the Weekly Planner.",
+      spokenText:
+        "Performance Modes are app-wide metabolic settings. When a mode is active, it doesn't just change your macro calculator — it changes how every single meal generator in the app works. Competition Prep mode applies a hard cut, a low-carb split, and a 30-gram starchy carb cap to every meal in every builder. Importantly, your medical protections always stay active. Diabetic guardrails, allergy protections, anti-inflammatory rules — none of those are touched. A Performance Mode works inside all of those safety layers, never on top of them. To activate Competition Prep, open the Macro Calculator, select Competition Prep as your goal, calculate your macros, and tap the Apply button at the save step. That's it — the mode goes live across the whole app.",
+      howTo: [
+        "Open the Macro Calculator from the home screen",
+        "Select Competition Prep in the goal step",
+        "Calculate your macros",
+        "Tap the Apply button at the save step",
+        "The mode is now active across every meal builder",
+      ],
+      tips: [
+        "Your diabetic, allergy, and medical protections are never affected by a Performance Mode",
+        "To turn it off, select a different goal in the Macro Calculator and save",
+        "If a coach is managing your plan, let them set the mode — they can see your full picture",
+      ],
+    });
+  },
+
+  "explain.competition-prep": async () => {
+    if (!responseCallback) return;
+    responseCallback({
+      title: "Competition Prep Mode",
+      description:
+        "Competition Prep is a metabolic overlay that puts every meal generator into competition standards — hard cut macros, low-carb split, and a 30g starchy carb cap per meal.",
+      spokenText:
+        "Competition Prep mode is not just a fat-loss goal. It's a metabolic overlay that changes how the entire app generates food for you. Three things change when it's active: your macros shift to a hard deficit cut, your carbohydrate split drops significantly in favor of protein and strategic fats, and every meal across every builder is capped at 30 grams of starchy carbs. This applies to Create a Dish, Chef's Kitchen, your Weekly Planner, Fridge Rescue, the Snack Creator — every tool. Your medical and allergy protections always remain active. To turn it on, go to the Macro Calculator, select Competition Prep, calculate, and tap Apply.",
+      howTo: [
+        "Open the Macro Calculator",
+        "Tap Competition Prep in the goal step",
+        "Review the orange callout explaining exactly what changes",
+        "Tap Got it, continue",
+        "Complete the calculator and tap Apply at the save step",
+      ],
+      tips: [
+        "The 30g starchy carb cap applies to every meal builder in the app — not just the calculator",
+        "Medical protections stack with this mode — whichever rule is stricter always wins",
+        "To exit Competition Prep, select Fat Loss or another goal and recalculate",
+      ],
+    });
+  },
+
   "walkthrough.start.macro-calculator": async () => {
     if (!responseCallback) return;
     const response = await startWalkthrough("macro-calculator");
