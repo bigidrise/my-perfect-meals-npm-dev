@@ -769,7 +769,7 @@ export default function MyBiometrics() {
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
         body: JSON.stringify({
-          loggedAt: new Date().toISOString(),
+          loggedAt: new Date(today + "T12:00:00").toISOString(),
           mealType: "manual",
           protein: P,
           carbs: C,
@@ -1086,7 +1086,7 @@ export default function MyBiometrics() {
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
         body: JSON.stringify({
-          loggedAt: new Date().toISOString(),
+          loggedAt: new Date(today + "T12:00:00").toISOString(),
           mealType: "manual",
           protein: P,
           carbs: C,
