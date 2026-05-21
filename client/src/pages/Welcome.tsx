@@ -381,13 +381,17 @@ export default function Welcome() {
       <div className="relative min-h-screen bg-black text-white flex flex-col items-center justify-center px-6">
         {renderModal()}
 
-        <div className="mb-6">
+        <div className="mb-4">
           <img
             src="/mpm-logo-transparent.png"
             alt="My Perfect Meals"
             className="h-56 w-auto mx-auto drop-shadow-[0_0_24px_rgba(251,146,60,0.3)]"
           />
         </div>
+
+        <h1 className="text-2xl font-bold text-center text-white mb-2 tracking-wide">
+          My Perfect Meals
+        </h1>
 
         <p className="text-md md:text-xl text-white/80 text-center mb-6 max-w-md">
           AI Coach In Your Pocket
