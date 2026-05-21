@@ -383,7 +383,7 @@ export default function Welcome() {
 
         <div className="mb-4">
           <img
-            src="/icons/ChefMPMLogo.png"
+            src="/icons/ChefMPMLogo-v2.png"
             alt="My Perfect Meals"
             className="h-56 w-auto mx-auto"
           />
