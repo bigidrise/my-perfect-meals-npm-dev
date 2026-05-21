@@ -73,10 +73,32 @@ router.post("/macros/log", requireAuth, async (req, res) => {
       fibrousCarbs: fibrousCarbsVal.toString(),
     };
 
-    const [row] = await db
-      .insert(macroLogs)
-      .values(insertData)
-      .returning();
+    let row: any;
+    try {
+      [row] = await db.insert(macroLogs).values(insertData).returning();
+    } catch (insertErr: any) {
+      const isDuplicate = (insertErr?.cause?.code ?? insertErr?.code) === "23505";
+      if (!isDuplicate) throw insertErr;
+      // Duplicate daily entry — accumulate onto the existing row instead of failing
+      const dateStr = when.toISOString().slice(0, 10);
+      const [updated] = await db
+        .update(macroLogs)
+        .set({
+          kcal: sql`(${macroLogs.kcal}::numeric + ${resolvedKcal})::text`,
+          protein: sql`(${macroLogs.protein}::numeric + ${Number(proteinVal) || 0})::text`,
+          carbs: sql`(${macroLogs.carbs}::numeric + ${Number(carbsVal) || 0})::text`,
+          fat: sql`(${macroLogs.fat}::numeric + ${Number(fatVal) || 0})::text`,
+          starchyCarbs: sql`(COALESCE(${macroLogs.starchyCarbs}::numeric, 0) + ${starchyCarbsVal})::text`,
+          fibrousCarbs: sql`(COALESCE(${macroLogs.fibrousCarbs}::numeric, 0) + ${fibrousCarbsVal})::text`,
+        })
+        .where(and(
+          eq(macroLogs.userId, userId),
+          eq(macroLogs.source, insertData.source),
+          sql`(${macroLogs.at} AT TIME ZONE 'UTC')::date = ${dateStr}::date`,
+        ))
+        .returning();
+      row = updated;
+    }
 
     res.json({ success: true, log: row });
   } catch (e: any) {
