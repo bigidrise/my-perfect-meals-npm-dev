@@ -1071,27 +1071,13 @@ export default function ClinicianClientDashboard() {
                   );
                 })}
               </div>
-              <div className="relative">
-                <input
-                  id="clinician-followup-date"
-                  type="date"
-                  value={ctx.followupDate || ""}
-                  min={new Date().toISOString().split("T")[0]}
-                  onChange={(e) => setCtx({ ...ctx, followupDate: e.target.value })}
-                  className="w-full bg-white/5 border border-white/20 rounded-xl px-3 py-2 pr-10 text-sm text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    const el = document.getElementById("clinician-followup-date") as HTMLInputElement | null;
-                    if (el) { try { (el as any).showPicker(); } catch { el.focus(); } }
-                  }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-white/80 p-1 rounded-lg bg-white/10 active:scale-[0.95]"
-                  aria-label="Open date picker"
-                >
-                  <CalendarCheck className="h-4 w-4" />
-                </button>
-              </div>
+              <input
+                type="date"
+                value={ctx.followupDate || ""}
+                min={new Date().toISOString().split("T")[0]}
+                onChange={(e) => setCtx({ ...ctx, followupDate: e.target.value })}
+                className="w-full bg-white/5 border border-white/20 rounded-xl px-3 py-2 text-sm text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-80 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+              />
             </div>
             <div>
               <p className="text-xs text-white/50 mb-1">Notes for this appointment</p>
