@@ -310,46 +310,69 @@ export default function TrainerClientDashboard() {
     const totalCal = (t.protein * 4) + (totalCarbs * 4) + (t.fat * 9);
     const dbUserId = client?.clientUserId || client?.userId;
 
-    if (dbUserId) {
-      try {
-        const res = await fetch(apiUrl(`/api/users/${dbUserId}/macro-targets`), {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-          credentials: "include",
-          body: JSON.stringify({
-            calories: totalCal,
-            protein_g: t.protein,
-            carbs_g: totalCarbs,
-            fat_g: t.fat,
-            starchyCarbs_g: t.starchyCarbs,
-            fibrousCarbs_g: t.fibrousCarbs,
-          }),
-        });
-        if (!res.ok) {
-          console.error("Failed to sync macro targets to database:", res.status);
-        }
-      } catch (e) {
-        console.error("Failed to sync macro targets to database:", e);
+    // If the client hasn't linked their account yet, dbUserId will be the
+    // local proStore ID (not a real DB user ID). We save to proStore only
+    // and warn the trainer — we do NOT silently fire a doomed DB request.
+    if (!dbUserId || dbUserId === clientId) {
+      linkUserToClient(clientId, clientId);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
       }
+      setIsDirty(false);
+      toast({
+        title: "Targets saved locally",
+        description: "This client hasn't linked their account yet. Targets are saved on your device — they'll sync to the client once they enter their access code.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-      // Mirror to localStorage so RemainingMacrosFooter resolves targets
-      // across sessions without needing "Send Macros to Biometrics" separately
-      try {
-        const { setMacroTargets } = await import("@/lib/dailyLimits");
-        await setMacroTargets(
-          {
-            calories: totalCal,
-            protein_g: t.protein,
-            carbs_g: totalCarbs,
-            fat_g: t.fat,
-            starchyCarbs_g: t.starchyCarbs,
-            fibrousCarbs_g: t.fibrousCarbs,
-          },
-          dbUserId,
-        );
-      } catch (e) {
-        console.error("Failed to mirror macro targets to localStorage:", e);
+    // Client is linked — persist to their DB account
+    try {
+      const res = await fetch(apiUrl(`/api/users/${dbUserId}/macro-targets`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({
+          calories: totalCal,
+          protein_g: t.protein,
+          carbs_g: totalCarbs,
+          fat_g: t.fat,
+          starchyCarbs_g: t.starchyCarbs,
+          fibrousCarbs_g: t.fibrousCarbs,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Server error ${res.status}`);
       }
+    } catch (e) {
+      toast({
+        title: "Failed to save targets",
+        description: e instanceof Error ? e.message : "Could not sync targets to client's account. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Mirror to localStorage so RemainingMacrosFooter resolves targets
+    // across sessions without needing "Send Macros to Biometrics" separately
+    try {
+      const { setMacroTargets } = await import("@/lib/dailyLimits");
+      await setMacroTargets(
+        {
+          calories: totalCal,
+          protein_g: t.protein,
+          carbs_g: totalCarbs,
+          fat_g: t.fat,
+          starchyCarbs_g: t.starchyCarbs,
+          fibrousCarbs_g: t.fibrousCarbs,
+        },
+        dbUserId,
+      );
+    } catch (e) {
+      // localStorage mirror failed — not fatal, DB already saved
+      console.warn("Failed to mirror macro targets to localStorage:", e);
     }
 
     // Link both the proStore clientId and the real user ID so builders
@@ -365,7 +388,7 @@ export default function TrainerClientDashboard() {
     setIsDirty(false);
     toast({
       title: "Targets saved",
-      description: "Macro targets updated successfully.",
+      description: "Macro targets synced to client's account.",
     });
   };
 
