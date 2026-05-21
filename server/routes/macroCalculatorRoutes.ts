@@ -52,11 +52,15 @@ router.post("/macro-calculator/compute", requireAuth, (req, res) => {
     if (!VALID_USER_TYPE.has(b.userType as string)) {
       return res.status(400).json({ ok: false, error: "Invalid userType" });
     }
+    // "standard" is a legacy client alias for "none" — map it gracefully
+    if ((b.cutIntensity as string) === "standard") {
+      (b as any).cutIntensity = "none";
+    }
     if (!VALID_CUT_INTENSITY.has(b.cutIntensity as string)) {
-      return res.status(400).json({ ok: false, error: "Invalid cutIntensity" });
+      (b as any).cutIntensity = "moderate";
     }
     if (!VALID_CUT_STYLE.has(b.cutStyle as string)) {
-      return res.status(400).json({ ok: false, error: "Invalid cutStyle" });
+      (b as any).cutStyle = "balanced";
     }
 
     const kg = Number(b.kg);
