@@ -7,10 +7,12 @@ import { resolveRestaurantsByZip } from "../services/restaurantResolver";
 import { coordsToZip } from "../services/zipToCoordsService";
 import { db } from "../db";
 import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { restaurantGuideSessions } from "../db/schema/restaurantGuideSessions";
+import { eq, desc } from "drizzle-orm";
 import { getActiveNutritionContext } from "../services/nutritionContext/getActiveNutritionContext";
 import { scoreRestaurantsForDiet, buildDietQuery } from "../services/restaurantScorer";
 import { zipToCoordinates } from "../services/zipToCoordsService";
+import { processMealImageForSave } from "../services/imageLifecycle";
 
 const router = Router();
 
@@ -113,7 +115,8 @@ router.post("/guide", async (req, res) => {
     const generationTime = Date.now() - generationStart;
     console.log(`✅ Generated ${recommendations.length} recommendations in ${generationTime}ms`);
 
-    return res.json({
+    // Respond immediately — do not block on DB save
+    res.json({
       recommendations,
       restaurantInfo,
       restaurantName: restaurantInfo.name,
@@ -123,12 +126,61 @@ router.post("/guide", async (req, res) => {
       generationTime
     });
 
+    // Fire-and-forget: persist session to DB with permanent image URLs
+    if (userId && recommendations.length > 0) {
+      (async () => {
+        try {
+          const mealsWithImages = await Promise.all(
+            recommendations.map(async (meal: any) => {
+              if (meal.imageUrl) {
+                const permanentUrl = await processMealImageForSave(meal.imageUrl, meal.name || meal.meal || "restaurant meal");
+                return { ...meal, imageUrl: permanentUrl };
+              }
+              return meal;
+            })
+          );
+          await db.insert(restaurantGuideSessions).values({
+            userId: String(userId),
+            restaurantName: restaurantInfo.name,
+            restaurantInfo: restaurantInfo as any,
+            craving: craving || null,
+            cuisine: detectedCuisine,
+            zipCode: zipCode || null,
+            meals: mealsWithImages as any,
+          });
+          console.log(`💾 [Guide] Session saved to DB for user ${userId} (${mealsWithImages.length} meals)`);
+        } catch (saveErr) {
+          console.error(`⚠️ [Guide] Failed to persist session to DB:`, saveErr);
+        }
+      })();
+    }
+
   } catch (error) {
     console.error("Smart Restaurant Guide error:", error);
     return res.status(500).json({ 
       error: "Failed to generate restaurant recommendations",
       details: error instanceof Error ? error.message : "Unknown error"
     });
+  }
+});
+
+// Fetch the most recent restaurant guide session for a user
+router.get("/latest-session", async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId || typeof userId !== "string") {
+      return res.json({ session: null });
+    }
+    const [session] = await db
+      .select()
+      .from(restaurantGuideSessions)
+      .where(eq(restaurantGuideSessions.userId, userId))
+      .orderBy(desc(restaurantGuideSessions.generatedAt))
+      .limit(1);
+    return res.json({ session: session ?? null });
+  } catch (error) {
+    console.error("[Guide] Failed to fetch latest session:", error);
+    return res.json({ session: null });
   }
 });
 
