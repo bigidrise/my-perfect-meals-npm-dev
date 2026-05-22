@@ -21,6 +21,8 @@ import { requireWorkspaceAccess, WorkspaceRequest } from "../middleware/requireW
 import { getWeekBoard, upsertWeekBoard } from "../data/weekBoardsRepo";
 import { getWeekStartISO } from "../utils/week";
 import { verifyClinicalAccess } from "../utils/verifyClinicalAccess";
+import { assertSameOrg, handleOrgIsolationError } from "../lib/orgIsolation";
+import { logAudit, getClientIp } from "../lib/auditLog";
 import { isOncologySupportEnabled, type OncologySupportContext } from "../services/guardrails/prompt/oncologySupportPromptBuilder";
 import { z } from "zod";
 
@@ -275,6 +277,9 @@ router.get("/clients/:clientId/board-control", async (req, res) => {
     const proUserId = (req as AuthenticatedRequest).authUser?.id;
     if (!proUserId) return res.status(401).json({ error: "Authentication required" });
     const { clientId } = req.params;
+    try { await assertSameOrg(proUserId, clientId); } catch (err) {
+      if (handleOrgIsolationError(err, res)) return; throw err;
+    }
     const [link] = await db
       .select({ mealBoardControl: clientLinks.mealBoardControl })
       .from(clientLinks)
@@ -294,6 +299,9 @@ router.patch("/clients/:clientId/board-control", async (req, res) => {
     const proUserId = (req as AuthenticatedRequest).authUser?.id;
     if (!proUserId) return res.status(401).json({ error: "Authentication required" });
     const { clientId } = req.params;
+    try { await assertSameOrg(proUserId, clientId); } catch (err) {
+      if (handleOrgIsolationError(err, res)) return; throw err;
+    }
     const { control } = req.body as { control: 'client' | 'professional' };
     if (control !== 'client' && control !== 'professional') {
       return res.status(400).json({ error: "control must be 'client' or 'professional'" });
@@ -329,6 +337,10 @@ router.post("/end-relationship", async (req, res) => {
     }
 
     const proUserId = authUser.id;
+
+    try { await assertSameOrg(proUserId, clientUserId); } catch (err) {
+      if (handleOrgIsolationError(err, res)) return; throw err;
+    }
 
     const activeLink = await getActiveLink(clientUserId);
     if (!activeLink || activeLink.proUserId !== proUserId) {
@@ -390,6 +402,7 @@ router.get("/oncology-support/:clientUserId", async (req, res) => {
       return res.status(404).json({ error: "Client not found" });
     }
 
+    logAudit({ actor: requesterId!, target: clientUserId, orgId: (req as any).authUser?.organizationId ?? null, action: "READ", resourceType: "oncology_context", table: "users", field: "oncology_support_context", route: req.path, ip: getClientIp(req as any) });
     res.json({ oncologySupportContext: rows[0].oncologySupportContext ?? null });
   } catch (error: any) {
     console.error("[oncology-support GET]", error);
@@ -466,7 +479,7 @@ router.put("/oncology-support/:clientUserId", async (req, res) => {
       .where(eq(users.id, clientUserId as any));
 
     console.log(`[oncology-support PUT] Physician ${requesterId} (${ownerName ?? "unknown"}) ${body.enabled ? "assigned" : "disabled"} Cancer Support Nutrition for client ${clientUserId}. Symptoms: [${body.symptoms.join(", ")}]`);
-
+    logAudit({ actor: requesterId, target: clientUserId, orgId: (req as any).authUser?.organizationId ?? null, action: "WRITE", resourceType: "oncology_context", table: "users", field: "oncology_support_context", route: req.path, ip: getClientIp(req as any), meta: { enabled: body.enabled, symptomsCount: body.symptoms.length } });
     res.json({ ok: true, oncologySupportContext: context });
   } catch (error: any) {
     console.error("[oncology-support PUT]", error);
@@ -497,6 +510,7 @@ router.get("/glp1-protocol/:clientUserId", async (req, res) => {
       .limit(1);
 
     const mc: string[] = Array.isArray(row?.medicalConditions) ? row.medicalConditions as string[] : [];
+    logAudit({ actor: requesterId, target: clientUserId, orgId: (req as any).authUser?.organizationId ?? null, action: "READ", resourceType: "glp1_protocol", table: "users", field: "medical_conditions", route: req.path, ip: getClientIp(req as any) });
     res.json({ glp1Active: mc.includes("glp1"), medicalConditions: mc });
   } catch (error: any) {
     console.error("[glp1-protocol GET]", error);
@@ -573,6 +587,7 @@ router.put("/glp1-protocol/:clientUserId", async (req, res) => {
       .where(eq(users.id, clientUserId as any));
 
     console.log(`[glp1-protocol PUT] Physician ${requesterId} (${ownerName ?? "unknown"}) ${enabled ? "assigned" : "removed"} GLP-1 Active for client ${clientUserId}`);
+    logAudit({ actor: requesterId, target: clientUserId, orgId: (req as any).authUser?.organizationId ?? null, action: "WRITE", resourceType: "glp1_protocol", table: "users", field: "medical_conditions", route: req.path, ip: getClientIp(req as any), meta: { enabled } });
     res.json({ ok: true, glp1Active: enabled, medicalConditions: updated });
   } catch (error: any) {
     console.error("[glp1-protocol PUT]", error);
@@ -747,6 +762,11 @@ router.get("/clients/:clientId/nutrition-strategy", async (req: any, res) => {
     const isPhysician = callerUser?.professionalRole === "physician";
 
     if (!isAdmin) {
+      // Org boundary — caller and client must share the same organization
+      try { await assertSameOrg(callerId, clientId); } catch (err) {
+        if (handleOrgIsolationError(err, res)) return; throw err;
+      }
+
       // Must be a coach/trainer/physician with an active link to this client
       const [link] = await db
         .select()
@@ -888,6 +908,7 @@ router.get("/clients/:clientId/nutrition-strategy", async (req: any, res) => {
     }
 
     console.log(`📊 [nutrition-strategy] Returned data for client ${clientId.substring(0, 8)}... | caller=${isPhysician ? "physician" : "coach"} | hubs=${(payload.activeHubs as string[]).join(",")}`);
+    logAudit({ actor: callerId, target: clientId, orgId: (req as any).authUser?.organizationId ?? null, action: "READ", resourceType: "nutrition_strategy", table: "users,clinical_labs,glucose_logs,glp1_shots", route: req.path, ip: getClientIp(req as any), meta: { activeHubs: payload.activeHubs, callerRole: isPhysician ? "physician" : "coach" } });
     return res.json(payload);
 
   } catch (error) {

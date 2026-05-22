@@ -8,6 +8,7 @@ export type Permissions = {
 
 export const careTeamMember = pgTable("care_team_member", {
   id: uuid("id").primaryKey().defaultRandom(),
+  orgId: uuid("org_id"),
   userId: varchar("user_id", { length: 64 }).notNull(),
   proUserId: varchar("pro_user_id", { length: 64 }),
   name: varchar("name", { length: 120 }).notNull(),

@@ -11,6 +11,8 @@ import { logClientActivity, logClientActivityForStudioMember } from "../services
 import { pushToUser } from "../services/pushNotify";
 import { deactivateProCareClient, ActivationError } from "../services/procareActivation";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
+import { assertSameOrg, handleOrgIsolationError } from "../lib/orgIsolation";
+import { logAudit, getClientIp } from "../lib/auditLog";
 
 const router = Router();
 
@@ -209,6 +211,10 @@ router.patch("/:studioId/clients/:clientUserId/archive", async (req, res) => {
       .where(and(eq(studios.id, studioId), eq(studios.ownerUserId, userId)));
     if (!studio) return res.status(404).json({ error: "Studio not found" });
 
+    try { await assertSameOrg(userId, clientUserId); } catch (err) {
+      if (handleOrgIsolationError(err, res)) return; throw err;
+    }
+
     // Archive = full ProCare disconnect (deactivates all 3 invariant records atomically)
     await deactivateProCareClient(clientUserId, userId, userId, "provider_archive");
 
@@ -242,6 +248,10 @@ router.patch("/:studioId/clients/:clientUserId/restore", async (req, res) => {
       .from(studios)
       .where(and(eq(studios.id, studioId), eq(studios.ownerUserId, userId)));
     if (!studio) return res.status(404).json({ error: "Studio not found" });
+
+    try { await assertSameOrg(userId, clientUserId); } catch (err) {
+      if (handleOrgIsolationError(err, res)) return; throw err;
+    }
 
     await db
       .update(studioMemberships)
@@ -408,6 +418,10 @@ router.patch("/:studioId/clients/:clientUserId/assign", async (req, res) => {
       return res.status(404).json({ error: "Studio not found" });
     }
 
+    try { await assertSameOrg(userId, clientUserId); } catch (err) {
+      if (handleOrgIsolationError(err, res)) return; throw err;
+    }
+
     const CLINICAL_BUILDERS = ["diabetic", "glp1", "anti_inflammatory", "weekly"];
     if (CLINICAL_BUILDERS.includes(assignedBuilder) && studio.type !== "clinic") {
       return res.status(403).json({
@@ -484,6 +498,10 @@ router.patch("/:studioId/clients/:clientUserId/apply-system-recommendation", asy
       return res.status(404).json({ error: "Studio not found" });
     }
 
+    try { await assertSameOrg(userId, clientUserId); } catch (err) {
+      if (handleOrgIsolationError(err, res)) return; throw err;
+    }
+
     if (studio.type !== "clinic") {
       return res.status(403).json({
         error: "ClinicalDirectiveRestricted",
@@ -522,6 +540,7 @@ router.patch("/:studioId/clients/:clientUserId/apply-system-recommendation", asy
       }
     );
 
+    logAudit({ actor: userId, target: clientUserId, orgId: (req as any).authUser?.organizationId ?? null, action: "WRITE", resourceType: "clinical_directive", table: "studio_memberships", field: "builder_source", route: req.path, ip: getClientIp(req as any), meta: { directiveKey, directiveLabel } });
     res.json({ membership, applied: true });
   } catch (error) {
     console.error("Error applying system recommendation:", error);
@@ -542,6 +561,10 @@ router.get("/:studioId/clients/:clientUserId/notes", async (req, res) => {
 
     if (!studio) {
       return res.status(404).json({ error: "Studio not found" });
+    }
+
+    try { await assertSameOrg(userId, clientUserId); } catch (err) {
+      if (handleOrgIsolationError(err, res)) return; throw err;
     }
 
     const notes = await db
@@ -582,6 +605,10 @@ router.post("/:studioId/clients/:clientUserId/notes", async (req, res) => {
       return res.status(404).json({ error: "Studio not found" });
     }
 
+    try { await assertSameOrg(userId, clientUserId); } catch (err) {
+      if (handleOrgIsolationError(err, res)) return; throw err;
+    }
+
     const [note] = await db
       .insert(clientNotes)
       .values({
@@ -606,7 +633,7 @@ router.post("/:studioId/clients/:clientUserId/notes", async (req, res) => {
       note.id,
       { noteType: noteType || "general", title }
     );
-
+    logAudit({ actor: userId, target: clientUserId, orgId: (req as any).authUser?.organizationId ?? null, action: "WRITE", resourceType: "client_note", table: "client_notes", resourceId: note.id, route: req.path, ip: getClientIp(req as any), meta: { noteType: noteType || "general", visibility: visibility || "professional_only" } });
     res.json({ note });
   } catch (error) {
     console.error("Error creating note:", error);
@@ -627,6 +654,10 @@ router.get("/:studioId/clients/:clientUserId/activity", async (req, res) => {
 
     if (!studio) {
       return res.status(404).json({ error: "Studio not found" });
+    }
+
+    try { await assertSameOrg(userId, clientUserId); } catch (err) {
+      if (handleOrgIsolationError(err, res)) return; throw err;
     }
 
     const activities = await db
