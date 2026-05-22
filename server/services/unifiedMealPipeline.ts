@@ -204,6 +204,9 @@ function normalizeMealType(mealType: string): 'breakfast' | 'lunch' | 'dinner' |
   if (['breakfast', 'lunch', 'dinner', 'snack'].includes(normalized)) {
     return normalized as 'breakfast' | 'lunch' | 'dinner' | 'snack';
   }
+
+  // Extended meal slots (meal4/meal5/meal6) are valid client slots — treat as lunch for generation
+  if (/^meal[4-9]$/.test(normalized)) return 'lunch';
   
   // Default to lunch for unknown types
   console.warn(`⚠️ Unknown meal type "${mealType}", defaulting to lunch`);

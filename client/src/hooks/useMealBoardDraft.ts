@@ -55,6 +55,9 @@ function computeBoardHash(board: WeekBoard): string {
           lunch: (day.lunch || []).map(normalizeMeal),
           dinner: (day.dinner || []).map(normalizeMeal),
           snacks: (day.snacks || []).map(normalizeMeal),
+          meal4: (day.meal4 || []).map(normalizeMeal),
+          meal5: (day.meal5 || []).map(normalizeMeal),
+          meal6: (day.meal6 || []).map(normalizeMeal),
         };
       }
     }
