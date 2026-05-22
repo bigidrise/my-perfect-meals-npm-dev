@@ -288,6 +288,10 @@ export default function SushiCreator() {
         description:
           "Your generated meal will remain saved on this page until you create a new one.",
       });
+      // If image wasn't saved to cache, re-fetch it now — DB cache returns instantly
+      if (!cached.generatedMeal.imageUrl) {
+        hydrateImages([cached.generatedMeal]);
+      }
     }
 
     // Emit ready event after page loads
