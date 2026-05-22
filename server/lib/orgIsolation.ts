@@ -15,6 +15,7 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { MPM_PUBLIC_ORG_ID } from "@shared/constants";
+import { logAudit } from "./auditLog";
 
 export class OrgIsolationError extends Error {
   readonly statusCode = 403;
@@ -67,6 +68,14 @@ export async function assertSameOrg(
       "[OrgIsolation] VIOLATION: user=%s (org=%s) attempted to access user=%s (org=%s)",
       requestingUserId, requestingOrg, targetUserId, targetOrg
     );
+    logAudit({
+      actor: requestingUserId,
+      target: targetUserId,
+      orgId: requestingOrg,
+      action: "ORG_VIOLATION",
+      resourceType: "org_boundary",
+      meta: { requestingOrg, targetOrg },
+    });
     throw new OrgIsolationError(requestingUserId, targetUserId);
   }
 }

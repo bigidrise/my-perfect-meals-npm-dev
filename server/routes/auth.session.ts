@@ -8,6 +8,7 @@ import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { autoAcceptPendingInvites, lookupExistingMembership } from "../services/inviteAutoAccept";
 import { selfHealProCareState } from "../services/procareActivation";
 import { checkLegalAcceptance } from "../services/legalCheck";
+import { logAudit, getClientIp } from "../lib/auditLog";
 
 const router = Router();
 
@@ -114,6 +115,7 @@ router.post("/api/auth/signup", async (req, res) => {
   }
 
   console.log("✅ Created new user ID:", newUser.id);
+  logAudit({ actor: newUser.id, action: "AUTH_SIGNUP", resourceType: "auth", route: "/api/auth/signup", ip: getClientIp(req as any), meta: { isProCare: newUser.isProCare || false } });
 
     const inviteResult = await autoAcceptPendingInvites(newUser.id, newUser.email);
 
@@ -272,6 +274,7 @@ router.post("/api/auth/login", async (req, res) => {
     }
 
     console.log("✅ User logged in, ID:", user.id);
+    logAudit({ actor: user.id, action: "AUTH_LOGIN", resourceType: "auth", route: "/api/auth/login", ip: getClientIp(req as any) });
 
     const inviteResult = await autoAcceptPendingInvites(user.id, user.email);
 
@@ -353,6 +356,7 @@ router.post("/api/auth/logout", requireAuth, async (req: any, res) => {
       req.session.destroy?.(() => {});
     }
     console.log(`✅ [logout] Token invalidated for user ${userId}`);
+    logAudit({ actor: userId, action: "AUTH_LOGOUT", resourceType: "auth", route: "/api/auth/logout", ip: getClientIp(req as any) });
     return res.json({ success: true });
   } catch (err: any) {
     console.error(`[logout] DB error for user ${userId}:`, err.message);
