@@ -382,7 +382,7 @@ export default function AntiInflammatoryMenuBuilder() {
   const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
     {
       userId: effectiveUserId,
-      builderId: 'anti-inflammatory-menu-builder',
+      builderId: namespace || 'anti-inflammatory-menu-builder',
       weekStartISO,
     },
     board,
@@ -582,7 +582,9 @@ export default function AntiInflammatoryMenuBuilder() {
           setBoard(prev => {
             if (!prev) return prev;
             if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
-            return updateMealImageInBoard(prev, mealId, imageUrl);
+            const updated = updateMealImageInBoard(prev, mealId, imageUrl);
+            saveBoard(updated).catch(() => {});
+            return updated;
           });
         });
       } catch (error) {
