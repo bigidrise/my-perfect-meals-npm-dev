@@ -239,6 +239,50 @@ These rules apply to every OpenAI call, log line, and error message in the syste
 
 ---
 
+## Phase 4 — Implemented AI Sanitization Layer
+
+**Status:** Active as of 2026-05-22  
+**Files:** `server/services/promptSanitizer.ts`, `server/services/protocolEnvelope.ts`, `server/services/promptBuilder.ts`
+
+### Identity Scrubbing (`server/services/promptSanitizer.ts`)
+
+`sanitizeIdentifiers(text)` is applied to every `ProtocolPromptBlock.combined` string inside `enforceBeforeGenerate()` before the block reaches any OpenAI call. It replaces:
+
+| Pattern | Replacement |
+|---|---|
+| Email addresses | `[email]` |
+| US/intl phone numbers | `[phone]` |
+| UUID v4 identifiers | `[id]` |
+
+Medical/dietary/clinical content is never modified — only identity tokens are stripped.
+
+### Name Removal (`server/services/promptBuilder.ts`)
+
+`buildMealPrompt()` previously injected `profile.name` (T3 PII) into the user prompt section. This has been replaced with the anonymous label `[anonymous]`. The AI receives dietary profile, macro targets, and medical context but never the user's real name.
+
+### T1 Field Audit at AI Boundary (`server/services/protocolEnvelope.ts`)
+
+`enforceBeforeGenerate()` now:
+1. Scans the assembled envelope for T1/T2 PHI field categories (no values — names only)
+2. Returns `phiFields: string[]` on the `ProtocolPromptBlock` for callers
+3. When `context.actorId` is provided, fires a `PROMPT_PHI_AUDIT` audit log entry recording which field categories were sent to AI
+
+Detected field categories: `medical_hard_limits`, `condition_guidance_blocks`, `oncology_context`, `glp1_context`, `renal_context`, `cardiac_context`, `diabetic_guidance`, `thyroid_medication`, `thyroid_support`
+
+### Audit Action: `AI_PROMPT_PHI`
+
+| Field | Value |
+|---|---|
+| `action` | `AI_PROMPT_PHI` |
+| `resource_type` | `prompt_context` |
+| `route` | `generator:<name>` (e.g., `generator:craving_creator`) |
+| `meta.phiFields` | Array of T1/T2 field category names present |
+| `meta.generatorName` | Which AI generator was invoked |
+
+This event is emitted per-generation for authenticated users — guests produce no audit entry. Values are never included.
+
+---
+
 ## Access Control Matrix
 
 | Data Tier | Self-access | Coach (same org) | Physician (same org) | Cross-org | Admin |
@@ -288,3 +332,4 @@ Retention: 6 years minimum (HIPAA § 164.530(j)).
 | Date | Change |
 |---|---|
 | 2026-05-22 | v1.0 — Initial PHI boundary document. Covers all schema files as of Phase 1B enforcement completion. |
+| 2026-05-22 | v1.1 — Phase 4 AI sanitization layer implemented. Added promptSanitizer, name removal from promptBuilder, T1 field detection and `AI_PROMPT_PHI` audit event in enforceBeforeGenerate. |

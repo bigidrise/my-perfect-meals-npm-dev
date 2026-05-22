@@ -1604,6 +1604,7 @@ export async function generateCravingMealOptions(
         const promptBlock = enforceBeforeGenerate(envelope, {
           userInput: cravingInput,
           generatorName: 'craving_creator',
+          actorId: userId,
         });
         if (promptBlock.layers.procedural) {
           proceduralBlock = promptBlock.layers.procedural;
@@ -2430,6 +2431,7 @@ export async function generateFromDescriptionUnified(
 
     const chefProtocolBlock = enforceBeforeGenerate(chefEnvelope, {
       generatorName: 'create_with_chef',
+      actorId: userId ?? undefined,
     }).combined;
 
     // Use envelope's dietaryIdentity for vegan/vegetarian/pescatarian compliance loop

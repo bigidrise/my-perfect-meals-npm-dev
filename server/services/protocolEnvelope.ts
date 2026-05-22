@@ -51,6 +51,8 @@ import {
   type GlucoseState,
 } from "./diabeticContextService";
 import { buildUniversalConditionGuidance } from "./universalMedicalGuidance";
+import { sanitizeIdentifiers } from "./promptSanitizer";
+import { logAudit } from "../lib/auditLog";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PROCEDURAL RULES — The third enforcement dimension
@@ -543,6 +545,13 @@ export interface ProtocolPromptBlock {
 
   /** Whether this envelope contains any active restrictions (false = open generation) */
   hasRestrictions: boolean;
+
+  /**
+   * T1/T2 PHI field names that were present in this envelope and sent to AI.
+   * Values are never included — only field name strings.
+   * Populated by enforceBeforeGenerate() for downstream audit logging.
+   */
+  phiFields: string[];
 }
 
 /**
@@ -889,6 +898,10 @@ export function enforceBeforeGenerate(
   context?: {
     userInput?: string;
     generatorName?: string;
+    /** Actor user ID — when provided, triggers a PROMPT_PHI_AUDIT log entry for any T1/T2 fields present */
+    actorId?: string;
+    /** Organization ID for the audit log entry */
+    orgId?: string | null;
   }
 ): ProtocolPromptBlock {
   const generatorName = context?.generatorName || "unknown_generator";
@@ -1155,7 +1168,7 @@ When the generated meal clearly corresponds to a known or widely recognized dish
 SELF-CHECK before responding: Verify the meal reflects at least 3 of these authentic signals — (a) culturally appropriate dish format for this cuisine AND this meal time, (b) culturally typical protein or starch (not a generic fitness substitute), (c) culturally authentic vegetables or herbs (not generic health vegetables), (d) correct flavor system for this cuisine. If fewer than 3 signals are present, revise before returning.`;
   }
 
-  const combined = [
+  const rawCombined = [
     layers.dietaryIdentity,
     layers.allergies,
     layers.medicalHardLimits,
@@ -1166,6 +1179,10 @@ SELF-CHECK before responding: Verify the meal reflects at least 3 of these authe
   ]
     .filter(Boolean)
     .join("\n");
+
+  // Phase 4 — sanitize direct identifiers from the prompt block before it
+  // leaves the application boundary toward OpenAI.
+  const combined = sanitizeIdentifiers(rawCombined);
 
   const hasRestrictions =
     envelope.dietaryIdentity.length > 0 ||
@@ -1179,7 +1196,34 @@ SELF-CHECK before responding: Verify the meal reflects at least 3 of these authe
     );
   }
 
-  return { combined, layers, hasRestrictions };
+  // Phase 4 — detect which T1/T2 PHI field categories are present in this envelope.
+  // Only field names are collected; no values are stored or logged.
+  const phiFields: string[] = [];
+  if (envelope.medicalHardLimits.length > 0) phiFields.push("medical_hard_limits");
+  if ((envelope.conditionGuidanceBlocks ?? []).length > 0) {
+    phiFields.push("condition_guidance_blocks");
+    if (envelope.conditionGuidanceBlocks.some(b => /oncolog|cancer/i.test(b))) phiFields.push("oncology_context");
+    if (envelope.conditionGuidanceBlocks.some(b => /glp-?1/i.test(b))) phiFields.push("glp1_context");
+    if (envelope.conditionGuidanceBlocks.some(b => /renal|kidney/i.test(b))) phiFields.push("renal_context");
+    if (envelope.conditionGuidanceBlocks.some(b => /cardiac|heart/i.test(b))) phiFields.push("cardiac_context");
+  }
+  if (envelope.diabeticGuidance) phiFields.push("diabetic_guidance");
+  if (envelope.thyroidMedication) phiFields.push("thyroid_medication");
+  if (envelope.thyroidSupport) phiFields.push("thyroid_support");
+
+  // Emit audit event when T1 fields are present and an actor is known.
+  if (phiFields.length > 0 && context?.actorId) {
+    logAudit({
+      actor: context.actorId,
+      orgId: context.orgId ?? null,
+      action: "AI_PROMPT_PHI",
+      resourceType: "prompt_context",
+      route: `generator:${generatorName}`,
+      meta: { phiFields, generatorName },
+    });
+  }
+
+  return { combined, layers, hasRestrictions, phiFields };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

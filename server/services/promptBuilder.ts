@@ -332,7 +332,7 @@ DO NOT:
   const palateSection = buildPalateSection(profile);
 
   const user = `
-User: ${profile.name ?? profile.userId}
+User: [anonymous]
 Diet: ${diet}
 Calories/day target: ${profile.caloriesPerDay ?? "unknown"}
 Protein target/day: ${profile.proteinTargetG ?? "unknown"} g
