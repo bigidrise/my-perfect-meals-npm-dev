@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { WeekBoardResponseSchema, createEmptyWeekStructure, getMondayISO, type WeekBoardResponse, type WeekBoard } from "@/../../shared/schema/weeklyBoard";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { safeBoardCacheWrite } from "@/lib/boardStorage";
 
 const CACHE_NS = "mpm.weeklyBoard";
 const FETCH_TIMEOUT_MS = 8000;
@@ -109,9 +110,10 @@ function loadWeeklyBoard({
         
         const json = await res.json();
         const validated = WeekBoardResponseSchema.parse(json);
-        
-        localStorage.setItem(key, JSON.stringify(validated));
-        
+
+        // Cache write is best-effort — must NEVER block the UI update.
+        safeBoardCacheWrite(key, JSON.stringify(validated));
+
         if (JSON.stringify(validated) !== JSON.stringify(cached)) {
           onData(validated);
         }
@@ -187,7 +189,7 @@ async function saveWeeklyBoard({
 
   if (!proClientId) {
     const key = cacheKey(userId, weekStartISO, namespace);
-    localStorage.setItem(key, JSON.stringify(validated));
+    safeBoardCacheWrite(key, JSON.stringify(validated));
   }
 
   return validated;
@@ -307,7 +309,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
         const key = namespace
           ? `${CACHE_NS}:${namespace}:${proClientId || userId}:${monday}`
           : `${CACHE_NS}:${proClientId || userId}:${monday}`;
-        try { localStorage.setItem(key, JSON.stringify({ ...prev, week: patched })); } catch {}
+        safeBoardCacheWrite(key, JSON.stringify({ ...prev, week: patched }));
         return { ...prev, week: patched };
       });
     };
@@ -378,7 +380,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
   const primeCache = useCallback((targetWeekISO: string, data: WeekBoardResponse): void => {
     if (proClientId) return;
     const key = cacheKey(userId, targetWeekISO, namespace);
-    try { localStorage.setItem(key, JSON.stringify(data)); } catch {}
+    safeBoardCacheWrite(key, JSON.stringify(data));
   }, [userId, proClientId, namespace]);
 
   return {
