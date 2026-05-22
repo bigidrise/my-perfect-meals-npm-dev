@@ -177,19 +177,41 @@ export function useMealBoardDraft(
       const savedHash = computeBoardHash(savedBoard);
       const serverHash = hookBoard ? computeBoardHash(hookBoard) : '';
 
-      if (savedHash !== serverHash) {
-        console.log(`✅ [MPM Board Draft] Restored draft from ${Math.round(age / 1000)} seconds ago`);
-        console.log(`   Draft hash: ${savedHash}, Server hash: ${serverHash}`);
-        setBoard(savedBoard);
-        lastSavedHashRef.current = savedHash;
-        initialBoardHashRef.current = savedHash;
-        draftRestoredRef.current = true;
-      } else {
+      if (savedHash === serverHash) {
         console.log('📋 [MPM Board Draft] Draft matches server, no restore needed');
         if (hookBoard) {
           initialBoardHashRef.current = serverHash;
         }
+        return;
       }
+
+      // Server recency guard: if the server board was updated AFTER this draft
+      // was saved (e.g. a physician published a new plan), the server wins.
+      const serverLastUpdated: number = (() => {
+        try {
+          const ts = (hookBoard as any)?.meta?.lastUpdatedAt;
+          return ts ? new Date(ts).getTime() : 0;
+        } catch { return 0; }
+      })();
+
+      if (serverLastUpdated > meta.savedAt) {
+        const deltaS = Math.round((serverLastUpdated - meta.savedAt) / 1000);
+        console.log(`🛡️ [MPM Board Draft] Server board is newer by ${deltaS}s — discarding stale draft`);
+        localStorage.removeItem(draftKey);
+        localStorage.removeItem(metaKey);
+        if (hookBoard) {
+          initialBoardHashRef.current = serverHash;
+        }
+        return;
+      }
+
+      // Draft is newer than server — restore it
+      console.log(`✅ [MPM Board Draft] Restored draft from ${Math.round(age / 1000)} seconds ago`);
+      console.log(`   Draft hash: ${savedHash}, Server hash: ${serverHash}`);
+      setBoard(savedBoard);
+      lastSavedHashRef.current = savedHash;
+      initialBoardHashRef.current = savedHash;
+      draftRestoredRef.current = true;
     } catch (error) {
       console.error('[MPM Board Draft] Failed to restore draft:', error);
     }

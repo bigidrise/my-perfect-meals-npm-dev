@@ -267,10 +267,17 @@ router.put(
           ...processedBoard.meta,
           createdAt: existingBoard?.meta?.createdAt ?? now,
           lastUpdatedAt: now,
+          providerUpdatedAt: now,
         },
       };
 
       await upsertWeekBoard(clientUserId, weekStartISO, saved, builderType);
+
+      // Publish to default (patient-facing) namespace so the patient's
+      // WeeklyMealBoard always reflects the latest provider plan.
+      if (builderType) {
+        await upsertWeekBoard(clientUserId, weekStartISO, saved, '');
+      }
 
       logActivityFireAndForget(
         access.proUserId,
@@ -337,10 +344,17 @@ router.put(
           ...processedBoard.meta,
           createdAt: existingBoard?.meta?.createdAt ?? now,
           lastUpdatedAt: now,
+          providerUpdatedAt: now,
         },
       };
 
       await upsertWeekBoard(clientUserId, weekStartISO, saved, builderType);
+
+      // Publish to default (patient-facing) namespace so the patient's
+      // WeeklyMealBoard always reflects the latest provider plan.
+      if (builderType) {
+        await upsertWeekBoard(clientUserId, weekStartISO, saved, '');
+      }
 
       logActivityFireAndForget(
         access.proUserId,
