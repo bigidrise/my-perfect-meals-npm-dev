@@ -460,19 +460,36 @@ export function getSemanticFallback(mealName: string): string {
 // Bump "v2", "v3" etc. to invalidate all cached images after prompt changes.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CACHE_VERSION = "v3";
+// v4: sourceType is now part of the cache key — prevents drink/food cross-contamination.
+// Bump to "v5", "v6" etc. to flush all cached images after major prompt changes.
+const CACHE_VERSION = "v4";
 
-export function buildStableCacheKey(mealName: string, ingredients: string[]): string {
+// Map client-sent mealType values to canonical ImageSourceType strings.
+// Called by the /api/meals/generate-image endpoint when sourceType is absent.
+export function normalizeMealTypeToSourceType(mealType?: string): ImageSourceType | undefined {
+  if (!mealType) return undefined;
+  const t = mealType.toLowerCase();
+  if (t === 'beverage' || t === 'drink') return 'beverage';
+  if (t === 'snack') return 'snack';
+  if (t === 'dessert') return 'dessert';
+  // restaurant, breakfast, lunch, dinner, meal, course → food
+  return 'meal';
+}
+
+export function buildStableCacheKey(mealName: string, ingredients: string[], sourceType?: string): string {
   const normalizedName = mealName.toLowerCase().trim();
   const normalizedIngredients = ingredients
     .slice(0, 5)
     .map(i => i.toLowerCase().trim())
     .sort()
     .join(",");
+  // sourceType is part of the key so food/beverage/snack caches never collide.
+  // Default to "meal" so food requests without explicit sourceType stay in the food bucket.
+  const typeContext = (sourceType || "meal").toLowerCase();
 
   return crypto
     .createHash('sha256')
-    .update(`${normalizedName}|${normalizedIngredients}|${CACHE_VERSION}`)
+    .update(`${normalizedName}|${normalizedIngredients}|${typeContext}|${CACHE_VERSION}`)
     .digest('hex')
     .substring(0, 32);
 }
@@ -531,7 +548,8 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
   const normalizedName = normalizeMealName(request.mealName);
   const { ingredients, mealType, sourceType } = request;
   const mealName = normalizedName;
-  const cacheKey = buildStableCacheKey(mealName, ingredients);
+  // sourceType is included in the cache key so food/beverage/etc. never share entries.
+  const cacheKey = buildStableCacheKey(mealName, ingredients, sourceType);
 
   // ── SNACK FIREWALL ──────────────────────────────────────────────────────────
   // sourceType === 'snack' is the hard override; mealType and pattern are fallbacks
@@ -716,7 +734,7 @@ export async function generateMealImages(requests: MealImageRequest[]): Promise<
         generateMealImage(req).catch(err => ({
           url: getSemanticFallback(req.mealName),
           prompt: `Error: ${err.message}`,
-          hash: buildStableCacheKey(req.mealName, req.ingredients),
+          hash: buildStableCacheKey(req.mealName, req.ingredients, req.sourceType),
           createdAt: new Date().toISOString(),
         }))
       )
@@ -735,7 +753,7 @@ export async function generateMealImages(requests: MealImageRequest[]): Promise<
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function getCachedImage(request: MealImageRequest): GeneratedImage | null {
-  const cacheKey = buildStableCacheKey(request.mealName, request.ingredients);
+  const cacheKey = buildStableCacheKey(request.mealName, request.ingredients, request.sourceType);
   const url = memCache.get(cacheKey);
   if (!url) return null;
   return {
