@@ -10,7 +10,7 @@ import { pushToUser } from "../services/pushNotify";
 type WeekBoard = {
   id: string;
   version: number;
-  lists: { breakfast: any[]; lunch: any[]; dinner: any[]; snacks: any[] };
+  lists: { breakfast: any[]; lunch: any[]; dinner: any[]; snacks: any[]; meal4: any[]; meal5: any[]; meal6: any[] };
   meta: { createdAt: string; lastUpdatedAt: string };
 };
 
@@ -18,7 +18,7 @@ function getOrCreateWeek(weekStartISO: string): WeekBoard {
   return {
     id: `week-${weekStartISO}`,
     version: 1,
-    lists: { breakfast: [], lunch: [], dinner: [], snacks: [] },
+    lists: { breakfast: [], lunch: [], dinner: [], snacks: [], meal4: [], meal5: [], meal6: [] },
     meta: {
       createdAt: new Date().toISOString(),
       lastUpdatedAt: new Date().toISOString(),
@@ -78,6 +78,9 @@ function normalizeBoard(raw: any): any {
       lunch: normalizeMealArray(lists.lunch),
       dinner: normalizeMealArray(lists.dinner),
       snacks: normalizeMealArray(lists.snacks),
+      meal4: normalizeMealArray(lists.meal4),
+      meal5: normalizeMealArray(lists.meal5),
+      meal6: normalizeMealArray(lists.meal6),
     },
     meta: {
       ...(base.meta ?? {}),
@@ -94,6 +97,9 @@ function normalizeBoard(raw: any): any {
         lunch: normalizeMealArray(dayVal?.lunch),
         dinner: normalizeMealArray(dayVal?.dinner),
         snacks: normalizeMealArray(dayVal?.snacks),
+        meal4: normalizeMealArray(dayVal?.meal4),
+        meal5: normalizeMealArray(dayVal?.meal5),
+        meal6: normalizeMealArray(dayVal?.meal6),
       };
     }
   }
@@ -129,6 +135,9 @@ async function processAllMealImagesForSave(
     await processMeals(board.lists.lunch || []);
     await processMeals(board.lists.dinner || []);
     await processMeals(board.lists.snacks || []);
+    await processMeals(board.lists.meal4 || []);
+    await processMeals(board.lists.meal5 || []);
+    await processMeals(board.lists.meal6 || []);
   }
 
   if (board.days) {
@@ -137,6 +146,9 @@ async function processAllMealImagesForSave(
       await processMeals(dayVal?.lunch || []);
       await processMeals(dayVal?.dinner || []);
       await processMeals(dayVal?.snacks || []);
+      await processMeals(dayVal?.meal4 || []);
+      await processMeals(dayVal?.meal5 || []);
+      await processMeals(dayVal?.meal6 || []);
     }
   }
 
@@ -267,10 +279,17 @@ router.put(
           ...processedBoard.meta,
           createdAt: existingBoard?.meta?.createdAt ?? now,
           lastUpdatedAt: now,
+          providerUpdatedAt: now,
         },
       };
 
       await upsertWeekBoard(clientUserId, weekStartISO, saved, builderType);
+
+      // Publish to default (patient-facing) namespace so the patient's
+      // WeeklyMealBoard always reflects the latest provider plan.
+      if (builderType) {
+        await upsertWeekBoard(clientUserId, weekStartISO, saved, '');
+      }
 
       logActivityFireAndForget(
         access.proUserId,
@@ -337,10 +356,17 @@ router.put(
           ...processedBoard.meta,
           createdAt: existingBoard?.meta?.createdAt ?? now,
           lastUpdatedAt: now,
+          providerUpdatedAt: now,
         },
       };
 
       await upsertWeekBoard(clientUserId, weekStartISO, saved, builderType);
+
+      // Publish to default (patient-facing) namespace so the patient's
+      // WeeklyMealBoard always reflects the latest provider plan.
+      if (builderType) {
+        await upsertWeekBoard(clientUserId, weekStartISO, saved, '');
+      }
 
       logActivityFireAndForget(
         access.proUserId,

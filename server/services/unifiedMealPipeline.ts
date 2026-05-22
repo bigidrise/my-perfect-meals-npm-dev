@@ -89,7 +89,8 @@ async function generateImageCached(
 ): Promise<string | null> {
   // NORMALIZATION — applied before cache key derivation and prompt construction
   const name_ = normalizeMealName(name);
-  const cacheKey = buildStableCacheKey(name_, ingredients);
+  // Include type context in cache key so food/beverage entries never collide.
+  const cacheKey = buildStableCacheKey(name_, ingredients, type);
 
   try {
     const [dbRow] = await db
@@ -204,6 +205,9 @@ function normalizeMealType(mealType: string): 'breakfast' | 'lunch' | 'dinner' |
   if (['breakfast', 'lunch', 'dinner', 'snack'].includes(normalized)) {
     return normalized as 'breakfast' | 'lunch' | 'dinner' | 'snack';
   }
+
+  // Extended meal slots (meal4/meal5/meal6) are valid client slots — treat as lunch for generation
+  if (/^meal[4-9]$/.test(normalized)) return 'lunch';
   
   // Default to lunch for unknown types
   console.warn(`⚠️ Unknown meal type "${mealType}", defaulting to lunch`);

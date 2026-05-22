@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "../db";
 import { mealInstances, userRecipes, users } from "@shared/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { processMealImageForSave } from "../services/imageLifecycle";
 import { 
   preCheckRequest, 
   extractSafetyProfile, 
@@ -36,6 +37,7 @@ const logMealSchema = z.object({
     ingredients: z.any(),
     instructions: z.string(),
     nutrition: z.any().optional(),
+    imageUrl: z.string().optional(),
   }),
   mealInstanceId: z.string().optional(),
   logNow: z.boolean().default(true),
@@ -115,13 +117,29 @@ router.post('/log', requireAuth, async (req: any, res) => {
     const input = logMealSchema.parse(req.body);
     const userId = req.user?.id || "1";
 
-    // Save recipe to user_recipes  
+    // Ingest temp image URL to permanent storage before saving
+    let persistedImageUrl: string | null = null;
+    try {
+      const imgResult = await processMealImageForSave(
+        input.recipePayload.imageUrl,
+        input.recipePayload.title
+      );
+      persistedImageUrl = imgResult.imageUrl;
+      if (imgResult.ingestionAttempted && !imgResult.imageUrl) {
+        console.warn(`[fridge-rescue/log] Image ingestion returned no URL for "${input.recipePayload.title}"`);
+      }
+    } catch (imgErr) {
+      console.error(`[fridge-rescue/log] processMealImageForSave failed for "${input.recipePayload.title}":`, imgErr);
+    }
+
+    // Save recipe to user_recipes
     const [savedRecipe] = await db.insert(userRecipes).values({
       userId,
       title: input.recipePayload.title,
       ingredients: input.recipePayload.ingredients,
       instructions: input.recipePayload.instructions,
-      nutrition: input.recipePayload.nutrition
+      nutrition: input.recipePayload.nutrition,
+      imageUrl: persistedImageUrl,
     }).returning({ id: userRecipes.id });
 
     // If replacing an existing meal instance

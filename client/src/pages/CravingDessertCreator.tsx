@@ -274,6 +274,32 @@ export default function DessertCreator() {
     }
   }, [generatedDessert]);
 
+  // Re-fetch image on mount if restored dessert is missing it — DB cache returns instantly
+  useEffect(() => {
+    if (generatedDessert && !generatedDessert.imageUrl) {
+      setDessertImageLoading(true);
+      fetch(apiUrl("/api/meals/generate-image"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mealId: generatedDessert.id,
+          mealName: generatedDessert.name,
+          mealType: "desserts",
+          ingredients: generatedDessert.ingredients,
+        }),
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.imageUrl)
+            setGeneratedDessert((prev: any) =>
+              prev ? { ...prev, imageUrl: d.imageUrl } : prev,
+            );
+        })
+        .catch(() => {})
+        .finally(() => setDessertImageLoading(false));
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (cakeType === "wedding-cake") {
       setServingSize("medium-wedding");

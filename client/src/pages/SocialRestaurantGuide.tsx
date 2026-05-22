@@ -48,7 +48,7 @@ import {
 } from "lucide-react";
 import { useLocation } from "wouter";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
@@ -117,7 +117,26 @@ type CachedRestaurantState = {
 function saveRestaurantCache(state: CachedRestaurantState) {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(state));
-  } catch {}
+  } catch (err: any) {
+    if (err?.name === "QuotaExceededError" || err?.code === 22) {
+      console.warn("[RestaurantGuide] localStorage quota exceeded — evicting stale cache keys and retrying");
+      try {
+        const keysToEvict: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k !== CACHE_KEY && (k.startsWith("restaurantGuide.") || k.startsWith("mpm."))) {
+            keysToEvict.push(k);
+          }
+        }
+        keysToEvict.forEach((k) => localStorage.removeItem(k));
+        localStorage.setItem(CACHE_KEY, JSON.stringify(state));
+      } catch (retryErr) {
+        console.error("[RestaurantGuide] Could not persist session after eviction — cache lost:", retryErr);
+      }
+    } else {
+      console.error("[RestaurantGuide] Unexpected localStorage error:", err);
+    }
+  }
 }
 
 function loadRestaurantCache(): CachedRestaurantState | null {
@@ -132,6 +151,16 @@ function loadRestaurantCache(): CachedRestaurantState | null {
       parsed.restaurantData.meals.length === 0
     )
       return null;
+    // Shape corruption guard: if any meal has an object-typed imageUrl
+    // (from the processMealImageForSave shape mismatch bug), discard the cache
+    // so it gets replaced with a clean save on next generation.
+    const hasCorruptImage = parsed.restaurantData.meals.some(
+      (m: any) => m.imageUrl !== null && m.imageUrl !== undefined && typeof m.imageUrl !== "string"
+    );
+    if (hasCorruptImage) {
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
     return parsed as CachedRestaurantState;
   } catch {
     return null;
@@ -339,14 +368,25 @@ export default function RestaurantGuidePage() {
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
   const hasSpokenEntryRef = useRef(false);
+  const serverRestoredRef = useRef(false);
 
-  // Guided step state (matches Macro Calculator pattern)
+  // Guided step state — start on results if localStorage has data (fast initial render)
   const hasCachedResults =
     loadRestaurantCache()?.restaurantData?.meals?.length > 0;
   const [guidedStep, setGuidedStep] = useState<GuidedStep>(
     hasCachedResults ? "results" : "entry",
   );
 
+  // Server-first hydration: fetch the most recent session from DB
+  const storedUserId = localStorage.getItem("userId") || "";
+  const { data: serverSessionData } = useQuery<{ session: any }>({
+    queryKey: ["/api/restaurants/latest-session", storedUserId],
+    queryFn: () =>
+      apiRequest(`/api/restaurants/latest-session?userId=${storedUserId}`),
+    enabled: !!storedUserId,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
 
   // Auto-mark info as seen since Copilot provides guidance now
   useEffect(() => {
@@ -355,7 +395,7 @@ export default function RestaurantGuidePage() {
     }
   }, []);
 
-  // Restore cached restaurant meals on mount (so generated meals come back)
+  // Effect 1: Immediate localStorage restore (fast, no flash while server loads)
   useEffect(() => {
     const cached = loadRestaurantCache();
     if (cached?.restaurantData?.meals?.length) {
@@ -364,34 +404,39 @@ export default function RestaurantGuidePage() {
       setCravingInput(cached.craving || "");
       setMatchedCuisine(cached.cuisine || null);
       setGuidedStep("results");
-      // Restore restaurant info if cached
       if (cached.restaurantData.restaurantInfo) {
         setRestaurantInfo(cached.restaurantData.restaurantInfo);
       }
     }
-  }, []); // Only run once on mount
+  }, []);
 
-  // Auto-save whenever relevant state changes (so it's always fresh)
+  // Effect 2: Server data overrides localStorage — permanent image URLs + authoritative source
   useEffect(() => {
-    if (generatedMeals.length > 0) {
-      saveRestaurantCache({
-        restaurantData: {
-          meals: generatedMeals,
-          restaurantInfo: restaurantInfo || undefined,
-        },
-        restaurant: restaurantInput,
-        craving: cravingInput,
-        cuisine: matchedCuisine || "",
-        generatedAtISO: new Date().toISOString(),
-      });
+    const session = serverSessionData?.session;
+    if (!session?.meals?.length) return;
+    serverRestoredRef.current = true;
+    const userDiet = normalizeDiet(user?.dietaryRestrictions);
+    const meals = filterMealsByDiet(userDiet, session.meals as any[], (m) => m);
+    setGeneratedMeals(meals.length > 0 ? meals : session.meals);
+    setRestaurantInput(session.restaurantName || "");
+    setCravingInput(session.craving || "");
+    setMatchedCuisine(session.cuisine || null);
+    setGuidedStep("results");
+    if (session.restaurantInfo) {
+      setRestaurantInfo(session.restaurantInfo as any);
     }
-  }, [
-    generatedMeals,
-    restaurantInput,
-    cravingInput,
-    matchedCuisine,
-    restaurantInfo,
-  ]);
+    // Keep localStorage in sync with server data
+    saveRestaurantCache({
+      restaurantData: {
+        meals: meals.length > 0 ? meals : session.meals,
+        restaurantInfo: session.restaurantInfo,
+      },
+      restaurant: session.restaurantName || "",
+      craving: session.craving || "",
+      cuisine: session.cuisine || "",
+      generatedAtISO: session.generatedAt || new Date().toISOString(),
+    });
+  }, [serverSessionData]);
 
   const startProgressTicker = () => {
     if (tickerRef.current) return;
@@ -468,10 +513,10 @@ export default function RestaurantGuidePage() {
         setRestaurantInfo(data.restaurantInfo);
       }
 
-      // Immediately cache the new restaurant meals so they survive navigation/refresh
+      // Cache what the user actually sees (compliantRecs, not raw recommendations)
       saveRestaurantCache({
         restaurantData: {
-          meals: data.recommendations || [],
+          meals: compliantRecs,
           restaurantInfo: data.restaurantInfo,
         },
         restaurant: restaurantInput,

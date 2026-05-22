@@ -6,6 +6,7 @@ import { familyRecipesRouter } from "./routes/familyRecipes";
 import { uploadsRouter } from "./routes/uploads";
 import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
+import { processMealImageForSave } from "./services/imageLifecycle";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { registerCreatorRoutes } from "./routes/creator";
 import { requireAuth, AuthenticatedRequest } from "./middleware/requireAuth";
@@ -4110,13 +4111,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { mealName, ingredients = [], mealType, sourceType } = req.body;
       if (!mealName) return res.status(400).json({ error: "mealName is required" });
-      console.log(`🖼️ IMAGE PIPELINE START: ${mealName} (sourceType: ${sourceType ?? 'unset → classifier'})`);
-      const { generateMealImageUnified } = await import("./services/mealImageGenerator");
+      const { generateMealImageUnified, normalizeMealTypeToSourceType } = await import("./services/mealImageGenerator");
+      // Resolve effective sourceType: explicit sourceType wins; fall back to mealType mapping.
+      // This ensures mealType:"restaurant" → sourceType:"meal" so food meals never fall through
+      // to the undefined/classifier path and share cache entries with beverages.
+      const resolvedSourceType = sourceType ?? normalizeMealTypeToSourceType(mealType);
+      console.log(`🖼️ IMAGE PIPELINE START: ${mealName} (mealType: ${mealType ?? 'none'}, sourceType: ${sourceType ?? 'none'} → resolved: ${resolvedSourceType ?? 'classifier'})`);
       const ingredientNames = (ingredients as any[]).map((i: any) =>
         typeof i === "string" ? i : (i.name || i.item || "")
       ).filter(Boolean);
-      // Pass explicit sourceType if provided by the client — hard-locks macro type before classifier runs
-      const imageUrl = await generateMealImageUnified(mealName, ingredientNames, sourceType ?? undefined);
+      const imageUrl = await generateMealImageUnified(mealName, ingredientNames, resolvedSourceType);
       res.json({ imageUrl });
     } catch (err: any) {
       console.error("❌ /api/meals/generate-image error:", err);
@@ -6690,32 +6694,25 @@ Provide a single exceptional meal recommendation in JSON format with the followi
         return res.json({ saved: false, id: null });
       }
 
-      // Swap in the permanent S3 URL before storing so saved meals always
-      // have a durable image URL rather than a base64 data URL or temp link.
+      // Upgrade any temp/data URL to a permanent storage URL before persisting.
+      // processMealImageForSave handles: already-permanent → passthrough,
+      // temp OpenAI/blob URL → ingest to object storage, null → null.
+      // Failures are logged explicitly and never swallowed silently.
       let finalMealData: any = { ...mealData };
       try {
-        const [cached] = await db
-          .select({ imageUrl: mealImageCache.imageUrl })
-          .from(mealImageCache)
-          .where(eq(mealImageCache.mealName, title.trim()))
-          .limit(1);
-
-        if (cached && cached.imageUrl.includes("amazonaws.com")) {
-          finalMealData = { ...finalMealData, imageUrl: cached.imageUrl };
-        } else {
-          // Strip data URLs (too large for JSONB) and expiring temp URLs
-          const img: string | undefined = mealData.imageUrl;
-          if (
-            img &&
-            (img.startsWith("data:") ||
-              img.includes("oaidalleapiprodscus") ||
-              img.includes("blob.core.windows"))
-          ) {
-            finalMealData = { ...finalMealData, imageUrl: null };
-          }
+        const imgResult = await processMealImageForSave(mealData.imageUrl, title.trim());
+        if (imgResult.ingestionAttempted && !imgResult.imageUrl) {
+          console.warn(
+            `[savedMeals/toggle] Image ingestion attempted but returned no URL for "${title}" — imageUrl will be null in DB.`
+          );
         }
-      } catch {
-        // non-fatal — save with whatever imageUrl is present
+        finalMealData = { ...finalMealData, imageUrl: imgResult.imageUrl };
+      } catch (imgErr) {
+        console.error(
+          `[savedMeals/toggle] processMealImageForSave threw for "${title}" — saving with null imageUrl. Error:`,
+          imgErr
+        );
+        finalMealData = { ...finalMealData, imageUrl: null };
       }
 
       const [row] = await db.insert(savedMealsTable).values({
@@ -6751,14 +6748,17 @@ Provide a single exceptional meal recommendation in JSON format with the followi
         try {
           const names = [...new Set(needsEnrich.map(r => r.title.trim()))];
           const cachedEntries = await db
-            .select({ mealName: mealImageCache.mealName, imageUrl: mealImageCache.imageUrl })
+            .select({ mealName: mealImageCache.mealName, imageUrl: mealImageCache.imageUrl, createdAt: mealImageCache.createdAt })
             .from(mealImageCache)
-            .where(inArray(mealImageCache.mealName, names));
-          const byName = new Map(
-            cachedEntries
-              .filter(c => c.imageUrl.includes("amazonaws.com"))
-              .map(c => [c.mealName, c.imageUrl])
-          );
+            .where(inArray(mealImageCache.mealName, names))
+            .orderBy(desc(mealImageCache.createdAt));
+          // Build map keeping only the most-recent S3 entry per meal name
+          const byName = new Map<string, string>();
+          for (const c of cachedEntries) {
+            if (!byName.has(c.mealName) && c.imageUrl.includes("amazonaws.com")) {
+              byName.set(c.mealName, c.imageUrl);
+            }
+          }
           if (byName.size > 0) {
             enrichedRows = rows.map(r => {
               const img = (r.mealData as any)?.imageUrl as string | undefined;

@@ -371,13 +371,18 @@ export default function AntiInflammatoryMenuBuilder() {
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
 
+  // Save-in-flight guard: blocks hookBoard sync effect from overwriting optimistic state
+  // during and immediately after a save. Fixes the core stale-overwrite race condition.
+  const saveInFlightRef = React.useRef(false);
+  const saveCompletedAtRef = React.useRef(0);
+
   const clinicalMode = clinicalModeState;
 
   // Draft persistence for crash/reload recovery
-  const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
+  const { clearDraft, skipServerSync } = useMealBoardDraft(
     {
       userId: effectiveUserId,
-      builderId: 'anti-inflammatory-menu-builder',
+      builderId: namespace || 'anti-inflammatory-menu-builder',
       weekStartISO,
     },
     board,
@@ -400,17 +405,21 @@ export default function AntiInflammatoryMenuBuilder() {
   }, [weekStartISO]);
 
   React.useEffect(() => {
-    if (hookBoard) {
+    if (!hookLoading && hookBoard) {
       if (!boardInitializedRef.current) {
+        // First load — always hydrate regardless of draft/dirty state
         boardInitializedRef.current = true;
         setBoard(hookBoard);
         setLoading(hookLoading);
         return;
       }
+      // Use the canonical skipServerSync() contract (same as WeeklyMealBoard).
+      // After any board mutation, dirtyRef stays true so background reloads and
+      // stale localStorage cache-first reads can never overwrite local state.
       if (skipServerSync()) {
-        setLoading(hookLoading);
         return;
       }
+      // Background poll / safe-to-sync path
       setBoard(hookBoard);
       setLoading(hookLoading);
     }
@@ -420,22 +429,26 @@ export default function AntiInflammatoryMenuBuilder() {
   const saveBoard = React.useCallback(
     async (updatedBoard: WeekBoard) => {
       setSaving(true);
+      saveInFlightRef.current = true;
       try {
         // Type assertion needed because ExtendedMeal has optional title, but schema requires it
         await saveToHook(updatedBoard as any, uuidv4());
+        saveCompletedAtRef.current = Date.now();
         setJustSaved(true);
         setTimeout(() => setJustSaved(false), 2000);
+        // Do NOT call markClean() — keeping dirtyRef=true so skipServerSync() stays
+        // active and blocks stale localStorage cache-first reads from overwriting
+        // local state. Matches the canonical WeeklyMealBoard sync contract.
         clearDraft();
-        markClean();
       } catch (err) {
         console.error("Failed to save board:", err);
         // Silent retry - no toast during decision-making flows
-        // Save will auto-retry on next user action
       } finally {
         setSaving(false);
+        saveInFlightRef.current = false;
       }
     },
-    [saveToHook, clearDraft, markClean],
+    [saveToHook, clearDraft],
   );
 
   const [pickerOpen, setPickerOpen] = React.useState(false);
@@ -550,7 +563,7 @@ export default function AntiInflammatoryMenuBuilder() {
             ...board,
             lists: {
               ...board.lists,
-              snacks: [...board.lists.snacks, snack],
+              snacks: [...(board.lists.snacks || []), snack],
             },
             version: board.version + 1,
             meta: {
@@ -569,7 +582,9 @@ export default function AntiInflammatoryMenuBuilder() {
           setBoard(prev => {
             if (!prev) return prev;
             if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
-            return updateMealImageInBoard(prev, mealId, imageUrl);
+            const updated = updateMealImageInBoard(prev, mealId, imageUrl);
+            saveBoard(updated).catch(() => {});
+            return updated;
           });
         });
       } catch (error) {
@@ -619,7 +634,7 @@ export default function AntiInflammatoryMenuBuilder() {
             ...board,
             lists: {
               ...board.lists,
-              [premadePickerSlot]: [...board.lists[premadePickerSlot], meal],
+              [premadePickerSlot]: [...(board.lists[premadePickerSlot] || []), meal],
             },
             version: board.version + 1,
             meta: {
@@ -665,10 +680,12 @@ export default function AntiInflammatoryMenuBuilder() {
   // 🔋 AI Meal Creator localStorage persistence (copy Fridge Rescue pattern)
   const AI_MEALS_CACHE_KEY = "anti-inflammatory-ai-meal-creator-cached-meals";
 
+  type AIMealSlot = "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6";
+
   interface CachedAIMeals {
     meals: Meal[];
     dayISO: string;
-    slot: "breakfast" | "lunch" | "dinner" | "snacks";
+    slot: AIMealSlot;
     generatedAtISO: string;
   }
 
@@ -676,7 +693,7 @@ export default function AntiInflammatoryMenuBuilder() {
   function saveAIMealsCache(
     meals: Meal[],
     dayISO: string,
-    slot: "breakfast" | "lunch" | "dinner" | "snacks",
+    slot: AIMealSlot,
   ) {
     try {
       const state: CachedAIMeals = {
@@ -733,8 +750,8 @@ export default function AntiInflammatoryMenuBuilder() {
     if (!cached || cached.dayISO !== activeDayISO || cached.meals.length === 0) return;
 
     const dayLists = getDayLists(board, activeDayISO);
-    const targetSlot = cached.slot || "breakfast";
-    const currentSlotMeals = dayLists[targetSlot];
+    const targetSlot = (cached.slot || "breakfast") as keyof typeof dayLists;
+    const currentSlotMeals = dayLists[targetSlot] || [];
 
     // Guard: if all cached meals are already present, do not setBoard (prevents infinite loop)
     const allAlreadyPresent = cached.meals.every((cm) =>
@@ -760,7 +777,7 @@ export default function AntiInflammatoryMenuBuilder() {
     const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
 
     setBoard(updatedBoard);
-  }, [board, activeDayISO]); // board dep is intentional; guard above prevents infinite loop
+  }, [board, activeDayISO]); // eslint-disable-line react-hooks/exhaustive-deps — board dep is intentional; guard above prevents infinite loop
 
   // Load/save tour progress from localStorage
   useEffect(() => {
@@ -877,7 +894,7 @@ export default function AntiInflammatoryMenuBuilder() {
 
 
   const handleChefMealGenerated = useCallback(
-    async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
+    async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6") => {
       if (!activeDayISO) return;
       if (checkLockedDay()) return;
 
@@ -1139,7 +1156,7 @@ export default function AntiInflammatoryMenuBuilder() {
           ...board,
           lists: {
             ...board.lists,
-            [list]: [...board.lists[list], meal],
+            [list]: [...(board.lists[list] || []), meal],
           },
           version: board.version + 1,
           meta: {
@@ -1194,10 +1211,10 @@ export default function AntiInflammatoryMenuBuilder() {
 
     try {
       const allMeals = [
-        ...board.lists.breakfast,
-        ...board.lists.lunch,
-        ...board.lists.dinner,
-        ...board.lists.snacks,
+        ...(board.lists.breakfast || []),
+        ...(board.lists.lunch || []),
+        ...(board.lists.dinner || []),
+        ...(board.lists.snacks || []),
       ];
 
       if (allMeals.length === 0) {
@@ -1471,7 +1488,7 @@ export default function AntiInflammatoryMenuBuilder() {
                                 } else {
                                   const updatedDayLists = { ...dayLists, [key]: dayLists[key as keyof typeof dayLists].map((e, i) => i === idx ? m : e) };
                                   const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
-                                  putWeekBoard(weekStartISO, updatedBoard, proClientId).then(({ week }) => setBoard(week));
+                                  putWeekBoard(weekStartISO, updatedBoard, proClientId).then(({ week }) => { if (week) setBoard(week); });
                                 }
                               }}
                             />
@@ -1532,7 +1549,7 @@ export default function AntiInflammatoryMenuBuilder() {
                 );
               })()
             : // WEEK MODE: Meal 1/2/3 only
-              lists.map(([key, label]) => (
+              board ? lists.map(([key, label]) => (
                 <section key={key} data-meal-id={key} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-white/90 text-lg font-medium">{label}</h2>
@@ -1541,14 +1558,14 @@ export default function AntiInflammatoryMenuBuilder() {
                     </div>
                   </div>
                   <div className="space-y-3">
-                    {board.lists[key].map((meal: Meal, idx: number) => (
+                    {(board.lists[key] || []).map((meal: Meal, idx: number) => (
                       <MealCard key={meal.id} date={"board"} slot={key} meal={meal} showStarchBadge={true} builderType={clinicalModeState}
                         onUpdated={(m) => {
                           if (m === null) {
                             if (!board) return;
                             const updatedBoard = {
                               ...board,
-                              lists: { ...board.lists, [key]: board.lists[key].filter((item: Meal) => item.id !== meal.id) },
+                              lists: { ...board.lists, [key]: (board.lists[key] || []).filter((item: Meal) => item.id !== meal.id) },
                               version: board.version + 1,
                               meta: { ...board.meta, lastUpdatedAt: new Date().toISOString() },
                             };
@@ -1563,7 +1580,7 @@ export default function AntiInflammatoryMenuBuilder() {
                         }}
                       />
                     ))}
-                    {board.lists[key].length === 0 && (
+                    {(board.lists[key] || []).length === 0 && (
                       <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
                         <p className="mb-2">No {label.toLowerCase()} yet</p>
                         <p className="text-xs text-white/40">Use "Create with Chef" or "+" to add meals</p>
@@ -1571,7 +1588,7 @@ export default function AntiInflammatoryMenuBuilder() {
                     )}
                   </div>
                 </section>
-              ))}
+              )) : null}
 
           {/* Pro Tip Card */}
           <ProTipCard />

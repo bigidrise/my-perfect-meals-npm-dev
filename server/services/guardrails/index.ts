@@ -34,6 +34,18 @@ import { liverSupportRules } from './rules/liverSupportRules';
 import { buildLiverSupportPrompt, buildLiverSupportSnackPrompt, getLiverSupportSystemPrompt } from './prompt/liverSupportPromptBuilder';
 import { validateLiverSupportMeal } from './validators/liverSupportValidator';
 import { buildOncologySupportPrompt, ONCOLOGY_HARD_BLOCKED_INGREDIENTS } from './prompt/oncologySupportPromptBuilder';
+import {
+  buildKidneyDiseasePrompt, buildKidneyDiseaseSnackPrompt, getKidneyDiseaseSystemPrompt,
+  kidneyDiseaseBlockedIngredients, kidneyDiseasePreferredIngredients,
+} from './prompt/kidneyDiseasePromptBuilder';
+import {
+  buildHeartFailurePrompt, buildHeartFailureSnackPrompt, getHeartFailureSystemPrompt,
+  heartFailureBlockedIngredients, heartFailurePreferredIngredients,
+} from './prompt/heartFailurePromptBuilder';
+import {
+  buildLiverDiseasePrompt, buildLiverDiseaseSnackPrompt, getLiverDiseaseSystemPrompt,
+  liverDiseaseBlockedIngredients, liverDiseasePreferredIngredients,
+} from './prompt/liverDiseasePromptBuilder';
 
 /**
  * Builds a mode-aware macro budget block to append to non-BeachBody prompts.
@@ -153,6 +165,46 @@ export function applyGuardrails(
       console.log(`🛡️ Guardrails: Applied liver-support rules for ${mealType}`);
       break;
 
+    case 'kidney-disease':
+      if (mealType === 'snack') {
+        modifiedPrompt = buildKidneyDiseaseSnackPrompt(basePrompt);
+      } else {
+        modifiedPrompt = buildKidneyDiseasePrompt(basePrompt);
+      }
+      appliedRules.push('kidney-disease-low-potassium');
+      appliedRules.push('kidney-disease-low-phosphorus');
+      appliedRules.push('kidney-disease-low-sodium');
+      appliedRules.push('kidney-disease-moderate-protein');
+      console.log(`🩺 Guardrails: Applied kidney-disease (renal diet) rules for ${mealType}`);
+      break;
+
+    case 'heart-failure':
+      if (mealType === 'snack') {
+        modifiedPrompt = buildHeartFailureSnackPrompt(basePrompt);
+      } else {
+        modifiedPrompt = buildHeartFailurePrompt(basePrompt);
+      }
+      appliedRules.push('heart-failure-very-low-sodium');
+      appliedRules.push('heart-failure-no-processed-meats');
+      appliedRules.push('heart-failure-no-alcohol');
+      appliedRules.push('heart-failure-heart-healthy-fats');
+      console.log(`🩺 Guardrails: Applied heart-failure (cardiac diet) rules for ${mealType}`);
+      break;
+
+    case 'liver-disease':
+      if (mealType === 'snack') {
+        modifiedPrompt = buildLiverDiseaseSnackPrompt(basePrompt);
+      } else {
+        modifiedPrompt = buildLiverDiseasePrompt(basePrompt);
+      }
+      appliedRules.push('liver-disease-no-alcohol-absolute');
+      appliedRules.push('liver-disease-no-raw-shellfish');
+      appliedRules.push('liver-disease-low-sodium');
+      appliedRules.push('liver-disease-no-fried-food');
+      appliedRules.push('liver-disease-moderate-protein');
+      console.log(`🩺 Guardrails: Applied liver-disease (hepatic diet) rules for ${mealType}`);
+      break;
+
     case 'diabetic':
       // ⚠️ GATED: Diabetic prompt conditioning is handled exclusively by the
       // diabeticHubModule in hubCoupling. This legacy path is intentionally
@@ -260,6 +312,12 @@ export function getSystemPromptForDiet(dietType: DietType): string | null {
       return getAntiInflammatorySystemPrompt();
     case 'liver-support':
       return getLiverSupportSystemPrompt();
+    case 'kidney-disease':
+      return getKidneyDiseaseSystemPrompt();
+    case 'heart-failure':
+      return getHeartFailureSystemPrompt();
+    case 'liver-disease':
+      return getLiverDiseaseSystemPrompt();
     case 'diabetic':
       return buildDiabeticPromptConditions();
     case 'general-nutrition':
@@ -319,6 +377,51 @@ export function validateMealForDiet(
         liverResult.violations.forEach(v => console.log(`  ⚠️ ${v}`));
       }
       return mergeWithPrecision(liverResult);
+    }
+
+    case 'kidney-disease': {
+      const blocked = kidneyDiseaseBlockedIngredients;
+      const violations: string[] = [];
+      for (const ing of meal.ingredients) {
+        const name = (ing.name || '').toLowerCase();
+        const match = blocked.find(b => name.includes(b.toLowerCase()));
+        if (match) violations.push(`Ingredient "${ing.name}" is not safe for kidney disease diet (high potassium/phosphorus/sodium)`);
+      }
+      if (violations.length > 0) {
+        console.log(`🩺 Kidney Disease Validation: ${violations.length} violation(s) found`);
+        violations.forEach(v => console.log(`  ⚠️ ${v}`));
+      }
+      return mergeWithPrecision({ isValid: violations.length === 0, violations, blockedIngredients: violations.map(v => v.split('"')[1] || v) });
+    }
+
+    case 'heart-failure': {
+      const blocked = heartFailureBlockedIngredients;
+      const violations: string[] = [];
+      for (const ing of meal.ingredients) {
+        const name = (ing.name || '').toLowerCase();
+        const match = blocked.find(b => name.includes(b.toLowerCase()));
+        if (match) violations.push(`Ingredient "${ing.name}" is not safe for heart failure diet (high sodium/saturated fat/alcohol)`);
+      }
+      if (violations.length > 0) {
+        console.log(`🩺 Heart Failure Validation: ${violations.length} violation(s) found`);
+        violations.forEach(v => console.log(`  ⚠️ ${v}`));
+      }
+      return mergeWithPrecision({ isValid: violations.length === 0, violations, blockedIngredients: violations.map(v => v.split('"')[1] || v) });
+    }
+
+    case 'liver-disease': {
+      const blocked = liverDiseaseBlockedIngredients;
+      const violations: string[] = [];
+      for (const ing of meal.ingredients) {
+        const name = (ing.name || '').toLowerCase();
+        const match = blocked.find(b => name.includes(b.toLowerCase()));
+        if (match) violations.push(`Ingredient "${ing.name}" is not safe for liver disease diet (alcohol/raw shellfish/high sodium/fried)`);
+      }
+      if (violations.length > 0) {
+        console.log(`🩺 Liver Disease Validation: ${violations.length} violation(s) found`);
+        violations.forEach(v => console.log(`  ⚠️ ${v}`));
+      }
+      return mergeWithPrecision({ isValid: violations.length === 0, violations, blockedIngredients: violations.map(v => v.split('"')[1] || v) });
     }
 
     case 'diabetic': {
@@ -430,6 +533,12 @@ export function getBlockedIngredientsForDiet(dietType: DietType, dietPhase?: Bea
       return antiInflammatoryRules.blockedIngredients;
     case 'liver-support':
       return liverSupportRules.blockedIngredients;
+    case 'kidney-disease':
+      return kidneyDiseaseBlockedIngredients;
+    case 'heart-failure':
+      return heartFailureBlockedIngredients;
+    case 'liver-disease':
+      return liverDiseaseBlockedIngredients;
     case 'diabetic':
       return diabeticRules.blockedIngredients;
     case 'beachbody':
@@ -458,6 +567,12 @@ export function getPreferredIngredientsForDiet(dietType: DietType, dietPhase?: B
       return antiInflammatoryRules.preferredIngredients;
     case 'liver-support':
       return liverSupportRules.preferredIngredients;
+    case 'kidney-disease':
+      return kidneyDiseasePreferredIngredients;
+    case 'heart-failure':
+      return heartFailurePreferredIngredients;
+    case 'liver-disease':
+      return liverDiseasePreferredIngredients;
     case 'diabetic':
       return diabeticRules.preferredIngredients;
     case 'beachbody':
