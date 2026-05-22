@@ -203,7 +203,7 @@ export default function SushiCreator() {
   const [generatedMeals, setGeneratedMeals] = useState<MealData[]>([]);
   const [mealOptions, setMealOptions] = useState<any[]>([]);
   const [isPlatingMeal, setIsPlatingMeal] = useState(false);
-  const { loadingImages, hydrateImages } = useMealImages(setGeneratedMeals, { mealType: "snacks", concurrency: 1 });
+  const { loadingImages, hydrateImages } = useMealImages(setGeneratedMeals, { mealType: "meal", concurrency: 1 });
 
   const getRecentMeals = (): string[] => {
     try { return JSON.parse(sessionStorage.getItem('cc_recent_meals') || '[]'); } catch { return []; }
@@ -316,16 +316,19 @@ export default function SushiCreator() {
     setMealOptions([]);
     addRecentMeal(meal.name);
     // Show card immediately — image hydrates in parallel
-    setGeneratedMeals([meal]);
+    const mealForDisplay = meal.imageUrl?.startsWith('/') || meal.imageUrl?.startsWith('data:')
+      ? { ...meal, imageUrl: undefined }
+      : meal;
+    setGeneratedMeals([mealForDisplay]);
     setIsPlatingMeal(false);
     saveCravingCache({
-      generatedMeal: meal,
+      generatedMeal: mealForDisplay,
       craving: cravingInput,
       servings: servings,
       mealType: "snacks",
       generatedAtISO: new Date().toISOString(),
     });
-    hydrateImages([meal]);
+    hydrateImages([mealForDisplay]);
   };
 
   useEffect(() => {
@@ -605,14 +608,20 @@ export default function SushiCreator() {
         return;
       }
 
-      setGeneratedMeals([meal]);
+      // Strip static/local imageUrls before hydration so the AI image system
+      // runs. The pipeline may have pre-set a fallback path (starts with "/");
+      // hydrateImages skips any meal that already has imageUrl set.
+      const mealForDisplay = meal.imageUrl?.startsWith('/') || meal.imageUrl?.startsWith('data:')
+        ? { ...meal, imageUrl: undefined }
+        : meal;
+      setGeneratedMeals([mealForDisplay]);
 
       if (!meal?.name) {
         console.error("❌ Missing meal.name before sushi image hydration:", meal);
         setIsGenerating(false);
         return;
       }
-      hydrateImages([meal]);
+      hydrateImages([mealForDisplay]);
 
       // Immediately cache the new meal so it survives navigation/refresh
       saveCravingCache({

@@ -469,10 +469,10 @@ const CACHE_VERSION = "v4";
 export function normalizeMealTypeToSourceType(mealType?: string): ImageSourceType | undefined {
   if (!mealType) return undefined;
   const t = mealType.toLowerCase();
-  if (t === 'beverage' || t === 'drink') return 'beverage';
+  if (t === 'beverage' || t === 'beverages' || t === 'drink' || t === 'drinks') return 'beverage';
   if (t === 'snack') return 'snack';
   if (t === 'dessert') return 'dessert';
-  // restaurant, breakfast, lunch, dinner, meal, course → food
+  // restaurant, breakfast, lunch, dinner, meal, course, snacks (plural) → food
   return 'meal';
 }
 
