@@ -272,7 +272,7 @@ export default function DiabeticMenuBuilder() {
   const [justSaved, setJustSaved] = React.useState(false);
 
   // Draft persistence for crash/reload recovery
-  const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
+  const { clearDraft, skipServerSync } = useMealBoardDraft(
     {
       userId: effectiveUserId,
       builderId: "diabetic-menu-builder",
@@ -323,8 +323,10 @@ export default function DiabeticMenuBuilder() {
         await saveToHook(updatedBoard as any, uuidv4());
         setJustSaved(true);
         setTimeout(() => setJustSaved(false), 2000);
+        // Do NOT call markClean() — keeping dirtyRef=true so skipServerSync() stays
+        // active and blocks stale localStorage cache-first reads from overwriting
+        // local state. Matches the canonical WeeklyMealBoard sync contract.
         clearDraft();
-        markClean();
       } catch (err) {
         console.error("Failed to save board:", err);
         // Silent retry - no toast during decision-making flows
@@ -333,7 +335,7 @@ export default function DiabeticMenuBuilder() {
         setSaving(false);
       }
     },
-    [saveToHook, clearDraft, markClean],
+    [saveToHook, clearDraft],
   );
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [pickerList, setPickerList] = React.useState<
@@ -480,7 +482,9 @@ export default function DiabeticMenuBuilder() {
           setBoard(prev => {
             if (!prev) return prev;
             if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
-            return updateMealImageInBoard(prev, mealId, imageUrl);
+            const updated = updateMealImageInBoard(prev, mealId, imageUrl);
+            saveBoard(updated).catch(() => {});
+            return updated;
           });
         });
       } catch (error) {
