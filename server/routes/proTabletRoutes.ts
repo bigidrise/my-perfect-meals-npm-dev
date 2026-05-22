@@ -4,6 +4,7 @@ import { clientNotes, studios } from "../db/schema/studio";
 import { users } from "../../shared/schema";
 import { eq, and, asc, desc, inArray } from "drizzle-orm";
 import { requireWorkspaceAccess } from "../middleware/requireWorkspaceAccess";
+import { logAudit, getClientIp } from "../lib/auditLog";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
 import { moderateContent, BLOCKED_MESSAGE } from "../services/tabletModerationService";
 import { notifyClientOfMessage, notifyClientOfNote } from "../services/tabletNotificationService";
@@ -292,6 +293,7 @@ router.post("/:clientId/message", requireWorkspaceAccess, async (req: Request, r
 
   markMessagesRead(studioId, clientId);
 
+  logAudit({ actor: authUser.id, target: clientId, orgId: authUser.organizationId ?? null, action: "WRITE", resourceType: "client_message", table: "client_notes", resourceId: entry.id, route: req.path, ip: getClientIp(req as any) });
   res.status(201).json({ entry });
 });
 
@@ -345,6 +347,7 @@ router.post("/:clientId/note", requireWorkspaceAccess, async (req: Request, res:
 
   notifyClientOfNote(clientId);
 
+  logAudit({ actor: authUser.id, target: clientId, orgId: authUser.organizationId ?? null, action: "WRITE", resourceType: "client_note", table: "client_notes", resourceId: entry.id, route: req.path, ip: getClientIp(req as any) });
   res.status(201).json({ entry });
 });
 

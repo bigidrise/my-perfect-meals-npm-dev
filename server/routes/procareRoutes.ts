@@ -22,6 +22,7 @@ import { getWeekBoard, upsertWeekBoard } from "../data/weekBoardsRepo";
 import { getWeekStartISO } from "../utils/week";
 import { verifyClinicalAccess } from "../utils/verifyClinicalAccess";
 import { assertSameOrg, handleOrgIsolationError } from "../lib/orgIsolation";
+import { logAudit, getClientIp } from "../lib/auditLog";
 import { isOncologySupportEnabled, type OncologySupportContext } from "../services/guardrails/prompt/oncologySupportPromptBuilder";
 import { z } from "zod";
 
@@ -401,6 +402,7 @@ router.get("/oncology-support/:clientUserId", async (req, res) => {
       return res.status(404).json({ error: "Client not found" });
     }
 
+    logAudit({ actor: requesterId!, target: clientUserId, orgId: (req as any).authUser?.organizationId ?? null, action: "READ", resourceType: "oncology_context", table: "users", field: "oncology_support_context", route: req.path, ip: getClientIp(req as any) });
     res.json({ oncologySupportContext: rows[0].oncologySupportContext ?? null });
   } catch (error: any) {
     console.error("[oncology-support GET]", error);
@@ -477,7 +479,7 @@ router.put("/oncology-support/:clientUserId", async (req, res) => {
       .where(eq(users.id, clientUserId as any));
 
     console.log(`[oncology-support PUT] Physician ${requesterId} (${ownerName ?? "unknown"}) ${body.enabled ? "assigned" : "disabled"} Cancer Support Nutrition for client ${clientUserId}. Symptoms: [${body.symptoms.join(", ")}]`);
-
+    logAudit({ actor: requesterId, target: clientUserId, orgId: (req as any).authUser?.organizationId ?? null, action: "WRITE", resourceType: "oncology_context", table: "users", field: "oncology_support_context", route: req.path, ip: getClientIp(req as any), meta: { enabled: body.enabled, symptomsCount: body.symptoms.length } });
     res.json({ ok: true, oncologySupportContext: context });
   } catch (error: any) {
     console.error("[oncology-support PUT]", error);
@@ -508,6 +510,7 @@ router.get("/glp1-protocol/:clientUserId", async (req, res) => {
       .limit(1);
 
     const mc: string[] = Array.isArray(row?.medicalConditions) ? row.medicalConditions as string[] : [];
+    logAudit({ actor: requesterId, target: clientUserId, orgId: (req as any).authUser?.organizationId ?? null, action: "READ", resourceType: "glp1_protocol", table: "users", field: "medical_conditions", route: req.path, ip: getClientIp(req as any) });
     res.json({ glp1Active: mc.includes("glp1"), medicalConditions: mc });
   } catch (error: any) {
     console.error("[glp1-protocol GET]", error);
@@ -584,6 +587,7 @@ router.put("/glp1-protocol/:clientUserId", async (req, res) => {
       .where(eq(users.id, clientUserId as any));
 
     console.log(`[glp1-protocol PUT] Physician ${requesterId} (${ownerName ?? "unknown"}) ${enabled ? "assigned" : "removed"} GLP-1 Active for client ${clientUserId}`);
+    logAudit({ actor: requesterId, target: clientUserId, orgId: (req as any).authUser?.organizationId ?? null, action: "WRITE", resourceType: "glp1_protocol", table: "users", field: "medical_conditions", route: req.path, ip: getClientIp(req as any), meta: { enabled } });
     res.json({ ok: true, glp1Active: enabled, medicalConditions: updated });
   } catch (error: any) {
     console.error("[glp1-protocol PUT]", error);
@@ -904,6 +908,7 @@ router.get("/clients/:clientId/nutrition-strategy", async (req: any, res) => {
     }
 
     console.log(`📊 [nutrition-strategy] Returned data for client ${clientId.substring(0, 8)}... | caller=${isPhysician ? "physician" : "coach"} | hubs=${(payload.activeHubs as string[]).join(",")}`);
+    logAudit({ actor: callerId, target: clientId, orgId: (req as any).authUser?.organizationId ?? null, action: "READ", resourceType: "nutrition_strategy", table: "users,clinical_labs,glucose_logs,glp1_shots", route: req.path, ip: getClientIp(req as any), meta: { activeHubs: payload.activeHubs, callerRole: isPhysician ? "physician" : "coach" } });
     return res.json(payload);
 
   } catch (error) {

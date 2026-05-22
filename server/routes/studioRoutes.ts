@@ -12,6 +12,7 @@ import { pushToUser } from "../services/pushNotify";
 import { deactivateProCareClient, ActivationError } from "../services/procareActivation";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
 import { assertSameOrg, handleOrgIsolationError } from "../lib/orgIsolation";
+import { logAudit, getClientIp } from "../lib/auditLog";
 
 const router = Router();
 
@@ -539,6 +540,7 @@ router.patch("/:studioId/clients/:clientUserId/apply-system-recommendation", asy
       }
     );
 
+    logAudit({ actor: userId, target: clientUserId, orgId: (req as any).authUser?.organizationId ?? null, action: "WRITE", resourceType: "clinical_directive", table: "studio_memberships", field: "builder_source", route: req.path, ip: getClientIp(req as any), meta: { directiveKey, directiveLabel } });
     res.json({ membership, applied: true });
   } catch (error) {
     console.error("Error applying system recommendation:", error);
@@ -631,7 +633,7 @@ router.post("/:studioId/clients/:clientUserId/notes", async (req, res) => {
       note.id,
       { noteType: noteType || "general", title }
     );
-
+    logAudit({ actor: userId, target: clientUserId, orgId: (req as any).authUser?.organizationId ?? null, action: "WRITE", resourceType: "client_note", table: "client_notes", resourceId: note.id, route: req.path, ip: getClientIp(req as any), meta: { noteType: noteType || "general", visibility: visibility || "professional_only" } });
     res.json({ note });
   } catch (error) {
     console.error("Error creating note:", error);
