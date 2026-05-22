@@ -370,9 +370,9 @@ export default function RestaurantGuidePage() {
   // Server-first hydration: fetch the most recent session from DB
   const storedUserId = localStorage.getItem("userId") || "";
   const { data: serverSessionData } = useQuery<{ session: any }>({
-    queryKey: ["/api/restaurants/guide/latest-session", storedUserId],
+    queryKey: ["/api/restaurants/latest-session", storedUserId],
     queryFn: () =>
-      apiRequest(`/api/restaurants/guide/latest-session?userId=${storedUserId}`),
+      apiRequest(`/api/restaurants/latest-session?userId=${storedUserId}`),
     enabled: !!storedUserId,
     staleTime: 5 * 60 * 1000,
     retry: false,
