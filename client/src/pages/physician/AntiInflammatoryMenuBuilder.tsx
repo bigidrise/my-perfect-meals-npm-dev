@@ -371,6 +371,11 @@ export default function AntiInflammatoryMenuBuilder() {
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
 
+  // Save-in-flight guard: blocks hookBoard sync effect from overwriting optimistic state
+  // during and immediately after a save. Fixes the core stale-overwrite race condition.
+  const saveInFlightRef = React.useRef(false);
+  const saveCompletedAtRef = React.useRef(0);
+
   const clinicalMode = clinicalModeState;
 
   // Draft persistence for crash/reload recovery
@@ -402,27 +407,34 @@ export default function AntiInflammatoryMenuBuilder() {
   React.useEffect(() => {
     if (hookBoard) {
       if (!boardInitializedRef.current) {
+        // First load — always hydrate
         boardInitializedRef.current = true;
         setBoard(hookBoard);
         setLoading(hookLoading);
         return;
       }
-      if (skipServerSync()) {
+      // Block overwrite when a save is in flight or just completed (5s cooldown).
+      // This prevents the useWeeklyBoard internal setData(result) from racing back
+      // through this effect and clobbering optimistic local state.
+      if (saveInFlightRef.current || Date.now() - saveCompletedAtRef.current < 5000) {
         setLoading(hookLoading);
         return;
       }
+      // Background poll / visibility resume — safe to sync
       setBoard(hookBoard);
       setLoading(hookLoading);
     }
-  }, [hookBoard, hookLoading, skipServerSync]);
+  }, [hookBoard, hookLoading]);
 
   // Wrapper to save with idempotent IDs
   const saveBoard = React.useCallback(
     async (updatedBoard: WeekBoard) => {
       setSaving(true);
+      saveInFlightRef.current = true;
       try {
         // Type assertion needed because ExtendedMeal has optional title, but schema requires it
         await saveToHook(updatedBoard as any, uuidv4());
+        saveCompletedAtRef.current = Date.now();
         setJustSaved(true);
         setTimeout(() => setJustSaved(false), 2000);
         clearDraft();
@@ -433,6 +445,7 @@ export default function AntiInflammatoryMenuBuilder() {
         // Save will auto-retry on next user action
       } finally {
         setSaving(false);
+        saveInFlightRef.current = false;
       }
     },
     [saveToHook, clearDraft, markClean],
@@ -665,10 +678,12 @@ export default function AntiInflammatoryMenuBuilder() {
   // 🔋 AI Meal Creator localStorage persistence (copy Fridge Rescue pattern)
   const AI_MEALS_CACHE_KEY = "anti-inflammatory-ai-meal-creator-cached-meals";
 
+  type AIMealSlot = "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6";
+
   interface CachedAIMeals {
     meals: Meal[];
     dayISO: string;
-    slot: "breakfast" | "lunch" | "dinner" | "snacks";
+    slot: AIMealSlot;
     generatedAtISO: string;
   }
 
@@ -676,7 +691,7 @@ export default function AntiInflammatoryMenuBuilder() {
   function saveAIMealsCache(
     meals: Meal[],
     dayISO: string,
-    slot: "breakfast" | "lunch" | "dinner" | "snacks",
+    slot: AIMealSlot,
   ) {
     try {
       const state: CachedAIMeals = {
@@ -733,8 +748,8 @@ export default function AntiInflammatoryMenuBuilder() {
     if (!cached || cached.dayISO !== activeDayISO || cached.meals.length === 0) return;
 
     const dayLists = getDayLists(board, activeDayISO);
-    const targetSlot = cached.slot || "breakfast";
-    const currentSlotMeals = dayLists[targetSlot];
+    const targetSlot = (cached.slot || "breakfast") as keyof typeof dayLists;
+    const currentSlotMeals = dayLists[targetSlot] || [];
 
     // Guard: if all cached meals are already present, do not setBoard (prevents infinite loop)
     const allAlreadyPresent = cached.meals.every((cm) =>
@@ -760,7 +775,7 @@ export default function AntiInflammatoryMenuBuilder() {
     const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
 
     setBoard(updatedBoard);
-  }, [board, activeDayISO]); // board dep is intentional; guard above prevents infinite loop
+  }, [board, activeDayISO]); // eslint-disable-line react-hooks/exhaustive-deps — board dep is intentional; guard above prevents infinite loop
 
   // Load/save tour progress from localStorage
   useEffect(() => {
@@ -877,7 +892,7 @@ export default function AntiInflammatoryMenuBuilder() {
 
 
   const handleChefMealGenerated = useCallback(
-    async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
+    async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6") => {
       if (!activeDayISO) return;
       if (checkLockedDay()) return;
 
