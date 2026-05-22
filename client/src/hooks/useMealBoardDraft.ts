@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { WeekBoard } from '@/lib/boardApi';
+import { safeBoardCacheWrite, evictStaleBoardCacheKeys } from '@/lib/boardStorage';
 
 interface MealBoardDraftOptions {
   userId?: string | number;
@@ -111,12 +112,13 @@ export function useMealBoardDraft(
         boardHash: hash,
       };
 
-      localStorage.setItem(draftKey, JSON.stringify(boardToSave));
-      localStorage.setItem(metaKey, JSON.stringify(meta));
+      safeBoardCacheWrite(draftKey, JSON.stringify(boardToSave));
+      safeBoardCacheWrite(metaKey, JSON.stringify(meta));
       lastSavedHashRef.current = hash;
       console.log(`💾 [MPM Board Draft] Saved draft (${hash})`);
     } catch (error) {
       console.error('[MPM Board Draft] Failed to save draft:', error);
+      evictStaleBoardCacheKeys();
     }
   }, []);
 
