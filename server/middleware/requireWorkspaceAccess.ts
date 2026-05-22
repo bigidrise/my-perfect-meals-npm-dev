@@ -4,6 +4,7 @@ import { clientLinks } from "../db/schema/procare";
 import { studios, studioMemberships } from "../db/schema/studio";
 import { eq, and } from "drizzle-orm";
 import { AuthenticatedRequest } from "./requireAuth";
+import { assertSameOrg, OrgIsolationError, handleOrgIsolationError } from "../lib/orgIsolation";
 
 export interface WorkspaceAccessRequest extends Request {
   authUser: AuthenticatedRequest["authUser"];
@@ -51,6 +52,15 @@ export async function requireWorkspaceAccess(
   const clientId = req.params.clientId;
   if (!clientId) {
     res.status(400).json({ error: "Missing clientId" });
+    return;
+  }
+
+  // Org isolation — reject cross-tenant workspace access before any DB query
+  try {
+    await assertSameOrg(authUser.id, clientId);
+  } catch (err) {
+    if (handleOrgIsolationError(err, res)) return;
+    res.status(500).json({ error: "Failed to verify workspace access" });
     return;
   }
 
