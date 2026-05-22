@@ -355,6 +355,11 @@ const FridgeRescuePage = () => {
       setMeals(cached.generatedMeals);
       setIngredients(cached.ingredients || "");
       setShowResults(true);
+      // Re-fetch images for any meals without imageUrl — DB cache returns instantly
+      const needImages = cached.generatedMeals.filter((m: any) => !m.imageUrl);
+      if (needImages.length > 0) {
+        hydrateImages(needImages);
+      }
     }
 
     // Dispatch "opened" event (500ms setTimeout)

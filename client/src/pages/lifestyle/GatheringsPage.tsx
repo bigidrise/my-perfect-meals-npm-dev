@@ -289,6 +289,11 @@ export default function UltimateExperiencesPage() {
       setServings(cached.servings || 6);
       if (cached.situation) setSituation(cached.situation);
       if (cached.eventType) setSelectedEvent(cached.eventType);
+      // Re-fetch images for any courses without imageUrl — DB cache returns instantly
+      const needImages = cached.courses.filter((c: any) => !c.imageUrl);
+      if (needImages.length > 0) {
+        hydrateImages(needImages);
+      }
     }
   }, []);
 

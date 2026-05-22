@@ -307,6 +307,10 @@ export default function CreateDishPage() {
       setGeneratedMeals([cached.generatedMeal]);
       setServings(cached.servings || 2);
       // generatedInSession remains false — bar will not cold-mount
+      // If image wasn't saved to cache, re-fetch it now — DB cache returns instantly
+      if (!cached.generatedMeal.imageUrl) {
+        hydrateImages([cached.generatedMeal]);
+      }
     }
   }, []);
 
