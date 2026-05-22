@@ -117,7 +117,26 @@ type CachedRestaurantState = {
 function saveRestaurantCache(state: CachedRestaurantState) {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(state));
-  } catch {}
+  } catch (err: any) {
+    if (err?.name === "QuotaExceededError" || err?.code === 22) {
+      console.warn("[RestaurantGuide] localStorage quota exceeded — evicting stale cache keys and retrying");
+      try {
+        const keysToEvict: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k !== CACHE_KEY && (k.startsWith("restaurantGuide.") || k.startsWith("mpm."))) {
+            keysToEvict.push(k);
+          }
+        }
+        keysToEvict.forEach((k) => localStorage.removeItem(k));
+        localStorage.setItem(CACHE_KEY, JSON.stringify(state));
+      } catch (retryErr) {
+        console.error("[RestaurantGuide] Could not persist session after eviction — cache lost:", retryErr);
+      }
+    } else {
+      console.error("[RestaurantGuide] Unexpected localStorage error:", err);
+    }
+  }
 }
 
 function loadRestaurantCache(): CachedRestaurantState | null {

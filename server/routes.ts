@@ -6,6 +6,7 @@ import { familyRecipesRouter } from "./routes/familyRecipes";
 import { uploadsRouter } from "./routes/uploads";
 import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
+import { processMealImageForSave } from "./services/imageLifecycle";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { registerCreatorRoutes } from "./routes/creator";
 import { requireAuth, AuthenticatedRequest } from "./middleware/requireAuth";
@@ -6690,33 +6691,25 @@ Provide a single exceptional meal recommendation in JSON format with the followi
         return res.json({ saved: false, id: null });
       }
 
-      // Swap in the permanent S3 URL before storing so saved meals always
-      // have a durable image URL rather than a base64 data URL or temp link.
+      // Upgrade any temp/data URL to a permanent storage URL before persisting.
+      // processMealImageForSave handles: already-permanent → passthrough,
+      // temp OpenAI/blob URL → ingest to object storage, null → null.
+      // Failures are logged explicitly and never swallowed silently.
       let finalMealData: any = { ...mealData };
       try {
-        const [cached] = await db
-          .select({ imageUrl: mealImageCache.imageUrl })
-          .from(mealImageCache)
-          .where(eq(mealImageCache.mealName, title.trim()))
-          .orderBy(desc(mealImageCache.createdAt))
-          .limit(1);
-
-        if (cached && cached.imageUrl.includes("amazonaws.com")) {
-          finalMealData = { ...finalMealData, imageUrl: cached.imageUrl };
-        } else {
-          // Strip data URLs (too large for JSONB) and expiring temp URLs
-          const img: string | undefined = mealData.imageUrl;
-          if (
-            img &&
-            (img.startsWith("data:") ||
-              img.includes("oaidalleapiprodscus") ||
-              img.includes("blob.core.windows"))
-          ) {
-            finalMealData = { ...finalMealData, imageUrl: null };
-          }
+        const imgResult = await processMealImageForSave(mealData.imageUrl, title.trim());
+        if (imgResult.ingestionAttempted && !imgResult.imageUrl) {
+          console.warn(
+            `[savedMeals/toggle] Image ingestion attempted but returned no URL for "${title}" — imageUrl will be null in DB.`
+          );
         }
-      } catch {
-        // non-fatal — save with whatever imageUrl is present
+        finalMealData = { ...finalMealData, imageUrl: imgResult.imageUrl };
+      } catch (imgErr) {
+        console.error(
+          `[savedMeals/toggle] processMealImageForSave threw for "${title}" — saving with null imageUrl. Error:`,
+          imgErr
+        );
+        finalMealData = { ...finalMealData, imageUrl: null };
       }
 
       const [row] = await db.insert(savedMealsTable).values({
