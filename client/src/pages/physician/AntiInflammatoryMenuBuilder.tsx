@@ -379,7 +379,7 @@ export default function AntiInflammatoryMenuBuilder() {
   const clinicalMode = clinicalModeState;
 
   // Draft persistence for crash/reload recovery
-  const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
+  const { clearDraft, skipServerSync } = useMealBoardDraft(
     {
       userId: effectiveUserId,
       builderId: namespace || 'anti-inflammatory-menu-builder',
