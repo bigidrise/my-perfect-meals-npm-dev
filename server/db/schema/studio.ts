@@ -39,6 +39,7 @@ export const activityActionEnum = pgEnum("activity_action", [
 export const studios = pgTable("studios", {
   id: uuid("id").defaultRandom().primaryKey(),
   ownerUserId: text("owner_user_id").notNull().unique(),
+  orgId: uuid("org_id"),
   type: professionalSpaceTypeEnum("type").notNull().default("studio"),
   name: text("name").notNull(),
   logoUrl: text("logo_url"),

@@ -20,6 +20,8 @@ export interface AuthenticatedUser {
   trialDaysRemaining: number | null;
   hasHadTrial: boolean;
   activeSystem: string;
+  /** Effective org ID. Null means the user belongs to MPM_PUBLIC_ORG_ID. */
+  organizationId: string | null;
 }
 
 export interface AuthenticatedRequest extends Request {
@@ -51,6 +53,7 @@ function buildAuthUser(user: any): AuthenticatedUser {
     trialDaysRemaining,
     hasHadTrial,
     activeSystem: user.activeSystem || "default",
+    organizationId: user.organizationId ?? null,
   };
 }
 
