@@ -89,7 +89,8 @@ async function generateImageCached(
 ): Promise<string | null> {
   // NORMALIZATION — applied before cache key derivation and prompt construction
   const name_ = normalizeMealName(name);
-  const cacheKey = buildStableCacheKey(name_, ingredients);
+  // Include type context in cache key so food/beverage entries never collide.
+  const cacheKey = buildStableCacheKey(name_, ingredients, type);
 
   try {
     const [dbRow] = await db

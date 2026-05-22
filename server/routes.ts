@@ -4111,13 +4111,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { mealName, ingredients = [], mealType, sourceType } = req.body;
       if (!mealName) return res.status(400).json({ error: "mealName is required" });
-      console.log(`🖼️ IMAGE PIPELINE START: ${mealName} (sourceType: ${sourceType ?? 'unset → classifier'})`);
-      const { generateMealImageUnified } = await import("./services/mealImageGenerator");
+      const { generateMealImageUnified, normalizeMealTypeToSourceType } = await import("./services/mealImageGenerator");
+      // Resolve effective sourceType: explicit sourceType wins; fall back to mealType mapping.
+      // This ensures mealType:"restaurant" → sourceType:"meal" so food meals never fall through
+      // to the undefined/classifier path and share cache entries with beverages.
+      const resolvedSourceType = sourceType ?? normalizeMealTypeToSourceType(mealType);
+      console.log(`🖼️ IMAGE PIPELINE START: ${mealName} (mealType: ${mealType ?? 'none'}, sourceType: ${sourceType ?? 'none'} → resolved: ${resolvedSourceType ?? 'classifier'})`);
       const ingredientNames = (ingredients as any[]).map((i: any) =>
         typeof i === "string" ? i : (i.name || i.item || "")
       ).filter(Boolean);
-      // Pass explicit sourceType if provided by the client — hard-locks macro type before classifier runs
-      const imageUrl = await generateMealImageUnified(mealName, ingredientNames, sourceType ?? undefined);
+      const imageUrl = await generateMealImageUnified(mealName, ingredientNames, resolvedSourceType);
       res.json({ imageUrl });
     } catch (err: any) {
       console.error("❌ /api/meals/generate-image error:", err);
