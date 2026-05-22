@@ -319,7 +319,6 @@ export default function MyBiometrics() {
   const [k, setK] = useState("");
   const [sc, setSc] = useState(""); // starchyCarbs
   const [fc, setFc] = useState(""); // fibrousCarbs
-  const [splitCarbs, setSplitCarbs] = useState(false);
   const [ingredientSheetOpen, setIngredientSheetOpen] = useState(false);
   const [ingredientResult, setIngredientResult] = useState<IngredientScanResult | null>(null);
 
@@ -712,8 +711,8 @@ export default function MyBiometrics() {
       F = Number(f || 0);
     const SC = Number(sc || 0); // starchyCarbs
     const FC = Number(fc || 0); // fibrousCarbs
-    // When split mode is active, derive total carbs from starchy + fibrous
-    let C = splitCarbs ? SC + FC : Number(c || 0);
+    // Total carbs always derived from starchy + fibrous split
+    let C = SC + FC;
 
     // If nothing entered, do nothing (silent)
     if (![P, C, F, Number(k || 0)].some(Boolean)) return;
@@ -2049,64 +2048,32 @@ export default function MyBiometrics() {
                   data-testid="input-protein"
                 />
               </div>
-              {!splitCarbs ? (
-                <div>
-                  <label className="text-xs text-white/80 font-medium mb-1 block">
-                    Carbs (g)
-                  </label>
-                  <Input
-                    data-wt="bio-manual-carbs"
-                    type="text"
-                    className="bg-black/20 border-white/20 text-white placeholder:text-white/50"
-                    value={c}
-                    onChange={(e) => setC(e.target.value)}
-                    data-testid="input-carbs"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => { setSplitCarbs(true); setC(""); }}
-                    className="mt-1 text-[10px] text-orange-400/80 hover:text-orange-300 transition-colors"
-                  >
-                    Split carbs →
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div>
-                    <label className="text-xs text-white/80 font-medium mb-1 block">
-                      Starchy (g)
-                    </label>
-                    <Input
-                      data-wt="bio-manual-starchy"
-                      type="text"
-                      className="bg-black/20 border-white/20 text-white placeholder:text-white/50"
-                      value={sc}
-                      onChange={(e) => setSc(e.target.value)}
-                      data-testid="input-starchy"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-white/80 font-medium mb-1 block">
-                      Fibrous (g)
-                    </label>
-                    <Input
-                      data-wt="bio-manual-fibrous"
-                      type="text"
-                      className="bg-black/20 border-white/20 text-white placeholder:text-white/50"
-                      value={fc}
-                      onChange={(e) => setFc(e.target.value)}
-                      data-testid="input-fibrous"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => { setSplitCarbs(false); setSc(""); setFc(""); }}
-                      className="mt-1 text-[10px] text-white/40 hover:text-white/60 transition-colors"
-                    >
-                      ← Combine
-                    </button>
-                  </div>
-                </>
-              )}
+              <div>
+                <label className="text-xs text-white/80 font-medium mb-1 block">
+                  Starchy (g)
+                </label>
+                <Input
+                  data-wt="bio-manual-starchy"
+                  type="text"
+                  className="bg-black/20 border-white/20 text-white placeholder:text-white/50"
+                  value={sc}
+                  onChange={(e) => setSc(e.target.value)}
+                  data-testid="input-starchy"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/80 font-medium mb-1 block">
+                  Fibrous (g)
+                </label>
+                <Input
+                  data-wt="bio-manual-fibrous"
+                  type="text"
+                  className="bg-black/20 border-white/20 text-white placeholder:text-white/50"
+                  value={fc}
+                  onChange={(e) => setFc(e.target.value)}
+                  data-testid="input-fibrous"
+                />
+              </div>
               <div>
                 <label className="text-xs text-white/80 font-medium mb-1 block">
                   Fat (g)
