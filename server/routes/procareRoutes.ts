@@ -21,6 +21,7 @@ import { requireWorkspaceAccess, WorkspaceRequest } from "../middleware/requireW
 import { getWeekBoard, upsertWeekBoard } from "../data/weekBoardsRepo";
 import { getWeekStartISO } from "../utils/week";
 import { verifyClinicalAccess } from "../utils/verifyClinicalAccess";
+import { assertSameOrg, handleOrgIsolationError } from "../lib/orgIsolation";
 import { isOncologySupportEnabled, type OncologySupportContext } from "../services/guardrails/prompt/oncologySupportPromptBuilder";
 import { z } from "zod";
 
@@ -275,6 +276,9 @@ router.get("/clients/:clientId/board-control", async (req, res) => {
     const proUserId = (req as AuthenticatedRequest).authUser?.id;
     if (!proUserId) return res.status(401).json({ error: "Authentication required" });
     const { clientId } = req.params;
+    try { await assertSameOrg(proUserId, clientId); } catch (err) {
+      if (handleOrgIsolationError(err, res)) return; throw err;
+    }
     const [link] = await db
       .select({ mealBoardControl: clientLinks.mealBoardControl })
       .from(clientLinks)
@@ -294,6 +298,9 @@ router.patch("/clients/:clientId/board-control", async (req, res) => {
     const proUserId = (req as AuthenticatedRequest).authUser?.id;
     if (!proUserId) return res.status(401).json({ error: "Authentication required" });
     const { clientId } = req.params;
+    try { await assertSameOrg(proUserId, clientId); } catch (err) {
+      if (handleOrgIsolationError(err, res)) return; throw err;
+    }
     const { control } = req.body as { control: 'client' | 'professional' };
     if (control !== 'client' && control !== 'professional') {
       return res.status(400).json({ error: "control must be 'client' or 'professional'" });
@@ -329,6 +336,10 @@ router.post("/end-relationship", async (req, res) => {
     }
 
     const proUserId = authUser.id;
+
+    try { await assertSameOrg(proUserId, clientUserId); } catch (err) {
+      if (handleOrgIsolationError(err, res)) return; throw err;
+    }
 
     const activeLink = await getActiveLink(clientUserId);
     if (!activeLink || activeLink.proUserId !== proUserId) {
@@ -747,6 +758,11 @@ router.get("/clients/:clientId/nutrition-strategy", async (req: any, res) => {
     const isPhysician = callerUser?.professionalRole === "physician";
 
     if (!isAdmin) {
+      // Org boundary — caller and client must share the same organization
+      try { await assertSameOrg(callerId, clientId); } catch (err) {
+        if (handleOrgIsolationError(err, res)) return; throw err;
+      }
+
       // Must be a coach/trainer/physician with an active link to this client
       const [link] = await db
         .select()
