@@ -1471,6 +1471,7 @@ export const userRecipes = pgTable('user_recipes', {
   ingredients: jsonb('ingredients').notNull(),
   instructions: text('instructions').notNull(),
   nutrition: jsonb('nutrition'),
+  imageUrl: text('image_url'),
   badges: jsonb('badges').$type<Array<{ key: string; label: string; description: string }>>().default(sql`'[]'::jsonb`),
   createdAt: timestamp('created_at').defaultNow(),
 });
