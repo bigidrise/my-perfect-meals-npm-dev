@@ -752,7 +752,9 @@ export default function WeeklyMealBoard() {
             setBoard(prev => {
               if (!prev) return prev;
               if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
-              return updateMealImageInBoard(prev, mealId, imageUrl);
+              const updated = updateMealImageInBoard(prev, mealId, imageUrl);
+              saveBoard(updated).catch(() => {});
+              return updated;
             });
           },
           userDiet,
