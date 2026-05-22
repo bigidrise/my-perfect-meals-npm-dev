@@ -133,8 +133,8 @@ router.post("/guide", async (req, res) => {
           const mealsWithImages = await Promise.all(
             recommendations.map(async (meal: any) => {
               if (meal.imageUrl) {
-                const permanentUrl = await processMealImageForSave(meal.imageUrl, meal.name || meal.meal || "restaurant meal");
-                return { ...meal, imageUrl: permanentUrl };
+                const result = await processMealImageForSave(meal.imageUrl, meal.name || meal.meal || "restaurant meal");
+                return { ...meal, imageUrl: result.imageUrl };
               }
               return meal;
             })

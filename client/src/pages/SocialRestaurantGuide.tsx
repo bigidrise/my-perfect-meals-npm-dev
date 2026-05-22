@@ -151,6 +151,16 @@ function loadRestaurantCache(): CachedRestaurantState | null {
       parsed.restaurantData.meals.length === 0
     )
       return null;
+    // Shape corruption guard: if any meal has an object-typed imageUrl
+    // (from the processMealImageForSave shape mismatch bug), discard the cache
+    // so it gets replaced with a clean save on next generation.
+    const hasCorruptImage = parsed.restaurantData.meals.some(
+      (m: any) => m.imageUrl !== null && m.imageUrl !== undefined && typeof m.imageUrl !== "string"
+    );
+    if (hasCorruptImage) {
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
     return parsed as CachedRestaurantState;
   } catch {
     return null;
