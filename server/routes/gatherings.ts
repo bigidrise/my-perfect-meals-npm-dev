@@ -8,6 +8,7 @@ import {
   scanGeneratedOutput,
   buildGuestEnvelope,
 } from "../services/protocolEnvelope";
+import { generateMealImageUnified } from "../services/mealImageGenerator";
 
 const router = express.Router();
 
@@ -625,28 +626,19 @@ router.post("/generate", async (req: Request, res: Response) => {
 });
 
 // ─────────────────────────────────────────────
-// Image generation endpoint — called in parallel by client for each course
-// 1 retry with simplified prompt, then graceful fallback
+// Image generation endpoint — routes through unified pipeline (cache → S3 → DALL-E)
 // ─────────────────────────────────────────────
 router.post("/generate-image", async (req: Request, res: Response) => {
-  const { mealName, mealType = "dinner" } = req.body || {};
+  const { mealName, mealType = "dinner", ingredients = [] } = req.body || {};
   if (!mealName) return res.status(400).json({ imageUrl: null, error: "mealName required" });
 
-  const { genImage } = await import("../utils/openaiSafe");
-
-  const fullPrompt = `${mealName}, healthy ${mealType}, professional food photography, overhead view, clean plate presentation, natural lighting`;
-  let imageUrl: string | null = (await genImage(fullPrompt)) ?? null;
-
-  if (!imageUrl) {
-    console.log(`🔄 [ExperienceImage] Retrying image for "${mealName}" with simplified prompt`);
-    imageUrl = (await genImage(`${mealName}, professional food photography, clean background`)) ?? null;
+  try {
+    const imageUrl = await generateMealImageUnified(mealName, ingredients, mealType);
+    return res.json({ imageUrl });
+  } catch (err: any) {
+    console.warn(`⚠️ [ExperienceImage] Image generation failed for "${mealName}":`, err.message);
+    return res.json({ imageUrl: null });
   }
-
-  if (!imageUrl) {
-    console.warn(`⚠️ [ExperienceImage] Both attempts failed for "${mealName}" — returning null`);
-  }
-
-  return res.json({ imageUrl });
 });
 
 export default router;
