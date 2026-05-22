@@ -405,26 +405,25 @@ export default function AntiInflammatoryMenuBuilder() {
   }, [weekStartISO]);
 
   React.useEffect(() => {
-    if (hookBoard) {
+    if (!hookLoading && hookBoard) {
       if (!boardInitializedRef.current) {
-        // First load — always hydrate
+        // First load — always hydrate regardless of draft/dirty state
         boardInitializedRef.current = true;
         setBoard(hookBoard);
         setLoading(hookLoading);
         return;
       }
-      // Block overwrite when a save is in flight or just completed (5s cooldown).
-      // This prevents the useWeeklyBoard internal setData(result) from racing back
-      // through this effect and clobbering optimistic local state.
-      if (saveInFlightRef.current || Date.now() - saveCompletedAtRef.current < 5000) {
-        setLoading(hookLoading);
+      // Use the canonical skipServerSync() contract (same as WeeklyMealBoard).
+      // After any board mutation, dirtyRef stays true so background reloads and
+      // stale localStorage cache-first reads can never overwrite local state.
+      if (skipServerSync()) {
         return;
       }
-      // Background poll / visibility resume — safe to sync
+      // Background poll / safe-to-sync path
       setBoard(hookBoard);
       setLoading(hookLoading);
     }
-  }, [hookBoard, hookLoading]);
+  }, [hookBoard, hookLoading, skipServerSync]);
 
   // Wrapper to save with idempotent IDs
   const saveBoard = React.useCallback(
@@ -437,18 +436,19 @@ export default function AntiInflammatoryMenuBuilder() {
         saveCompletedAtRef.current = Date.now();
         setJustSaved(true);
         setTimeout(() => setJustSaved(false), 2000);
+        // Do NOT call markClean() — keeping dirtyRef=true so skipServerSync() stays
+        // active and blocks stale localStorage cache-first reads from overwriting
+        // local state. Matches the canonical WeeklyMealBoard sync contract.
         clearDraft();
-        markClean();
       } catch (err) {
         console.error("Failed to save board:", err);
         // Silent retry - no toast during decision-making flows
-        // Save will auto-retry on next user action
       } finally {
         setSaving(false);
         saveInFlightRef.current = false;
       }
     },
-    [saveToHook, clearDraft, markClean],
+    [saveToHook, clearDraft],
   );
 
   const [pickerOpen, setPickerOpen] = React.useState(false);
