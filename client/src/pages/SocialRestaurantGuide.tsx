@@ -358,6 +358,7 @@ export default function RestaurantGuidePage() {
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
   const hasSpokenEntryRef = useRef(false);
+  const hasRestoredRef = useRef(false);
 
   // Guided step state (matches Macro Calculator pattern)
   const hasCachedResults =
@@ -376,6 +377,7 @@ export default function RestaurantGuidePage() {
 
   // Restore cached restaurant meals on mount (so generated meals come back)
   useEffect(() => {
+    if (hasRestoredRef.current) return;
     const cached = loadRestaurantCache();
     if (cached?.restaurantData?.meals?.length) {
       setGeneratedMeals(cached.restaurantData.meals);
@@ -387,30 +389,9 @@ export default function RestaurantGuidePage() {
       if (cached.restaurantData.restaurantInfo) {
         setRestaurantInfo(cached.restaurantData.restaurantInfo);
       }
+      hasRestoredRef.current = true;
     }
-  }, []); // Only run once on mount
-
-  // Auto-save whenever relevant state changes (so it's always fresh)
-  useEffect(() => {
-    if (generatedMeals.length > 0) {
-      saveRestaurantCache({
-        restaurantData: {
-          meals: generatedMeals,
-          restaurantInfo: restaurantInfo || undefined,
-        },
-        restaurant: restaurantInput,
-        craving: cravingInput,
-        cuisine: matchedCuisine || "",
-        generatedAtISO: new Date().toISOString(),
-      });
-    }
-  }, [
-    generatedMeals,
-    restaurantInput,
-    cravingInput,
-    matchedCuisine,
-    restaurantInfo,
-  ]);
+  }, []);
 
   const startProgressTicker = () => {
     if (tickerRef.current) return;
