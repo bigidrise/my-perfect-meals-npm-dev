@@ -48,7 +48,7 @@ import {
 } from "lucide-react";
 import { useLocation } from "wouter";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
@@ -358,15 +358,25 @@ export default function RestaurantGuidePage() {
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
   const hasSpokenEntryRef = useRef(false);
-  const hasRestoredRef = useRef(false);
+  const serverRestoredRef = useRef(false);
 
-  // Guided step state (matches Macro Calculator pattern)
+  // Guided step state — start on results if localStorage has data (fast initial render)
   const hasCachedResults =
     loadRestaurantCache()?.restaurantData?.meals?.length > 0;
   const [guidedStep, setGuidedStep] = useState<GuidedStep>(
     hasCachedResults ? "results" : "entry",
   );
 
+  // Server-first hydration: fetch the most recent session from DB
+  const storedUserId = localStorage.getItem("userId") || "";
+  const { data: serverSessionData } = useQuery<{ session: any }>({
+    queryKey: ["/api/restaurants/guide/latest-session", storedUserId],
+    queryFn: () =>
+      apiRequest(`/api/restaurants/guide/latest-session?userId=${storedUserId}`),
+    enabled: !!storedUserId,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
 
   // Auto-mark info as seen since Copilot provides guidance now
   useEffect(() => {
@@ -375,9 +385,8 @@ export default function RestaurantGuidePage() {
     }
   }, []);
 
-  // Restore cached restaurant meals on mount (so generated meals come back)
+  // Effect 1: Immediate localStorage restore (fast, no flash while server loads)
   useEffect(() => {
-    if (hasRestoredRef.current) return;
     const cached = loadRestaurantCache();
     if (cached?.restaurantData?.meals?.length) {
       setGeneratedMeals(cached.restaurantData.meals);
@@ -385,13 +394,39 @@ export default function RestaurantGuidePage() {
       setCravingInput(cached.craving || "");
       setMatchedCuisine(cached.cuisine || null);
       setGuidedStep("results");
-      // Restore restaurant info if cached
       if (cached.restaurantData.restaurantInfo) {
         setRestaurantInfo(cached.restaurantData.restaurantInfo);
       }
-      hasRestoredRef.current = true;
     }
   }, []);
+
+  // Effect 2: Server data overrides localStorage — permanent image URLs + authoritative source
+  useEffect(() => {
+    const session = serverSessionData?.session;
+    if (!session?.meals?.length) return;
+    serverRestoredRef.current = true;
+    const userDiet = normalizeDiet(user?.dietaryRestrictions);
+    const meals = filterMealsByDiet(userDiet, session.meals as any[], (m) => m);
+    setGeneratedMeals(meals.length > 0 ? meals : session.meals);
+    setRestaurantInput(session.restaurantName || "");
+    setCravingInput(session.craving || "");
+    setMatchedCuisine(session.cuisine || null);
+    setGuidedStep("results");
+    if (session.restaurantInfo) {
+      setRestaurantInfo(session.restaurantInfo as any);
+    }
+    // Keep localStorage in sync with server data
+    saveRestaurantCache({
+      restaurantData: {
+        meals: meals.length > 0 ? meals : session.meals,
+        restaurantInfo: session.restaurantInfo,
+      },
+      restaurant: session.restaurantName || "",
+      craving: session.craving || "",
+      cuisine: session.cuisine || "",
+      generatedAtISO: session.generatedAt || new Date().toISOString(),
+    });
+  }, [serverSessionData]);
 
   const startProgressTicker = () => {
     if (tickerRef.current) return;
@@ -468,10 +503,10 @@ export default function RestaurantGuidePage() {
         setRestaurantInfo(data.restaurantInfo);
       }
 
-      // Immediately cache the new restaurant meals so they survive navigation/refresh
+      // Cache what the user actually sees (compliantRecs, not raw recommendations)
       saveRestaurantCache({
         restaurantData: {
-          meals: data.recommendations || [],
+          meals: compliantRecs,
           restaurantInfo: data.restaurantInfo,
         },
         restaurant: restaurantInput,

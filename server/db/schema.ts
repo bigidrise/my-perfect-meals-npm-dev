@@ -10,6 +10,7 @@ export * from "./schema/careTeam";
 export * from "./schema/procare";
 export * from "./schema/founders";
 export * from "./schema/generatedMeals";
+export * from "./schema/restaurantGuideSessions";
 export * from "./schema/mealLibrary";
 export * from "./schema/bodyComposition";
 export * from "./schema/clinicalLabs";
