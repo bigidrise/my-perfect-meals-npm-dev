@@ -814,22 +814,21 @@ export default function ChefsKitchenPage() {
                           try {
                             const controller = new AbortController();
                             const timeout = setTimeout(() => controller.abort(), 20000);
-                            const imgRes = await fetch(apiUrl("/api/meal-images/generate"), {
+                            const imgRes = await fetch(apiUrl("/api/meals/generate-image"), {
                               method: "POST",
                               headers: { "Content-Type": "application/json" },
                               signal: controller.signal,
                               body: JSON.stringify({
                                 mealName: option.name,
                                 ingredients: (option.ingredients || []).map((i: any) => i.name || i),
-                                style: "overhead",
                                 mealType: "dinner",
                               }),
                             });
                             clearTimeout(timeout);
                             if (imgRes.ok) {
                               const imgData = await imgRes.json();
-                              if (imgData.success && imgData.image?.url) {
-                                finalMeal = { ...finalMeal, imageUrl: imgData.image.url };
+                              if (imgData.imageUrl) {
+                                finalMeal = { ...finalMeal, imageUrl: imgData.imageUrl };
                               }
                             }
                           } catch {}

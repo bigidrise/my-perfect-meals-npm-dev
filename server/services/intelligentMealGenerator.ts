@@ -3,6 +3,7 @@
 import OpenAI from "openai";
 import { storage } from "../storage";
 import { enforceMeasuredIngredients } from "./mealgenV2";
+import { generateMealImageUnified } from "./mealImageGenerator";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -79,17 +80,17 @@ Provide responses in JSON format with:
       result.meal.ingredients = enforceMeasuredIngredients(result.meal.ingredients);
     }
 
-    // Generate image if requested
+    // Generate image if requested — routes through unified pipeline (cache → S3 → DALL-E)
     if (request.mode === "generate" && result.meal) {
       try {
-        const imageResponse = await getOpenAI().images.generate({
-          model: "gpt-image-1",
-          prompt: `Professional food photography of ${result.meal.name}: ${result.meal.description}. Clean, appetizing, restaurant-quality presentation.`,
-          size: "1024x1024",
-          quality: "low",
-          n: 1
-        });
-        result.meal.imageUrl = imageResponse.data?.[0]?.url;
+        const ingredients = (result.meal.ingredients || []).map((i: any) =>
+          typeof i === "string" ? i : i.name || i.item || ""
+        );
+        result.meal.imageUrl = await generateMealImageUnified(
+          result.meal.name,
+          ingredients,
+          "meal"
+        );
       } catch (imageError) {
         console.warn("Image generation failed:", imageError);
       }
