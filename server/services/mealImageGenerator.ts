@@ -551,22 +551,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
   // sourceType is included in the cache key so food/beverage/etc. never share entries.
   const cacheKey = buildStableCacheKey(mealName, ingredients, sourceType);
 
-  // ── SNACK FIREWALL ──────────────────────────────────────────────────────────
-  // sourceType === 'snack' is the hard override; mealType and pattern are fallbacks
-  const isSnackByType = sourceType === 'snack' || mealType === 'snack';
-  const isSnackByPattern = !sourceType && !mealType && isLikelySnack(mealName);
-
-  if (isSnackByType || isSnackByPattern) {
-    const staticImage = getStaticSnackImage(mealName);
-    console.log(`🍎 SNACK FIREWALL: Static image for "${mealName}" → ${staticImage}`);
-    return {
-      url: staticImage,
-      prompt: `Static snack image: ${mealName}`,
-      templateRef: request.templateRef,
-      hash: cacheKey,
-      createdAt: new Date().toISOString(),
-    };
-  }
+  // Snack firewall removed — all meal types now receive real AI-generated images.
 
   const _t0 = Date.now();
   console.log(`⏱️ [IMG] START ${mealName}`);
@@ -662,56 +647,47 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
     };
   }
 
-  // ── BACKGROUND S3 PERSIST ─────────────────────────────────────────────────
-  // Return the image to the client immediately (data URL is already the full
-  // image bytes — not a temp link). S3 upload + DB cache write happen in the
-  // background so the user sees the image without waiting for S3.
-  const immediateUrl = imageUrl;
-
-  setImmediate(async () => {
-    try {
-      // Race-condition guard: another request may have already written S3
-      const [existing] = await db
-        .select({ imageUrl: mealImageCache.imageUrl })
-        .from(mealImageCache)
-        .where(eq(mealImageCache.cacheKey, cacheKey))
-        .limit(1);
-
-      if (existing && isS3Url(existing.imageUrl)) {
-        memCache.set(cacheKey, existing.imageUrl);
-        console.log(`✅ S3 already cached (background race guard) for: ${mealName}`);
-        return;
+  // ── FOREGROUND S3 PERSIST ────────────────────────────────────────────────
+  // Upload to S3 synchronously before returning so the client always receives
+  // a small, persistent S3 URL — never a base64 blob. This is critical for
+  // localStorage persistence across navigation (base64 is ~2MB and silently
+  // fails the localStorage quota write, losing the image on next page load).
+  console.log(`📦 Uploading to S3 for: ${mealName} +${Date.now()-_t0}ms`);
+  try {
+    const ingestionResult = await ingestImageToPermanentStorage(imageUrl, mealName);
+    if (ingestionResult.success && ingestionResult.permanentUrl) {
+      const s3Url = ingestionResult.permanentUrl;
+      try {
+        await db
+          .insert(mealImageCache)
+          .values({ cacheKey, imageUrl: s3Url, mealName, promptUsed: prompt })
+          .onConflictDoUpdate({
+            target: mealImageCache.cacheKey,
+            set: { imageUrl: s3Url, mealName, promptUsed: prompt },
+          });
+        console.log(`✅ S3 URL cached in DB for: ${mealName} +${Date.now()-_t0}ms`);
+      } catch (dbErr) {
+        console.warn(`⚠️ DB write failed for "${mealName}":`, dbErr);
       }
-
-      console.log(`📦 [BG] Uploading to S3 for: ${mealName}`);
-      const ingestionResult = await ingestImageToPermanentStorage(immediateUrl, mealName);
-
-      if (ingestionResult.success && ingestionResult.permanentUrl) {
-        const s3Url = ingestionResult.permanentUrl;
-        try {
-          await db
-            .insert(mealImageCache)
-            .values({ cacheKey, imageUrl: s3Url, mealName, promptUsed: prompt })
-            .onConflictDoUpdate({
-              target: mealImageCache.cacheKey,
-              set: { imageUrl: s3Url, mealName, promptUsed: prompt },
-            });
-          console.log(`✅ [BG] S3 URL cached in DB for: ${mealName}`);
-        } catch (dbErr) {
-          console.warn(`⚠️ [BG] DB write failed for "${mealName}":`, dbErr);
-        }
-        memCache.set(cacheKey, s3Url);
-      } else {
-        console.warn(`⚠️ [BG] S3 upload failed for "${mealName}": ${ingestionResult.error ?? 'unknown'}`);
-      }
-    } catch (bgErr: any) {
-      console.warn(`⚠️ [BG] S3 pipeline error for "${mealName}": ${bgErr.message}`);
+      memCache.set(cacheKey, s3Url);
+      return {
+        url: s3Url,
+        prompt,
+        templateRef: request.templateRef,
+        hash: cacheKey,
+        createdAt: new Date().toISOString(),
+      };
+    } else {
+      console.warn(`⚠️ S3 upload failed for "${mealName}" — returning base64 as fallback: ${ingestionResult.error ?? 'unknown'}`);
     }
-  });
+  } catch (uploadErr: any) {
+    console.warn(`⚠️ S3 upload threw for "${mealName}": ${uploadErr.message}`);
+  }
 
-  // Respond immediately with the image — client sees it without waiting for S3
+  // S3 failed: fall back to base64 (image still shows, just won't persist across navigation)
+  memCache.set(cacheKey, imageUrl);
   return {
-    url: immediateUrl,
+    url: imageUrl,
     prompt,
     templateRef: request.templateRef,
     hash: cacheKey,

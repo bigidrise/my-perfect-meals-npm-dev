@@ -137,28 +137,6 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
 
       const generatedSnack = data.meals[0];
 
-      // Fire AI image generation in the background. The snack pipeline returns
-      // a static cartoon image via the snack firewall; we replace it with a
-      // real DALL-E image by sending sourceType "meal" to bypass the firewall.
-      // We await here so the returned snack already has the AI imageUrl.
-      let aiImageUrl: string | undefined = undefined;
-      try {
-        const imgRes = await fetch(apiUrl("/api/meals/generate-image"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            mealName: generatedSnack.name,
-            mealType: "snack",
-            sourceType: "meal",
-            ingredients: (generatedSnack.ingredients || []).map((i: any) =>
-              typeof i === "string" ? i : i.name || i.item || ""
-            ).filter(Boolean),
-          }),
-        });
-        const imgData = await imgRes.json();
-        if (imgData.imageUrl) aiImageUrl = imgData.imageUrl;
-      } catch {}
-
       const snack: Snack = {
         id: generatedSnack.id || `snack-${Date.now()}`,
         name: generatedSnack.name,
@@ -166,7 +144,7 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
         description: generatedSnack.description,
         ingredients: generatedSnack.ingredients || [],
         instructions: generatedSnack.instructions,
-        imageUrl: aiImageUrl || generatedSnack.imageUrl,
+        imageUrl: generatedSnack.imageUrl,
         calories: generatedSnack.calories,
         protein: generatedSnack.protein,
         carbs: generatedSnack.carbs,
