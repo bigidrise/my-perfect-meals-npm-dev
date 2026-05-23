@@ -58,20 +58,33 @@ echo "  (Client TS errors are pre-existing and excluded from this check)"
 echo ""
 
 TSLOG=$(mktemp /tmp/mpm-ts-XXXXXX.log)
-if npx tsc --noEmit -p tsconfig.server.json >"$TSLOG" 2>&1; then
+BASELINE_FILE="scripts/.ts-server-baseline"
+BASELINE_COUNT=0
+if [ -f "$BASELINE_FILE" ]; then
+  BASELINE_COUNT=$(cat "$BASELINE_FILE" | tr -d '[:space:]')
+fi
+
+npx tsc --noEmit -p tsconfig.server.json >"$TSLOG" 2>&1 || true
+TS_COUNT=$(grep -c ': error TS' "$TSLOG" 2>/dev/null || echo 0)
+
+if [ "$TS_COUNT" -eq 0 ]; then
   pass "Server TypeScript: no type errors"
+elif [ "$TS_COUNT" -le "$BASELINE_COUNT" ]; then
+  # Error count is at or below the committed baseline — pre-existing debt, not a new regression.
+  # Update the baseline file if errors were fixed: npm run validate will then pass cleanly.
+  warn "Server TypeScript: ${TS_COUNT} pre-existing error(s) (baseline: ${BASELINE_COUNT}) — no new regressions"
+  echo ""
+  echo -e "${YELLOW}  These are known pre-existing server TS issues. Run:${NC}"
+  echo -e "${YELLOW}    npx tsc --noEmit -p tsconfig.server.json  (to review)${NC}"
+  echo -e "${YELLOW}  If you fixed some, update the baseline: echo ${TS_COUNT} > scripts/.ts-server-baseline${NC}"
 else
-  TS_COUNT=$(grep -c ': error TS' "$TSLOG" 2>/dev/null || echo 0)
-  # Warn rather than hard-fail — the server has pre-existing TS debt (e.g. express-session
-  # type augmentation is excluded from the root tsconfig types[] array).  New errors
-  # introduced by your change will be visible here and should be reviewed.
-  warn "Server TypeScript: ${TS_COUNT} error(s) found — review before pushing"
+  # Error count exceeds baseline — new TypeScript errors were introduced.
+  NEW_ERRORS=$((TS_COUNT - BASELINE_COUNT))
+  fail "Server TypeScript: ${TS_COUNT} error(s) found — ${NEW_ERRORS} NEW error(s) above baseline (${BASELINE_COUNT})"
   echo ""
-  echo -e "${YELLOW}  TypeScript output (first 20 errors):${NC}"
-  head -40 "$TSLOG" | sed 's/^/    /'
-  echo ""
-  echo -e "${YELLOW}  Note: If these are pre-existing errors unrelated to your change, you may${NC}"
-  echo -e "${YELLOW}  still push. If you introduced new errors, fix them first.${NC}"
+  echo -e "${RED}  New TypeScript errors detected. Fix them before pushing.${NC}"
+  echo -e "${RED}  TypeScript output (first 30 lines):${NC}"
+  head -60 "$TSLOG" | sed 's/^/    /'
 fi
 rm -f "$TSLOG"
 
