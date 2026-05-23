@@ -30,6 +30,8 @@ ERRORS=0
 WARNINGS=0
 SERVER_PID=""
 SHUTDOWN_ACTIVE_CONNS=0
+FAIL_MESSAGES=()
+WARN_MESSAGES=()
 
 cleanup() {
   if [ -n "$SERVER_PID" ] && kill -0 "$SERVER_PID" 2>/dev/null; then
@@ -40,8 +42,8 @@ cleanup() {
 trap cleanup EXIT
 
 pass()   { echo -e "${GREEN}  ✅ PASS${NC}  $1"; }
-fail()   { echo -e "${RED}  ❌ FAIL${NC}  $1"; ERRORS=$((ERRORS + 1)); }
-warn()   { echo -e "${YELLOW}  ⚠️  WARN${NC}  $1"; WARNINGS=$((WARNINGS + 1)); }
+fail()   { echo -e "${RED}  ❌ FAIL${NC}  $1"; ERRORS=$((ERRORS + 1)); FAIL_MESSAGES+=("$1"); }
+warn()   { echo -e "${YELLOW}  ⚠️  WARN${NC}  $1"; WARNINGS=$((WARNINGS + 1)); WARN_MESSAGES+=("$1"); }
 header() { echo ""; echo -e "${CYAN}━━━ $1 ━━━${NC}"; }
 
 echo ""
@@ -268,6 +270,23 @@ if [ "${SHUTDOWN_ACTIVE_CONNS:-0}" -gt 0 ] 2>/dev/null; then
 fi
 echo -e "  Hard failures: ${RED}${ERRORS}${NC}"
 echo -e "  Warnings:      ${YELLOW}${WARNINGS}${NC}"
+
+if [ "${#FAIL_MESSAGES[@]}" -gt 0 ]; then
+  echo ""
+  echo -e "  ${RED}${BOLD}Failures:${NC}"
+  for msg in "${FAIL_MESSAGES[@]}"; do
+    echo -e "    ${RED}❌${NC}  $msg"
+  done
+fi
+
+if [ "${#WARN_MESSAGES[@]}" -gt 0 ]; then
+  echo ""
+  echo -e "  ${YELLOW}${BOLD}Warnings:${NC}"
+  for msg in "${WARN_MESSAGES[@]}"; do
+    echo -e "    ${YELLOW}⚠️ ${NC}  $msg"
+  done
+fi
+
 echo ""
 
 if [ "$ERRORS" -eq 0 ]; then
