@@ -95,3 +95,9 @@ id = "jDQCvLnGk8PcUipuT75xM"
 uri = "file://docs/technical-architecture-overview.md"
 type = "text"
 title = "My Perfect Meals — Technical Architecture Overview"
+
+[[outputs]]
+id = "SE_54swVRupBRN2mljiRW"
+uri = "file://docs/devops-operations-overview.md"
+type = "text"
+title = "My Perfect Meals — Development & Operations Overview"
