@@ -33,6 +33,7 @@ import { getRetailQuantity } from "@/lib/retailIntelligence";
 import AddOtherItems from "@/components/AddOtherItems";
 import { readOtherItems } from "@/stores/otherItemsStore";
 import { GROCERY_RETAILERS, type GroceryRetailerId } from "@/lib/groceryRetailers";
+import GroceryExportModal from "@/components/shopping/GroceryExportModal";
 import { formatQuantity } from "@/lib/formatQuantity";
 import { convertServingDisplay } from "@shared/units";
 import { useAuth } from "@/contexts/AuthContext";
@@ -131,6 +132,8 @@ export default function ShoppingListMasterView() {
   });
   
   const [purchasedOpen, setPurchasedOpen] = useState(true);
+  const [groceryExportOpen, setGroceryExportOpen] = useState(false);
+  const [groceryExportRetailer, setGroceryExportRetailer] = useState<GroceryRetailerId>("walmart");
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [barcodeModalOpen, setBarcodeModalOpen] = useState(false);
@@ -349,11 +352,8 @@ export default function ShoppingListMasterView() {
       return;
     }
 
-    const retailer = GROCERY_RETAILERS.find((r) => r.id === retailerId);
-    if (!retailer) return;
-
-    const url = retailer.buildUrl(activeItems.map((i) => i.name));
-    window.open(url, "_blank", "noopener,noreferrer");
+    setGroceryExportRetailer(retailerId);
+    setGroceryExportOpen(true);
   }, [items, toast]);
 
   const parseItemsFromText = useCallback((raw: string): string[] => {
@@ -594,37 +594,19 @@ export default function ShoppingListMasterView() {
               <ExternalLink className="h-4 w-4 text-white/30 flex-shrink-0" />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <Button
-                data-testid="grocery-delivery-walmart"
-                onClick={() => handleGroceryDelivery("walmart")}
-                className="bg-blue-800/40 border border-blue-500/30 text-white h-11 text-sm font-medium"
-              >
-                Walmart
-              </Button>
-              <Button
-                data-testid="grocery-delivery-instacart"
-                onClick={() => handleGroceryDelivery("instacart")}
-                className="bg-green-800/40 border border-green-500/30 text-white h-11 text-sm font-medium"
-              >
-                Instacart
-              </Button>
-              <Button
-                data-testid="grocery-delivery-amazon-fresh"
-                onClick={() => handleGroceryDelivery("amazon-fresh")}
-                className="bg-orange-800/40 border border-orange-500/30 text-white h-11 text-sm font-medium"
-              >
-                Amazon Fresh
-              </Button>
-              <Button
-                data-testid="grocery-delivery-kroger"
-                onClick={() => handleGroceryDelivery("kroger")}
-                className="bg-blue-900/40 border border-blue-400/30 text-white h-11 text-sm font-medium"
-              >
-                Kroger
-              </Button>
+              {GROCERY_RETAILERS.map((retailer) => (
+                <Button
+                  key={retailer.id}
+                  data-testid={`grocery-delivery-${retailer.id}`}
+                  onClick={() => handleGroceryDelivery(retailer.id)}
+                  className={`${retailer.color} border text-white h-11 text-sm font-medium`}
+                >
+                  {retailer.name}
+                </Button>
+              ))}
             </div>
             <p className="text-white/25 text-[10px] leading-tight">
-              Search results open on the retailer's site. My Perfect Meals does not process payments or handle delivery.
+              Each item opens a separate search on the retailer's site. My Perfect Meals does not process payments or handle delivery.
             </p>
           </div>
         )}
@@ -1003,6 +985,15 @@ export default function ShoppingListMasterView() {
           onClose={() => setVoiceModalOpen(false)}
           onConfirm={handleVoiceConfirm}
         />
+
+        {/* Grocery Export Modal — one item per retailer search */}
+        {groceryExportOpen && (
+          <GroceryExportModal
+            items={items}
+            defaultRetailerId={groceryExportRetailer}
+            onClose={() => setGroceryExportOpen(false)}
+          />
+        )}
         {/* Barcode Manual Entry Modal */}
         {barcodeModalOpen && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
