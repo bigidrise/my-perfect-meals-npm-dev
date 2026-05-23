@@ -30,6 +30,9 @@ const DAIRY_INGREDIENTS = [
   'yogurt', 'milk', 'cheese', 'cream', 'butter', 'sour cream', 'cottage cheese'
 ];
 
+// Protein powder / supplement powder keywords — these MUST stay in scoops, not weight
+const PROTEIN_POWDER_PATTERN = /\b(protein\s+powder|whey\s+protein|casein\s+protein|plant[- ]based\s+protein|vegan\s+protein|pea\s+protein|soy\s+protein|rice\s+protein|collagen\s+powder|collagen\s+peptides|pre[- ]workout|creatine|bcaa|mass\s+gainer|weight\s+gainer|supplement\s+powder|protein\s+shake\s+powder)\b/i;
+
 // Egg keywords (name-based detection)
 const EGG_PATTERN = /\begg(s)?\b/i;
 const EGG_SIZE_PATTERN = /\b(large|medium|small|jumbo|extra-large|xl)\b/i;
@@ -51,6 +54,10 @@ const SIZE_UNIT_PATTERN = /^(medium|large|small|whole)$/i;
 
 // Vague unit set
 const VAGUE_UNITS = new Set(['serving', 'servings', 'handful', 'handfuls']);
+
+function isProteinPowder(name: string): boolean {
+  return PROTEIN_POWDER_PATTERN.test(name);
+}
 
 function isProtein(name: string): boolean {
   const lower = name.toLowerCase();
@@ -111,9 +118,42 @@ function formatAmount(num: number): string {
   return num.toFixed(1).replace(/\.0$/, '');
 }
 
+// Reference scoop size for weight→scoop fallback (grams). Scoop sizes vary widely by brand
+// (typically 25–42g for whey, 28–50g for vegan blends). We use 30g as a conservative
+// midpoint. This fallback only runs when the AI ignored the prompt rule; the prompt itself
+// is the primary enforcement mechanism.
+const REFERENCE_SCOOP_GRAMS = 30;
+
+function weightToScoops(grams: number): string {
+  const scoops = Math.round((grams / REFERENCE_SCOOP_GRAMS) * 2) / 2; // round to nearest 0.5
+  if (scoops <= 0.5) return '1/2';
+  if (scoops === 1.5) return '1 1/2';
+  return String(Math.round(scoops));
+}
+
 function convertUnit(amount: number, unit: string, ingredientName: string): { amount: string; unit: string } {
   const lowerUnit = unit.toLowerCase().trim();
-  
+
+  // ── Protein powder / supplement powder: always preserve scoops ────────────
+  // The AI prompt instructs scoop usage, but this is a post-generation safety net
+  // in case the AI returned a weight unit anyway. We convert weight → scoop count
+  // using a reference scoop size with a note that users should adjust to their brand.
+  if (isProteinPowder(ingredientName)) {
+    // Already in scoops — pass through unchanged
+    if (lowerUnit === 'scoop' || lowerUnit === 'scoops') {
+      return { amount: formatAmount(amount), unit: amount === 1 ? 'scoop' : 'scoops' };
+    }
+    // Weight units: convert to approximate scoop count
+    let grams = amount;
+    if (lowerUnit === 'oz' || lowerUnit === 'ounce' || lowerUnit === 'ounces') grams = amount * 28.3495;
+    else if (lowerUnit === 'lb' || lowerUnit === 'lbs') grams = amount * 453.592;
+    else if (lowerUnit === 'kg') grams = amount * 1000;
+    // g / grams: already in grams
+    const scoopAmount = weightToScoops(grams);
+    const scoopCount = parseFloat(scoopAmount.replace(' 1/2', '.5').replace('1/2', '0.5'));
+    return { amount: scoopAmount, unit: scoopCount === 1 ? 'scoop' : 'scoops' };
+  }
+
   if (METRIC_TO_US[lowerUnit]) {
     const conversion = METRIC_TO_US[lowerUnit];
     let convertedAmount = amount * conversion.factor;
