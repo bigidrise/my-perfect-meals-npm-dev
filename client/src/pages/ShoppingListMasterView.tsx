@@ -797,18 +797,6 @@ export default function ShoppingListMasterView() {
                             {item.name}
                           </div>
                           {(() => {
-                            if (measurementSystem === "metric" && item.unit) {
-                              const converted = convertServingDisplay(
-                                item.quantity ?? 1,
-                                item.unit,
-                                "metric"
-                              );
-                              return (
-                                <div className="text-white/70 text-sm shrink-0">
-                                  {converted}
-                                </div>
-                              );
-                            }
                             const qty = getRetailQuantity(item);
                             if (!qty) return null;
                             return (
