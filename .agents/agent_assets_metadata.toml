@@ -65,3 +65,9 @@ id = "LoVPGkLi5Aq1xOhljHJ8K"
 uri = "file://docs/company-overview.md"
 type = "text"
 title = "My Perfect Meals — Company Overview"
+
+[[outputs]]
+id = "usCgdCcRFV_HBArHXAIWk"
+uri = "file://docs/product-features-implementation-status.md"
+type = "text"
+title = "My Perfect Meals — Product Features & Implementation Status"
