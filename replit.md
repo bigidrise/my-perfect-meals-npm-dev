@@ -93,7 +93,7 @@ Run this in the dev space terminal before pushing to GitHub. Takes ~15 seconds.
 npm run validate
 ```
 
-This checks TypeScript integrity, schema drift, auth guards, and that the server boots clean. If it exits **PASS**, push. If it exits **FAIL**, fix the issues first.
+This checks that critical server files are present, no raw fetch() calls are hitting auth-protected routes, and the server boots cleanly with no crash patterns in the startup log. It does **not** run the client TypeScript check (client TS errors are pre-existing and non-blocking). If it exits **PASS**, push. If it exits **FAIL**, fix the issues first.
 
 **Full deploy sequence (do not deviate):**
 1. Make all changes in dev space only
