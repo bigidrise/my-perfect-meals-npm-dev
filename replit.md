@@ -85,10 +85,41 @@ MyPerfectMeals is a full-stack TypeScript application providing AI-powered meal 
 - **Coach Enrollment**: No one enters the Pro Portal queue without completed payment.
 - **"Bold & Flavorful" Slug**: The internal slug `bold-spicy` remains unchanged despite display name updates.
 
+## Before Every GitHub Push — Pre-Push Checklist
+
+Run this in the dev space terminal before pushing to GitHub. Takes ~15 seconds.
+
+```bash
+npm run validate
+```
+
+This checks TypeScript integrity, schema drift, auth guards, and that the server boots clean. If it exits **PASS**, push. If it exits **FAIL**, fix the issues first.
+
+**Full deploy sequence (do not deviate):**
+1. Make all changes in dev space only
+2. `npm run validate` — must pass
+3. `git push origin dev` (or `npm run push` for a timestamped snapshot commit)
+4. On GitHub: open a PR from `dev` → `main` and merge
+5. In the production shell: `git pull`
+6. Confirm production is healthy: check `/api/health` in browser
+7. Update `LAST_STABLE.md` with the new commit hash
+
+**If production breaks after a pull:**
+Open `LAST_STABLE.md`, copy the last known-good commit hash, and run in the production shell:
+```bash
+git reset --hard <commit-hash>
+```
+
+**Never:**
+- Edit files directly in the production space (except emergency hotfixes)
+- Push without running `npm run validate` first
+- Run `git rebase` in production — use merge only
+
 ## Pointers
 
 - **Agent Rules**: `docs/agent-rules.md`
 - **Baseline Status**: `BASELINE_STATUS.md`
 - **Change Log**: `CHANGE_LOG.md`
+- **Last Stable Deploy**: `LAST_STABLE.md`
 - **Dismissible UI Pattern**: _Populate as you build_
 - **Golden Path Checklist**: _Populate as you build_
