@@ -73,7 +73,7 @@ export default function GroceryExportModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-lg bg-gradient-to-b from-black/95 via-gray-900 to-black border border-orange-500/20 rounded-t-3xl shadow-2xl flex flex-col max-h-[88vh]">
+      <div className="w-full max-w-lg bg-gradient-to-b from-black/95 via-gray-900 to-black border border-orange-500/20 rounded-t-3xl shadow-2xl flex flex-col overflow-hidden max-h-[88vh]">
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3 flex-shrink-0">
@@ -100,7 +100,7 @@ export default function GroceryExportModal({
         </div>
 
         {/* Retailer tabs — single scrollable row, never wraps */}
-        <div className="px-4 pb-3 flex gap-2 overflow-x-auto flex-shrink-0 scrollbar-hide">
+        <div className="px-4 pb-3 flex gap-2 overflow-x-auto flex-shrink-0" style={{ scrollbarWidth: 'none' }}>
           {GROCERY_RETAILERS.map((retailer) => (
             <button
               key={retailer.id}
@@ -126,8 +126,8 @@ export default function GroceryExportModal({
           </p>
         </div>
 
-        {/* Item list */}
-        <div className="overflow-y-auto flex-1 px-4 pb-4 space-y-1.5">
+        {/* Item list — flex-col forces single column on all screen sizes */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 flex flex-col gap-1.5">
           {sanitized.length === 0 ? (
             <div className="text-center py-10 text-white/40 text-sm">
               No items to export. Add items to your list first.
@@ -150,7 +150,7 @@ export default function GroceryExportModal({
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => handleItemClick(item)}
-                  className={`flex items-center gap-3 rounded-xl px-4 py-3 border transition-all ${
+                  className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 border transition-all ${
                     wasOpened
                       ? "bg-white/5 border-white/10 opacity-70"
                       : "bg-white/10 border-white/15 active:bg-orange-600/20"
