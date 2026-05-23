@@ -1963,9 +1963,8 @@ export default function MyBiometrics() {
               )}
             </div>
 
-            {/* Photo Upload Button — mobile/tablet only */}
-            {!isDesktop && (
-              <Button
+            {/* Photo Upload Button */}
+            <Button
                 data-wt="bio-scan-button"
                 onClick={handlePhotoUpload}
                 className="w-full bg-lime-600 hover:bg-lime-600 text-md text-white mb-3"
@@ -1973,7 +1972,6 @@ export default function MyBiometrics() {
               >
                 📸 MacroScan
               </Button>
-            )}
 
             <Button
               onClick={() => setOpenDescribe(true)}
@@ -1983,9 +1981,8 @@ export default function MyBiometrics() {
               ✏️ Just Describe It
             </Button>
 
-            {/* Ingredient Intelligence — mobile/tablet only */}
-            {!isDesktop && (
-              <>
+            {/* Ingredient Intelligence */}
+            <>
                 <Button
                   onClick={handleIngredientScan}
                   className="w-full bg-orange-600/80 text-md text-white mb-1"
@@ -1997,7 +1994,6 @@ export default function MyBiometrics() {
                   Understand packaged foods using your wellness profile, dietary preferences, and health goals.
                 </p>
               </>
-            )}
 
             {/* Quick View Panel (display only, no auto-logging) */}
             {qv && (
