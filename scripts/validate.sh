@@ -4,7 +4,8 @@
 # Checks TypeScript errors in server/shared files, verifies critical files are intact,
 # catches raw-fetch auth violations, and confirms the server boots without crashing.
 #
-# Usage: npm run validate
+# Usage: npm run validate [--report]
+#   --report   Write a plain-text summary digest to /tmp/mpm-validate-report-<timestamp>.txt
 #
 # What it checks:
 #   1. Server + shared TypeScript type errors (server-only tsconfig, warns on pre-existing TS debt)
@@ -33,6 +34,15 @@ SHUTDOWN_ACTIVE_CONNS=0
 FAIL_MESSAGES=()
 WARN_MESSAGES=()
 CURRENT_STEP=""
+
+SAVE_REPORT=0
+for arg in "$@"; do
+  if [ "$arg" = "--report" ]; then
+    SAVE_REPORT=1
+  fi
+done
+REPORT_TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+REPORT_FILE="/tmp/mpm-validate-report-${REPORT_TIMESTAMP}.txt"
 
 cleanup() {
   if [ -n "$SERVER_PID" ] && kill -0 "$SERVER_PID" 2>/dev/null; then
@@ -290,11 +300,43 @@ fi
 
 echo ""
 
+write_report() {
+  local result_line="$1"
+  {
+    echo "MPM Validation Report"
+    echo "Run: $(date)"
+    echo "=============================="
+    echo ""
+    echo "Hard failures: ${ERRORS}"
+    echo "Warnings:      ${WARNINGS}"
+    echo ""
+    if [ "${#FAIL_MESSAGES[@]}" -gt 0 ]; then
+      echo "Failures:"
+      for msg in "${FAIL_MESSAGES[@]}"; do
+        echo "  [FAIL] $msg"
+      done
+      echo ""
+    fi
+    if [ "${#WARN_MESSAGES[@]}" -gt 0 ]; then
+      echo "Warnings:"
+      for msg in "${WARN_MESSAGES[@]}"; do
+        echo "  [WARN] $msg"
+      done
+      echo ""
+    fi
+    echo "$result_line"
+  } > "$REPORT_FILE"
+  echo -e "  📄 Report saved: ${CYAN}${REPORT_FILE}${NC}"
+  echo ""
+}
+
 if [ "$ERRORS" -eq 0 ]; then
   if [ "$WARNINGS" -gt 0 ]; then
     echo -e "  ${YELLOW}${BOLD}⚠️  VALIDATION PASSED WITH WARNINGS — review warnings before pushing${NC}"
+    RESULT_LINE="RESULT: PASS WITH WARNINGS"
   else
     echo -e "  ${GREEN}${BOLD}✅ VALIDATION PASSED — safe to push to GitHub${NC}"
+    RESULT_LINE="RESULT: PASS"
   fi
   echo ""
   echo -e "  Full push sequence:"
@@ -304,9 +346,11 @@ if [ "$ERRORS" -eq 0 ]; then
   echo -e "    4. Check /api/health in browser"
   echo -e "    5. Update LAST_STABLE.md with new commit hash"
   echo ""
+  [ "$SAVE_REPORT" -eq 1 ] && write_report "$RESULT_LINE"
   exit 0
 else
   echo -e "  ${RED}${BOLD}❌ VALIDATION FAILED — fix ${ERRORS} issue(s) before pushing${NC}"
   echo ""
+  [ "$SAVE_REPORT" -eq 1 ] && write_report "RESULT: FAIL (${ERRORS} failure(s))"
   exit 1
 fi
