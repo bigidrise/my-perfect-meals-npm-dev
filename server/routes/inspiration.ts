@@ -20,7 +20,7 @@ function mealSignature(
   sourceType: string,
   macros?: { calories?: number; protein?: number; carbs?: number; fat?: number }
 ): string {
-  const raw = `${title.toLowerCase().trim()}|${sourceType}|${macros?.calories ?? ""}|${macros?.protein ?? ""}`;
+  const raw = `${title.trim().toLowerCase()}|${sourceType}|${macros?.calories ?? 0}|${macros?.protein ?? 0}|${macros?.carbs ?? 0}|${macros?.fat ?? 0}`;
   return crypto.createHash("sha256").update(raw).digest("hex").slice(0, 64);
 }
 
