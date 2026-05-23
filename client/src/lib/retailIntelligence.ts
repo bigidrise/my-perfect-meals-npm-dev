@@ -749,6 +749,6 @@ export function getRetailQuantity(item: ShoppingListItem): string | null {
     return null; // pantry staples: show name only
   }
 
-  // ── Final fallback: use standard formatter ────────────────────────────────
-  return formatQuantity(qty, unit) || null;
+  // No recognized retail unit — show name only, no confusing raw numbers
+  return null;
 }
