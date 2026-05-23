@@ -87,13 +87,26 @@ MyPerfectMeals is a full-stack TypeScript application providing AI-powered meal 
 
 ## Before Every GitHub Push — Pre-Push Checklist
 
-Run this in the dev space terminal before pushing to GitHub. Takes ~15 seconds.
+The pre-push validation runs **automatically** via a git pre-push hook whenever you run `git push`. You no longer need to remember to run it manually.
 
+**First-time setup** (run once after cloning):
+```bash
+bash scripts/install-hooks.sh
+```
+
+This installs `.git/hooks/pre-push`, which calls `bash scripts/validate.sh` before every push. The validation takes ~15–20 seconds and checks that critical server files are present, no raw fetch() calls are hitting auth-protected routes, and the server boots cleanly.
+
+If the hook is not yet installed, you can still run validation manually:
 ```bash
 npm run validate
 ```
 
-This checks that critical server files are present, no raw fetch() calls are hitting auth-protected routes, and the server boots cleanly with no crash patterns in the startup log. It does **not** run the client TypeScript check (client TS errors are pre-existing and non-blocking). If it exits **PASS**, push. If it exits **FAIL**, fix the issues first.
+It does **not** run the client TypeScript check (client TS errors are pre-existing and non-blocking). If it exits **PASS**, push. If it exits **FAIL**, fix the issues first.
+
+**Emergency bypass** — skip the hook only when absolutely necessary:
+```bash
+git push --no-verify
+```
 
 **Full deploy sequence (do not deviate):**
 1. Make all changes in dev space only
