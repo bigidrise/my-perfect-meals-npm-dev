@@ -25,6 +25,7 @@ const SOURCE_LABELS: Record<string, string> = {
   "weekly-board": "Weekly Board",
   "pairings-ai": "Drink Pairings",
   "wine-list-helper": "Wine List Helper",
+  "my-inspiration": "My Inspirations",
   unknown: "Meal",
 };
 

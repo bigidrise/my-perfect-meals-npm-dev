@@ -59,3 +59,45 @@ id = "LNGGDPjklBfjH--Xgmu2T"
 uri = "file://downloads/Lifestyle-Featured-Kitchens.png"
 type = "image"
 title = "Lifestyle Page — Featured Kitchens"
+
+[[outputs]]
+id = "LoVPGkLi5Aq1xOhljHJ8K"
+uri = "file://docs/company-overview.md"
+type = "text"
+title = "My Perfect Meals — Company Overview"
+
+[[outputs]]
+id = "usCgdCcRFV_HBArHXAIWk"
+uri = "file://docs/product-features-implementation-status.md"
+type = "text"
+title = "My Perfect Meals — Product Features & Implementation Status"
+
+[[outputs]]
+id = "ftmBs9P6ilhTMN91TNH0K"
+uri = "file://docs/educational-integration-curriculum-implementation.md"
+type = "text"
+title = "My Perfect Meals — Educational Integration & Curriculum Implementation"
+
+[[outputs]]
+id = "VgknTPrm5OHlNKwWW6LZi"
+uri = "file://docs/legal-compliance-overview.md"
+type = "text"
+title = "My Perfect Meals — Legal & Compliance Overview"
+
+[[outputs]]
+id = "9hHiWH4S6rYjLXpGWerUe"
+uri = "file://docs/marketing-branding-overview.md"
+type = "text"
+title = "My Perfect Meals — Marketing & Branding Overview"
+
+[[outputs]]
+id = "jDQCvLnGk8PcUipuT75xM"
+uri = "file://docs/technical-architecture-overview.md"
+type = "text"
+title = "My Perfect Meals — Technical Architecture Overview"
+
+[[outputs]]
+id = "SE_54swVRupBRN2mljiRW"
+uri = "file://docs/devops-operations-overview.md"
+type = "text"
+title = "My Perfect Meals — Development & Operations Overview"
