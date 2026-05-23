@@ -99,13 +99,13 @@ export default function GroceryExportModal({
           </button>
         </div>
 
-        {/* Retailer tabs */}
-        <div className="px-4 pb-3 flex gap-2 flex-wrap flex-shrink-0">
+        {/* Retailer tabs — single scrollable row, never wraps */}
+        <div className="px-4 pb-3 flex gap-2 overflow-x-auto flex-shrink-0 scrollbar-hide">
           {GROCERY_RETAILERS.map((retailer) => (
             <button
               key={retailer.id}
               onClick={() => setActiveRetailerId(retailer.id)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all whitespace-nowrap flex-shrink-0 ${
                 activeRetailerId === retailer.id
                   ? "bg-orange-600 border-orange-500 text-white"
                   : "bg-white/10 border-white/15 text-white/60"
