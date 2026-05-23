@@ -29,6 +29,7 @@ NC='\033[0m'
 ERRORS=0
 WARNINGS=0
 SERVER_PID=""
+SHUTDOWN_ACTIVE_CONNS=0
 
 cleanup() {
   if [ -n "$SERVER_PID" ] && kill -0 "$SERVER_PID" 2>/dev/null; then
@@ -147,6 +148,7 @@ if [ -n "$PORT_PID" ]; then
     # which is why the shutdown could be slow or produce connection errors.
     ACTIVE_CONNS=$(ss -tn state established '( dport = :5000 or sport = :5000 )' 2>/dev/null | tail -n +2 | wc -l | tr -d ' ')
     if [ "${ACTIVE_CONNS:-0}" -gt 0 ] 2>/dev/null; then
+      SHUTDOWN_ACTIVE_CONNS=$ACTIVE_CONNS
       echo -e "${YELLOW}  ⚠️  Warning: ${ACTIVE_CONNS} active connection(s) detected on port 5000.${NC}"
       echo -e "${YELLOW}     The server is currently handling requests. Shutdown may be slow${NC}"
       echo -e "${YELLOW}     and any in-flight requests will be interrupted.${NC}"
@@ -261,6 +263,9 @@ echo -e "${BOLD}╔════════════════════�
 echo -e "${BOLD}║   VALIDATION SUMMARY                         ║${NC}"
 echo -e "${BOLD}╚══════════════════════════════════════════════╝${NC}"
 echo ""
+if [ "${SHUTDOWN_ACTIVE_CONNS:-0}" -gt 0 ] 2>/dev/null; then
+  warn "${SHUTDOWN_ACTIVE_CONNS} active connection(s) were present on port 5000 at shutdown — in-flight requests may have been interrupted"
+fi
 echo -e "  Hard failures: ${RED}${ERRORS}${NC}"
 echo -e "  Warnings:      ${YELLOW}${WARNINGS}${NC}"
 echo ""
