@@ -77,3 +77,9 @@ id = "ftmBs9P6ilhTMN91TNH0K"
 uri = "file://docs/educational-integration-curriculum-implementation.md"
 type = "text"
 title = "My Perfect Meals — Educational Integration & Curriculum Implementation"
+
+[[outputs]]
+id = "VgknTPrm5OHlNKwWW6LZi"
+uri = "file://docs/legal-compliance-overview.md"
+type = "text"
+title = "My Perfect Meals — Legal & Compliance Overview"
