@@ -17,6 +17,7 @@ import {
   useShoppingListStore,
   ShoppingListItem,
 } from "@/stores/shoppingListStore";
+import { buildConsolidatedItems, ConsolidatedItem } from "@/lib/shoppingConsolidation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -205,26 +206,32 @@ export default function ShoppingListMasterView() {
     });
   };
 
-  // Wrapper for toggleItem with walkthrough event
-  const handleToggleItem = useCallback(
-    (id: string) => {
-      // Check current state before toggling
-      const item = items.find((i) => i.id === id);
-      const wasUnchecked = item && !item.isChecked;
-
-      toggleItem(id);
-
-      // Only dispatch event if item was unchecked and is now being checked
-      if (wasUnchecked) {
+  // Toggle all underlying source items at once (for consolidated rows)
+  const handleToggleConsolidated = useCallback(
+    (allIds: string[], currentlyChecked: boolean) => {
+      const newChecked = !currentlyChecked;
+      if (newChecked) {
         setTimeout(() => {
-          const event = new CustomEvent("walkthrough:event", {
+          window.dispatchEvent(new CustomEvent("walkthrough:event", {
             detail: { testId: "shopping-item-checked", event: "done" },
-          });
-          window.dispatchEvent(event);
+          }));
         }, 500);
       }
+      const updated = items.map((i) =>
+        allIds.includes(i.id) ? { ...i, isChecked: newChecked } : i,
+      );
+      replaceItems(updated);
     },
-    [items, toggleItem],
+    [items, replaceItems],
+  );
+
+  // Remove all underlying source items at once (for consolidated rows)
+  const removeConsolidatedItem = useCallback(
+    (allIds: string[]) => {
+      const idSet = new Set(allIds);
+      replaceItems(items.filter((i) => !idSet.has(i.id)));
+    },
+    [items, replaceItems],
   );
 
   const counts = useMemo(
@@ -325,20 +332,20 @@ export default function ShoppingListMasterView() {
     }
   }, [items, toast]);
 
+  // Consolidated unchecked: one row per unique ingredient, quantities summed
   const uncheckedItems = useMemo(() => {
-    let filtered = items.filter((i) => !i.isChecked);
-    if (opts.excludePantryStaples) {
-      filtered = filtered.filter((i) => !i.isPantryStaple);
-    }
-    return filtered;
+    const base = opts.excludePantryStaples
+      ? items.filter((i) => !i.isPantryStaple)
+      : items;
+    return buildConsolidatedItems(base, { excludeChecked: true });
   }, [items, opts.excludePantryStaples]);
 
+  // Consolidated checked: one row per unique purchased ingredient
   const checkedItems = useMemo(() => {
-    let filtered = items.filter((i) => i.isChecked);
-    if (opts.excludePantryStaples) {
-      filtered = filtered.filter((i) => !i.isPantryStaple);
-    }
-    return filtered;
+    const checkedOnly = items.filter(
+      (i) => i.isChecked && (!opts.excludePantryStaples || !i.isPantryStaple),
+    );
+    return buildConsolidatedItems(checkedOnly, { excludeChecked: false });
   }, [items, opts.excludePantryStaples]);
 
   const handleGroceryDelivery = useCallback((retailerId: GroceryRetailerId) => {
@@ -422,7 +429,7 @@ export default function ShoppingListMasterView() {
 
   const groupedUnchecked = useMemo(() => {
     if (!opts.groupByAisle) return { All: uncheckedItems };
-    const map: Record<string, ShoppingListItem[]> = {};
+    const map: Record<string, ConsolidatedItem[]> = {};
     for (const it of uncheckedItems) {
       const k = it.category || "Other";
       (map[k] ||= []).push(it);
@@ -432,7 +439,7 @@ export default function ShoppingListMasterView() {
 
   const groupedChecked = useMemo(() => {
     if (!opts.groupByAisle) return { All: checkedItems };
-    const map: Record<string, ShoppingListItem[]> = {};
+    const map: Record<string, ConsolidatedItem[]> = {};
     for (const it of checkedItems) {
       const k = it.category || "Other";
       (map[k] ||= []).push(it);
@@ -710,7 +717,7 @@ export default function ShoppingListMasterView() {
                     >
                       <Button
                         data-wt="msl-item-checkoff"
-                        onClick={() => handleToggleItem(item.id)}
+                        onClick={() => handleToggleConsolidated((item as ConsolidatedItem).allIds, item.isChecked)}
                         aria-pressed={item.isChecked || false}
                         size="sm"
                         className={`h-8 w-8 p-0 flex-shrink-0 transition-all ${
@@ -822,7 +829,7 @@ export default function ShoppingListMasterView() {
                           <TrashButton
                             data-wt="msl-item-trash"
                             size="sm"
-                            onClick={() => removeItem(item.id)}
+                            onClick={() => removeConsolidatedItem((item as ConsolidatedItem).allIds)}
                             confirm
                             confirmMessage="Delete this shopping list item?"
                             ariaLabel="Delete item"
@@ -870,7 +877,7 @@ export default function ShoppingListMasterView() {
                               className="flex items-center gap-3 p-2 rounded-lg bg-white/5 opacity-60"
                             >
                               <Button
-                                onClick={() => handleToggleItem(item.id)}
+                                onClick={() => handleToggleConsolidated((item as ConsolidatedItem).allIds, item.isChecked)}
                                 aria-pressed={item.isChecked || false}
                                 size="sm"
                                 className="h-8 w-8 p-0 flex-shrink-0 bg-gradient-to-r from-orange-500 to-orange-600 text-white border-orange-400/50"
@@ -892,7 +899,7 @@ export default function ShoppingListMasterView() {
                               })()}
                               <TrashButton
                                 size="sm"
-                                onClick={() => removeItem(item.id)}
+                                onClick={() => removeConsolidatedItem((item as ConsolidatedItem).allIds)}
                                 confirm
                                 confirmMessage="Delete this purchased item?"
                                 ariaLabel="Delete item"
