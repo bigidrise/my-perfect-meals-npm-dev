@@ -1,8 +1,12 @@
 import { Router } from "express";
 import { db } from "../db";
 import { users } from "@shared/schema";
-import { eq, ilike, or, desc } from "drizzle-orm";
+import { mealImageCache } from "../db/schema/mealImageCache";
+import { eq, ilike, or, desc, notLike, and } from "drizzle-orm";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
+
+const S3_BUCKET = process.env.S3_BUCKET_NAME || "my-perfect-meals-images";
+const S3_URL_PREFIX = `https://${S3_BUCKET}.s3.`;
 
 const router = Router();
 
@@ -234,6 +238,51 @@ router.post("/users/:userId/enable", async (req, res) => {
   } catch (err) {
     console.error("[admin] enable error:", err);
     return res.status(500).json({ error: "Failed to enable account" });
+  }
+});
+
+/**
+ * POST /api/admin/repair-image-cache
+ *
+ * Scans meal_image_cache for rows whose imageUrl is NOT an S3 URL
+ * (i.e. ephemeral OpenAI/Azure URLs that have already expired or will soon).
+ * Deletes those rows so the generator treats them as cache misses and
+ * produces fresh permanent S3-backed images on next request.
+ *
+ * Safe to run at any time — only removes stale non-S3 entries.
+ * Admin-only.
+ */
+router.post("/repair-image-cache", async (req, res) => {
+  const actor = (req as AuthenticatedRequest).authUser;
+  if (actor.role !== "admin" && !actor.entitlements?.includes("admin")) {
+    return res.status(403).json({ error: "Admin only" });
+  }
+
+  try {
+    const staleRows = await db
+      .select({ cacheKey: mealImageCache.cacheKey, mealName: mealImageCache.mealName, imageUrl: mealImageCache.imageUrl })
+      .from(mealImageCache)
+      .where(notLike(mealImageCache.imageUrl, `${S3_URL_PREFIX}%`));
+
+    const staleKeys = staleRows.map(r => r.cacheKey);
+
+    if (staleKeys.length === 0) {
+      console.log("[admin/repair-image-cache] No stale entries found — cache is clean.");
+      return res.json({ removed: 0, message: "Cache is clean — all entries are S3 URLs." });
+    }
+
+    for (const key of staleKeys) {
+      await db.delete(mealImageCache).where(eq(mealImageCache.cacheKey, key));
+    }
+
+    console.log(`[admin/repair-image-cache] Removed ${staleKeys.length} stale entries by ${actor.email}`);
+    return res.json({
+      removed: staleKeys.length,
+      meals: staleRows.map(r => ({ name: r.mealName, url: r.imageUrl.substring(0, 60) + "..." })),
+    });
+  } catch (err: any) {
+    console.error("[admin/repair-image-cache] error:", err);
+    return res.status(500).json({ error: err.message });
   }
 });
 

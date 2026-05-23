@@ -197,10 +197,12 @@ export async function processMealImageForSave(
         ingestionAttempted: true
       };
     } else {
-      // Ingestion failed - keep original URL so image stays visible in current session
-      console.warn(`⚠️ Image ingestion failed for ${mealName}, keeping original URL`);
+      // Ingestion failed — do NOT store the ephemeral URL (it expires in ~1 hour and
+      // will appear as a broken image on next load). Store null so the client triggers
+      // a fresh generation on next view instead of showing a permanently broken image.
+      console.warn(`⚠️ Image ingestion failed for ${mealName} — storing null to prevent stale URL`);
       return {
-        imageUrl: imageUrl,
+        imageUrl: null,
         imagePending: true,
         ingestionAttempted: true
       };
