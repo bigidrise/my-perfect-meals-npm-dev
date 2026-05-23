@@ -1480,9 +1480,10 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
           text: "You see a recipe online, pause a TikTok video, or spot something on a menu and think: I want that — but can I eat it? Recipe Scan answers that question automatically.",
         },
         {
-          heading: "Three Ways to Bring In a Meal",
+          heading: "Four Ways to Bring In a Meal",
           list: [
-            "Camera — point your device camera at any screen, cookbook, menu, or food photo and tap to capture",
+            "Choose Photo — pick a screenshot, saved food photo, or any image from your camera roll or gallery",
+            "Camera — point your device camera live at a cookbook, menu, package, or another screen",
             "Speak — describe the meal out loud the way you would tell a friend about it",
             "Type — paste a description, a recipe title, or any text about the meal",
           ],

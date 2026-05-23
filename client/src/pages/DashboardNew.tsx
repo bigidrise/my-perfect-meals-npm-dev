@@ -1353,12 +1353,7 @@ export default function DashboardNew() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-semibold text-white">Recipe Scan</h3>
-                  <p className="text-sm text-white/60">Scan any meal idea and we'll personalize it for you.</p>
-                </div>
-                <div className="flex gap-1.5 shrink-0">
-                  <span className="text-xs px-2 py-1 rounded-full bg-white/8 border border-white/10 text-white/50">Camera</span>
-                  <span className="text-xs px-2 py-1 rounded-full bg-white/8 border border-white/10 text-white/50">Speak</span>
-                  <span className="text-xs px-2 py-1 rounded-full bg-white/8 border border-white/10 text-white/50">Type</span>
+                  <p className="text-sm text-white/60">Screenshot, photo, voice, or text — personalized for you.</p>
                 </div>
               </div>
             </CardContent>

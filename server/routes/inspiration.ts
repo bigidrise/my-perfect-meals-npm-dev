@@ -101,7 +101,7 @@ router.post(
       // Step 2 — Interpret input into a meal description
       let mealDescription = "";
 
-      if (inputType === "camera" && imageBase64) {
+      if ((inputType === "camera" || inputType === "upload") && imageBase64) {
         const visionResponse = await openai.chat.completions.create({
           model: "gpt-4o",
           messages: [
