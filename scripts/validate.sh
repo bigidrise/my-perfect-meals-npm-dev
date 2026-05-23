@@ -32,6 +32,7 @@ SERVER_PID=""
 SHUTDOWN_ACTIVE_CONNS=0
 FAIL_MESSAGES=()
 WARN_MESSAGES=()
+CURRENT_STEP=""
 
 cleanup() {
   if [ -n "$SERVER_PID" ] && kill -0 "$SERVER_PID" 2>/dev/null; then
@@ -42,9 +43,9 @@ cleanup() {
 trap cleanup EXIT
 
 pass()   { echo -e "${GREEN}  ✅ PASS${NC}  $1"; }
-fail()   { echo -e "${RED}  ❌ FAIL${NC}  $1"; ERRORS=$((ERRORS + 1)); FAIL_MESSAGES+=("$1"); }
-warn()   { echo -e "${YELLOW}  ⚠️  WARN${NC}  $1"; WARNINGS=$((WARNINGS + 1)); WARN_MESSAGES+=("$1"); }
-header() { echo ""; echo -e "${CYAN}━━━ $1 ━━━${NC}"; }
+fail()   { echo -e "${RED}  ❌ FAIL${NC}  $1"; ERRORS=$((ERRORS + 1)); FAIL_MESSAGES+=("[${CURRENT_STEP}] $1"); }
+warn()   { echo -e "${YELLOW}  ⚠️  WARN${NC}  $1"; WARNINGS=$((WARNINGS + 1)); WARN_MESSAGES+=("[${CURRENT_STEP}] $1"); }
+header() { echo ""; echo -e "${CYAN}━━━ $1 ━━━${NC}"; CURRENT_STEP="$1"; }
 
 echo ""
 echo -e "${BOLD}╔══════════════════════════════════════════════╗${NC}"
