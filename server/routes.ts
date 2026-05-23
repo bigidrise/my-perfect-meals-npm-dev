@@ -65,6 +65,7 @@ import { MealEngineService } from "./services/mealEngineService";
 import { generateFridgeRescueMeals } from "./services/fridgeRescueGenerator";
 import { getBuilderSwitchStatus, attemptBuilderSwitch } from "./services/builderSwitchService";
 import { fridgeRescueRouter } from "./routes/fridgeRescue";
+import inspirationRouter from "./routes/inspiration";
 import alcoholLogRouter from './routes/alcohol-log';
 import vitalsBpRouter from './routes/vitals-bp';
 import proteinTargetsRouter from './routes/proteinTargets';
@@ -573,6 +574,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 🔒 LOCKED: Deterministic Fridge Rescue Engine - DO NOT MODIFY
   // User confirmed this new system works perfectly - keep it locked!
   app.use("/api", fridgeRescueRouter);
+  app.use("/api", inspirationRouter);
 
   // REMOVED: Duplicate route moved to top priority position
 

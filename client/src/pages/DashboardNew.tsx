@@ -62,6 +62,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useProUnreadCount } from "@/hooks/useProUnreadCount";
 import { PatternAlertBanner } from "@/components/PatternAlertBanner";
+import InspirationCaptureModal from "@/components/InspirationCaptureModal";
 
 interface FeatureCard {
   title: string;
@@ -81,6 +82,7 @@ export default function DashboardNew() {
   const [showScanner, setShowScanner] = useState(false);
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [showInspirationModal, setShowInspirationModal] = useState(false);
   const { open: openCopilot } = useCopilot();
   const isDesktop = useIsDesktop();
   const handlePhotoLog = () => {
@@ -1334,6 +1336,37 @@ export default function DashboardNew() {
           </motion.div>
         )}
 
+        {/* Recipe Scan */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15, duration: 0.5 }}
+          className="mb-4"
+        >
+          <Card
+            onClick={() => setShowInspirationModal(true)}
+            className="cursor-pointer transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-orange-500/30 hover:border-orange-500/60 rounded-xl group"
+            data-testid="card-recipe-scan"
+          >
+            <CardContent className="p-5">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-700/20 border border-orange-500/30 group-hover:from-orange-500/30 group-hover:to-orange-700/30 transition-all">
+                  <Camera className="h-6 w-6 text-orange-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-semibold text-white">Recipe Scan</h3>
+                  <p className="text-sm text-white/60">Scan any meal idea and we'll personalize it for you.</p>
+                </div>
+                <div className="flex gap-1.5 shrink-0">
+                  <span className="text-xs px-2 py-1 rounded-full bg-white/8 border border-white/10 text-white/50">Camera</span>
+                  <span className="text-xs px-2 py-1 rounded-full bg-white/8 border border-white/10 text-white/50">Speak</span>
+                  <span className="text-xs px-2 py-1 rounded-full bg-white/8 border border-white/10 text-white/50">Type</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {features.map((feature, index) => {
             const Icon = feature.icon;
@@ -1397,6 +1430,11 @@ export default function DashboardNew() {
           </Card>
         </motion.div>
       </div>
+
+      <InspirationCaptureModal
+        open={showInspirationModal}
+        onOpenChange={setShowInspirationModal}
+      />
 
       <Dialog
         open={showSubscriptionModal}
