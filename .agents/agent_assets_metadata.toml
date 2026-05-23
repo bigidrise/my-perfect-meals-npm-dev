@@ -83,3 +83,9 @@ id = "VgknTPrm5OHlNKwWW6LZi"
 uri = "file://docs/legal-compliance-overview.md"
 type = "text"
 title = "My Perfect Meals — Legal & Compliance Overview"
+
+[[outputs]]
+id = "9hHiWH4S6rYjLXpGWerUe"
+uri = "file://docs/marketing-branding-overview.md"
+type = "text"
+title = "My Perfect Meals — Marketing & Branding Overview"
