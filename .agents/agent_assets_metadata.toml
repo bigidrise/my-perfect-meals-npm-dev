@@ -89,3 +89,9 @@ id = "9hHiWH4S6rYjLXpGWerUe"
 uri = "file://docs/marketing-branding-overview.md"
 type = "text"
 title = "My Perfect Meals — Marketing & Branding Overview"
+
+[[outputs]]
+id = "jDQCvLnGk8PcUipuT75xM"
+uri = "file://docs/technical-architecture-overview.md"
+type = "text"
+title = "My Perfect Meals — Technical Architecture Overview"
