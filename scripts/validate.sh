@@ -142,6 +142,15 @@ if [ -n "$PORT_PID" ]; then
   PORT_CMD=$(ps -p "$PORT_PID" -o args= 2>/dev/null || true)
   if echo "$PORT_CMD" | grep -q "server/index.ts"; then
     echo -e "${YELLOW}  MPM dev server detected on port 5000 (PID $PORT_PID) — pausing it for test...${NC}"
+    # Check for active (ESTABLISHED) connections before killing.
+    # This warns the developer that in-flight requests may be interrupted,
+    # which is why the shutdown could be slow or produce connection errors.
+    ACTIVE_CONNS=$(ss -tn state established '( dport = :5000 or sport = :5000 )' 2>/dev/null | tail -n +2 | wc -l | tr -d ' ')
+    if [ "${ACTIVE_CONNS:-0}" -gt 0 ] 2>/dev/null; then
+      echo -e "${YELLOW}  ⚠️  Warning: ${ACTIVE_CONNS} active connection(s) detected on port 5000.${NC}"
+      echo -e "${YELLOW}     The server is currently handling requests. Shutdown may be slow${NC}"
+      echo -e "${YELLOW}     and any in-flight requests will be interrupted.${NC}"
+    fi
     kill "$PORT_PID" 2>/dev/null || true
     # Poll up to 10s for the port to free after SIGTERM
     PORT_FREED=false
