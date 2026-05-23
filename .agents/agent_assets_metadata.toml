@@ -59,3 +59,9 @@ id = "LNGGDPjklBfjH--Xgmu2T"
 uri = "file://downloads/Lifestyle-Featured-Kitchens.png"
 type = "image"
 title = "Lifestyle Page — Featured Kitchens"
+
+[[outputs]]
+id = "LoVPGkLi5Aq1xOhljHJ8K"
+uri = "file://docs/company-overview.md"
+type = "text"
+title = "My Perfect Meals — Company Overview"
