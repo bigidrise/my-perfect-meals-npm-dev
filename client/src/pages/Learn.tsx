@@ -33,6 +33,7 @@ import {
   Activity,
   Fish,
   Globe,
+  Camera,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
@@ -1458,6 +1459,61 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
           list: [
             "Lifestyle → Fridge Rescue",
             "Free access — available on all plans",
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "recipe-scan",
+    title: "Recipe Scan",
+    subtitle: "See food anywhere. Make it yours.",
+    icon: Camera,
+    content: {
+      sections: [
+        {
+          heading: "Why It Exists",
+          text: "You see food you love everywhere — on your phone screen, in a cookbook, at a restaurant, in a text from a friend. Most of the time it stays there. Recipe Scan changes that. It takes any meal idea you find and turns it into a complete, personalized meal card built exactly for you.",
+        },
+        {
+          heading: "The Moment",
+          text: "You see a recipe online, pause a TikTok video, or spot something on a menu and think: I want that — but can I eat it? Recipe Scan answers that question automatically.",
+        },
+        {
+          heading: "Three Ways to Bring In a Meal",
+          list: [
+            "Camera — point your device camera at any screen, cookbook, menu, or food photo and tap to capture",
+            "Speak — describe the meal out loud the way you would tell a friend about it",
+            "Type — paste a description, a recipe title, or any text about the meal",
+          ],
+        },
+        {
+          heading: "What Happens Next (Automatically)",
+          list: [
+            "The system reads and interprets the meal idea",
+            "Your full nutritional profile is loaded — macro targets, allergies, medical conditions, dietary identity, all of it",
+            "A personalized version is reconstructed that preserves the spirit and flavor of the original",
+            "A meal image is generated",
+            "The complete meal card is saved to your Favorites under My Inspirations",
+          ],
+        },
+        {
+          heading: "No Extra Questions",
+          text: "The system already knows your profile from onboarding. It does not ask you anything. It simply adapts the meal and saves it. The whole experience is designed to feel instant.",
+        },
+        {
+          heading: "Where It Shows Up",
+          list: [
+            "Saved to Favorites automatically, under the My Inspirations category",
+            "Full meal card with ingredients, instructions, macros, and image",
+            "Can be added to your Weekly Plan or Shopping List from Favorites",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: [
+            "Dashboard — Recipe Scan card",
+            "Available on Basic plans and above",
           ],
         },
       ],

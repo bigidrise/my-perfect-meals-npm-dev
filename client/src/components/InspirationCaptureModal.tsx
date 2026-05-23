@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
   Dialog,
@@ -12,6 +12,8 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
+import { useCopilot } from "@/components/copilot/CopilotContext";
+import { shouldAllowAutoOpen } from "@/components/copilot/CopilotRespectGuard";
 
 type InputMode = "camera" | "voice" | "text";
 type ModalState = "idle" | "processing" | "done" | "error";
@@ -49,6 +51,30 @@ export default function InspirationCaptureModal({
 }: InspirationCaptureModalProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { open: openCopilot, setLastResponse } = useCopilot();
+  const hasTriggeredExplanation = useRef(false);
+
+  useEffect(() => {
+    if (!open) {
+      hasTriggeredExplanation.current = false;
+      return;
+    }
+    if (hasTriggeredExplanation.current) return;
+    if (!shouldAllowAutoOpen()) return;
+    hasTriggeredExplanation.current = true;
+    const timer = setTimeout(() => {
+      openCopilot();
+      setTimeout(() => {
+        setLastResponse({
+          title: "Recipe Scan",
+          description: "Scan any meal idea — camera, voice, or text — and we'll personalize it for you.",
+          spokenText: "Recipe Scan is one of the most powerful tools in the app, and it works in a way that feels almost automatic. Here is the idea: you see food somewhere — on your phone screen, in a cookbook, on a restaurant menu, or even in your imagination — and instead of bookmarking it and forgetting it, you bring it directly into My Perfect Meals and let the system make it yours. You have three ways to do this. Camera opens your device camera, so you can point it at anything — a recipe on a screen, a photo in a magazine, a dish at a table — and the system reads it, interprets it, and rebuilds it for you. Speak lets you describe a meal out loud in plain language, exactly the way you would tell a friend about something you saw. Type lets you paste a description or write out a meal idea in your own words. Once you submit, the system automatically applies your entire nutritional profile — your macro targets, allergies, medical conditions, dietary identity, every protocol from your onboarding — and generates a completely personalized version of that meal. A full meal card is created with ingredients, instructions, estimated macros, a personalized image, and any relevant protocol tags. It is saved immediately to your Favorites under My Inspirations. No extra steps. No questions asked. Just your version, ready to use.",
+          autoClose: true,
+        });
+      }, 300);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [open, openCopilot, setLastResponse]);
 
   const [mode, setMode] = useState<InputMode>("camera");
   const [state, setState] = useState<ModalState>("idle");
