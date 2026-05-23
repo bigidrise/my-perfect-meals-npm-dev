@@ -58,33 +58,15 @@ echo "  (Client TS errors are pre-existing and excluded from this check)"
 echo ""
 
 TSLOG=$(mktemp /tmp/mpm-ts-XXXXXX.log)
-BASELINE_FILE="scripts/.ts-server-baseline"
-BASELINE_COUNT=0
-if [ -f "$BASELINE_FILE" ]; then
-  BASELINE_COUNT=$(cat "$BASELINE_FILE" | tr -d '[:space:]')
-fi
 
-npx tsc --noEmit -p tsconfig.server.json >"$TSLOG" 2>&1 || true
-TS_COUNT=$(grep -c ': error TS' "$TSLOG" 2>/dev/null || echo 0)
-
-if [ "$TS_COUNT" -eq 0 ]; then
+if npx tsc --noEmit -p tsconfig.server.json >"$TSLOG" 2>&1; then
   pass "Server TypeScript: no type errors"
-elif [ "$TS_COUNT" -le "$BASELINE_COUNT" ]; then
-  # Error count is at or below the committed baseline — pre-existing debt, not a new regression.
-  # Update the baseline file if errors were fixed: npm run validate will then pass cleanly.
-  warn "Server TypeScript: ${TS_COUNT} pre-existing error(s) (baseline: ${BASELINE_COUNT}) — no new regressions"
-  echo ""
-  echo -e "${YELLOW}  These are known pre-existing server TS issues. Run:${NC}"
-  echo -e "${YELLOW}    npx tsc --noEmit -p tsconfig.server.json  (to review)${NC}"
-  echo -e "${YELLOW}  If you fixed some, update the baseline: echo ${TS_COUNT} > scripts/.ts-server-baseline${NC}"
 else
-  # Error count exceeds baseline — new TypeScript errors were introduced.
-  NEW_ERRORS=$((TS_COUNT - BASELINE_COUNT))
-  fail "Server TypeScript: ${TS_COUNT} error(s) found — ${NEW_ERRORS} NEW error(s) above baseline (${BASELINE_COUNT})"
+  TS_COUNT=$(grep -c ': error TS' "$TSLOG" 2>/dev/null || echo 0)
+  fail "Server TypeScript: ${TS_COUNT} type error(s) found — fix before pushing"
   echo ""
-  echo -e "${RED}  New TypeScript errors detected. Fix them before pushing.${NC}"
-  echo -e "${RED}  TypeScript output (first 30 lines):${NC}"
-  head -60 "$TSLOG" | sed 's/^/    /'
+  echo -e "${RED}  TypeScript output (first 40 lines):${NC}"
+  head -80 "$TSLOG" | sed 's/^/    /'
 fi
 rm -f "$TSLOG"
 
