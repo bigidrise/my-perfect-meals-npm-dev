@@ -71,3 +71,9 @@ id = "usCgdCcRFV_HBArHXAIWk"
 uri = "file://docs/product-features-implementation-status.md"
 type = "text"
 title = "My Perfect Meals — Product Features & Implementation Status"
+
+[[outputs]]
+id = "ftmBs9P6ilhTMN91TNH0K"
+uri = "file://docs/educational-integration-curriculum-implementation.md"
+type = "text"
+title = "My Perfect Meals — Educational Integration & Curriculum Implementation"
