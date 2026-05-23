@@ -1305,8 +1305,7 @@ export default function DashboardNew() {
           </Card>
         </motion.div>
 
-        {!isDesktop && (
-          <motion.div
+        <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35, duration: 0.5 }}
@@ -1334,7 +1333,6 @@ export default function DashboardNew() {
               </CardHeader>
             </Card>
           </motion.div>
-        )}
 
         {/* Recipe Scan */}
         <motion.div

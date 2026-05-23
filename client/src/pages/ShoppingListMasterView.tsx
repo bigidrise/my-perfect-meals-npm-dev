@@ -532,9 +532,8 @@ export default function ShoppingListMasterView() {
             </Button>
           </div>
 
-          {/* Smart Scan — Ingredient Intelligence (mobile/tablet only) */}
-          {!isDesktop && (
-            <div className="relative mt-2">
+          {/* Smart Scan — Ingredient Intelligence */}
+          <div className="relative mt-2">
               <div className="absolute inset-0 rounded-2xl bg-cyan-500/10 blur-md scale-105" />
               <Button
                 onClick={handleShoppingScan}
@@ -551,11 +550,9 @@ export default function ShoppingListMasterView() {
                 </span>
               </Button>
             </div>
-          )}
 
-          {/* Recent Scans — mobile/tablet only (camera scan history) */}
-          {!isDesktop && (
-            <RecentScans
+          {/* Recent Scans */}
+          <RecentScans
               key={scanRefreshKey}
               refreshKey={scanRefreshKey}
               onReopen={(result) => {
@@ -563,7 +560,6 @@ export default function ShoppingListMasterView() {
                 setShoppingSheetOpen(true);
               }}
             />
-          )}
 
           {/* Options - Group by aisle is default ON, rounding hidden */}
           <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center gap-3">
