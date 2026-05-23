@@ -559,14 +559,22 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
   // ── LAYER 3: CHECK IN-MEMORY CACHE ─────────────────────────────────────────
   const memHit = memCache.get(cacheKey);
   if (memHit) {
-    console.log(`⚡ Memory cache hit for: ${mealName}`);
-    return {
-      url: memHit,
-      prompt: "(memory cache)",
-      templateRef: request.templateRef,
-      hash: cacheKey,
-      createdAt: new Date().toISOString(),
-    };
+    // Guard: if a temp URL somehow made it into memCache, evict it and regenerate.
+    // Temp URLs (openai.com, azure blob) expire in ~1 hour — serving them from
+    // cache guarantees a broken image after expiry.
+    if (isTempUrl(memHit)) {
+      console.warn(`⚠️ Evicting stale temp URL from memCache for: ${mealName}`);
+      memCache.delete(cacheKey);
+    } else {
+      console.log(`⚡ Memory cache hit for: ${mealName}`);
+      return {
+        url: memHit,
+        prompt: "(memory cache)",
+        templateRef: request.templateRef,
+        hash: cacheKey,
+        createdAt: new Date().toISOString(),
+      };
+    }
   }
 
   // ── LAYER 3: CHECK DB CACHE ─────────────────────────────────────────────────
@@ -684,8 +692,14 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
     console.warn(`⚠️ S3 upload threw for "${mealName}": ${uploadErr.message}`);
   }
 
-  // S3 failed: fall back to base64 (image still shows, just won't persist across navigation)
-  memCache.set(cacheKey, imageUrl);
+  // S3 failed. Only cache base64 data URIs in memCache — they are self-contained and safe
+  // to serve for the duration of this server process. Never cache ephemeral https:// URLs
+  // from OpenAI/Azure: they expire in ~1 hour and would appear broken on next load.
+  if (imageUrl.startsWith('data:')) {
+    memCache.set(cacheKey, imageUrl);
+  } else {
+    console.warn(`⚠️ S3 failed and imageUrl is ephemeral for "${mealName}" — skipping memCache to force re-generation on next request`);
+  }
   return {
     url: imageUrl,
     prompt,
