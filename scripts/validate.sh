@@ -129,17 +129,34 @@ fi
 # ──────────────────────────────────────────────────
 header "Step 4 of 4: Server Startup Verification"
 echo "  Starting server in background to verify clean boot..."
-echo "  (If port 5000 is in use, stop the dev workflow first, then re-run)"
 echo ""
 
-# Fail clearly if port 5000 is already bound — avoids silent false results
-if lsof -ti:5000 >/dev/null 2>&1; then
-  fail "Port 5000 is already in use — stop the running dev server first, then re-run validate"
-  echo ""
-  echo -e "${YELLOW}  Tip: In the Replit workflow panel, stop 'Start application',${NC}"
-  echo -e "${YELLOW}  run 'npm run validate', then restart the workflow.${NC}"
-  echo ""
-else
+# Detect port 5000 occupancy before starting the test server.
+# - If it's our own MPM dev server (tsx server/index.ts): stop it temporarily,
+#   run the boot test, then restart it automatically.
+# - If it's something else: skip Step 4 with a warning (not a hard fail).
+PORT_PID=$(lsof -ti:5000 2>/dev/null | head -1 || true)
+DEV_SERVER_RESTARTED=false
+
+if [ -n "$PORT_PID" ]; then
+  PORT_CMD=$(ps -p "$PORT_PID" -o args= 2>/dev/null || true)
+  if echo "$PORT_CMD" | grep -q "server/index.ts"; then
+    echo -e "${YELLOW}  MPM dev server detected on port 5000 (PID $PORT_PID) — pausing it for test...${NC}"
+    kill "$PORT_PID" 2>/dev/null || true
+    # Wait up to 5s for the port to free
+    for _i in 1 2 3 4 5; do
+      sleep 1
+      if ! lsof -ti:5000 >/dev/null 2>&1; then break; fi
+    done
+    DEV_SERVER_RESTARTED=true
+  else
+    warn "Port 5000 is occupied by a non-MPM process (PID $PORT_PID: ${PORT_CMD:0:80}) — skipping boot test"
+    echo -e "${YELLOW}  Stop that process and re-run validate to include the boot test.${NC}"
+    echo ""
+  fi
+fi
+
+if [ -z "$PORT_PID" ] || [ "$DEV_SERVER_RESTARTED" = true ]; then
   TMPLOG=$(mktemp /tmp/mpm-validate-XXXXXX.log)
   NODE_ENV=development tsx server/index.ts >"$TMPLOG" 2>&1 &
   SERVER_PID=$!
@@ -195,6 +212,15 @@ else
   if [ -n "$SERVER_PID" ] && kill -0 "$SERVER_PID" 2>/dev/null; then
     kill "$SERVER_PID" 2>/dev/null || true
     SERVER_PID=""
+  fi
+
+  # If we paused the MPM dev server to free the port, restart it now.
+  if [ "$DEV_SERVER_RESTARTED" = true ]; then
+    echo ""
+    echo -e "${CYAN}  Restarting MPM dev server...${NC}"
+    NODE_ENV=development tsx server/index.ts >/dev/null 2>&1 &
+    disown
+    echo -e "${GREEN}  MPM dev server restarted in background.${NC}"
   fi
 fi
 
