@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Camera, Mic, PenLine, Loader2, CheckCircle, Heart, Square } from "lucide-react";
+import { Camera, Mic, PenLine, Loader2, CheckCircle, Heart, Square, ImagePlus } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -15,7 +15,7 @@ import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { shouldAllowAutoOpen } from "@/components/copilot/CopilotRespectGuard";
 
-type InputMode = "camera" | "voice" | "text";
+type InputMode = "camera" | "upload" | "voice" | "text";
 type ModalState = "idle" | "processing" | "done" | "error";
 
 interface InspirationCaptureModalProps {
@@ -68,7 +68,7 @@ export default function InspirationCaptureModal({
         setLastResponse({
           title: "Recipe Scan",
           description: "Scan any meal idea — camera, voice, or text — and we'll personalize it for you.",
-          spokenText: "Recipe Scan is one of the most powerful tools in the app, and it works in a way that feels almost automatic. Here is the idea: you see food somewhere — on your phone screen, in a cookbook, on a restaurant menu, or even in your imagination — and instead of bookmarking it and forgetting it, you bring it directly into My Perfect Meals and let the system make it yours. You have three ways to do this. Camera opens your device camera, so you can point it at anything — a recipe on a screen, a photo in a magazine, a dish at a table — and the system reads it, interprets it, and rebuilds it for you. Speak lets you describe a meal out loud in plain language, exactly the way you would tell a friend about something you saw. Type lets you paste a description or write out a meal idea in your own words. Once you submit, the system automatically applies your entire nutritional profile — your macro targets, allergies, medical conditions, dietary identity, every protocol from your onboarding — and generates a completely personalized version of that meal. A full meal card is created with ingredients, instructions, estimated macros, a personalized image, and any relevant protocol tags. It is saved immediately to your Favorites under My Inspirations. No extra steps. No questions asked. Just your version, ready to use.",
+          spokenText: "Recipe Scan is one of the most powerful tools in the app, and it works in a way that feels almost automatic. Here is the idea: you see food somewhere — on your phone screen, in a cookbook, on a restaurant menu, or even in your imagination — and instead of bookmarking it and forgetting it, you bring it directly into My Perfect Meals and let the system make it yours. You have four ways to do this. Choose Photo is probably how most people will use this feature — you pick a screenshot, a saved photo, or any food image from your camera roll or gallery. That covers TikTok screenshots, Instagram saves, Pinterest boards, Facebook recipes, anything you have already captured on your device. Camera opens your device camera live, so you can point it at a cookbook, a restaurant menu, a food package, or another screen and take the photo right there. Speak lets you describe a meal out loud in plain language, exactly the way you would tell a friend about something you saw. Type lets you paste a description or write out a meal idea in your own words. Once you submit, the system automatically applies your entire nutritional profile — your macro targets, allergies, medical conditions, dietary identity, every protocol from your onboarding — and generates a completely personalized version of that meal. A full meal card is created with ingredients, instructions, estimated macros, a personalized image, and any relevant protocol tags. It is saved immediately to your Favorites under My Inspirations. No extra steps. No questions asked. Just your version, ready to use.",
           autoClose: true,
         });
       }, 300);
@@ -76,7 +76,7 @@ export default function InspirationCaptureModal({
     return () => clearTimeout(timer);
   }, [open, openCopilot, setLastResponse]);
 
-  const [mode, setMode] = useState<InputMode>("camera");
+  const [mode, setMode] = useState<InputMode>("upload");
   const [state, setState] = useState<ModalState>("idle");
   const [textInput, setTextInput] = useState("");
   const [voiceTranscript, setVoiceTranscript] = useState("");
@@ -85,6 +85,7 @@ export default function InspirationCaptureModal({
   const [result, setResult] = useState<any>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
   const speechRef = useRef<any>(null);
 
   const reset = useCallback(() => {
@@ -151,6 +152,24 @@ export default function InspirationCaptureModal({
         setState("error");
       } finally {
         if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    },
+    [submitCapture]
+  );
+
+  const handleUploadCapture = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        setState("processing");
+        const base64 = await resizeImageToBase64(file);
+        await submitCapture("upload", undefined, base64);
+      } catch {
+        setErrorMsg("Could not read the image. Please try again.");
+        setState("error");
+      } finally {
+        if (uploadInputRef.current) uploadInputRef.current.value = "";
       }
     },
     [submitCapture]
@@ -240,7 +259,13 @@ export default function InspirationCaptureModal({
           {(state === "idle" || state === "error") && (
             <div className="space-y-5">
               {/* Mode selector */}
-              <div className="flex gap-2 justify-center">
+              <div className="flex gap-2 justify-center flex-wrap">
+                <PillButton
+                  active={mode === "upload"}
+                  onClick={() => switchMode("upload")}
+                >
+                  <ImagePlus className="h-3 w-3 mr-1" />Choose Photo
+                </PillButton>
                 <PillButton
                   active={mode === "camera"}
                   onClick={() => switchMode("camera")}
@@ -261,27 +286,53 @@ export default function InspirationCaptureModal({
                 </PillButton>
               </div>
 
+              {/* Hidden file inputs */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleCameraCapture}
+              />
+              <input
+                ref={uploadInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleUploadCapture}
+              />
+
+              {/* Choose Photo */}
+              {mode === "upload" && (
+                <div className="space-y-3">
+                  <p className="text-white/60 text-sm text-center">
+                    Pick a screenshot, saved food photo, or image from your camera roll or gallery.
+                  </p>
+                  <button
+                    onClick={() => uploadInputRef.current?.click()}
+                    className="w-full py-5 rounded-xl border-2 border-dashed border-orange-500/40 bg-orange-500/5 hover:bg-orange-500/10 hover:border-orange-500/60 transition-all flex flex-col items-center gap-2 active:scale-95"
+                  >
+                    <ImagePlus className="h-8 w-8 text-orange-400" />
+                    <span className="text-sm font-medium text-orange-300">Choose from Gallery</span>
+                    <span className="text-xs text-white/40">Screenshots, saved photos, any food image</span>
+                  </button>
+                </div>
+              )}
+
               {/* Camera */}
               {mode === "camera" && (
                 <div className="space-y-3">
                   <p className="text-white/60 text-sm text-center">
                     Point your camera at any recipe, menu, screen, or food photo.
                   </p>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    onChange={handleCameraCapture}
-                  />
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     className="w-full py-5 rounded-xl border-2 border-dashed border-orange-500/40 bg-orange-500/5 hover:bg-orange-500/10 hover:border-orange-500/60 transition-all flex flex-col items-center gap-2 active:scale-95"
                   >
                     <Camera className="h-8 w-8 text-orange-400" />
                     <span className="text-sm font-medium text-orange-300">Open Camera</span>
-                    <span className="text-xs text-white/40">or tap to upload an image</span>
+                    <span className="text-xs text-white/40">Take a live photo of any food idea</span>
                   </button>
                 </div>
               )}
