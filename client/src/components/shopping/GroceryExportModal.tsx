@@ -6,7 +6,7 @@ import { useState, useMemo } from "react";
 import { ExternalLink, X, ShoppingCart, Check } from "lucide-react";
 import { GROCERY_RETAILERS, GroceryRetailerId, normalizeForRetailerSearch } from "@/lib/groceryRetailers";
 import { ShoppingListItem } from "@/stores/shoppingListStore";
-import { formatQuantity } from "@/lib/formatQuantity";
+import { toShoppingUnit } from "@/lib/groceryShoppingUnit";
 
 // ── Sanitization ─────────────────────────────────────────────────────────────
 
@@ -137,11 +137,12 @@ export default function GroceryExportModal({
               const url = activeRetailer.buildItemUrl(item.name);
               const wasOpened = opened.has(item.id);
               const searchName = normalizeForRetailerSearch(item.name);
-              const qty = item.quantity && item.unit
-                ? formatQuantity(item.quantity, item.unit)
-                : item.quantity
-                  ? String(item.quantity)
-                  : null;
+              const qty = toShoppingUnit(
+                item.name,
+                item.quantity,
+                item.unit,
+                item.category,
+              );
 
               return (
                 <a

@@ -593,13 +593,13 @@ export default function ShoppingListMasterView() {
               </div>
               <ExternalLink className="h-4 w-4 text-white/30 flex-shrink-0" />
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-2">
               {GROCERY_RETAILERS.map((retailer) => (
                 <Button
                   key={retailer.id}
                   data-testid={`grocery-delivery-${retailer.id}`}
                   onClick={() => handleGroceryDelivery(retailer.id)}
-                  className={`${retailer.color} border text-white h-11 text-sm font-medium`}
+                  className={`w-full ${retailer.color} border text-white h-11 text-sm font-medium`}
                 >
                   {retailer.name}
                 </Button>
