@@ -586,36 +586,52 @@ export default function ShoppingListMasterView() {
           prefillName={addOtherPrefill}
           onPrefillConsumed={() => setAddOtherPrefill(undefined)}
         />
-        {/* Order Groceries Online */}
+        {/* Order Groceries Online — tablet/desktop only */}
         {uncheckedItems.length > 0 && (
-          <div className="rounded-2xl border border-orange-400/20 bg-black/40 backdrop-blur p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <div className="text-white font-semibold text-sm leading-tight">
-                  Order Groceries Online
+          <>
+            {/* Full retailer card: md and up */}
+            <div className="hidden md:block rounded-2xl border border-orange-400/20 bg-black/40 backdrop-blur p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <div className="text-white font-semibold text-sm leading-tight">
+                    Order Groceries Online
+                  </div>
+                  <div className="text-white/50 text-xs mt-0.5">
+                    {uncheckedItems.length} item{uncheckedItems.length !== 1 ? "s" : ""} · opens in your browser
+                  </div>
                 </div>
-                <div className="text-white/50 text-xs mt-0.5">
-                  {uncheckedItems.length} item{uncheckedItems.length !== 1 ? "s" : ""} · opens in your browser
+                <ExternalLink className="h-4 w-4 text-white/30 flex-shrink-0" />
+              </div>
+              <div className="flex flex-col gap-2">
+                {GROCERY_RETAILERS.map((retailer) => (
+                  <Button
+                    key={retailer.id}
+                    data-testid={`grocery-delivery-${retailer.id}`}
+                    onClick={() => handleGroceryDelivery(retailer.id)}
+                    className={`w-full ${retailer.color} border text-white h-11 text-sm font-medium`}
+                  >
+                    {retailer.name}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-white/25 text-[10px] leading-tight">
+                Each item opens a separate search on the retailer's site. My Perfect Meals does not process payments or handle delivery.
+              </p>
+            </div>
+
+            {/* Mobile nudge: phones only */}
+            <div className="md:hidden rounded-2xl border border-orange-400/20 bg-black/40 backdrop-blur p-4 flex items-start gap-3">
+              <ExternalLink className="h-4 w-4 text-orange-400/60 flex-shrink-0 mt-0.5" />
+              <div>
+                <div className="text-white/80 text-sm font-medium leading-tight">
+                  Online grocery ordering available on tablet &amp; desktop
+                </div>
+                <div className="text-white/40 text-xs mt-1 leading-snug">
+                  Visit My Perfect Meals on a larger screen to order directly from Instacart, Walmart, and more.
                 </div>
               </div>
-              <ExternalLink className="h-4 w-4 text-white/30 flex-shrink-0" />
             </div>
-            <div className="flex flex-col gap-2">
-              {GROCERY_RETAILERS.map((retailer) => (
-                <Button
-                  key={retailer.id}
-                  data-testid={`grocery-delivery-${retailer.id}`}
-                  onClick={() => handleGroceryDelivery(retailer.id)}
-                  className={`w-full ${retailer.color} border text-white h-11 text-sm font-medium`}
-                >
-                  {retailer.name}
-                </Button>
-              ))}
-            </div>
-            <p className="text-white/25 text-[10px] leading-tight">
-              Each item opens a separate search on the retailer's site. My Perfect Meals does not process payments or handle delivery.
-            </p>
-          </div>
+          </>
         )}
         {/* Actions */}
         {(counts.checked > 0 || counts.total > 0) && (
