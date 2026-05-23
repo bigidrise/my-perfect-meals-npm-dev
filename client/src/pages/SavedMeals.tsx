@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Heart, ChevronDown, ChevronRight, ArrowLeft, Loader2 } from "lucide-react";
-import { useSavedMealsList, useToggleSavedMeal } from "@/hooks/useSavedMeals";
+import { useSavedMealsList, useDeleteSavedMeal } from "@/hooks/useSavedMeals";
 import { useToast } from "@/hooks/use-toast";
 import MealCardActions from "@/components/MealCardActions";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
@@ -36,20 +36,17 @@ function sourceLabel(s: string): string {
 export default function SavedMeals() {
   const [, setLocation] = useLocation();
   const { data: meals, isLoading } = useSavedMealsList();
-  const toggle = useToggleSavedMeal();
+  const deleteMeal = useDeleteSavedMeal();
   const { toast } = useToast();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const handleRemove = (row: any) => {
-    toggle.mutate(
-      { title: row.title, sourceType: row.sourceType, mealData: row.mealData },
-      {
-        onSuccess: () => {
-          toast({ title: "Removed", description: `"${row.title}" removed from favorites.` });
-          if (expandedId === row.id) setExpandedId(null);
-        },
-      }
-    );
+    deleteMeal.mutate(row.id, {
+      onSuccess: () => {
+        toast({ title: "Removed", description: `"${row.title}" removed from favorites.` });
+        if (expandedId === row.id) setExpandedId(null);
+      },
+    });
   };
 
   const handleAddToMacros = (meal: any) => {

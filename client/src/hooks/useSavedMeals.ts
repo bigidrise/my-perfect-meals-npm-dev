@@ -41,6 +41,21 @@ export function useToggleSavedMeal() {
   });
 }
 
+export function useDeleteSavedMeal() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { del } = await import("@/lib/api");
+      return del<{ success: boolean }>(`/api/saved-meals/${id}`);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["saved-meals-check"] });
+      qc.invalidateQueries({ queryKey: ["saved-meals-list"] });
+    },
+  });
+}
+
 export function makeMealKey(title: string, sourceType: string): string {
   return `${title.trim().toLowerCase()}|${sourceType}`;
 }
