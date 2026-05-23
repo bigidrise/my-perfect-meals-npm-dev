@@ -389,6 +389,7 @@ ${palateGuidance}
 
 ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
 - Whole items: use "each" (e.g., "1 each lime", "2 each mint sprigs")
+- Protein powder / supplement powder MUST use "scoop" or "scoops" — NEVER oz or grams (e.g., "1 scoop whey protein", "2 scoops vegan protein powder") ✅
 - DO NOT include macro/nutrition data in ingredient rows - macros go in the nutrition object only
 `;
 
