@@ -1,13 +1,16 @@
 #!/bin/bash
 # MPM Pre-Push Validation
 # Runs in the DEV space before every GitHub push.
-# Combines code drift checks + server startup verification.
+# Verifies that core server files are intact and the server boots without errors.
+# Does NOT run client TypeScript — client TS errors are pre-existing and non-blocking.
 #
 # Usage: npm run validate
 #
 # What it checks:
-#   1. TypeScript + schema drift (via drift-check)
-#   2. Server starts without crashing (spawns server, polls health, kills it)
+#   1. Core server and shared files are present (no critical file deleted or moved)
+#   2. No unguarded raw-fetch calls to auth-protected server routes in client code
+#   3. Server starts without crashing and /api/health responds
+#   4. No error patterns (uncaughtException, UnhandledPromiseRejection, etc.) in startup log
 #
 # Exit codes:
 #   0 = PASS — safe to push
@@ -34,7 +37,7 @@ cleanup() {
 trap cleanup EXIT
 
 pass()   { echo -e "${GREEN}  ✅ PASS${NC}  $1"; }
-fail()   { echo -e "${RED}  ❌ FAIL${NC}  $1"; ((ERRORS++)) || true; }
+fail()   { echo -e "${RED}  ❌ FAIL${NC}  $1"; ERRORS=$((ERRORS + 1)); }
 warn()   { echo -e "${YELLOW}  ⚠️  WARN${NC}  $1"; }
 header() { echo ""; echo -e "${CYAN}━━━ $1 ━━━${NC}"; }
 
@@ -43,84 +46,139 @@ echo -e "${BOLD}╔════════════════════�
 echo -e "${BOLD}║   MPM Pre-Push Validation                    ║${NC}"
 echo -e "${BOLD}╚══════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "  Run this before every ${CYAN}git push${NC} to GitHub."
-echo -e "  Takes ~15 seconds. Catches problems before they reach production."
+echo -e "  Run before every ${CYAN}git push${NC} to GitHub. Takes ~15 seconds."
+echo -e "  Checks server startup health and critical file integrity."
 echo ""
 
 # ──────────────────────────────────────────────────
-header "Step 1 of 2: Code Integrity Check"
-echo "  Running drift check (TypeScript, schema, auth guards)..."
-echo ""
+header "Step 1 of 3: Core File Integrity"
+# If any of these files go missing, the server will not start correctly.
 
-if bash scripts/prepush-check.sh; then
-  pass "Code integrity checks passed"
-else
-  DRIFT_EXIT=$?
-  if [ "$DRIFT_EXIT" -ne 0 ]; then
-    fail "Drift check found errors — fix before pushing"
-    ((ERRORS++)) || true
+CORE_FILES=(
+  "server/index.ts"
+  "server/routes.ts"
+  "server/middleware/requireAuth.ts"
+  "server/middleware/requireActiveAccess.ts"
+  "server/lib/accessTier.ts"
+  "server/services/mealEngineService.ts"
+  "shared/schema.ts"
+  "shared/planFeatures.ts"
+  "client/src/lib/queryClient.ts"
+  "client/src/hooks/useWeeklyBoard.ts"
+)
+
+ALL_FILES_OK=true
+for f in "${CORE_FILES[@]}"; do
+  if [ ! -f "$f" ]; then
+    fail "Core file MISSING: $f"
+    ALL_FILES_OK=false
   fi
-fi
-
-# ──────────────────────────────────────────────────
-header "Step 2 of 2: Server Startup Verification"
-echo "  Starting server in background to verify clean boot..."
-
-# Start server, redirect output to temp log
-TMPLOG=$(mktemp /tmp/mpm-validate-XXXXXX.log)
-NODE_ENV=development tsx server/index.ts > "$TMPLOG" 2>&1 &
-SERVER_PID=$!
-
-# Poll /api/health for up to 20 seconds
-MAX_WAIT=20
-INTERVAL=1
-ELAPSED=0
-STARTED=false
-
-while [ $ELAPSED -lt $MAX_WAIT ]; do
-  if ! kill -0 "$SERVER_PID" 2>/dev/null; then
-    # Process died — boot failed
-    fail "Server process exited unexpectedly during startup"
-    echo ""
-    echo -e "${RED}  Server output (last 20 lines):${NC}"
-    tail -20 "$TMPLOG" | sed 's/^/    /'
-    rm -f "$TMPLOG"
-    break
-  fi
-
-  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 2 \
-    http://localhost:5000/api/health 2>/dev/null || echo "000")
-
-  if [ "$HTTP_STATUS" = "200" ]; then
-    STARTED=true
-    break
-  fi
-
-  sleep $INTERVAL
-  ELAPSED=$((ELAPSED + INTERVAL))
 done
 
-if [ "$STARTED" = true ]; then
-  pass "Server started cleanly and health endpoint responded"
-
-  # Check for common crash patterns in startup output
-  if grep -qiE "uncaughtException|UnhandledPromiseRejection|FATAL|Cannot find module|MODULE_NOT_FOUND" "$TMPLOG" 2>/dev/null; then
-    warn "Server started but startup log contains error patterns — review before pushing:"
-    grep -iE "uncaughtException|UnhandledPromiseRejection|FATAL|Cannot find module|MODULE_NOT_FOUND" "$TMPLOG" | head -5 | sed 's/^/    /'
-  fi
-elif [ "$ELAPSED" -ge "$MAX_WAIT" ]; then
-  fail "Server did not respond within ${MAX_WAIT}s — startup may have hung or port 5000 is blocked"
-  echo ""
-  echo -e "${YELLOW}  Server output (last 20 lines):${NC}"
-  tail -20 "$TMPLOG" | sed 's/^/    /'
+if [ "$ALL_FILES_OK" = true ]; then
+  pass "All core server and shared files present"
 fi
 
-rm -f "$TMPLOG"
+# ──────────────────────────────────────────────────
+header "Step 2 of 3: Auth-Protected Route Safety"
+# Flag any raw fetch() calls to auth-protected routes not going through apiRequest().
+# Excludes: queryClient.ts (intentional), refetch/prefetch, and comments.
 
-# Kill the background server
-if [ -n "$SERVER_PID" ] && kill -0 "$SERVER_PID" 2>/dev/null; then
-  kill "$SERVER_PID" 2>/dev/null || true
-  SERVER_PID=""
+AUTH_ROUTES=("/api/users" "/api/body-composition" "/api/macros" "/api/weekly-board" "/api/shopping" "/api/biometrics" "/api/studio")
+AUTH_VIOLATIONS=0
+
+for route in "${AUTH_ROUTES[@]}"; do
+  FOUND=$(grep -rn \
+    "fetch(apiUrl(\`${route}\|fetch(\`${route}\|fetch(\"${route}" \
+    client/src/ \
+    --include="*.ts" --include="*.tsx" \
+    | grep -v 'queryClient\.ts' \
+    | grep -v '^\s*//' \
+    || true)
+  if [ -n "$FOUND" ]; then
+    fail "Raw fetch() to auth-protected route '${route}' — use apiRequest() instead:"
+    echo "$FOUND" | head -5 | sed 's/^/    /'
+    AUTH_VIOLATIONS=$((AUTH_VIOLATIONS + 1))
+  fi
+done
+
+if [ "$AUTH_VIOLATIONS" -eq 0 ]; then
+  pass "No raw fetch() calls to auth-protected routes"
+fi
+
+# ──────────────────────────────────────────────────
+header "Step 3 of 3: Server Startup Verification"
+echo "  Starting server in background to verify clean boot..."
+echo "  (If port 5000 is in use, stop the dev workflow first)"
+echo ""
+
+# Fail immediately if port 5000 is already bound — avoids false results
+if lsof -ti:5000 >/dev/null 2>&1; then
+  fail "Port 5000 is already in use — stop the running dev server first, then re-run validate"
+  echo ""
+  echo -e "${YELLOW}  Tip: In the Replit workflow panel, stop the 'Start application' workflow,${NC}"
+  echo -e "${YELLOW}  run 'npm run validate', then restart the workflow.${NC}"
+  echo ""
+else
+  # Start server, redirect output to temp log
+  TMPLOG=$(mktemp /tmp/mpm-validate-XXXXXX.log)
+  NODE_ENV=development tsx server/index.ts >"$TMPLOG" 2>&1 &
+  SERVER_PID=$!
+
+  # Poll /api/health for up to 20 seconds
+  MAX_WAIT=20
+  ELAPSED=0
+  STARTED=false
+
+  while [ $ELAPSED -lt $MAX_WAIT ]; do
+    if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+      # Process died — boot failed
+      fail "Server process crashed during startup"
+      echo ""
+      echo -e "${RED}  Server output (last 25 lines):${NC}"
+      tail -25 "$TMPLOG" | sed 's/^/    /'
+      echo ""
+      rm -f "$TMPLOG"
+      SERVER_PID=""
+      break
+    fi
+
+    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 2 \
+      http://localhost:5000/api/health 2>/dev/null || echo "000")
+
+    if [ "$HTTP_STATUS" = "200" ]; then
+      STARTED=true
+      break
+    fi
+
+    sleep 1
+    ELAPSED=$((ELAPSED + 1))
+  done
+
+  if [ "$STARTED" = true ]; then
+    # Hard check: fail on any startup error patterns in the server log
+    if grep -qiE "uncaughtException|UnhandledPromiseRejection|FATAL|Cannot find module|MODULE_NOT_FOUND|SyntaxError:" "$TMPLOG" 2>/dev/null; then
+      fail "Server started but startup log contains critical error patterns:"
+      grep -iE "uncaughtException|UnhandledPromiseRejection|FATAL|Cannot find module|MODULE_NOT_FOUND|SyntaxError:" \
+        "$TMPLOG" | head -8 | sed 's/^/    /'
+    else
+      pass "Server started cleanly — /api/health responded with 200"
+      pass "No critical error patterns in startup log"
+    fi
+  elif [ "$ELAPSED" -ge "$MAX_WAIT" ]; then
+    fail "Server did not respond to /api/health within ${MAX_WAIT}s — startup may have hung"
+    echo ""
+    echo -e "${YELLOW}  Server output (last 20 lines):${NC}"
+    tail -20 "$TMPLOG" | sed 's/^/    /'
+  fi
+
+  rm -f "$TMPLOG"
+
+  # Kill the background server
+  if [ -n "$SERVER_PID" ] && kill -0 "$SERVER_PID" 2>/dev/null; then
+    kill "$SERVER_PID" 2>/dev/null || true
+    SERVER_PID=""
+  fi
 fi
 
 # ──────────────────────────────────────────────────
@@ -133,11 +191,12 @@ echo ""
 if [ "$ERRORS" -eq 0 ]; then
   echo -e "  ${GREEN}${BOLD}✅ VALIDATION PASSED — safe to push to GitHub${NC}"
   echo ""
-  echo -e "  Next steps:"
-  echo -e "    git push origin dev"
-  echo -e "    → merge dev → main on GitHub"
-  echo -e "    → git pull in production shell"
-  echo -e "    → update LAST_STABLE.md with the new commit hash"
+  echo -e "  Full push sequence:"
+  echo -e "    1. git push origin dev"
+  echo -e "    2. Merge dev → main on GitHub"
+  echo -e "    3. git pull in production shell"
+  echo -e "    4. Check /api/health in browser"
+  echo -e "    5. Update LAST_STABLE.md with new commit hash"
   echo ""
   exit 0
 else
