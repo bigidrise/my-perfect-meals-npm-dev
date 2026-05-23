@@ -1,41 +1,22 @@
 // client/src/components/shopping/GroceryExportModal.tsx
-// Grocery export modal — one item per retailer search, with sanitization.
-// Replaces the old "open one mega-query URL" approach.
+// Grocery export modal — one item per retailer search.
+//
+// Pipeline:
+//   store items
+//     → buildConsolidatedItems()   (normalize + aggregate by normalizedName)
+//     → getRetailQuantity()        (convert to human grocery units)
+//     → render tappable rows
 
 import { useState, useMemo } from "react";
 import { ExternalLink, X, ShoppingCart, Check } from "lucide-react";
-import { GROCERY_RETAILERS, GroceryRetailerId, normalizeForRetailerSearch } from "@/lib/groceryRetailers";
-import { ShoppingListItem } from "@/stores/shoppingListStore";
-import { toShoppingUnit } from "@/lib/groceryShoppingUnit";
-
-// ── Sanitization ─────────────────────────────────────────────────────────────
-
-const PLACEHOLDER_PATTERN = /^(scanned item|item|unknown item|grocery item|scan|ingredient|food item|add item|new item)$/i;
-
-function sanitizeExportItems(items: ShoppingListItem[]): ShoppingListItem[] {
-  // 1. Only unchecked items
-  const unchecked = items.filter((i) => !i.isChecked);
-
-  // 2. Remove placeholder names and very short/empty names
-  const valid = unchecked.filter(
-    (i) =>
-      i.name &&
-      i.name.trim().length > 1 &&
-      !PLACEHOLDER_PATTERN.test(i.name.trim())
-  );
-
-  // 3. Deduplicate by normalizedName (keep highest-quantity entry)
-  const map = new Map<string, ShoppingListItem>();
-  for (const item of valid) {
-    const key = (item.normalizedName || item.name).toLowerCase().trim();
-    const existing = map.get(key);
-    if (!existing || item.quantity > existing.quantity) {
-      map.set(key, item);
-    }
-  }
-
-  return Array.from(map.values());
-}
+import {
+  GROCERY_RETAILERS,
+  GroceryRetailerId,
+  normalizeForRetailerSearch,
+} from "@/lib/groceryRetailers";
+import type { ShoppingListItem } from "@/stores/shoppingListStore";
+import { buildConsolidatedItems } from "@/lib/shoppingConsolidation";
+import { getRetailQuantity } from "@/lib/retailIntelligence";
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -56,15 +37,21 @@ export default function GroceryExportModal({
     useState<GroceryRetailerId>(defaultRetailerId);
   const [opened, setOpened] = useState<Set<string>>(new Set());
 
-  const sanitized = useMemo(() => sanitizeExportItems(items), [items]);
+  // Consolidation: normalize + deduplicate + sum quantities
+  const consolidated = useMemo(
+    () => buildConsolidatedItems(items, { excludeChecked: true }),
+    [items],
+  );
 
-  const activeRetailer = GROCERY_RETAILERS.find((r) => r.id === activeRetailerId)!;
+  const activeRetailer = GROCERY_RETAILERS.find(
+    (r) => r.id === activeRetailerId,
+  )!;
 
-  function handleItemClick(item: ShoppingListItem) {
-    setOpened((prev) => new Set([...prev, item.id]));
+  function handleItemClick(id: string) {
+    setOpened((prev) => new Set([...prev, id]));
   }
 
-  const openedCount = sanitized.filter((i) => opened.has(i.id)).length;
+  const openedCount = consolidated.filter((i) => opened.has(i.id)).length;
 
   return (
     <div
@@ -84,23 +71,29 @@ export default function GroceryExportModal({
                 Shop Online
               </div>
               <div className="text-white/50 text-xs mt-0.5">
-                {sanitized.length} item{sanitized.length !== 1 ? "s" : ""} ready
+                {consolidated.length} item
+                {consolidated.length !== 1 ? "s" : ""} ready
                 {openedCount > 0 && (
-                  <span className="text-orange-400 ml-1">· {openedCount} searched</span>
+                  <span className="text-orange-400 ml-1">
+                    · {openedCount} searched
+                  </span>
                 )}
               </div>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors"
+            className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 active:text-white transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Retailer tabs — single scrollable row, never wraps */}
-        <div className="px-4 pb-3 flex gap-2 overflow-x-auto flex-shrink-0" style={{ scrollbarWidth: 'none' }}>
+        <div
+          className="px-4 pb-3 flex gap-2 overflow-x-auto flex-shrink-0"
+          style={{ scrollbarWidth: "none" }}
+        >
           {GROCERY_RETAILERS.map((retailer) => (
             <button
               key={retailer.id}
@@ -119,30 +112,28 @@ export default function GroceryExportModal({
         {/* Divider */}
         <div className="h-px bg-white/10 mx-4 flex-shrink-0" />
 
-        {/* How it works hint */}
+        {/* Hint */}
         <div className="px-5 py-2.5 flex-shrink-0">
           <p className="text-white/40 text-[11px]">
-            Tap each item to search on {activeRetailer.name} — one at a time for accurate results.
+            Tap each item to search on {activeRetailer.name} — one at a time
+            for accurate results.
           </p>
         </div>
 
-        {/* Item list — flex-col forces single column on all screen sizes */}
+        {/* Item list */}
         <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 flex flex-col gap-1.5">
-          {sanitized.length === 0 ? (
+          {consolidated.length === 0 ? (
             <div className="text-center py-10 text-white/40 text-sm">
               No items to export. Add items to your list first.
             </div>
           ) : (
-            sanitized.map((item) => {
+            consolidated.map((item) => {
               const url = activeRetailer.buildItemUrl(item.name);
               const wasOpened = opened.has(item.id);
               const searchName = normalizeForRetailerSearch(item.name);
-              const qty = toShoppingUnit(
-                item.name,
-                item.quantity,
-                item.unit,
-                item.category,
-              );
+
+              // Retail quantity: human shopping language (e.g. "1 lb", "1 bag")
+              const qty = getRetailQuantity(item);
 
               return (
                 <a
@@ -150,7 +141,7 @@ export default function GroceryExportModal({
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() => handleItemClick(item)}
+                  onClick={() => handleItemClick(item.id)}
                   className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 border transition-all ${
                     wasOpened
                       ? "bg-white/5 border-white/10 opacity-70"
@@ -172,16 +163,22 @@ export default function GroceryExportModal({
 
                   {/* Item info */}
                   <div className="flex-1 min-w-0">
-                    <div className={`text-sm font-medium leading-tight truncate ${wasOpened ? "text-white/50" : "text-white"}`}>
+                    <div
+                      className={`text-sm font-medium leading-tight truncate ${
+                        wasOpened ? "text-white/50" : "text-white"
+                      }`}
+                    >
                       {item.name}
                     </div>
                     {searchName !== item.name.toLowerCase().trim() && (
                       <div className="text-white/35 text-[10px] mt-0.5 truncate">
-                        searching: "{searchName}"
+                        searching: &ldquo;{searchName}&rdquo;
                       </div>
                     )}
                     {qty && (
-                      <div className="text-white/40 text-xs mt-0.5">{qty}</div>
+                      <div className="text-orange-400/70 text-xs mt-0.5 font-medium">
+                        {qty}
+                      </div>
                     )}
                   </div>
 
@@ -200,7 +197,8 @@ export default function GroceryExportModal({
         {/* Footer */}
         <div className="px-5 py-3 border-t border-white/10 flex-shrink-0">
           <p className="text-white/25 text-[10px] leading-tight text-center">
-            Search results open on the retailer's site. My Perfect Meals does not process payments or handle delivery.
+            Search results open on the retailer&rsquo;s site. My Perfect Meals
+            does not process payments or handle delivery.
           </p>
         </div>
       </div>
