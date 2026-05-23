@@ -67,6 +67,19 @@ function toLbs(qty: number, unit: string): number | null {
   return factor !== undefined ? qty * factor : null;
 }
 
+// Weight → grams (for produce count estimation)
+const TO_G: Record<string, number> = {
+  g: 1, gram: 1, grams: 1,
+  oz: 28.3495, ounce: 28.3495, ounces: 28.3495,
+  lb: 453.592, lbs: 453.592, pound: 453.592, pounds: 453.592,
+  kg: 1000, kilogram: 1000, kilograms: 1000,
+};
+
+function toG(qty: number, unit: string): number | null {
+  const factor = TO_G[(unit || '').toLowerCase().trim()];
+  return factor !== undefined ? qty * factor : null;
+}
+
 function isUnitless(unit: string): boolean {
   const u = (unit || '').toLowerCase().trim();
   return !u || u === 'unit' || u === 'units' || u === 'piece' || u === 'pieces'
@@ -198,6 +211,91 @@ function getContainerDisplay(n: string, unit: string): string | null {
   if (!isSmall) return null;
   for (const { keywords, display } of CONTAINER_DISPLAY) {
     if (keywords.some(k => n.includes(k))) return display;
+  }
+  return null;
+}
+
+// ── Produce weight (g) → count/bag/bunch/head ─────────────────────────────────
+// Handles items stored in grams from the nutrition engine.
+// Reference weights represent typical retail purchase units.
+const PRODUCE_WEIGHT_TABLE: Array<{
+  keywords: string[];
+  purchaseUnit: string;
+  gramsPerUnit: number;
+}> = [
+  // Count produce
+  { keywords: ['avocado'],                     purchaseUnit: 'each',      gramsPerUnit: 170 },
+  { keywords: ['onion', 'yellow onion', 'white onion', 'sweet onion'], purchaseUnit: 'each', gramsPerUnit: 180 },
+  { keywords: ['red onion'],                   purchaseUnit: 'each',      gramsPerUnit: 200 },
+  { keywords: ['shallot'],                     purchaseUnit: 'each',      gramsPerUnit: 50 },
+  { keywords: ['lemon'],                       purchaseUnit: 'each',      gramsPerUnit: 100 },
+  { keywords: ['lime'],                        purchaseUnit: 'each',      gramsPerUnit: 70 },
+  { keywords: ['orange'],                      purchaseUnit: 'each',      gramsPerUnit: 180 },
+  { keywords: ['grapefruit'],                  purchaseUnit: 'each',      gramsPerUnit: 300 },
+  { keywords: ['apple'],                       purchaseUnit: 'each',      gramsPerUnit: 180 },
+  { keywords: ['banana'],                      purchaseUnit: 'each',      gramsPerUnit: 120 },
+  { keywords: ['pear'],                        purchaseUnit: 'each',      gramsPerUnit: 180 },
+  { keywords: ['peach'],                       purchaseUnit: 'each',      gramsPerUnit: 150 },
+  { keywords: ['plum'],                        purchaseUnit: 'each',      gramsPerUnit: 70 },
+  { keywords: ['mango'],                       purchaseUnit: 'each',      gramsPerUnit: 250 },
+  { keywords: ['kiwi'],                        purchaseUnit: 'each',      gramsPerUnit: 75 },
+  { keywords: ['russet potato'],               purchaseUnit: 'each',      gramsPerUnit: 280 },
+  { keywords: ['gold potato', 'yukon'],        purchaseUnit: 'each',      gramsPerUnit: 170 },
+  { keywords: ['sweet potato'],                purchaseUnit: 'each',      gramsPerUnit: 180 },
+  { keywords: ['potato'],                      purchaseUnit: 'each',      gramsPerUnit: 210 },
+  { keywords: ['yam'],                         purchaseUnit: 'each',      gramsPerUnit: 180 },
+  { keywords: ['zucchini'],                    purchaseUnit: 'each',      gramsPerUnit: 200 },
+  { keywords: ['cucumber'],                    purchaseUnit: 'each',      gramsPerUnit: 280 },
+  { keywords: ['bell pepper', 'red pepper', 'green pepper', 'yellow pepper', 'orange pepper'], purchaseUnit: 'each', gramsPerUnit: 150 },
+  { keywords: ['tomato', 'roma tomato'],       purchaseUnit: 'each',      gramsPerUnit: 125 },
+  { keywords: ['eggplant'],                    purchaseUnit: 'each',      gramsPerUnit: 450 },
+  { keywords: ['beet'],                        purchaseUnit: 'each',      gramsPerUnit: 150 },
+  { keywords: ['turnip'],                      purchaseUnit: 'each',      gramsPerUnit: 200 },
+  { keywords: ['parsnip'],                     purchaseUnit: 'each',      gramsPerUnit: 120 },
+  { keywords: ['jalapeño', 'jalapeno'],        purchaseUnit: 'each',      gramsPerUnit: 15 },
+  { keywords: ['serrano'],                     purchaseUnit: 'each',      gramsPerUnit: 10 },
+  { keywords: ['leek'],                        purchaseUnit: 'each',      gramsPerUnit: 150 },
+  // Bag / bunch / head / container produce
+  { keywords: ['cherry tomato', 'grape tomato'], purchaseUnit: 'container', gramsPerUnit: 283 },
+  { keywords: ['baby spinach', 'spinach'],     purchaseUnit: 'bag',       gramsPerUnit: 142 },
+  { keywords: ['arugula'],                     purchaseUnit: 'bag',       gramsPerUnit: 142 },
+  { keywords: ['mixed greens', 'spring mix', 'salad greens', 'mesclun'], purchaseUnit: 'bag', gramsPerUnit: 142 },
+  { keywords: ['broccoli florets'],            purchaseUnit: 'bag',       gramsPerUnit: 340 },
+  { keywords: ['broccoli'],                    purchaseUnit: 'head',      gramsPerUnit: 454 },
+  { keywords: ['cauliflower florets'],         purchaseUnit: 'bag',       gramsPerUnit: 340 },
+  { keywords: ['cauliflower'],                 purchaseUnit: 'head',      gramsPerUnit: 600 },
+  { keywords: ['cabbage', 'red cabbage', 'napa cabbage'], purchaseUnit: 'head', gramsPerUnit: 900 },
+  { keywords: ['romaine'],                     purchaseUnit: 'head',      gramsPerUnit: 283 },
+  { keywords: ['lettuce', 'butter lettuce', 'iceberg'], purchaseUnit: 'head', gramsPerUnit: 300 },
+  { keywords: ['kale', 'curly kale', 'lacinato kale'], purchaseUnit: 'bunch', gramsPerUnit: 200 },
+  { keywords: ['bok choy', 'baby bok choy'],   purchaseUnit: 'head',      gramsPerUnit: 300 },
+  { keywords: ['brussels sprouts'],            purchaseUnit: 'bag',       gramsPerUnit: 283 },
+  { keywords: ['asparagus'],                   purchaseUnit: 'bunch',     gramsPerUnit: 340 },
+  { keywords: ['celery'],                      purchaseUnit: 'bunch',     gramsPerUnit: 400 },
+  { keywords: ['carrots', 'carrot'],           purchaseUnit: 'bag',       gramsPerUnit: 454 },
+  { keywords: ['baby carrots'],                purchaseUnit: 'bag',       gramsPerUnit: 283 },
+  { keywords: ['mushrooms', 'cremini', 'button mushroom'], purchaseUnit: 'container', gramsPerUnit: 227 },
+  { keywords: ['snap pea', 'snow pea'],        purchaseUnit: 'bag',       gramsPerUnit: 170 },
+  // Frozen packaged items
+  { keywords: ['hashbrowns', 'hash browns', 'shredded potatoes'], purchaseUnit: 'bag', gramsPerUnit: 454 },
+  { keywords: ['edamame'],                     purchaseUnit: 'bag',       gramsPerUnit: 340 },
+];
+
+function getProduceWeightDisplay(n: string, grams: number): string | null {
+  for (const entry of PRODUCE_WEIGHT_TABLE) {
+    if (entry.keywords.some((k) => n === k || n.includes(k) || k.includes(n.split(' ')[0]))) {
+      const count = Math.max(1, Math.ceil(grams / entry.gramsPerUnit));
+      const u = entry.purchaseUnit;
+      if (u === 'bag' || u === 'bunch' || u === 'container') {
+        // These don't multiply — you just grab another bag/bunch
+        return count <= 1 ? `1 ${u}` : `${count} ${u}s`;
+      }
+      if (u === 'head') {
+        return count <= 1 ? '1 head' : `${count} heads`;
+      }
+      // count/each: just the number
+      return String(count);
+    }
   }
   return null;
 }
@@ -607,6 +705,50 @@ export function getRetailQuantity(item: ShoppingListItem): string | null {
     return null;
   }
 
-  // ── Regular items: use standard formatter ─────────────────────────────────
-  return formatQuantity(qty, unit) || null;
+  // ── Produce weight (g) → count/bag/bunch/head ─────────────────────────────
+  // Items stored in grams from the nutrition engine (e.g. "43 g spinach",
+  // "71 g zucchini"). The weight table converts to human shopping units.
+  const grams = toG(qty, unit);
+  if (grams !== null && grams > 0) {
+    const weightDisplay = getProduceWeightDisplay(n, grams);
+    if (weightDisplay) return weightDisplay;
+  }
+  // Also handle mL-stored produce (nutrition engine sometimes uses mL for
+  // volume of leafy greens, hashbrowns, etc.)
+  const mlAsGrams = unit.toLowerCase() === 'ml' || unit.toLowerCase() === 'milliliter' || unit.toLowerCase() === 'milliliters'
+    ? qty  // ~1 g/mL approximation for plant matter
+    : null;
+  if (mlAsGrams !== null && mlAsGrams > 0) {
+    const weightDisplay = getProduceWeightDisplay(n, mlAsGrams);
+    if (weightDisplay) return weightDisplay;
+  }
+
+  // ── Category-based fallbacks ──────────────────────────────────────────────
+  // When no specific rule matched, use the item's category to pick a sane
+  // default rather than showing raw nutrition units.
+  const cat = item.category;
+  if (cat === 'Frozen') return '1 bag';
+  if (cat === 'Bakery') {
+    if (n.includes('tortilla') || n.includes('wrap') || n.includes('pita')) return '1 pack';
+    if (n.includes('roll') || n.includes('bun') || n.includes('muffin')) return '1 pack';
+    return '1 loaf';
+  }
+  if (cat === 'Produce') {
+    // Unknown produce not in the weight table — default to 1
+    return '1';
+  }
+  if (cat === 'Grains & Packaged') {
+    // Unknown grains/packaged items not caught by grain density table
+    if (n.includes('can') || n.includes('bean') || n.includes('lentil') || n.includes('chickpea')) return '1 can';
+    return '1 bag';
+  }
+  if (cat === 'Pantry') {
+    // Unknown pantry items not caught by tier1/tier2
+    if (n.includes('can') || n.includes('bean') || n.includes('tomato') || n.includes('broth')) return '1 can';
+    if (n.includes('nut') || n.includes('seed') || n.includes('dried')) return '1 bag';
+    return null; // pantry staples: show name only
+  }
+
+  // No recognized retail unit — show name only, no confusing raw numbers
+  return null;
 }

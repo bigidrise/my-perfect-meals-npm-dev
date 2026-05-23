@@ -29,6 +29,9 @@ NC='\033[0m'
 ERRORS=0
 WARNINGS=0
 SERVER_PID=""
+SHUTDOWN_ACTIVE_CONNS=0
+FAIL_MESSAGES=()
+WARN_MESSAGES=()
 
 cleanup() {
   if [ -n "$SERVER_PID" ] && kill -0 "$SERVER_PID" 2>/dev/null; then
@@ -39,8 +42,8 @@ cleanup() {
 trap cleanup EXIT
 
 pass()   { echo -e "${GREEN}  ✅ PASS${NC}  $1"; }
-fail()   { echo -e "${RED}  ❌ FAIL${NC}  $1"; ERRORS=$((ERRORS + 1)); }
-warn()   { echo -e "${YELLOW}  ⚠️  WARN${NC}  $1"; WARNINGS=$((WARNINGS + 1)); }
+fail()   { echo -e "${RED}  ❌ FAIL${NC}  $1"; ERRORS=$((ERRORS + 1)); FAIL_MESSAGES+=("$1"); }
+warn()   { echo -e "${YELLOW}  ⚠️  WARN${NC}  $1"; WARNINGS=$((WARNINGS + 1)); WARN_MESSAGES+=("$1"); }
 header() { echo ""; echo -e "${CYAN}━━━ $1 ━━━${NC}"; }
 
 echo ""
@@ -142,13 +145,45 @@ if [ -n "$PORT_PID" ]; then
   PORT_CMD=$(ps -p "$PORT_PID" -o args= 2>/dev/null || true)
   if echo "$PORT_CMD" | grep -q "server/index.ts"; then
     echo -e "${YELLOW}  MPM dev server detected on port 5000 (PID $PORT_PID) — pausing it for test...${NC}"
+    # Check for active (ESTABLISHED) connections before killing.
+    # This warns the developer that in-flight requests may be interrupted,
+    # which is why the shutdown could be slow or produce connection errors.
+    ACTIVE_CONNS=$(ss -tn state established '( dport = :5000 or sport = :5000 )' 2>/dev/null | tail -n +2 | wc -l | tr -d ' ')
+    if [ "${ACTIVE_CONNS:-0}" -gt 0 ] 2>/dev/null; then
+      SHUTDOWN_ACTIVE_CONNS=$ACTIVE_CONNS
+      echo -e "${YELLOW}  ⚠️  Warning: ${ACTIVE_CONNS} active connection(s) detected on port 5000.${NC}"
+      echo -e "${YELLOW}     The server is currently handling requests. Shutdown may be slow${NC}"
+      echo -e "${YELLOW}     and any in-flight requests will be interrupted.${NC}"
+    fi
     kill "$PORT_PID" 2>/dev/null || true
-    # Wait up to 5s for the port to free
-    for _i in 1 2 3 4 5; do
+    # Poll up to 10s for the port to free after SIGTERM
+    PORT_FREED=false
+    for _i in 1 2 3 4 5 6 7 8 9 10; do
       sleep 1
-      if ! lsof -ti:5000 >/dev/null 2>&1; then break; fi
+      if ! lsof -ti:5000 >/dev/null 2>&1; then
+        PORT_FREED=true
+        break
+      fi
     done
-    DEV_SERVER_RESTARTED=true
+    # If port is still bound, escalate to SIGKILL
+    if [ "$PORT_FREED" = false ]; then
+      REMAINING_PID=$(lsof -ti:5000 2>/dev/null | head -1 || true)
+      if [ -n "$REMAINING_PID" ]; then
+        echo -e "${YELLOW}  Port 5000 still occupied after 10s — sending SIGKILL to PID $REMAINING_PID...${NC}"
+        kill -9 "$REMAINING_PID" 2>/dev/null || true
+        sleep 1
+        if lsof -ti:5000 >/dev/null 2>&1; then
+          warn "Port 5000 could not be freed even after SIGKILL — skipping boot test"
+          PORT_FREED=false
+        else
+          echo -e "${YELLOW}  Process forcefully killed. Port 5000 is now free.${NC}"
+          PORT_FREED=true
+        fi
+      fi
+    fi
+    if [ "$PORT_FREED" = true ]; then
+      DEV_SERVER_RESTARTED=true
+    fi
   else
     warn "Port 5000 is occupied by a non-MPM process (PID $PORT_PID: ${PORT_CMD:0:80}) — skipping boot test"
     echo -e "${YELLOW}  Stop that process and re-run validate to include the boot test.${NC}"
@@ -230,8 +265,28 @@ echo -e "${BOLD}╔════════════════════�
 echo -e "${BOLD}║   VALIDATION SUMMARY                         ║${NC}"
 echo -e "${BOLD}╚══════════════════════════════════════════════╝${NC}"
 echo ""
+if [ "${SHUTDOWN_ACTIVE_CONNS:-0}" -gt 0 ] 2>/dev/null; then
+  warn "${SHUTDOWN_ACTIVE_CONNS} active connection(s) were present on port 5000 at shutdown — in-flight requests may have been interrupted"
+fi
 echo -e "  Hard failures: ${RED}${ERRORS}${NC}"
 echo -e "  Warnings:      ${YELLOW}${WARNINGS}${NC}"
+
+if [ "${#FAIL_MESSAGES[@]}" -gt 0 ]; then
+  echo ""
+  echo -e "  ${RED}${BOLD}Failures:${NC}"
+  for msg in "${FAIL_MESSAGES[@]}"; do
+    echo -e "    ${RED}❌${NC}  $msg"
+  done
+fi
+
+if [ "${#WARN_MESSAGES[@]}" -gt 0 ]; then
+  echo ""
+  echo -e "  ${YELLOW}${BOLD}Warnings:${NC}"
+  for msg in "${WARN_MESSAGES[@]}"; do
+    echo -e "    ${YELLOW}⚠️ ${NC}  $msg"
+  done
+fi
+
 echo ""
 
 if [ "$ERRORS" -eq 0 ]; then
