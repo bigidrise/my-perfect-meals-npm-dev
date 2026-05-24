@@ -6,69 +6,56 @@ import { savedMeals as savedMealsTable } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import crypto from "crypto";
 import OpenAI from "openai";
-import {
-  loadUserProtocolEnvelope,
-  scanGeneratedOutput,
-  type UserProtocolEnvelope,
-} from "../services/protocolEnvelope";
+import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
 import { processMealImageForSave } from "../services/imageLifecycle";
 
 const router = Router();
+
+const INTERNAL_API_BASE =
+  process.env.INTERNAL_API_BASE || "http://127.0.0.1:5000";
 
 function mealSignature(
   title: string,
   sourceType: string,
   macros?: { calories?: number; protein?: number; carbs?: number; fat?: number }
 ): string {
-  const raw = `${title.toLowerCase().trim()}|${sourceType}|${macros?.calories ?? ""}|${macros?.protein ?? ""}`;
+  const raw = `${title.trim().toLowerCase()}|${sourceType}|${macros?.calories ?? 0}|${macros?.protein ?? 0}|${macros?.carbs ?? 0}|${macros?.fat ?? 0}`;
   return crypto.createHash("sha256").update(raw).digest("hex").slice(0, 64);
 }
 
-function buildInspirationComplianceText(envelope: UserProtocolEnvelope): string {
-  const lines: string[] = [];
+function buildEnrichedCravingInput(
+  baseDescription: string,
+  opts: {
+    healthMode: string;
+    proteinPriority: string;
+    prepStyle: string;
+  }
+): string {
+  let input = baseDescription;
 
-  if (envelope.dietaryIdentity?.length) {
-    lines.push(
-      `DIETARY IDENTITY (non-negotiable outer wall): ${envelope.dietaryIdentity.join(", ")}`
-    );
-  }
-  if (envelope.allergies?.length) {
-    lines.push(
-      `ALLERGIES — ABSOLUTE HARD STOPS (never include any of these): ${envelope.allergies.join(", ")}`
-    );
-  }
-  if (envelope.medicalHardLimits?.length) {
-    lines.push(`MEDICAL HARD LIMITS: ${envelope.medicalHardLimits.join(", ")}`);
-  }
-  if (envelope.diabeticGuidance) {
-    lines.push(`DIABETIC GUIDANCE: ${envelope.diabeticGuidance}`);
-  }
-  if (envelope.conditionGuidanceBlocks?.length) {
-    lines.push(`CONDITION GUIDANCE:\n${envelope.conditionGuidanceBlocks.join("\n")}`);
-  }
-  if (envelope.medicalOptimization?.length) {
-    lines.push(`MEDICAL OPTIMIZATION: ${envelope.medicalOptimization.join(", ")}`);
-  }
-  if (envelope.avoidances?.length) {
-    lines.push(`FOODS TO AVOID: ${envelope.avoidances.join(", ")}`);
-  }
-  if (envelope.cuisinePreference) {
-    lines.push(
-      `CUISINE PREFERENCE: ${envelope.cuisinePreference} (${envelope.cuisineIntensity || "balanced"} intensity)`
-    );
-  }
-  if (envelope.fitnessGoal) {
-    lines.push(
-      `FITNESS GOAL: ${envelope.fitnessGoal}${envelope.goalType ? ` (${envelope.goalType})` : ""}`
-    );
-  }
-  if (envelope.measurementSystem === "metric") {
-    lines.push(`UNITS: Use metric (g, ml, kg)`);
+  if (opts.healthMode === "healthier") {
+    input = `Healthier version of: ${input}`;
+  } else if (opts.healthMode === "authentic") {
+    input = `${input} [Keep this authentic — preserve traditional ingredients and preparation style, do not over-healthify]`;
   }
 
-  return lines.join("\n");
+  if (opts.proteinPriority === "high") {
+    input += " [Boost protein significantly — aim for high-protein ingredient choices]";
+  } else if (opts.proteinPriority === "athlete") {
+    input += " [Athlete performance optimized — maximize protein, support recovery and energy]";
+  }
+
+  if (opts.prepStyle === "easy") {
+    input += " [Simplify ingredients and prep — use commonly available items, minimize active cooking time]";
+  }
+
+  return input;
 }
 
+// ── POST /api/inspiration/capture ────────────────────────────────────────────
+// Extracts a meal idea from any input (image, voice, text), enriches it with
+// the user's chosen options, then generates via the unified craving-creator
+// pipeline. Does NOT auto-save — returns meal data for preview workspace.
 router.post(
   "/inspiration/capture",
   requireAuth,
@@ -78,7 +65,16 @@ router.post(
       const userId = req.authUser?.id || req.user?.id;
       if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-      const { inputType, content, imageBase64 } = req.body;
+      const {
+        inputType,
+        content,
+        imageBase64,
+        servings = 2,
+        cuisineOverride,
+        healthMode = "balanced",
+        proteinPriority = "standard",
+        prepStyle = "any",
+      } = req.body;
 
       if (!inputType || (!content && !imageBase64)) {
         return res
@@ -92,13 +88,7 @@ router.post(
 
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-      // Step 1 — Load user protocol envelope
-      const envelope = await loadUserProtocolEnvelope(userId);
-      const complianceText = envelope
-        ? buildInspirationComplianceText(envelope)
-        : "";
-
-      // Step 2 — Interpret input into a meal description
+      // Step 1 — Extract meal description from input
       let mealDescription = "";
 
       if ((inputType === "camera" || inputType === "upload") && imageBase64) {
@@ -136,90 +126,74 @@ router.post(
         });
       }
 
-      // Step 3 — Adaptive reconstruction
-      const systemPrompt = `You are the personalized meal engine for My Perfect Meals.
-
-A user has brought in a meal idea. Create a complete, personalized meal card that:
-- Preserves the emotional identity and core flavor profile of the original meal
-- Adapts all ingredients, portions, and preparation to the user's personal nutritional profile below
-- Produces a meal that feels like THEIR version — not a diet substitute
-${
-  complianceText
-    ? `\nUSER NUTRITIONAL PROFILE (strictly follow all of these):\n${complianceText}`
-    : ""
-}
-
-Output ONLY valid JSON — no markdown fences, no explanation:
-{
-  "name": "meal title that captures its identity",
-  "description": "1-2 sentences describing this personalized version",
-  "ingredients": [
-    { "item": "ingredient name", "amount": "quantity and unit" }
-  ],
-  "instructions": "numbered step-by-step cooking instructions as one string",
-  "nutrition": {
-    "calories": 0,
-    "protein": 0,
-    "carbs": 0,
-    "fat": 0
-  },
-  "cuisine": "cuisine type",
-  "mealType": "breakfast or lunch or dinner or snack",
-  "protocolTags": ["e.g. High Protein", "GLP-1 Friendly", "Anti-Inflammatory"]
-}`;
-
-      const generationResponse = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: `Create my personalized version of: "${mealDescription}"`,
-          },
-        ],
-        max_tokens: 1400,
-        temperature: 0.7,
+      // Step 2 — Enrich the description with the user's chosen options
+      const validatedServings = Math.max(
+        1,
+        Math.min(10, parseInt(String(servings)) || 2)
+      );
+      const enrichedInput = buildEnrichedCravingInput(mealDescription, {
+        healthMode: String(healthMode),
+        proteinPriority: String(proteinPriority),
+        prepStyle: String(prepStyle),
       });
 
-      const rawContent =
-        generationResponse.choices[0]?.message?.content?.trim() || "";
+      // Step 3 — Generate via the unified craving-creator pipeline
+      // No logic duplication: we call the same endpoint that powers the full app.
+      const authHeaders: Record<string, string> = {};
+      const authToken = req.headers["x-auth-token"];
+      if (authToken) authHeaders["x-auth-token"] = String(authToken);
+      if (req.headers.cookie)
+        authHeaders["cookie"] = req.headers.cookie as string;
 
-      let mealCard: any;
-      try {
-        const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
-        mealCard = JSON.parse(jsonMatch ? jsonMatch[0] : rawContent);
-      } catch {
-        console.error(
-          "[inspiration] Failed to parse meal card JSON:",
-          rawContent
-        );
-        return res
-          .status(500)
-          .json({ error: "Failed to generate meal card. Please try again." });
-      }
-
-      // Step 4 — Compliance scan (non-blocking in V1)
-      if (envelope) {
-        try {
-          const scanResult = scanGeneratedOutput(mealCard, envelope, {
-            generatorName: "inspiration",
-          });
-          if (!scanResult.passed) {
-            console.warn(
-              `[inspiration] Protocol scan violations for user ${userId}:`,
-              scanResult.violations?.map((v: any) => v.term)
-            );
-          }
-        } catch (e) {
-          console.warn("[inspiration] Compliance scan error (non-blocking):", e);
+      const cravingRes = await fetch(
+        `${INTERNAL_API_BASE}/api/meals/craving-creator`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...authHeaders },
+          body: JSON.stringify({
+            cravingInput: enrichedInput,
+            targetMealType: "dinner",
+            servings: validatedServings,
+            strictMode: healthMode === "healthier",
+            generationMode: "meal",
+            ...(cuisineOverride && typeof cuisineOverride === "string" && cuisineOverride.trim()
+              ? { cultureOverride: cuisineOverride.trim() }
+              : {}),
+          }),
         }
+      );
+
+      if (!cravingRes.ok) {
+        const errData = await cravingRes.json().catch(() => ({}));
+        console.error("[inspiration] craving-creator call failed:", errData);
+        throw new Error((errData as any).error || "Generation failed");
       }
 
-      const title = (mealCard.name || "My Personalized Meal").trim();
+      const cravingData: any = await cravingRes.json();
+      const firstMeal =
+        cravingData.meals?.[0] ||
+        cravingData.meal ||
+        cravingData.options?.[0];
+
+      if (!firstMeal) {
+        throw new Error("No meal returned from generator");
+      }
+
+      const title = (firstMeal.name || "My Personalized Meal").trim();
+
+      // Step 4 — Generate meal image (non-blocking)
+      let imageUrl: string | null = null;
+      try {
+        const imgResult = await processMealImageForSave(null, title);
+        imageUrl = imgResult.imageUrl ?? null;
+      } catch (e) {
+        console.warn("[inspiration] Image generation skipped:", e);
+      }
+
       const mealData: any = {
-        ...mealCard,
+        ...firstMeal,
         title,
-        imageUrl: null,
+        imageUrl,
         _inspiration: {
           inputType,
           originalDescription: mealDescription,
@@ -227,16 +201,43 @@ Output ONLY valid JSON — no markdown fences, no explanation:
         },
       };
 
-      // Step 5 — Generate meal image (non-blocking)
-      try {
-        const imgResult = await processMealImageForSave(null, title);
-        mealData.imageUrl = imgResult.imageUrl ?? null;
-      } catch (e) {
-        console.warn("[inspiration] Image generation skipped:", e);
-      }
+      return res.json({
+        success: true,
+        title,
+        mealData,
+        extractedDescription: mealDescription,
+      });
+    } catch (error: any) {
+      console.error("[inspiration] capture error:", error);
+      res.status(500).json({
+        error: "Failed to create your personalized meal. Please try again.",
+      });
+    }
+  }
+);
 
-      // Step 6 — Auto-save to Favorites
-      const macros = mealCard.nutrition || {};
+// ── POST /api/inspiration/save ────────────────────────────────────────────────
+// Saves a confirmed meal to Favorites under "My Inspirations".
+// Called only after the user reviews and approves in the preview workspace.
+router.post(
+  "/inspiration/save",
+  requireAuth,
+  requireActiveAccess,
+  async (req: any, res) => {
+    try {
+      const userId = req.authUser?.id || req.user?.id;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+      const { mealData } = req.body;
+      if (!mealData)
+        return res.status(400).json({ error: "mealData required" });
+
+      const title = (
+        mealData.title ||
+        mealData.name ||
+        "My Personalized Meal"
+      ).trim();
+      const macros = mealData.nutrition || {};
       const hash = mealSignature(title, "my-inspiration", macros);
 
       const existing = await db
@@ -267,14 +268,12 @@ Output ONLY valid JSON — no markdown fences, no explanation:
         savedId = row.id;
       }
 
-      return res.json({ success: true, id: savedId, title, mealData });
+      return res.json({ success: true, id: savedId, title });
     } catch (error: any) {
-      console.error("[inspiration] capture error:", error);
+      console.error("[inspiration] save error:", error);
       res
         .status(500)
-        .json({
-          error: "Failed to create your personalized meal. Please try again.",
-        });
+        .json({ error: "Failed to save meal. Please try again." });
     }
   }
 );

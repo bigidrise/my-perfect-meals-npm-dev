@@ -164,12 +164,13 @@ export function convertToUserFriendlyUnits(input: any): any {
           const amount = amountStr.includes('/')
             ? parseFloat(amountStr.split('/')[0].trim()) / parseFloat(amountStr.split('/')[1].trim())
             : parseFloat(amountStr.trim());
+          const rounded = Math.round(amount * 100) / 100;
           return {
             name: name.trim(),
-            amount: Math.round(amount * 1000) / 1000,
+            amount: rounded,
             unit: unit.toLowerCase(),
             notes: ingredient.notes || '',
-            displayText: `${amountStr.trim()} ${unit} ${name.trim()}`
+            displayText: `${rounded} ${unit} ${name.trim()}`
           };
         }
       }
