@@ -3,6 +3,7 @@ import { Share2, Lock } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
+import { formatAmount } from "@/utils/formatAmount";
 
 interface ShareRecipeButtonProps {
   recipe: {

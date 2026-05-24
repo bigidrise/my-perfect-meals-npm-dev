@@ -1,4 +1,5 @@
 import { Sparkles, Users, Brain, ChefHat, CalendarPlus, Leaf } from "lucide-react";
+import { formatAmount } from "@/utils/formatAmount";
 import { useLocation } from "wouter";
 import { useState as useStateCard, useEffect as useEffectCard } from "react";
 import { Button } from "@/components/ui/button";
@@ -338,7 +339,7 @@ export default function GeneratedMealCard({
           <ul className="text-sm text-white/80 space-y-1">
             {mealToShow.ingredients.map((ing, i) => (
               <li key={i}>
-                {ing.amount ?? ing.quantity} {ing.unit} {ing.name}
+                {formatAmount(ing.amount ?? ing.quantity)} {ing.unit} {ing.name}
               </li>
             ))}
           </ul>

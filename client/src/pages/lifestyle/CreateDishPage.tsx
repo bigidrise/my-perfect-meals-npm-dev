@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { formatAmount } from "@/utils/formatAmount";
 import { useMealImages } from "@/hooks/useMealImages";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import ThinkingDots from "@/components/ThinkingDots";
@@ -1181,7 +1182,7 @@ export default function CreateDishPage() {
                                 if (amount && unit) {
                                   return (
                                     <li key={i}>
-                                      {amount} {unit} {name}
+                                      {formatAmount(amount)} {unit} {name}
                                     </li>
                                   );
                                 }
