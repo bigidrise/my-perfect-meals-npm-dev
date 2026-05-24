@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { formatAmount } from "@/utils/formatAmount";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
@@ -1017,7 +1018,7 @@ export default function ChefsKitchenPage() {
                       </h4>
                       <ul className="text-sm text-white/80 space-y-1">
                         {mealToShow.ingredients.map((ing, i) => (
-                          <li key={i}>{ing.amount ?? ing.quantity} {ing.unit} {ing.name}</li>
+                          <li key={i}>{formatAmount(ing.amount ?? ing.quantity)} {ing.unit} {ing.name}</li>
                         ))}
                       </ul>
                     </div>
@@ -1122,6 +1123,7 @@ export default function ChefsKitchenPage() {
                           name: generatedMeal.name,
                           description: generatedMeal.description,
                           nutrition: generatedMeal.nutrition,
+                          instructions: generatedMeal.instructions,
                           ingredients: generatedMeal.ingredients.map((ing) => ({
                             name: ing.name,
                             amount: String(ing.amount ?? ing.quantity ?? ""),

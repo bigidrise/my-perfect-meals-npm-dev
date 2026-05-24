@@ -2,6 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Share2, Lock } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
+import { normalizeInstructions } from "@/utils/normalizeInstructions";
+import { formatAmount } from "@/utils/formatAmount";
 
 interface ShareRecipeButtonProps {
   recipe: {
@@ -14,6 +16,7 @@ interface ShareRecipeButtonProps {
       fat?: number;
     };
     ingredients?: Array<{ name: string; amount?: string; unit?: string }>;
+    instructions?: string[] | string;
   };
   className?: string;
   locked?: boolean;
@@ -25,19 +28,23 @@ export default function ShareRecipeButton({ recipe, className, locked, onLockedC
 
   const title = recipe.name || "My Perfect Meal";
   const description = recipe.description || "";
-  
-  const macroSummary = recipe.nutrition 
+
+  const macroSummary = recipe.nutrition
     ? `${recipe.nutrition.calories || 0} cal | ${recipe.nutrition.protein || 0}g protein | ${recipe.nutrition.carbs || 0}g carbs | ${recipe.nutrition.fat || 0}g fat`
     : "";
 
   const ingredientsList = recipe.ingredients
-    ?.slice(0, 5)
-    .map((i) => `• ${i.name}`)
+    ?.map((i) => {
+      const amount = formatAmount(i.amount);
+      const parts = [amount, i.unit, i.name].filter(Boolean);
+      return `• ${parts.join(" ")}`;
+    })
     .join("\n") || "";
-  
-  const moreIngredients = recipe.ingredients && recipe.ingredients.length > 5 
-    ? `\n+ ${recipe.ingredients.length - 5} more ingredients` 
-    : "";
+
+  const instructionSteps = normalizeInstructions(recipe.instructions);
+  const instructionsList = instructionSteps
+    .map((step, i) => `${i + 1}. ${step.trim()}`)
+    .join("\n");
 
   const shareText = [
     `🍽️ ${title}`,
@@ -46,9 +53,11 @@ export default function ShareRecipeButton({ recipe, className, locked, onLockedC
     "",
     macroSummary ? `📊 ${macroSummary}` : "",
     "",
-    ingredientsList ? `Ingredients:\n${ingredientsList}${moreIngredients}` : "",
+    ingredientsList ? `Ingredients:\n${ingredientsList}` : "",
     "",
-    "Created with My Perfect Meals"
+    instructionsList ? `Instructions:\n${instructionsList}` : "",
+    "",
+    "Created with My Perfect Meals",
   ].filter(Boolean).join("\n").trim();
 
   const handleShare = async (e: React.MouseEvent) => {
@@ -58,7 +67,7 @@ export default function ShareRecipeButton({ recipe, className, locked, onLockedC
       onLockedClick?.();
       return;
     }
-    
+
     try {
       if (Capacitor.isNativePlatform()) {
         await Share.share({

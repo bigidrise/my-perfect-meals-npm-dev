@@ -1591,10 +1591,11 @@ export default function SushiCreator() {
                               name: meal.name,
                               description: meal.description,
                               nutrition: meal.nutrition,
+                              instructions: meal.instructions,
                               ingredients: (meal.ingredients ?? []).map(
                                 (ing: any) => ({
                                   name: ing.item || ing.name,
-                                  amount: ing.amount || ing.quantity,
+                                  amount: String(ing.amount ?? ing.quantity ?? ""),
                                   unit: ing.unit,
                                 }),
                               ),

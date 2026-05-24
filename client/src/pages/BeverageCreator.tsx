@@ -1022,10 +1022,11 @@ export default function BeverageCreator() {
                           name: generatedBeverage.name,
                           description: generatedBeverage.description,
                           nutrition: generatedBeverage.nutrition,
+                          instructions: generatedBeverage.instructions,
                           ingredients: (generatedBeverage.ingredients ?? []).map(
                             (ing: any) => ({
                               name: ing.name || ing.item,
-                              amount: ing.amount,
+                              amount: String(ing.amount ?? ""),
                               unit: ing.unit,
                             }),
                           ),
