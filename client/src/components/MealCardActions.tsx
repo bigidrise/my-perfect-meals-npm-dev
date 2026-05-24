@@ -135,6 +135,7 @@ export default function MealCardActions({
             description: currentDescription,
             nutrition: meal.nutrition,
             ingredients: normalizedIngredients,
+            instructions: meal.instructions,
           }}
           className="flex-1 min-w-0"
         />
