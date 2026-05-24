@@ -23,14 +23,6 @@ interface ShareRecipeButtonProps {
   onLockedClick?: () => void;
 }
 
-function formatAmount(amount: string | undefined): string {
-  if (!amount) return "";
-  const num = parseFloat(amount);
-  if (isNaN(num)) return amount;
-  const rounded = Math.round(num * 100) / 100;
-  return String(rounded);
-}
-
 export default function ShareRecipeButton({ recipe, className, locked, onLockedClick }: ShareRecipeButtonProps) {
   if (!recipe) return null;
 
