@@ -1122,6 +1122,7 @@ export default function ChefsKitchenPage() {
                           name: generatedMeal.name,
                           description: generatedMeal.description,
                           nutrition: generatedMeal.nutrition,
+                          instructions: generatedMeal.instructions,
                           ingredients: generatedMeal.ingredients.map((ing) => ({
                             name: ing.name,
                             amount: String(ing.amount ?? ing.quantity ?? ""),

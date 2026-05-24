@@ -1560,10 +1560,11 @@ export default function UltimateExperiencesPage() {
                               name: course.name,
                               description: course.description,
                               nutrition: course.nutrition,
+                              instructions: course.instructions,
                               ingredients: (course.ingredients ?? []).map(
                                 (ing: any) => ({
                                   name: ing.item || ing.name,
-                                  amount: ing.amount || ing.quantity,
+                                  amount: String(ing.amount ?? ing.quantity ?? ""),
                                   unit: ing.unit,
                                 }),
                               ),
