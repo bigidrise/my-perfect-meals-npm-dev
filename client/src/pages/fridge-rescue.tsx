@@ -1481,12 +1481,13 @@ const FridgeRescuePage = () => {
                                 carbs: meal.carbs,
                                 fat: meal.fat,
                               },
+                              instructions: meal.instructions,
                               ingredients: (meal.ingredients ?? []).map(
                                 (ing: any) => ({
                                   name:
                                     typeof ing === "string" ? ing : ing.name,
                                   amount:
-                                    typeof ing === "string" ? "" : ing.quantity,
+                                    typeof ing === "string" ? "" : String(ing.quantity ?? ing.amount ?? ""),
                                   unit: typeof ing === "string" ? "" : ing.unit,
                                 }),
                               ),

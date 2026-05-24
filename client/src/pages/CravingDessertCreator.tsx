@@ -1218,10 +1218,11 @@ export default function DessertCreator() {
                           name: generatedDessert.name,
                           description: generatedDessert.description,
                           nutrition: generatedDessert.nutrition,
+                          instructions: generatedDessert.instructions,
                           ingredients: (generatedDessert.ingredients ?? []).map(
                             (ing: any) => ({
                               name: ing.name || ing.item,
-                              amount: ing.amount,
+                              amount: String(ing.amount ?? ""),
                               unit: ing.unit,
                             }),
                           ),
