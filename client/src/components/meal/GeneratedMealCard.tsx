@@ -443,6 +443,7 @@ export default function GeneratedMealCard({
               description: generatedMeal.description,
               nutrition: generatedMeal.nutrition,
               ingredients: normalizedIngredients,
+              instructions: generatedMeal.instructions,
             }}
             className={isFeatureEnabled('chefsKitchen') ? "flex-1" : "col-span-2"}
           />

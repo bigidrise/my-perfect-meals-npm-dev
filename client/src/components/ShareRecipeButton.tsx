@@ -14,6 +14,7 @@ interface ShareRecipeButtonProps {
       fat?: number;
     };
     ingredients?: Array<{ name: string; amount?: string; unit?: string }>;
+    instructions?: string[] | string;
   };
   className?: string;
   locked?: boolean;
@@ -25,19 +26,27 @@ export default function ShareRecipeButton({ recipe, className, locked, onLockedC
 
   const title = recipe.name || "My Perfect Meal";
   const description = recipe.description || "";
-  
-  const macroSummary = recipe.nutrition 
+
+  const macroSummary = recipe.nutrition
     ? `${recipe.nutrition.calories || 0} cal | ${recipe.nutrition.protein || 0}g protein | ${recipe.nutrition.carbs || 0}g carbs | ${recipe.nutrition.fat || 0}g fat`
     : "";
 
   const ingredientsList = recipe.ingredients
-    ?.slice(0, 5)
-    .map((i) => `• ${i.name}`)
+    ?.map((i) => {
+      const parts = [i.amount, i.unit, i.name].filter(Boolean);
+      return `• ${parts.join(" ")}`;
+    })
     .join("\n") || "";
-  
-  const moreIngredients = recipe.ingredients && recipe.ingredients.length > 5 
-    ? `\n+ ${recipe.ingredients.length - 5} more ingredients` 
-    : "";
+
+  const rawInstructions = recipe.instructions;
+  const instructionSteps: string[] = Array.isArray(rawInstructions)
+    ? rawInstructions
+    : rawInstructions
+    ? rawInstructions.split(/\n+/).filter((s) => s.trim().length > 0)
+    : [];
+  const instructionsList = instructionSteps
+    .map((step, i) => `${i + 1}. ${step.trim()}`)
+    .join("\n");
 
   const shareText = [
     `🍽️ ${title}`,
@@ -46,9 +55,11 @@ export default function ShareRecipeButton({ recipe, className, locked, onLockedC
     "",
     macroSummary ? `📊 ${macroSummary}` : "",
     "",
-    ingredientsList ? `Ingredients:\n${ingredientsList}${moreIngredients}` : "",
+    ingredientsList ? `Ingredients:\n${ingredientsList}` : "",
     "",
-    "Created with My Perfect Meals"
+    instructionsList ? `Instructions:\n${instructionsList}` : "",
+    "",
+    "Created with My Perfect Meals",
   ].filter(Boolean).join("\n").trim();
 
   const handleShare = async (e: React.MouseEvent) => {
@@ -58,7 +69,7 @@ export default function ShareRecipeButton({ recipe, className, locked, onLockedC
       onLockedClick?.();
       return;
     }
-    
+
     try {
       if (Capacitor.isNativePlatform()) {
         await Share.share({
