@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Share2, Lock } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
+import { normalizeInstructions } from "@/utils/normalizeInstructions";
 
 interface ShareRecipeButtonProps {
   recipe: {
@@ -21,6 +22,14 @@ interface ShareRecipeButtonProps {
   onLockedClick?: () => void;
 }
 
+function formatAmount(amount: string | undefined): string {
+  if (!amount) return "";
+  const num = parseFloat(amount);
+  if (isNaN(num)) return amount;
+  const rounded = Math.round(num * 100) / 100;
+  return String(rounded);
+}
+
 export default function ShareRecipeButton({ recipe, className, locked, onLockedClick }: ShareRecipeButtonProps) {
   if (!recipe) return null;
 
@@ -33,17 +42,13 @@ export default function ShareRecipeButton({ recipe, className, locked, onLockedC
 
   const ingredientsList = recipe.ingredients
     ?.map((i) => {
-      const parts = [i.amount, i.unit, i.name].filter(Boolean);
+      const amount = formatAmount(i.amount);
+      const parts = [amount, i.unit, i.name].filter(Boolean);
       return `• ${parts.join(" ")}`;
     })
     .join("\n") || "";
 
-  const rawInstructions = recipe.instructions;
-  const instructionSteps: string[] = Array.isArray(rawInstructions)
-    ? rawInstructions
-    : rawInstructions
-    ? rawInstructions.split(/\n+/).filter((s) => s.trim().length > 0)
-    : [];
+  const instructionSteps = normalizeInstructions(recipe.instructions);
   const instructionsList = instructionSteps
     .map((step, i) => `${i + 1}. ${step.trim()}`)
     .join("\n");
