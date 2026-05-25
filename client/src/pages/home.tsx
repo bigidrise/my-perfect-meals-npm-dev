@@ -70,13 +70,15 @@ export default function Home() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-8 left-8 right-8">
-              <h1 className="text-3xl lg:text-5xl font-bold text-white mb-3">
-                Your Perfect Meals,{" "}
-                <span className="text-orange-500">Powered by AI</span>
-              </h1>
-              <p className="text-white/90 text-lg lg:text-xl mb-6 max-w-3xl">
-                Effortlessly plan healthy meals tailored to your dietary preferences, health conditions, and fitness goals. Zero guesswork, maximum nutrition.
-              </p>
+              <div className="bg-black/55 backdrop-blur-sm rounded-xl px-4 py-3 mb-4 inline-block">
+                <h1 className="text-3xl lg:text-5xl font-bold text-white mb-3">
+                  Your Perfect Meals,{" "}
+                  <span className="text-orange-400">Powered by AI</span>
+                </h1>
+                <p className="text-white/90 text-lg lg:text-xl max-w-3xl">
+                  Effortlessly plan healthy meals tailored to your dietary preferences, health conditions, and fitness goals. Zero guesswork, maximum nutrition.
+                </p>
+              </div>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button 
                   onClick={handleStartPlanning}

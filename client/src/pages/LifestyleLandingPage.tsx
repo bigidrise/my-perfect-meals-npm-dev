@@ -166,10 +166,12 @@ export default function LifestyleLandingPage() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4">
-              <p className="text-white/90 text-sm">
-                Navigate cravings, dining out, and social moments with
-                AI-powered guidance.
-              </p>
+              <div className="bg-black/55 backdrop-blur-sm rounded-xl px-3 py-2.5">
+                <p className="text-white/90 text-sm">
+                  Navigate cravings, dining out, and social moments with
+                  AI-powered guidance.
+                </p>
+              </div>
             </div>
           </div>
 
