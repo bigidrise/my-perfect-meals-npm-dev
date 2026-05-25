@@ -224,7 +224,7 @@ export default function Builders() {
                           </h3>
                           {feature.builderId === "beach_body" && (
                             <span className="text-[10px] px-1.5 py-0.5 bg-amber-600/30 text-amber-300 rounded-full border border-amber-500/30 flex-shrink-0">
-                              Ultimate
+                              Clinical
                             </span>
                           )}
                           {(feature.builderId === "general_nutrition" ||

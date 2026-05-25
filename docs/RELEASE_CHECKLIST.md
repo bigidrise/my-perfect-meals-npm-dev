@@ -70,7 +70,7 @@ Before submitting to Apple App Store:
 - [ ] TestFlight build connects to production URL
 - [ ] Create With Chef works on iOS device/simulator
 - [ ] Meal images load correctly on iOS
-- [ ] StoreKit products load (mpm_basic_999_v2, mpm_premium_1999, mpm_ultimate_2999)
+- [ ] StoreKit products load (mpm.sub.basic.monthly.v1, mpm.sub.premium.monthly.v1, mpm.sub.ultimate.monthly.v1)
 - [ ] No console errors about missing API keys
 
 ### Recommended

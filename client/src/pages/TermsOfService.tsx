@@ -88,7 +88,7 @@ export default function TermsOfService() {
             <h3 className="text-lg font-semibold text-white">4. Subscriptions & Billing</h3>
             
             <h4 className="text-md font-medium text-white/90">4.1 Subscription Tiers</h4>
-            <p className="text-white/70 text-sm">My Perfect Meals may offer: Basic, Premium, Ultimate, ProCare (for professionals), and Affiliate discount options.</p>
+            <p className="text-white/70 text-sm">My Perfect Meals may offer: Essential, Pro, Clinical, ProCare (for professionals), and Affiliate discount options.</p>
 
             <h4 className="text-md font-medium text-white/90 mt-3">4.2 Payments</h4>
             <ul className="text-white/70 text-sm list-disc list-inside space-y-1">

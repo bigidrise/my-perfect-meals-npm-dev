@@ -27,16 +27,15 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
   free: {
     tier: "free",
     displayFeatures: [
-      "AI Fridge Rescue (1x per week)",
       "Macro Calculator",
-      "MacroScan",
-      "Ingredient Intelligence (personalized label scan)",
+      "MacroScan — scan any nutrition label for an instant macro breakdown",
+      "Ingredient Intelligence (3 scans/day — see protocol-aware safety alerts personalized to your profile)",
+      "AI Fridge Rescue (3x per week)",
       "Biometrics Tracking",
-      "Copilot Voice Guidance",
+      "Copilot Voice Guidance (limited)",
       "Daily Journal",
     ],
     entitlements: [
-      "shopping_list",
       "biometrics",
       "fridge_rescue",
     ],
@@ -45,15 +44,17 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
     tier: "basic",
     displayFeatures: [
       "Everything in Free",
-      "Create a Dish (AI meal generator)",
+      "Create a Dish — AI meal generator built around your full nutritional profile",
+      "Recipe Scan — import any recipe from a photo, text, or image description and rebuild it around your macros and protocols",
+      "Ingredient Intelligence (unlimited scans with full protocol personalization)",
       "AI Fridge Rescue (unlimited)",
-      "Multi-Language Voice Input & Translation",
-      "Weekly Meal Builder",
+      "Master Shopping List & Grocery Organization",
+      "Weekly Meal Planner",
       "GLP-1 Hub and Meal Builder",
       "Diabetic Hub and Meal Builder",
       "Anti-Inflammatory Meal Builder",
-      "SafeGuard Allergy Protection",
-      "Master Shopping List",
+      "SafeGuard Allergy Protection (2-layer enforcement)",
+      "Multi-Language Voice Input & Translation",
     ],
     entitlements: [
       "smart_menu_builder",
@@ -69,16 +70,17 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
   premium: {
     tier: "premium",
     displayFeatures: [
-      "Everything in Basic",
-      "Craving Creator (healthy versions of your favorite cravings)",
-      "Dessert Creator (healthy versions of your favorite desserts)",
-      "Fridge Rescue (turn what you have into full custom meals)",
+      "Everything in Essential",
+      "Full Recipe Scan — camera, voice, text, and photo capture with 5-control customization (servings, adaptation style, protein level, prep style, cuisine) and preview before saving",
+      "Craving Creator — healthy versions of any craving, built around your protocols",
+      "Snack Creator",
+      "Dessert Creator",
       "Beverage Creator",
       "Sushi Creator (rolls, nigiri, sashimi & bowls)",
       "Spirits & Wine Pairing Hub",
-      "Restaurant Guide",
-      "Find Meals Near Me",
+      "Restaurant Guide with protocol-aware ordering",
       "Fast Food Guide (smart ordering at McDonald's, Chick-fil-A, and more)",
+      "Find Meals Near Me",
       "My Perfect Gatherings (AI-designed multi-course meals for holidays, camping, date nights, and more)",
     ],
     entitlements: [
@@ -99,12 +101,14 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
   ultimate: {
     tier: "ultimate",
     displayFeatures: [
-      "Everything in Premium",
-      "Athlete Beverage Creator (performance drinks for training phases)",
+      "Everything in Pro",
+      "Clinical Lab Results Integration — connect your blood work and let the system adjust your meal protocols automatically based on your biomarkers",
       "Physicians Care Team / Pro Access",
       "Trainers Care Team / Pro Access",
+      "Athlete Beverage Creator (performance drinks calibrated to training phases)",
       "Beach Body / Hard Body Meal Builder",
-      "Clinical Lab Results",
+      "Competition Prep Builder",
+      "Clinical Advisory System",
     ],
     entitlements: [
       "smart_menu_builder",
@@ -128,42 +132,45 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
 export const IOS_DISPLAY_FEATURES: Record<string, string[]> = {
   basic: [
     "Create a Dish (AI meal generator)",
+    "Recipe Scan — photo or text, rebuilt for your profile",
+    "Ingredient Intelligence (unlimited)",
     "Copilot Voice Guidance",
     "Multi-Language Voice Input & Translation",
-    "AI Fridge Rescue (unlimited)",
-    "Weekly Meal Board",
+    "Unlimited AI Fridge Rescue",
+    "Weekly Meal Planner",
+    "Master Shopping List & Grocery Organization",
     "GLP-1 & Diabetic Support",
     "Anti-Inflammatory Builder",
-    "Daily Macro Calculator",
-    "Master Shopping Lists",
+    "Macro Calculator",
+    "MacroScan",
     "Biometrics Tracking",
     "Spirits & Alcohol Hub",
-    "SafetyGuard Allergy Protection",
+    "SafeGuard Allergy Protection",
   ],
   premium: [
-    "Everything in Basic, plus:",
+    "Everything in Essential, plus:",
+    "Full Recipe Scan (camera, voice, photo — with 5-control customize screen)",
     "Craving Creator",
+    "Snack Creator",
     "Dessert Creator",
-    "Fridge Rescue",
     "Beverage Creator",
     "Sushi Creator",
     "Spirits & Wine Pairing Hub",
-    "Restaurant Guide",
-    "Find Meals Near Me",
+    "Restaurant Guide with protocol-aware ordering",
     "Fast Food Guide",
+    "Find Meals Near Me",
     "My Perfect Gatherings",
     "Kids & Toddler Meals",
   ],
   ultimate: [
-    "Everything in Premium, plus:",
+    "Everything in Pro, plus:",
+    "Clinical Lab Results Integration (biomarker-aware meal protocols)",
     "Athlete Beverage Creator",
-    "Pro Care Team Access",
+    "Physicians & Trainers Care Team Access",
     "Beach Body Meal Builder",
     "Competition Prep Builder",
-    "Lab Metrics Integration",
-    "Priority Support",
-    "Coach Workspace",
     "Clinical Advisory System",
+    "Priority Support",
   ],
 };
 
@@ -251,19 +258,11 @@ const HOUSEHOLD_PLAN_KEYS = new Set([
   "mpm_family_all_ultimate_monthly",
 ]);
 
-/**
- * Returns true when the lookup key is any Family plan tier.
- * Use this to gate household profile creation and the profile switcher UI.
- */
 export function isHouseholdPlan(lookupKey: string | null | undefined): boolean {
   if (!lookupKey) return false;
   return HOUSEHOLD_PLAN_KEYS.has(lookupKey);
 }
 
-/**
- * Maximum number of household profiles the plan allows.
- * All Family plans support up to 4. Individual/Pro plans return 1 (owner only).
- */
 export function getMaxHouseholdProfiles(lookupKey: string | null | undefined): number {
   return isHouseholdPlan(lookupKey) ? 4 : 1;
 }

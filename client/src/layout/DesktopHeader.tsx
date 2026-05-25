@@ -71,9 +71,9 @@ const ROUTE_TITLES: Record<string, string> = {
 function getPlanLabel(planLookupKey?: string | null): string | null {
   if (!planLookupKey) return null;
   const key = planLookupKey.toLowerCase();
-  if (key.includes("ultimate")) return "Ultimate";
-  if (key.includes("premium")) return "Premium";
-  if (key.includes("basic")) return "Basic";
+  if (key.includes("ultimate")) return "Clinical";
+  if (key.includes("premium")) return "Pro";
+  if (key.includes("basic")) return "Essential";
   if (key.includes("trainer") || key.includes("physician") || key.includes("procare")) return "Professional";
   if (key.includes("family")) return "Family";
   if (key.includes("guidance")) return "Guidance";
