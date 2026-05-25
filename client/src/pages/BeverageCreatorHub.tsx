@@ -93,9 +93,11 @@ export default function BeverageCreatorHub() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
             <div className="absolute bottom-3 left-3 right-3">
-              <p className="text-white/90 text-sm">
-                Every drink — from daily wellness to elite performance.
-              </p>
+              <div className="bg-black/55 backdrop-blur-sm rounded-xl px-3 py-2.5">
+                <p className="text-white/90 text-sm">
+                  Every drink — from daily wellness to elite performance.
+                </p>
+              </div>
             </div>
           </div>
 
