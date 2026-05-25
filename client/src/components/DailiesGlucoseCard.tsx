@@ -35,13 +35,13 @@ export function DailiesGlucoseCard() {
       <div className="flex gap-2 items-center justify-center">
         {/* Testing Badge */}
         <FeatureLabel 
-          plan="Ultimate"
+          plan="Clinical"
           isOpenDuringTesting={true}
         />
         
         {/* Upgrade Badge */}
         <div className="text-xs text-white font-semibold text-center px-3 py-1 bg-red-600 rounded-lg border border-red-500 shadow-md">
-          {isIosNativeShell() ? "🔒 Unlock with Ultimate" : "🔒 Unlock with Ultimate Plan – $29.99/month"}
+          {isIosNativeShell() ? "🔒 Unlock with Clinical" : "🔒 Unlock with Clinical Plan – $44.99/month"}
         </div>
       </div>
     </div>

@@ -104,7 +104,7 @@ export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanBu
 
   const handleOpenDrawer = (e: React.MouseEvent) => {
     e.stopPropagation();
-    guardAction("Add meals to your weekly plan and track your nutrition with Premium.", () => {
+    guardAction("Add meals to your weekly plan and track your nutrition with Essential.", () => {
       const today = getTodayISOSafe(TZ);
       setSelectedDate(today);
       setSelectedSlot(null);

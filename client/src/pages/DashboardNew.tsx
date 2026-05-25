@@ -1458,7 +1458,7 @@ export default function DashboardNew() {
                 setLocation("/pricing");
               }}
             >
-              Explore Premium Plans
+              Explore Plans
             </Button>
             <Button
               variant="ghost"

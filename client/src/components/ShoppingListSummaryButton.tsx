@@ -28,7 +28,7 @@ export default function ShoppingListSummaryButton({ ingredients, mealName, class
   const { isFree, showLockModal, lockMessage, guardAction, closeLockModal } = useFreeLock();
 
   function handleClick() {
-    guardAction("Smart grocery lists unlock with Premium.", () => {
+    guardAction("Smart grocery lists unlock with Essential.", () => {
       setOpen(true);
     });
   }

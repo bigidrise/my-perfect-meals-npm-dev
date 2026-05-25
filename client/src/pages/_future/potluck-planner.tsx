@@ -300,7 +300,7 @@ export default function PotluckPlannerPage() {
             <CardContent className="p-6">
               <div className="mb-6">
                 <div className="bg-yellow-600/80 backdrop-blur-lg border border-yellow-400/30 text-white px-4 py-2 rounded-full text-sm font-medium text-center mb-4">
-                  Unlock with Premium Plan – $19.99/month
+                  Unlock with Pro Plan – $29.99/month
                 </div>
                 <span className="bg-green-600/80 backdrop-blur-lg border border-green-400/30 text-white px-4 py-2 rounded-full text-sm font-medium">
                   Alpha Testing - Feature Available

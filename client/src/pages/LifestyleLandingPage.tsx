@@ -269,7 +269,7 @@ export default function LifestyleLandingPage() {
               onClick={() => {
                 if (isFree) {
                   guardAction(
-                    "My Perfect Gatherings unlocks with Premium.",
+                    "My Perfect Gatherings unlocks with Pro.",
                     () => {},
                   );
                   return;
@@ -351,7 +351,7 @@ export default function LifestyleLandingPage() {
                     }`}
                     onClick={() => {
                       if (isFree && !feature.freeAccess) {
-                        guardAction(`${feature.title} unlocks with Premium.`, () => {});
+                        guardAction(`${feature.title} unlocks with Pro.`, () => {});
                         return;
                       }
                       handleCardClick(feature.route);

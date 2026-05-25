@@ -1529,7 +1529,7 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
           heading: "Where to Find It",
           list: [
             "Dashboard — Recipe Scan card",
-            "Available on Basic plans and above",
+            "Available on Essential plans and above",
           ],
         },
       ],
@@ -1578,7 +1578,7 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
           heading: "Where to Find It",
           list: [
             "Lifestyle Hub — My Perfect Gatherings card",
-            "Included with Premium and Ultimate subscriptions",
+            "Included with Pro and Clinical subscriptions",
           ],
         },
       ],
@@ -1616,7 +1616,7 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
           heading: "Where to Find It",
           list: [
             "Lifestyle → Socializing Hub → Restaurant Guide",
-            "Included with Premium and Ultimate subscriptions",
+            "Included with Pro and Clinical subscriptions",
           ],
         },
       ],
@@ -1660,7 +1660,7 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
           heading: "Where to Find It",
           list: [
             "Social Hub — Fast Food Guide card",
-            "Included with Premium and Ultimate subscriptions",
+            "Included with Pro and Clinical subscriptions",
           ],
         },
       ],
@@ -1694,7 +1694,7 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
           heading: "Where to Find It",
           list: [
             "Social Hub — Find Meals Near Me card",
-            "Included with Premium and Ultimate subscriptions",
+            "Included with Pro and Clinical subscriptions",
           ],
         },
       ],

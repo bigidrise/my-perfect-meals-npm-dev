@@ -411,7 +411,7 @@ export default function MealBuilderSelection() {
                         )}
                         {option.id === "beach_body" && (
                           <span className="text-xs px-2 py-0.5 bg-amber-600/30 text-amber-300 rounded-full border border-amber-500/30">
-                            Ultimate
+                            Clinical
                           </span>
                         )}
                         {(confirmedBuilder || user?.selectedMealBuilder) === option.id && (

@@ -30,7 +30,7 @@ export default function FavoriteButton({ title, sourceType, mealData, className 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
 
-    guardAction("Save meals and build your personal recipe board with Premium.", () => {
+    guardAction("Save meals and build your personal recipe board with Essential.", () => {
       const willBeSaved = !saved;
       setOptimisticSaved(willBeSaved);
 

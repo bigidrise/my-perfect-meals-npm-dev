@@ -62,17 +62,17 @@ export function getUpgradePlanForFeature(feature: Entitlement): LookupKey {
 
 export function getPlanDisplayName(lookupKey: string | null | undefined): string {
   const names: Record<string, string> = {
-    mpm_basic_monthly: "Basic",
-    mpm_upgrade_monthly: "Premium",
-    mpm_upgrade_beta_monthly: "Premium (Beta)",
-    mpm_premium_monthly: "Premium",
-    mpm_premium_beta_monthly: "Premium (Beta)",
-    mpm_ultimate_monthly: "Ultimate",
-    mpm_family_base_monthly: "Family Base",
-    mpm_family_premium: "Family Premium",
-    mpm_family_all_upgrade_monthly: "Family Premium",
-    mpm_family_all_premium_monthly: "Family Premium",
-    mpm_family_all_ultimate_monthly: "Family All-Ultimate",
+    mpm_basic_monthly: "Essential",
+    mpm_upgrade_monthly: "Pro",
+    mpm_upgrade_beta_monthly: "Pro (Beta)",
+    mpm_premium_monthly: "Pro",
+    mpm_premium_beta_monthly: "Pro (Beta)",
+    mpm_ultimate_monthly: "Clinical",
+    mpm_family_base_monthly: "Family Essential",
+    mpm_family_premium: "Family Pro",
+    mpm_family_all_upgrade_monthly: "Family Pro",
+    mpm_family_all_premium_monthly: "Family Pro",
+    mpm_family_all_ultimate_monthly: "Family Clinical",
     mpm_procare_monthly: "ProCare",
   };
 

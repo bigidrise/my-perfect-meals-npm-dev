@@ -1295,7 +1295,7 @@ export default function PricingPage() {
               Paid plans unlock the full platform — AI meal builders, weekly planning, specialty hubs, and more.
             </p>
             <p className="text-white/60 text-xs leading-relaxed">
-              Unlock full access with a subscription: Basic – $14.99/month · Premium – $24.99/month · Ultimate – $34.99/month
+              Unlock full access with a subscription: Essential – $19.99/month · Pro – $29.99/month · Clinical – $44.99/month
             </p>
             <p className="text-white/50 text-xs leading-relaxed">
               Payment will be charged to your account at confirmation of purchase.
@@ -1393,7 +1393,7 @@ export default function PricingPage() {
                 Paid plans unlock the full platform — AI meal builders, weekly planning, specialty hubs, and more.
               </p>
               <p className="text-white/60 text-xs leading-relaxed">
-                Unlock full access with a subscription: Basic – $14.99/month · Premium – $24.99/month · Ultimate – $34.99/month
+                Unlock full access with a subscription: Essential – $19.99/month · Pro – $29.99/month · Clinical – $44.99/month
               </p>
               <p className="text-white/50 text-xs leading-relaxed">
                 Payment will be charged to your account at confirmation of purchase.

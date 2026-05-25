@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 
 interface FeatureLabelProps {
-  plan: "Basic" | "Premium" | "Ultimate";
+  plan: "Essential" | "Pro" | "Clinical";
   isOpenDuringTesting?: boolean;
 }
 
@@ -14,16 +14,16 @@ export default function FeatureLabel({ plan, isOpenDuringTesting }: FeatureLabel
     style = "bg-green-500 text-white";
   } else {
     switch (plan) {
-      case "Premium":
-        label = "Premium Plan";
+      case "Pro":
+        label = "Pro Plan";
         style = "bg-yellow-500 text-white";
         break;
-      case "Ultimate":
-        label = "Ultimate Plan";
+      case "Clinical":
+        label = "Clinical Plan";
         style = "bg-orange-600 text-white";
         break;
       default:
-        label = "Basic Feature";
+        label = "Essential Feature";
         style = "bg-gray-300 text-black";
     }
   }
