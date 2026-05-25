@@ -70,7 +70,7 @@ export default function BottomNav() {
     return [
       {
         id: "home",
-        label: "Home",
+        label: "Dashboard",
         icon: Home,
         path: "/dashboard",
       },
