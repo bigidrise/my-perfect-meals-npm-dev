@@ -394,7 +394,7 @@ export default function Welcome() {
         </h1>
 
         <p className="text-md md:text-xl text-white/80 text-center mb-6 max-w-md">
-          AI Coach In Your Pocket
+          Adaptive AI Nutrition Platform
         </p>
 
         <div className="mb-12 flex justify-center">
