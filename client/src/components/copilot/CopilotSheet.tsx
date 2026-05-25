@@ -5,6 +5,7 @@ import { startCopilotIntro } from "./CopilotCommandRegistry";
 import { ttsService, TTSCallbacks } from "@/lib/tts";
 import { useCopilotGuidedMode } from "./CopilotGuidedModeContext";
 import { useGuestProgress } from "@/hooks/useGuestProgress";
+import { useWordHighlight } from "./useWordHighlight";
 
 export const CopilotSheet: React.FC = () => {
   const { isOpen, close, mode, setMode, lastResponse, suggestions, runAction, setLastResponse } = useCopilot();
@@ -12,6 +13,37 @@ export const CopilotSheet: React.FC = () => {
   
   const { isGuest, nextStepMessage } = useGuestProgress();
   const guestNudgeMessage = isGuest ? nextStepMessage : null;
+
+  // =========================================
+  // TEXT-ONLY / ACCESSIBILITY MODE
+  // Persisted in localStorage. When enabled: no TTS is requested,
+  // word highlight runs at a fixed 150 WPM reading pace instead.
+  // =========================================
+  const [textOnly, setTextOnly] = useState<boolean>(() =>
+    localStorage.getItem("mpm.copilot.textOnly") === "true"
+  );
+  const [textOnlyRunning, setTextOnlyRunning] = useState(false);
+  const textOnlyTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const toggleTextOnly = useCallback(() => {
+    setTextOnly((prev) => {
+      const next = !prev;
+      localStorage.setItem("mpm.copilot.textOnly", String(next));
+      return next;
+    });
+  }, []);
+
+  // =========================================
+  // AUDIO DURATION — captured when the audio element metadata loads.
+  // Passed to the word-highlight hook so words pace to match the clip.
+  // =========================================
+  const [audioDurationMs, setAudioDurationMs] = useState<number | null>(null);
+
+  const handleLoadedMetadata = useCallback(() => {
+    if (audioRef.current && audioRef.current.duration && isFinite(audioRef.current.duration)) {
+      setAudioDurationMs(audioRef.current.duration * 1000);
+    }
+  }, []);
 
   // =========================================
   // AUDIO - Visual-First with Graceful Degradation
@@ -135,6 +167,7 @@ export const CopilotSheet: React.FC = () => {
     
     try {
       setIsAudioPlaying(true);
+      setAudioDurationMs(null); // Reset — will be set by onLoadedMetadata
       
       const callbacks: TTSCallbacks = {
         onStart: handleAudioStart,
@@ -160,6 +193,22 @@ export const CopilotSheet: React.FC = () => {
       setIsAudioPlaying(false);
     }
   }, [lastResponse?.spokenText, handleAudioStart, handleAudioComplete]);
+
+  // =========================================
+  // TEXT-ONLY READ: No audio — runs word highlight at fixed 150 WPM.
+  // For deaf/hard-of-hearing users or quiet environments.
+  // =========================================
+  const handleReadResponse = useCallback(() => {
+    if (!lastResponse?.spokenText) return;
+    const wordCount = lastResponse.spokenText.split(/\s+/).filter(Boolean).length;
+    const totalMs = wordCount * 400; // 150 WPM
+    setTextOnlyRunning(true);
+    setAudioDurationMs(null); // null = fixed pace
+    if (textOnlyTimerRef.current) clearTimeout(textOnlyTimerRef.current);
+    textOnlyTimerRef.current = setTimeout(() => {
+      setTextOnlyRunning(false);
+    }, totalMs + 600); // small buffer after last word
+  }, [lastResponse?.spokenText]);
 
   // Cleanup on unmount or when sheet closes
   useEffect(() => {
@@ -247,7 +296,7 @@ export const CopilotSheet: React.FC = () => {
   }, []);
 
   // =========================================
-  // STOP - Fully resets audio, keeps sheet open so user can read
+  // STOP - Fully resets audio + text-only, keeps sheet open so user can read
   // =========================================
   const handleStop = useCallback(() => {
     ttsService.stop();
@@ -261,6 +310,12 @@ export const CopilotSheet: React.FC = () => {
     });
     setIsAudioPlaying(false);
     setUserPaused(false);
+    setTextOnlyRunning(false);
+    setAudioDurationMs(null);
+    if (textOnlyTimerRef.current) {
+      clearTimeout(textOnlyTimerRef.current);
+      textOnlyTimerRef.current = null;
+    }
     clearAutoCloseTimers(); // Sheet stays open
   }, [clearAutoCloseTimers]);
 
@@ -305,7 +360,7 @@ export const CopilotSheet: React.FC = () => {
 
   // ╔═══════════════════════════════════════════════════════════════════════╗
   // ║  PROTECTED INVARIANT: Stop ALL active sessions when sheet closes      ║
-  // ║  This includes: audio playback and pending timers                     ║
+  // ║  This includes: audio playback, text-only mode, and pending timers    ║
   // ║  DO NOT REMOVE - ensures clean state on close                         ║
   // ╚═══════════════════════════════════════════════════════════════════════╝
   useEffect(() => {
@@ -323,6 +378,13 @@ export const CopilotSheet: React.FC = () => {
       setAudioBlocked(false);
       setIsAudioPlaying(false);
       setUserPaused(false);
+      // Reset text-only animation state
+      setTextOnlyRunning(false);
+      setAudioDurationMs(null);
+      if (textOnlyTimerRef.current) {
+        clearTimeout(textOnlyTimerRef.current);
+        textOnlyTimerRef.current = null;
+      }
       
       // CRITICAL: Clear all auto-close timers when user manually closes
       clearAutoCloseTimers();
@@ -352,6 +414,22 @@ export const CopilotSheet: React.FC = () => {
 
   // Voice and text input removed - Copilot is now tap-to-action only
   // Users interact via the suggestion tiles below
+
+  // =========================================
+  // WORD HIGHLIGHT — synchronized karaoke / closed-caption scrolling
+  // Active while audio is playing OR text-only mode is running.
+  // =========================================
+  const isHighlighting = isAudioPlaying || textOnlyRunning;
+  const { words: highlightWords, currentWordIndex } = useWordHighlight(
+    lastResponse?.spokenText,
+    isHighlighting,
+    isAudioPlaying ? audioDurationMs : null, // text-only always uses fixed pace
+  );
+  // Ref for the currently-highlighted word span — used for auto-scroll
+  const currentWordRef = useRef<HTMLSpanElement | null>(null);
+  useEffect(() => {
+    currentWordRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [currentWordIndex]);
 
   // =========================================
   // WALKTHROUGH STATE
@@ -432,6 +510,24 @@ export const CopilotSheet: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
+                      {/* Text-Only Mode Toggle — for hearing-impaired or silent environments */}
+                      <button
+                        onClick={toggleTextOnly}
+                        aria-pressed={textOnly}
+                        aria-label={textOnly ? "Text-only mode on — tap to re-enable audio" : "Text-only mode off — tap to disable audio"}
+                        title={textOnly ? "Text-only mode: audio disabled" : "Audio mode: tap to switch to text-only"}
+                        className={`
+                          !min-h-0 !min-w-0 inline-flex items-center justify-center
+                          w-7 h-7 rounded-full text-sm
+                          transition-all duration-150 ease-out
+                          ${textOnly
+                            ? "bg-sky-600/70 text-white border border-sky-400/50"
+                            : "bg-white/8 text-white/40 border border-white/12"
+                          }
+                        `}
+                      >
+                        {textOnly ? "👁" : "🔇"}
+                      </button>
                       {/* Autoplay Toggle - Static AUTO label, ON/OFF does the work */}
                       <span className="text-[9px] text-emerald-400/80 drop-shadow-[0_0_3px_rgba(52,211,153,0.3)]">Auto</span>
                       <button
@@ -506,6 +602,7 @@ export const CopilotSheet: React.FC = () => {
                     ref={audioRef}
                     autoPlay
                     src={audioUrl}
+                    onLoadedMetadata={handleLoadedMetadata}
                     onPlay={handleAudioStart}
                     onEnded={() => {
                       // Clean up URL
@@ -574,19 +671,27 @@ export const CopilotSheet: React.FC = () => {
                       <div className="flex items-start justify-between mb-2">
                         <h2 className="text-lg font-semibold text-white">{lastResponse.title}</h2>
                         <div className="flex items-center gap-2">
-                          {/* Listen Button - On-demand TTS */}
+                          {/* Listen / Read Button — adapts to text-only mode */}
                           {lastResponse.spokenText && (
                             <button
-                              onClick={handleListenToResponse}
-                              disabled={isAudioPlaying || userPaused}
+                              onClick={textOnly ? handleReadResponse : handleListenToResponse}
+                              disabled={isHighlighting || userPaused}
                               className={`text-xs px-2 py-1 rounded-full transition-all ${
-                                isAudioPlaying || userPaused
+                                isHighlighting || userPaused
                                   ? "bg-orange-500/50 text-white opacity-60 cursor-not-allowed"
-                                  : "bg-orange-500/40 text-white border-2 border-orange-400 hover:bg-orange-500/60 animate-pulse pulse-keep"
+                                  : "bg-orange-500/40 text-white border-2 border-orange-400 animate-pulse pulse-keep"
                               }`}
-                              title="Listen to response"
+                              title={textOnly ? "Read with word highlight (no audio)" : "Listen to response"}
                             >
-                              {isAudioPlaying ? "🔊 Playing..." : userPaused ? "⏸ Paused" : "🔊 Listen"}
+                              {isAudioPlaying
+                                ? "🔊 Playing..."
+                                : textOnlyRunning
+                                ? "📖 Reading..."
+                                : userPaused
+                                ? "⏸ Paused"
+                                : textOnly
+                                ? "📖 Read"
+                                : "🔊 Listen"}
                             </button>
                           )}
                           <button
@@ -598,6 +703,35 @@ export const CopilotSheet: React.FC = () => {
                         </div>
                       </div>
                       <p className="text-white/80 text-sm mb-3">{lastResponse.description}</p>
+
+                      {/* ── Word-Highlight Scrolling Text ──────────────────────────
+                          Appears while audio plays OR text-only mode is running.
+                          Words advance in sync with the audio clip duration,
+                          or at a fixed 150 WPM pace in text-only mode.
+                      ──────────────────────────────────────────────────────────── */}
+                      {isHighlighting && highlightWords.length > 0 && (
+                        <div
+                          className="mb-3 max-h-28 overflow-y-auto rounded-xl bg-black/40 border border-orange-400/20 px-3 py-2.5 leading-7"
+                          aria-live="polite"
+                          aria-label="Reading along with Copilot"
+                        >
+                          {highlightWords.map((word, i) => (
+                            <span
+                              key={i}
+                              ref={i === currentWordIndex ? currentWordRef : null}
+                              className={`mr-[0.28em] inline transition-all duration-100 ${
+                                i < currentWordIndex
+                                  ? "text-white/55"
+                                  : i === currentWordIndex
+                                  ? "rounded px-0.5 bg-orange-500/25 text-orange-300 font-semibold"
+                                  : "text-white/22"
+                              }`}
+                            >
+                              {word}
+                            </span>
+                          ))}
+                        </div>
+                      )}
 
                       {lastResponse.howTo && lastResponse.howTo.length > 0 && (
                         <div className="mb-4">
