@@ -190,9 +190,11 @@ export default function Builders() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4">
-              <p className="text-white/90 text-sm">
-                Tailored meal planning for your specific health needs and goals.
-              </p>
+              <div className="bg-black/55 backdrop-blur-sm rounded-xl px-3 py-2.5">
+                <p className="text-white/90 text-sm">
+                  Tailored meal planning for your specific health needs and goals.
+                </p>
+              </div>
             </div>
           </div>
 

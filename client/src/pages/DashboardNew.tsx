@@ -735,16 +735,18 @@ export default function DashboardNew() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4">
-              <h2 className="text-2xl font-bold text-white mb-1">
-                Welcome back, {firstName}!
-              </h2>
-              <p className="text-white/80 text-sm mb-2">
-                Your coach is learning what works for you.
-              </p>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/20 border border-orange-400/40 text-orange-300 text-xs font-medium mb-3">
-                <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
-                Behavior AI · Emotion-aware coaching
-              </span>
+              <div className="bg-black/55 backdrop-blur-sm rounded-xl px-3 py-2.5 mb-3">
+                <h2 className="text-2xl font-bold text-white mb-1">
+                  Welcome back, {firstName}!
+                </h2>
+                <p className="text-white/85 text-sm mb-2">
+                  Your coach is learning what works for you.
+                </p>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/30 border border-orange-400/60 text-orange-200 text-xs font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
+                  Behavior AI · Emotion-aware coaching
+                </span>
+              </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="flex flex-col items-center p-2 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
                   <Flame className="h-4 w-4 text-blue-500 mb-1" />
