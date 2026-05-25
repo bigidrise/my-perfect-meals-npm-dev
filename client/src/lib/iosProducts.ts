@@ -11,20 +11,20 @@ export const IOS_PRODUCTS: IosProduct[] = [
   {
     productId: "mpm.sub.basic.monthly.v1",
     internalSku: "mpm_basic_monthly",
-    label: "Basic",
-    price: 14.99,
+    label: "Essential",
+    price: 19.99,
   },
   {
     productId: "mpm.sub.premium.monthly.v1",
     internalSku: "mpm_premium_monthly",
-    label: "Premium",
-    price: 24.99,
+    label: "Pro",
+    price: 29.99,
   },
   {
     productId: "mpm.sub.ultimate.monthly.v1",
     internalSku: "mpm_ultimate_monthly",
-    label: "Ultimate",
-    price: 34.99,
+    label: "Clinical",
+    price: 44.99,
   },
 ];
 

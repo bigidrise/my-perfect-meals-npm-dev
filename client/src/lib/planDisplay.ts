@@ -7,20 +7,20 @@ import { LookupKey } from "@/data/planSkus";
 export function planDisplayName(lookupKey?: string): string {
   switch (lookupKey) {
     case "mpm_basic_monthly":
-      return "Basic";
-    case "mpm_upgrade_monthly": // ← keep key, show Premium
+      return "Essential";
+    case "mpm_upgrade_monthly":
     case "mpm_upgrade_beta_monthly":
-      return "Premium";
+      return "Pro";
     case "mpm_ultimate_monthly":
-      return "Ultimate";
+      return "Clinical";
     case "mpm_family_base_monthly":
-      return "Family Base";
+      return "Family Essential";
     case "mpm_family_premium":
     case "mpm_family_all_upgrade_monthly":
     case "mpm_family_all_premium_monthly":
-      return "Family Premium";
+      return "Family Pro";
     case "mpm_family_all_ultimate_monthly":
-      return "Family Ultimate";
+      return "Family Clinical";
     case "mpm_procare_monthly":
       return "ProCare";
     default:
@@ -33,7 +33,7 @@ export function planDisplayName(lookupKey?: string): string {
  */
 export function planBadge(lookupKey?: string): string {
   const name = planDisplayName(lookupKey);
-  return name === "Premium (Beta)" ? "Premium" : name;
+  return name;
 }
 
 /**

@@ -669,7 +669,7 @@ export default function PricingPage() {
                   data-testid={`plan-card-${plan.sku}`}
                 >
                   {plan.badge && (
-                    <Badge className="absolute top-3 right-3 bg-purple-600/80 text-white backdrop-blur-sm border border-white/10">
+                    <Badge className="absolute top-3 right-3 bg-orange-600/80 text-white backdrop-blur-sm border border-white/10">
                       {plan.badge}
                     </Badge>
                   )}
