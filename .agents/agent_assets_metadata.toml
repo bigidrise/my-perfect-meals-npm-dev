@@ -101,3 +101,9 @@ id = "SE_54swVRupBRN2mljiRW"
 uri = "file://docs/devops-operations-overview.md"
 type = "text"
 title = "My Perfect Meals — Development & Operations Overview"
+
+[[outputs]]
+id = "d8cu4qXMWLXDM7kDsL02D"
+uri = "file://docs/curriculum/MPM-Certification-Curriculum.md"
+type = "text"
+title = "MPM Certification Curriculum — NASM / ISSA Partnership Proposal"
