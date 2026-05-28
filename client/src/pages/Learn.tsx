@@ -1565,7 +1565,7 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
           list: [
             "Holidays: Thanksgiving, Christmas, Hanukkah, Easter, Passover, Eid, and more",
             "Camping: fire-cooked, foil packet, skillet, and no-cook courses",
-            "Great Outdoors: wild game, harvested proteins, smoker, Dutch oven, cast iron, and field-to-table cooking",
+            "Great Outdoors: anything you found, caught, harvested, or grew — wild game, fish, foraged items, garden produce, and more",
             "Date Night: elegant multi-course dining at home",
             "Family Dinner: comfort food designed for a crowd",
             "Game Day, Potluck, Backyard BBQ, and more",
@@ -1588,25 +1588,35 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
   {
     id: "great-outdoors",
     title: "Great Outdoors",
-    subtitle: "Harvest-to-Table meals for wild game, fresh catch & outdoor cooking",
+    subtitle: "Nature-to-Table for anything you found, caught, harvested, or grew",
     icon: Flame,
     content: {
       sections: [
         {
           heading: "What Is Great Outdoors?",
-          text: "Great Outdoors is a complete Harvest-to-Table experience inside My Perfect Gatherings. You enter what you harvested — venison, wild turkey, elk, trout, or anything else — choose a cooking method, and the app generates a Harvest-to-Table Guide followed by a full protocol-aware multi-course meal. Field to kitchen to table, all in one flow.",
+          text: "Great Outdoors is an outdoor lifestyle feature inside My Perfect Gatherings. You enter what you found, caught, harvested, or grew — venison, trout, wild mushrooms, blackberries, garden zucchini, eggs, or anything else — choose a cooking method, and the app builds a Nature-to-Table experience personalized to your dietary profile. It is not just for hunters. It is for anyone who starts a meal outdoors.",
         },
         {
-          heading: "The Harvest-to-Table Guide",
-          text: "Before any meal cards appear, you receive a practical educational guide specific to your protein. It covers field handling, cleaning, preparation, aging, storage, and food safety in plain language — not a certification course, just the information a home cook with outdoor experience needs to handle their harvest safely and confidently.",
+          heading: "The Three Modes",
+          list: [
+            "Simple Preparation — the guide IS the result. No meal courses. Just: what you have, how to prep it, and three ways to cook it. Best for: I caught a trout. Now what?",
+            "Complete Meal — one full centerpiece meal built around your ingredient. Best for: I have venison and want a complete dinner.",
+            "Gathering Experience — full multi-course meal. Best for: I want to host a Great Outdoors dinner for a group.",
+          ],
+        },
+        {
+          heading: "The Nature-to-Table Guide",
+          text: "Every Great Outdoors experience begins with a Nature-to-Table Guide specific to what you entered. For Simple Preparation, the guide is the entire result — covering what you have, how to prepare it, three cooking methods, and food safety. For Complete Meal and Gathering modes, it appears as a brief companion above the meal courses.",
         },
         {
           heading: "What You Can Enter",
           list: [
-            "Wild game: Venison, Elk, Bison, Boar, Antelope, Rabbit, and more",
+            "Wild game: Venison, Elk, Bison, Boar, Rabbit, and more",
             "Birds: Wild Turkey, Duck, Quail, Pheasant, and others",
-            "Fish: Trout, Salmon, Catfish, Walleye, Redfish, and more",
-            "Anything else — the AI handles unusual and regional harvests too",
+            "Fish & shellfish: Trout, Salmon, Catfish, Walleye, Redfish, and more",
+            "Foraged items: Wild mushrooms, blackberries, ramps, fiddlehead ferns",
+            "Garden produce: Tomatoes, zucchini, basil, peppers, eggs",
+            "Anything else — the AI identifies and adapts to whatever you entered",
           ],
         },
         {
@@ -1622,13 +1632,13 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
         },
         {
           heading: "Your Protocols Still Apply",
-          text: "Every Great Outdoors meal is still built around your dietary identity, medical conditions, allergies, and active protocols. If you are anti-inflammatory, keto, or have specific medical guardrails, every course respects those rules automatically. The harvest changes. The protection does not.",
+          text: "Every Great Outdoors experience is still built around your dietary identity, medical conditions, allergies, and active protocols. If you are anti-inflammatory, keto, diabetic, or have specific medical guardrails, every result respects those rules automatically. The ingredient changes. The protection does not.",
         },
         {
           heading: "Where to Find It",
           list: [
             "Lifestyle Hub — My Perfect Gatherings card",
-            "Select 'Great Outdoors' from the occasion selector",
+            "Select 'Great Outdoors' (🪵) from the occasion selector",
             "Included with Pro and Clinical subscriptions",
           ],
         },
