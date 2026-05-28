@@ -11,7 +11,8 @@ import { UpgradeLockModal } from "@/components/upgrade/UpgradeLockModal";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
-const DOG_BOWL_IMAGE = "https://images.unsplash.com/photo-1601758003122-53c40e686a19?w=800&auto=format&fit=crop&q=80";
+const COMPANION_HERO = "/images/companion-hero.png";
+const PREMIUM_MSG = "My Perfect Pets is a premium feature. Upgrade to access personalized dog nutrition.";
 
 interface DogProfile {
   id: string;
@@ -83,13 +84,6 @@ export default function CompanionNutritionHub() {
     setDeletingId(null);
   }
 
-  const activityLabels: Record<string, string> = {
-    low: "Low Activity",
-    moderate: "Moderate",
-    high: "High Activity",
-    working: "Working Dog",
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -121,16 +115,13 @@ export default function CompanionNutritionHub() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
       >
         {/* Hero */}
-        <div className="relative h-44 rounded-2xl overflow-hidden mb-5">
+        <div className="relative h-52 rounded-2xl overflow-hidden mb-5">
           <img
-            src={DOG_BOWL_IMAGE}
-            alt="Companion Nutrition"
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = "none";
-            }}
+            src={COMPANION_HERO}
+            alt="My Perfect Pets — Companion Nutrition"
+            className="w-full h-full object-cover object-top"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
           <div className="absolute bottom-4 left-4 right-4">
             <div className="bg-black/55 backdrop-blur-sm rounded-xl px-3 py-2.5">
               <p className="text-white font-semibold text-sm">Companion Nutrition Intelligence</p>
@@ -148,21 +139,21 @@ export default function CompanionNutritionHub() {
               icon: Plus,
               label: "Add a Dog",
               sub: "Create profile",
-              action: () => guardAction(() => setLocation("/companion/setup")),
+              action: () => guardAction(PREMIUM_MSG, () => setLocation("/companion/setup")),
               color: "from-orange-600/30 to-orange-800/20",
             },
             {
               icon: ChefHat,
               label: "Meal Generator",
               sub: "Make a meal",
-              action: () => guardAction(() => setLocation("/companion/generator")),
+              action: () => guardAction(PREMIUM_MSG, () => setLocation("/companion/generator")),
               color: "from-amber-600/30 to-orange-700/20",
             },
             {
               icon: Search,
               label: "Ingredient Scan",
               sub: "Is it safe?",
-              action: () => guardAction(() => setLocation("/companion/scanner")),
+              action: () => guardAction(PREMIUM_MSG, () => setLocation("/companion/scanner")),
               color: "from-orange-500/30 to-red-800/20",
             },
           ].map((item) => (
@@ -182,7 +173,7 @@ export default function CompanionNutritionHub() {
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-white font-bold text-sm">Your Dogs</h2>
-            <PillButton onClick={() => guardAction(() => setLocation("/companion/setup"))}>
+            <PillButton onClick={() => guardAction(PREMIUM_MSG, () => setLocation("/companion/setup"))}>
               <Plus className="h-3 w-3" /> Add Dog
             </PillButton>
           </div>
@@ -202,7 +193,7 @@ export default function CompanionNutritionHub() {
               <p className="text-white/50 text-xs mb-4">
                 Create your dog's profile to generate personalized meals and wellness guidance.
               </p>
-              <PillButton onClick={() => guardAction(() => setLocation("/companion/setup"))}>
+              <PillButton onClick={() => guardAction(PREMIUM_MSG, () => setLocation("/companion/setup"))}>
                 Create First Profile
               </PillButton>
             </motion.div>
@@ -225,7 +216,7 @@ export default function CompanionNutritionHub() {
                         <p className="text-white/50 text-xs truncate">
                           {profile.breed}{profile.isMixedBreed ? " Mix" : ""} · {profile.ageYears}yr · {profile.weightLbs}lbs
                         </p>
-                        {profile.wellnessGoals?.length > 0 && (
+                        {Array.isArray(profile.wellnessGoals) && profile.wellnessGoals.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1.5">
                             {profile.wellnessGoals.slice(0, 2).map((goal) => (
                               <span
@@ -246,14 +237,20 @@ export default function CompanionNutritionHub() {
                     </div>
                     <div className="flex flex-col gap-1.5 flex-shrink-0">
                       <PillButton
-                        onClick={() => guardAction(() => setLocation(`/companion/generator?profileId=${profile.id}`))}
+                        onClick={() => guardAction(PREMIUM_MSG, () => setLocation(`/companion/generator?profileId=${profile.id}`))}
                       >
                         <ChefHat className="h-3 w-3" /> Cook
                       </PillButton>
                       <PillButton
-                        onClick={() => guardAction(() => setLocation(`/companion/setup/${profile.id}`))}
+                        onClick={() => guardAction(PREMIUM_MSG, () => setLocation(`/companion/setup/${profile.id}`))}
                       >
                         Edit
+                      </PillButton>
+                      <PillButton
+                        onClick={() => handleDeleteProfile(profile.id, profile.name)}
+                        disabled={deletingId === profile.id}
+                      >
+                        <Trash2 className="h-3 w-3" />
                       </PillButton>
                     </div>
                   </div>
@@ -261,6 +258,39 @@ export default function CompanionNutritionHub() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Navigation Links */}
+        <div className="space-y-2 mb-6">
+          {[
+            {
+              label: "Homemade Meal Generator",
+              sub: "Personalized recipes for your dog",
+              icon: ChefHat,
+              route: "/companion/generator",
+            },
+            {
+              label: "Ingredient Safety Scanner",
+              sub: "Check any food in seconds",
+              icon: Search,
+              route: "/companion/scanner",
+            },
+          ].map((item) => (
+            <button
+              key={item.route}
+              onClick={() => guardAction(PREMIUM_MSG, () => setLocation(item.route))}
+              className="w-full bg-black/40 border border-white/10 rounded-xl p-4 flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <item.icon className="h-5 w-5 text-orange-400" />
+                <div className="text-left">
+                  <p className="text-white font-semibold text-sm">{item.label}</p>
+                  <p className="text-white/50 text-xs">{item.sub}</p>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-white/30" />
+            </button>
+          ))}
         </div>
 
         {/* Behavior & Feeding Wisdom */}
@@ -282,39 +312,6 @@ export default function CompanionNutritionHub() {
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Navigation Links */}
-        <div className="space-y-2 mb-6">
-          {[
-            {
-              label: "Homemade Meal Generator",
-              sub: "Personalized recipes for your dog",
-              icon: ChefHat,
-              route: "/companion/generator",
-            },
-            {
-              label: "Ingredient Safety Scanner",
-              sub: "Check any food in seconds",
-              icon: Search,
-              route: "/companion/scanner",
-            },
-          ].map((item) => (
-            <button
-              key={item.route}
-              onClick={() => guardAction(() => setLocation(item.route))}
-              className="w-full bg-black/40 border border-white/10 rounded-xl p-4 flex items-center justify-between hover:border-orange-500/30 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <item.icon className="h-5 w-5 text-orange-400" />
-                <div className="text-left">
-                  <p className="text-white font-semibold text-sm">{item.label}</p>
-                  <p className="text-white/50 text-xs">{item.sub}</p>
-                </div>
-              </div>
-              <ArrowRight className="h-4 w-4 text-white/30" />
-            </button>
-          ))}
         </div>
 
         {/* Disclaimer */}
