@@ -129,9 +129,18 @@ const SITUATIONS: Array<{ id: Situation; label: string; emoji: string }> = [
   { id: "outdoor", label: "Great Outdoors", emoji: "🪵" },
 ];
 
-const OUTDOOR_INGREDIENTS = [
-  "Trout", "Venison", "Wild Mushrooms", "Blackberries", "Elk",
-  "Salmon", "Duck", "Rabbit", "Zucchini", "Eggs", "Wild Turkey",
+const OUTDOOR_INGREDIENTS: Array<{ emoji: string; label: string }> = [
+  { emoji: "🐟", label: "Trout" },
+  { emoji: "🦌", label: "Venison" },
+  { emoji: "🍄", label: "Wild Mushrooms" },
+  { emoji: "🫐", label: "Blackberries" },
+  { emoji: "🫎", label: "Elk" },
+  { emoji: "🐠", label: "Salmon" },
+  { emoji: "🦆", label: "Duck" },
+  { emoji: "🐇", label: "Rabbit" },
+  { emoji: "🥒", label: "Zucchini" },
+  { emoji: "🥚", label: "Eggs" },
+  { emoji: "🦃", label: "Wild Turkey" },
 ];
 
 type OutdoorExperienceType = "simple" | "complete" | "gathering";
@@ -147,8 +156,13 @@ const OUTDOOR_EXPERIENCE_TYPES: Array<{
   { id: "gathering", emoji: "🎉",  label: "Gathering Experience",  sublabel: "Full multi-course" },
 ];
 
-const OUTDOOR_METHODS = [
-  "Smoker", "Dutch Oven", "Cast Iron", "Campfire", "Open Flame", "Grill",
+const OUTDOOR_METHODS: Array<{ emoji: string; label: string }> = [
+  { emoji: "💨", label: "Smoker" },
+  { emoji: "🍲", label: "Dutch Oven" },
+  { emoji: "🍳", label: "Cast Iron" },
+  { emoji: "🔥", label: "Campfire" },
+  { emoji: "🌡️", label: "Open Flame" },
+  { emoji: "♨️", label: "Grill" },
 ];
 
 const HOLIDAY_EVENTS = [
@@ -989,18 +1003,20 @@ export default function UltimateExperiencesPage() {
                           maxLength={200}
                           disabled={isGenerating}
                         />
-                        <div className="flex flex-wrap gap-2 mt-2">
+                        <div className="flex flex-wrap gap-x-4 gap-y-3 mt-2">
                           {OUTDOOR_INGREDIENTS.map((p) => (
-                            <PillButton
-                              key={p}
-                              active={proteinSource === p}
-                              variant="amber"
-                              onClick={() => setProteinSource(proteinSource === p ? "" : p)}
-                              disabled={isGenerating}
-                              className="text-xs py-1 px-3"
-                            >
-                              {p}
-                            </PillButton>
+                            <div key={p.label} className="flex flex-col items-center gap-1">
+                              <PillButton
+                                active={proteinSource === p.label}
+                                variant="amber"
+                                onClick={() => setProteinSource(proteinSource === p.label ? "" : p.label)}
+                                disabled={isGenerating}
+                                className="w-14 text-lg leading-none py-2"
+                              >
+                                {p.emoji}
+                              </PillButton>
+                              <span className="text-xs text-white/80 font-medium text-center leading-tight">{p.label}</span>
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -1011,18 +1027,20 @@ export default function UltimateExperiencesPage() {
                           Cooking method{" "}
                           <span className="text-white/50 font-normal text-xs">(optional)</span>
                         </label>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-x-4 gap-y-3">
                           {OUTDOOR_METHODS.map((m) => (
-                            <PillButton
-                              key={m}
-                              active={cookingMethod === m}
-                              variant="amber"
-                              onClick={() => setCookingMethod(cookingMethod === m ? "" : m)}
-                              disabled={isGenerating}
-                              className="text-sm py-1.5 px-4"
-                            >
-                              {m}
-                            </PillButton>
+                            <div key={m.label} className="flex flex-col items-center gap-1">
+                              <PillButton
+                                active={cookingMethod === m.label}
+                                variant="amber"
+                                onClick={() => setCookingMethod(cookingMethod === m.label ? "" : m.label)}
+                                disabled={isGenerating}
+                                className="w-14 text-lg leading-none py-2"
+                              >
+                                {m.emoji}
+                              </PillButton>
+                              <span className="text-xs text-white/80 font-medium text-center leading-tight">{m.label}</span>
+                            </div>
                           ))}
                         </div>
                       </div>
