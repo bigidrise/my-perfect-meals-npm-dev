@@ -53,14 +53,17 @@ const requireAuth = async (req: any, res: any, next: any) => {
   next();
 };
 
+// Returns serve-URL strings (not base64). Primary image first.
 async function getProfileImages(profileId: string): Promise<string[]> {
   try {
     const imgs = await db
-      .select()
+      .select({ id: companionProfileImages.id, isPrimary: companionProfileImages.isPrimary, sortOrder: companionProfileImages.sortOrder })
       .from(companionProfileImages)
       .where(eq(companionProfileImages.profileId, profileId))
       .orderBy(companionProfileImages.sortOrder);
-    return imgs.sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0)).map((i) => i.imageUrl);
+    return imgs
+      .sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0))
+      .map((i) => `/api/companion/profiles/${profileId}/images/${i.id}/serve`);
   } catch {
     return [];
   }
@@ -259,18 +262,55 @@ router.delete("/profiles/:id", requireAuth, async (req, res) => {
 
 // ── Image endpoints ────────────────────────────────────────────────────────────
 
-// GET /api/companion/profiles/:id/images
+// GET /api/companion/profiles/:id/images  — lightweight metadata only (no base64)
 router.get("/profiles/:id/images", requireAuth, async (req, res) => {
   try {
+    const profileId = req.params.id;
     const imgs = await db
-      .select()
+      .select({
+        id: companionProfileImages.id,
+        profileId: companionProfileImages.profileId,
+        isPrimary: companionProfileImages.isPrimary,
+        sortOrder: companionProfileImages.sortOrder,
+        createdAt: companionProfileImages.createdAt,
+      })
       .from(companionProfileImages)
-      .where(eq(companionProfileImages.profileId, req.params.id))
+      .where(eq(companionProfileImages.profileId, profileId))
       .orderBy(companionProfileImages.sortOrder);
-    const sorted = imgs.sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0));
+    const sorted = imgs
+      .sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0))
+      .map((img) => ({ ...img, serveUrl: `/api/companion/profiles/${profileId}/images/${img.id}/serve` }));
     res.json({ images: sorted });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch images" });
+  }
+});
+
+// GET /api/companion/profiles/:id/images/:imageId/serve  — serves binary image (no auth: UUID is unguessable)
+router.get("/profiles/:id/images/:imageId/serve", async (req, res) => {
+  try {
+    const [img] = await db
+      .select({ imageUrl: companionProfileImages.imageUrl })
+      .from(companionProfileImages)
+      .where(eq(companionProfileImages.id, req.params.imageId))
+      .limit(1);
+
+    if (!img?.imageUrl) return res.status(404).json({ error: "Image not found" });
+
+    // imageUrl is a data URL: "data:<mime>;base64,<data>"
+    const match = img.imageUrl.match(/^data:([^;]+);base64,(.+)$/s);
+    if (!match) return res.status(422).json({ error: "Invalid image format" });
+
+    const [, mime, b64] = match;
+    const buf = Buffer.from(b64, "base64");
+    res.set({
+      "Content-Type": mime,
+      "Content-Length": buf.length,
+      "Cache-Control": "private, max-age=86400",
+    });
+    res.end(buf);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to serve image" });
   }
 });
 
