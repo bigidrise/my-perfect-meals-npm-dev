@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { PawPrint, Plus, ChefHat, Search, Heart, Crown, ArrowRight, Trash2, ArrowLeft } from "lucide-react";
+import { PawPrint, Plus, ChefHat, Search, Heart, Crown, ArrowRight, Trash2, ArrowLeft, BookOpen } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -13,6 +13,26 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 const COMPANION_HERO = "/images/companion-hero.png";
 const PREMIUM_MSG = "My Perfect Pets is a premium feature. Upgrade to access personalized dog nutrition.";
+
+export const DOG_MEAL_IMAGES = [
+  "https://images.unsplash.com/photo-1601758003122-53c40e686a19?w=800&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1517423440428-a5a00ad493e8?w=800&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1568640347023-a616a30bc3bd?w=800&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1583511655826-05700d52f4d9?w=800&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?w=800&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1444212477490-ca407925329e?w=800&auto=format&fit=crop&q=80",
+];
+
+export function getMealImage(seed: string): string {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+    hash |= 0;
+  }
+  return DOG_MEAL_IMAGES[Math.abs(hash) % DOG_MEAL_IMAGES.length];
+}
 
 interface DogProfile {
   id: string;
@@ -27,6 +47,18 @@ interface DogProfile {
   photoUrl?: string;
 }
 
+interface SavedMeal {
+  id: string;
+  profileId: string;
+  title: string;
+  mealType: string;
+  isSaved: boolean;
+  generatedAt: string;
+  ingredients?: any[];
+  instructions?: string[];
+  description?: string;
+}
+
 export default function CompanionNutritionHub() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -35,6 +67,8 @@ export default function CompanionNutritionHub() {
   const [profiles, setProfiles] = useState<DogProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [savedMeals, setSavedMeals] = useState<SavedMeal[]>([]);
+  const [expandedMealId, setExpandedMealId] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "Companion Nutrition | My Perfect Meals";
@@ -49,7 +83,21 @@ export default function CompanionNutritionHub() {
         });
         if (res.ok) {
           const data = await res.json();
-          setProfiles(data.profiles || []);
+          const loaded: DogProfile[] = data.profiles || [];
+          setProfiles(loaded);
+
+          // Fetch saved meals for each profile in parallel
+          const mealResults = await Promise.allSettled(
+            loaded.map((p) =>
+              fetch(apiUrl(`/api/companion/meals/${p.id}`), { headers: getAuthHeaders() })
+                .then((r) => r.json())
+                .then((d) => (d.meals || []).filter((m: SavedMeal) => m.isSaved))
+            )
+          );
+          const allSaved: SavedMeal[] = mealResults.flatMap((r) =>
+            r.status === "fulfilled" ? r.value : []
+          );
+          setSavedMeals(allSaved);
         }
       } catch {}
       setLoading(false);
@@ -265,6 +313,82 @@ export default function CompanionNutritionHub() {
             </div>
           )}
         </div>
+
+        {/* Recipe Collection — saved meals */}
+        {savedMeals.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <BookOpen className="h-4 w-4 text-orange-400" />
+              <h2 className="text-white font-bold text-sm">Recipe Collection</h2>
+              <span className="bg-orange-500/20 border border-orange-400/30 text-orange-300 text-[9px] font-semibold px-2 py-0.5 rounded-full">
+                {savedMeals.length} saved
+              </span>
+            </div>
+            <div className="space-y-2">
+              {savedMeals.map((meal) => {
+                const profile = profiles.find((p) => p.id === meal.profileId);
+                const img = getMealImage(meal.id || meal.title);
+                const isOpen = expandedMealId === meal.id;
+                return (
+                  <motion.div
+                    key={meal.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-black/40 border border-white/10 rounded-xl overflow-hidden"
+                  >
+                    <button
+                      onClick={() => setExpandedMealId(isOpen ? null : meal.id)}
+                      className="w-full flex items-center gap-3 p-3 text-left"
+                    >
+                      <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                        <img src={img} alt={meal.title} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-xs font-semibold leading-snug truncate">{meal.title}</p>
+                        <p className="text-white/40 text-[10px] mt-0.5">
+                          {profile?.name && <span className="text-orange-300/70">{profile.name} · </span>}
+                          <span className="capitalize">{meal.mealType}</span>
+                        </p>
+                      </div>
+                      <span className="text-white/30 text-[10px] flex-shrink-0">{isOpen ? "▲" : "▼"}</span>
+                    </button>
+
+                    {isOpen && (
+                      <div className="px-3 pb-3 space-y-2 border-t border-white/8 pt-3">
+                        {meal.description && (
+                          <p className="text-white/60 text-xs leading-relaxed">{meal.description}</p>
+                        )}
+                        {Array.isArray(meal.ingredients) && meal.ingredients.length > 0 && (
+                          <div>
+                            <p className="text-white/40 text-[10px] font-semibold uppercase mb-1">Ingredients</p>
+                            <ul className="space-y-1">
+                              {meal.ingredients.slice(0, 6).map((ing: any, i: number) => (
+                                <li key={i} className="flex items-start gap-1.5 text-[11px] text-white/70">
+                                  <span className="text-orange-400 mt-0.5">•</span>
+                                  {typeof ing === "string" ? ing : `${ing.amount || ""} ${ing.name || ""}`.trim()}
+                                </li>
+                              ))}
+                              {meal.ingredients.length > 6 && (
+                                <li className="text-white/30 text-[10px]">+{meal.ingredients.length - 6} more</li>
+                              )}
+                            </ul>
+                          </div>
+                        )}
+                        <div className="pt-1">
+                          <PillButton
+                            onClick={() => guardAction(PREMIUM_MSG, () => setLocation(`/companion/generator?profileId=${meal.profileId}`))}
+                          >
+                            <ChefHat className="h-3 w-3" /> Generate Similar
+                          </PillButton>
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Navigation Links */}
         <div className="space-y-2 mb-6">

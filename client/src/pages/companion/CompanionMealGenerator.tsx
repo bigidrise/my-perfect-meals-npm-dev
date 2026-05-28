@@ -11,8 +11,9 @@ import { getAuthHeaders } from "@/lib/auth";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ThinkingDots from "@/components/ThinkingDots";
+import { DOG_MEAL_IMAGES, getMealImage } from "@/pages/CompanionNutritionHub";
 
-const DOG_BOWL_IMAGE = "https://images.unsplash.com/photo-1601758003122-53c40e686a19?w=800&auto=format&fit=crop&q=80";
+const HERO_IMAGE = DOG_MEAL_IMAGES[1]; // different from card default
 
 const MEAL_TYPES = [
   { value: "main", label: "Main Meal", sub: "Full nutritious meal" },
@@ -183,7 +184,7 @@ export default function CompanionMealGenerator() {
       >
         {/* Hero */}
         <div className="relative h-36 rounded-xl overflow-hidden mb-5">
-          <img src={DOG_BOWL_IMAGE} alt="Dog meal" className="w-full h-full object-cover" />
+          <img src={HERO_IMAGE} alt="Dog meal" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
           <div className="absolute bottom-3 left-4 right-4">
             <div className="flex items-center gap-2">
@@ -300,9 +301,9 @@ export default function CompanionMealGenerator() {
                 boxShadow: "0 8px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)",
               }}
             >
-              {/* Card hero image */}
+              {/* Card hero image — rotates per meal title */}
               <div className="relative h-48">
-                <img src={DOG_BOWL_IMAGE} alt={meal.title} className="w-full h-full object-cover" />
+                <img src={getMealImage(meal.id || meal.title)} alt={meal.title} className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
 
                 {/* Safety badge */}
