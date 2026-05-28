@@ -701,6 +701,46 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
       "Recipe Scan is one of the most powerful tools in the app. Here is how it works now. You see food somewhere — a TikTok, an Instagram save, a Pinterest board, a cookbook, a restaurant menu — and instead of bookmarking it and forgetting it, you bring it directly into My Perfect Meals. You have four ways to capture it: Choose Photo lets you pick any screenshot or saved image from your gallery. Camera opens your device live so you can point it at anything in front of you. Speak lets you describe the meal out loud. Type lets you paste or write a description. After you bring in your idea, the app takes you to a quick settings screen before generating anything. Here you choose your servings — from just yourself up to a meal prep batch of six. You pick an adaptation style: Authentic keeps it close to the original, Balanced personalizes it to your profile, and Healthier pushes the nutrition hard. You set your protein level — standard, high protein, or athlete. You choose whether you want original prep or a simplified easy prep version. And you can switch the cuisine entirely if you want, say, a Thai version of an Italian dish. Once you tap Generate, the system runs your idea through the full meal generation pipeline — the same engine that powers every creator in the app — applying your complete nutritional profile, allergies, dietary identity, medical conditions, and everything from your onboarding on top of your chosen settings. The result comes back as a preview. You see the full meal card with macros, ingredients, and protocol tags before anything is saved. If you like it, tap Save to My Inspirations and it goes to your Favorites. If you want to adjust something, tap Regenerate, change one setting, and generate again. Nothing saves until you decide it is right.",
     autoClose: true,
   },
+
+  "/companion": {
+    pageId: "companion-hub",
+    title: "My Perfect Pets — Companion Nutrition",
+    description:
+      "Personalized homemade dog meals, ingredient safety scanning, and wellness nutrition — built on the same adaptive protocol engine as your own meals.",
+    spokenText:
+      "Welcome to My Perfect Pets, Companion Nutrition Intelligence. This is a premium wellness nutrition system for your dog, built directly on the same adaptive protocol engine that powers your own meals. Start by creating your dog's profile — name, breed, age, weight, and any wellness goals. From there you can generate personalized homemade meals, scan any ingredient to instantly check if it is safe for your dog, and save your favorite recipes. Every recipe is screened through the Toxic Ingredient Firewall before you see it, which means known canine toxins like chocolate, xylitol, grapes, garlic, and onions are blocked before they ever appear in a result. You can also stack wellness conditions just like your own protocol system — senior support, kidney support, anti-inflammatory, joint wellness, diabetic support, and more can all run simultaneously. All wellness protocols include veterinary citation sources from pre-approved references including WSAVA, AAHA, and Tufts Cummings. This is wellness nutrition guidance only — not veterinary medicine. Always consult your veterinarian for health conditions or significant dietary changes.",
+    autoClose: true,
+  },
+
+  "/companion/setup": {
+    pageId: "companion-setup",
+    title: "Dog Profile Setup",
+    description:
+      "Create your dog's personalized nutrition profile — breed, age, wellness goals, and veterinary restrictions.",
+    spokenText:
+      "This is the Dog Profile Setup. Walk through each step to build a complete picture of your dog. You will enter your dog's name, breed, age, sex, and whether they are neutered. Then body details — current weight, goal weight if applicable, activity level, and body condition score. Next, you pick wellness goals from the stackable condition list — things like senior support, joint wellness, anti-inflammatory support, kidney support, and more can all be selected together. Finally, add any food allergies, sensitivities, veterinarian-specified dietary restrictions, and behavior notes. The more complete the profile, the more personalized and precise every generated meal will be. Once saved, your dog's profile drives every meal generation and ingredient scan in the system.",
+    autoClose: false,
+  },
+
+  "/companion/generator": {
+    pageId: "companion-generator",
+    title: "Dog Meal Generator",
+    description:
+      "Generate personalized, safe, homemade dog meals — screened through the Toxic Ingredient Firewall before you see them.",
+    spokenText:
+      "This is the Companion Meal Generator. Select your dog's profile, choose a meal type — main meal, treat, snack, or meal prep batch — and optionally add a special request like a preferred protein or ingredient to avoid. Then tap Generate. The system assembles your dog's complete wellness protocol, injects it into the AI generation engine, and runs the result through the Toxic Ingredient Firewall before you ever see it. What comes back is a complete, dog-safe recipe with ingredients, step-by-step instructions, serving size, estimated protein and calories, wellness notes explaining why key ingredients benefit your specific dog, and controlled veterinary citation sources. You can save recipes you like and generate again as many times as you want.",
+    autoClose: false,
+  },
+
+  "/companion/scanner": {
+    pageId: "companion-scanner",
+    title: "Dog Ingredient Safety Scanner",
+    description:
+      "Instantly check if any food or ingredient is safe for your dog — with safety rating, reason, and a safe alternative.",
+    spokenText:
+      "This is the Ingredient Safety Scanner. Type any food or ingredient to instantly check if it is safe for your dog. The system runs it through the Toxic Ingredient Firewall — a curated library of known canine toxins sourced from ASPCA Poison Control and AVMA veterinary safety references. You get back a clear safety rating: SAFE, CAUTION, or NOT SAFE. If something is flagged, you see exactly why — the specific toxicity reason — and a safe substitution you can use instead. For safe ingredients, you also get a wellness score from one to ten and nutritional notes on why that ingredient benefits dogs. Use the quick check buttons below the search bar to scan common foods instantly, or type anything you are curious about.",
+    autoClose: false,
+  },
 };
 
 export function getPageExplanation(pathname: string): PageExplanation | null {

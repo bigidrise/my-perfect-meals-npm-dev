@@ -201,6 +201,12 @@ const VitalsLogger = () => <div>Vitals Logger - Coming Soon</div>;
 import SupplementHub from "@/pages/supplement-hub";
 import SupplementEducationPage from "@/pages/supplement-education";
 
+// Companion Nutrition Intelligence (My Perfect Pets)
+import CompanionNutritionHub from "@/pages/CompanionNutritionHub";
+import DogProfileSetup from "@/pages/companion/DogProfileSetup";
+import CompanionMealGenerator from "@/pages/companion/CompanionMealGenerator";
+import DogIngredientScanner from "@/pages/companion/DogIngredientScanner";
+
 // Admin Dashboard
 import AdminDashboard from "@/pages/AdminDashboard";
 
@@ -463,6 +469,12 @@ export default function Router() {
         <Route path="/lifestyle/reduce-drinking-plan" component={ReduceDrinkingPlan} />
         <Route path="/craving-creator" component={CravingCreator} />
         <Route path="/fridge-rescue" component={FridgeRescuePage} />
+        {/* Companion Nutrition Intelligence (My Perfect Pets) */}
+        <Route path="/companion" component={CompanionNutritionHub} />
+        <Route path="/companion/setup" component={DogProfileSetup} />
+        <Route path="/companion/setup/:id" component={DogProfileSetup} />
+        <Route path="/companion/generator" component={CompanionMealGenerator} />
+        <Route path="/companion/scanner" component={DogIngredientScanner} />
         <Route path="/ab-testing-demo" component={ABTestingDemo} />
         {/* DELETED: HolidayFeastPlannerPage, MealFinderPage, BreakfastMealsHub, LunchMealsHub, DinnerMealsHub, SnacksMealsHub, CulturalCuisinesPage, VegetableFiberInfo, PotluckPlanner, RestaurantGuide (old) routes */}
         {/* Socializing Hub Routes */}
