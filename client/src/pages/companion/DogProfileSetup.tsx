@@ -243,16 +243,7 @@ export default function DogProfileSetup() {
         throw new Error(data.error || "Save failed");
       }
 
-      if (isEdit) {
-        // Always show photo management after saving an edit
-        setSavedProfileId(params.id!);
-        photosFetched.current = false;
-        setStep(5);
-      } else {
-        const data = await res.json();
-        setSavedProfileId(data.profile?.id || null);
-        setStep(5);
-      }
+      setLocation("/companion");
     } catch (e: any) {
       setError(e.message || "Something went wrong. Please try again.");
     } finally {
