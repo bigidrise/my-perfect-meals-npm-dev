@@ -1565,6 +1565,7 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
           list: [
             "Holidays: Thanksgiving, Christmas, Hanukkah, Easter, Passover, Eid, and more",
             "Camping: fire-cooked, foil packet, skillet, and no-cook courses",
+            "Great Outdoors: wild game, harvested proteins, smoker, Dutch oven, cast iron, and field-to-table cooking",
             "Date Night: elegant multi-course dining at home",
             "Family Dinner: comfort food designed for a crowd",
             "Game Day, Potluck, Backyard BBQ, and more",
