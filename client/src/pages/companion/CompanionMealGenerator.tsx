@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChefHat, ArrowLeft, PawPrint, Sparkles, BookOpen, ShoppingCart, Heart, RefreshCw } from "lucide-react";
+import { ChefHat, ArrowLeft, PawPrint, Sparkles, BookOpen, ShoppingCart, Heart } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import ThinkingDots from "@/components/ThinkingDots";
 
 const DOG_BOWL_IMAGE = "https://images.unsplash.com/photo-1601758003122-53c40e686a19?w=600&auto=format&fit=crop&q=80";
 
@@ -225,23 +226,20 @@ export default function CompanionMealGenerator() {
         </div>
 
         {/* Generate Button */}
-        <PillButton
-          onClick={handleGenerate}
-          disabled={generating || !selectedProfileId}
-          className="w-full mb-6 py-4"
-        >
-          {generating ? (
-            <>
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              Generating {selectedProfile?.name}'s meal...
-            </>
-          ) : (
-            <>
-              <Sparkles className="h-4 w-4" />
-              Generate {mealType === "main" ? "Meal" : mealType === "treat" ? "Treat" : mealType === "snack" ? "Snack" : "Meal Prep"}
-            </>
-          )}
-        </PillButton>
+        {generating ? (
+          <div className="mb-6">
+            <ThinkingDots label={`Generating ${selectedProfile?.name}'s meal…`} />
+          </div>
+        ) : (
+          <PillButton
+            onClick={handleGenerate}
+            disabled={!selectedProfileId}
+            className="w-full mb-6 py-4"
+          >
+            <Sparkles className="h-4 w-4" />
+            Generate {mealType === "main" ? "Meal" : mealType === "treat" ? "Treat" : mealType === "snack" ? "Snack" : "Meal Prep"}
+          </PillButton>
+        )}
 
         {error && (
           <div className="bg-red-900/30 border border-red-500/30 rounded-xl p-4 mb-5">
