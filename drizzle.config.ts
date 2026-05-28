@@ -7,6 +7,7 @@ export default defineConfig({
     "./server/db/schema/bodyComposition.ts",
     "./server/db/schema/organizations.ts",
     "./server/db/schema/userBehaviorSummary.ts",
+    "./server/db/schema/companionProfiles.ts",
   ],
   dialect: "postgresql",
   dbCredentials: {

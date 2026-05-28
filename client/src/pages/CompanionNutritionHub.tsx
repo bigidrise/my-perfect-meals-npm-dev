@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { motion } from "framer-motion";
-import { PawPrint, Plus, ChefHat, Search, Heart, Crown, ArrowRight, Trash2, ArrowLeft, BookOpen } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  PawPrint, Plus, ChefHat, Search, Heart, Crown, ArrowRight,
+  ArrowLeft, BookOpen, Archive, RotateCcw, ChevronDown, ChevronUp,
+} from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -25,13 +28,19 @@ export const DOG_MEAL_IMAGES = [
   "https://images.unsplash.com/photo-1444212477490-ca407925329e?w=800&auto=format&fit=crop&q=80",
 ];
 
-export function getMealImage(seed: string): string {
+export function getDogMealImage(dogImages: string[], seed: string): string {
+  const pool = dogImages.length > 0 ? dogImages : DOG_MEAL_IMAGES;
   let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+  const s = seed || "default";
+  for (let i = 0; i < s.length; i++) {
+    hash = ((hash << 5) - hash) + s.charCodeAt(i);
     hash |= 0;
   }
-  return DOG_MEAL_IMAGES[Math.abs(hash) % DOG_MEAL_IMAGES.length];
+  return pool[Math.abs(hash) % pool.length];
+}
+
+export function getMealImage(seed: string): string {
+  return getDogMealImage([], seed);
 }
 
 interface DogProfile {
@@ -41,10 +50,11 @@ interface DogProfile {
   isMixedBreed: boolean;
   ageYears: number;
   weightLbs: number;
-  sex: string;
-  activityLevel: string;
   wellnessGoals: string[];
   photoUrl?: string;
+  status?: string;
+  memorialMessage?: string;
+  images?: string[];
 }
 
 interface SavedMeal {
@@ -66,9 +76,12 @@ export default function CompanionNutritionHub() {
   const { isFree, showLockModal, lockMessage, guardAction, closeLockModal } = useFreeLock();
   const [profiles, setProfiles] = useState<DogProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [savedMeals, setSavedMeals] = useState<SavedMeal[]>([]);
   const [expandedMealId, setExpandedMealId] = useState<string | null>(null);
+  const [expandedActionId, setExpandedActionId] = useState<string | null>(null);
+  const [memorialMsg, setMemorialMsg] = useState("");
+  const [statusLoading, setStatusLoading] = useState<string | null>(null);
+  const [showPrevious, setShowPrevious] = useState(false);
 
   useEffect(() => {
     document.title = "Companion Nutrition | My Perfect Meals";
@@ -76,7 +89,7 @@ export default function CompanionNutritionHub() {
   }, []);
 
   useEffect(() => {
-    async function fetchProfiles() {
+    async function fetchAll() {
       try {
         const res = await fetch(apiUrl("/api/companion/profiles"), {
           headers: getAuthHeaders(),
@@ -86,9 +99,9 @@ export default function CompanionNutritionHub() {
           const loaded: DogProfile[] = data.profiles || [];
           setProfiles(loaded);
 
-          // Fetch saved meals for each profile in parallel
+          const active = loaded.filter((p) => !p.status || p.status === "active");
           const mealResults = await Promise.allSettled(
-            loaded.map((p) =>
+            active.map((p) =>
               fetch(apiUrl(`/api/companion/meals/${p.id}`), { headers: getAuthHeaders() })
                 .then((r) => r.json())
                 .then((d) => (d.meals || []).filter((m: SavedMeal) => m.isSaved))
@@ -102,41 +115,80 @@ export default function CompanionNutritionHub() {
       } catch {}
       setLoading(false);
     }
-    fetchProfiles();
+    fetchAll();
   }, []);
 
   function handleCopilotOpen() {
     open();
     setTimeout(() => {
       setLastResponse({
-        title: "Companion Nutrition Intelligence",
+        title: "My Perfect Pets",
         description:
-          "This is My Perfect Pets — a premium wellness nutrition system for your dog, built on the same adaptive protocol engine that powers your own nutrition. Create a dog profile, generate personalized homemade meals, or scan any food ingredient to instantly check if it's safe for your dog.",
+          "Companion Nutrition Intelligence uses the same adaptive protocol engine that powers your human meal plans — rebuilt for canine wellness. Create a dog profile, set wellness goals, and generate personalized recipes that pass through our Toxic Ingredient Firewall before you see them.",
         spokenText:
-          "Welcome to Companion Nutrition Intelligence. This is My Perfect Pets — a wellness nutrition system for your dog, built on the same adaptive protocol engine that powers your own meals. Start by creating a dog profile, then generate personalized homemade meals or scan any ingredient to check if it's safe.",
+          "Companion Nutrition Intelligence uses the same adaptive protocol engine as your human meal plans — rebuilt for canine wellness. Create a dog profile and generate personalized, safety-screened recipes.",
         autoClose: false,
       });
     }, 300);
   }
 
-  async function handleDeleteProfile(id: string, name: string) {
-    if (!confirm(`Remove ${name}'s profile?`)) return;
-    setDeletingId(id);
+  async function handleArchiveProfile(id: string, name: string) {
+    setStatusLoading(id);
     try {
-      await fetch(apiUrl(`/api/companion/profiles/${id}`), {
-        method: "DELETE",
+      await fetch(apiUrl(`/api/companion/profiles/${id}/archive`), {
+        method: "PUT",
         headers: getAuthHeaders(),
       });
-      setProfiles((prev) => prev.filter((p) => p.id !== id));
+      setProfiles((prev) => prev.map((p) => p.id === id ? { ...p, status: "archived" } : p));
+      setSavedMeals((prev) => prev.filter((m) => m.profileId !== id));
+      setExpandedActionId(null);
     } catch {}
-    setDeletingId(null);
+    setStatusLoading(null);
   }
+
+  async function handleMemorialProfile(id: string) {
+    setStatusLoading(id);
+    try {
+      await fetch(apiUrl(`/api/companion/profiles/${id}/memorial`), {
+        method: "PUT",
+        headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ memorialMessage: memorialMsg.trim() || null }),
+      });
+      setProfiles((prev) =>
+        prev.map((p) => p.id === id ? { ...p, status: "memorial", memorialMessage: memorialMsg.trim() || undefined } : p)
+      );
+      setSavedMeals((prev) => prev.filter((m) => m.profileId !== id));
+      setExpandedActionId(null);
+      setMemorialMsg("");
+    } catch {}
+    setStatusLoading(null);
+  }
+
+  async function handleRestoreProfile(id: string) {
+    setStatusLoading(id);
+    try {
+      const res = await fetch(apiUrl(`/api/companion/profiles/${id}/restore`), {
+        method: "PUT",
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        alert(d.error || "Could not restore profile.");
+      } else {
+        setProfiles((prev) => prev.map((p) => p.id === id ? { ...p, status: "active" } : p));
+      }
+    } catch {}
+    setStatusLoading(null);
+  }
+
+  const activeProfiles = profiles.filter((p) => !p.status || p.status === "active");
+  const memorialProfiles = profiles.filter((p) => p.status === "memorial");
+  const previousProfiles = profiles.filter((p) => p.status === "archived");
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24"
     >
       <MobileHeaderGuard>
@@ -146,7 +198,7 @@ export default function CompanionNutritionHub() {
         >
           <div className="px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <PawPrint className="h-5 w-5 text-orange-400" />
+              <PawPrint className="h-4 w-4 text-orange-400" />
               <h1 className="text-base font-bold text-white">My Perfect Pets</h1>
               <span className="bg-orange-500/20 border border-orange-400/40 text-orange-300 text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
                 <Crown className="h-2.5 w-2.5" />
@@ -158,27 +210,21 @@ export default function CompanionNutritionHub() {
         </div>
       </MobileHeaderGuard>
 
-      {/* Back button — always visible, outside the safe-area padding zone */}
+      {/* Back button — always visible */}
       <div className="flex max-w-2xl mx-auto px-4 pt-6 pb-0">
         <PillButton onClick={() => window.history.back()}>
           <ArrowLeft className="h-3 w-3" /> Back
         </PillButton>
       </div>
 
-      <div
-        className="max-w-2xl mx-auto px-4"
-        style={{ paddingTop: "1rem" }}
-      >
-        {/* Hero — clean image, no overlay */}
+      <div className="max-w-2xl mx-auto px-4" style={{ paddingTop: "1rem" }}>
+
+        {/* Hero */}
         <div className="relative h-52 rounded-2xl overflow-hidden mb-3">
-          <img
-            src={COMPANION_HERO}
-            alt="My Perfect Pets — Companion Nutrition"
-            className="w-full h-full object-cover object-top"
-          />
+          <img src={COMPANION_HERO} alt="My Perfect Pets" className="w-full h-full object-cover object-top" />
         </div>
 
-        {/* Info card below the image */}
+        {/* Info card */}
         <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-3 mb-5">
           <p className="text-white font-semibold text-sm">Companion Nutrition Intelligence</p>
           <p className="text-white/65 text-xs mt-1 leading-relaxed">
@@ -189,27 +235,9 @@ export default function CompanionNutritionHub() {
         {/* Quick Actions */}
         <div className="grid grid-cols-3 gap-3 mb-6">
           {[
-            {
-              icon: Plus,
-              label: "Add a Dog",
-              sub: "Create profile",
-              action: () => guardAction(PREMIUM_MSG, () => setLocation("/companion/setup")),
-              color: "from-orange-600/30 to-orange-800/20",
-            },
-            {
-              icon: ChefHat,
-              label: "Meal Generator",
-              sub: "Make a meal",
-              action: () => guardAction(PREMIUM_MSG, () => setLocation("/companion/generator")),
-              color: "from-amber-600/30 to-orange-700/20",
-            },
-            {
-              icon: Search,
-              label: "Ingredient Scan",
-              sub: "Is it safe?",
-              action: () => guardAction(PREMIUM_MSG, () => setLocation("/companion/scanner")),
-              color: "from-orange-500/30 to-red-800/20",
-            },
+            { icon: Plus, label: "Add a Dog", sub: "Create profile", action: () => guardAction(PREMIUM_MSG, () => setLocation("/companion/setup")), color: "from-orange-600/30 to-orange-800/20" },
+            { icon: ChefHat, label: "Meal Generator", sub: "Make a meal", action: () => guardAction(PREMIUM_MSG, () => setLocation("/companion/generator")), color: "from-amber-600/30 to-orange-700/20" },
+            { icon: Search, label: "Ingredient Scan", sub: "Is it safe?", action: () => guardAction(PREMIUM_MSG, () => setLocation("/companion/scanner")), color: "from-orange-500/30 to-red-800/20" },
           ].map((item) => (
             <button
               key={item.label}
@@ -223,20 +251,18 @@ export default function CompanionNutritionHub() {
           ))}
         </div>
 
-        {/* Dog Profiles */}
+        {/* ── Active Companions ───────────────────────────────── */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-white font-bold text-sm">Your Dogs</h2>
+            <h2 className="text-white font-bold text-sm">Active Companions</h2>
             <PillButton onClick={() => guardAction(PREMIUM_MSG, () => setLocation("/companion/setup"))}>
               <Plus className="h-3 w-3" /> Add Dog
             </PillButton>
           </div>
 
           {loading ? (
-            <div className="bg-white/5 rounded-xl p-8 text-center text-white/40 text-sm">
-              Loading profiles...
-            </div>
-          ) : profiles.length === 0 ? (
+            <div className="bg-white/5 rounded-xl p-8 text-center text-white/40 text-sm">Loading profiles...</div>
+          ) : activeProfiles.length === 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -253,68 +279,174 @@ export default function CompanionNutritionHub() {
             </motion.div>
           ) : (
             <div className="space-y-3">
-              {profiles.map((profile) => (
-                <motion.div
-                  key={profile.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-black/40 border border-white/10 rounded-xl p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="w-10 h-10 rounded-full bg-orange-500/20 border border-orange-400/30 flex items-center justify-center flex-shrink-0">
-                        <PawPrint className="h-5 w-5 text-orange-400" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-white font-semibold text-sm">{profile.name}</p>
-                        <p className="text-white/50 text-xs truncate">
-                          {profile.breed}{profile.isMixedBreed ? " Mix" : ""} · {profile.ageYears}yr · {profile.weightLbs}lbs
-                        </p>
-                        {Array.isArray(profile.wellnessGoals) && profile.wellnessGoals.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1.5">
-                            {profile.wellnessGoals.slice(0, 2).map((goal) => (
-                              <span
-                                key={goal}
-                                className="bg-orange-500/15 border border-orange-400/25 text-orange-300 text-[9px] px-1.5 py-0.5 rounded-full"
-                              >
-                                {goal}
-                              </span>
-                            ))}
-                            {profile.wellnessGoals.length > 2 && (
-                              <span className="text-white/30 text-[9px]">
-                                +{profile.wellnessGoals.length - 2} more
-                              </span>
+              {activeProfiles.map((profile) => {
+                const primaryImage = profile.images?.[0] || profile.photoUrl;
+                const actionOpen = expandedActionId === profile.id;
+                return (
+                  <motion.div
+                    key={profile.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-black/40 border border-white/10 rounded-xl overflow-hidden"
+                  >
+                    <div className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {/* Dog photo or paw icon */}
+                          <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 border border-orange-400/30">
+                            {primaryImage ? (
+                              <img src={primaryImage} alt={profile.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-orange-500/20 flex items-center justify-center">
+                                <PawPrint className="h-5 w-5 text-orange-400" />
+                              </div>
                             )}
                           </div>
-                        )}
+                          <div className="min-w-0">
+                            <p className="text-white font-semibold text-sm">{profile.name}</p>
+                            <p className="text-white/50 text-xs truncate">
+                              {profile.breed}{profile.isMixedBreed ? " Mix" : ""} · {profile.ageYears}yr · {profile.weightLbs}lbs
+                            </p>
+                            {Array.isArray(profile.wellnessGoals) && profile.wellnessGoals.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1.5">
+                                {profile.wellnessGoals.slice(0, 2).map((goal) => (
+                                  <span key={goal} className="bg-orange-500/15 border border-orange-400/25 text-orange-300 text-[9px] px-1.5 py-0.5 rounded-full">
+                                    {goal}
+                                  </span>
+                                ))}
+                                {profile.wellnessGoals.length > 2 && (
+                                  <span className="text-white/30 text-[9px]">+{profile.wellnessGoals.length - 2} more</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-1.5 flex-shrink-0">
+                          <PillButton onClick={() => guardAction(PREMIUM_MSG, () => setLocation(`/companion/generator?profileId=${profile.id}`))}>
+                            <ChefHat className="h-3 w-3" /> Cook
+                          </PillButton>
+                          <PillButton onClick={() => guardAction(PREMIUM_MSG, () => setLocation(`/companion/setup/${profile.id}`))}>
+                            Edit
+                          </PillButton>
+                          <PillButton onClick={() => {
+                            setExpandedActionId(actionOpen ? null : profile.id);
+                            setMemorialMsg("");
+                          }}>
+                            {actionOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                          </PillButton>
+                        </div>
                       </div>
+
+                      {/* Inline status action drawer */}
+                      <AnimatePresence>
+                        {actionOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="pt-3 mt-3 border-t border-white/8 space-y-3">
+                              <p className="text-white/40 text-[10px] font-semibold uppercase">Profile Status</p>
+                              <div className="flex gap-2">
+                                <PillButton
+                                  onClick={() => handleArchiveProfile(profile.id, profile.name)}
+                                  disabled={statusLoading === profile.id}
+                                >
+                                  <Archive className="h-3 w-3" />
+                                  Move to Previous
+                                </PillButton>
+                              </div>
+                              <div className="space-y-2">
+                                <p className="text-white/40 text-[10px]">Create a memorial for {profile.name}</p>
+                                <input
+                                  className="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-white text-xs placeholder-white/30 focus:outline-none focus:border-orange-500/60"
+                                  placeholder={`e.g. "Forever my hiking partner. 2012–2026."`}
+                                  value={memorialMsg}
+                                  onChange={(e) => setMemorialMsg(e.target.value)}
+                                />
+                                <PillButton
+                                  onClick={() => handleMemorialProfile(profile.id)}
+                                  disabled={statusLoading === profile.id}
+                                >
+                                  <Heart className="h-3 w-3" />
+                                  Create Memorial
+                                </PillButton>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                    <div className="flex flex-col gap-1.5 flex-shrink-0">
-                      <PillButton
-                        onClick={() => guardAction(PREMIUM_MSG, () => setLocation(`/companion/generator?profileId=${profile.id}`))}
-                      >
-                        <ChefHat className="h-3 w-3" /> Cook
-                      </PillButton>
-                      <PillButton
-                        onClick={() => guardAction(PREMIUM_MSG, () => setLocation(`/companion/setup/${profile.id}`))}
-                      >
-                        Edit
-                      </PillButton>
-                      <PillButton
-                        onClick={() => handleDeleteProfile(profile.id, profile.name)}
-                        disabled={deletingId === profile.id}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </PillButton>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Recipe Collection — saved meals */}
+        {/* ── In Memory ──────────────────────────────────────── */}
+        {memorialProfiles.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Heart className="h-4 w-4 text-orange-400/70" />
+              <h2 className="text-white font-bold text-sm">In Memory</h2>
+            </div>
+            <div className="space-y-3">
+              {memorialProfiles.map((profile) => {
+                const primaryImage = profile.images?.[0] || profile.photoUrl;
+                const profileMeals = savedMeals.filter((m) => m.profileId === profile.id);
+                return (
+                  <div key={profile.id} className="bg-black/40 border border-orange-400/15 rounded-xl overflow-hidden">
+                    {/* Memorial banner */}
+                    <div className="bg-gradient-to-r from-orange-900/30 to-black/30 px-4 py-3 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-orange-300/20">
+                        {primaryImage ? (
+                          <img src={primaryImage} alt={profile.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-orange-500/10 flex items-center justify-center">
+                            <PawPrint className="h-4 w-4 text-orange-400/50" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-orange-200/90 text-xs font-semibold">In Memory of {profile.name}</p>
+                        {profile.memorialMessage && (
+                          <p className="text-white/45 text-[11px] mt-0.5 leading-relaxed italic">"{profile.memorialMessage}"</p>
+                        )}
+                        <p className="text-white/30 text-[10px] mt-0.5">{profile.breed}{profile.isMixedBreed ? " Mix" : ""}</p>
+                      </div>
+                    </div>
+                    {/* Saved recipe collection for this dog */}
+                    {profileMeals.length > 0 && (
+                      <div className="px-4 pb-3 pt-2">
+                        <p className="text-white/30 text-[10px] font-semibold uppercase mb-2">{profile.name}'s Recipe Collection</p>
+                        <div className="space-y-2">
+                          {profileMeals.slice(0, 3).map((meal) => {
+                            const img = getDogMealImage(profile.images || [], meal.id || meal.title);
+                            return (
+                              <div key={meal.id} className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0">
+                                  <img src={img} alt={meal.title} className="w-full h-full object-cover" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-white/70 text-xs truncate">{meal.title}</p>
+                                  <p className="text-white/30 text-[10px] capitalize">{meal.mealType}</p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── Recipe Collection ───────────────────────────────── */}
         {savedMeals.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
@@ -327,7 +459,7 @@ export default function CompanionNutritionHub() {
             <div className="space-y-2">
               {savedMeals.map((meal) => {
                 const profile = profiles.find((p) => p.id === meal.profileId);
-                const img = getMealImage(meal.id || meal.title);
+                const img = getDogMealImage(profile?.images || [], meal.id || meal.title);
                 const isOpen = expandedMealId === meal.id;
                 return (
                   <motion.div
@@ -390,21 +522,67 @@ export default function CompanionNutritionHub() {
           </div>
         )}
 
+        {/* ── Previous Companions ─────────────────────────────── */}
+        {previousProfiles.length > 0 && (
+          <div className="mb-6">
+            <button
+              onClick={() => setShowPrevious((v) => !v)}
+              className="w-full flex items-center justify-between mb-3"
+            >
+              <div className="flex items-center gap-2">
+                <Archive className="h-4 w-4 text-white/30" />
+                <h2 className="text-white/50 font-semibold text-sm">Previous Companions</h2>
+                <span className="text-white/25 text-[10px]">({previousProfiles.length})</span>
+              </div>
+              {showPrevious ? <ChevronUp className="h-4 w-4 text-white/25" /> : <ChevronDown className="h-4 w-4 text-white/25" />}
+            </button>
+
+            <AnimatePresence>
+              {showPrevious && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden space-y-2"
+                >
+                  {previousProfiles.map((profile) => {
+                    const primaryImage = profile.images?.[0] || profile.photoUrl;
+                    return (
+                      <div key={profile.id} className="bg-black/30 border border-white/8 rounded-xl p-3 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 border border-white/10">
+                          {primaryImage ? (
+                            <img src={primaryImage} alt={profile.name} className="w-full h-full object-cover opacity-60" />
+                          ) : (
+                            <div className="w-full h-full bg-white/5 flex items-center justify-center">
+                              <PawPrint className="h-4 w-4 text-white/20" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white/50 text-sm font-semibold">{profile.name}</p>
+                          <p className="text-white/30 text-xs truncate">{profile.breed}{profile.isMixedBreed ? " Mix" : ""} · {profile.ageYears}yr</p>
+                        </div>
+                        <PillButton
+                          onClick={() => handleRestoreProfile(profile.id)}
+                          disabled={statusLoading === profile.id}
+                        >
+                          <RotateCcw className="h-3 w-3" />
+                          {statusLoading === profile.id ? "..." : "Restore"}
+                        </PillButton>
+                      </div>
+                    );
+                  })}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+
         {/* Navigation Links */}
         <div className="space-y-2 mb-6">
           {[
-            {
-              label: "Homemade Meal Generator",
-              sub: "Personalized recipes for your dog",
-              icon: ChefHat,
-              route: "/companion/generator",
-            },
-            {
-              label: "Ingredient Safety Scanner",
-              sub: "Check any food in seconds",
-              icon: Search,
-              route: "/companion/scanner",
-            },
+            { label: "Homemade Meal Generator", sub: "Personalized recipes for your dog", icon: ChefHat, route: "/companion/generator" },
+            { label: "Ingredient Safety Scanner", sub: "Check any food in seconds", icon: Search, route: "/companion/scanner" },
           ].map((item) => (
             <button
               key={item.route}
@@ -423,7 +601,7 @@ export default function CompanionNutritionHub() {
           ))}
         </div>
 
-        {/* Behavior & Feeding Wisdom */}
+        {/* Companion Feeding Wisdom */}
         <div className="bg-black/40 border border-orange-500/20 rounded-xl p-4 mb-5">
           <div className="flex items-center gap-2 mb-3">
             <Heart className="h-4 w-4 text-orange-400" />
@@ -453,10 +631,7 @@ export default function CompanionNutritionHub() {
       </div>
 
       {showLockModal && (
-        <UpgradeLockModal
-          message={lockMessage}
-          onClose={closeLockModal}
-        />
+        <UpgradeLockModal message={lockMessage} onClose={closeLockModal} />
       )}
     </motion.div>
   );

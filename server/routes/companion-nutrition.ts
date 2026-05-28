@@ -1,14 +1,22 @@
 import express from "express";
 import { db } from "../db";
 import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
-import { companionProfiles, companionMeals, companionIngredientScans } from "../db/schema/companionProfiles";
+import { eq, and, count } from "drizzle-orm";
+import {
+  companionProfiles,
+  companionProfileImages,
+  companionMeals,
+  companionIngredientScans,
+} from "../db/schema/companionProfiles";
 import { buildCompanionProtocolEnvelope } from "../services/companionProtocolEnvelope";
 import { checkIngredientSafety, scanRecipeForToxins } from "../services/companionToxicFirewall";
 import OpenAI from "openai";
 
 const router = express.Router();
 const openai = new OpenAI();
+
+const MAX_ACTIVE_DOGS = 8;
+const MAX_IMAGES_PER_DOG = 4;
 
 function resolveUserId(req: any): string | undefined {
   return (
@@ -34,18 +42,39 @@ const requireAuth = async (req: any, res: any, next: any) => {
   next();
 };
 
-// GET /api/companion/profiles
+async function getProfileImages(profileId: string): Promise<string[]> {
+  try {
+    const imgs = await db
+      .select()
+      .from(companionProfileImages)
+      .where(eq(companionProfileImages.profileId, profileId))
+      .orderBy(companionProfileImages.sortOrder);
+    return imgs.sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0)).map((i) => i.imageUrl);
+  } catch {
+    return [];
+  }
+}
+
+// GET /api/companion/profiles — returns all profiles with their images
 router.get("/profiles", requireAuth, async (req, res) => {
   try {
     const userId = resolveUserId(req);
     if (!userId) return res.json({ profiles: [] });
 
-    const profiles = await db
+    const rows = await db
       .select()
       .from(companionProfiles)
-      .where(eq(companionProfiles.userId, userId));
+      .where(eq(companionProfiles.userId, userId))
+      .orderBy(companionProfiles.createdAt);
 
-    res.json({ profiles });
+    const profilesWithImages = await Promise.all(
+      rows.map(async (p) => ({
+        ...p,
+        images: await getProfileImages(p.id),
+      }))
+    );
+
+    res.json({ profiles: profilesWithImages });
   } catch (err) {
     console.error("[companion] GET profiles error:", err);
     res.status(500).json({ error: "Failed to fetch dog profiles" });
@@ -57,6 +86,17 @@ router.post("/profiles", requireAuth, async (req, res) => {
   try {
     const userId = resolveUserId(req);
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    // Enforce max 8 active dogs
+    const [{ total }] = await db
+      .select({ total: count() })
+      .from(companionProfiles)
+      .where(and(eq(companionProfiles.userId, userId), eq(companionProfiles.status, "active")));
+    if (Number(total) >= MAX_ACTIVE_DOGS) {
+      return res.status(400).json({
+        error: `You can have up to ${MAX_ACTIVE_DOGS} active dog profiles. Move a dog to Previous Companions to free a slot.`,
+      });
+    }
 
     const {
       name, breed, isMixedBreed, ageYears, ageMonths, sex, isNeutered,
@@ -93,10 +133,11 @@ router.post("/profiles", requireAuth, async (req, res) => {
         medications: medications ?? [],
         wellnessGoals: wellnessGoals ?? [],
         photoUrl: photoUrl ?? null,
+        status: "active",
       })
       .returning();
 
-    res.json({ profile });
+    res.json({ profile: { ...profile, images: [] } });
   } catch (err) {
     console.error("[companion] POST profile error:", err);
     res.status(500).json({ error: "Failed to create dog profile" });
@@ -120,30 +161,238 @@ router.put("/profiles/:id", requireAuth, async (req, res) => {
       .where(eq(companionProfiles.id, profileId))
       .returning();
 
-    res.json({ profile: updated });
+    const images = await getProfileImages(profileId);
+    res.json({ profile: { ...updated, images } });
   } catch (err) {
     console.error("[companion] PUT profile error:", err);
     res.status(500).json({ error: "Failed to update dog profile" });
   }
 });
 
-// DELETE /api/companion/profiles/:id
-router.delete("/profiles/:id", requireAuth, async (req, res) => {
+// PUT /api/companion/profiles/:id/archive  →  moves to "Previous Companions"
+router.put("/profiles/:id/archive", requireAuth, async (req, res) => {
+  try {
+    const userId = resolveUserId(req);
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    await db
+      .update(companionProfiles)
+      .set({ status: "archived", isActive: false, updatedAt: new Date() })
+      .where(and(eq(companionProfiles.id, req.params.id), eq(companionProfiles.userId, userId)));
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update profile status" });
+  }
+});
+
+// PUT /api/companion/profiles/:id/memorial  →  moves to "In Memory"
+router.put("/profiles/:id/memorial", requireAuth, async (req, res) => {
+  try {
+    const userId = resolveUserId(req);
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const { memorialMessage } = req.body;
+    await db
+      .update(companionProfiles)
+      .set({
+        status: "memorial",
+        isActive: false,
+        memorialMessage: memorialMessage ?? null,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(companionProfiles.id, req.params.id), eq(companionProfiles.userId, userId)));
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update profile status" });
+  }
+});
+
+// PUT /api/companion/profiles/:id/restore  →  returns to "Active Companions"
+router.put("/profiles/:id/restore", requireAuth, async (req, res) => {
   try {
     const userId = resolveUserId(req);
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
+    const [{ total }] = await db
+      .select({ total: count() })
+      .from(companionProfiles)
+      .where(and(eq(companionProfiles.userId, userId), eq(companionProfiles.status, "active")));
+    if (Number(total) >= MAX_ACTIVE_DOGS) {
+      return res.status(400).json({
+        error: `You already have ${MAX_ACTIVE_DOGS} active dogs. Move one to Previous Companions first.`,
+      });
+    }
+
     await db
       .update(companionProfiles)
-      .set({ isActive: false, updatedAt: new Date() })
-      .where(eq(companionProfiles.id, req.params.id));
+      .set({ status: "active", isActive: true, updatedAt: new Date() })
+      .where(and(eq(companionProfiles.id, req.params.id), eq(companionProfiles.userId, userId)));
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to restore profile" });
+  }
+});
+
+// DELETE /api/companion/profiles/:id  →  soft-archive (never hard delete)
+router.delete("/profiles/:id", requireAuth, async (req, res) => {
+  try {
+    const userId = resolveUserId(req);
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    await db
+      .update(companionProfiles)
+      .set({ status: "archived", isActive: false, updatedAt: new Date() })
+      .where(and(eq(companionProfiles.id, req.params.id), eq(companionProfiles.userId, userId)));
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to archive profile" });
+  }
+});
+
+// ── Image endpoints ────────────────────────────────────────────────────────────
+
+// GET /api/companion/profiles/:id/images
+router.get("/profiles/:id/images", requireAuth, async (req, res) => {
+  try {
+    const imgs = await db
+      .select()
+      .from(companionProfileImages)
+      .where(eq(companionProfileImages.profileId, req.params.id))
+      .orderBy(companionProfileImages.sortOrder);
+    const sorted = imgs.sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0));
+    res.json({ images: sorted });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch images" });
+  }
+});
+
+// POST /api/companion/profiles/:id/images
+router.post("/profiles/:id/images", requireAuth, async (req, res) => {
+  try {
+    const userId = resolveUserId(req);
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const profileId = req.params.id;
+    const { imageUrl, isPrimary } = req.body;
+    if (!imageUrl) return res.status(400).json({ error: "imageUrl required" });
+
+    const existing = await db
+      .select()
+      .from(companionProfileImages)
+      .where(eq(companionProfileImages.profileId, profileId));
+
+    if (existing.length >= MAX_IMAGES_PER_DOG) {
+      return res.status(400).json({ error: `Maximum ${MAX_IMAGES_PER_DOG} images per dog.` });
+    }
+
+    const shouldBePrimary = isPrimary || existing.length === 0;
+
+    if (shouldBePrimary && existing.length > 0) {
+      await db
+        .update(companionProfileImages)
+        .set({ isPrimary: false })
+        .where(eq(companionProfileImages.profileId, profileId));
+    }
+
+    const [img] = await db
+      .insert(companionProfileImages)
+      .values({
+        profileId,
+        userId,
+        imageUrl,
+        isPrimary: shouldBePrimary,
+        sortOrder: existing.length,
+      })
+      .returning();
+
+    if (shouldBePrimary) {
+      await db
+        .update(companionProfiles)
+        .set({ photoUrl: imageUrl, primaryImageId: img.id, updatedAt: new Date() })
+        .where(eq(companionProfiles.id, profileId));
+    }
+
+    res.json({ image: img });
+  } catch (err) {
+    console.error("[companion] POST image error:", err);
+    res.status(500).json({ error: "Failed to add image" });
+  }
+});
+
+// DELETE /api/companion/profiles/:id/images/:imageId
+router.delete("/profiles/:id/images/:imageId", requireAuth, async (req, res) => {
+  try {
+    const userId = resolveUserId(req);
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const [img] = await db
+      .select()
+      .from(companionProfileImages)
+      .where(eq(companionProfileImages.id, req.params.imageId))
+      .limit(1);
+
+    if (!img) return res.status(404).json({ error: "Image not found" });
+
+    await db
+      .delete(companionProfileImages)
+      .where(eq(companionProfileImages.id, req.params.imageId));
+
+    if (img.isPrimary) {
+      const remaining = await db
+        .select()
+        .from(companionProfileImages)
+        .where(eq(companionProfileImages.profileId, req.params.id))
+        .orderBy(companionProfileImages.sortOrder)
+        .limit(1);
+
+      if (remaining.length > 0) {
+        await db
+          .update(companionProfileImages)
+          .set({ isPrimary: true })
+          .where(eq(companionProfileImages.id, remaining[0].id));
+        await db
+          .update(companionProfiles)
+          .set({ photoUrl: remaining[0].imageUrl, primaryImageId: remaining[0].id, updatedAt: new Date() })
+          .where(eq(companionProfiles.id, req.params.id));
+      } else {
+        await db
+          .update(companionProfiles)
+          .set({ photoUrl: null, primaryImageId: null, updatedAt: new Date() })
+          .where(eq(companionProfiles.id, req.params.id));
+      }
+    }
 
     res.json({ success: true });
   } catch (err) {
-    console.error("[companion] DELETE profile error:", err);
-    res.status(500).json({ error: "Failed to delete dog profile" });
+    res.status(500).json({ error: "Failed to delete image" });
   }
 });
+
+// PUT /api/companion/profiles/:id/images/:imageId/set-primary
+router.put("/profiles/:id/images/:imageId/set-primary", requireAuth, async (req, res) => {
+  try {
+    const profileId = req.params.id;
+
+    await db
+      .update(companionProfileImages)
+      .set({ isPrimary: false })
+      .where(eq(companionProfileImages.profileId, profileId));
+
+    const [img] = await db
+      .update(companionProfileImages)
+      .set({ isPrimary: true })
+      .where(eq(companionProfileImages.id, req.params.imageId))
+      .returning();
+
+    await db
+      .update(companionProfiles)
+      .set({ photoUrl: img.imageUrl, primaryImageId: img.id, updatedAt: new Date() })
+      .where(eq(companionProfiles.id, profileId));
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to set primary image" });
+  }
+});
+
+// ── Meal generation ────────────────────────────────────────────────────────────
 
 // POST /api/companion/generate-meal
 router.post("/generate-meal", requireAuth, async (req, res) => {
@@ -160,6 +409,12 @@ router.post("/generate-meal", requireAuth, async (req, res) => {
       .limit(1);
 
     if (!profile) return res.status(404).json({ error: "Dog profile not found" });
+
+    if (profile.status === "memorial") {
+      return res.status(400).json({
+        error: `${profile.name}'s profile is a memorial. New meal generation is disabled to preserve their memory.`,
+      });
+    }
 
     const envelope = buildCompanionProtocolEnvelope(profile as any);
 
@@ -232,7 +487,6 @@ Generate a recipe now.`;
       return res.status(500).json({ error: "Generation failed — invalid AI response" });
     }
 
-    // Normalize: ensure array fields are always arrays, never strings or objects
     if (!Array.isArray(meal.ingredients)) meal.ingredients = [];
     if (!Array.isArray(meal.instructions)) meal.instructions = [];
     if (!Array.isArray(meal.wellnessNotes)) meal.wellnessNotes = meal.wellnessNotes ? [String(meal.wellnessNotes)] : [];
@@ -240,9 +494,6 @@ Generate a recipe now.`;
     if (typeof meal.estimatedCalories !== "number") meal.estimatedCalories = meal.estimatedCalories ? parseInt(meal.estimatedCalories) || null : null;
     if (typeof meal.proteinGrams !== "number") meal.proteinGrams = meal.proteinGrams ? parseInt(meal.proteinGrams) || null : null;
 
-    // Run output through toxic firewall — scan only ingredient names,
-    // not the whole JSON (wellness notes legitimately mention toxic foods by name
-    // in "avoid" / "this recipe contains no..." context and would false-positive).
     const ingredientScanText = (Array.isArray(meal.ingredients) ? meal.ingredients : [])
       .map((ing: any) => (typeof ing === "string" ? ing : JSON.stringify(ing)))
       .join(" | ");
@@ -260,7 +511,6 @@ Generate a recipe now.`;
       });
     }
 
-    // Save to DB if user is logged in
     let savedMeal = null;
     if (userId) {
       try {
@@ -323,7 +573,6 @@ router.get("/meals/:profileId", requireAuth, async (req, res) => {
       .from(companionMeals)
       .where(eq(companionMeals.profileId, req.params.profileId))
       .orderBy(companionMeals.generatedAt);
-
     res.json({ meals });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch meals" });
