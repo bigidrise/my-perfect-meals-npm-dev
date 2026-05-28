@@ -18,6 +18,7 @@ import { requireMacroProfile } from "./middleware/requireMacroProfile";
 import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems, savedMeals as savedMealsTable, creators } from "@shared/schema";
 import { studioMemberships, studios } from "./db/schema/studio";
 import { mealImageCache } from "./db/schema/mealImageCache";
+import { companionProfileImages } from "./db/schema/companionProfiles";
 import { db } from "./db";
 import { and, eq, gte, lte, desc, sql, inArray } from "drizzle-orm";
 import { z } from "zod";
@@ -6618,6 +6619,32 @@ Provide a single exceptional meal recommendation in JSON format with the followi
 
   // Mount diabetes routes (glucose logging, profile)
   app.use("/api/diabetes", diabetesRouter);
+
+  // Public image serve for companion dog photos — must be before the global requireAuth guard below.
+  // <img src> requests cannot send custom headers, so these are served without auth.
+  // Security: UUIDs are cryptographically unguessable; images are not sensitive PII.
+  app.get("/api/companion/profiles/:profileId/images/:imageId/serve", async (req, res) => {
+    try {
+      const [img] = await db
+        .select({ imageUrl: companionProfileImages.imageUrl })
+        .from(companionProfileImages)
+        .where(eq(companionProfileImages.id, req.params.imageId))
+        .limit(1);
+      if (!img?.imageUrl) return res.status(404).json({ error: "Image not found" });
+      const match = img.imageUrl.match(/^data:([^;]+);base64,(.+)$/s);
+      if (!match) return res.status(422).json({ error: "Invalid image format" });
+      const [, mime, b64] = match;
+      const buf = Buffer.from(b64, "base64");
+      res.set({
+        "Content-Type": mime,
+        "Content-Length": String(buf.length),
+        "Cache-Control": "private, max-age=86400",
+      });
+      return res.end(buf);
+    } catch {
+      return res.status(500).json({ error: "Failed to serve image" });
+    }
+  });
 
   // Mount body composition routes (body fat tracking)
   app.use("/api", requireAuth, bodyCompositionRoutes);
