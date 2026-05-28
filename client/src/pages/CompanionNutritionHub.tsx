@@ -237,7 +237,7 @@ export default function CompanionNutritionHub() {
           {[
             { icon: Plus, label: "Add a Dog", sub: "Create profile", action: () => guardAction(PREMIUM_MSG, () => setLocation("/companion/setup")), color: "from-orange-600/30 to-orange-800/20" },
             { icon: ChefHat, label: "Meal Generator", sub: "Make a meal", action: () => guardAction(PREMIUM_MSG, () => setLocation("/companion/generator")), color: "from-amber-600/30 to-orange-700/20" },
-            { icon: Search, label: "Ingredient Scan", sub: "Is it safe?", action: () => guardAction(PREMIUM_MSG, () => setLocation("/companion/scanner")), color: "from-orange-500/30 to-red-800/20" },
+            { icon: Search, label: "Ingredient Scan", sub: "Is it safe?", action: () => guardAction(PREMIUM_MSG, () => setLocation(activeProfiles[0]?.id ? `/companion/scanner?profileId=${activeProfiles[0].id}` : "/companion/scanner")), color: "from-orange-500/30 to-red-800/20" },
           ].map((item) => (
             <button
               key={item.label}
