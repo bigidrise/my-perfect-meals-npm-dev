@@ -297,13 +297,12 @@ export default function CompanionNutritionHub() {
                             onClick={() => guardAction(PREMIUM_MSG, () => setLocation(`/companion/setup/${profile.id}?photos=true`))}
                             className="flex flex-col items-center gap-0.5 flex-shrink-0"
                           >
-                            <div className="w-11 h-11 rounded-full overflow-hidden border border-orange-400/30 relative">
+                            <div className="w-11 h-11 rounded-full overflow-hidden border border-orange-400/30">
                               {primaryImage ? (
                                 <img src={primaryImage} alt={profile.name} className="w-full h-full object-cover" />
                               ) : (
                                 <div className="w-full h-full bg-orange-500/20 flex items-center justify-center">
-                                  <PawPrint className="h-4 w-4 text-orange-400" />
-                                  <Camera className="h-2.5 w-2.5 text-orange-300 absolute bottom-0.5 right-0.5" />
+                                  <Camera className="h-5 w-5 text-orange-400" />
                                 </div>
                               )}
                             </div>
