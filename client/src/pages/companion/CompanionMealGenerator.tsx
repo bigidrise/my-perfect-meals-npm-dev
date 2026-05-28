@@ -87,19 +87,8 @@ export default function CompanionMealGenerator() {
       .catch(() => {});
   }, [preselectedProfileId]);
 
-  // Fetch the selected dog's images whenever selection changes
-  useEffect(() => {
-    if (!selectedProfileId) { setDogImages([]); return; }
-    const profileWithImages = profiles.find((p) => p.id === selectedProfileId);
-    if (profileWithImages?.images) {
-      setDogImages(profileWithImages.images);
-      return;
-    }
-    fetch(apiUrl(`/api/companion/profiles/${selectedProfileId}/images`), { headers: getAuthHeaders() })
-      .then((r) => r.json())
-      .then((d) => setDogImages((d.images || []).map((i: any) => i.serveUrl)))
-      .catch(() => setDogImages([]));
-  }, [selectedProfileId, profiles]);
+  // No per-dog photo pool — always use generic food images
+  useEffect(() => { setDogImages([]); }, [selectedProfileId]);
 
   const selectedProfile = profiles.find((p) => p.id === selectedProfileId);
   const heroImage = dogImages[0] || FALLBACK_HERO;
