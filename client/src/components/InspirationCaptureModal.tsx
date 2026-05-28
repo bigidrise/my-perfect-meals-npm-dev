@@ -21,6 +21,7 @@ import { PillButton } from "@/components/ui/pill-button";
 import { CuisineOverrideControl } from "@/components/ui/CuisineOverrideControl";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 import { useToast } from "@/hooks/use-toast";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { useCopilot } from "@/components/copilot/CopilotContext";
@@ -32,6 +33,11 @@ type ModalPhase = "capture" | "options" | "processing" | "preview" | "error";
 interface InspirationCaptureModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  destination?: "recipe" | "smart-scan";
+  profileType?: "human" | "companion";
+  profileId?: string;
+  profileName?: string;
+  onScanResult?: (result: IngredientScanResult) => void;
 }
 
 function resizeImageToBase64(file: File, maxPx = 900): Promise<string> {
@@ -67,14 +73,21 @@ const SERVINGS_OPTIONS: { value: number; label: string }[] = [
 export default function InspirationCaptureModal({
   open,
   onOpenChange,
+  destination = "recipe",
+  profileType = "human",
+  profileId,
+  profileName,
+  onScanResult,
 }: InspirationCaptureModalProps) {
+  const isSmartScan = destination === "smart-scan";
+  const isCompanionScan = isSmartScan && profileType === "companion" && !!profileName;
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { open: openCopilot, setLastResponse } = useCopilot();
   const hasTriggeredExplanation = useRef(false);
 
   useEffect(() => {
-    if (!open) {
+    if (!open || isSmartScan) {
       hasTriggeredExplanation.current = false;
       return;
     }
@@ -176,13 +189,43 @@ export default function InspirationCaptureModal({
     }
   }, []);
 
+  const submitScan = useCallback(
+    async (base64?: string | null, rawText?: string) => {
+      setPhase("processing");
+      setErrorMsg("");
+      try {
+        const body: Record<string, any> = {};
+        if (base64) body.image = base64;
+        if (rawText) body.text = rawText;
+        if (profileType === "companion" && profileId) body.companionId = profileId;
+        const res = await fetch(apiUrl("/api/biometrics/ingredient-intelligence"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Analysis failed");
+        onScanResult?.(data.result);
+        handleClose();
+      } catch (err: any) {
+        setErrorMsg(err.message || "Failed to analyze ingredients.");
+        setPhase("error");
+      }
+    },
+    [profileType, profileId, onScanResult, handleClose]
+  );
+
   const advanceToOptions = useCallback(
     (base64?: string, text?: string) => {
       if (base64) setCapturedBase64(base64);
       if (text) setCapturedText(text);
-      setPhase("options");
+      if (isSmartScan) {
+        submitScan(base64, text);
+      } else {
+        setPhase("options");
+      }
     },
-    []
+    [isSmartScan, submitScan]
   );
 
   const handleCameraCapture = useCallback(
@@ -383,13 +426,17 @@ export default function InspirationCaptureModal({
                 </button>
               )}
               <DialogTitle className="text-xl font-bold text-white">
-                {phase === "options" ? "Customize Your Meal" : "Recipe Scan"}
+                {isSmartScan
+                  ? (isCompanionScan ? `Scan Food For ${profileName}` : "Smart Scan")
+                  : (phase === "options" ? "Customize Your Meal" : "Recipe Scan")}
               </DialogTitle>
             </div>
             <p className="text-white/60 text-sm text-center mt-1">
-              {phase === "options"
-                ? "Adjust these before we generate your personalized version."
-                : "Scan any meal idea and we'll personalize it for you."}
+              {isSmartScan
+                ? (isCompanionScan ? `Analyze ingredients for ${profileName}` : "Analyze ingredients before you buy")
+                : (phase === "options"
+                  ? "Adjust these before we generate your personalized version."
+                  : "Scan any meal idea and we'll personalize it for you.")}
             </p>
           </DialogHeader>
 
@@ -694,10 +741,12 @@ export default function InspirationCaptureModal({
               </div>
               <div className="text-center space-y-1">
                 <p className="text-white font-semibold">
-                  Building your version…
+                  {isSmartScan ? "Analyzing ingredients…" : "Building your version…"}
                 </p>
                 <p className="text-white/50 text-sm">
-                  Adapting to your nutritional profile
+                  {isSmartScan
+                    ? (isCompanionScan ? `Checking against ${profileName}'s profile` : "Checking against your profile")
+                    : "Adapting to your nutritional profile"}
                 </p>
               </div>
             </div>

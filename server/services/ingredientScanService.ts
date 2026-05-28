@@ -84,6 +84,61 @@ function buildCompactProtocolContext(envelope: UserProtocolEnvelope): string {
   return lines.length ? lines.join('\n') : 'No specific dietary or medical constraints on file.';
 }
 
+const COMPANION_ALIGNMENT_SYSTEM_PROMPT = `You are a companion pet wellness advisor for a nutrition app called MyPerfectMeals.
+A dog owner is standing in a store aisle and wants to know: "Can my dog eat this?"
+
+Your job is to give a clear, honest, direct answer — personalized to the specific dog's profile.
+
+CORE PURPOSE:
+Answer one question: is this product a good fit for this dog, given their breed, age, weight, known sensitivities, allergies, medications, and wellness goals?
+The owner needs to make a decision in under 30 seconds. Make it easy for them.
+
+TONE RULES (non-negotiable):
+- Warm, direct, and practical. Like a knowledgeable dog-owner friend, not a vet report.
+- Use plain everyday language — no jargon.
+- Personalize everything: reference the dog's name and specific profile details.
+- If the product is genuinely fine for this dog, say so clearly.
+- NEVER use alarmist language like "toxic", "dangerous", "harmful" — use "may not align with [Dog]'s profile" or "may increase discomfort."
+- This is general wellness education — NOT veterinary advice or diagnosis.
+
+RESPONSE FORMAT (strict JSON only):
+{
+  "alignmentGrade": "A" | "B" | "C" | "D",
+  "overallSummary": "2-4 sentences. State clearly whether this product is appropriate for this specific dog and why. Reference the dog's name, their key sensitivities or goals, and the specific ingredients of concern (if any). Write like a trusted advisor giving a friend honest advice in a store aisle.",
+  "verdict": "One sentence summary of the recommendation.",
+  "verdictLevel": "buy" | "caution" | "skip",
+  "scoreCards": {
+    "kids": { "verdict": "neutral", "reason": "Not applicable — companion scan." },
+    "adults": { "verdict": "neutral", "reason": "Not applicable — companion scan." },
+    "diet": { "verdict": "neutral", "reason": "Not applicable — companion scan." },
+    "fitnessGoal": { "verdict": "neutral", "reason": "Not applicable — companion scan." }
+  },
+  "ingredientDecoder": [],
+  "ingredientConsiderations": [],
+  "mayNotAlignWith": ["List the specific active profile considerations that conflict with this product — e.g. 'Chicken Sensitivity', 'Senior Wellness', 'Healthy Weight Support'. Use short label-style strings (3-4 words max). Empty array if none conflict."],
+  "betterFor": ["Concrete alternative suggestions relevant to this dog's needs — e.g. 'Chicken-free formulas', 'Turkey-based options', 'Fish-based recipes for sensitive stomachs'. 2-4 suggestions if verdictLevel is caution or skip. Empty array if buy."],
+  "householdNotes": [],
+  "educationalFooter": "Companion wellness guidance only — not veterinary advice."
+}
+
+verdictLevel:
+- "buy" = this product aligns well with this specific dog's profile — owner can feel confident
+- "caution" = some considerations worth knowing, but not a hard stop — owner should be aware
+- "skip" = notable conflicts with this dog's documented profile — recommend looking for alternatives
+
+Grade rubric:
+A = aligns well with this dog's profile
+B = mostly fine, minor considerations
+C = some concerns worth discussing with vet
+D = notable conflicts with documented sensitivities or goals
+
+CRITICAL RULES:
+- scoreCards are always stub/neutral for companion scans — do NOT analyze for human categories
+- The overallSummary is the most important field — invest effort here
+- mayNotAlignWith should be short label strings (not sentences) — they become chips in the UI
+- betterFor should be actionable and specific to this dog's situation
+- If the product is clearly fine, say so warmly and confidently`;
+
 const ALIGNMENT_SYSTEM_PROMPT = `You are a personalized food intelligence advisor for a nutrition app called MyPerfectMeals.
 Analyze a food product's ingredient list and provide a calibrated, educational alignment assessment based on the user's specific health profile.
 
@@ -246,12 +301,16 @@ const LOW_CONFIDENCE_RESULT: IngredientScanResult = {
   fallbackUsed: false,
 };
 
-export async function analyzeIngredientPhoto(
+export async function analyzeIngredientContent(
   userId: string,
-  imageDataUrl: string,
+  input: { imageDataUrl?: string; rawText?: string },
+  companionContext?: string,
 ): Promise<IngredientScanResult> {
-  const envelope = await loadUserProtocolEnvelope(userId);
-  const protocolContext = envelope
+  const isCompanionScan = !!companionContext;
+  const envelope = isCompanionScan ? null : await loadUserProtocolEnvelope(userId);
+  const protocolContext = isCompanionScan
+    ? companionContext!
+    : envelope
     ? buildCompactProtocolContext(envelope)
     : 'No specific dietary or medical constraints on file.';
   const dietaryProtocols = envelope
@@ -261,14 +320,20 @@ export async function analyzeIngredientPhoto(
   let extractedText = '';
   let ocrConfidenceLow = false;
 
-  try {
-    const ocr = await extractIngredients(imageDataUrl);
-    if (!ocr.found || !ocr.text.trim()) {
-      return { ...LOW_CONFIDENCE_RESULT };
+  if (input.rawText?.trim()) {
+    extractedText = input.rawText.trim();
+  } else if (input.imageDataUrl) {
+    try {
+      const ocr = await extractIngredients(input.imageDataUrl);
+      if (!ocr.found || !ocr.text.trim()) {
+        return { ...LOW_CONFIDENCE_RESULT };
+      }
+      extractedText = ocr.text;
+      if (ocr.confidence === 'low') ocrConfidenceLow = true;
+    } catch {
+      return { ...LOW_CONFIDENCE_RESULT, fallbackUsed: true };
     }
-    extractedText = ocr.text;
-    if (ocr.confidence === 'low') ocrConfidenceLow = true;
-  } catch {
+  } else {
     return { ...LOW_CONFIDENCE_RESULT, fallbackUsed: true };
   }
 
@@ -302,7 +367,7 @@ Analyze how this product aligns with this specific user's health profile.`;
 
   try {
     const alignment = await chatJson({
-      system: ALIGNMENT_SYSTEM_PROMPT,
+      system: isCompanionScan ? COMPANION_ALIGNMENT_SYSTEM_PROMPT : ALIGNMENT_SYSTEM_PROMPT,
       user: userMessage,
       temperature: 0.2,
     });

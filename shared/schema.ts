@@ -70,6 +70,8 @@ export { creatorStatusEnum, creatorTierEnum, creatorSourceEnum, creatorCategoryE
 export type { Creator, InsertCreator } from "../server/db/schema/creators";
 export { creatorSystemConfigs } from "../server/db/schema/creatorSystemConfigs";
 export type { CreatorSystemConfigRow, InsertCreatorSystemConfig } from "../server/db/schema/creatorSystemConfigs";
+
+export { companionProfiles, companionMeals, companionIngredientScans } from "../server/db/schema/companionProfiles";
 export { creatorOnboardingSubmissions } from "../server/db/schema/creatorOnboardingSubmissions";
 export type { CreatorOnboardingSubmission, InsertCreatorOnboardingSubmission } from "../server/db/schema/creatorOnboardingSubmissions";
 export { creatorMeals } from "../server/db/schema/creatorMeals";

@@ -39,7 +39,8 @@ import { formatQuantity } from "@/lib/formatQuantity";
 import { convertServingDisplay } from "@shared/units";
 import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
-import { launchIngredientPhotoCapture, type IngredientScanResult } from "@/lib/photoIngredientCapture";
+import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
+import InspirationCaptureModal from "@/components/InspirationCaptureModal";
 import { ShoppingIngredientSheet } from "@/components/shopping/ShoppingIngredientSheet";
 import VoiceShoppingModal from "@/components/shopping/VoiceShoppingModal";
 
@@ -141,9 +142,7 @@ export default function ShoppingListMasterView() {
   const [shoppingSheetOpen, setShoppingSheetOpen] = useState(false);
   const [shoppingSheetResult, setShoppingSheetResult] = useState<IngredientScanResult | null>(null);
   const [addOtherPrefill, setAddOtherPrefill] = useState<string | undefined>(undefined);
-
-  const [scanState, setScanState] = useState<"idle" | "scanning" | "ready">("idle");
-  const [scanMessageIdx, setScanMessageIdx] = useState(0);
+  const [scanModalOpen, setScanModalOpen] = useState(false);
   const [scanRefreshKey, setScanRefreshKey] = useState(0);
   const [bulkText, setBulkText] = useState("");
   const [barcodeText, setBarcodeText] = useState("");
@@ -170,41 +169,7 @@ export default function ShoppingListMasterView() {
     });
   }, []);
 
-  const SCAN_MESSAGES = [
-    "Reviewing ingredients…",
-    "Checking additives and oils…",
-    "Comparing with your goals…",
-    "Analyzing against your profile…",
-  ];
-
-  useEffect(() => {
-    if (scanState !== "scanning") return;
-    const interval = setInterval(() => {
-      setScanMessageIdx((i) => i + 1);
-    }, 1800);
-    return () => clearInterval(interval);
-  }, [scanState]);
-
-  const handleShoppingScan = async () => {
-    await launchIngredientPhotoCapture({
-      onAnalyzing: () => {
-        setScanState("scanning");
-        setScanMessageIdx(0);
-      },
-      onSuccess: (result) => {
-        setScanState("ready");
-        setShoppingSheetResult(result);
-        setTimeout(() => {
-          setScanState("idle");
-          setShoppingSheetOpen(true);
-        }, 500);
-      },
-      onError: (error) => {
-        setScanState("idle");
-        toast({ title: "Scan failed", description: error, variant: "destructive" });
-      },
-    });
-  };
+  const handleShoppingScan = () => setScanModalOpen(true);
 
   // Toggle all underlying source items at once (for consolidated rows)
   const handleToggleConsolidated = useCallback(
@@ -917,42 +882,18 @@ export default function ShoppingListMasterView() {
             )}
           </div>
         )}
-        {/* Scanning overlay — shown during AI analysis */}
-        {scanState !== "idle" && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm">
-            <div className="flex flex-col items-center gap-6 px-8 text-center max-w-xs">
-              {scanState === "ready" ? (
-                <>
-                  <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
-                    <span className="text-3xl">✓</span>
-                  </div>
-                  <p className="text-white font-semibold text-lg">Analysis ready</p>
-                </>
-              ) : (
-                <>
-                  <div className="relative w-16 h-16">
-                    <div className="absolute inset-0 rounded-full bg-orange-500/20 animate-ping" />
-                    <div className="relative w-16 h-16 rounded-full bg-orange-500/30 border border-orange-500/60 flex items-center justify-center">
-                      <span className="text-2xl">🧾</span>
-                    </div>
-                  </div>
-                  <p className="text-white font-medium text-base">
-                    {SCAN_MESSAGES[scanMessageIdx % SCAN_MESSAGES.length]}
-                  </p>
-                  <div className="flex gap-1.5">
-                    {[0, 1, 2].map((i) => (
-                      <div
-                        key={i}
-                        className="w-2 h-2 rounded-full bg-orange-400 animate-bounce"
-                        style={{ animationDelay: `${i * 0.15}s` }}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
+        {/* Smart Scan — Ingredient Intake Modal */}
+        <InspirationCaptureModal
+          open={scanModalOpen}
+          onOpenChange={setScanModalOpen}
+          destination="smart-scan"
+          profileType="human"
+          onScanResult={(result) => {
+            setShoppingSheetResult(result);
+            setShoppingSheetOpen(true);
+            setScanRefreshKey((k) => k + 1);
+          }}
+        />
 
         {/* Shopping Ingredient Intelligence Sheet */}
         <ShoppingIngredientSheet

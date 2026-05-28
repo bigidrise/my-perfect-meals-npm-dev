@@ -9,10 +9,17 @@ import {
   buildGuestEnvelope,
 } from "../services/protocolEnvelope";
 import { generateMealImageUnified } from "../services/mealImageGenerator";
+import OpenAI from "openai";
+
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  return _openai;
+}
 
 const router = express.Router();
 
-type Situation = "holiday" | "camping" | "tailgating";
+type Situation = "holiday" | "camping" | "tailgating" | "outdoor";
 type CourseType = "appetizer" | "main" | "side" | "dessert";
 
 const HOLIDAY_FLAVOR_SEEDS: Record<string, string> = {
@@ -30,7 +37,7 @@ const HOLIDAY_FLAVOR_SEEDS: Record<string, string> = {
 // Zod schema
 // ─────────────────────────────────────────────
 const ExperienceRequest = z.object({
-  situation: z.enum(["holiday", "camping", "tailgating"]),
+  situation: z.enum(["holiday", "camping", "tailgating", "outdoor"]),
   eventType: z.string().optional(),
   selectedDishes: z
     .array(
@@ -52,6 +59,9 @@ const ExperienceRequest = z.object({
   dietAdaptOverride: z.boolean().optional().default(false),
   flavorPersonal: z.boolean().optional().default(true),
   keepItSimple: z.boolean().optional().default(false),
+  proteinSource: z.string().max(200).optional(),
+  cookingMethod: z.string().max(50).optional(),
+  experienceType: z.enum(["simple", "complete", "gathering"]).optional().default("gathering"),
 });
 
 // ─────────────────────────────────────────────
@@ -75,6 +85,8 @@ function getFlavorSeed(situation: Situation, eventType?: string): string {
     return "simple, hearty, campfire-friendly, outdoorsy, minimal equipment";
   if (situation === "tailgating")
     return "bold, shareable, crowd-pleasing, finger-food friendly, casual";
+  if (situation === "outdoor")
+    return "nature-to-table, earthy, seasonal, rustic, fire-kissed, honest and bold";
   return "flavorful, cohesive, balanced";
 }
 
@@ -140,6 +152,16 @@ function getSituationConstraints(
       "- Cooking methods: campfire, portable grill, or no-cook ONLY",
       "- Portable and easy to transport and serve outdoors",
       "- Avoid dishes that require sustained temperature control",
+    ].join("\n");
+  }
+  if (situation === "outdoor") {
+    return [
+      "- GREAT OUTDOORS REQUIREMENT: The featured ingredient is the centerpiece — honor what was found, caught, harvested, or grown",
+      "- Dishes must be achievable with outdoor cooking equipment (smoker, Dutch oven, cast iron, campfire, grill)",
+      "- Bold, rustic flavors that reflect the natural setting — field, forest, garden, or water",
+      "- No refrigeration required during preparation",
+      "- All courses must complement the featured ingredient",
+      "- Cooking techniques should feel intentional and craft-driven, not generic",
     ].join("\n");
   }
   // tailgating
@@ -226,6 +248,8 @@ function buildCoursePrompt(
   alreadyGeneratedTypes: string[] = [],
   alreadyGeneratedMethods: string[] = [],
   protocolBlock: string = "",
+  proteinSource?: string,
+  cookingMethod?: string,
 ): string {
   const lines = [
     `You are generating the ${COURSE_LABELS[courseType]} for a multi-course meal.`,
@@ -236,6 +260,14 @@ function buildCoursePrompt(
     `FLAVOR PROFILE SEED: ${flavorSeed}`,
     ``,
   ];
+
+  if (proteinSource) {
+    lines.push(`FEATURED INGREDIENT: ${proteinSource} — this is the centerpiece; build courses around it`);
+  }
+  if (cookingMethod) {
+    lines.push(`PRIMARY COOKING METHOD: ${cookingMethod} — let this shape the cooking approach for this course`);
+  }
+  if (proteinSource || cookingMethod) lines.push(``);
 
   // Inject medical + dietary protocol block high in the prompt so it is a hard constraint
   if (protocolBlock) {
@@ -282,14 +314,18 @@ function buildCoursePrompt(
     lines.push(`- You MUST generate something clearly and obviously different from every listed dish above`);
   }
 
-  if (situation === "camping" && alreadyGeneratedMethods.length > 0) {
+  if ((situation === "camping" || situation === "outdoor") && alreadyGeneratedMethods.length > 0) {
     lines.push(``);
-    lines.push(`COOKING METHOD DIVERSITY (camping rule):`);
+    const methodLabel = situation === "outdoor" ? "Great Outdoors" : "camping";
+    const availableMethods = situation === "outdoor"
+      ? "smoker, Dutch oven, cast iron, campfire, open flame, grill"
+      : "campfire, grilled, foil packet, skillet, no-cook";
+    lines.push(`COOKING METHOD DIVERSITY (${methodLabel} rule):`);
     lines.push(`Already-used cooking methods: ${alreadyGeneratedMethods.join(", ")}`);
     lines.push(`- Each course MUST use a DIFFERENT cooking method`);
-    lines.push(`- Available methods: campfire, grilled, foil packet, skillet, no-cook`);
+    lines.push(`- Available methods: ${availableMethods}`);
     lines.push(`- Do NOT repeat any cooking method already used above`);
-    lines.push(`- Do NOT prefix every dish name with the same word (e.g. "Campfire X" every time)`);
+    lines.push(`- Do NOT prefix every dish name with the same word`);
   }
 
   if (strict) {
@@ -397,6 +433,85 @@ function deduplicateIngredients(
 }
 
 // ─────────────────────────────────────────────
+// Nature-to-Table Guide — pre-course educational block (NOT a meal course)
+// Generated once for Great Outdoors situation; returned alongside courses but
+// isolated from: duplicate detection, image generation, shopping aggregation,
+// course counting, and all course-related systems.
+//
+// expanded=true (Simple Preparation mode): 6 sections, 3 cooking methods, primary output
+// expanded=false (Complete/Gathering mode): 5 sections, brief pre-course companion
+// ─────────────────────────────────────────────
+async function generateHarvestToTableGuide(
+  ingredient: string,
+  cookingMethod?: string,
+  expanded = false,
+): Promise<{ title: string; sections: { heading: string; text: string }[] } | null> {
+  try {
+    const methodNote = cookingMethod ? ` The user's preferred cooking method is: ${cookingMethod}.` : "";
+    let prompt: string;
+
+    if (expanded) {
+      const methodInstruction = cookingMethod
+        ? `Use "${cookingMethod}" as Method 1. Suggest two additional methods appropriate for an outdoor setting.`
+        : `Suggest the 3 best cooking methods for this ingredient in an outdoor setting.`;
+
+      prompt = `You are generating a comprehensive Nature-to-Table Preparation Guide for someone who found, caught, harvested, or grew: ${ingredient}.${methodNote}
+
+This guide is the primary result — write it to be genuinely useful and practical. Adapt your guidance to the actual ingredient type (wild game, fish, shellfish, foraged mushrooms or berries, garden produce, eggs, or anything else outdoors people encounter).
+
+${methodInstruction}
+
+Use plain, confident language a home cook with outdoor experience can follow.
+
+Respond ONLY with valid JSON in this exact shape:
+{
+  "title": "Nature-to-Table Guide — ${ingredient}",
+  "sections": [
+    { "heading": "What You Have", "text": "Brief description of this ingredient — type, key characteristics, typical flavor profile, and what makes it worth cooking" },
+    { "heading": "Preparation", "text": "How to clean, process, or prepare this ingredient for cooking — practical, step-by-step" },
+    { "heading": "Method 1: [Method Name]", "text": "Step-by-step instructions for the first cooking method" },
+    { "heading": "Method 2: [Method Name]", "text": "Step-by-step instructions for the second cooking method" },
+    { "heading": "Method 3: [Method Name]", "text": "Step-by-step instructions for the third cooking method" },
+    { "heading": "Food Safety & Storage", "text": "Temperatures, storage tips, timing, and any safety considerations specific to this ingredient" }
+  ]
+}`;
+    } else {
+      prompt = `You are generating a brief Nature-to-Table Guide for someone who found, caught, harvested, or grew: ${ingredient}.${methodNote}
+
+Provide a concise, practical guide in 5 short sections. Write for a home cook with outdoor experience — plain language, no jargon. Adapt guidance to the actual ingredient type (wild game, fish, foraged items, garden produce, etc.).
+
+Respond ONLY with valid JSON in this exact shape:
+{
+  "title": "Nature-to-Table Guide — ${ingredient}",
+  "sections": [
+    { "heading": "About Your Ingredient", "text": "..." },
+    { "heading": "Preparation & Cleaning", "text": "..." },
+    { "heading": "Before You Cook", "text": "..." },
+    { "heading": "Food Safety & Storage", "text": "..." },
+    { "heading": "Ready to Cook", "text": "..." }
+  ]
+}`;
+    }
+
+    const response = await getOpenAI().chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+      temperature: 0.4,
+      max_tokens: expanded ? 1200 : 800,
+    });
+
+    const raw = response.choices[0]?.message?.content || "{}";
+    const parsed = JSON.parse(raw);
+    if (!parsed.title || !Array.isArray(parsed.sections)) return null;
+    return parsed as { title: string; sections: { heading: string; text: string }[] };
+  } catch (err) {
+    console.warn(`⚠️ [Gatherings] Nature-to-Table guide generation failed for "${ingredient}":`, err);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────
 // Route: POST /api/gatherings/generate
 // ─────────────────────────────────────────────
 router.post("/generate", async (req: Request, res: Response) => {
@@ -421,10 +536,25 @@ router.post("/generate", async (req: Request, res: Response) => {
     allergies: reqAllergies,
     flavorPersonal,
     keepItSimple,
+    proteinSource,
+    cookingMethod,
+    experienceType,
   } = parsed.data;
 
   // GUARDRAIL #1: Route enforces course structure
-  const courses = deriveCourses(totalCourses as 3 | 4 | 5);
+  // For outdoor, experience type overrides the course count selector
+  let courses: CourseType[];
+  if (situation === "outdoor") {
+    if (experienceType === "simple") {
+      courses = ["main"]; // Expanded guide + one simple recipe
+    } else if (experienceType === "complete") {
+      courses = ["main"]; // Brief guide + one centerpiece dish
+    } else {
+      courses = deriveCourses(totalCourses as 3 | 4 | 5);
+    }
+  } else {
+    courses = deriveCourses(totalCourses as 3 | 4 | 5);
+  }
   const flavorProfileSeed = getFlavorSeed(situation as Situation, eventType);
 
   // GUARDRAIL #2: Create shared context object ONCE and reuse it
@@ -438,8 +568,16 @@ router.post("/generate", async (req: Request, res: Response) => {
   };
 
   console.log(
-    `🎪 [Gatherings] id=${experienceContext.id} | courses=[${courses.join(",")}] | ${situation}${eventType ? `/${eventType}` : ""} | serving=${servingSize} | selectedDishes=${selectedDishes.length} | familySpecialty=${!!familySpecialty}`,
+    `🎪 [Gatherings] id=${experienceContext.id} | courses=[${courses.join(",")}] | ${situation}${eventType ? `/${eventType}` : ""} | serving=${servingSize} | selectedDishes=${selectedDishes.length} | familySpecialty=${!!familySpecialty}${proteinSource ? ` | ingredient=${proteinSource}` : ""}${cookingMethod ? ` | method=${cookingMethod}` : ""}${situation === "outdoor" ? ` | mode=${experienceType}` : ""}`,
   );
+
+  // ── Generate Nature-to-Table Guide for Great Outdoors (pre-course educational block) ──
+  let harvestGuide: { title: string; sections: { heading: string; text: string }[] } | null = null;
+  if (situation === "outdoor" && proteinSource) {
+    const expanded = experienceType === "simple";
+    harvestGuide = await generateHarvestToTableGuide(proteinSource, cookingMethod, expanded);
+    console.log(`🪵 [Gatherings] ${expanded ? "Expanded" : "Brief"} Nature-to-Table guide ${harvestGuide ? "generated" : "failed"} for "${proteinSource}" [mode=${experienceType}]`);
+  }
 
   // ── Load full protocol envelope (dietary + medical + allergies + avoidances) ──
   let userDiet = [...(reqDiet || [])];
@@ -514,6 +652,8 @@ router.post("/generate", async (req: Request, res: Response) => {
           alreadyGeneratedTypes,
           alreadyGeneratedMethods,
           gatheringsProtocolBlock,
+          proteinSource,
+          cookingMethod,
         );
 
         const meal = await generateMealFromPrompt(
@@ -620,6 +760,7 @@ router.post("/generate", async (req: Request, res: Response) => {
     totalCourses,
     servingSize,
     flavorProfileSeed,
+    harvestGuide: harvestGuide || null,
     courses: generatedCourses,
     aggregatedIngredients,
   });

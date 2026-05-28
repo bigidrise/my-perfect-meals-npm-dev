@@ -1565,6 +1565,7 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
           list: [
             "Holidays: Thanksgiving, Christmas, Hanukkah, Easter, Passover, Eid, and more",
             "Camping: fire-cooked, foil packet, skillet, and no-cook courses",
+            "Great Outdoors: anything you found, caught, harvested, or grew — wild game, fish, foraged items, garden produce, and more",
             "Date Night: elegant multi-course dining at home",
             "Family Dinner: comfort food designed for a crowd",
             "Game Day, Potluck, Backyard BBQ, and more",
@@ -1578,6 +1579,66 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
           heading: "Where to Find It",
           list: [
             "Lifestyle Hub — My Perfect Gatherings card",
+            "Included with Pro and Clinical subscriptions",
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "great-outdoors",
+    title: "Great Outdoors",
+    subtitle: "Nature-to-Table for anything you found, caught, harvested, or grew",
+    icon: Flame,
+    content: {
+      sections: [
+        {
+          heading: "What Is Great Outdoors?",
+          text: "Great Outdoors is an outdoor lifestyle feature inside My Perfect Gatherings. You enter what you found, caught, harvested, or grew — venison, trout, wild mushrooms, blackberries, garden zucchini, eggs, or anything else — choose a cooking method, and the app builds a Nature-to-Table experience personalized to your dietary profile. It is not just for hunters. It is for anyone who starts a meal outdoors.",
+        },
+        {
+          heading: "The Three Modes",
+          list: [
+            "Simple Preparation — the guide IS the result. No meal courses. Just: what you have, how to prep it, and three ways to cook it. Best for: I caught a trout. Now what?",
+            "Complete Meal — one full centerpiece meal built around your ingredient. Best for: I have venison and want a complete dinner.",
+            "Gathering Experience — full multi-course meal. Best for: I want to host a Great Outdoors dinner for a group.",
+          ],
+        },
+        {
+          heading: "The Nature-to-Table Guide",
+          text: "Every Great Outdoors experience begins with a Nature-to-Table Guide specific to what you entered. For Simple Preparation, the guide is the entire result — covering what you have, how to prepare it, three cooking methods, and food safety. For Complete Meal and Gathering modes, it appears as a brief companion above the meal courses.",
+        },
+        {
+          heading: "What You Can Enter",
+          list: [
+            "Wild game: Venison, Elk, Bison, Boar, Rabbit, and more",
+            "Birds: Wild Turkey, Duck, Quail, Pheasant, and others",
+            "Fish & shellfish: Trout, Salmon, Catfish, Walleye, Redfish, and more",
+            "Foraged items: Wild mushrooms, blackberries, ramps, fiddlehead ferns",
+            "Garden produce: Tomatoes, zucchini, basil, peppers, eggs",
+            "Anything else — the AI identifies and adapts to whatever you entered",
+          ],
+        },
+        {
+          heading: "Cooking Methods",
+          list: [
+            "Smoker — low-and-slow for wild game and whole birds",
+            "Dutch Oven — camp-style braises and stews",
+            "Cast Iron — sears, sautés, and pan roasts",
+            "Campfire — true open-fire cooking",
+            "Open Flame — direct flame grilling and charring",
+            "Grill — standard outdoor grill for everyday outdoor meals",
+          ],
+        },
+        {
+          heading: "Your Protocols Still Apply",
+          text: "Every Great Outdoors experience is still built around your dietary identity, medical conditions, allergies, and active protocols. If you are anti-inflammatory, keto, diabetic, or have specific medical guardrails, every result respects those rules automatically. The ingredient changes. The protection does not.",
+        },
+        {
+          heading: "Where to Find It",
+          list: [
+            "Lifestyle Hub — My Perfect Gatherings card",
+            "Select 'Great Outdoors' (🪵) from the occasion selector",
             "Included with Pro and Clinical subscriptions",
           ],
         },
@@ -1970,6 +2031,60 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
           heading: "Where to Apply",
           list: [
             "Lifestyle → Creator Studio → Chef Studio or Brand Beverage Studio",
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "companion-nutrition",
+    title: "My Perfect Pets — Companion Nutrition Intelligence",
+    subtitle: "Personalized dog wellness nutrition",
+    icon: Heart,
+    content: {
+      sections: [
+        {
+          heading: "What This Is",
+          text: "My Perfect Pets is a premium wellness nutrition system for dogs, built directly on the same adaptive protocol engine that powers your own meals. It is not a standalone pet app — it is a protocol translation layer that applies everything MPM already built for human nutrition to canine wellness guidance.",
+        },
+        {
+          heading: "The Same Engine, Translated",
+          text: "The core AI generation engine, the protocol envelope system, the condition stacking logic, and the shopping infrastructure are all shared with the human nutrition system. When you improve MPM, you improve My Perfect Pets. This is intentional architecture, not a feature add-on.",
+        },
+        {
+          heading: "The 4-Layer Dog Protocol",
+          list: [
+            "Layer 1 — Safety: Toxic Ingredient Firewall. Hard blocks on chocolate, xylitol, grapes, garlic, onions, macadamia nuts, and all other known canine toxins. Non-negotiable. Cannot be overridden.",
+            "Layer 2 — Wellness: Condition-specific protocol stacking. Senior support, kidney support, anti-inflammatory, joint wellness, diabetic support, skin and coat support, and more — stacked simultaneously when needed.",
+            "Layer 3 — Profile: Dog-specific allergies, food sensitivities, veterinarian-specified dietary restrictions, and current medications (for nutrition awareness only — no drug interaction analysis).",
+            "Layer 4 — Preferences: Activity level, treat frequency, portion context, and behavioral notes.",
+          ],
+        },
+        {
+          heading: "Toxic Ingredient Firewall",
+          text: "Every recipe generated for your dog is screened through the Toxic Ingredient Firewall before you see it. If a generated recipe contains a known canine toxin — even as a trace mention — it is blocked and regenerated. You never see an unsafe recipe. The firewall is not AI-guided: it is a hardcoded list of known toxic ingredients sourced from ASPCA Poison Control and AVMA veterinary safety references.",
+        },
+        {
+          heading: "Controlled Veterinary Citations",
+          text: "All wellness protocols include controlled citations from pre-approved veterinary sources: WSAVA Global Nutrition Guidelines, AAHA Nutritional Assessment Guidelines, Tufts Cummings School of Veterinary Medicine, ASPCA Animal Poison Control, and IRIS. The AI is never permitted to invent veterinary sources. Citations are condition-mapped and injected from a verified library.",
+        },
+        {
+          heading: "Ingredient Safety Scanner",
+          text: "Type any food ingredient to instantly check if it is safe for your dog. The scanner runs the ingredient through the Toxic Ingredient Firewall and returns a safety rating (SAFE, CAUTION, or TOXIC), the reason it is flagged, and a safe substitution. Safe ingredients also receive an AI-generated wellness score and nutritional notes.",
+        },
+        {
+          heading: "Important Limitations",
+          text: "My Perfect Pets provides wellness nutrition guidance only. It is not veterinary medicine, does not diagnose conditions, and does not replace veterinary care. For any health concern, medical condition, or significant dietary change, always consult a licensed veterinarian.",
+        },
+        {
+          heading: "Veterinary Sources",
+          list: [
+            "WSAVA Global Nutrition Guidelines — wsava.org",
+            "AAHA Nutritional Assessment Guidelines for Dogs and Cats — aaha.org",
+            "Tufts Cummings School of Veterinary Medicine, Clinical Nutrition Service — vetnutrition.tufts.edu",
+            "ASPCA Animal Poison Control Center — aspca.org/pet-care/animal-poison-control",
+            "IRIS — International Renal Interest Society — iris-kidney.com",
+            "AVMA — American Veterinary Medical Association — avma.org",
           ],
         },
       ],

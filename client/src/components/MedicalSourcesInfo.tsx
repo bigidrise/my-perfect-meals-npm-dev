@@ -370,6 +370,55 @@ export function MedicalSourcesInfo({
             </p>
           </section>
 
+          <section>
+            <h3 className="text-lg font-semibold text-white mb-3">
+              Companion nutrition &amp; veterinary sources
+            </h3>
+            <p className="text-white/60 text-xs mb-3">
+              My Perfect Pets (Companion Nutrition Intelligence) uses publicly available veterinary nutrition guidelines to inform dog wellness meal design, toxic ingredient identification, and condition-specific nutritional protocols. These references are used for general wellness guidance only — not veterinary diagnosis, treatment, or individualized clinical care.
+            </p>
+            <ul className="space-y-3">
+              <SourceItem
+                title="WSAVA Global Nutrition Guidelines"
+                description="World Small Animal Veterinary Association guidelines for companion animal nutrition assessment, body condition scoring, and life-stage feeding recommendations"
+                url="https://wsava.org/global-guidelines/global-nutrition-guidelines/"
+              />
+              <SourceItem
+                title="AAHA Nutritional Assessment Guidelines for Dogs and Cats"
+                description="American Animal Hospital Association evidence-based nutritional assessment protocols, weight management guidance, and therapeutic diet recommendations for companion animals"
+                url="https://www.aaha.org/globalassets/02-guidelines/nutritional-assessment/nutritionalassessmentguidelines.pdf"
+              />
+              <SourceItem
+                title="Tufts Cummings School of Veterinary Medicine — Clinical Nutrition Service"
+                description="Evidence-based companion animal nutrition research including kidney disease dietary management, weight loss protocols, and therapeutic nutrition for chronic conditions"
+                url="https://vetnutrition.tufts.edu/"
+              />
+              <SourceItem
+                title="ASPCA Animal Poison Control Center"
+                description="Primary authoritative reference for identifying foods, plants, and household substances toxic to dogs and cats — the foundational source for the Companion Toxic Ingredient Firewall"
+                url="https://www.aspca.org/pet-care/animal-poison-control"
+              />
+              <SourceItem
+                title="IRIS — International Renal Interest Society"
+                description="Staging system and dietary management guidelines for canine chronic kidney disease, including phosphorus restriction protocols and nutritional management frameworks"
+                url="https://www.iris-kidney.com/"
+              />
+              <SourceItem
+                title="AAHA Diabetes Management Guidelines for Dogs and Cats"
+                description="Evidence-based nutritional management of canine diabetes mellitus, including glycemic control principles and dietary fiber recommendations"
+                url="https://www.aaha.org/globalassets/02-guidelines/diabetes-management/2018diabetesmanagementguidelines.pdf"
+              />
+              <SourceItem
+                title="AVMA — American Veterinary Medical Association"
+                description="General companion animal health and safety guidance, pet food safety standards, and wellness nutrition principles"
+                url="https://www.avma.org/"
+              />
+            </ul>
+            <p className="text-white/60 text-xs mt-3 leading-relaxed">
+              Companion nutrition guidance is for general wellness support only. It does not constitute veterinary advice. Always consult a licensed veterinarian for medical conditions, significant dietary changes, or any health concern.
+            </p>
+          </section>
+
           <section className="bg-amber-900/20 border border-amber-500/30 rounded-xl p-4">
             <h3 className="text-amber-400 font-semibold mb-2 flex items-center gap-2">
               <Info className="w-4 h-4" />
