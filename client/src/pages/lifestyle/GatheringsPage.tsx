@@ -956,19 +956,19 @@ export default function UltimateExperiencesPage() {
                         <label className="block text-sm font-medium mb-3 text-white">
                           What would you like to create?
                         </label>
-                        <div className="flex gap-2">
+                        <div className="flex gap-6">
                           {OUTDOOR_EXPERIENCE_TYPES.map((t) => (
-                            <div key={t.id} className="flex flex-col items-center gap-1 flex-1">
+                            <div key={t.id} className="flex flex-col items-center gap-1.5">
                               <PillButton
                                 active={outdoorExperienceType === t.id}
                                 variant="amber"
                                 onClick={() => setOutdoorExperienceType(t.id)}
                                 disabled={isGenerating}
-                                className="w-full py-2.5 text-xs font-semibold"
+                                className="w-16 text-lg leading-none py-2"
                               >
-                                {t.emoji} {t.label}
+                                {t.emoji}
                               </PillButton>
-                              <span className="text-[10px] text-white/50 text-center leading-tight">{t.sublabel}</span>
+                              <span className="text-xs text-white/80 font-medium text-center leading-tight">{t.label}</span>
                             </div>
                           ))}
                         </div>
