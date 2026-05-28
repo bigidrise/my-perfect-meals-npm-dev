@@ -64,7 +64,7 @@ export const PLAN_SKUS: PlanSku[] = [
       "Beverage Creator & Sushi Creator",
       "Restaurant Guide with protocol-aware ordering",
       "Fast Food Guide & Find Meals Near Me",
-      "My Perfect Gatherings (multi-course holiday & event meals)",
+      "My Perfect Gatherings (multi-course holiday, event & Great Outdoors meals)",
       "Spirits & Wine Pairing Hub",
     ],
     badge: "Most Popular",

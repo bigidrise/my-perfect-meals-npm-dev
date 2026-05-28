@@ -81,7 +81,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "Restaurant Guide with protocol-aware ordering",
       "Fast Food Guide (smart ordering at McDonald's, Chick-fil-A, and more)",
       "Find Meals Near Me",
-      "My Perfect Gatherings (AI-designed multi-course meals for holidays, camping, date nights, and more)",
+      "My Perfect Gatherings (AI-designed multi-course meals for holidays, camping, Great Outdoors, date nights, and more)",
     ],
     entitlements: [
       "smart_menu_builder",
@@ -159,7 +159,7 @@ export const IOS_DISPLAY_FEATURES: Record<string, string[]> = {
     "Restaurant Guide with protocol-aware ordering",
     "Fast Food Guide",
     "Find Meals Near Me",
-    "My Perfect Gatherings",
+    "My Perfect Gatherings (incl. Great Outdoors)",
     "Kids & Toddler Meals",
   ],
   ultimate: [
