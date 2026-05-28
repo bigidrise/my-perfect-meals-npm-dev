@@ -13,7 +13,7 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ThinkingDots from "@/components/ThinkingDots";
 import { DOG_MEAL_IMAGES, getDogMealImage } from "@/pages/CompanionNutritionHub";
 
-const FALLBACK_HERO = DOG_MEAL_IMAGES[1];
+const FALLBACK_HERO = "https://static.vecteezy.com/system/resources/thumbnails/059/352/919/large/a-silhouette-of-a-dog-against-a-golden-sunset-in-a-grassy-field-photo.jpg";
 
 const MEAL_TYPES = [
   { value: "main", label: "Main Meal", sub: "Full nutritious meal" },

@@ -18,14 +18,14 @@ const COMPANION_HERO = "/images/companion-hero.png";
 const PREMIUM_MSG = "My Perfect Pets is a premium feature. Upgrade to access personalized dog nutrition.";
 
 export const DOG_MEAL_IMAGES = [
-  "https://images.unsplash.com/photo-1601758003122-53c40e686a19?w=800&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1517423440428-a5a00ad493e8?w=800&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1568640347023-a616a30bc3bd?w=800&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1583511655826-05700d52f4d9?w=800&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?w=800&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1444212477490-ca407925329e?w=800&auto=format&fit=crop&q=80",
+  "https://a.storyblok.com/f/89894/1264x1452/f390eaf4b2/fresh-beef-page-rebrand.jpg/m/800x0",
+  "https://a.storyblok.com/f/89894/1264x1452/118e60df20/fresh-chicken-page-rebrand.jpg/m/800x0",
+  "https://a.storyblok.com/f/89894/1264x1452/1d7f82e183/pork-fresh-refresh.jpg/m/800x0",
+  "https://a.storyblok.com/f/89894/1264x1452/64c97d0494/lamb-fresh-refresh.jpg/m/800x0",
+  "https://happydogfood.com/cdn/shop/articles/happydogfood-homemade-dog-food-mistakes_531b1f7f-2982-49f0-a50e-46457b0704f1.jpg?v=1774186882&width=800",
+  "https://blog.ollie.com/wp-content/uploads/fresh-dog-food-ingredients.jpeg",
+  "https://myloyalhound.com/wp-content/uploads/2025/03/Hearty-Spring-Veggie-Protein-Bowl-for-Dogs-My-Loyal-Hound-healthy-dog-food-recipe.png",
+  "https://www.caninejournal.com/wp-content/uploads/Dog-in-the-kitchen-on-the-floor-eats-fresh-natural-food-from-a-bowl-1024x569.jpg",
 ];
 
 export function getDogMealImage(dogImages: string[], seed: string): string {
