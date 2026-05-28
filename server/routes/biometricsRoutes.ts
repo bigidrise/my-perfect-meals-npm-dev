@@ -465,12 +465,14 @@ Be realistic with portion sizes shown. If you cannot identify food, return zeros
 // Ingredient Intelligence — personalized ingredient alignment scan
 router.post('/ingredient-intelligence', requireAuth, requireActiveAccess, async (req, res) => {
   try {
-    const { image, companionId } = req.body;
-    if (!image || typeof image !== 'string') {
-      return res.status(400).json({ ok: false, error: 'Base64 image data required' });
+    const { image, text, companionId } = req.body;
+    const hasImage = image && typeof image === 'string';
+    const hasText = text && typeof text === 'string' && text.trim().length > 0;
+    if (!hasImage && !hasText) {
+      return res.status(400).json({ ok: false, error: 'Image data or ingredient text required' });
     }
     const userId = getAuthUserId(req);
-    const imageUrl = image.startsWith('data:') ? image : `data:image/jpeg;base64,${image}`;
+    const imageUrl = hasImage ? (image.startsWith('data:') ? image : `data:image/jpeg;base64,${image}`) : undefined;
 
     let companionContext: string | undefined;
     if (companionId && userId) {
@@ -498,8 +500,8 @@ router.post('/ingredient-intelligence', requireAuth, requireActiveAccess, async 
       } catch {}
     }
 
-    const { analyzeIngredientPhoto } = await import('../services/ingredientScanService');
-    const result = await analyzeIngredientPhoto(String(userId), imageUrl, companionContext);
+    const { analyzeIngredientContent } = await import('../services/ingredientScanService');
+    const result = await analyzeIngredientContent(String(userId), { imageDataUrl: imageUrl, rawText: text }, companionContext);
     return res.json({ ok: true, result });
   } catch (error: any) {
     console.error('Ingredient intelligence scan error:', error);
