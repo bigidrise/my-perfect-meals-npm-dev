@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useLocation, useParams } from "wouter";
+import { useLocation, useParams, useSearch } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { PawPrint, ArrowLeft, ArrowRight, Check, Camera, Star, X, Upload } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
@@ -62,6 +62,7 @@ interface ProfileForm {
 }
 
 interface UploadedImage {
+  id?: string;
   objectPath: string;
   previewUrl: string;
   isPrimary: boolean;
@@ -97,9 +98,11 @@ function inputClass() {
 export default function DogProfileSetup() {
   const [, setLocation] = useLocation();
   const params = useParams<{ id?: string }>();
+  const search = useSearch();
+  const skipToPhotos = new URLSearchParams(search).get("photos") === "true";
   const isEdit = !!params.id;
 
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(skipToPhotos && isEdit ? 5 : 1);
   const [form, setForm] = useState<ProfileForm>(empty);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -110,6 +113,7 @@ export default function DogProfileSetup() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const photosFetched = useRef(false);
 
   useEffect(() => {
     document.title = isEdit ? "Edit Dog Profile" : "Add Your Dog | My Perfect Pets";
@@ -118,6 +122,7 @@ export default function DogProfileSetup() {
 
   useEffect(() => {
     if (isEdit && params.id) {
+      setSavedProfileId(params.id);
       fetch(apiUrl("/api/companion/profiles"), { headers: getAuthHeaders() })
         .then((r) => r.json())
         .then((d) => {
@@ -149,6 +154,27 @@ export default function DogProfileSetup() {
         .catch(() => {});
     }
   }, [isEdit, params.id]);
+
+  // Load existing photos whenever we arrive at step 5 with a known profile
+  useEffect(() => {
+    const profileId = savedProfileId || (isEdit ? params.id : null);
+    if (step === 5 && profileId && !photosFetched.current) {
+      photosFetched.current = true;
+      fetch(apiUrl(`/api/companion/profiles/${profileId}/images`), { headers: getAuthHeaders() })
+        .then((r) => r.json())
+        .then((d) => {
+          const existing: UploadedImage[] = (d.images || []).map((img: any) => ({
+            id: img.id,
+            objectPath: img.imageUrl,
+            previewUrl: img.imageUrl,
+            isPrimary: img.isPrimary,
+            saved: true,
+          }));
+          setImages(existing);
+        })
+        .catch(() => {});
+    }
+  }, [step, savedProfileId, isEdit, params.id]);
 
   function set(field: keyof ProfileForm, value: any) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -218,7 +244,10 @@ export default function DogProfileSetup() {
       }
 
       if (isEdit) {
-        setLocation("/companion");
+        // Always show photo management after saving an edit
+        setSavedProfileId(params.id!);
+        photosFetched.current = false;
+        setStep(5);
       } else {
         const data = await res.json();
         setSavedProfileId(data.profile?.id || null);
@@ -283,12 +312,13 @@ export default function DogProfileSetup() {
   }
 
   async function handleSetPrimary(idx: number) {
-    if (!savedProfileId) return;
+    const profileId = savedProfileId || (isEdit ? params.id : null);
+    if (!profileId) return;
     const img = images[idx];
-    const imageId = img.objectPath.split("/").pop();
+    const imageId = img.id || img.objectPath.split("/").pop();
     if (!imageId) return;
     try {
-      await fetch(apiUrl(`/api/companion/profiles/${savedProfileId}/images/${imageId}/set-primary`), {
+      await fetch(apiUrl(`/api/companion/profiles/${profileId}/images/${imageId}/set-primary`), {
         method: "PUT",
         headers: getAuthHeaders(),
       });
@@ -297,16 +327,18 @@ export default function DogProfileSetup() {
   }
 
   async function handleRemoveImage(idx: number) {
-    if (!savedProfileId) return;
+    const profileId = savedProfileId || (isEdit ? params.id : null);
+    if (!profileId) return;
     const img = images[idx];
-    const imageId = img.objectPath.split("/").pop();
+    const imageId = img.id || img.objectPath.split("/").pop();
     if (!imageId) return;
     try {
-      await fetch(apiUrl(`/api/companion/profiles/${savedProfileId}/images/${imageId}`), {
+      await fetch(apiUrl(`/api/companion/profiles/${profileId}/images/${imageId}`), {
         method: "DELETE",
         headers: getAuthHeaders(),
       });
-      URL.revokeObjectURL(img.previewUrl);
+      // Only revoke blob URLs (not object storage URLs)
+      if (img.previewUrl.startsWith("blob:")) URL.revokeObjectURL(img.previewUrl);
       setImages((prev) => {
         const next = prev.filter((_, j) => j !== idx);
         if (img.isPrimary && next.length > 0) {
@@ -336,7 +368,13 @@ export default function DogProfileSetup() {
             </PillButton>
             <div>
               <h1 className="text-sm font-bold text-white">
-                {isEdit ? `Edit ${form.name || "Dog"}'s Profile` : step === 5 ? `Add Photos of ${profileName}` : "Add Your Dog"}
+                {step === 5
+                  ? isEdit
+                    ? `${form.name || "Dog"}'s Photos`
+                    : `Add Photos of ${profileName}`
+                  : isEdit
+                  ? `Edit ${form.name || "Dog"}'s Profile`
+                  : "Add Your Dog"}
               </h1>
               <p className="text-xs text-white/50">Step {step} of {TOTAL_STEPS}</p>
             </div>
