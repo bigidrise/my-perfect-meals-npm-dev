@@ -1586,6 +1586,56 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
     },
   },
   {
+    id: "great-outdoors",
+    title: "Great Outdoors",
+    subtitle: "Harvest-to-Table meals for wild game, fresh catch & outdoor cooking",
+    icon: Flame,
+    content: {
+      sections: [
+        {
+          heading: "What Is Great Outdoors?",
+          text: "Great Outdoors is a complete Harvest-to-Table experience inside My Perfect Gatherings. You enter what you harvested — venison, wild turkey, elk, trout, or anything else — choose a cooking method, and the app generates a Harvest-to-Table Guide followed by a full protocol-aware multi-course meal. Field to kitchen to table, all in one flow.",
+        },
+        {
+          heading: "The Harvest-to-Table Guide",
+          text: "Before any meal cards appear, you receive a practical educational guide specific to your protein. It covers field handling, cleaning, preparation, aging, storage, and food safety in plain language — not a certification course, just the information a home cook with outdoor experience needs to handle their harvest safely and confidently.",
+        },
+        {
+          heading: "What You Can Enter",
+          list: [
+            "Wild game: Venison, Elk, Bison, Boar, Antelope, Rabbit, and more",
+            "Birds: Wild Turkey, Duck, Quail, Pheasant, and others",
+            "Fish: Trout, Salmon, Catfish, Walleye, Redfish, and more",
+            "Anything else — the AI handles unusual and regional harvests too",
+          ],
+        },
+        {
+          heading: "Cooking Methods",
+          list: [
+            "Smoker — low-and-slow for wild game and whole birds",
+            "Dutch Oven — camp-style braises and stews",
+            "Cast Iron — sears, sautés, and pan roasts",
+            "Campfire — true open-fire cooking",
+            "Open Flame — direct flame grilling and charring",
+            "Grill — standard outdoor grill for everyday outdoor meals",
+          ],
+        },
+        {
+          heading: "Your Protocols Still Apply",
+          text: "Every Great Outdoors meal is still built around your dietary identity, medical conditions, allergies, and active protocols. If you are anti-inflammatory, keto, or have specific medical guardrails, every course respects those rules automatically. The harvest changes. The protection does not.",
+        },
+        {
+          heading: "Where to Find It",
+          list: [
+            "Lifestyle Hub — My Perfect Gatherings card",
+            "Select 'Great Outdoors' from the occasion selector",
+            "Included with Pro and Clinical subscriptions",
+          ],
+        },
+      ],
+    },
+  },
+  {
     id: "restaurant-guide",
     title: "Restaurant Guide",
     subtitle: "Know how to order before you sit down",

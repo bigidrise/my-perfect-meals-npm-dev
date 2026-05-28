@@ -117,7 +117,7 @@ interface CourseMeal {
   _fallback?: boolean;
 }
 
-type Situation = "holiday" | "camping" | "tailgating";
+type Situation = "holiday" | "camping" | "tailgating" | "outdoor";
 
 // ─────────────────────────────────────────────
 // Constants
@@ -126,6 +126,15 @@ const SITUATIONS: Array<{ id: Situation; label: string; emoji: string }> = [
   { id: "holiday", label: "Holiday", emoji: "🎉" },
   { id: "camping", label: "Camping", emoji: "🏕️" },
   { id: "tailgating", label: "Tailgating", emoji: "🏈" },
+  { id: "outdoor", label: "Great Outdoors", emoji: "🌲" },
+];
+
+const OUTDOOR_PROTEINS = [
+  "Venison", "Elk", "Wild Turkey", "Duck", "Trout", "Salmon", "Bison", "Boar", "Rabbit",
+];
+
+const OUTDOOR_METHODS = [
+  "Smoker", "Dutch Oven", "Cast Iron", "Campfire", "Open Flame", "Grill",
 ];
 
 const HOLIDAY_EVENTS = [
@@ -219,6 +228,10 @@ export default function UltimateExperiencesPage() {
   const recognitionRef = useRef<any>(null);
   const [totalCourses, setTotalCourses] = useState<3 | 4 | 5>(4);
   const [servings, setServings] = useState<number>(6);
+  const [proteinSource, setProteinSource] = useState("");
+  const [cookingMethod, setCookingMethod] = useState("");
+  const [harvestGuide, setHarvestGuide] = useState<{ title: string; sections: { heading: string; text: string }[] } | null>(null);
+  const [harvestGuideCollapsed, setHarvestGuideCollapsed] = useState(false);
 
   // ── Shared state (from CreateDishPage) ───────
   const [chefNotes, setChefNotes] = useState("");
@@ -407,7 +420,7 @@ export default function UltimateExperiencesPage() {
     if (!situation) {
       toast({
         title: "Choose a situation",
-        description: "Pick Holiday, Camping, or Tailgating to get started.",
+        description: "Pick Holiday, Camping, Tailgating, or Great Outdoors to get started.",
         variant: "destructive",
       });
       return;
@@ -417,6 +430,15 @@ export default function UltimateExperiencesPage() {
       toast({
         title: "Choose a holiday",
         description: "Select the holiday you're celebrating.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (situation === "outdoor" && !proteinSource.trim()) {
+      toast({
+        title: "What did you harvest?",
+        description: "Enter a protein source to get your Harvest-to-Table Guide and meal.",
         variant: "destructive",
       });
       return;
@@ -477,6 +499,8 @@ export default function UltimateExperiencesPage() {
           dietAdaptOverride,
           flavorPersonal,
           keepItSimple,
+          proteinSource: proteinSource.trim() || undefined,
+          cookingMethod: cookingMethod || undefined,
         }),
       });
 
@@ -498,6 +522,8 @@ export default function UltimateExperiencesPage() {
       setIsGenerating(false);
       const courses: CourseMeal[] = data.courses || [];
       setGeneratedCourses(courses);
+      setHarvestGuide(data.harvestGuide || null);
+      setHarvestGuideCollapsed(false);
       setGeneratedInSession(true);
 
       saveExperienceCache({
@@ -595,7 +621,7 @@ export default function UltimateExperiencesPage() {
                     Plan Your Gathering
                   </CardTitle>
                   <p className="text-sm text-white/60 mt-1">
-                    Full multi-course meals for holidays, camping, tailgates &amp; group events
+                    Full multi-course meals for holidays, camping, tailgates, Great Outdoors &amp; more
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-5">
@@ -615,6 +641,9 @@ export default function UltimateExperiencesPage() {
                               setSituation(s.id);
                               setSelectedEvent(null);
                               setSelectedDishes([]);
+                              setProteinSource("");
+                              setCookingMethod("");
+                              setHarvestGuide(null);
                             }}
                             disabled={isGenerating}
                             className="w-16 text-lg leading-none py-2"
@@ -894,11 +923,67 @@ export default function UltimateExperiencesPage() {
                     );
                   })()}
 
-                  {/* ── Camping / Tailgating context input ── */}
+                  {/* ── Great Outdoors: Protein source + Cooking method ── */}
+                  {situation === "outdoor" && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1 text-white">
+                          What did you harvest?{" "}
+                          <span className="text-orange-400 font-bold">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={proteinSource}
+                          onChange={(e) => setProteinSource(e.target.value)}
+                          placeholder="e.g., Venison, Wild Turkey, Elk, Trout — or anything you caught..."
+                          className="w-full px-3 py-2 bg-black text-white placeholder:text-white/40 border border-orange-400/20 rounded-lg text-sm"
+                          maxLength={100}
+                          disabled={isGenerating}
+                        />
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {OUTDOOR_PROTEINS.map((p) => (
+                            <PillButton
+                              key={p}
+                              active={proteinSource === p}
+                              variant="amber"
+                              onClick={() => setProteinSource(proteinSource === p ? "" : p)}
+                              disabled={isGenerating}
+                              className="text-xs py-1 px-3"
+                            >
+                              {p}
+                            </PillButton>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2 text-white">
+                          Cooking method{" "}
+                          <span className="text-white/50 font-normal text-xs">(recommended)</span>
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {OUTDOOR_METHODS.map((m) => (
+                            <PillButton
+                              key={m}
+                              active={cookingMethod === m}
+                              variant="amber"
+                              onClick={() => setCookingMethod(cookingMethod === m ? "" : m)}
+                              disabled={isGenerating}
+                              className="text-sm py-1.5 px-4"
+                            >
+                              {m}
+                            </PillButton>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Notes (all non-holiday situations — prominent for Great Outdoors) ── */}
                   {situation && situation !== "holiday" && (
                     <div>
                       <label className="block text-sm font-medium mb-1 text-white">
-                        Any specifics? (optional)
+                        {situation === "outdoor" ? "Additional notes" : "Any specifics?"}{" "}
+                        <span className="text-white/50 font-normal text-xs">(optional)</span>
                       </label>
                       <textarea
                         value={chefNotes}
@@ -906,7 +991,9 @@ export default function UltimateExperiencesPage() {
                         placeholder={
                           situation === "camping"
                             ? "e.g., we have a campfire and a portable grill, no cooler, 3-day trip..."
-                            : "e.g., tailgate before a football game, need finger foods for 20 people..."
+                            : situation === "outdoor"
+                              ? "e.g., opening weekend turkey hunt, cooking for 8, want leftovers, need anti-inflammatory sides..."
+                              : "e.g., tailgate before a football game, need finger foods for 20 people..."
                         }
                         className="w-full px-3 py-2 bg-black text-white placeholder:text-white/40 border border-orange-400/20 rounded-lg h-16 resize-none text-sm"
                         maxLength={300}
@@ -1039,6 +1126,7 @@ export default function UltimateExperiencesPage() {
                           if (decision === "pick_something_else") {
                             clearDietAlert();
                             setGeneratedCourses([]);
+                            setHarvestGuide(null);
                             setSelectedDishes([]);
                           } else if (decision === "let_chef_adapt") {
                             setDietDecision("let_chef_adapt");
@@ -1119,6 +1207,38 @@ export default function UltimateExperiencesPage() {
             </div>
           </div>
 
+          {/* ── Harvest-to-Table Guide (Great Outdoors pre-course educational block) ── */}
+          {harvestGuide && (
+            <div className="mt-8">
+              <div className="bg-black/60 border border-orange-400/30 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => setHarvestGuideCollapsed((c) => !c)}
+                  className="w-full flex items-center justify-between px-4 py-3 text-left active:bg-white/5"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🌲</span>
+                    <span className="text-white font-bold text-sm">{harvestGuide.title}</span>
+                  </div>
+                  <span className="text-orange-400 text-xs font-medium">
+                    {harvestGuideCollapsed ? "Show Guide" : "Hide"}
+                  </span>
+                </button>
+                {!harvestGuideCollapsed && (
+                  <div className="px-4 pb-4 space-y-3 border-t border-orange-400/20">
+                    {harvestGuide.sections.map((section, i) => (
+                      <div key={i} className="pt-3">
+                        <p className="text-orange-400 text-xs font-bold uppercase tracking-wider mb-1">
+                          {section.heading}
+                        </p>
+                        <p className="text-white/80 text-sm leading-relaxed">{section.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* ── Results ── */}
           {generatedCourses.length > 0 && (
             <div className="mt-8 space-y-6">
@@ -1130,7 +1250,9 @@ export default function UltimateExperiencesPage() {
                     ? HOLIDAY_EVENTS.find((h) => h.id === selectedEvent)?.label
                     : situation === "camping"
                       ? "Camping"
-                      : "Tailgating"}{" "}
+                      : situation === "outdoor"
+                        ? "Great Outdoors"
+                        : "Tailgating"}{" "}
                   Experience
                 </h3>
               </div>
@@ -1182,6 +1304,7 @@ export default function UltimateExperiencesPage() {
                         <button
                           onClick={() => {
                             setGeneratedCourses([]);
+                            setHarvestGuide(null);
                             setGeneratedInSession(false);
                             clearExperienceCache();
                             setSubstitutedStarchTerms([]);
