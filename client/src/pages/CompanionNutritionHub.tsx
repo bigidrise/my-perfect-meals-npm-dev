@@ -110,17 +110,17 @@ export default function CompanionNutritionHub() {
         </div>
       </MobileHeaderGuard>
 
+      {/* Back button — always visible, outside the safe-area padding zone */}
+      <div className="flex max-w-2xl mx-auto px-4 pt-6 pb-0">
+        <PillButton onClick={() => window.history.back()}>
+          <ArrowLeft className="h-3 w-3" /> Back
+        </PillButton>
+      </div>
+
       <div
         className="max-w-2xl mx-auto px-4"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
+        style={{ paddingTop: "1rem" }}
       >
-        {/* Back button — always visible for desktop (mobile header doesn't exist on hub) */}
-        <div className="flex items-center gap-2 mb-4">
-          <PillButton onClick={() => window.history.back()}>
-            <ArrowLeft className="h-3 w-3" /> Back
-          </PillButton>
-        </div>
-
         {/* Hero — clean image, no overlay */}
         <div className="relative h-52 rounded-2xl overflow-hidden mb-3">
           <img
