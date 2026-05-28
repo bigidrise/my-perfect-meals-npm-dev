@@ -9,6 +9,7 @@ interface Props {
   onClose: () => void;
   onAddAnyway: () => void;
   onSaveForReview: () => void;
+  companionName?: string | null;
 }
 
 const GRADE_CONFIG = {
@@ -46,7 +47,7 @@ const SCORE_CARDS_META = [
 ];
 
 export function ShoppingIngredientSheet({
-  open, result, onClose, onAddAnyway, onSaveForReview,
+  open, result, onClose, onAddAnyway, onSaveForReview, companionName,
 }: Props) {
   const [decoderExpanded, setDecoderExpanded] = useState(false);
   const grade = result ? GRADE_CONFIG[result.alignmentGrade] ?? GRADE_CONFIG.B : null;
@@ -82,7 +83,17 @@ export function ShoppingIngredientSheet({
                 />
                 <div className="flex-1">
                   <p className="text-xs text-orange-400 font-bold uppercase tracking-wide">Smart Scan</p>
-                  <h2 className="text-white font-bold text-base leading-tight">Ingredient Analysis</h2>
+                  {companionName ? (
+                    <>
+                      <h2 className="text-white font-bold text-base leading-tight">Ingredient Analysis</h2>
+                      <div className="mt-1 inline-flex items-center gap-1 bg-orange-600/20 border border-orange-500/30 rounded-full px-2 py-0.5">
+                        <span className="text-[10px]">🐾</span>
+                        <span className="text-orange-300 text-[10px] font-semibold">Scanning for {companionName}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <h2 className="text-white font-bold text-base leading-tight">Ingredient Analysis</h2>
+                  )}
                 </div>
                 <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60">
                   <X className="w-4 h-4" />
