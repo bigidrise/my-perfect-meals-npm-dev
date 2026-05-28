@@ -1,4 +1,5 @@
 import express from "express";
+import multer from "multer";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq, and, count } from "drizzle-orm";
@@ -14,6 +15,16 @@ import OpenAI from "openai";
 
 const router = express.Router();
 const openai = new OpenAI();
+
+// Multer: accept image files up to 8MB directly in memory (no object storage needed)
+const imageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("Only image files are accepted"));
+  },
+});
 
 const MAX_ACTIVE_DOGS = 8;
 const MAX_IMAGES_PER_DOG = 4;
@@ -313,6 +324,60 @@ router.post("/profiles/:id/images", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("[companion] POST image error:", err);
     res.status(500).json({ error: "Failed to add image" });
+  }
+});
+
+// POST /api/companion/profiles/:id/images/upload  (direct multipart — no object storage needed)
+router.post("/profiles/:id/images/upload", requireAuth, imageUpload.single("image"), async (req: any, res: any) => {
+  try {
+    const userId = resolveUserId(req);
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const profileId = req.params.id;
+    const file = req.file;
+    if (!file) return res.status(400).json({ error: "No image file provided" });
+
+    const existing = await db
+      .select()
+      .from(companionProfileImages)
+      .where(eq(companionProfileImages.profileId, profileId));
+
+    if (existing.length >= MAX_IMAGES_PER_DOG) {
+      return res.status(400).json({ error: `Maximum ${MAX_IMAGES_PER_DOG} images per dog.` });
+    }
+
+    const base64 = `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+    const shouldBePrimary = existing.length === 0;
+
+    if (shouldBePrimary && existing.length > 0) {
+      await db
+        .update(companionProfileImages)
+        .set({ isPrimary: false })
+        .where(eq(companionProfileImages.profileId, profileId));
+    }
+
+    const [img] = await db
+      .insert(companionProfileImages)
+      .values({
+        profileId,
+        userId,
+        imageUrl: base64,
+        isPrimary: shouldBePrimary,
+        sortOrder: existing.length,
+      })
+      .returning();
+
+    if (shouldBePrimary) {
+      await db
+        .update(companionProfiles)
+        .set({ photoUrl: base64, primaryImageId: img.id, updatedAt: new Date() })
+        .where(eq(companionProfiles.id, profileId));
+    }
+
+    res.json({ image: img });
+  } catch (err) {
+    console.error("[companion] POST image/upload error:", err);
+    res.status(500).json({ error: "Failed to upload image" });
   }
 });
 
