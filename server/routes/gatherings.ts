@@ -12,7 +12,7 @@ import { generateMealImageUnified } from "../services/mealImageGenerator";
 
 const router = express.Router();
 
-type Situation = "holiday" | "camping" | "tailgating";
+type Situation = "holiday" | "camping" | "tailgating" | "outdoor";
 type CourseType = "appetizer" | "main" | "side" | "dessert";
 
 const HOLIDAY_FLAVOR_SEEDS: Record<string, string> = {
