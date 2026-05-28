@@ -114,22 +114,21 @@ export default function CompanionNutritionHub() {
         className="max-w-2xl mx-auto px-4"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
       >
-        {/* Hero */}
-        <div className="relative h-52 rounded-2xl overflow-hidden mb-5">
+        {/* Hero — clean image, no overlay */}
+        <div className="relative h-52 rounded-2xl overflow-hidden mb-3">
           <img
             src={COMPANION_HERO}
             alt="My Perfect Pets — Companion Nutrition"
             className="w-full h-full object-cover object-top"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-          <div className="absolute bottom-4 left-4 right-4">
-            <div className="bg-black/55 backdrop-blur-sm rounded-xl px-3 py-2.5">
-              <p className="text-white font-semibold text-sm">Companion Nutrition Intelligence</p>
-              <p className="text-white/70 text-xs mt-0.5">
-                The same adaptive protocol engine that powers your meals — now for your dog.
-              </p>
-            </div>
-          </div>
+        </div>
+
+        {/* Info card below the image */}
+        <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-3 mb-5">
+          <p className="text-white font-semibold text-sm">Companion Nutrition Intelligence</p>
+          <p className="text-white/65 text-xs mt-1 leading-relaxed">
+            The same adaptive protocol engine that powers your meals — now for your dog.
+          </p>
         </div>
 
         {/* Quick Actions */}
