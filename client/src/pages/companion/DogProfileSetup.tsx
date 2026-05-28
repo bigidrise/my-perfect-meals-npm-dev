@@ -679,6 +679,20 @@ export default function DogProfileSetup() {
             </PillButton>
           )}
         </div>
+
+        {/* Save & Exit shortcut — edit mode only, steps 1–3 */}
+        {isEdit && step < TOTAL_STEPS - 1 && step !== 5 && (
+          <div className="mt-3">
+            <PillButton
+              onClick={handleSave}
+              disabled={saving}
+              className="w-full"
+            >
+              <Check className="h-3 w-3" />
+              {saving ? "Saving..." : "Save & Exit"}
+            </PillButton>
+          </div>
+        )}
       </div>
     </motion.div>
   );
