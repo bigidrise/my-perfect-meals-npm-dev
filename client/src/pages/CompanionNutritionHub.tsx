@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   PawPrint, Plus, ChefHat, Search, Heart, Crown, ArrowRight,
-  ArrowLeft, BookOpen, Archive, RotateCcw, ChevronDown, ChevronUp, Camera,
+  ArrowLeft, BookOpen, Archive, RotateCcw, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -280,7 +280,6 @@ export default function CompanionNutritionHub() {
           ) : (
             <div className="space-y-3">
               {activeProfiles.map((profile) => {
-                const primaryImage = profile.images?.[0] || profile.photoUrl;
                 const actionOpen = expandedActionId === profile.id;
                 return (
                   <motion.div
@@ -292,24 +291,9 @@ export default function CompanionNutritionHub() {
                     <div className="p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          {/* Dog photo — tappable to manage photos */}
-                          <button
-                            onClick={() => guardAction(PREMIUM_MSG, () => setLocation(`/companion/setup/${profile.id}?photos=true`))}
-                            className="flex flex-col items-center gap-0.5 flex-shrink-0"
-                          >
-                            <div className="w-11 h-11 rounded-full overflow-hidden border border-orange-400/30">
-                              {primaryImage ? (
-                                <img src={primaryImage} alt={profile.name} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full bg-orange-500/20 flex items-center justify-center">
-                                  <Camera className="h-5 w-5 text-orange-400" />
-                                </div>
-                              )}
-                            </div>
-                            {!primaryImage && (
-                              <span className="text-orange-400/70 text-[9px] font-medium whitespace-nowrap">Add photo</span>
-                            )}
-                          </button>
+                            <div className="w-11 h-11 rounded-full bg-orange-500/20 border border-orange-400/30 flex items-center justify-center flex-shrink-0">
+                            <PawPrint className="h-5 w-5 text-orange-400" />
+                          </div>
                           <div className="min-w-0">
                             <p className="text-white font-semibold text-sm">{profile.name}</p>
                             <p className="text-white/50 text-xs truncate">
@@ -355,22 +339,6 @@ export default function CompanionNutritionHub() {
                             className="overflow-hidden"
                           >
                             <div className="pt-3 mt-3 border-t border-white/8 space-y-3">
-                              {/* Photo management shortcut */}
-                              <div>
-                                <p className="text-white/40 text-[10px] font-semibold uppercase mb-2">
-                                  Photos ({profile.images?.length ?? 0}/4)
-                                </p>
-                                <PillButton
-                                  onClick={() => {
-                                    setExpandedActionId(null);
-                                    guardAction(PREMIUM_MSG, () => setLocation(`/companion/setup/${profile.id}?photos=true`));
-                                  }}
-                                >
-                                  <Camera className="h-3 w-3" />
-                                  {(profile.images?.length ?? 0) === 0 ? "Add Photos" : "Manage Photos"}
-                                </PillButton>
-                              </div>
-                              <div className="h-px bg-white/8" />
                               <p className="text-white/40 text-[10px] font-semibold uppercase">Profile Status</p>
                               <div className="flex gap-2">
                                 <PillButton
@@ -418,20 +386,13 @@ export default function CompanionNutritionHub() {
             </div>
             <div className="space-y-3">
               {memorialProfiles.map((profile) => {
-                const primaryImage = profile.images?.[0] || profile.photoUrl;
                 const profileMeals = savedMeals.filter((m) => m.profileId === profile.id);
                 return (
                   <div key={profile.id} className="bg-black/40 border border-orange-400/15 rounded-xl overflow-hidden">
                     {/* Memorial banner */}
                     <div className="bg-gradient-to-r from-orange-900/30 to-black/30 px-4 py-3 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-orange-300/20">
-                        {primaryImage ? (
-                          <img src={primaryImage} alt={profile.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full bg-orange-500/10 flex items-center justify-center">
-                            <PawPrint className="h-4 w-4 text-orange-400/50" />
-                          </div>
-                        )}
+                      <div className="w-10 h-10 rounded-full flex-shrink-0 border border-orange-300/20 bg-orange-500/10 flex items-center justify-center">
+                        <PawPrint className="h-4 w-4 text-orange-400/50" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-orange-200/90 text-xs font-semibold">In Memory of {profile.name}</p>
@@ -447,11 +408,10 @@ export default function CompanionNutritionHub() {
                         <p className="text-white/30 text-[10px] font-semibold uppercase mb-2">{profile.name}'s Recipe Collection</p>
                         <div className="space-y-2">
                           {profileMeals.slice(0, 3).map((meal) => {
-                            const img = getDogMealImage(profile.images || [], meal.id || meal.title);
                             return (
                               <div key={meal.id} className="flex items-center gap-2.5">
-                                <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0">
-                                  <img src={img} alt={meal.title} className="w-full h-full object-cover" />
+                                <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex-shrink-0 flex items-center justify-center">
+                                  <PawPrint className="h-4 w-4 text-orange-400/40" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-white/70 text-xs truncate">{meal.title}</p>
@@ -483,7 +443,6 @@ export default function CompanionNutritionHub() {
             <div className="space-y-2">
               {savedMeals.map((meal) => {
                 const profile = profiles.find((p) => p.id === meal.profileId);
-                const img = getDogMealImage(profile?.images || [], meal.id || meal.title);
                 const isOpen = expandedMealId === meal.id;
                 return (
                   <motion.div
@@ -496,8 +455,8 @@ export default function CompanionNutritionHub() {
                       onClick={() => setExpandedMealId(isOpen ? null : meal.id)}
                       className="w-full flex items-center gap-3 p-3 text-left"
                     >
-                      <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
-                        <img src={img} alt={meal.title} className="w-full h-full object-cover" />
+                      <div className="w-12 h-12 rounded-lg bg-orange-500/15 flex-shrink-0 flex items-center justify-center">
+                        <PawPrint className="h-5 w-5 text-orange-400/50" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-xs font-semibold leading-snug truncate">{meal.title}</p>
@@ -570,17 +529,10 @@ export default function CompanionNutritionHub() {
                   className="overflow-hidden space-y-2"
                 >
                   {previousProfiles.map((profile) => {
-                    const primaryImage = profile.images?.[0] || profile.photoUrl;
                     return (
                       <div key={profile.id} className="bg-black/30 border border-white/8 rounded-xl p-3 flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 border border-white/10">
-                          {primaryImage ? (
-                            <img src={primaryImage} alt={profile.name} className="w-full h-full object-cover opacity-60" />
-                          ) : (
-                            <div className="w-full h-full bg-white/5 flex items-center justify-center">
-                              <PawPrint className="h-4 w-4 text-white/20" />
-                            </div>
-                          )}
+                        <div className="w-9 h-9 rounded-full flex-shrink-0 border border-white/10 bg-white/5 flex items-center justify-center">
+                          <PawPrint className="h-4 w-4 text-white/20" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-white/50 text-sm font-semibold">{profile.name}</p>
