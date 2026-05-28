@@ -272,35 +272,24 @@ export default function DogProfileSetup() {
 
     const previewUrl = URL.createObjectURL(file);
     try {
-      // 1. Get presigned URL
-      const urlRes = await fetch("/api/uploads/request-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: file.name, contentType: file.type }),
-      });
-      if (!urlRes.ok) throw new Error("Upload service unavailable");
-      const { uploadURL, objectPath } = await urlRes.json();
+      const formData = new FormData();
+      formData.append("image", file);
 
-      // 2. Upload to presigned URL
-      const putRes = await fetch(uploadURL, {
-        method: "PUT",
-        body: file,
-        headers: { "Content-Type": file.type },
-      });
-      if (!putRes.ok) throw new Error("Upload failed");
-
-      // 3. Register with companion image endpoint
-      const isPrimary = images.length === 0;
-      const saveRes = await fetch(apiUrl(`/api/companion/profiles/${savedProfileId}/images`), {
+      const res = await fetch(apiUrl(`/api/companion/profiles/${savedProfileId}/images/upload`), {
         method: "POST",
-        headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl: objectPath, isPrimary }),
+        headers: getAuthHeaders(),
+        body: formData,
       });
-      if (!saveRes.ok) throw new Error("Failed to save image");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Upload failed. Please try again.");
+      }
+      const { image: saved } = await res.json();
+      const isPrimary = saved.isPrimary as boolean;
 
       setImages((prev) => [
         ...prev.map((img) => isPrimary ? { ...img, isPrimary: false } : img),
-        { objectPath, previewUrl, isPrimary, saved: true },
+        { id: saved.id, objectPath: saved.imageUrl, previewUrl, isPrimary, saved: true },
       ]);
     } catch (e: any) {
       setUploadError(e.message || "Upload failed. Please try again.");
@@ -315,7 +304,7 @@ export default function DogProfileSetup() {
     const profileId = savedProfileId || (isEdit ? params.id : null);
     if (!profileId) return;
     const img = images[idx];
-    const imageId = img.id || img.objectPath.split("/").pop();
+    const imageId = img.id;
     if (!imageId) return;
     try {
       await fetch(apiUrl(`/api/companion/profiles/${profileId}/images/${imageId}/set-primary`), {
@@ -330,7 +319,7 @@ export default function DogProfileSetup() {
     const profileId = savedProfileId || (isEdit ? params.id : null);
     if (!profileId) return;
     const img = images[idx];
-    const imageId = img.id || img.objectPath.split("/").pop();
+    const imageId = img.id;
     if (!imageId) return;
     try {
       await fetch(apiUrl(`/api/companion/profiles/${profileId}/images/${imageId}`), {
