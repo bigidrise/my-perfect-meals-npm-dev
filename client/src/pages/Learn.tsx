@@ -1975,6 +1975,60 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
       ],
     },
   },
+  {
+    id: "companion-nutrition",
+    title: "My Perfect Pets — Companion Nutrition Intelligence",
+    subtitle: "Personalized dog wellness nutrition",
+    icon: Heart,
+    content: {
+      sections: [
+        {
+          heading: "What This Is",
+          text: "My Perfect Pets is a premium wellness nutrition system for dogs, built directly on the same adaptive protocol engine that powers your own meals. It is not a standalone pet app — it is a protocol translation layer that applies everything MPM already built for human nutrition to canine wellness guidance.",
+        },
+        {
+          heading: "The Same Engine, Translated",
+          text: "The core AI generation engine, the protocol envelope system, the condition stacking logic, and the shopping infrastructure are all shared with the human nutrition system. When you improve MPM, you improve My Perfect Pets. This is intentional architecture, not a feature add-on.",
+        },
+        {
+          heading: "The 4-Layer Dog Protocol",
+          list: [
+            "Layer 1 — Safety: Toxic Ingredient Firewall. Hard blocks on chocolate, xylitol, grapes, garlic, onions, macadamia nuts, and all other known canine toxins. Non-negotiable. Cannot be overridden.",
+            "Layer 2 — Wellness: Condition-specific protocol stacking. Senior support, kidney support, anti-inflammatory, joint wellness, diabetic support, skin and coat support, and more — stacked simultaneously when needed.",
+            "Layer 3 — Profile: Dog-specific allergies, food sensitivities, veterinarian-specified dietary restrictions, and current medications (for nutrition awareness only — no drug interaction analysis).",
+            "Layer 4 — Preferences: Activity level, treat frequency, portion context, and behavioral notes.",
+          ],
+        },
+        {
+          heading: "Toxic Ingredient Firewall",
+          text: "Every recipe generated for your dog is screened through the Toxic Ingredient Firewall before you see it. If a generated recipe contains a known canine toxin — even as a trace mention — it is blocked and regenerated. You never see an unsafe recipe. The firewall is not AI-guided: it is a hardcoded list of known toxic ingredients sourced from ASPCA Poison Control and AVMA veterinary safety references.",
+        },
+        {
+          heading: "Controlled Veterinary Citations",
+          text: "All wellness protocols include controlled citations from pre-approved veterinary sources: WSAVA Global Nutrition Guidelines, AAHA Nutritional Assessment Guidelines, Tufts Cummings School of Veterinary Medicine, ASPCA Animal Poison Control, and IRIS. The AI is never permitted to invent veterinary sources. Citations are condition-mapped and injected from a verified library.",
+        },
+        {
+          heading: "Ingredient Safety Scanner",
+          text: "Type any food ingredient to instantly check if it is safe for your dog. The scanner runs the ingredient through the Toxic Ingredient Firewall and returns a safety rating (SAFE, CAUTION, or TOXIC), the reason it is flagged, and a safe substitution. Safe ingredients also receive an AI-generated wellness score and nutritional notes.",
+        },
+        {
+          heading: "Important Limitations",
+          text: "My Perfect Pets provides wellness nutrition guidance only. It is not veterinary medicine, does not diagnose conditions, and does not replace veterinary care. For any health concern, medical condition, or significant dietary change, always consult a licensed veterinarian.",
+        },
+        {
+          heading: "Veterinary Sources",
+          list: [
+            "WSAVA Global Nutrition Guidelines — wsava.org",
+            "AAHA Nutritional Assessment Guidelines for Dogs and Cats — aaha.org",
+            "Tufts Cummings School of Veterinary Medicine, Clinical Nutrition Service — vetnutrition.tufts.edu",
+            "ASPCA Animal Poison Control Center — aspca.org/pet-care/animal-poison-control",
+            "IRIS — International Renal Interest Society — iris-kidney.com",
+            "AVMA — American Veterinary Medical Association — avma.org",
+          ],
+        },
+      ],
+    },
+  },
 ];
 
 const SECTION_PERFORMANCE_MODES: LibraryTopic[] = [

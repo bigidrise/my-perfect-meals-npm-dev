@@ -14,6 +14,7 @@ import {
   Star,
   ArrowRight,
   Plus,
+  PawPrint,
 } from "lucide-react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useFreeLock } from "@/hooks/useFreeLock";
@@ -125,6 +126,15 @@ export default function LifestyleLandingPage() {
       route: "/social-hub",
       gradient: "from-pink-500/20 to-purple-500/20",
       testId: "card-socializing-hub",
+      badge: "behavioral",
+    },
+    {
+      title: "My Perfect Pets",
+      description: "Personalized homemade dog meals, ingredient safety scanning, and wellness nutrition — built on the same adaptive protocol engine as your own meals.",
+      icon: PawPrint,
+      route: "/companion",
+      gradient: "from-orange-600/20 to-amber-700/20",
+      testId: "card-companion-nutrition",
       badge: "behavioral",
     },
   ];

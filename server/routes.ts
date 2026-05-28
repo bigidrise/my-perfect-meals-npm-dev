@@ -6982,6 +6982,10 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   const { default: checkInSchedulesRouter } = await import("./routes/checkInSchedules");
   app.use("/api/check-in-schedules", checkInSchedulesRouter);
 
+  // Companion Nutrition Intelligence (My Perfect Pets)
+  const { default: companionNutritionRouter } = await import("./routes/companion-nutrition");
+  app.use("/api/companion", companionNutritionRouter);
+
   const CRITICAL_ROUTES = [
     "/api/biometrics",
     "/api/ai-quota",
