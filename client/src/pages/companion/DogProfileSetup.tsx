@@ -165,8 +165,8 @@ export default function DogProfileSetup() {
         .then((d) => {
           const existing: UploadedImage[] = (d.images || []).map((img: any) => ({
             id: img.id,
-            objectPath: img.imageUrl,
-            previewUrl: img.imageUrl,
+            objectPath: img.serveUrl,
+            previewUrl: img.serveUrl,
             isPrimary: img.isPrimary,
             saved: true,
           }));

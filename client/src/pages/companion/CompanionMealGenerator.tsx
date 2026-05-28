@@ -97,7 +97,7 @@ export default function CompanionMealGenerator() {
     }
     fetch(apiUrl(`/api/companion/profiles/${selectedProfileId}/images`), { headers: getAuthHeaders() })
       .then((r) => r.json())
-      .then((d) => setDogImages((d.images || []).map((i: any) => i.imageUrl)))
+      .then((d) => setDogImages((d.images || []).map((i: any) => i.serveUrl)))
       .catch(() => setDogImages([]));
   }, [selectedProfileId, profiles]);
 
