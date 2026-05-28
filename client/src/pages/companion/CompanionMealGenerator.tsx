@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChefHat, ArrowLeft, PawPrint, Sparkles, BookOpen, ShoppingCart, Heart } from "lucide-react";
+import {
+  ChefHat, ArrowLeft, PawPrint, Sparkles, BookOpen,
+  ShoppingCart, Heart, RefreshCw, Shield, ChevronDown, ChevronUp, Layers,
+} from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -9,7 +12,7 @@ import { useCopilot } from "@/components/copilot/CopilotContext";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ThinkingDots from "@/components/ThinkingDots";
 
-const DOG_BOWL_IMAGE = "https://images.unsplash.com/photo-1601758003122-53c40e686a19?w=600&auto=format&fit=crop&q=80";
+const DOG_BOWL_IMAGE = "https://images.unsplash.com/photo-1601758003122-53c40e686a19?w=800&auto=format&fit=crop&q=80";
 
 const MEAL_TYPES = [
   { value: "main", label: "Main Meal", sub: "Full nutritious meal" },
@@ -35,7 +38,7 @@ interface GeneratedMeal {
   servingSize: string;
   estimatedCalories?: number;
   proteinGrams?: number;
-  ingredients: { name: string; amount: string; notes?: string }[];
+  ingredients: { name: string; amount: string; notes?: string }[] | string[];
   instructions: string[];
   wellnessNotes?: string[];
   citationReferences?: string[];
@@ -60,6 +63,8 @@ export default function CompanionMealGenerator() {
   const [meal, setMeal] = useState<GeneratedMeal | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [citationsOpen, setCitationsOpen] = useState(false);
+  const [protocolOpen, setProtocolOpen] = useState(false);
 
   useEffect(() => {
     document.title = "Companion Meal Generator | My Perfect Pets";
@@ -100,6 +105,8 @@ export default function CompanionMealGenerator() {
     setMeal(null);
     setSaved(false);
     setGenerating(true);
+    setCitationsOpen(false);
+    setProtocolOpen(false);
 
     try {
       const res = await fetch(apiUrl("/api/companion/generate-meal"), {
@@ -114,7 +121,7 @@ export default function CompanionMealGenerator() {
         return;
       }
       setMeal(data.meal);
-      window.scrollTo({ top: 600, behavior: "smooth" });
+      setTimeout(() => window.scrollTo({ top: 500, behavior: "smooth" }), 200);
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -132,6 +139,13 @@ export default function CompanionMealGenerator() {
       setSaved(true);
     } catch {}
   }
+
+  function handleRegenerate() {
+    setMeal(null);
+    handleGenerate();
+  }
+
+  const wellnessGoals = selectedProfile?.wellnessGoals ?? [];
 
   return (
     <motion.div
@@ -160,72 +174,86 @@ export default function CompanionMealGenerator() {
         className="max-w-lg mx-auto px-4"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
       >
-        {/* Back button — always visible for desktop (mobile header has its own) */}
+        {/* Back button — desktop only (mobile uses fixed header) */}
         <div className="hidden md:flex items-center gap-2 mb-4">
           <PillButton onClick={() => setLocation("/companion")}>
             <ArrowLeft className="h-3 w-3" /> Back to My Perfect Pets
           </PillButton>
         </div>
 
-        {/* Hero image — reused dog bowl */}
+        {/* Hero */}
         <div className="relative h-36 rounded-xl overflow-hidden mb-5">
           <img src={DOG_BOWL_IMAGE} alt="Dog meal" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-          <div className="absolute bottom-3 left-3">
-            <p className="text-white font-bold text-sm">Personalized Dog Meals</p>
-            <p className="text-white/60 text-xs">Screened through Toxic Ingredient Firewall</p>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          <div className="absolute bottom-3 left-4 right-4">
+            <div className="flex items-center gap-2">
+              <PawPrint className="h-4 w-4 text-orange-400" />
+              <h1 className="text-white font-bold text-base">Homemade Meal Generator</h1>
+            </div>
+            <p className="text-white/60 text-xs">Personalized, safety-screened dog recipes</p>
           </div>
         </div>
 
-        {/* Dog Profile Selection */}
-        <div className="mb-5">
-          <label className="text-white/60 text-xs mb-2 block">Generating for</label>
-          {profiles.length === 0 ? (
-            <div className="bg-black/40 border border-white/10 rounded-xl p-4 text-center">
-              <p className="text-white/60 text-sm mb-3">No dog profiles yet.</p>
-              <PillButton onClick={() => setLocation("/companion/setup")}>Add a Dog First</PillButton>
-            </div>
-          ) : (
-            <div className="flex gap-2 flex-wrap">
+        {/* Profile Selector */}
+        {profiles.length > 1 && (
+          <div className="mb-5">
+            <p className="text-white/60 text-xs font-semibold uppercase mb-2">For which dog?</p>
+            <div className="flex flex-wrap gap-2">
               {profiles.map((p) => (
-                <PillButton
+                <button
                   key={p.id}
-                  active={selectedProfileId === p.id}
                   onClick={() => setSelectedProfileId(p.id)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                    selectedProfileId === p.id
+                      ? "bg-orange-600 border-orange-500 text-white"
+                      : "bg-white/5 border-white/15 text-white/60"
+                  }`}
                 >
-                  <PawPrint className="h-3 w-3" /> {p.name}
-                </PillButton>
+                  <PawPrint className="h-3 w-3 inline mr-1" />{p.name}
+                </button>
               ))}
             </div>
-          )}
-          {selectedProfile && (
-            <p className="text-white/40 text-xs mt-2">
-              {selectedProfile.breed} · {selectedProfile.ageYears}yr · {selectedProfile.weightLbs}lbs
-              {selectedProfile.wellnessGoals?.length > 0 && ` · ${selectedProfile.wellnessGoals.slice(0, 2).join(", ")}`}
-            </p>
-          )}
-        </div>
+          </div>
+        )}
+
+        {profiles.length === 0 && (
+          <div className="bg-black/40 border border-white/10 rounded-xl p-5 mb-5 text-center">
+            <PawPrint className="h-7 w-7 text-orange-400/50 mx-auto mb-2" />
+            <p className="text-white font-semibold text-sm mb-1">No dog profile yet</p>
+            <p className="text-white/50 text-xs mb-3">Create a profile to generate personalized meals.</p>
+            <PillButton onClick={() => setLocation("/companion/setup")}>
+              Add Your Dog
+            </PillButton>
+          </div>
+        )}
 
         {/* Meal Type */}
         <div className="mb-5">
-          <label className="text-white/60 text-xs mb-2 block">Meal Type</label>
+          <p className="text-white/60 text-xs font-semibold uppercase mb-2">Meal Type</p>
           <div className="grid grid-cols-2 gap-2">
             {MEAL_TYPES.map((t) => (
-              <PillButton key={t.value} active={mealType === t.value} onClick={() => setMealType(t.value)}>
-                <div className="text-left">
-                  <div className="font-semibold text-xs">{t.label}</div>
-                  <div className="text-[10px] opacity-60">{t.sub}</div>
-                </div>
-              </PillButton>
+              <button
+                key={t.value}
+                onClick={() => setMealType(t.value)}
+                className={`rounded-xl p-3 text-left border transition-colors ${
+                  mealType === t.value
+                    ? "bg-orange-600/30 border-orange-500/60"
+                    : "bg-white/5 border-white/10"
+                }`}
+              >
+                <p className="text-white text-xs font-semibold">{t.label}</p>
+                <p className="text-white/40 text-[10px]">{t.sub}</p>
+              </button>
             ))}
           </div>
         </div>
 
-        {/* Optional Special Request */}
+        {/* Special Request */}
         <div className="mb-5">
-          <label className="text-white/60 text-xs mb-1 block">Special Request (optional)</label>
-          <input
-            className="w-full bg-black/40 border border-white/15 rounded-xl px-4 py-3 text-white text-sm placeholder-white/30 focus:outline-none focus:border-orange-500/60"
+          <p className="text-white/60 text-xs font-semibold uppercase mb-2">Special Request <span className="text-white/30 normal-case font-normal">(optional)</span></p>
+          <textarea
+            rows={2}
+            className="w-full bg-black/40 border border-white/15 rounded-xl px-4 py-3 text-white text-sm placeholder-white/30 focus:outline-none focus:border-orange-500/60 resize-none"
             placeholder="e.g. something with salmon, avoid chicken"
             value={specialRequest}
             onChange={(e) => setSpecialRequest(e.target.value)}
@@ -235,16 +263,17 @@ export default function CompanionMealGenerator() {
         {/* Generate Button */}
         {generating ? (
           <div className="mb-6">
-            <ThinkingDots label={`Generating ${selectedProfile?.name}'s meal…`} />
+            <ThinkingDots label={`Crafting ${selectedProfile?.name || "your dog"}'s meal…`} />
           </div>
         ) : (
           <PillButton
             onClick={handleGenerate}
-            disabled={!selectedProfileId}
+            disabled={!selectedProfileId || profiles.length === 0}
             className="w-full mb-6 py-4"
           >
             <Sparkles className="h-4 w-4" />
             Generate {mealType === "main" ? "Meal" : mealType === "treat" ? "Treat" : mealType === "snack" ? "Snack" : "Meal Prep"}
+            {selectedProfile ? ` for ${selectedProfile.name}` : ""}
           </PillButton>
         )}
 
@@ -254,67 +283,108 @@ export default function CompanionMealGenerator() {
           </div>
         )}
 
-        {/* Generated Meal Card */}
+        {/* ── COMPANION MEAL CARD ─────────────────────────────── */}
         <AnimatePresence>
           {meal && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              key="meal-card"
+              initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-black/50 border border-white/15 rounded-2xl overflow-hidden mb-5"
+              transition={{ duration: 0.4 }}
+              className="rounded-2xl overflow-hidden mb-6"
+              style={{
+                background: "rgba(0,0,0,0.55)",
+                backdropFilter: "blur(18px)",
+                WebkitBackdropFilter: "blur(18px)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                boxShadow: "0 8px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)",
+              }}
             >
-              {/* Image */}
-              <div className="relative h-40">
-                <img src={DOG_BOWL_IMAGE} alt="Dog meal bowl" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-                <div className="absolute bottom-3 left-4 right-4">
-                  <h2 className="text-white font-bold text-base leading-tight">{meal.title}</h2>
-                  <span className="bg-orange-500/30 border border-orange-400/40 text-orange-300 text-[10px] px-2 py-0.5 rounded-full capitalize">
-                    {meal.mealType}
-                  </span>
+              {/* Card hero image */}
+              <div className="relative h-48">
+                <img src={DOG_BOWL_IMAGE} alt={meal.title} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+
+                {/* Safety badge */}
+                <div className="absolute top-3 right-3">
+                  <div className="flex items-center gap-1 bg-green-900/70 backdrop-blur-sm border border-green-500/40 rounded-full px-2 py-1">
+                    <Shield className="h-3 w-3 text-green-400" />
+                    <span className="text-green-300 text-[10px] font-semibold">Safety Verified</span>
+                  </div>
+                </div>
+
+                {/* Title block */}
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  {selectedProfile && (
+                    <p className="text-orange-300 text-[11px] font-semibold uppercase tracking-wider mb-0.5">
+                      {selectedProfile.name}'s Recipe
+                    </p>
+                  )}
+                  <h2 className="text-white font-bold text-lg leading-snug">{meal.title}</h2>
+
+                  {/* Meal type + wellness badges */}
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    <span className="bg-orange-500/30 border border-orange-400/40 text-orange-200 text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize">
+                      {meal.mealType}
+                    </span>
+                    {wellnessGoals.slice(0, 3).map((goal) => (
+                      <span key={goal} className="bg-white/10 border border-white/20 text-white/70 text-[10px] px-2 py-0.5 rounded-full">
+                        {goal}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              <div className="p-4 space-y-4">
+              <div className="p-5 space-y-5">
+
                 {/* Description */}
                 <p className="text-white/80 text-sm leading-relaxed">{meal.description}</p>
 
-                {/* Macros */}
+                {/* Nutrition stats */}
                 {(meal.estimatedCalories || meal.proteinGrams || meal.servingSize) && (
-                  <div className="flex gap-3 flex-wrap">
+                  <div className="grid grid-cols-3 gap-2">
                     {meal.servingSize && (
-                      <div className="bg-white/5 rounded-lg px-3 py-1.5">
-                        <p className="text-white/40 text-[10px]">Serving</p>
-                        <p className="text-white text-xs font-semibold">{meal.servingSize}</p>
+                      <div className="bg-white/6 border border-white/8 rounded-xl p-3 text-center">
+                        <p className="text-white/40 text-[9px] uppercase font-semibold mb-0.5">Serving</p>
+                        <p className="text-white text-xs font-bold leading-tight">{meal.servingSize}</p>
                       </div>
                     )}
                     {meal.estimatedCalories && (
-                      <div className="bg-white/5 rounded-lg px-3 py-1.5">
-                        <p className="text-white/40 text-[10px]">Est. Calories</p>
-                        <p className="text-white text-xs font-semibold">{meal.estimatedCalories} kcal</p>
+                      <div className="bg-white/6 border border-white/8 rounded-xl p-3 text-center">
+                        <p className="text-white/40 text-[9px] uppercase font-semibold mb-0.5">Calories</p>
+                        <p className="text-white text-xs font-bold">{meal.estimatedCalories} kcal</p>
                       </div>
                     )}
                     {meal.proteinGrams && (
-                      <div className="bg-white/5 rounded-lg px-3 py-1.5">
-                        <p className="text-white/40 text-[10px]">Protein</p>
-                        <p className="text-white text-xs font-semibold">{meal.proteinGrams}g</p>
+                      <div className="bg-white/6 border border-white/8 rounded-xl p-3 text-center">
+                        <p className="text-white/40 text-[9px] uppercase font-semibold mb-0.5">Protein</p>
+                        <p className="text-white text-xs font-bold">{meal.proteinGrams}g</p>
                       </div>
                     )}
                   </div>
                 )}
 
+                {/* Divider */}
+                <div className="h-px bg-white/8" />
+
                 {/* Ingredients */}
                 <div>
-                  <h3 className="text-white font-semibold text-sm mb-2 flex items-center gap-2">
-                    <ShoppingCart className="h-4 w-4 text-orange-400" /> Ingredients
-                  </h3>
-                  <ul className="space-y-1.5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ShoppingCart className="h-4 w-4 text-orange-400" />
+                    <h3 className="text-white font-semibold text-sm">Ingredients</h3>
+                  </div>
+                  <ul className="space-y-2">
                     {Array.isArray(meal.ingredients) && meal.ingredients.map((ing, i) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-white/80">
-                        <span className="text-orange-400 mt-0.5">•</span>
-                        <span>
+                      <li key={i} className="flex items-start gap-2.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-400 mt-1.5 flex-shrink-0" />
+                        <span className="text-sm text-white/80 leading-snug">
                           {typeof ing === "string" ? ing : (
-                            <><strong>{ing.amount}</strong> {ing.name}
-                            {ing.notes && <span className="text-white/40"> — {ing.notes}</span>}</>
+                            <>
+                              <span className="font-semibold text-white">{ing.amount}</span>
+                              {" "}{ing.name}
+                              {ing.notes && <span className="text-white/40"> — {ing.notes}</span>}
+                            </>
                           )}
                         </span>
                       </li>
@@ -322,18 +392,27 @@ export default function CompanionMealGenerator() {
                   </ul>
                 </div>
 
+                {/* Divider */}
+                <div className="h-px bg-white/8" />
+
                 {/* Instructions */}
                 <div>
-                  <h3 className="text-white font-semibold text-sm mb-2 flex items-center gap-2">
-                    <ChefHat className="h-4 w-4 text-orange-400" /> Instructions
-                  </h3>
-                  <ol className="space-y-2">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ChefHat className="h-4 w-4 text-orange-400" />
+                    <h3 className="text-white font-semibold text-sm">Preparation</h3>
+                  </div>
+                  <ol className="space-y-3">
                     {Array.isArray(meal.instructions) && meal.instructions.map((step, i) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-white/80">
-                        <span className="bg-orange-500/20 text-orange-300 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">
+                      <li key={i} className="flex items-start gap-3">
+                        <span
+                          className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-orange-300"
+                          style={{ background: "rgba(234,88,12,0.18)", border: "1px solid rgba(251,146,60,0.3)" }}
+                        >
                           {i + 1}
                         </span>
-                        {typeof step === "string" ? step : JSON.stringify(step)}
+                        <p className="text-sm text-white/80 leading-relaxed pt-0.5">
+                          {typeof step === "string" ? step : JSON.stringify(step)}
+                        </p>
                       </li>
                     ))}
                   </ol>
@@ -341,57 +420,130 @@ export default function CompanionMealGenerator() {
 
                 {/* Wellness Notes */}
                 {Array.isArray(meal.wellnessNotes) && meal.wellnessNotes.length > 0 && (
-                  <div className="bg-orange-900/20 border border-orange-500/20 rounded-xl p-3">
-                    <h3 className="text-orange-300 font-semibold text-xs mb-2 flex items-center gap-1">
-                      <Heart className="h-3.5 w-3.5" /> Wellness Notes
-                    </h3>
-                    {meal.wellnessNotes.map((note, i) => (
-                      <p key={i} className="text-white/70 text-xs mb-1">{note}</p>
-                    ))}
-                  </div>
+                  <>
+                    <div className="h-px bg-white/8" />
+                    <div
+                      className="rounded-xl p-4"
+                      style={{ background: "rgba(194,65,12,0.15)", border: "1px solid rgba(251,146,60,0.2)" }}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <Heart className="h-4 w-4 text-orange-400" />
+                        <h3 className="text-orange-200 font-semibold text-sm">Wellness Notes</h3>
+                      </div>
+                      <div className="space-y-1.5">
+                        {meal.wellnessNotes.map((note, i) => (
+                          <p key={i} className="text-white/70 text-xs leading-relaxed">{note}</p>
+                        ))}
+                      </div>
+                    </div>
+                  </>
                 )}
 
                 {/* Storage */}
                 {meal.storageNote && (
-                  <div className="bg-white/5 rounded-xl p-3">
-                    <p className="text-white/50 text-[10px] font-semibold uppercase mb-1">Storage</p>
-                    <p className="text-white/70 text-xs">{meal.storageNote}</p>
+                  <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+                    <p className="text-white/40 text-[10px] font-semibold uppercase mb-1">Storage & Freshness</p>
+                    <p className="text-white/70 text-xs leading-relaxed">{meal.storageNote}</p>
                   </div>
                 )}
 
-                {/* Citations */}
-                {Array.isArray(meal.citationSources) && meal.citationSources.length > 0 && (
-                  <div>
-                    <h3 className="text-white/50 font-semibold text-[10px] uppercase mb-2 flex items-center gap-1">
-                      <BookOpen className="h-3 w-3" /> Veterinary Sources
-                    </h3>
-                    <div className="space-y-1.5">
-                      {meal.citationSources.map((c, i) => (
-                        <div key={i} className="bg-white/5 rounded-lg p-2">
-                          <p className="text-white/70 text-[10px] font-semibold">{c.source}</p>
-                          <p className="text-white/40 text-[10px]">{c.note}</p>
+                {/* Protocol Layers — collapsible */}
+                {Array.isArray(meal.activeLayers) && meal.activeLayers.length > 0 && (
+                  <>
+                    <div className="h-px bg-white/8" />
+                    <button
+                      onClick={() => setProtocolOpen((v) => !v)}
+                      className="w-full flex items-center justify-between py-1"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Layers className="h-4 w-4 text-orange-400/70" />
+                        <span className="text-white/60 text-xs font-semibold uppercase">Protocol Applied</span>
+                      </div>
+                      {protocolOpen ? <ChevronUp className="h-4 w-4 text-white/30" /> : <ChevronDown className="h-4 w-4 text-white/30" />}
+                    </button>
+                    {protocolOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="flex flex-wrap gap-1.5 pt-1 pb-2">
+                          {meal.activeLayers.map((layer) => (
+                            <span key={layer} className="bg-orange-500/10 border border-orange-400/20 text-orange-300/80 text-[10px] px-2 py-1 rounded-full">
+                              {layer}
+                            </span>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
+                      </motion.div>
+                    )}
+                  </>
                 )}
 
-                {/* Vet Disclaimer */}
-                {meal.veterinaryNote && (
-                  <div className="bg-amber-900/20 border border-amber-500/20 rounded-xl p-3">
-                    <p className="text-amber-200/60 text-[10px] leading-relaxed">{meal.veterinaryNote}</p>
-                  </div>
+                {/* Citations — collapsible */}
+                {Array.isArray(meal.citationSources) && meal.citationSources.length > 0 && (
+                  <>
+                    <div className="h-px bg-white/8" />
+                    <button
+                      onClick={() => setCitationsOpen((v) => !v)}
+                      className="w-full flex items-center justify-between py-1"
+                    >
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="h-4 w-4 text-white/40" />
+                        <span className="text-white/40 text-xs font-semibold uppercase">Veterinary Sources</span>
+                      </div>
+                      {citationsOpen ? <ChevronUp className="h-4 w-4 text-white/30" /> : <ChevronDown className="h-4 w-4 text-white/30" />}
+                    </button>
+                    {citationsOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="space-y-2 pt-1 pb-2">
+                          {meal.citationSources.map((c, i) => (
+                            <div key={i} className="bg-white/4 rounded-lg px-3 py-2">
+                              <p className="text-white/60 text-[11px] font-semibold">{c.source}</p>
+                              <p className="text-white/35 text-[10px] leading-relaxed">{c.note}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </>
                 )}
 
-                {/* Actions */}
-                <div className="flex gap-3 pt-2">
-                  <PillButton onClick={handleSave} disabled={saved || !meal.id} className="flex-1">
-                    {saved ? <><Heart className="h-3 w-3" /> Saved</> : "Save Recipe"}
-                  </PillButton>
-                  <PillButton onClick={handleGenerate} disabled={generating} className="flex-1">
-                    <RefreshCw className="h-3 w-3" /> Generate Again
-                  </PillButton>
+                {/* Divider */}
+                <div className="h-px bg-white/8" />
+
+                {/* Action buttons */}
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <PillButton
+                      onClick={handleSave}
+                      disabled={saved || !meal.id}
+                      className="w-full py-3"
+                    >
+                      <Heart className={`h-3.5 w-3.5 ${saved ? "fill-orange-400" : ""}`} />
+                      {saved ? "Saved" : "Save Recipe"}
+                    </PillButton>
+                    <PillButton onClick={handleRegenerate} disabled={generating} className="w-full py-3">
+                      <RefreshCw className="h-3.5 w-3.5" /> Regenerate
+                    </PillButton>
+                  </div>
                 </div>
+
+                {/* Vet disclaimer */}
+                {meal.veterinaryNote && (
+                  <div
+                    className="rounded-xl px-4 py-3"
+                    style={{ background: "rgba(120,53,15,0.2)", border: "1px solid rgba(245,158,11,0.2)" }}
+                  >
+                    <p className="text-amber-200/55 text-[10px] leading-relaxed">{meal.veterinaryNote}</p>
+                  </div>
+                )}
+
               </div>
             </motion.div>
           )}
