@@ -249,9 +249,14 @@ const LOW_CONFIDENCE_RESULT: IngredientScanResult = {
 export async function analyzeIngredientPhoto(
   userId: string,
   imageDataUrl: string,
+  companionContext?: string,
 ): Promise<IngredientScanResult> {
-  const envelope = await loadUserProtocolEnvelope(userId);
-  const protocolContext = envelope
+  // When scanning for a companion (dog), use dog profile context instead of human protocol
+  const isCompanionScan = !!companionContext;
+  const envelope = isCompanionScan ? null : await loadUserProtocolEnvelope(userId);
+  const protocolContext = isCompanionScan
+    ? companionContext!
+    : envelope
     ? buildCompactProtocolContext(envelope)
     : 'No specific dietary or medical constraints on file.';
   const dietaryProtocols = envelope

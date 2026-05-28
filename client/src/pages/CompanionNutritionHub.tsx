@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   PawPrint, Plus, ChefHat, Search, Heart, Crown, ArrowRight,
-  ArrowLeft, BookOpen, Archive, RotateCcw, ChevronDown, ChevronUp,
+  ArrowLeft, BookOpen, Archive, RotateCcw, ChevronDown, ChevronUp, Camera,
 } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -316,6 +316,17 @@ export default function CompanionNutritionHub() {
                         <div className="flex flex-col gap-1.5 flex-shrink-0">
                           <PillButton onClick={() => guardAction(PREMIUM_MSG, () => setLocation(`/companion/generator?profileId=${profile.id}`))}>
                             <ChefHat className="h-3 w-3" /> Cook
+                          </PillButton>
+                          <PillButton onClick={() => guardAction(PREMIUM_MSG, () => {
+                            try {
+                              sessionStorage.setItem("mpm.companion.scan", JSON.stringify({
+                                companionId: profile.id,
+                                companionName: profile.name,
+                              }));
+                            } catch {}
+                            setLocation("/shopping-list-v2");
+                          })}>
+                            <Camera className="h-3 w-3" /> Scan Food
                           </PillButton>
                           <PillButton onClick={() => guardAction(PREMIUM_MSG, () => setLocation(`/companion/setup/${profile.id}`))}>
                             Edit

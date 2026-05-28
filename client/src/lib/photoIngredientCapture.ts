@@ -50,6 +50,7 @@ export interface IngredientCaptureCallbacks {
 async function analyzeIngredients(
   base64DataUrl: string,
   callbacks?: IngredientCaptureCallbacks,
+  companionId?: string,
 ): Promise<IngredientScanResult | null> {
   try {
     callbacks?.onAnalyzing?.();
@@ -57,7 +58,7 @@ async function analyzeIngredients(
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-      body: JSON.stringify({ image: base64DataUrl }),
+      body: JSON.stringify({ image: base64DataUrl, ...(companionId ? { companionId } : {}) }),
     });
 
     if (!response.ok) {
@@ -78,6 +79,7 @@ async function analyzeIngredients(
 
 export async function launchIngredientPhotoCapture(
   callbacks?: IngredientCaptureCallbacks,
+  companionId?: string,
 ): Promise<IngredientScanResult | null> {
   const captured = await captureImage({
     onStart: callbacks?.onStart,
@@ -86,5 +88,5 @@ export async function launchIngredientPhotoCapture(
   });
 
   if (!captured) return null;
-  return analyzeIngredients(captured.base64DataUrl, callbacks);
+  return analyzeIngredients(captured.base64DataUrl, callbacks, companionId);
 }

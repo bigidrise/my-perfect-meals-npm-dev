@@ -141,6 +141,7 @@ export default function ShoppingListMasterView() {
   const [shoppingSheetOpen, setShoppingSheetOpen] = useState(false);
   const [shoppingSheetResult, setShoppingSheetResult] = useState<IngredientScanResult | null>(null);
   const [addOtherPrefill, setAddOtherPrefill] = useState<string | undefined>(undefined);
+  const [companionSession, setCompanionSession] = useState<{ companionId: string; companionName: string } | null>(null);
 
   const [scanState, setScanState] = useState<"idle" | "scanning" | "ready">("idle");
   const [scanMessageIdx, setScanMessageIdx] = useState(0);
@@ -185,6 +186,13 @@ export default function ShoppingListMasterView() {
     return () => clearInterval(interval);
   }, [scanState]);
 
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("mpm.companion.scan");
+      if (raw) setCompanionSession(JSON.parse(raw));
+    } catch {}
+  }, []);
+
   const handleShoppingScan = async () => {
     await launchIngredientPhotoCapture({
       onAnalyzing: () => {
@@ -203,7 +211,7 @@ export default function ShoppingListMasterView() {
         setScanState("idle");
         toast({ title: "Scan failed", description: error, variant: "destructive" });
       },
-    });
+    }, companionSession?.companionId);
   };
 
   // Toggle all underlying source items at once (for consolidated rows)
@@ -533,6 +541,25 @@ export default function ShoppingListMasterView() {
           </div>
 
           {/* Smart Scan — Ingredient Intelligence */}
+          {companionSession && (
+            <div className="mt-2 bg-orange-600/15 border border-orange-500/30 rounded-xl px-3 py-2 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span>🐾</span>
+                <span className="text-white/80 text-xs font-semibold">Scanning for: {companionSession.companionName}</span>
+              </div>
+              <button
+                onClick={() => {
+                  sessionStorage.removeItem("mpm.companion.scan");
+                  setCompanionSession(null);
+                  setLocation("/companion");
+                }}
+                className="text-white/40 text-xs bg-white/8 rounded-lg px-2 py-0.5"
+              >
+                Exit
+              </button>
+            </div>
+          )}
+
           <div className="relative mt-2">
               <div className="absolute inset-0 rounded-2xl bg-cyan-500/10 blur-md scale-105" />
               <Button
@@ -958,6 +985,7 @@ export default function ShoppingListMasterView() {
         <ShoppingIngredientSheet
           open={shoppingSheetOpen}
           result={shoppingSheetResult}
+          companionName={companionSession?.companionName}
           onClose={() => setShoppingSheetOpen(false)}
           onAddAnyway={() => {
             setShoppingSheetOpen(false);
