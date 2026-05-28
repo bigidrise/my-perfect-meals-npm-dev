@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ArrowLeft, ShieldCheck, ShieldX, AlertTriangle, RefreshCw } from "lucide-react";
+import { Search, ArrowLeft, ShieldCheck, ShieldX, AlertTriangle, RefreshCw, ChevronDown } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -17,6 +17,16 @@ interface ScanResult {
   wellnessScore?: number;
   wellnessNotes?: string;
   betterOptions?: string[];
+  dogName?: string | null;
+  profileConflicts?: string[];
+  profileWellnessMatch?: string[];
+}
+
+interface DogProfile {
+  id: string;
+  name: string;
+  breed: string;
+  status?: string;
 }
 
 const QUICK_CHECKS = [
@@ -26,17 +36,39 @@ const QUICK_CHECKS = [
 ];
 
 export default function DogIngredientScanner() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { open, setLastResponse } = useCopilot();
   const [ingredient, setIngredient] = useState("");
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [history, setHistory] = useState<ScanResult[]>([]);
 
+  const [profiles, setProfiles] = useState<DogProfile[]>([]);
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  // Read ?profileId= from URL on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const fromUrl = params.get("profileId");
+    if (fromUrl) setSelectedProfileId(fromUrl);
+  }, []);
+
   useEffect(() => {
     document.title = "Ingredient Scanner | My Perfect Pets";
     window.scrollTo({ top: 0, behavior: "instant" });
+    fetch(apiUrl("/api/companion/profiles"), { headers: getAuthHeaders() })
+      .then((r) => r.json())
+      .then((data) => {
+        const active = (data.profiles || []).filter((p: DogProfile) => !p.status || p.status === "active");
+        setProfiles(active);
+        // Auto-select first dog if none pre-selected from URL
+        setSelectedProfileId((prev) => prev || (active[0]?.id ?? null));
+      })
+      .catch(() => {});
   }, []);
+
+  const selectedProfile = profiles.find((p) => p.id === selectedProfileId) || null;
 
   function handleCopilotOpen() {
     open();
@@ -44,9 +76,9 @@ export default function DogIngredientScanner() {
       setLastResponse({
         title: "Dog Ingredient Safety Scanner",
         description:
-          "Type any food or ingredient to instantly check if it's safe for your dog. The system runs it through the Toxic Ingredient Firewall — a curated list of known canine toxins — and returns a safety rating, the reason it's flagged (if any), and a safe substitution. Safe ingredients also receive a wellness score.",
+          "Type any food or ingredient to instantly check if it's safe for your dog. When a dog profile is selected, results are personalized — factoring in their allergies, sensitivities, breed, age, and wellness goals.",
         spokenText:
-          "Type any food or ingredient to check if it's safe for your dog. The system screens it against known canine toxins and returns a safety rating, reason, and a safe alternative if needed.",
+          "Select your dog at the top, then type any ingredient to get a personalized safety check based on their specific profile.",
         autoClose: false,
       });
     }, 300);
@@ -63,7 +95,7 @@ export default function DogIngredientScanner() {
       const res = await fetch(apiUrl("/api/companion/scan-ingredient"), {
         method: "POST",
         headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({ ingredient: target }),
+        body: JSON.stringify({ ingredient: target, profileId: selectedProfileId || undefined }),
       });
       const data: ScanResult = await res.json();
       setResult(data);
@@ -88,22 +120,22 @@ export default function DogIngredientScanner() {
       icon: ShieldCheck,
       color: "text-green-400",
       bg: "bg-green-900/20 border-green-500/30",
-      label: "SAFE FOR DOGS",
       labelColor: "text-green-400",
+      getLabel: (dogName?: string | null) => dogName ? `SAFE FOR ${dogName.toUpperCase()}` : "SAFE FOR DOGS",
     },
     CAUTION: {
       icon: AlertTriangle,
       color: "text-amber-400",
       bg: "bg-amber-900/20 border-amber-500/30",
-      label: "USE WITH CAUTION",
       labelColor: "text-amber-400",
+      getLabel: (dogName?: string | null) => dogName ? `USE CAUTION WITH ${dogName.toUpperCase()}` : "USE WITH CAUTION",
     },
     TOXIC: {
       icon: ShieldX,
       color: "text-red-400",
       bg: "bg-red-900/20 border-red-500/30",
-      label: "NOT SAFE FOR DOGS",
       labelColor: "text-red-400",
+      getLabel: (dogName?: string | null) => dogName ? `NOT SAFE FOR ${dogName.toUpperCase()}` : "NOT SAFE FOR DOGS",
     },
   };
 
@@ -118,6 +150,7 @@ export default function DogIngredientScanner() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24"
+      onClick={() => showProfileMenu && setShowProfileMenu(false)}
     >
       <MobileHeaderGuard>
         <div
@@ -136,7 +169,6 @@ export default function DogIngredientScanner() {
         </div>
       </MobileHeaderGuard>
 
-      {/* Desktop back button — outside the safe-area padding zone */}
       <div className="hidden md:flex max-w-lg mx-auto px-4 pt-6 pb-0">
         <PillButton onClick={() => setLocation("/companion")}>
           <ArrowLeft className="h-3 w-3" /> Back to My Perfect Pets
@@ -147,9 +179,65 @@ export default function DogIngredientScanner() {
         className="max-w-lg mx-auto px-4"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
       >
+        {/* Profile selector */}
+        {profiles.length > 0 && (
+          <div className="mb-5 relative" onClick={(e) => e.stopPropagation()}>
+            <p className="text-white/40 text-[10px] uppercase font-semibold mb-2">Scanning for</p>
+            {profiles.length === 1 ? (
+              <div className="bg-orange-600/20 border border-orange-500/30 rounded-xl px-4 py-2.5 flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-orange-400" />
+                <span className="text-white text-sm font-semibold">{profiles[0].name}</span>
+                <span className="text-white/40 text-xs">{profiles[0].breed}</span>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={() => setShowProfileMenu((v) => !v)}
+                  className="w-full bg-orange-600/20 border border-orange-500/30 rounded-xl px-4 py-2.5 flex items-center gap-2 text-left"
+                >
+                  <div className="w-2 h-2 rounded-full bg-orange-400 flex-shrink-0" />
+                  <span className="text-white text-sm font-semibold flex-1">
+                    {selectedProfile?.name ?? "Select a dog"}
+                  </span>
+                  {selectedProfile && (
+                    <span className="text-white/40 text-xs">{selectedProfile.breed}</span>
+                  )}
+                  <ChevronDown className={`h-4 w-4 text-white/40 transition-transform ${showProfileMenu ? "rotate-180" : ""}`} />
+                </button>
+                <AnimatePresence>
+                  {showProfileMenu && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      className="absolute top-full left-0 right-0 mt-1 bg-black/80 backdrop-blur-lg border border-white/15 rounded-xl overflow-hidden z-10"
+                    >
+                      {profiles.map((p) => (
+                        <button
+                          key={p.id}
+                          onClick={() => { setSelectedProfileId(p.id); setShowProfileMenu(false); setResult(null); }}
+                          className={`w-full px-4 py-3 flex items-center gap-2 text-left border-b border-white/5 last:border-0 ${p.id === selectedProfileId ? "bg-orange-600/20" : "hover:bg-white/5"}`}
+                        >
+                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${p.id === selectedProfileId ? "bg-orange-400" : "bg-white/20"}`} />
+                          <span className="text-white text-sm font-semibold flex-1">{p.name}</span>
+                          <span className="text-white/40 text-xs">{p.breed}</span>
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Search */}
         <div className="mb-5">
-          <p className="text-white/60 text-xs mb-3">Type any food or ingredient to check if it's safe for your dog.</p>
+          <p className="text-white/60 text-xs mb-3">
+            {selectedProfile
+              ? `Type any food or ingredient to check if it's safe for ${selectedProfile.name}.`
+              : "Type any food or ingredient to check if it's safe for your dog."}
+          </p>
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
@@ -174,10 +262,7 @@ export default function DogIngredientScanner() {
             {QUICK_CHECKS.map((q) => (
               <PillButton
                 key={q}
-                onClick={() => {
-                  setIngredient(q);
-                  handleScan(q);
-                }}
+                onClick={() => { setIngredient(q); handleScan(q); }}
               >
                 {q}
               </PillButton>
@@ -203,10 +288,31 @@ export default function DogIngredientScanner() {
                   <div>
                     <p className="text-white font-bold text-base capitalize">{result.ingredient}</p>
                     <p className={`text-xs font-bold uppercase tracking-wide ${config.labelColor}`}>
-                      {config.label}
+                      {config.getLabel(result.dogName)}
                     </p>
                   </div>
                 </div>
+
+                {/* Profile conflict callout */}
+                {result.profileConflicts && result.profileConflicts.length > 0 && (
+                  <div className="bg-amber-900/30 border border-amber-500/30 rounded-xl p-3 mb-3">
+                    <p className="text-amber-400 text-[10px] uppercase font-semibold mb-1">Profile conflict</p>
+                    {result.profileConflicts.map((c, i) => (
+                      <p key={i} className="text-white/80 text-xs">{c}</p>
+                    ))}
+                  </div>
+                )}
+
+                {/* Wellness goal matches */}
+                {result.profileWellnessMatch && result.profileWellnessMatch.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {result.profileWellnessMatch.map((g, i) => (
+                      <span key={i} className="bg-green-900/30 border border-green-500/30 text-green-400 text-[10px] px-2 py-0.5 rounded-full font-semibold">
+                        ✓ {g}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 {result.wellnessScore && result.safetyStatus === "SAFE" && (
                   <div className="flex items-center gap-2 mb-3">
@@ -227,7 +333,7 @@ export default function DogIngredientScanner() {
                   <p className="text-white/70 text-sm mb-3">{result.wellnessNotes}</p>
                 )}
 
-                {result.reason && (
+                {result.reason && !result.profileConflicts?.length && (
                   <div className="bg-black/30 rounded-xl p-3 mb-3">
                     <p className="text-white/50 text-[10px] uppercase font-semibold mb-1">Why it's flagged</p>
                     <p className="text-white/80 text-xs leading-relaxed">{result.reason}</p>
@@ -248,10 +354,7 @@ export default function DogIngredientScanner() {
                       {result.betterOptions.map((opt) => (
                         <PillButton
                           key={opt}
-                          onClick={() => {
-                            setIngredient(opt);
-                            handleScan(opt);
-                          }}
+                          onClick={() => { setIngredient(opt); handleScan(opt); }}
                         >
                           {opt}
                         </PillButton>
@@ -272,10 +375,7 @@ export default function DogIngredientScanner() {
               {history.slice(1).map((h) => (
                 <button
                   key={`${h.ingredient}-${h.safetyStatus}`}
-                  onClick={() => {
-                    setIngredient(h.ingredient);
-                    setResult(h);
-                  }}
+                  onClick={() => { setIngredient(h.ingredient); setResult(h); }}
                   className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 flex items-center gap-2 text-left"
                 >
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${historyStatusDot[h.safetyStatus]}`} />

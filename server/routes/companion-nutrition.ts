@@ -703,39 +703,102 @@ router.post("/scan-ingredient", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "ingredient required" });
     }
 
+    // Fetch dog profile if profileId provided — gives personalized results
+    let dogProfile: (typeof companionProfiles.$inferSelect) | null = null;
+    if (profileId && userId) {
+      try {
+        const [found] = await db
+          .select()
+          .from(companionProfiles)
+          .where(and(eq(companionProfiles.id, profileId), eq(companionProfiles.userId, userId)));
+        dogProfile = found || null;
+      } catch {}
+    }
+
     const safetyResult = checkIngredientSafety(ingredient.trim());
+
+    // Check for profile-specific conflicts (allergies, sensitivities)
+    const profileConflicts: string[] = [];
+    if (dogProfile) {
+      const allergies = (dogProfile.allergies as string[]) || [];
+      const sensitivities = (dogProfile.foodSensitivities as string[]) || [];
+      const ingredientLower = ingredient.trim().toLowerCase();
+      for (const a of allergies) {
+        if (ingredientLower.includes(a.toLowerCase()) || a.toLowerCase().includes(ingredientLower)) {
+          profileConflicts.push(`${dogProfile.name} is allergic to this ingredient`);
+          break;
+        }
+      }
+      if (profileConflicts.length === 0) {
+        for (const s of sensitivities) {
+          if (ingredientLower.includes(s.toLowerCase()) || s.toLowerCase().includes(ingredientLower)) {
+            profileConflicts.push(`${dogProfile.name} has a known sensitivity to this`);
+            break;
+          }
+        }
+      }
+    }
 
     let wellnessScore: number | null = null;
     let wellnessNotes: string | null = null;
     let betterOptions: string[] = [];
+    let profileWellnessMatch: string[] = [];
 
-    if (safetyResult.safe) {
-      try {
-        const completion = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: [
-            {
-              role: "system",
-              content: `You are a canine nutrition expert. Rate this ingredient for dogs and respond with JSON:
+    try {
+      const profileContext = dogProfile
+        ? `Dog Profile — ${dogProfile.name}:
+- Breed: ${dogProfile.breed}${dogProfile.isMixedBreed ? " mix" : ""}
+- Age: ${dogProfile.ageYears}yr${dogProfile.ageMonths ? ` ${dogProfile.ageMonths}mo` : ""}  Weight: ${dogProfile.weightLbs} lbs  Activity: ${dogProfile.activityLevel}
+- Wellness Goals: ${((dogProfile.wellnessGoals as string[]) || []).join(", ") || "general wellness"}
+- Known Allergies: ${((dogProfile.allergies as string[]) || []).join(", ") || "none"}
+- Food Sensitivities: ${((dogProfile.foodSensitivities as string[]) || []).join(", ") || "none"}
+- Medications: ${((dogProfile.medications as string[]) || []).join(", ") || "none"}
+- Vet Dietary Notes: ${dogProfile.vetDietaryRestrictions || "none"}`
+        : null;
+
+      const systemContent = dogProfile
+        ? `You are a canine nutrition expert evaluating an ingredient specifically for ${dogProfile.name}. Respond with JSON:
+{
+  "wellnessScore": 1-10,
+  "wellnessNotes": "1-2 sentences on how this specifically benefits or affects ${dogProfile.name} given their breed, age, and wellness goals",
+  "betterOptions": ["alternative 1", "alternative 2"],
+  "wellnessGoalMatches": ["any wellness goal from the profile this ingredient supports"]
+}
+Be specific to this dog. Mention their name. Keep it concise.`
+        : `You are a canine nutrition expert. Rate this ingredient for dogs and respond with JSON:
 {
   "wellnessScore": 1-10,
   "wellnessNotes": "1-2 sentences on nutritional value for dogs",
   "betterOptions": ["alternative 1", "alternative 2"]
 }
-Keep it brief and dog-specific.`,
-            },
-            { role: "user", content: `Evaluate for dogs: ${ingredient}` },
-          ],
-          response_format: { type: "json_object" },
-          temperature: 0.3,
-          max_tokens: 200,
-        });
-        const parsed = JSON.parse(completion.choices[0]?.message?.content || "{}");
-        wellnessScore = parsed.wellnessScore || null;
-        wellnessNotes = parsed.wellnessNotes || null;
-        betterOptions = parsed.betterOptions || [];
-      } catch {}
-    }
+Keep it brief and dog-specific.`;
+
+      const userContent = profileContext
+        ? `${profileContext}\n\nIngredient to evaluate: ${ingredient}`
+        : `Evaluate for dogs: ${ingredient}`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemContent },
+          { role: "user", content: userContent },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.3,
+        max_tokens: 250,
+      });
+      const parsed = JSON.parse(completion.choices[0]?.message?.content || "{}");
+      wellnessScore = parsed.wellnessScore || null;
+      wellnessNotes = parsed.wellnessNotes || null;
+      betterOptions = parsed.betterOptions || [];
+      profileWellnessMatch = parsed.wellnessGoalMatches || [];
+    } catch {}
+
+    // Escalate safe ingredients to CAUTION when profile conflicts exist
+    const finalStatus =
+      profileConflicts.length > 0 && safetyResult.severity !== "TOXIC"
+        ? "CAUTION"
+        : safetyResult.severity;
 
     if (userId) {
       try {
@@ -743,8 +806,8 @@ Keep it brief and dog-specific.`,
           userId,
           profileId: profileId || null,
           ingredient: ingredient.trim(),
-          safetyStatus: safetyResult.severity,
-          toxicityReason: safetyResult.reason || null,
+          safetyStatus: finalStatus,
+          toxicityReason: safetyResult.reason || (profileConflicts[0] || null),
           safeSubstitution: safetyResult.substitution || null,
         });
       } catch {}
@@ -752,13 +815,16 @@ Keep it brief and dog-specific.`,
 
     res.json({
       ingredient: ingredient.trim(),
-      safetyStatus: safetyResult.severity,
-      safe: safetyResult.safe,
-      reason: safetyResult.reason || null,
+      safetyStatus: finalStatus,
+      safe: safetyResult.safe && profileConflicts.length === 0,
+      reason: safetyResult.reason || (profileConflicts[0] || null),
       substitution: safetyResult.substitution || null,
       wellnessScore,
       wellnessNotes,
       betterOptions,
+      dogName: dogProfile?.name || null,
+      profileConflicts,
+      profileWellnessMatch,
     });
   } catch (err) {
     console.error("[companion] scan-ingredient error:", err);
