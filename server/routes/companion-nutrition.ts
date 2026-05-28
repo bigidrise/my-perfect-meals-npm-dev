@@ -374,7 +374,16 @@ router.post("/profiles/:id/images/upload", requireAuth, imageUpload.single("imag
         .where(eq(companionProfiles.id, profileId));
     }
 
-    res.json({ image: img });
+    // Return only lightweight fields — omit imageUrl (large base64) to keep response small
+    res.json({
+      image: {
+        id: img.id,
+        profileId: img.profileId,
+        isPrimary: img.isPrimary,
+        sortOrder: img.sortOrder,
+        createdAt: img.createdAt,
+      },
+    });
   } catch (err) {
     console.error("[companion] POST image/upload error:", err);
     res.status(500).json({ error: "Failed to upload image" });
