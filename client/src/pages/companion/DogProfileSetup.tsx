@@ -287,9 +287,11 @@ export default function DogProfileSetup() {
       const { image: saved } = await res.json();
       const isPrimary = saved.isPrimary as boolean;
 
+      // Use the local blob URL for display — server response intentionally omits the
+      // large base64 imageUrl to keep the response small and fast.
       setImages((prev) => [
         ...prev.map((img) => isPrimary ? { ...img, isPrimary: false } : img),
-        { id: saved.id, objectPath: saved.imageUrl, previewUrl, isPrimary, saved: true },
+        { id: saved.id, objectPath: previewUrl, previewUrl, isPrimary, saved: true },
       ]);
     } catch (e: any) {
       setUploadError(e.message || "Upload failed. Please try again.");
