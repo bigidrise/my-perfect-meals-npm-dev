@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   PawPrint, Plus, ChefHat, Search, Heart, Crown, ArrowRight,
-  ArrowLeft, BookOpen, Archive, RotateCcw, ChevronDown, ChevronUp,
+  ArrowLeft, BookOpen, Archive, RotateCcw, ChevronDown, ChevronUp, Camera,
 } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -292,16 +292,25 @@ export default function CompanionNutritionHub() {
                     <div className="p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          {/* Dog photo or paw icon */}
-                          <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 border border-orange-400/30">
-                            {primaryImage ? (
-                              <img src={primaryImage} alt={profile.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full bg-orange-500/20 flex items-center justify-center">
-                                <PawPrint className="h-5 w-5 text-orange-400" />
-                              </div>
+                          {/* Dog photo — tappable to manage photos */}
+                          <button
+                            onClick={() => guardAction(PREMIUM_MSG, () => setLocation(`/companion/setup/${profile.id}?photos=true`))}
+                            className="flex flex-col items-center gap-0.5 flex-shrink-0"
+                          >
+                            <div className="w-11 h-11 rounded-full overflow-hidden border border-orange-400/30 relative">
+                              {primaryImage ? (
+                                <img src={primaryImage} alt={profile.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full bg-orange-500/20 flex items-center justify-center">
+                                  <PawPrint className="h-4 w-4 text-orange-400" />
+                                  <Camera className="h-2.5 w-2.5 text-orange-300 absolute bottom-0.5 right-0.5" />
+                                </div>
+                              )}
+                            </div>
+                            {!primaryImage && (
+                              <span className="text-orange-400/70 text-[9px] font-medium whitespace-nowrap">Add photo</span>
                             )}
-                          </div>
+                          </button>
                           <div className="min-w-0">
                             <p className="text-white font-semibold text-sm">{profile.name}</p>
                             <p className="text-white/50 text-xs truncate">
@@ -347,6 +356,22 @@ export default function CompanionNutritionHub() {
                             className="overflow-hidden"
                           >
                             <div className="pt-3 mt-3 border-t border-white/8 space-y-3">
+                              {/* Photo management shortcut */}
+                              <div>
+                                <p className="text-white/40 text-[10px] font-semibold uppercase mb-2">
+                                  Photos ({profile.images?.length ?? 0}/4)
+                                </p>
+                                <PillButton
+                                  onClick={() => {
+                                    setExpandedActionId(null);
+                                    guardAction(PREMIUM_MSG, () => setLocation(`/companion/setup/${profile.id}?photos=true`));
+                                  }}
+                                >
+                                  <Camera className="h-3 w-3" />
+                                  {(profile.images?.length ?? 0) === 0 ? "Add Photos" : "Manage Photos"}
+                                </PillButton>
+                              </div>
+                              <div className="h-px bg-white/8" />
                               <p className="text-white/40 text-[10px] font-semibold uppercase">Profile Status</p>
                               <div className="flex gap-2">
                                 <PillButton
