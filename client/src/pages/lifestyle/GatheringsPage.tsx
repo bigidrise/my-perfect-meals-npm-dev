@@ -1283,7 +1283,7 @@ export default function UltimateExperiencesPage() {
           </div>
 
           {/* ── Simple Preparation result header (shown above guide for Simple mode) ── */}
-          {situation === "outdoor" && outdoorExperienceType === "simple" && harvestGuide && generatedCourses.length === 0 && (
+          {situation === "outdoor" && outdoorExperienceType === "simple" && harvestGuide && (
             <div className="mt-8 flex items-center gap-3">
               <Sparkles className="h-5 w-5 text-amber-400" />
               <h3 className="text-lg font-bold text-white">
@@ -1295,7 +1295,7 @@ export default function UltimateExperiencesPage() {
           {/* ── Nature-to-Table Guide (Great Outdoors pre-course educational block) ── */}
           {harvestGuide && (
             <div className={
-              situation === "outdoor" && outdoorExperienceType === "simple" && generatedCourses.length === 0
+              situation === "outdoor" && outdoorExperienceType === "simple"
                 ? "mt-3"
                 : "mt-8"
             }>
@@ -1334,7 +1334,9 @@ export default function UltimateExperiencesPage() {
               <div className="flex items-center gap-3 mb-2">
                 <Sparkles className="h-5 w-5 text-amber-400" />
                 <h3 className="text-lg font-bold text-white">
-                  {situation === "outdoor" && outdoorExperienceType === "complete"
+                  {situation === "outdoor" && outdoorExperienceType === "simple"
+                    ? `Your ${proteinSource} Recipe`
+                    : situation === "outdoor" && outdoorExperienceType === "complete"
                     ? "Your Great Outdoors Complete Meal"
                     : `Your ${generatedCourses.length}-Course ${
                         selectedEvent
