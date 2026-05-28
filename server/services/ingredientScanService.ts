@@ -246,12 +246,11 @@ const LOW_CONFIDENCE_RESULT: IngredientScanResult = {
   fallbackUsed: false,
 };
 
-export async function analyzeIngredientPhoto(
+export async function analyzeIngredientContent(
   userId: string,
-  imageDataUrl: string,
+  input: { imageDataUrl?: string; rawText?: string },
   companionContext?: string,
 ): Promise<IngredientScanResult> {
-  // When scanning for a companion (dog), use dog profile context instead of human protocol
   const isCompanionScan = !!companionContext;
   const envelope = isCompanionScan ? null : await loadUserProtocolEnvelope(userId);
   const protocolContext = isCompanionScan
@@ -266,14 +265,20 @@ export async function analyzeIngredientPhoto(
   let extractedText = '';
   let ocrConfidenceLow = false;
 
-  try {
-    const ocr = await extractIngredients(imageDataUrl);
-    if (!ocr.found || !ocr.text.trim()) {
-      return { ...LOW_CONFIDENCE_RESULT };
+  if (input.rawText?.trim()) {
+    extractedText = input.rawText.trim();
+  } else if (input.imageDataUrl) {
+    try {
+      const ocr = await extractIngredients(input.imageDataUrl);
+      if (!ocr.found || !ocr.text.trim()) {
+        return { ...LOW_CONFIDENCE_RESULT };
+      }
+      extractedText = ocr.text;
+      if (ocr.confidence === 'low') ocrConfidenceLow = true;
+    } catch {
+      return { ...LOW_CONFIDENCE_RESULT, fallbackUsed: true };
     }
-    extractedText = ocr.text;
-    if (ocr.confidence === 'low') ocrConfidenceLow = true;
-  } catch {
+  } else {
     return { ...LOW_CONFIDENCE_RESULT, fallbackUsed: true };
   }
 

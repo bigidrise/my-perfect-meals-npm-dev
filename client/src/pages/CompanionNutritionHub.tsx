@@ -13,6 +13,10 @@ import { useFreeLock } from "@/hooks/useFreeLock";
 import { UpgradeLockModal } from "@/components/upgrade/UpgradeLockModal";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import InspirationCaptureModal from "@/components/InspirationCaptureModal";
+import { ShoppingIngredientSheet } from "@/components/shopping/ShoppingIngredientSheet";
+import { saveProductScan } from "@/lib/shoppingScanStorage";
+import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 
 const COMPANION_HERO = "/images/companion-hero.png";
 const PREMIUM_MSG = "My Perfect Pets is a premium feature. Upgrade to access personalized dog nutrition.";
@@ -74,6 +78,8 @@ export default function CompanionNutritionHub() {
   const { user } = useAuth();
   const { open, setLastResponse } = useCopilot();
   const { isFree, showLockModal, lockMessage, guardAction, closeLockModal } = useFreeLock();
+  const [companionScanModal, setCompanionScanModal] = useState<{ open: boolean; profileId?: string; profileName?: string }>({ open: false });
+  const [companionScanSheet, setCompanionScanSheet] = useState<{ open: boolean; result: IngredientScanResult | null }>({ open: false, result: null });
   const [profiles, setProfiles] = useState<DogProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [savedMeals, setSavedMeals] = useState<SavedMeal[]>([]);
@@ -317,15 +323,9 @@ export default function CompanionNutritionHub() {
                           <PillButton onClick={() => guardAction(PREMIUM_MSG, () => setLocation(`/companion/generator?profileId=${profile.id}`))}>
                             <ChefHat className="h-3 w-3" /> Cook
                           </PillButton>
-                          <PillButton onClick={() => guardAction(PREMIUM_MSG, () => {
-                            try {
-                              sessionStorage.setItem("mpm.companion.scan", JSON.stringify({
-                                companionId: profile.id,
-                                companionName: profile.name,
-                              }));
-                            } catch {}
-                            setLocation("/shopping-list-v2");
-                          })}>
+                          <PillButton onClick={() => guardAction(PREMIUM_MSG, () =>
+                            setCompanionScanModal({ open: true, profileId: profile.id, profileName: profile.name })
+                          )}>
                             <Camera className="h-3 w-3" /> Scan Food
                           </PillButton>
                           <PillButton onClick={() => guardAction(PREMIUM_MSG, () => setLocation(`/companion/setup/${profile.id}`))}>
@@ -620,6 +620,26 @@ export default function CompanionNutritionHub() {
       {showLockModal && (
         <UpgradeLockModal message={lockMessage} onClose={closeLockModal} />
       )}
+
+      <InspirationCaptureModal
+        open={companionScanModal.open}
+        onOpenChange={(open) => setCompanionScanModal((prev) => ({ ...prev, open }))}
+        destination="smart-scan"
+        profileType="companion"
+        profileId={companionScanModal.profileId}
+        profileName={companionScanModal.profileName}
+        onScanResult={(result) => {
+          saveProductScan(result);
+          setCompanionScanSheet({ open: true, result });
+        }}
+      />
+
+      <ShoppingIngredientSheet
+        open={companionScanSheet.open}
+        result={companionScanSheet.result}
+        companionName={companionScanModal.profileName}
+        onClose={() => setCompanionScanSheet({ open: false, result: null })}
+      />
     </motion.div>
   );
 }
