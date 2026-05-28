@@ -243,6 +243,13 @@ export default function DogProfileSetup() {
         className="max-w-lg mx-auto px-4"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        {/* Back button — always visible for desktop (mobile header has its own) */}
+        <div className="hidden md:flex items-center gap-2 mb-4">
+          <PillButton onClick={() => setLocation("/companion")}>
+            <ArrowLeft className="h-3 w-3" /> Back to My Perfect Pets
+          </PillButton>
+        </div>
+
         <AnimatePresence mode="wait">
           {/* STEP 1: Identity */}
           {step === 1 && (

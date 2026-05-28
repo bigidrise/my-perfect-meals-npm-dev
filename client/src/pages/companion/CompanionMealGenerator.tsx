@@ -160,6 +160,13 @@ export default function CompanionMealGenerator() {
         className="max-w-lg mx-auto px-4"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
       >
+        {/* Back button — always visible for desktop (mobile header has its own) */}
+        <div className="hidden md:flex items-center gap-2 mb-4">
+          <PillButton onClick={() => setLocation("/companion")}>
+            <ArrowLeft className="h-3 w-3" /> Back to My Perfect Pets
+          </PillButton>
+        </div>
+
         {/* Hero image — reused dog bowl */}
         <div className="relative h-36 rounded-xl overflow-hidden mb-5">
           <img src={DOG_BOWL_IMAGE} alt="Dog meal" className="w-full h-full object-cover" />
