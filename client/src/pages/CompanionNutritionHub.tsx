@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { PawPrint, Plus, ChefHat, Search, Heart, Crown, ArrowRight, Trash2 } from "lucide-react";
+import { PawPrint, Plus, ChefHat, Search, Heart, Crown, ArrowRight, Trash2, ArrowLeft } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -114,6 +114,13 @@ export default function CompanionNutritionHub() {
         className="max-w-2xl mx-auto px-4"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
       >
+        {/* Back button — always visible for desktop (mobile header doesn't exist on hub) */}
+        <div className="flex items-center gap-2 mb-4">
+          <PillButton onClick={() => window.history.back()}>
+            <ArrowLeft className="h-3 w-3" /> Back
+          </PillButton>
+        </div>
+
         {/* Hero — clean image, no overlay */}
         <div className="relative h-52 rounded-2xl overflow-hidden mb-3">
           <img

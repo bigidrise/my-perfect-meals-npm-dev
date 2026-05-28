@@ -140,6 +140,13 @@ export default function DogIngredientScanner() {
         className="max-w-lg mx-auto px-4"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
       >
+        {/* Back button — always visible for desktop (mobile header has its own) */}
+        <div className="hidden md:flex items-center gap-2 mb-4">
+          <PillButton onClick={() => setLocation("/companion")}>
+            <ArrowLeft className="h-3 w-3" /> Back to My Perfect Pets
+          </PillButton>
+        </div>
+
         {/* Search */}
         <div className="mb-5">
           <p className="text-white/60 text-xs mb-3">Type any food or ingredient to check if it's safe for your dog.</p>
