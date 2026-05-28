@@ -546,9 +546,9 @@ router.post("/generate", async (req: Request, res: Response) => {
   let courses: CourseType[];
   if (situation === "outdoor") {
     if (experienceType === "simple") {
-      courses = []; // Guide-only — no course generation
+      courses = ["main"]; // Expanded guide + one simple recipe
     } else if (experienceType === "complete") {
-      courses = ["main"]; // Single centerpiece dish
+      courses = ["main"]; // Brief guide + one centerpiece dish
     } else {
       courses = deriveCourses(totalCourses as 3 | 4 | 5);
     }
