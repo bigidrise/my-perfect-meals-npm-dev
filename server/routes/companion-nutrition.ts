@@ -240,9 +240,13 @@ Generate a recipe now.`;
     if (typeof meal.estimatedCalories !== "number") meal.estimatedCalories = meal.estimatedCalories ? parseInt(meal.estimatedCalories) || null : null;
     if (typeof meal.proteinGrams !== "number") meal.proteinGrams = meal.proteinGrams ? parseInt(meal.proteinGrams) || null : null;
 
-    // Run output through toxic firewall
-    const scanText = JSON.stringify(meal);
-    const scanResult = scanRecipeForToxins(scanText);
+    // Run output through toxic firewall — scan only ingredient names,
+    // not the whole JSON (wellness notes legitimately mention toxic foods by name
+    // in "avoid" / "this recipe contains no..." context and would false-positive).
+    const ingredientScanText = (Array.isArray(meal.ingredients) ? meal.ingredients : [])
+      .map((ing: any) => (typeof ing === "string" ? ing : JSON.stringify(ing)))
+      .join(" | ");
+    const scanResult = scanRecipeForToxins(ingredientScanText);
 
     if (!scanResult.safe) {
       console.warn("[companion] Toxic firewall triggered, regenerating:", scanResult.violations);

@@ -49,7 +49,7 @@ export const TOXIC_INGREDIENTS: ToxicIngredient[] = [
     substitution: "Low-sodium chicken or beef broth for liquid flavor in recipes.",
   },
   {
-    names: ["caffeine", "coffee", "espresso", "tea", "green tea", "black tea", "energy drink"],
+    names: ["caffeine", "coffee", "espresso", "green tea", "black tea", "energy drink", "caffeinated tea"],
     reason: "Contains methylxanthines (same family as theobromine in chocolate). Causes restlessness, heart palpitations, seizures. No safe level for dogs.",
     severity: "TOXIC",
     substitution: "Chamomile broth (very diluted, plain) or plain water for liquid base.",
@@ -73,7 +73,7 @@ export const TOXIC_INGREDIENTS: ToxicIngredient[] = [
     substitution: "Use fully baked, plain whole grain treats instead of any dough-based preparation.",
   },
   {
-    names: ["salt", "sodium", "table salt", "sea salt", "kosher salt", "soy sauce", "teriyaki"],
+    names: ["table salt", "sea salt", "kosher salt", "added salt", "soy sauce", "teriyaki"],
     reason: "Excessive sodium causes sodium ion poisoning: vomiting, tremors, seizures, and death. Dogs need only trace sodium; human seasoning levels are dangerous.",
     severity: "CAUTION",
     substitution: "No added salt. Use low-sodium broth for flavor. Dog meals are never seasoned with salt.",
