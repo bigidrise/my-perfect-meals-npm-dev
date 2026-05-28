@@ -170,17 +170,17 @@ export default function CompanionMealGenerator() {
         </div>
       </MobileHeaderGuard>
 
+      {/* Desktop back button — outside the safe-area padding zone */}
+      <div className="hidden md:flex max-w-lg mx-auto px-4 pt-6 pb-0">
+        <PillButton onClick={() => setLocation("/companion")}>
+          <ArrowLeft className="h-3 w-3" /> Back to My Perfect Pets
+        </PillButton>
+      </div>
+
       <div
         className="max-w-lg mx-auto px-4"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
       >
-        {/* Back button — desktop only (mobile uses fixed header) */}
-        <div className="hidden md:flex items-center gap-2 mb-4">
-          <PillButton onClick={() => setLocation("/companion")}>
-            <ArrowLeft className="h-3 w-3" /> Back to My Perfect Pets
-          </PillButton>
-        </div>
-
         {/* Hero */}
         <div className="relative h-36 rounded-xl overflow-hidden mb-5">
           <img src={DOG_BOWL_IMAGE} alt="Dog meal" className="w-full h-full object-cover" />
