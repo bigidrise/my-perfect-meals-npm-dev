@@ -232,6 +232,14 @@ Generate a recipe now.`;
       return res.status(500).json({ error: "Generation failed — invalid AI response" });
     }
 
+    // Normalize: ensure array fields are always arrays, never strings or objects
+    if (!Array.isArray(meal.ingredients)) meal.ingredients = [];
+    if (!Array.isArray(meal.instructions)) meal.instructions = [];
+    if (!Array.isArray(meal.wellnessNotes)) meal.wellnessNotes = meal.wellnessNotes ? [String(meal.wellnessNotes)] : [];
+    if (!Array.isArray(meal.citationReferences)) meal.citationReferences = [];
+    if (typeof meal.estimatedCalories !== "number") meal.estimatedCalories = meal.estimatedCalories ? parseInt(meal.estimatedCalories) || null : null;
+    if (typeof meal.proteinGrams !== "number") meal.proteinGrams = meal.proteinGrams ? parseInt(meal.proteinGrams) || null : null;
+
     // Run output through toxic firewall
     const scanText = JSON.stringify(meal);
     const scanResult = scanRecipeForToxins(scanText);

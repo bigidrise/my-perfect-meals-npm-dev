@@ -303,12 +303,14 @@ export default function CompanionMealGenerator() {
                     <ShoppingCart className="h-4 w-4 text-orange-400" /> Ingredients
                   </h3>
                   <ul className="space-y-1.5">
-                    {meal.ingredients?.map((ing, i) => (
+                    {Array.isArray(meal.ingredients) && meal.ingredients.map((ing, i) => (
                       <li key={i} className="flex items-start gap-2 text-xs text-white/80">
                         <span className="text-orange-400 mt-0.5">•</span>
                         <span>
-                          <strong>{ing.amount}</strong> {ing.name}
-                          {ing.notes && <span className="text-white/40"> — {ing.notes}</span>}
+                          {typeof ing === "string" ? ing : (
+                            <><strong>{ing.amount}</strong> {ing.name}
+                            {ing.notes && <span className="text-white/40"> — {ing.notes}</span>}</>
+                          )}
                         </span>
                       </li>
                     ))}
@@ -321,19 +323,19 @@ export default function CompanionMealGenerator() {
                     <ChefHat className="h-4 w-4 text-orange-400" /> Instructions
                   </h3>
                   <ol className="space-y-2">
-                    {meal.instructions?.map((step, i) => (
+                    {Array.isArray(meal.instructions) && meal.instructions.map((step, i) => (
                       <li key={i} className="flex items-start gap-2 text-xs text-white/80">
                         <span className="bg-orange-500/20 text-orange-300 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">
                           {i + 1}
                         </span>
-                        {step}
+                        {typeof step === "string" ? step : JSON.stringify(step)}
                       </li>
                     ))}
                   </ol>
                 </div>
 
                 {/* Wellness Notes */}
-                {meal.wellnessNotes && meal.wellnessNotes.length > 0 && (
+                {Array.isArray(meal.wellnessNotes) && meal.wellnessNotes.length > 0 && (
                   <div className="bg-orange-900/20 border border-orange-500/20 rounded-xl p-3">
                     <h3 className="text-orange-300 font-semibold text-xs mb-2 flex items-center gap-1">
                       <Heart className="h-3.5 w-3.5" /> Wellness Notes
@@ -353,7 +355,7 @@ export default function CompanionMealGenerator() {
                 )}
 
                 {/* Citations */}
-                {meal.citationSources && meal.citationSources.length > 0 && (
+                {Array.isArray(meal.citationSources) && meal.citationSources.length > 0 && (
                   <div>
                     <h3 className="text-white/50 font-semibold text-[10px] uppercase mb-2 flex items-center gap-1">
                       <BookOpen className="h-3 w-3" /> Veterinary Sources
