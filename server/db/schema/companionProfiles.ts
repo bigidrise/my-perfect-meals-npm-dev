@@ -34,12 +34,33 @@ export const companionProfiles = pgTable(
     medications: jsonb("medications").$type<string[]>().default([]),
     wellnessGoals: jsonb("wellness_goals").$type<string[]>().default([]),
     photoUrl: text("photo_url"),
+    // Dog-Bound Identity System fields
+    status: text("status").notNull().default("active"),
+    memorialMessage: text("memorial_message"),
+    primaryImageId: uuid("primary_image_id"),
     isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({
     userIdx: index("companion_profiles_user_idx").on(t.userId),
+  })
+);
+
+export const companionProfileImages = pgTable(
+  "companion_profile_images",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    profileId: uuid("profile_id").notNull(),
+    userId: uuid("user_id").notNull(),
+    imageUrl: text("image_url").notNull(),
+    isPrimary: boolean("is_primary").notNull().default(false),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    profileIdx: index("companion_profile_images_profile_idx").on(t.profileId),
+    userIdx: index("companion_profile_images_user_idx").on(t.userId),
   })
 );
 

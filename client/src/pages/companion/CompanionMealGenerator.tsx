@@ -11,9 +11,9 @@ import { getAuthHeaders } from "@/lib/auth";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ThinkingDots from "@/components/ThinkingDots";
-import { DOG_MEAL_IMAGES, getMealImage } from "@/pages/CompanionNutritionHub";
+import { DOG_MEAL_IMAGES, getDogMealImage } from "@/pages/CompanionNutritionHub";
 
-const HERO_IMAGE = DOG_MEAL_IMAGES[1]; // different from card default
+const FALLBACK_HERO = DOG_MEAL_IMAGES[1];
 
 const MEAL_TYPES = [
   { value: "main", label: "Main Meal", sub: "Full nutritious meal" },
@@ -29,6 +29,7 @@ interface DogProfile {
   weightLbs: number;
   ageYears: number;
   wellnessGoals: string[];
+  images?: string[];
 }
 
 interface GeneratedMeal {
@@ -58,6 +59,7 @@ export default function CompanionMealGenerator() {
   const { open, setLastResponse } = useCopilot();
   const [profiles, setProfiles] = useState<DogProfile[]>([]);
   const [selectedProfileId, setSelectedProfileId] = useState(preselectedProfileId);
+  const [dogImages, setDogImages] = useState<string[]>([]);
   const [mealType, setMealType] = useState("main");
   const [specialRequest, setSpecialRequest] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -76,15 +78,31 @@ export default function CompanionMealGenerator() {
     fetch(apiUrl("/api/companion/profiles"), { headers: getAuthHeaders() })
       .then((r) => r.json())
       .then((d) => {
-        setProfiles(d.profiles || []);
-        if (!preselectedProfileId && d.profiles?.length > 0) {
-          setSelectedProfileId(d.profiles[0].id);
+        const active = (d.profiles || []).filter((p: any) => !p.status || p.status === "active");
+        setProfiles(active);
+        if (!preselectedProfileId && active.length > 0) {
+          setSelectedProfileId(active[0].id);
         }
       })
       .catch(() => {});
   }, [preselectedProfileId]);
 
+  // Fetch the selected dog's images whenever selection changes
+  useEffect(() => {
+    if (!selectedProfileId) { setDogImages([]); return; }
+    const profileWithImages = profiles.find((p) => p.id === selectedProfileId);
+    if (profileWithImages?.images) {
+      setDogImages(profileWithImages.images);
+      return;
+    }
+    fetch(apiUrl(`/api/companion/profiles/${selectedProfileId}/images`), { headers: getAuthHeaders() })
+      .then((r) => r.json())
+      .then((d) => setDogImages((d.images || []).map((i: any) => i.imageUrl)))
+      .catch(() => setDogImages([]));
+  }, [selectedProfileId, profiles]);
+
   const selectedProfile = profiles.find((p) => p.id === selectedProfileId);
+  const heroImage = dogImages[0] || FALLBACK_HERO;
 
   function handleCopilotOpen() {
     open();
@@ -147,6 +165,7 @@ export default function CompanionMealGenerator() {
   }
 
   const wellnessGoals = selectedProfile?.wellnessGoals ?? [];
+  const cardImage = meal ? getDogMealImage(dogImages, meal.id || meal.title) : FALLBACK_HERO;
 
   return (
     <motion.div
@@ -171,7 +190,7 @@ export default function CompanionMealGenerator() {
         </div>
       </MobileHeaderGuard>
 
-      {/* Desktop back button — outside the safe-area padding zone */}
+      {/* Desktop back button */}
       <div className="hidden md:flex max-w-lg mx-auto px-4 pt-6 pb-0">
         <PillButton onClick={() => setLocation("/companion")}>
           <ArrowLeft className="h-3 w-3" /> Back to My Perfect Pets
@@ -182,14 +201,16 @@ export default function CompanionMealGenerator() {
         className="max-w-lg mx-auto px-4"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
       >
-        {/* Hero */}
+        {/* Hero — uses dog's primary photo */}
         <div className="relative h-36 rounded-xl overflow-hidden mb-5">
-          <img src={HERO_IMAGE} alt="Dog meal" className="w-full h-full object-cover" />
+          <img src={heroImage} alt={selectedProfile?.name || "Dog meal"} className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
           <div className="absolute bottom-3 left-4 right-4">
             <div className="flex items-center gap-2">
               <PawPrint className="h-4 w-4 text-orange-400" />
-              <h1 className="text-white font-bold text-base">Homemade Meal Generator</h1>
+              <h1 className="text-white font-bold text-base">
+                {selectedProfile ? `${selectedProfile.name}'s Kitchen` : "Homemade Meal Generator"}
+              </h1>
             </div>
             <p className="text-white/60 text-xs">Personalized, safety-screened dog recipes</p>
           </div>
@@ -204,13 +225,18 @@ export default function CompanionMealGenerator() {
                 <button
                   key={p.id}
                   onClick={() => setSelectedProfileId(p.id)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors flex items-center gap-1.5 ${
                     selectedProfileId === p.id
                       ? "bg-orange-600 border-orange-500 text-white"
                       : "bg-white/5 border-white/15 text-white/60"
                   }`}
                 >
-                  <PawPrint className="h-3 w-3 inline mr-1" />{p.name}
+                  {p.images && p.images[0] ? (
+                    <img src={p.images[0]} alt={p.name} className="w-4 h-4 rounded-full object-cover" />
+                  ) : (
+                    <PawPrint className="h-3 w-3" />
+                  )}
+                  {p.name}
                 </button>
               ))}
             </div>
@@ -301,9 +327,9 @@ export default function CompanionMealGenerator() {
                 boxShadow: "0 8px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)",
               }}
             >
-              {/* Card hero image — rotates per meal title */}
+              {/* Card hero — uses dog's own image pool */}
               <div className="relative h-48">
-                <img src={getMealImage(meal.id || meal.title)} alt={meal.title} className="w-full h-full object-cover" />
+                <img src={cardImage} alt={meal.title} className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
 
                 {/* Safety badge */}
@@ -366,7 +392,6 @@ export default function CompanionMealGenerator() {
                   </div>
                 )}
 
-                {/* Divider */}
                 <div className="h-px bg-white/8" />
 
                 {/* Ingredients */}
@@ -393,7 +418,6 @@ export default function CompanionMealGenerator() {
                   </ul>
                 </div>
 
-                {/* Divider */}
                 <div className="h-px bg-white/8" />
 
                 {/* Instructions */}
@@ -515,7 +539,6 @@ export default function CompanionMealGenerator() {
                   </>
                 )}
 
-                {/* Divider */}
                 <div className="h-px bg-white/8" />
 
                 {/* Action buttons */}
@@ -527,24 +550,20 @@ export default function CompanionMealGenerator() {
                       className="w-full py-3"
                     >
                       <Heart className={`h-3.5 w-3.5 ${saved ? "fill-orange-400" : ""}`} />
-                      {saved ? "Saved" : "Save Recipe"}
+                      {saved ? "Saved to Collection" : "Save Recipe"}
                     </PillButton>
-                    <PillButton onClick={handleRegenerate} disabled={generating} className="w-full py-3">
-                      <RefreshCw className="h-3.5 w-3.5" /> Regenerate
+                    <PillButton onClick={handleRegenerate} className="w-full py-3">
+                      <RefreshCw className="h-3.5 w-3.5" /> New Recipe
                     </PillButton>
                   </div>
+
+                  {/* Vet disclaimer */}
+                  {meal.veterinaryNote && (
+                    <p className="text-white/25 text-[10px] leading-relaxed text-center pt-1">
+                      {meal.veterinaryNote}
+                    </p>
+                  )}
                 </div>
-
-                {/* Vet disclaimer */}
-                {meal.veterinaryNote && (
-                  <div
-                    className="rounded-xl px-4 py-3"
-                    style={{ background: "rgba(120,53,15,0.2)", border: "1px solid rgba(245,158,11,0.2)" }}
-                  >
-                    <p className="text-amber-200/55 text-[10px] leading-relaxed">{meal.veterinaryNote}</p>
-                  </div>
-                )}
-
               </div>
             </motion.div>
           )}
