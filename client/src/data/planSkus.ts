@@ -66,6 +66,7 @@ export const PLAN_SKUS: PlanSku[] = [
       "Fast Food Guide & Find Meals Near Me",
       "My Perfect Gatherings (multi-course holiday, event & Great Outdoors meals)",
       "Spirits & Wine Pairing Hub",
+      "My Perfect Pets — AI nutrition & meal plans for your pets",
     ],
     badge: "Most Popular",
   },
