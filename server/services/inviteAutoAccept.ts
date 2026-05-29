@@ -32,7 +32,13 @@ export async function lookupExistingMembership(
       })
       .from(studioMemberships)
       .innerJoin(studios, eq(studios.id, studioMemberships.studioId))
-      .where(eq(studioMemberships.clientUserId, userId));
+      .where(
+        and(
+          eq(studioMemberships.clientUserId, userId),
+          eq(studioMemberships.status, "active"),
+          eq(studioMemberships.isArchived, false)
+        )
+      );
 
     if (!existing) return null;
 
