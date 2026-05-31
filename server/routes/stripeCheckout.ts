@@ -30,6 +30,7 @@ interface CheckoutRequestBody {
   sku?: LookupKey;
   priceLookupKey?: LookupKey;
   context?: string;
+  rewardfulReferralId?: string;
 }
 
 router.post("/checkout", requireAuth, async (req, res) => {
@@ -81,6 +82,18 @@ router.post("/checkout", requireAuth, async (req, res) => {
         : null) ||
       "http://localhost:5000";
 
+    const rewardfulReferralId =
+      typeof body.rewardfulReferralId === "string" &&
+      body.rewardfulReferralId.trim().length > 0
+        ? body.rewardfulReferralId.trim()
+        : undefined;
+
+    if (rewardfulReferralId) {
+      console.log(
+        `🎯 Rewardful referral attached | referralId=${rewardfulReferralId} | user=${userId}`,
+      );
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
 
@@ -94,6 +107,10 @@ router.post("/checkout", requireAuth, async (req, res) => {
       success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
 
       cancel_url: `${appUrl}/billing/cancel`,
+
+      ...(rewardfulReferralId && {
+        client_reference_id: rewardfulReferralId,
+      }),
 
       metadata: {
         userId,

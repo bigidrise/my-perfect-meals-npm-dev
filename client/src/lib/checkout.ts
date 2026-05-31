@@ -14,6 +14,21 @@ export interface CheckoutOptions {
   context?: string;
 }
 
+function getRewardfulReferral(): string | null {
+  try {
+    if (typeof window === "undefined") return null;
+    const rw = (window as any).rewardful;
+    if (typeof rw !== "function") return null;
+    let referralId: string | null = null;
+    rw("referral", (r: string | null) => {
+      referralId = r || null;
+    });
+    return referralId || null;
+  } catch {
+    return null;
+  }
+}
+
 function getCurrentUser() {
   try {
     const raw =
@@ -69,6 +84,18 @@ export async function startCheckout(
       throw new Error("Please log in to checkout");
     }
 
+    const rewardfulReferralId = getRewardfulReferral();
+
+    const checkoutBody: Record<string, unknown> = {
+      priceLookupKey,
+      context: opts?.context || "unknown",
+    };
+
+    if (rewardfulReferralId) {
+      checkoutBody.rewardfulReferralId = rewardfulReferralId;
+      console.log("[Checkout] Rewardful referral captured:", rewardfulReferralId);
+    }
+
     const response = await fetch(apiUrl("/api/stripe/checkout"), {
       method: "POST",
       headers: {
@@ -76,10 +103,7 @@ export async function startCheckout(
         ...getAuthHeaders(),
       },
       credentials: "include",
-      body: JSON.stringify({
-        priceLookupKey,
-        context: opts?.context || "unknown",
-      }),
+      body: JSON.stringify(checkoutBody),
     });
 
     const data = await response.json();
