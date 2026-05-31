@@ -198,6 +198,7 @@ export type PlanLookupKey =
 
 export const LOOKUP_KEY_TO_TIER: Record<string, PlanTier> = {
   mpm_free: "free",
+  // Legacy / _monthly-suffixed keys (kept for backward compatibility)
   mpm_basic_monthly: "basic",
   mpm_upgrade_monthly: "premium",
   mpm_upgrade_beta_monthly: "premium",
@@ -215,6 +216,19 @@ export const LOOKUP_KEY_TO_TIER: Record<string, PlanTier> = {
   mpm_procare_trainer_25: "ultimate",
   mpm_procare_trainer_50: "ultimate",
   mpm_procare_trainer_150: "ultimate",
+  // Frontend short keys — written to DB by checkout.session.completed webhook via metadata.sku
+  mpm_basic: "basic",
+  mpm_premium: "premium",
+  mpm_ultimate: "ultimate",
+  mpm_family_base: "basic",
+  mpm_family_ultimate: "ultimate",
+  mpm_trainer_5: "ultimate",
+  mpm_trainer_10: "ultimate",
+  mpm_trainer_25: "ultimate",
+  mpm_trainer_50: "ultimate",
+  mpm_physician_50: "ultimate",
+  mpm_physician_150: "ultimate",
+  mpm_guidance: "premium",
 };
 
 export const TRIAL_UNLOCKS_TIER: PlanTier = "ultimate";
