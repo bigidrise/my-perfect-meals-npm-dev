@@ -107,3 +107,9 @@ id = "d8cu4qXMWLXDM7kDsL02D"
 uri = "file://docs/curriculum/MPM-Certification-Curriculum.md"
 type = "text"
 title = "MPM Certification Curriculum — NASM / ISSA Partnership Proposal"
+
+[[outputs]]
+id = "eKYWelhqAq5y5yuQcFBdI"
+uri = "file://mpm_user_export_2026-05-31.csv"
+type = "table"
+title = "MPM User Export — May 31, 2026"
