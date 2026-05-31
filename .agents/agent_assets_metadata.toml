@@ -113,3 +113,9 @@ id = "eKYWelhqAq5y5yuQcFBdI"
 uri = "file://mpm_user_export_2026-05-31.csv"
 type = "table"
 title = "MPM User Export — May 31, 2026"
+
+[[outputs]]
+id = "33KUrQ1_sMkySYLiKWvPI"
+uri = "file://mpm_launch_roster_2026-05-31.csv"
+type = "table"
+title = "MPM Cleaned Launch Roster — May 31, 2026"
