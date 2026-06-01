@@ -32,6 +32,10 @@ function BuilderAccessGuard({ builderKey, component: Component }: { builderKey: 
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   if (!user) return null;
+  if (!hasActivePaidSubscription(user)) {
+    setLocation("/pricing");
+    return null;
+  }
   if (user.id === COACHING_ADMIN_USER_ID || (user as any).builderSwitchUnlimited) return <Component />;
   const active = user.activeBoard as BuilderKey | null | undefined;
   if (!active) {
@@ -40,6 +44,17 @@ function BuilderAccessGuard({ builderKey, component: Component }: { builderKey: 
   if (active !== builderKey) {
     const correctRoute = BUILDER_MAP[active]?.clientRoute;
     setLocation(correctRoute || "/select-builder");
+    return null;
+  }
+  return <Component />;
+}
+
+function PaywallGuard({ component: Component }: { component: React.ComponentType }) {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  if (!user) return null;
+  if (!hasActivePaidSubscription(user)) {
+    setLocation("/pricing");
     return null;
   }
   return <Component />;
@@ -249,6 +264,7 @@ const SafeGLP1MealBuilder = withPageErrorBoundary(GLP1MealBuilder, "GLP-1 Meal B
 const SafeAntiInflammatoryMenuBuilder = withPageErrorBoundary(AntiInflammatoryMenuBuilder, "Anti-Inflammatory Menu Builder");
 
 const GuardedWeeklyMealBoard = () => <BuilderAccessGuard builderKey="weekly" component={SafeWeeklyMealBoard} />;
+const GuardedShoppingList = () => <PaywallGuard component={SafeShoppingList} />;
 const GuardedBeachBodyBuilder = () => <BuilderAccessGuard builderKey="beach_body" component={BeachBodyMealBoard} />;
 const GuardedAntiInflammatoryBuilder = () => <BuilderAccessGuard builderKey="anti_inflammatory" component={SafeAntiInflammatoryMenuBuilder} />;
 const GuardedGeneralNutritionBuilder = () => <BuilderAccessGuard builderKey="general_nutrition" component={GeneralNutritionBuilder} />;
@@ -541,8 +557,8 @@ export default function Router() {
         {/* <Route path="/meal-log-history" component={MealLogHistoryPage} /> */}{" "}
         {/* TEMPORARILY DISABLED - File missing */}
         {/* Shopping List Routes */}
-        <Route path="/shopping-list-v2" component={SafeShoppingList} />
-        <Route path="/shopping-list" component={SafeShoppingList} />
+        <Route path="/shopping-list-v2" component={GuardedShoppingList} />
+        <Route path="/shopping-list" component={GuardedShoppingList} />
         {/* ProCare Feature Routes (ProCare Cover → Care Team → Pro Portal → Client Dashboard → Performance & Competition Builder) */}
         <Route path="/more" component={SafeMore} />
         <Route path="/pro/physician" component={PhysicianPortal} />

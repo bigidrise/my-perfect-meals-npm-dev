@@ -98,6 +98,7 @@ import {
 import ReadOnlyNote from "@/components/ReadOnlyNote";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAuthHeaders } from "@/lib/auth";
+import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
 import { apiRequest } from "@/lib/queryClient";
 import { TrialBanner } from "@/components/TrialBanner";
 import { useQuickTour } from "@/hooks/useQuickTour";
@@ -2747,14 +2748,23 @@ export default function MacroCounter() {
 
                           const assignedBuilder =
                             getAssignedBuilderFromStorage();
-                          toast({
-                            title: "Macro Targets Set!",
-                            description: `Heading to ${assignedBuilder.name} to build your meals.`,
-                          });
 
                           advanceGuided("done");
                           try { sessionStorage.removeItem("macro_guided_step"); } catch {}
-                          setLocation(assignedBuilder.path);
+
+                          if (hasActivePaidSubscription(user)) {
+                            toast({
+                              title: "Macro Targets Set!",
+                              description: `Heading to ${assignedBuilder.name} to build your meals.`,
+                            });
+                            setLocation(assignedBuilder.path);
+                          } else {
+                            toast({
+                              title: "Macro Targets Saved!",
+                              description: "Your targets are set. Upgrade to start building personalized meals.",
+                            });
+                            setLocation("/dashboard");
+                          }
 
                           saveBiometricsToProfile().catch(() => {});
                           saveWaistToBiometrics().catch(() => {});
@@ -3806,11 +3816,20 @@ export default function MacroCounter() {
 
                           const assignedBuilder =
                             getAssignedBuilderFromStorage();
-                          toast({
-                            title: "Macro Targets Set!",
-                            description: `Heading to ${assignedBuilder.name} to build your meals.`,
-                          });
-                          setLocation(assignedBuilder.path);
+
+                          if (hasActivePaidSubscription(user)) {
+                            toast({
+                              title: "Macro Targets Set!",
+                              description: `Heading to ${assignedBuilder.name} to build your meals.`,
+                            });
+                            setLocation(assignedBuilder.path);
+                          } else {
+                            toast({
+                              title: "Macro Targets Saved!",
+                              description: "Your targets are set. Upgrade to start building personalized meals.",
+                            });
+                            setLocation("/dashboard");
+                          }
 
                           saveBiometricsToProfile().catch(() => {});
                           saveWaistToBiometrics().catch(() => {});
