@@ -1,3 +1,5 @@
+import { getTierForLookupKey } from "@shared/planFeatures";
+
 const PAID_PLAN_KEYS = [
   "mpm_basic",
   "mpm_premium",
@@ -52,6 +54,30 @@ export function hasActivePaidSubscription(user: UserForSubscriptionCheck | null 
 
 export function isFreeTier(user: UserForSubscriptionCheck | null | undefined): boolean {
   return !hasActivePaidSubscription(user);
+}
+
+export function isEssentialOrAbove(user: UserForSubscriptionCheck | null | undefined): boolean {
+  return hasActivePaidSubscription(user);
+}
+
+export function isProOrAbove(user: UserForSubscriptionCheck | null | undefined): boolean {
+  if (!user) return false;
+  if (user.isFounder) return true;
+  if (user.trialEndsAt && new Date(user.trialEndsAt) > new Date()) return true;
+  if (!hasActivePaidSubscription(user)) return false;
+  const tier = getTierForLookupKey(user.planLookupKey);
+  if (tier === "free" && (user.accessTier === "PAID_FULL" || user.accessTier === "TRIAL_FULL")) return true;
+  return tier === "premium" || tier === "ultimate";
+}
+
+export function isClinicalOrAbove(user: UserForSubscriptionCheck | null | undefined): boolean {
+  if (!user) return false;
+  if (user.isFounder) return true;
+  if (user.trialEndsAt && new Date(user.trialEndsAt) > new Date()) return true;
+  if (!hasActivePaidSubscription(user)) return false;
+  const tier = getTierForLookupKey(user.planLookupKey);
+  if (tier === "free" && (user.accessTier === "PAID_FULL" || user.accessTier === "TRIAL_FULL")) return true;
+  return tier === "ultimate";
 }
 
 // Returns true only for users on an actual paid plan (not trial, not free, not founder).

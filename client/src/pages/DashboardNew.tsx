@@ -657,7 +657,13 @@ export default function DashboardNew() {
     },
   ];
 
+  const ESSENTIAL_ONLY_ROUTES = new Set(["/saved-meals", "/shopping-list-v2"]);
+
   const handleCardClick = (route: string) => {
+    if (ESSENTIAL_ONLY_ROUTES.has(route) && !hasActivePaidSubscription(user)) {
+      setLocation("/pricing");
+      return;
+    }
     setLocation(route);
   };
 

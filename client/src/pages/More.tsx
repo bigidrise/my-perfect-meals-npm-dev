@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
 import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X, Link2Off, ShieldCheck, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
 import { apiRequest } from "@/lib/queryClient";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -336,10 +337,13 @@ export default function MorePage() {
             </Card>
           )}
 
-          {/* Saved Meals / Favorites */}
+          {/* Saved Meals / Favorites — Essential+ only */}
           <Card
             className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-red-500/20 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
-            onClick={() => setLocation("/saved-meals")}
+            onClick={() => {
+              if (!hasActivePaidSubscription(user)) { setLocation("/pricing"); return; }
+              setLocation("/saved-meals");
+            }}
             data-testid="card-saved-meals"
           >
             <CardContent className="p-4">
