@@ -8,6 +8,7 @@ import { OrgProvider } from "@/contexts/OrgContext";
 import { FontSizeProvider } from "@/contexts/FontSizeContext";
 import { HouseholdProvider } from "@/contexts/HouseholdContext";
 import { ProClientProvider } from "@/contexts/ProClientContext";
+import { UpgradeModalProvider } from "@/contexts/UpgradeModalContext";
 import AppRouter from "@/components/AppRouter";
 import Router from "@/components/Router";
 import { AvatarSelector } from "@/components/AvatarSelector";
@@ -190,6 +191,7 @@ export default function App() {
                 <ScrollManager />
                 <UpdateBannerMount />
                 <CopilotSystem onAction={handleCopilotAction}>
+                <UpgradeModalProvider>
                 <ProClientProvider>
                 <PageTitleProvider>
                 <RootViewport>
@@ -203,6 +205,7 @@ export default function App() {
                 <VoiceConcierge />
                 <Toaster />
               </ProClientProvider>
+              </UpgradeModalProvider>
               </CopilotSystem>
               </VoiceProvider>
             </AudioProvider>

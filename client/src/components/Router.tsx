@@ -14,8 +14,33 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { hasActivePaidSubscription, isProOrAbove } from "@/lib/subscriptionCheck";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 
 const COACHING_ADMIN_USER_ID = "6796ce88-dff8-4336-adcb-e53986830f3f";
+
+function getFeatureNameFromPath(path: string): string {
+  const map: Record<string, string> = {
+    "/saved-meals": "Saved Meals",
+    "/shopping-list-v2": "Shopping List",
+    "/craving-creator": "Craving Creator",
+    "/dessert-creator": "Dessert Creator",
+    "/beverages": "Beverage Creator",
+    "/sushi-creator": "Sushi Creator",
+    "/social-hub": "Restaurant Guide",
+    "/companion": "My Perfect Pets",
+    "/gatherings": "My Perfect Gatherings",
+    "/pairings": "Chef Pairings",
+    "/pairings-hub": "Chef Pairings Hub",
+    "/wine-list-helper": "Wine & Spirits Hub",
+    "/reduce-drinking": "Mindful Drinking Plan",
+    "/fast-food-guide": "Fast Food Guide",
+    "/restaurant-finder": "Find Meals Near Me",
+  };
+  for (const [prefix, name] of Object.entries(map)) {
+    if (path === prefix || path.startsWith(prefix + "/")) return name;
+  }
+  return undefined as unknown as string;
+}
 
 function CoachingAdminGate({ component: Component }: { component: React.ComponentType }) {
   const { user } = useAuth();
@@ -30,12 +55,17 @@ function CoachingAdminGate({ component: Component }: { component: React.Componen
 
 function BuilderAccessGuard({ builderKey, component: Component }: { builderKey: BuilderKey; component: React.ComponentType }) {
   const { user } = useAuth();
-  const [, setLocation] = useLocation();
-  if (!user) return null;
-  if (!hasActivePaidSubscription(user)) {
-    setLocation("/pricing");
-    return null;
-  }
+  const [location, setLocation] = useLocation();
+  const { requestUpgrade } = useUpgradeModal();
+  const isBlocked = !!user && !hasActivePaidSubscription(user);
+
+  useEffect(() => {
+    if (isBlocked) {
+      requestUpgrade({ requiredTier: "essential", featureName: getFeatureNameFromPath(location) });
+    }
+  }, [isBlocked, location]);
+
+  if (!user || isBlocked) return null;
   if (user.id === COACHING_ADMIN_USER_ID || (user as any).builderSwitchUnlimited) return <Component />;
   const active = user.activeBoard as BuilderKey | null | undefined;
   if (!active) {
@@ -51,23 +81,33 @@ function BuilderAccessGuard({ builderKey, component: Component }: { builderKey: 
 
 function PaywallGuard({ component: Component }: { component: React.ComponentType }) {
   const { user } = useAuth();
-  const [, setLocation] = useLocation();
-  if (!user) return null;
-  if (!hasActivePaidSubscription(user)) {
-    setLocation("/pricing");
-    return null;
-  }
+  const [location] = useLocation();
+  const { requestUpgrade } = useUpgradeModal();
+  const isBlocked = !!user && !hasActivePaidSubscription(user);
+
+  useEffect(() => {
+    if (isBlocked) {
+      requestUpgrade({ requiredTier: "essential", featureName: getFeatureNameFromPath(location) });
+    }
+  }, [isBlocked, location]);
+
+  if (!user || isBlocked) return null;
   return <Component />;
 }
 
 function ProGuard({ component: Component }: { component: React.ComponentType }) {
   const { user } = useAuth();
-  const [, setLocation] = useLocation();
-  if (!user) return null;
-  if (!isProOrAbove(user)) {
-    setLocation("/pricing");
-    return null;
-  }
+  const [location] = useLocation();
+  const { requestUpgrade } = useUpgradeModal();
+  const isBlocked = !!user && !isProOrAbove(user);
+
+  useEffect(() => {
+    if (isBlocked) {
+      requestUpgrade({ requiredTier: "pro", featureName: getFeatureNameFromPath(location) });
+    }
+  }, [isBlocked, location]);
+
+  if (!user || isBlocked) return null;
   return <Component />;
 }
 

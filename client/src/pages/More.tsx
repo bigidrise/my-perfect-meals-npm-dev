@@ -10,6 +10,7 @@ import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
 import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X, Link2Off, ShieldCheck, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { apiRequest } from "@/lib/queryClient";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -47,6 +48,7 @@ type ConnectionStatus = {
 export default function MorePage() {
   const [, setLocation] = useLocation();
   const { user, refreshUser } = useAuth();
+  const { requestUpgrade } = useUpgradeModal();
   const isDesktop = useIsDesktop();
   const isAdmin = user?.role === "admin";
   const userRole = user?.professionalRole || null;
@@ -341,7 +343,7 @@ export default function MorePage() {
           <Card
             className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-red-500/20 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
             onClick={() => {
-              if (!hasActivePaidSubscription(user)) { setLocation("/pricing"); return; }
+              if (!hasActivePaidSubscription(user)) { requestUpgrade({ requiredTier: "essential", featureName: "Saved Meals" }); return; }
               setLocation("/saved-meals");
             }}
             data-testid="card-saved-meals"
