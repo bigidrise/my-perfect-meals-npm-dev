@@ -1,6 +1,5 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { HandCoins, ShieldCheck, ChevronRight } from "lucide-react";
 
 const AFFILIATE_FORM_URL =
@@ -19,13 +18,10 @@ export default function AffiliateOnPricing() {
   return (
     <Card className="bg-black/60 text-white backdrop-blur-md border border-white/10 shadow-xl">
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-            <HandCoins className="w-5 h-5 text-orange-400" />
-            Founding Affiliate Program
-          </CardTitle>
-          <Badge className="bg-emerald-600/80">Alpha Pilot · Invite Only</Badge>
-        </div>
+        <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+          <HandCoins className="w-5 h-5 text-orange-400" />
+          Founding Affiliate Program
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 text-sm md:text-base text-white/90">
         <p className="text-white/80 leading-relaxed">
