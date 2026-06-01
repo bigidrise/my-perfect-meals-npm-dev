@@ -55,6 +55,7 @@ import {
   hasActivePaidSubscription,
   hasPaidPlan,
 } from "@/lib/subscriptionCheck";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { getResolvedTargets } from "@/lib/macroResolver";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { ComplianceCard } from "@/components/dashboard/ComplianceCard";
@@ -79,6 +80,7 @@ export default function DashboardNew() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { requestUpgrade } = useUpgradeModal();
   const [showScanner, setShowScanner] = useState(false);
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
@@ -657,11 +659,15 @@ export default function DashboardNew() {
     },
   ];
 
-  const ESSENTIAL_ONLY_ROUTES = new Set(["/saved-meals", "/shopping-list-v2"]);
+  const ESSENTIAL_ONLY_ROUTES: Record<string, string> = {
+    "/saved-meals": "Saved Meals",
+    "/shopping-list-v2": "Shopping List",
+  };
 
   const handleCardClick = (route: string) => {
-    if (ESSENTIAL_ONLY_ROUTES.has(route) && !hasActivePaidSubscription(user)) {
-      setLocation("/pricing");
+    const featureName = ESSENTIAL_ONLY_ROUTES[route];
+    if (featureName && !hasActivePaidSubscription(user)) {
+      requestUpgrade({ requiredTier: "essential", featureName });
       return;
     }
     setLocation(route);
