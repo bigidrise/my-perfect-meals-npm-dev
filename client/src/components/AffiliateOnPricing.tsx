@@ -20,7 +20,7 @@ export default function AffiliateOnPricing() {
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base md:text-lg">
           <HandCoins className="w-5 h-5 text-orange-400" />
-          Founding Affiliate Program
+          My Perfect Meals Affiliate Program
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 text-sm md:text-base text-white/90">
@@ -49,7 +49,7 @@ export default function AffiliateOnPricing() {
             Built for Long-Term Partnerships
           </p>
           <p className="text-xs text-white/60 leading-relaxed">
-            Top-performing affiliates, strategic partners, and industry leaders may be eligible for customized partnership opportunities and enhanced commission structures.
+            Top-performing affiliates, strategic partners, healthcare professionals, fitness professionals, and industry partners may be eligible for customized partnership opportunities.
           </p>
         </div>
 
@@ -66,7 +66,7 @@ export default function AffiliateOnPricing() {
         </div>
 
         <p className="text-xs text-white/50">
-          Invite-only during the controlled alpha pilot. Program terms may evolve as My Perfect Meals continues to grow.
+          Program terms may evolve as My Perfect Meals continues to grow.
         </p>
       </CardContent>
     </Card>
