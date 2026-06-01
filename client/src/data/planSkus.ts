@@ -41,11 +41,13 @@ export const PLAN_SKUS: PlanSku[] = [
     blurb: "Daily adaptive nutrition — AI meal generation, Recipe Scan, unlimited Ingredient Intelligence, and grocery organization",
     features: [
       "Create a Dish — AI meals built around your full profile",
+      "Snack Creator (built into every Meal Builder)",
       "Recipe Scan — photo or text import, rebuilt for your macros and protocols",
       "Ingredient Intelligence (unlimited — protocol-aware personalization)",
       "Unlimited AI Fridge Rescue",
       "Master Shopping List & Grocery Organization",
       "Weekly Meal Planner",
+      "Saved Meals & Favorites — save any AI-generated meal to your collection",
       "GLP-1, Diabetic & Anti-Inflammatory builders",
       "SafeGuard Allergy Protection (2-layer)",
       "Biometrics Tracking",
@@ -60,7 +62,7 @@ export const PLAN_SKUS: PlanSku[] = [
     features: [
       "Everything in Essential",
       "Full Recipe Scan — camera, voice, and photo with 5-control customization and preview before saving",
-      "Craving Creator, Snack Creator, Dessert Creator",
+      "Craving Creator & Dessert Creator",
       "Beverage Creator & Sushi Creator",
       "Restaurant Guide with protocol-aware ordering",
       "Fast Food Guide & Find Meals Near Me",
@@ -79,7 +81,7 @@ export const PLAN_SKUS: PlanSku[] = [
     features: [
       "Everything in Pro",
       "Clinical Lab Results Integration — blood work adjusts your meal protocols automatically",
-      "Physicians & Trainers Care Team access",
+      "Care Team Access — connect to a physician or trainer within the app",
       "Athlete Beverage Creator (calibrated to training phases)",
       "Beach Body / Hard Body Meal Builder",
       "Competition Prep Builder",
