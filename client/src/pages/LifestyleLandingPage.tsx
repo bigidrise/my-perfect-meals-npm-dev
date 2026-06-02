@@ -17,9 +17,9 @@ import {
   PawPrint,
 } from "lucide-react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
-import { useFreeLock } from "@/hooks/useFreeLock";
-import { UpgradeLockModal } from "@/components/upgrade/UpgradeLockModal";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
+import { isProOrAbove, hasActivePaidSubscription } from "@/lib/subscriptionCheck";
 
 interface AIFeature {
   title: string;
@@ -29,6 +29,7 @@ interface AIFeature {
   gradient: string;
   testId: string;
   freeAccess?: boolean;
+  requiredTier?: "essential" | "pro";
   badge?: "emotion" | "behavioral";
 }
 
@@ -48,8 +49,8 @@ type FeaturedKitchen = {
 export default function LifestyleLandingPage() {
   const [, setLocation] = useLocation();
   const isDesktop = useIsDesktop();
-  const { isFree, showLockModal, lockMessage, guardAction, closeLockModal } = useFreeLock();
   const { user } = useAuth();
+  const { requestUpgrade } = useUpgradeModal();
   const [featuredKitchens, setFeaturedKitchens] = useState<FeaturedKitchen[]>([]);
   const [kitchensIsAdmin, setKitchensIsAdmin] = useState(false);
 
@@ -77,6 +78,7 @@ export default function LifestyleLandingPage() {
       route: "/lifestyle/create-a-dish",
       gradient: "from-orange-500/20 to-red-500/20",
       testId: "card-create-a-dish",
+      requiredTier: "essential",
       badge: "emotion",
     },
     {
@@ -87,6 +89,7 @@ export default function LifestyleLandingPage() {
       route: "/craving-creator-landing",
       gradient: "from-orange-500/20 to-red-500/20",
       testId: "card-craving-creator",
+      requiredTier: "pro",
       badge: "emotion",
     },
     {
@@ -97,6 +100,7 @@ export default function LifestyleLandingPage() {
       route: "/lifestyle/beverage-hub",
       gradient: "from-blue-500/20 to-cyan-500/20",
       testId: "card-beverage-creator",
+      requiredTier: "pro",
       badge: "behavioral",
     },
     {
@@ -107,6 +111,7 @@ export default function LifestyleLandingPage() {
       route: "/lifestyle/pairings-hub",
       gradient: "from-orange-500/20 to-amber-500/20",
       testId: "card-pairings-hub",
+      requiredTier: "pro",
       badge: "behavioral",
     },
     {
@@ -126,6 +131,7 @@ export default function LifestyleLandingPage() {
       route: "/social-hub",
       gradient: "from-pink-500/20 to-purple-500/20",
       testId: "card-socializing-hub",
+      requiredTier: "pro",
       badge: "behavioral",
     },
     {
@@ -135,12 +141,34 @@ export default function LifestyleLandingPage() {
       route: "/companion",
       gradient: "from-orange-600/20 to-amber-700/20",
       testId: "card-companion-nutrition",
+      requiredTier: "pro",
       badge: "behavioral",
     },
   ];
 
-  const handleCardClick = (route: string) => {
-    setLocation(route);
+  const isCardLocked = (feature: AIFeature): boolean => {
+    if (feature.freeAccess) return false;
+    if (feature.requiredTier === "essential") return !hasActivePaidSubscription(user);
+    if (feature.requiredTier === "pro") return !isProOrAbove(user);
+    return false;
+  };
+
+  const gatheringsLocked = !isProOrAbove(user);
+
+  const handleCardClick = (feature: AIFeature) => {
+    if (feature.freeAccess) {
+      setLocation(feature.route);
+      return;
+    }
+    if (feature.requiredTier === "essential" && !hasActivePaidSubscription(user)) {
+      requestUpgrade({ requiredTier: "essential", featureName: feature.title });
+      return;
+    }
+    if (feature.requiredTier === "pro" && !isProOrAbove(user)) {
+      requestUpgrade({ requiredTier: "pro", featureName: feature.title });
+      return;
+    }
+    setLocation(feature.route);
   };
 
   return (
@@ -279,14 +307,11 @@ export default function LifestyleLandingPage() {
             <Card
               className="relative rounded-xl shadow-md overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 hover:scale-[1.02] bg-gradient-to-r from-black via-amber-950/40 to-black backdrop-blur-lg border border-amber-400/30 hover:shadow-[0_0_30px_rgba(251,191,36,0.4)] hover:border-amber-500/50"
               onClick={() => {
-                if (isFree) {
-                  guardAction(
-                    "My Perfect Gatherings unlocks with Pro.",
-                    () => {},
-                  );
+                if (gatheringsLocked) {
+                  requestUpgrade({ requiredTier: "pro", featureName: "My Perfect Gatherings" });
                   return;
                 }
-                handleCardClick("/lifestyle/my-perfect-gatherings");
+                setLocation("/lifestyle/my-perfect-gatherings");
               }}
               data-testid="card-my-perfect-gatherings"
             >
@@ -300,19 +325,19 @@ export default function LifestyleLandingPage() {
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
                     <Star
-                      className={`h-4 w-4 flex-shrink-0 ${isFree ? "text-amber-500/50" : "text-amber-400"}`}
+                      className={`h-4 w-4 flex-shrink-0 ${gatheringsLocked ? "text-amber-500/50" : "text-amber-400"}`}
                     />
                     <h3
-                      className={`text-sm font-semibold ${isFree ? "text-white/50" : "text-white"}`}
+                      className={`text-sm font-semibold ${gatheringsLocked ? "text-white/50" : "text-white"}`}
                     >
                       My Perfect Gatherings
                     </h3>
-                    {isFree && (
+                    {gatheringsLocked && (
                       <Lock className="h-3 w-3 text-amber-400/70 ml-auto" />
                     )}
                   </div>
                   <p
-                    className={`text-xs ml-6 ${isFree ? "text-white/40" : "text-white/80"}`}
+                    className={`text-xs ml-6 ${gatheringsLocked ? "text-white/40" : "text-white/80"}`}
                   >
                     Plan full meals for holidays, camping, tailgating &amp;
                     special occasions
@@ -326,10 +351,9 @@ export default function LifestyleLandingPage() {
           <div className="flex flex-col gap-3">
             {lifestyleFeatures.map((feature) => {
               const Icon = feature.icon;
-              const isCreateDish =
-                feature.route === "/lifestyle/create-a-dish";
-              const isCravingCreator =
-                feature.route === "/craving-creator-landing";
+              const isCreateDish = feature.route === "/lifestyle/create-a-dish";
+              const isCravingCreator = feature.route === "/craving-creator-landing";
+              const locked = isCardLocked(feature);
 
               return (
                 <div key={feature.testId} className="relative">
@@ -361,13 +385,7 @@ export default function LifestyleLandingPage() {
                           ? "bg-black/30 backdrop-blur-lg border border-pink-400/30"
                           : "bg-black/30 backdrop-blur-lg border border-white/10"
                     }`}
-                    onClick={() => {
-                      if (isFree && !feature.freeAccess) {
-                        guardAction(`${feature.title} unlocks with Pro.`, () => {});
-                        return;
-                      }
-                      handleCardClick(feature.route);
-                    }}
+                    onClick={() => handleCardClick(feature)}
                     data-testid={feature.testId}
                   >
                     {/* AI type badge */}
@@ -391,15 +409,15 @@ export default function LifestyleLandingPage() {
                     <CardContent className="p-3">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
-                          <Icon className={`h-4 w-4 ${isFree && !feature.freeAccess ? "text-orange-500/50" : "text-orange-500"}`} />
-                          <h3 className={`text-sm font-semibold ${isFree && !feature.freeAccess ? "text-white/50" : "text-white"}`}>
+                          <Icon className={`h-4 w-4 ${locked ? "text-orange-500/50" : "text-orange-500"}`} />
+                          <h3 className={`text-sm font-semibold ${locked ? "text-white/50" : "text-white"}`}>
                             {feature.title}
                           </h3>
-                          {isFree && !feature.freeAccess && (
+                          {locked && (
                             <Lock className="h-3 w-3 text-orange-400/70 ml-auto" />
                           )}
                         </div>
-                        <p className={`text-xs ml-6 ${isFree && !feature.freeAccess ? "text-white/40" : "text-white/80"}`}>
+                        <p className={`text-xs ml-6 ${locked ? "text-white/40" : "text-white/80"}`}>
                           {feature.description}
                         </p>
                       </div>
@@ -474,8 +492,6 @@ export default function LifestyleLandingPage() {
           </div>
         </div>
       </div>
-
-      <UpgradeLockModal open={showLockModal} onClose={closeLockModal} message={lockMessage} />
     </motion.div>
   );
 }

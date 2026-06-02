@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
 import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X, Link2Off, ShieldCheck, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
+import { hasActivePaidSubscription, isClinicalOrAbove } from "@/lib/subscriptionCheck";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { apiRequest } from "@/lib/queryClient";
 import { getAuthHeaders } from "@/lib/auth";
@@ -162,6 +162,10 @@ export default function MorePage() {
   };
 
   async function connectWithCode() {
+    if (!isClinicalOrAbove(user)) {
+      requestUpgrade({ requiredTier: "clinical", featureName: "ProCare Connection" });
+      return;
+    }
     setError(null);
     setConnectedResult(null);
     if (!accessCode.trim()) {
