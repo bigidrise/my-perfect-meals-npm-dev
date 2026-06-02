@@ -5,6 +5,12 @@ export const modules: ModuleMap = {
   "./components/mockups/chef-kitchens/LifestylePage.tsx": () => import("../components/mockups/chef-kitchens/LifestylePage.tsx"),
   "./components/mockups/chef-kitchens/OnboardingPacket.tsx": () => import("../components/mockups/chef-kitchens/OnboardingPacket.tsx"),
   "./components/mockups/chef-kitchens/RushKitchenLanding.tsx": () => import("../components/mockups/chef-kitchens/RushKitchenLanding.tsx"),
+  "./components/mockups/protocol-options/OptionADesktop.tsx": () => import("../components/mockups/protocol-options/OptionADesktop.tsx"),
+  "./components/mockups/protocol-options/OptionAMobile.tsx": () => import("../components/mockups/protocol-options/OptionAMobile.tsx"),
+  "./components/mockups/protocol-options/OptionBDesktop.tsx": () => import("../components/mockups/protocol-options/OptionBDesktop.tsx"),
+  "./components/mockups/protocol-options/OptionBMobile.tsx": () => import("../components/mockups/protocol-options/OptionBMobile.tsx"),
+  "./components/mockups/protocol-options/OptionCDesktop.tsx": () => import("../components/mockups/protocol-options/OptionCDesktop.tsx"),
+  "./components/mockups/protocol-options/OptionCMobile.tsx": () => import("../components/mockups/protocol-options/OptionCMobile.tsx"),
   "./components/mockups/shopping-scan/ResultSheet.tsx": () => import("../components/mockups/shopping-scan/ResultSheet.tsx"),
   "./components/mockups/shopping-scan/ShoppingPage.tsx": () => import("../components/mockups/shopping-scan/ShoppingPage.tsx")
 };
