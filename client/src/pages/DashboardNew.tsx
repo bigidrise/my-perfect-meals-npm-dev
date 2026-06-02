@@ -1356,7 +1356,13 @@ export default function DashboardNew() {
           className="mb-4"
         >
           <Card
-            onClick={() => setShowInspirationModal(true)}
+            onClick={() => {
+              if (!hasActivePaidSubscription(user)) {
+                requestUpgrade({ requiredTier: "essential", featureName: "Recipe Scan" });
+                return;
+              }
+              setShowInspirationModal(true);
+            }}
             className="cursor-pointer transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-orange-500/30 hover:border-orange-500/60 rounded-xl group"
             data-testid="card-recipe-scan"
           >
