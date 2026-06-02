@@ -2,11 +2,13 @@ import { Router } from "express";
 import Stripe from "stripe";
 import { db } from "../db";
 import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import {
   updateUserSubscription,
   cancelUserSubscription,
 } from "../services/subscriptionService";
+import { clientLinks } from "../db/schema/procare";
+import { deactivateProCareClient } from "../services/procareActivation";
 import type { LookupKey } from "../../client/src/data/planSkus";
 
 const router = Router();
@@ -28,6 +30,55 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 function extractLookupKey(subscription: Stripe.Subscription): string | null {
   const price = subscription.items.data[0]?.price;
   return price?.lookup_key ?? null;
+}
+
+const CLINICAL_PLAN_KEYS = ["mpm_ultimate", "mpm_ultimate_monthly", "mpm_ultimate_plan_2999"];
+const PROCARE_PLAN_KEYS = [
+  "mpm_procare_monthly", "mpm_trainer_5", "mpm_trainer_10",
+  "mpm_trainer_25", "mpm_trainer_50", "mpm_physician_50", "mpm_physician_150",
+];
+
+/**
+ * Terminates all active ProCare relationships when a subscription is cancelled.
+ * Called only on customer.subscription.deleted — after Stripe's retry cycle is exhausted.
+ *
+ * role="client" → finds all active coaches for this client, deactivates each link
+ * role="coach"  → finds all active clients under this coach, deactivates each link
+ */
+async function terminateProCareRelationships(userId: string, role: "client" | "coach"): Promise<void> {
+  try {
+    if (role === "client") {
+      const activeLinks = await db
+        .select({ proUserId: clientLinks.proUserId })
+        .from(clientLinks)
+        .where(and(eq(clientLinks.clientUserId, userId), eq(clientLinks.active, true)));
+
+      for (const link of activeLinks) {
+        try {
+          await deactivateProCareClient(userId, link.proUserId, userId, "provider_revoke");
+          console.log(`🔌 [webhook] ProCare terminated: client ${userId} ← coach ${link.proUserId} (Clinical subscription cancelled)`);
+        } catch (err) {
+          console.error(`⚠️ [webhook] Failed to deactivate link client=${userId} coach=${link.proUserId}:`, err);
+        }
+      }
+    } else {
+      const activeLinks = await db
+        .select({ clientUserId: clientLinks.clientUserId })
+        .from(clientLinks)
+        .where(and(eq(clientLinks.proUserId, userId), eq(clientLinks.active, true)));
+
+      for (const link of activeLinks) {
+        try {
+          await deactivateProCareClient(link.clientUserId, userId, userId, "provider_revoke");
+          console.log(`🔌 [webhook] ProCare terminated: client ${link.clientUserId} ← coach ${userId} (ProCare subscription cancelled)`);
+        } catch (err) {
+          console.error(`⚠️ [webhook] Failed to deactivate link client=${link.clientUserId} coach=${userId}:`, err);
+        }
+      }
+    }
+  } catch (err) {
+    console.error(`⚠️ [webhook] terminateProCareRelationships failed for ${role} ${userId}:`, err);
+  }
 }
 
 router.post("/", async (req, res) => {
@@ -133,14 +184,33 @@ router.post("/", async (req, res) => {
         break;
       }
 
-      // ── Subscription deleted: revoke access ──────────────────────────────
+      // ── Subscription deleted: revoke access + terminate ProCare relationships ──
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
+        const cancelledLookupKey = extractLookupKey(subscription);
+
+        // Look up user BEFORE cancelUserSubscription wipes planLookupKey
+        const [affectedUser] = await db
+          .select({ id: users.id, planLookupKey: users.planLookupKey, isProCare: users.isProCare })
+          .from(users)
+          .where(eq(users.stripeCustomerId, customerId))
+          .limit(1);
 
         await cancelUserSubscription(customerId);
-
         console.log(`⚠️ [webhook] customer.subscription.deleted — access revoked for customer ${customerId}`);
+
+        if (affectedUser) {
+          const planKey = cancelledLookupKey ?? affectedUser.planLookupKey ?? "";
+
+          if (CLINICAL_PLAN_KEYS.includes(planKey) && affectedUser.isProCare) {
+            console.log(`🔌 [webhook] Clinical cancelled — terminating ProCare client relationships for user ${affectedUser.id}`);
+            await terminateProCareRelationships(affectedUser.id, "client");
+          } else if (PROCARE_PLAN_KEYS.includes(planKey)) {
+            console.log(`🔌 [webhook] ProCare cancelled — terminating all coach relationships for user ${affectedUser.id}`);
+            await terminateProCareRelationships(affectedUser.id, "coach");
+          }
+        }
         break;
       }
 
