@@ -115,7 +115,7 @@ export default function CreatorStudioLanding() {
               <p className="text-white/40 text-xs mt-0.5">Contact us for a quote</p>
             </div>
             <button
-              onClick={() => window.location.href = "mailto:partnerships@myperfectmeals.com?subject=Brand%20Beverage%20Studio%20Inquiry"}
+              onClick={() => window.open("https://forms.gle/5Nd1MBYTrWaRKRQk6", "_blank", "noopener,noreferrer")}
               className="w-full flex items-center justify-center gap-2 py-3 px-5 rounded-xl bg-white/10 hover:bg-white/15 active:bg-white/20 text-white font-semibold text-sm transition-colors border border-white/20"
             >
               Get in Touch

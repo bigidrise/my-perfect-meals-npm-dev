@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
 import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X, Link2Off, ShieldCheck, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { hasActivePaidSubscription, isClinicalOrAbove } from "@/lib/subscriptionCheck";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { apiRequest } from "@/lib/queryClient";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -46,6 +48,7 @@ type ConnectionStatus = {
 export default function MorePage() {
   const [, setLocation] = useLocation();
   const { user, refreshUser } = useAuth();
+  const { requestUpgrade } = useUpgradeModal();
   const isDesktop = useIsDesktop();
   const isAdmin = user?.role === "admin";
   const userRole = user?.professionalRole || null;
@@ -159,6 +162,10 @@ export default function MorePage() {
   };
 
   async function connectWithCode() {
+    if (!isClinicalOrAbove(user)) {
+      requestUpgrade({ requiredTier: "clinical", featureName: "ProCare Connection" });
+      return;
+    }
     setError(null);
     setConnectedResult(null);
     if (!accessCode.trim()) {
@@ -178,6 +185,8 @@ export default function MorePage() {
         if (data?.code === "LEGAL_REACCEPT_REQUIRED") {
           setPendingLegalFlow(data.flow === "patient_physician" ? "patient_physician" : "client");
           setShowClientLegalModal(true);
+        } else if (data?.error === "CLINICAL_REQUIRED") {
+          requestUpgrade({ requiredTier: "clinical", featureName: "ProCare Connection" });
         } else {
           setError(data?.error || "Invalid or expired provider code.");
         }
@@ -336,24 +345,33 @@ export default function MorePage() {
             </Card>
           )}
 
-          {/* Saved Meals / Favorites */}
-          <Card
-            className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-red-500/20 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
-            onClick={() => setLocation("/saved-meals")}
-            data-testid="card-saved-meals"
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-red-500/20">
-                  <Heart className="h-5 w-5 text-red-400" fill="currentColor" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-white">Favorites</h3>
-                  <p className="text-xs text-white/70">Your saved meals — tap to view and reuse</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Saved Meals / Favorites — Essential+ only */}
+          {(() => {
+            const favLocked = !hasActivePaidSubscription(user);
+            return (
+              <Card
+                className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-red-500/20 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
+                onClick={() => {
+                  if (favLocked) { requestUpgrade({ requiredTier: "essential", featureName: "Saved Meals" }); return; }
+                  setLocation("/saved-meals");
+                }}
+                data-testid="card-saved-meals"
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${favLocked ? "bg-red-500/10" : "bg-red-500/20"}`}>
+                      <Heart className={`h-5 w-5 ${favLocked ? "text-red-400/50" : "text-red-400"}`} fill="currentColor" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className={`text-sm font-semibold ${favLocked ? "text-white/50" : "text-white"}`}>Favorites</h3>
+                      <p className={`text-xs ${favLocked ? "text-white/40" : "text-white/70"}`}>Your saved meals — tap to view and reuse</p>
+                    </div>
+                    {favLocked && <Lock className="h-4 w-4 text-orange-400/70 flex-shrink-0" />}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* ProCare Features - Vertical Stack */}
           <div className="flex flex-col gap-3">

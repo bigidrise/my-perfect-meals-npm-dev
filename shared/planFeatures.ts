@@ -4,6 +4,7 @@ export type Entitlement =
   | "smart_menu_builder"
   | "weekly_meal_board"
   | "shopping_list"
+  | "saved_meals"
   | "biometrics"
   | "alcohol_hub"
   | "hormones_women"
@@ -49,7 +50,9 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "Ingredient Intelligence (unlimited scans with full protocol personalization)",
       "AI Fridge Rescue (unlimited)",
       "Master Shopping List & Grocery Organization",
+      "Saved Meals & Favorites — save any AI-generated meal to your personal collection",
       "Weekly Meal Planner",
+      "Snack Creator (built into every Meal Builder)",
       "GLP-1 Hub and Meal Builder",
       "Diabetic Hub and Meal Builder",
       "Anti-Inflammatory Meal Builder",
@@ -60,6 +63,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "smart_menu_builder",
       "weekly_meal_board",
       "shopping_list",
+      "saved_meals",
       "biometrics",
       "alcohol_hub",
       "hormones_women",
@@ -73,7 +77,6 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "Everything in Essential",
       "Full Recipe Scan — camera, voice, text, and photo capture with 5-control customization (servings, adaptation style, protein level, prep style, cuisine) and preview before saving",
       "Craving Creator — healthy versions of any craving, built around your protocols",
-      "Snack Creator",
       "Dessert Creator",
       "Beverage Creator",
       "Sushi Creator (rolls, nigiri, sashimi & bowls)",
@@ -88,6 +91,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "smart_menu_builder",
       "weekly_meal_board",
       "shopping_list",
+      "saved_meals",
       "biometrics",
       "alcohol_hub",
       "hormones_women",
@@ -104,8 +108,8 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
     displayFeatures: [
       "Everything in Pro",
       "Clinical Lab Results Integration — connect your blood work and let the system adjust your meal protocols automatically based on your biomarkers",
-      "Physicians Care Team / Pro Access",
-      "Trainers Care Team / Pro Access",
+      "Care Team Access — connect to a physician for clinical nutrition oversight within the app",
+      "Care Team Access — connect to a trainer for performance coaching within the app",
       "Athlete Beverage Creator (performance drinks calibrated to training phases)",
       "Beach Body / Hard Body Meal Builder",
       "Competition Prep Builder",
@@ -115,6 +119,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "smart_menu_builder",
       "weekly_meal_board",
       "shopping_list",
+      "saved_meals",
       "biometrics",
       "alcohol_hub",
       "hormones_women",
@@ -139,6 +144,8 @@ export const IOS_DISPLAY_FEATURES: Record<string, string[]> = {
     "Multi-Language Voice Input & Translation",
     "Unlimited AI Fridge Rescue",
     "Weekly Meal Planner",
+    "Snack Creator (built into every Meal Builder)",
+    "Saved Meals & Favorites",
     "Master Shopping List & Grocery Organization",
     "GLP-1 & Diabetic Support",
     "Anti-Inflammatory Builder",
@@ -152,7 +159,6 @@ export const IOS_DISPLAY_FEATURES: Record<string, string[]> = {
     "Everything in Essential, plus:",
     "Full Recipe Scan (camera, voice, photo — with 5-control customize screen)",
     "Craving Creator",
-    "Snack Creator",
     "Dessert Creator",
     "Beverage Creator",
     "Sushi Creator",
@@ -198,6 +204,7 @@ export type PlanLookupKey =
 
 export const LOOKUP_KEY_TO_TIER: Record<string, PlanTier> = {
   mpm_free: "free",
+  // Legacy / _monthly-suffixed keys (kept for backward compatibility)
   mpm_basic_monthly: "basic",
   mpm_upgrade_monthly: "premium",
   mpm_upgrade_beta_monthly: "premium",
@@ -215,6 +222,19 @@ export const LOOKUP_KEY_TO_TIER: Record<string, PlanTier> = {
   mpm_procare_trainer_25: "ultimate",
   mpm_procare_trainer_50: "ultimate",
   mpm_procare_trainer_150: "ultimate",
+  // Frontend short keys — written to DB by checkout.session.completed webhook via metadata.sku
+  mpm_basic: "basic",
+  mpm_premium: "premium",
+  mpm_ultimate: "ultimate",
+  mpm_family_base: "basic",
+  mpm_family_ultimate: "ultimate",
+  mpm_trainer_5: "ultimate",
+  mpm_trainer_10: "ultimate",
+  mpm_trainer_25: "ultimate",
+  mpm_trainer_50: "ultimate",
+  mpm_physician_50: "ultimate",
+  mpm_physician_150: "ultimate",
+  mpm_guidance: "premium",
 };
 
 export const TRIAL_UNLOCKS_TIER: PlanTier = "ultimate";

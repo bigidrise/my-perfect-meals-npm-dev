@@ -12,10 +12,35 @@ import ComingSoon from "@/pages/ComingSoon";
 import StudioBottomNav from "@/components/pro/StudioBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
+import { hasActivePaidSubscription, isProOrAbove } from "@/lib/subscriptionCheck";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 
 const COACHING_ADMIN_USER_ID = "6796ce88-dff8-4336-adcb-e53986830f3f";
+
+function getFeatureNameFromPath(path: string): string {
+  const map: Record<string, string> = {
+    "/saved-meals": "Saved Meals",
+    "/shopping-list-v2": "Shopping List",
+    "/craving-creator": "Craving Creator",
+    "/dessert-creator": "Dessert Creator",
+    "/beverages": "Beverage Creator",
+    "/sushi-creator": "Sushi Creator",
+    "/social-hub": "Restaurant Guide",
+    "/companion": "My Perfect Pets",
+    "/gatherings": "My Perfect Gatherings",
+    "/pairings": "Chef Pairings",
+    "/pairings-hub": "Chef Pairings Hub",
+    "/wine-list-helper": "Wine & Spirits Hub",
+    "/reduce-drinking": "Mindful Drinking Plan",
+    "/fast-food-guide": "Fast Food Guide",
+    "/restaurant-finder": "Find Meals Near Me",
+  };
+  for (const [prefix, name] of Object.entries(map)) {
+    if (path === prefix || path.startsWith(prefix + "/")) return name;
+  }
+  return undefined as unknown as string;
+}
 
 function CoachingAdminGate({ component: Component }: { component: React.ComponentType }) {
   const { user } = useAuth();
@@ -30,8 +55,17 @@ function CoachingAdminGate({ component: Component }: { component: React.Componen
 
 function BuilderAccessGuard({ builderKey, component: Component }: { builderKey: BuilderKey; component: React.ComponentType }) {
   const { user } = useAuth();
-  const [, setLocation] = useLocation();
-  if (!user) return null;
+  const [location, setLocation] = useLocation();
+  const { requestUpgrade } = useUpgradeModal();
+  const isBlocked = !!user && !hasActivePaidSubscription(user);
+
+  useEffect(() => {
+    if (isBlocked) {
+      requestUpgrade({ requiredTier: "essential", featureName: getFeatureNameFromPath(location) });
+    }
+  }, [isBlocked, location]);
+
+  if (!user || isBlocked) return null;
   if (user.id === COACHING_ADMIN_USER_ID || (user as any).builderSwitchUnlimited) return <Component />;
   const active = user.activeBoard as BuilderKey | null | undefined;
   if (!active) {
@@ -42,6 +76,38 @@ function BuilderAccessGuard({ builderKey, component: Component }: { builderKey: 
     setLocation(correctRoute || "/select-builder");
     return null;
   }
+  return <Component />;
+}
+
+function PaywallGuard({ component: Component }: { component: React.ComponentType }) {
+  const { user } = useAuth();
+  const [location] = useLocation();
+  const { requestUpgrade } = useUpgradeModal();
+  const isBlocked = !!user && !hasActivePaidSubscription(user);
+
+  useEffect(() => {
+    if (isBlocked) {
+      requestUpgrade({ requiredTier: "essential", featureName: getFeatureNameFromPath(location) });
+    }
+  }, [isBlocked, location]);
+
+  if (!user || isBlocked) return null;
+  return <Component />;
+}
+
+function ProGuard({ component: Component }: { component: React.ComponentType }) {
+  const { user } = useAuth();
+  const [location] = useLocation();
+  const { requestUpgrade } = useUpgradeModal();
+  const isBlocked = !!user && !isProOrAbove(user);
+
+  useEffect(() => {
+    if (isBlocked) {
+      requestUpgrade({ requiredTier: "pro", featureName: getFeatureNameFromPath(location) });
+    }
+  }, [isBlocked, location]);
+
+  if (!user || isBlocked) return null;
   return <Component />;
 }
 
@@ -249,12 +315,35 @@ const SafeGLP1MealBuilder = withPageErrorBoundary(GLP1MealBuilder, "GLP-1 Meal B
 const SafeAntiInflammatoryMenuBuilder = withPageErrorBoundary(AntiInflammatoryMenuBuilder, "Anti-Inflammatory Menu Builder");
 
 const GuardedWeeklyMealBoard = () => <BuilderAccessGuard builderKey="weekly" component={SafeWeeklyMealBoard} />;
+const GuardedShoppingList = () => <PaywallGuard component={SafeShoppingList} />;
 const GuardedBeachBodyBuilder = () => <BuilderAccessGuard builderKey="beach_body" component={BeachBodyMealBoard} />;
 const GuardedAntiInflammatoryBuilder = () => <BuilderAccessGuard builderKey="anti_inflammatory" component={SafeAntiInflammatoryMenuBuilder} />;
 const GuardedGeneralNutritionBuilder = () => <BuilderAccessGuard builderKey="general_nutrition" component={GeneralNutritionBuilder} />;
 const GuardedPerformanceBuilder = () => <BuilderAccessGuard builderKey="performance_competition" component={PerformanceCompetitionBuilderStandalone} />;
 const GuardedDiabeticBuilder = () => <BuilderAccessGuard builderKey="diabetic" component={SafeDiabeticMenuBuilder} />;
 const GuardedGLP1Builder = () => <BuilderAccessGuard builderKey="glp1" component={SafeGLP1MealBuilder} />;
+const GuardedSavedMeals = () => <PaywallGuard component={SavedMeals} />;
+const GuardedCravingCreator = () => <ProGuard component={CravingCreator} />;
+const GuardedCravingCreatorLanding = () => <ProGuard component={CravingCreatorLanding} />;
+const GuardedCravingDesserts = () => <ProGuard component={CravingDessertCreator} />;
+const GuardedBeverageCreator = () => <ProGuard component={BeverageCreator} />;
+const GuardedBeverageCreatorHub = () => <ProGuard component={BeverageCreatorHub} />;
+const GuardedSushiCreator = () => <ProGuard component={SushiCreator} />;
+const GuardedGatheringsPage = () => <ProGuard component={GatheringsPage} />;
+const GuardedChefPairings = () => <ProGuard component={ChefPairings} />;
+const GuardedPairingsHub = () => <ProGuard component={PairingsHub} />;
+const GuardedPairingsAI = () => <ProGuard component={PairingsAI} />;
+const GuardedWineListHelper = () => <ProGuard component={WineListHelper} />;
+const GuardedReduceDrinkingPlan = () => <ProGuard component={ReduceDrinkingPlan} />;
+const GuardedCompanionHub = () => <ProGuard component={CompanionNutritionHub} />;
+const GuardedDogProfileSetup = () => <ProGuard component={DogProfileSetup} />;
+const GuardedCompanionMealGenerator = () => <ProGuard component={CompanionMealGenerator} />;
+const GuardedDogIngredientScanner = () => <ProGuard component={DogIngredientScanner} />;
+const GuardedSocializingHub = () => <ProGuard component={SocializingHub} />;
+const GuardedSocialFindMeals = () => <ProGuard component={SocialFindMeals} />;
+const GuardedSocialRestaurantGuide = () => <ProGuard component={SocialRestaurantGuide} />;
+const GuardedFastFoodGuidePage = () => <ProGuard component={FastFoodGuidePage} />;
+const GuardedRestaurantFinderPage = () => <ProGuard component={RestaurantFinderPage} />;
 
 export default function Router() {
   const [location, setLocation] = useLocation();
@@ -442,7 +531,7 @@ export default function Router() {
         {/* Profile Edit Page */}
         <Route path="/profile" component={EditProfilePage} />
         <Route path="/coaching-preferences" component={CoachingPreferencesPage} />
-        <Route path="/saved-meals" component={SavedMeals} />
+        <Route path="/saved-meals" component={GuardedSavedMeals} />
         {/* DELETED: AffiliatesPage, FoundersPage, FoundersSubmit, Changelog routes */}
         {/* DELETED: MealPlanning, LowGlycemicCarbPage, AiMealCreatorPage, MealPlanningHubRevised routes */}
         <Route path="/lifestyle" component={LifestyleLandingPage} />
@@ -453,36 +542,36 @@ export default function Router() {
         <Route path="/creator/studio" component={CreatorStudioPage} />
         {/* DELETED: /healthy-kids-meals, /kids-meals, /toddler-meals routes (Phase 1 cleanup) */}
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
-        <Route path="/lifestyle/my-perfect-gatherings" component={GatheringsPage} />
-        <Route path="/lifestyle/ultimate-experiences" component={GatheringsPage} />
+        <Route path="/lifestyle/my-perfect-gatherings" component={GuardedGatheringsPage} />
+        <Route path="/lifestyle/ultimate-experiences" component={GuardedGatheringsPage} />
         <Route path="/lifestyle/chefs-kitchen" component={withGate(ChefsKitchenPage, 'chefsKitchen')} />
         <Route path="/lifestyle/create-a-dish" component={withGate(CreateDishPage, 'chefsKitchen')} />
-        <Route path="/lifestyle/beverage-creator" component={BeverageCreator} />
-        <Route path="/lifestyle/beverage-hub" component={BeverageCreatorHub} />
+        <Route path="/lifestyle/beverage-creator" component={GuardedBeverageCreator} />
+        <Route path="/lifestyle/beverage-hub" component={GuardedBeverageCreatorHub} />
         <Route path="/lifestyle/athlete-beverage-creator" component={AthleteBeverageCreator} />
-        <Route path="/lifestyle/sushi-creator" component={SushiCreator} />
-        <Route path="/sushi-creator" component={SushiCreator} />
-        <Route path="/lifestyle/chef-pairings" component={ChefPairings} />
-        <Route path="/lifestyle/pairings-hub" component={PairingsHub} />
-        <Route path="/lifestyle/pairings-ai" component={PairingsAI} />
-        <Route path="/lifestyle/wine-list-helper" component={WineListHelper} />
-        <Route path="/lifestyle/reduce-drinking-plan" component={ReduceDrinkingPlan} />
-        <Route path="/craving-creator" component={CravingCreator} />
+        <Route path="/lifestyle/sushi-creator" component={GuardedSushiCreator} />
+        <Route path="/sushi-creator" component={GuardedSushiCreator} />
+        <Route path="/lifestyle/chef-pairings" component={GuardedChefPairings} />
+        <Route path="/lifestyle/pairings-hub" component={GuardedPairingsHub} />
+        <Route path="/lifestyle/pairings-ai" component={GuardedPairingsAI} />
+        <Route path="/lifestyle/wine-list-helper" component={GuardedWineListHelper} />
+        <Route path="/lifestyle/reduce-drinking-plan" component={GuardedReduceDrinkingPlan} />
+        <Route path="/craving-creator" component={GuardedCravingCreator} />
         <Route path="/fridge-rescue" component={FridgeRescuePage} />
-        {/* Companion Nutrition Intelligence (My Perfect Pets) */}
-        <Route path="/companion" component={CompanionNutritionHub} />
-        <Route path="/companion/setup" component={DogProfileSetup} />
-        <Route path="/companion/setup/:id" component={DogProfileSetup} />
-        <Route path="/companion/generator" component={CompanionMealGenerator} />
-        <Route path="/companion/scanner" component={DogIngredientScanner} />
+        {/* Companion Nutrition Intelligence (My Perfect Pets) — Pro+ */}
+        <Route path="/companion" component={GuardedCompanionHub} />
+        <Route path="/companion/setup" component={GuardedDogProfileSetup} />
+        <Route path="/companion/setup/:id" component={GuardedDogProfileSetup} />
+        <Route path="/companion/generator" component={GuardedCompanionMealGenerator} />
+        <Route path="/companion/scanner" component={GuardedDogIngredientScanner} />
         <Route path="/ab-testing-demo" component={ABTestingDemo} />
         {/* DELETED: HolidayFeastPlannerPage, MealFinderPage, BreakfastMealsHub, LunchMealsHub, DinnerMealsHub, SnacksMealsHub, CulturalCuisinesPage, VegetableFiberInfo, PotluckPlanner, RestaurantGuide (old) routes */}
-        {/* Socializing Hub Routes */}
-        <Route path="/social-hub" component={SocializingHub} />
-        <Route path="/social-hub/find" component={SocialFindMeals} />
-        <Route path="/social-hub/restaurant-guide" component={SocialRestaurantGuide} />
-        <Route path="/social-hub/fast-food" component={FastFoodGuidePage} />
-        <Route path="/social-hub/restaurant-finder" component={RestaurantFinderPage} />
+        {/* Socializing Hub Routes — Pro+ */}
+        <Route path="/social-hub" component={GuardedSocializingHub} />
+        <Route path="/social-hub/find" component={GuardedSocialFindMeals} />
+        <Route path="/social-hub/restaurant-guide" component={GuardedSocialRestaurantGuide} />
+        <Route path="/social-hub/fast-food" component={GuardedFastFoodGuidePage} />
+        <Route path="/social-hub/restaurant-finder" component={GuardedRestaurantFinderPage} />
         {/* DELETED: SmartWeekBuilder, AdultBeverageHubPage routes */}
         <Route path="/macro-counter" component={SafeMacroCounter} />
         {/* DELETED: All kids meal routes, all alcohol hub routes */}
@@ -541,8 +630,8 @@ export default function Router() {
         {/* <Route path="/meal-log-history" component={MealLogHistoryPage} /> */}{" "}
         {/* TEMPORARILY DISABLED - File missing */}
         {/* Shopping List Routes */}
-        <Route path="/shopping-list-v2" component={SafeShoppingList} />
-        <Route path="/shopping-list" component={SafeShoppingList} />
+        <Route path="/shopping-list-v2" component={GuardedShoppingList} />
+        <Route path="/shopping-list" component={GuardedShoppingList} />
         {/* ProCare Feature Routes (ProCare Cover → Care Team → Pro Portal → Client Dashboard → Performance & Competition Builder) */}
         <Route path="/more" component={SafeMore} />
         <Route path="/pro/physician" component={PhysicianPortal} />
@@ -591,9 +680,9 @@ export default function Router() {
         {/* Craving Creator Routes */}
         <Route
           path="/craving-creator-landing"
-          component={CravingCreatorLanding}
+          component={GuardedCravingCreatorLanding}
         />
-        <Route path="/craving-desserts" component={CravingDessertCreator} />
+        <Route path="/craving-desserts" component={GuardedCravingDesserts} />
         {/* RETIRED: /craving-studio, /dessert-studio, /fridge-rescue-studio — Studio features decommissioned */}
         {/* DELETED: /craving-presets, /alcohol-hub, /alcohol/lean-and-social, /alcohol-smart-sips, /mocktails-low-cal-mixers, /alcohol-log (Phase 1 cleanup) */}
         {/* DELETED: /beer-pairing, /bourbon-spirits, /meal-pairing-ai, /wine-pairing (replaced by /lifestyle/pairings-ai) */}

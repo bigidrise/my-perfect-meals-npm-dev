@@ -207,7 +207,7 @@ export default function SignatureKitchenHubPage() {
 
   function handleApply() {
     setWalkthroughOpen(false);
-    setIntakeOpen(true);
+    window.open("https://forms.gle/5Nd1MBYTrWaRKRQk6", "_blank", "noopener,noreferrer");
   }
 
   function handleBook() {
@@ -217,7 +217,7 @@ export default function SignatureKitchenHubPage() {
 
   function handleContact() {
     setWalkthroughOpen(false);
-    setContactOpen(true);
+    window.open("https://forms.gle/5Nd1MBYTrWaRKRQk6", "_blank", "noopener,noreferrer");
   }
 
   return (

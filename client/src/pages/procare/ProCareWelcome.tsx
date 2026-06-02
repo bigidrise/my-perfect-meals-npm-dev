@@ -13,8 +13,12 @@ import {
   User,
   ChevronDown,
   HandCoins,
+  ExternalLink,
 } from "lucide-react";
+
 import { voiceManager } from "@/voice/VoiceManager";
+
+const AFFILIATE_FORM_URL = "https://forms.gle/b3LmRsWVFkabNfLU9";
 
 const SECTIONS = [
   {
@@ -252,6 +256,18 @@ export default function ProCareWelcome() {
                         <p className="text-sm text-white/70">{point}</p>
                       </div>
                     ))}
+                    {section.id === "affiliate" && (
+                      <div className="pt-3">
+                        <Button
+                          onClick={() => window.open(AFFILIATE_FORM_URL, "_blank", "noopener,noreferrer")}
+                          className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-xl w-full"
+                        >
+                          <HandCoins className="w-4 h-4" />
+                          Become an Affiliate
+                          <ExternalLink className="w-3.5 h-3.5 ml-auto" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

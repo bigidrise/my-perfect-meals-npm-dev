@@ -1092,7 +1092,7 @@ export default function PricingPage() {
               <div className="p-5">
                 <Button
                   className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 font-semibold"
-                  onClick={() => window.location.href = "mailto:partnerships@myperfectmeals.com?subject=Signature%20Kitchen%20Starter"}
+                  onClick={() => window.open("https://forms.gle/5Nd1MBYTrWaRKRQk6", "_blank", "noopener,noreferrer")}
                 >
                   Get Started
                 </Button>
@@ -1133,7 +1133,7 @@ export default function PricingPage() {
               <div className="p-5">
                 <Button
                   className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-semibold"
-                  onClick={() => window.location.href = "mailto:partnerships@myperfectmeals.com?subject=Signature%20Kitchen%20Pro"}
+                  onClick={() => window.open("https://forms.gle/5Nd1MBYTrWaRKRQk6", "_blank", "noopener,noreferrer")}
                 >
                   Get Started
                 </Button>
@@ -1172,7 +1172,7 @@ export default function PricingPage() {
               <div className="p-5">
                 <Button
                   className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 font-semibold"
-                  onClick={() => window.location.href = "mailto:partnerships@myperfectmeals.com?subject=Signature%20Kitchen%20Partner"}
+                  onClick={() => window.open("https://forms.gle/5Nd1MBYTrWaRKRQk6", "_blank", "noopener,noreferrer")}
                 >
                   Get Started
                 </Button>
@@ -1183,7 +1183,9 @@ export default function PricingPage() {
           <p className="text-center text-white/50 text-sm mt-6">
             Looking for a full brand integration or enterprise deal?{" "}
             <a
-              href="mailto:partnerships@myperfectmeals.com"
+              href="https://forms.gle/5Nd1MBYTrWaRKRQk6"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-amber-400 underline hover:text-amber-300"
             >
               Contact us.
@@ -1266,7 +1268,7 @@ export default function PricingPage() {
               <div className="p-5">
                 <Button
                   className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 font-semibold"
-                  onClick={() => window.location.href = "mailto:partnerships@myperfectmeals.com?subject=Brand%20Beverage%20Studio%20Inquiry"}
+                  onClick={() => window.open("https://forms.gle/5Nd1MBYTrWaRKRQk6", "_blank", "noopener,noreferrer")}
                 >
                   Get in Touch
                 </Button>

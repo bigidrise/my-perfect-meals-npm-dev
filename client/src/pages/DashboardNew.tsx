@@ -55,6 +55,7 @@ import {
   hasActivePaidSubscription,
   hasPaidPlan,
 } from "@/lib/subscriptionCheck";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { getResolvedTargets } from "@/lib/macroResolver";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { ComplianceCard } from "@/components/dashboard/ComplianceCard";
@@ -79,6 +80,7 @@ export default function DashboardNew() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { requestUpgrade } = useUpgradeModal();
   const [showScanner, setShowScanner] = useState(false);
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
@@ -657,7 +659,17 @@ export default function DashboardNew() {
     },
   ];
 
+  const ESSENTIAL_ONLY_ROUTES: Record<string, string> = {
+    "/saved-meals": "Saved Meals",
+    "/shopping-list-v2": "Shopping List",
+  };
+
   const handleCardClick = (route: string) => {
+    const featureName = ESSENTIAL_ONLY_ROUTES[route];
+    if (featureName && !hasActivePaidSubscription(user)) {
+      requestUpgrade({ requiredTier: "essential", featureName });
+      return;
+    }
     setLocation(route);
   };
 
@@ -1344,7 +1356,13 @@ export default function DashboardNew() {
           className="mb-4"
         >
           <Card
-            onClick={() => setShowInspirationModal(true)}
+            onClick={() => {
+              if (!hasActivePaidSubscription(user)) {
+                requestUpgrade({ requiredTier: "essential", featureName: "Recipe Scan" });
+                return;
+              }
+              setShowInspirationModal(true);
+            }}
             className="cursor-pointer transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-orange-500/30 hover:border-orange-500/60 rounded-xl group"
             data-testid="card-recipe-scan"
           >
