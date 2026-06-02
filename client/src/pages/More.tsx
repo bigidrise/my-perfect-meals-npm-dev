@@ -185,6 +185,8 @@ export default function MorePage() {
         if (data?.code === "LEGAL_REACCEPT_REQUIRED") {
           setPendingLegalFlow(data.flow === "patient_physician" ? "patient_physician" : "client");
           setShowClientLegalModal(true);
+        } else if (data?.error === "CLINICAL_REQUIRED") {
+          requestUpgrade({ requiredTier: "clinical", featureName: "ProCare Connection" });
         } else {
           setError(data?.error || "Invalid or expired provider code.");
         }
