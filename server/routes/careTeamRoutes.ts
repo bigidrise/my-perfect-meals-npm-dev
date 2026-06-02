@@ -128,7 +128,42 @@ router.post("/connect", requireAuth, async (req, res) => {
     }
 
     const proUserId = invite ? invite.userId : accessCodeRow!.proUserId;
-    const [pro] = await db.select({ professionalRole: users.professionalRole }).from(users).where(eq(users.id, proUserId));
+
+    // Fetch pro's role + subscription and client's subscription in parallel
+    const [[pro], [clientUser]] = await Promise.all([
+      db.select({ professionalRole: users.professionalRole, planLookupKey: users.planLookupKey })
+        .from(users).where(eq(users.id, proUserId)),
+      db.select({ planLookupKey: users.planLookupKey, trialEndsAt: users.trialEndsAt })
+        .from(users).where(eq(users.id, userId)),
+    ]);
+
+    // ── Subscription gates ────────────────────────────────────────────────────
+    const CLINICAL_PLAN_KEYS = ["mpm_ultimate", "mpm_ultimate_monthly", "mpm_ultimate_plan_2999"];
+    const PROCARE_PLAN_KEYS = [
+      "mpm_procare_monthly", "mpm_trainer_5", "mpm_trainer_10",
+      "mpm_trainer_25", "mpm_trainer_50", "mpm_physician_50", "mpm_physician_150",
+    ];
+
+    const clientHasClinical = CLINICAL_PLAN_KEYS.includes(clientUser?.planLookupKey ?? "");
+    const clientHasActiveTrial = !!(clientUser?.trialEndsAt && new Date(clientUser.trialEndsAt) > new Date());
+
+    if (!clientHasClinical && !clientHasActiveTrial) {
+      console.log(`🔒 [CareTeam Connect] Blocked — client ${userId} lacks Clinical subscription`);
+      return res.status(403).json({
+        error: "CLINICAL_REQUIRED",
+        message: "A Clinical subscription is required to connect with a ProCare provider.",
+      });
+    }
+
+    if (!PROCARE_PLAN_KEYS.includes(pro?.planLookupKey ?? "")) {
+      console.log(`🔒 [CareTeam Connect] Blocked — coach ${proUserId} lacks active ProCare subscription`);
+      return res.status(403).json({
+        error: "COACH_NOT_SUBSCRIBED",
+        message: "This provider does not have an active ProCare subscription.",
+      });
+    }
+    // ── End subscription gates ────────────────────────────────────────────────
+
     const isPhysician = pro?.professionalRole === "physician";
     const legalFlow = isPhysician ? "patient_physician" : "client";
 
