@@ -87,6 +87,8 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ClinicalLabsCard from "@/components/biometrics/ClinicalLabsCard";
 import MacroConsistencyTimeline from "@/components/biometrics/MacroConsistencyTimeline";
 import { hasFeature } from "@/lib/entitlements";
+import { isClinicalOrAbove } from "@/lib/subscriptionCheck";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { convertWeightLbsDisplay } from "@shared/units";
 
 // ============================== CONFIG ==============================
@@ -142,6 +144,7 @@ export default function MyBiometrics() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const isDesktop = useIsDesktop();
+  const { requestUpgrade } = useUpgradeModal();
   
   const [isProSession] = useState(() => localStorage.getItem("pro-session") === "true");
 
@@ -2469,9 +2472,30 @@ export default function MyBiometrics() {
           </CardContent>
         </Card>
 
-        {/* CLINICAL LABS - physician / lab_metrics entitlement only */}
-        {user && hasFeature(user as any, "lab_metrics") && user.id && (
-          <ClinicalLabsCard userId={user.id} />
+        {/* CLINICAL LABS - visible to all, locked for non-Clinical users */}
+        {user && user.id && (
+          isClinicalOrAbove(user) ? (
+            <ClinicalLabsCard userId={user.id} />
+          ) : (
+            <Card
+              className="cursor-pointer active:scale-[0.99] bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl transition-all duration-200"
+              onClick={() => requestUpgrade({ requiredTier: "clinical", featureName: "Lab Values" })}
+            >
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-white text-xl flex items-center gap-2">
+                  🧪 Lab Values
+                </CardTitle>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/30 text-orange-300 text-[10px] font-bold uppercase tracking-wide">
+                  Clinical
+                </span>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-white/60 leading-relaxed">
+                  Track and manage lab markers and advanced health metrics as part of the Clinical experience. Tap to learn more.
+                </p>
+              </CardContent>
+            </Card>
+          )
         )}
 
         {/* WATER LOG */}
