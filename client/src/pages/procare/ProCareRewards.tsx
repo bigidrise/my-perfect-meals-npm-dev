@@ -78,18 +78,6 @@ const FOUNDERS: Founder[] = [
       "Medical Compliance & Regulatory Oversight",
     ],
   },
-  {
-    name: "Kristen Bogan",
-    title: "Founding Coach",
-    photo: "/assets/kristen-bogan-2.jpg",
-    initials: "KB",
-    bio: "As a dedicated personal trainer, I specialize in helping clients build strength, lose weight, and recover safely and effectively from surgery or injury. My approach is rooted in functional and lifestyle-based training—focusing on movements that make everyday life easier, safer, and more enjoyable. With a background in muscle development and corrective exercise, I design programs that improve mobility, stability, and overall body mechanics. I believe fitness should support the way you live, whether that means lifting with confidence, moving without pain, or having the energy to take on your day. Recovery and longevity are at the core of my philosophy—to empower you with the strength, confidence, and resilience you need to thrive in both the gym and everyday life.",
-    credentials: [
-      "CPT · Corrective Exercise",
-      "Strength & Recovery Coaching",
-      "Founding Platform Coach",
-    ],
-  },
 ];
 
 export default function ProCareRewards() {

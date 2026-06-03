@@ -30,8 +30,6 @@ const FOUNDER_BIO =
 const MONICA_BIO =
   "Monica Brant is an internationally recognized fitness icon, world champion, coach, and motivational leader whose influence has shaped the fitness industry for more than three decades. Known worldwide for her authenticity, discipline, faith, and longevity in health and wellness, Monica has appeared on more than 130 magazine covers since first rising to prominence on the cover of Muscle & Fitness magazine in 1994.\n\nThroughout her legendary competitive career, she earned multiple top placements at the Olympia and Arnold Festival stages and captured three world championship titles, including the IFBB Fitness Olympia Championship in 1998 and two WBFF World Championships in 2010 and 2013, before finishing her final competition season with an overall victory in the United Kingdom in 2016.\n\nBeyond competition, Monica has continued to inspire people around the world through coaching, consulting, speaking engagements, and faith-driven wellness leadership focused on helping individuals strengthen themselves physically, mentally, and spiritually. From Spartan races and Masters track events to decades of hands-on coaching experience, Monica continues to lead by example with a lifestyle centered around resilience, purpose, and sustainable health.\n\nThrough My Perfect Meals, Monica brings her decades of experience, encouragement, and real-world fitness wisdom to help clients build confidence, consistency, strength, and a healthier relationship with both food and life.";
 
-const DANIELLE_BIO =
-  "Danielle Affatato is a certified nutrition and fitness coach whose practice is built on accountability, consistency, and real-life application.\n\nHer coaching philosophy centers on meeting clients where they are — helping them build sustainable habits, understand how to fuel their body, and develop the discipline that creates lasting change. Danielle works especially well with clients who have struggled with all-or-nothing thinking, helping them find structure that fits how they actually live.\n\nShe specializes in body composition, macro-based nutrition, and behavioral habit-building — combining practical meal guidance with the mindset coaching that keeps people consistent when motivation fades.\n\nAt My Perfect Meals, Danielle focuses on helping clients turn the AI-generated meal guidance into a daily practice that sticks.";
 
 const CHEF_LOGO = "/icons/MPMFlameChefLogo.jpg";
 
@@ -59,26 +57,6 @@ const coaches: Coach[] = [
     lookupName: "Monica",
   },
   {
-    id: "kristen",
-    name: "Kristen Bogan (Performance & Nutrition)",
-    title: "Founding Coach",
-    credentials: "CPT · Corrective Exercise · Strength & Recovery",
-    image: "/assets/kristen-bogan-2.jpg",
-    bio: "I help clients build strength, lose weight, and recover safely from injury or surgery through structured, real-world training.\n\nMy approach is rooted in functional movement and lifestyle-based coaching—focusing on improving how your body moves so everyday life feels easier, safer, and more controlled.\n\nWith a background in muscle development and corrective exercise, I design programs that enhance mobility, stability, and overall body mechanics. Whether your goal is to move without pain, build confidence in your strength, or simply feel better day to day, everything is built to support how you live.\n\nRecovery and longevity are at the core of my philosophy. My goal is to help you develop the strength, confidence, and resilience to perform at your best—both in and out of the gym.",
-    availabilityStatus: "available",
-    lookupName: "Kristen",
-  },
-  {
-    id: "danielle",
-    name: "Danielle Affatato (Nutrition & Habit Coaching)",
-    title: "Nutrition Coach",
-    credentials: "Certified Nutrition Coach · Macro Strategy · Habit-Based Coaching",
-    image: "/assets/danielle-affatato.jpg",
-    bio: DANIELLE_BIO,
-    availabilityStatus: "available",
-    lookupName: "Danielle",
-  },
-  {
     id: "placeholder-3",
     name: "Coming Soon",
     image: CHEF_LOGO,
@@ -88,6 +66,22 @@ const coaches: Coach[] = [
   },
   {
     id: "placeholder-4",
+    name: "Coming Soon",
+    image: CHEF_LOGO,
+    bio: "",
+    availabilityStatus: "unavailable",
+    isPlaceholder: true,
+  },
+  {
+    id: "placeholder-5",
+    name: "Coming Soon",
+    image: CHEF_LOGO,
+    bio: "",
+    availabilityStatus: "unavailable",
+    isPlaceholder: true,
+  },
+  {
+    id: "placeholder-6",
     name: "Coming Soon",
     image: CHEF_LOGO,
     bio: "",
