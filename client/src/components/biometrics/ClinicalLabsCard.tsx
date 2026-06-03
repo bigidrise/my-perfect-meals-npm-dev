@@ -15,7 +15,12 @@ import {
 import ProtocolRecommendationModal from "@/components/clinical/ProtocolRecommendationModal";
 import ThyroidRecommendationModal from "@/components/clinical/ThyroidRecommendationModal";
 import ProtocolDowngradeModal from "@/components/clinical/ProtocolDowngradeModal";
-import type { LabProtocolSignal, ThyroidLabSignal, LabDowngradeSignal } from "@shared/clinical/protocolDecision";
+import type {
+  LabProtocolSignal,
+  ThyroidLabSignal,
+  HormoneLabSignal,
+  LabDowngradeSignal,
+} from "@shared/clinical/protocolDecision";
 
 interface OncologySupportCtx {
   enabled: boolean;
@@ -46,19 +51,26 @@ interface LabValues {
   a1c: string;
   glucose: string;
   fasting_insulin: string;
-  // Hormonal / Stress + Sex Hormones
+  // Hormonal / Stress + Sex Hormones (Phase 5)
   cortisol: string;
   total_testosterone: string;
   free_testosterone: string;
+  estradiol: string;
+  progesterone: string;
+  shbg: string;
+  lh: string;
+  fsh: string;
+  dhea_s: string;
   // Liver Panel
   alt: string;
   ast: string;
   bilirubin: string;
   albumin: string;
-  // Thyroid Panel
+  // Thyroid Panel (Phase 5: +reverse_t3)
   tsh: string;
   free_t4: string;
   free_t3: string;
+  reverse_t3: string;
   tpo_antibodies: string;
   thyroglobulin_antibodies: string;
   // Kidney / Renal
@@ -79,10 +91,11 @@ const EMPTY_LABS: LabValues = {
   blood_pressure_systolic: "", blood_pressure_diastolic: "", ejection_fraction: "",
   a1c: "", glucose: "", fasting_insulin: "",
   cortisol: "",
-  total_testosterone: "",
-  free_testosterone: "",
+  total_testosterone: "", free_testosterone: "",
+  estradiol: "", progesterone: "", shbg: "", lh: "", fsh: "", dhea_s: "",
   alt: "", ast: "", bilirubin: "", albumin: "",
-  tsh: "", free_t4: "", free_t3: "", tpo_antibodies: "", thyroglobulin_antibodies: "",
+  tsh: "", free_t4: "", free_t3: "", reverse_t3: "",
+  tpo_antibodies: "", thyroglobulin_antibodies: "",
   creatinine: "", bun: "", inr: "",
   crp: "",
   prealbumin: "",
@@ -227,6 +240,9 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
   const [pendingThyroidSignal, setPendingThyroidSignal] = useState<ThyroidLabSignal | null>(null);
   const [showThyroidModal, setShowThyroidModal] = useState(false);
 
+  // Phase 5: hormone signal (pending — queued after thyroid modal)
+  const [pendingHormoneSignal, setPendingHormoneSignal] = useState<HormoneLabSignal | null>(null);
+
   const [downgradeQueue, setDowngradeQueue] = useState<LabDowngradeSignal[]>([]);
   const [showDowngradeModal, setShowDowngradeModal] = useState(false);
   const [oncologyCtx, setOncologyCtx] = useState<OncologySupportCtx | null>(null);
@@ -257,6 +273,12 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
             cortisol:                l.cortisol                != null ? String(l.cortisol)                : "",
             total_testosterone:      l.total_testosterone      != null ? String(l.total_testosterone)      : "",
             free_testosterone:       l.free_testosterone       != null ? String(l.free_testosterone)       : "",
+            estradiol:               l.estradiol               != null ? String(l.estradiol)               : "",
+            progesterone:            l.progesterone            != null ? String(l.progesterone)            : "",
+            shbg:                    l.shbg                    != null ? String(l.shbg)                    : "",
+            lh:                      l.lh                      != null ? String(l.lh)                      : "",
+            fsh:                     l.fsh                     != null ? String(l.fsh)                     : "",
+            dhea_s:                  l.dhea_s                  != null ? String(l.dhea_s)                  : "",
             alt:                     l.alt                     != null ? String(l.alt)                     : "",
             ast:                     l.ast                     != null ? String(l.ast)                     : "",
             bilirubin:               l.bilirubin               != null ? String(l.bilirubin)               : "",
@@ -264,6 +286,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
             tsh:                     l.tsh                     != null ? String(l.tsh)                     : "",
             free_t4:                 l.free_t4                 != null ? String(l.free_t4)                 : "",
             free_t3:                 l.free_t3                 != null ? String(l.free_t3)                 : "",
+            reverse_t3:              l.reverse_t3              != null ? String(l.reverse_t3)              : "",
             tpo_antibodies:          l.tpo_antibodies          != null ? String(l.tpo_antibodies)          : "",
             thyroglobulin_antibodies:l.thyroglobulin_antibodies!= null ? String(l.thyroglobulin_antibodies): "",
             creatinine:              l.creatinine              != null ? String(l.creatinine)              : "",
@@ -280,9 +303,11 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
           const sectionsWithData = new Set<string>();
           if ([loaded.ldl, loaded.hdl, loaded.triglycerides, loaded.blood_pressure_systolic, loaded.ejection_fraction].some(Boolean)) sectionsWithData.add("cardiac");
           if ([loaded.a1c, loaded.glucose, loaded.fasting_insulin].some(Boolean)) sectionsWithData.add("diabetes");
-          if (loaded.cortisol || loaded.total_testosterone || loaded.free_testosterone) sectionsWithData.add("hormonal");
+          if ([loaded.cortisol, loaded.total_testosterone, loaded.free_testosterone,
+               loaded.estradiol, loaded.progesterone, loaded.shbg, loaded.lh, loaded.fsh, loaded.dhea_s].some(Boolean)) sectionsWithData.add("hormonal");
           if ([loaded.alt, loaded.ast, loaded.bilirubin, loaded.albumin].some(Boolean)) sectionsWithData.add("liver");
-          if ([loaded.tsh, loaded.free_t4, loaded.free_t3, loaded.tpo_antibodies, loaded.thyroglobulin_antibodies].some(Boolean)) sectionsWithData.add("thyroid");
+          if ([loaded.tsh, loaded.free_t4, loaded.free_t3, loaded.reverse_t3,
+               loaded.tpo_antibodies, loaded.thyroglobulin_antibodies].some(Boolean)) sectionsWithData.add("thyroid");
           if ([loaded.creatinine, loaded.bun, loaded.inr].some(Boolean)) sectionsWithData.add("kidney");
           if (loaded.crp) sectionsWithData.add("inflammation");
           if (loaded.prealbumin) sectionsWithData.add("oncology");
@@ -336,10 +361,11 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
         "blood_pressure_systolic", "blood_pressure_diastolic", "ejection_fraction",
         "a1c", "glucose", "fasting_insulin",
         "cortisol",
-        "total_testosterone",
-        "free_testosterone",
+        "total_testosterone", "free_testosterone",
+        "estradiol", "progesterone", "shbg", "lh", "fsh", "dhea_s",
         "alt", "ast", "bilirubin", "albumin",
-        "tsh", "free_t4", "free_t3", "tpo_antibodies", "thyroglobulin_antibodies",
+        "tsh", "free_t4", "free_t3", "reverse_t3",
+        "tpo_antibodies", "thyroglobulin_antibodies",
         "creatinine", "bun", "inr",
         "crp",
         "prealbumin",
@@ -368,11 +394,13 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
 
       const hasProtocol        = !!data.protocolSignal;
       const hasThyroid         = !!data.thyroidSignal?.hasThyroidIndicators;
+      const hasHormone         = !!data.hormoneSignal?.hasHormoneIndicators;
       const hasDowngrades      = Array.isArray(data.downgradeSignals) && data.downgradeSignals.length > 0;
       const thyroidMonitoring  = !!data.thyroidMonitoring;
       const labId              = data.labId ?? null;
 
       if (hasThyroid)   { setPendingThyroidSignal(data.thyroidSignal); setPendingLabId(labId); }
+      if (hasHormone)   { setPendingHormoneSignal(data.hormoneSignal); setPendingLabId(labId); }
       if (hasDowngrades){ setDowngradeQueue(data.downgradeSignals); setPendingLabId(labId); }
 
       if (hasProtocol) {
@@ -382,6 +410,10 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
         setShowModal(true);
       } else if (hasThyroid) {
         setShowThyroidModal(true);
+      } else if (hasHormone) {
+        // Hormone modal shown after thyroid chain; if no thyroid, show right away
+        // For now, record acceptance via a toast (dedicated modal to follow)
+        recordHormoneConditionsAsTakenNote(data.hormoneSignal, labId);
       } else if (hasDowngrades) {
         setShowDowngradeModal(true);
       } else if (thyroidMonitoring) {
@@ -402,6 +434,47 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
     }
   };
 
+  /**
+   * When hormone conditions are detected, record them and notify the user.
+   * A dedicated HormoneRecommendationModal should be added in a future pass;
+   * for now, we send an advisory POST and show a toast.
+   */
+  async function recordHormoneConditionsAsTakenNote(
+    signal: HormoneLabSignal,
+    labId: number | null,
+  ) {
+    if (!signal?.conditions?.length) return;
+    try {
+      for (const cond of signal.conditions) {
+        await fetch(apiUrl("/api/biometrics/labs/recommendation"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          credentials: "include",
+          body: JSON.stringify({
+            protocol: cond,
+            status: "advisory",
+            labId,
+            triggerFields: signal.triggerFields,
+            confidenceLevel: signal.confidence,
+            reason: signal.reason,
+          }),
+        });
+      }
+      const conditionLabels: Record<string, string> = {
+        'hormone-optimization': 'Hormone Optimization',
+        'menopause': 'Menopause Support',
+        'perimenopause': 'Perimenopause Support',
+      };
+      const labels = signal.conditions.map(c => conditionLabels[c] ?? c).join(", ");
+      toast({
+        title: "Hormone Markers Flagged",
+        description: `Your labs suggest ${labels} may be beneficial. These protocol indicators have been noted in your profile.`,
+      });
+    } catch {
+      // ignore — advisory only
+    }
+  }
+
   const PROTOCOL_LABEL: Record<string, string> = {
     "liver-disease":       "Liver Disease",
     "kidney-disease":      "Kidney Disease",
@@ -414,6 +487,13 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
 
   function advanceChain(opts: { skipThyroid?: boolean; skipDowngrades?: boolean } = {}) {
     if (!opts.skipThyroid && pendingThyroidSignal) { setShowThyroidModal(true); return; }
+    // After thyroid, check for pending hormone signal
+    if (pendingHormoneSignal) {
+      const sig = pendingHormoneSignal;
+      setPendingHormoneSignal(null);
+      recordHormoneConditionsAsTakenNote(sig, pendingLabId);
+      return;
+    }
     if (!opts.skipDowngrades && downgradeQueue.length > 0) { setShowDowngradeModal(true); return; }
     setPendingLabId(null);
     toast({ title: "Clinical Labs Saved", description: "Your lab values have been recorded." });
@@ -426,6 +506,10 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
     setPendingSignal(null);
     if (pendingThyroidSignal) {
       setShowThyroidModal(true);
+    } else if (pendingHormoneSignal) {
+      const sig = pendingHormoneSignal;
+      setPendingHormoneSignal(null);
+      recordHormoneConditionsAsTakenNote(sig, pendingLabId);
     } else if (downgradeQueue.length > 0) {
       setShowDowngradeModal(true);
     } else {
@@ -546,17 +630,31 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
     },
     {
       id: "hormonal",
-      label: "Hormonal / Stress",
+      label: "Hormonal / Stress & Sex Hormones",
       icon: <Brain className="w-4 h-4" />,
       iconColor: "text-amber-400",
       checks: [
-        { key: "cortisol", dir: "high", threshold: 20 },
+        { key: "cortisol",          dir: "high", threshold: 20  },
+        { key: "total_testosterone",dir: "low",  threshold: 300 },
+        { key: "free_testosterone", dir: "low",  threshold: 5   },
+        { key: "fsh",               dir: "high", threshold: 40  },
+        { key: "dhea_s",            dir: "low",  threshold: 70  },
       ],
       content: (f, oc) => (
         <>
           <LabField label="Cortisol (AM)"       name="cortisol"           value={f.cortisol}           unit="µg/dL" placeholder="e.g. 14"   onChange={oc} />
           <LabField label="Total Testosterone"  name="total_testosterone" value={f.total_testosterone} unit="ng/dL" placeholder="e.g. 550"  onChange={oc} />
           <LabField label="Free Testosterone"   name="free_testosterone"  value={f.free_testosterone}  unit="pg/mL" placeholder="e.g. 12.5" onChange={oc} />
+          <LabField label="DHEA-S"              name="dhea_s"             value={f.dhea_s}             unit="µg/dL" placeholder="e.g. 180"  onChange={oc} />
+          {/* Divider — Menopause / Perimenopause panel */}
+          <div className="pt-1 border-t border-white/10">
+            <p className="text-[10px] text-white/30 mb-3">Menopause / Perimenopause Panel</p>
+          </div>
+          <LabField label="Estradiol (E2)"      name="estradiol"          value={f.estradiol}          unit="pg/mL" placeholder="e.g. 65"   onChange={oc} />
+          <LabField label="Progesterone"        name="progesterone"       value={f.progesterone}       unit="ng/mL" placeholder="e.g. 1.5"  onChange={oc} />
+          <LabField label="FSH"                 name="fsh"                value={f.fsh}                unit="mIU/mL" placeholder="e.g. 8"  onChange={oc} />
+          <LabField label="LH"                  name="lh"                 value={f.lh}                 unit="mIU/mL" placeholder="e.g. 6"  onChange={oc} />
+          <LabField label="SHBG"                name="shbg"               value={f.shbg}               unit="nmol/L" placeholder="e.g. 55" onChange={oc} />
         </>
       ),
     },
@@ -589,6 +687,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
         { key: "tsh",                     dir: "either", hi: 4.5, lo: 0.4 },
         { key: "free_t4",                 dir: "low",    threshold: 0.8   },
         { key: "free_t3",                 dir: "low",    threshold: 2.3   },
+        { key: "reverse_t3",              dir: "high",   threshold: 25    },
         { key: "tpo_antibodies",          dir: "high",   threshold: 9     },
         { key: "thyroglobulin_antibodies",dir: "high",   threshold: 1     },
       ],
@@ -597,6 +696,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
           <LabField label="TSH"              name="tsh"                      value={f.tsh}                      unit="mIU/L" placeholder="e.g. 2.5"  onChange={oc} />
           <LabField label="Free T4"          name="free_t4"                  value={f.free_t4}                  unit="ng/dL" placeholder="e.g. 1.2"  onChange={oc} />
           <LabField label="Free T3"          name="free_t3"                  value={f.free_t3}                  unit="pg/mL" placeholder="e.g. 3.1"  onChange={oc} />
+          <LabField label="Reverse T3 (rT3)" name="reverse_t3"              value={f.reverse_t3}               unit="ng/dL" placeholder="e.g. 15"   onChange={oc} />
           <LabField label="TPO Antibodies"   name="tpo_antibodies"           value={f.tpo_antibodies}           unit="IU/mL" placeholder="e.g. 17"   onChange={oc} />
           <LabField label="Thyroglobulin Ab" name="thyroglobulin_antibodies" value={f.thyroglobulin_antibodies} unit="IU/mL" placeholder="e.g. 245"  onChange={oc} />
         </>

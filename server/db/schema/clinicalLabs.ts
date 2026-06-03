@@ -20,22 +20,30 @@ export const clinicalLabs = pgTable("clinical_labs", {
   ast:       numeric("ast",       { precision: 6, scale: 1 }),
   bilirubin: numeric("bilirubin", { precision: 5, scale: 2 }),
   albumin:   numeric("albumin",   { precision: 4, scale: 2 }),
-  // Thyroid panel — drives thyroid-support adaptive modifier activation
+  // Thyroid panel — drives thyroid-support + subtype (hypothyroid / hyperthyroid / hashimotos) resolution
   tsh:                      numeric("tsh",                       { precision: 6, scale: 3 }), // mIU/L
   freeT4:                   numeric("free_t4",                   { precision: 5, scale: 2 }), // ng/dL
   freeT3:                   numeric("free_t3",                   { precision: 5, scale: 2 }), // pg/mL
-  tpoAntibodies:            numeric("tpo_antibodies",            { precision: 8, scale: 2 }), // IU/mL
-  thyroglobulinAntibodies:  numeric("thyroglobulin_antibodies",  { precision: 8, scale: 2 }), // IU/mL
+  tpoAntibodies:            numeric("tpo_antibodies",            { precision: 8, scale: 2 }), // IU/mL — Hashimoto's marker
+  thyroglobulinAntibodies:  numeric("thyroglobulin_antibodies",  { precision: 8, scale: 2 }), // IU/mL — Hashimoto's marker
+  reverseT3:                numeric("reverse_t3",                { precision: 6, scale: 2 }), // ng/dL — T4→T3 conversion marker; elevated in functional hypothyroid
   // Metabolic / Insulin Resistance — drives metabolic-support protocol
   fastingInsulin: numeric("fasting_insulin", { precision: 7, scale: 2 }),  // µIU/mL
   glucose:        numeric("glucose",         { precision: 6, scale: 1 }),  // mg/dL (fasting)
   triglycerides:  numeric("triglycerides",   { precision: 6, scale: 1 }),  // mg/dL
   // Inflammation — drives inflammation-support protocol escalation
   crp: numeric("crp", { precision: 6, scale: 2 }),  // mg/L — C-Reactive Protein
-  // Hormonal / Stress — sex hormones + cortisol
+  // Hormonal / Stress — cortisol-driven metabolic stress
   cortisol: numeric("cortisol", { precision: 6, scale: 2 }), // µg/dL
-  totalTestosterone: numeric("total_testosterone", { precision: 7, scale: 2 }), // ng/dL
-  freeTestosterone: numeric("free_testosterone", { precision: 7, scale: 3 }), // pg/mL
+  // Sex hormones — drive hormone-optimization, menopause, perimenopause protocol resolution
+  totalTestosterone: numeric("total_testosterone", { precision: 7, scale: 2 }), // ng/dL — low triggers hormone-optimization
+  freeTestosterone:  numeric("free_testosterone",  { precision: 7, scale: 3 }), // pg/mL — low triggers hormone-optimization
+  estradiol:         numeric("estradiol",           { precision: 7, scale: 2 }), // pg/mL — drives menopause/perimenopause signals
+  progesterone:      numeric("progesterone",        { precision: 6, scale: 3 }), // ng/mL — low luteal supports perimenopause
+  shbg:              numeric("shbg",                { precision: 6, scale: 1 }), // nmol/L — sex hormone binding globulin
+  lh:                numeric("lh",                  { precision: 7, scale: 2 }), // mIU/mL — elevated supports menopause/peri
+  fsh:               numeric("fsh",                 { precision: 7, scale: 2 }), // mIU/mL — key menopause trigger marker
+  dheaS:             numeric("dhea_s",              { precision: 7, scale: 2 }), // µg/dL  — adrenal androgen; low triggers hormone-optimization
   // Oncology & Recovery support — nutrition status markers
   prealbumin: numeric("prealbumin", { precision: 5, scale: 2 }), // mg/dL (transthyretin — short-term nutrition status)
   notes: text("notes"),
@@ -65,6 +73,7 @@ export const insertClinicalLabsSchema = createInsertSchema(clinicalLabs, {
   freeT3:                  z.string().or(z.number()).optional().nullable(),
   tpoAntibodies:           z.string().or(z.number()).optional().nullable(),
   thyroglobulinAntibodies: z.string().or(z.number()).optional().nullable(),
+  reverseT3:               z.string().or(z.number()).optional().nullable(),
   fastingInsulin: z.string().or(z.number()).optional().nullable(),
   glucose:        z.string().or(z.number()).optional().nullable(),
   triglycerides:  z.string().or(z.number()).optional().nullable(),
@@ -72,6 +81,12 @@ export const insertClinicalLabsSchema = createInsertSchema(clinicalLabs, {
   cortisol:       z.string().or(z.number()).optional().nullable(),
   totalTestosterone: z.string().or(z.number()).optional().nullable(),
   freeTestosterone:  z.string().or(z.number()).optional().nullable(),
+  estradiol:         z.string().or(z.number()).optional().nullable(),
+  progesterone:      z.string().or(z.number()).optional().nullable(),
+  shbg:              z.string().or(z.number()).optional().nullable(),
+  lh:                z.string().or(z.number()).optional().nullable(),
+  fsh:               z.string().or(z.number()).optional().nullable(),
+  dheaS:             z.string().or(z.number()).optional().nullable(),
   prealbumin:     z.string().or(z.number()).optional().nullable(),
   notes: z.string().optional().nullable(),
   recordedAt: z.string().or(z.date()),

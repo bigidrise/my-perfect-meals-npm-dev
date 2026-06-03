@@ -8,13 +8,19 @@ import { eq, and, desc } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
 import { getAuthUserId } from "../utils/getAuthUserId";
 import { z } from "zod";
-import { resolveProtocolFromLabs, resolveThyroidFromLabs, resolveDowngradeSignals, labSignalToSubtitle } from "../services/resolveProtocolFromLabs";
+import {
+  resolveProtocolFromLabs,
+  resolveThyroidFromLabs,
+  resolveHormoneFromLabs,
+  resolveDowngradeSignals,
+  labSignalToSubtitle,
+} from "../services/resolveProtocolFromLabs";
 import { verifyClinicalAccess } from "../utils/verifyClinicalAccess";
 
 const router = express.Router();
 
 /**
- * API CONTRACT — Clinical Labs
+ * API CONTRACT — Clinical Labs (Phase 5)
  *
  * Casing convention (LOCKED — do not deviate):
  *   Client  →  POST body / GET response: snake_case  (e.g. blood_pressure_systolic)
@@ -30,6 +36,10 @@ const router = express.Router();
  * Protocol precedence (must match resolveProtocolFromLabs exactly):
  *   liver-disease > kidney-disease > heart-failure > liver-support >
  *   metabolic-support > inflammation-support > metabolic-stress > null
+ *
+ * Additive modifier signals (run independently):
+ *   thyroidSignal    — thyroid-support + subtypeConditions (hypothyroid/hyperthyroid/hashimotos)
+ *   hormoneSignal    — hormone-optimization / menopause / perimenopause
  *
  * Authorization model:
  *   A requester may read or write clinical data for targetUserId only if:
@@ -58,6 +68,8 @@ const labsPayloadSchema = z.object({
   free_t3:                  z.number().optional().nullable(),
   tpo_antibodies:           z.number().optional().nullable(),
   thyroglobulin_antibodies: z.number().optional().nullable(),
+  // ── Phase 5 — Thyroid subtype ─────────────────────────────────────────────
+  reverse_t3:               z.number().optional().nullable(),  // ng/dL — T4→T3 conversion marker
   // ── Phase 4 fields ────────────────────────────────────────────────────────
   // Metabolic / Insulin Resistance
   fasting_insulin: z.number().optional().nullable(),  // µIU/mL
@@ -65,12 +77,19 @@ const labsPayloadSchema = z.object({
   triglycerides:   z.number().optional().nullable(),  // mg/dL
   // Inflammation
   crp:             z.number().optional().nullable(),  // mg/L — C-Reactive Protein
-  // Hormonal / Stress + Sex hormones
+  // Hormonal / Stress
   cortisol:           z.number().optional().nullable(),  // µg/dL
   total_testosterone: z.number().optional().nullable(),  // ng/dL
   free_testosterone:  z.number().optional().nullable(),  // pg/mL
-  // Oncology & Recovery — nutrition status markers
+  // Oncology & Recovery
   prealbumin:      z.number().optional().nullable(),  // mg/dL (transthyretin)
+  // ── Phase 5 — Sex hormones / Menopause panel ──────────────────────────────
+  estradiol:    z.number().optional().nullable(),  // pg/mL — E2, drives menopause/perimenopause
+  progesterone: z.number().optional().nullable(),  // ng/mL — luteal phase marker
+  shbg:         z.number().optional().nullable(),  // nmol/L — sex hormone binding globulin
+  lh:           z.number().optional().nullable(),  // mIU/mL — luteinizing hormone
+  fsh:          z.number().optional().nullable(),  // mIU/mL — follicle-stimulating hormone
+  dhea_s:       z.number().optional().nullable(),  // µg/dL  — DHEA-sulfate, adrenal androgen
   // ── Metadata ───────────────────────────────────────────────────────────────
   notes: z.string().optional().nullable(),
   recorded_at: z.string().optional(),
@@ -174,6 +193,8 @@ router.post("/", requireAuth, async (req, res) => {
         freeT3:                  body.free_t3                  != null ? String(body.free_t3)                  : null,
         tpoAntibodies:           body.tpo_antibodies           != null ? String(body.tpo_antibodies)           : null,
         thyroglobulinAntibodies: body.thyroglobulin_antibodies != null ? String(body.thyroglobulin_antibodies) : null,
+        // Phase 5 — Thyroid subtype
+        reverseT3:               body.reverse_t3               != null ? String(body.reverse_t3)               : null,
         // Phase 4 — snake→camel mapping
         fastingInsulin: body.fasting_insulin != null ? String(body.fasting_insulin) : null,
         glucose:        body.glucose         != null ? String(body.glucose)         : null,
@@ -183,6 +204,13 @@ router.post("/", requireAuth, async (req, res) => {
         totalTestosterone:  body.total_testosterone  != null ? String(body.total_testosterone)  : null,
         freeTestosterone:   body.free_testosterone   != null ? String(body.free_testosterone)   : null,
         prealbumin:         body.prealbumin          != null ? String(body.prealbumin)          : null,
+        // Phase 5 — Sex hormones / Menopause panel
+        estradiol:    body.estradiol    != null ? String(body.estradiol)    : null,
+        progesterone: body.progesterone != null ? String(body.progesterone) : null,
+        shbg:         body.shbg         != null ? String(body.shbg)         : null,
+        lh:           body.lh           != null ? String(body.lh)           : null,
+        fsh:          body.fsh          != null ? String(body.fsh)          : null,
+        dheaS:        body.dhea_s       != null ? String(body.dhea_s)       : null,
         notes: body.notes || null,
         labDate: body.lab_date || new Date().toISOString().split("T")[0],
         recordedAt: body.recorded_at ? new Date(body.recorded_at) : new Date(),
@@ -211,13 +239,26 @@ router.post("/", requireAuth, async (req, res) => {
       cortisol:              body.cortisol,
     });
 
-    // Thyroid resolver — additive modifier, separate signal
+    // Thyroid resolver — additive modifier, separate signal (Phase 5: includes rT3 + subtypes)
     const thyroidSignalRaw = resolveThyroidFromLabs({
       tsh:                     body.tsh,
       freeT4:                  body.free_t4,
       freeT3:                  body.free_t3,
       tpoAntibodies:           body.tpo_antibodies,
       thyroglobulinAntibodies: body.thyroglobulin_antibodies,
+      reverseT3:               body.reverse_t3,
+    });
+
+    // Hormone resolver — additive modifier (Phase 5)
+    const hormoneSignalRaw = resolveHormoneFromLabs({
+      totalTestosterone: body.total_testosterone,
+      freeTestosterone:  body.free_testosterone,
+      dheaS:             body.dhea_s,
+      estradiol:         body.estradiol,
+      progesterone:      body.progesterone,
+      lh:                body.lh,
+      fsh:               body.fsh,
+      shbg:              body.shbg,
     });
 
     // Downgrade detection — runs against new values vs. previous state
@@ -238,6 +279,7 @@ router.post("/", requireAuth, async (req, res) => {
         freeT3:                body.free_t3,
         tpoAntibodies:         body.tpo_antibodies,
         thyroglobulinAntibodies: body.thyroglobulin_antibodies,
+        reverseT3:             body.reverse_t3,
         a1c:                   body.a1c,
         glucose:               body.glucose,
         fastingInsulin:        body.fasting_insulin,
@@ -248,8 +290,19 @@ router.post("/", requireAuth, async (req, res) => {
       { currentSpecialtyConditions, previousProtocol },
     );
 
-    const alreadyOnThyroid   = currentSpecialtyConditions.includes('thyroid-support');
-    const alreadyOnProtocol  = protocolSignal?.protocol === previousProtocol && previousProtocol !== null;
+    const alreadyOnThyroid  = currentSpecialtyConditions.includes('thyroid-support');
+    const alreadyOnProtocol = protocolSignal?.protocol === previousProtocol && previousProtocol !== null;
+
+    // Check which hormone conditions the user is already on
+    const alreadyOnHormoneConditions = (hormoneSignalRaw.conditions ?? []).filter(c =>
+      currentSpecialtyConditions.includes(c)
+    );
+    const effectiveHormoneConditions = (hormoneSignalRaw.conditions ?? []).filter(c =>
+      !currentSpecialtyConditions.includes(c)
+    );
+    const effectiveHormoneSignal = hormoneSignalRaw.hasHormoneIndicators && effectiveHormoneConditions.length > 0
+      ? { ...hormoneSignalRaw, conditions: effectiveHormoneConditions }
+      : null;
 
     const effectiveProtocolSignal = alreadyOnProtocol ? null : protocolSignal;
     const effectiveThyroidSignal  = alreadyOnThyroid  ? null : (thyroidSignalRaw.hasThyroidIndicators ? thyroidSignalRaw : null);
@@ -267,6 +320,7 @@ router.post("/", requireAuth, async (req, res) => {
       protocolSignal: effectiveProtocolSignal,
       protocolSubtitle: labSignalToSubtitle(effectiveProtocolSignal),
       thyroidSignal: effectiveThyroidSignal,
+      hormoneSignal: effectiveHormoneSignal,
       downgradeSignals,
       thyroidMonitoring,
       physicianLocked,
@@ -332,8 +386,14 @@ router.post("/recommendation", requireAuth, async (req, res) => {
 
     // ── On accept: activate the protocol ─────────────────────────────────────
     if (body.status === "accepted") {
-      if (body.protocol === "thyroid-support") {
-        // Thyroid is ADDITIVE — does not change the meal builder.
+      // Additive-only conditions — do not switch meal builder, just add to specialtyConditions
+      const additiveOnlyConditions = [
+        'thyroid-support',
+        'hashimotos', 'hypothyroid', 'hyperthyroid',
+        'hormone-optimization', 'menopause', 'perimenopause',
+      ];
+
+      if (additiveOnlyConditions.includes(body.protocol)) {
         const [currentUser] = await db
           .select({ specialtyConditions: users.specialtyConditions, specialtyCondition: users.specialtyCondition })
           .from(users)
@@ -341,20 +401,19 @@ router.post("/recommendation", requireAuth, async (req, res) => {
           .limit(1);
 
         const currentConditions = (currentUser?.specialtyConditions as string[]) ?? [];
-        if (!currentConditions.includes("thyroid-support")) {
-          const newConditions = [...currentConditions, "thyroid-support"];
-          const newPrimary = currentUser?.specialtyCondition ?? "thyroid-support";
+        if (!currentConditions.includes(body.protocol)) {
+          const newConditions = [...currentConditions, body.protocol];
+          const newPrimary = currentUser?.specialtyCondition ?? body.protocol;
           await db
             .update(users)
             .set({ specialtyConditions: newConditions, specialtyCondition: newPrimary, updatedAt: new Date() } as any)
             .where(eq(users.id, userId as any));
         }
-        console.log(`[labs/recommendation] User ${userId} accepted thyroid-support → specialty_conditions updated`);
+        console.log(`[labs/recommendation] User ${userId} accepted ${body.protocol} → specialty_conditions updated (additive)`);
       } else {
-        // All non-thyroid clinical protocols:
+        // All primary clinical protocols:
         //   1. Switch meal builder to anti_inflammatory (enables clinical protocol routing)
-        //   2. Write protocol to specialtyCondition + specialtyConditions (explicit state,
-        //      enables downgrade detection and indicator lights without re-running resolver)
+        //   2. Write protocol to specialtyCondition + specialtyConditions
         const [currentUser] = await db
           .select({ specialtyConditions: users.specialtyConditions, specialtyCondition: users.specialtyCondition })
           .from(users)
@@ -362,11 +421,9 @@ router.post("/recommendation", requireAuth, async (req, res) => {
           .limit(1);
 
         const currentConditions = (currentUser?.specialtyConditions as string[]) ?? [];
-        // Add to conditions array if not already present
         const newConditions = currentConditions.includes(body.protocol)
           ? currentConditions
           : [...currentConditions, body.protocol];
-        // Promote to primary only if no existing primary specialty condition
         const newPrimary = currentUser?.specialtyCondition ?? body.protocol;
 
         await db
@@ -467,6 +524,18 @@ router.get("/:userId", requireAuth, async (req, res) => {
       freeT3:                  r.freeT3,
       tpoAntibodies:           r.tpoAntibodies,
       thyroglobulinAntibodies: r.thyroglobulinAntibodies,
+      reverseT3:               r.reverseT3,
+    });
+
+    const hormoneSignal = resolveHormoneFromLabs({
+      totalTestosterone: r.totalTestosterone,
+      freeTestosterone:  r.freeTestosterone,
+      dheaS:             r.dheaS,
+      estradiol:         r.estradiol,
+      progesterone:      r.progesterone,
+      lh:                r.lh,
+      fsh:               r.fsh,
+      shbg:              r.shbg,
     });
 
     const userRows = await db
@@ -499,7 +568,9 @@ router.get("/:userId", requireAuth, async (req, res) => {
         free_t3:                 r.freeT3                  ? parseFloat(r.freeT3)                  : null,
         tpo_antibodies:          r.tpoAntibodies           ? parseFloat(r.tpoAntibodies)           : null,
         thyroglobulin_antibodies:r.thyroglobulinAntibodies ? parseFloat(r.thyroglobulinAntibodies) : null,
-        // ── Phase 4 fields — camel→snake ─────────────────────────────────────
+        // Phase 5 — Thyroid subtype
+        reverse_t3:              r.reverseT3               ? parseFloat(r.reverseT3)               : null,
+        // Phase 4 fields — camel→snake
         fasting_insulin: r.fastingInsulin ? parseFloat(r.fastingInsulin) : null,
         glucose:         r.glucose        ? parseFloat(r.glucose)        : null,
         triglycerides:   r.triglycerides  ? parseFloat(r.triglycerides)  : null,
@@ -508,14 +579,22 @@ router.get("/:userId", requireAuth, async (req, res) => {
         total_testosterone:  r.totalTestosterone  ? parseFloat(r.totalTestosterone)  : null,
         free_testosterone:   r.freeTestosterone   ? parseFloat(r.freeTestosterone)   : null,
         prealbumin:          r.prealbumin         ? parseFloat(r.prealbumin)         : null,
-        // ── Metadata ──────────────────────────────────────────────────────────
+        // Phase 5 — Sex hormones / Menopause panel
+        estradiol:    r.estradiol    ? parseFloat(r.estradiol)    : null,
+        progesterone: r.progesterone ? parseFloat(r.progesterone) : null,
+        shbg:         r.shbg         ? parseFloat(r.shbg)         : null,
+        lh:           r.lh           ? parseFloat(r.lh)           : null,
+        fsh:          r.fsh          ? parseFloat(r.fsh)          : null,
+        dhea_s:       r.dheaS        ? parseFloat(r.dheaS)        : null,
+        // ── Metadata ────────────────────────────────────────────────────────
         notes: r.notes,
         lab_date: r.labDate || null,
         recorded_at: r.recordedAt,
       },
       protocolSignal,
       protocolSubtitle: labSignalToSubtitle(protocolSignal),
-      thyroidSignal,
+      thyroidSignal: thyroidSignal.hasThyroidIndicators ? thyroidSignal : null,
+      hormoneSignal: hormoneSignal.hasHormoneIndicators ? hormoneSignal : null,
       oncologySupportEnabled: !!(oncologyCtx?.enabled),
       oncologySupportContext: userRows[0]?.oncologySupportContext ?? null,
       specialtyCondition: userRows[0]?.specialtyCondition ?? null,
