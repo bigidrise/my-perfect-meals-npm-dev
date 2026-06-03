@@ -554,6 +554,28 @@ export default function ClinicianClientDashboard() {
               </span>
             ))}
           </div>
+          {/* Hormonal & Metabolic — Second Row */}
+          {(() => {
+            const clientSc: string[] = ((client as any)?.specialtyConditions as string[] | undefined) ?? [];
+            return (
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
+                <span className="font-medium text-white/70">Hormonal & Metabolic:</span>
+                {[
+                  { key: "hashimotos",         label: "Hashimoto's",       activeColor: "text-teal-300",   dotColor: "bg-teal-300",   dotGlow: "shadow-[0_0_4px_rgba(94,234,212,0.9)]"  },
+                  { key: "hypothyroid",        label: "Hypothyroid",       activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                  { key: "hyperthyroid",       label: "Hyperthyroid",      activeColor: "text-cyan-400",   dotColor: "bg-cyan-400",   dotGlow: "shadow-[0_0_4px_rgba(34,211,238,0.9)]"  },
+                  { key: "menopause",          label: "Menopause",         activeColor: "text-violet-400", dotColor: "bg-violet-400", dotGlow: "shadow-[0_0_4px_rgba(167,139,250,0.9)]" },
+                  { key: "perimenopause",      label: "Perimenopause",     activeColor: "text-purple-400", dotColor: "bg-purple-400", dotGlow: "shadow-[0_0_4px_rgba(192,132,252,0.9)]" },
+                  { key: "metabolic-recovery", label: "Metabolic Recovery", activeColor: "text-amber-400", dotColor: "bg-amber-400",  dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"  },
+                ].map(({ key, label, activeColor, dotColor, dotGlow }) => (
+                  <span key={key} className={`flex items-center gap-1 ${clientSc.includes(key) ? `${activeColor} font-semibold` : "text-white/25"}`}>
+                    <span className={`inline-block w-1.5 h-1.5 rounded-full ${clientSc.includes(key) ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
+                    {label}
+                  </span>
+                ))}
+              </div>
+            );
+          })()}
           {clientGoal?.goalType && (
             <div className="mt-3 flex items-center gap-3 rounded-xl bg-orange-500/10 border border-orange-500/30 px-4 py-3">
               <span className="text-2xl">

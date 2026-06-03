@@ -1126,7 +1126,13 @@ export default function EditProfilePage() {
                     { label: "Liver Support", value: "liver-support" },
                     { label: "Cancer / Oncology Support", value: "oncology-support" },
                     { label: "Thyroid Support", value: "thyroid-support" },
+                    { label: "Hashimoto's", value: "hashimotos" },
+                    { label: "Hypothyroid", value: "hypothyroid" },
+                    { label: "Hyperthyroid", value: "hyperthyroid" },
                     { label: "Hormone Optimization", value: "hormone-optimization" },
+                    { label: "Menopause", value: "menopause" },
+                    { label: "Perimenopause", value: "perimenopause" },
+                    { label: "Metabolic Recovery", value: "metabolic-recovery" },
                   ] as const).map((opt) => {
                     const locked = isConditionLocked(opt.value);
                     return (

@@ -41,6 +41,12 @@ export interface UniversalGuidanceInput {
   } | null;
   /** Hormone Optimization protocol — active when "hormone-optimization" is in specialtyConditions. */
   hormoneOptimization?: boolean;
+  /** Menopause protocol — active when "menopause" is in specialtyConditions. */
+  menopause?: boolean;
+  /** Perimenopause protocol — active when "perimenopause" is in specialtyConditions. */
+  perimenopause?: boolean;
+  /** Metabolic Recovery protocol — active when "metabolic-recovery" is in specialtyConditions. */
+  metabolicRecovery?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -323,6 +329,33 @@ export async function buildUniversalConditionGuidance(
 
   if (input.hormoneOptimization) {
     blocks.push(HORMONE_OPTIMIZATION_GUIDANCE);
+  }
+
+  if (input.menopause) {
+    blocks.push(`⚡ MENOPAUSE NUTRITION PROTOCOL — MANDATORY:
+This user is navigating menopause. Meal generation must support hormonal stability, bone density, and metabolic health.
+PRIORITY NUTRIENTS: calcium-rich foods (dairy, fortified plant milks, leafy greens, sardines); vitamin D (salmon, eggs, fortified foods, mushrooms); phytoestrogens in moderation (flaxseed, edamame, tempeh); magnesium (almonds, pumpkin seeds, dark leafy greens); omega-3s (salmon, walnuts, chia seeds).
+HARD BLOCKS: NO refined sugars or high-glycemic foods as primary base; NO alcohol; NO excess caffeine as primary beverage; NO trans fats or seed oils.
+MEAL STRUCTURE: Prioritize anti-inflammatory ingredients. Include lean protein (25g+ per meal) to preserve muscle mass. Complex carbohydrates only. Fiber-rich meals to support healthy estrogen metabolism.
+TONE: Frame as "hormone-balancing," "bone-supportive," or "metabolically steady." No medical claims.`.trim());
+  }
+
+  if (input.perimenopause) {
+    blocks.push(`⚡ PERIMENOPAUSE NUTRITION PROTOCOL — MANDATORY:
+This user is in perimenopause — the hormonal transition phase. Meal generation must support fluctuating hormones, energy stability, and long-term metabolic health.
+PRIORITY NUTRIENTS: phytoestrogens (flaxseed, edamame, tempeh — moderate amounts); calcium and vitamin D (dairy, fortified milks, salmon, eggs); magnesium (leafy greens, almonds, pumpkin seeds); B vitamins (whole grains, legumes, eggs); iron (lean beef, lentils, spinach).
+HARD BLOCKS: NO refined sugars or blood-sugar-spiking foods; NO alcohol; NO excess caffeine; NO processed foods with endocrine-disrupting additives.
+MEAL STRUCTURE: Every meal should include lean protein + healthy fat + complex carb + vegetables. Prioritize blood sugar stability — no single-macronutrient meals. Include fiber-rich foods to support estrogen clearance.
+TONE: Frame as "hormone-supportive," "energy-stabilizing," or "transition-friendly." No medical claims.`.trim());
+  }
+
+  if (input.metabolicRecovery) {
+    blocks.push(`⚡ METABOLIC RECOVERY PROTOCOL — MANDATORY:
+This user is actively recovering metabolic function. Meal generation must support insulin sensitivity, energy regulation, and cellular repair.
+PRIORITY NUTRIENTS: lean proteins (chicken, turkey, fish, legumes — 25–35g per meal); fiber (vegetables, legumes, whole grains — minimum 25g/day); healthy fats (avocado, olive oil, walnuts, fatty fish); chromium-supportive foods (broccoli, whole grains, lean beef); antioxidant-rich foods (berries, leafy greens, colorful vegetables).
+HARD BLOCKS: NO refined sugars, high-fructose corn syrup, or sweetened beverages; NO refined white carbohydrates as primary base; NO seed oils (canola, soybean, vegetable, sunflower); NO trans fats; NO processed snack foods.
+MEAL STRUCTURE: Every meal must stabilize blood sugar — pair protein with fiber and fat at every meal. Prioritize complex carbohydrates with low glycemic impact. Avoid large gaps between meals that trigger cortisol spikes.
+TONE: Frame as "metabolically restorative," "insulin-supportive," or "energy-regulating." No medical claims.`.trim());
   }
 
   return blocks;

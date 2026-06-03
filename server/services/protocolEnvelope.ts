@@ -787,10 +787,14 @@ export async function loadUserProtocolEnvelope(
     const THYROID_ACTIVATION_KEYS = new Set([
       "thyroid-support", "thyroid support", "hashimoto's", "hashimotos",
       "hypothyroidism", "autoimmune thyroid", "thyroid disease",
+      "hypothyroid", "hyperthyroid",
     ]);
     const thyroidSupport: boolean =
       user.specialtyCondition === "thyroid-support" ||
       specialtyConditionsArr.includes("thyroid-support") ||
+      specialtyConditionsArr.includes("hashimotos") ||
+      specialtyConditionsArr.includes("hypothyroid") ||
+      specialtyConditionsArr.includes("hyperthyroid") ||
       mergedHealthConditions.some(c => THYROID_ACTIVATION_KEYS.has(c.trim().toLowerCase()));
 
     const thyroidMedication: string | null = (user.thyroidMedication as string | null) ?? null;
@@ -798,6 +802,9 @@ export async function loadUserProtocolEnvelope(
 
     // Hormone Optimization: detected when "hormone-optimization" is in specialtyConditions
     const hormoneOptimization: boolean = specialtyConditionsArr.includes("hormone-optimization");
+    const menopause: boolean = specialtyConditionsArr.includes("menopause");
+    const perimenopause: boolean = specialtyConditionsArr.includes("perimenopause");
+    const metabolicRecovery: boolean = specialtyConditionsArr.includes("metabolic-recovery");
 
     const conditionGuidanceBlocks = await buildUniversalConditionGuidance({
       userId,
@@ -810,11 +817,19 @@ export async function loadUserProtocolEnvelope(
             labDriven: false,
             isAutoimmune: healthConditions.some(c =>
               ["hashimoto's", "hashimotos", "autoimmune thyroid"].includes(c.trim().toLowerCase())
+            ) || specialtyConditionsArr.includes("hashimotos"),
+            thyroidType: thyroidType ?? (
+              specialtyConditionsArr.includes("hashimotos") ? "hashimotos" :
+              specialtyConditionsArr.includes("hypothyroid") ? "hypothyroid" :
+              specialtyConditionsArr.includes("hyperthyroid") ? "hyperthyroid" :
+              null
             ),
-            thyroidType,
           }
         : null,
       hormoneOptimization,
+      menopause,
+      perimenopause,
+      metabolicRecovery,
     });
 
     return {
