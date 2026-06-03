@@ -1138,7 +1138,7 @@ export default function EditProfilePage() {
                     return (
                       <PillButton
                         key={opt.value}
-                        active={specialtyConditions.includes(opt.value)}
+                        active={specialtyConditions.includes(opt.value) || labDrivenConditions.includes(opt.value)}
                         onClick={() => {
                           if (locked) return;
                           if (physicianOncologyLocked && opt.value === "oncology-support") return;

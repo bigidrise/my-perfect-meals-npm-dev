@@ -2285,7 +2285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const authReq = req as AuthenticatedRequest;
       const userId = authReq.authUser.id;
-      const ALLOWED = ["renal", "cardiac", "liver-disease", "liver-support", "oncology-support", "thyroid-support", "hormone-optimization"];
+      const ALLOWED = ["renal", "cardiac", "liver-disease", "liver-support", "oncology-support", "thyroid-support", "hormone-optimization", "hashimotos", "hypothyroid", "hyperthyroid", "menopause", "perimenopause", "metabolic-recovery"];
       const { condition, conditions } = req.body;
 
       // ── Tier 1: Physician lock ────────────────────────────────────────────
