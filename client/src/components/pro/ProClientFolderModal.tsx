@@ -65,6 +65,12 @@ const DOT_TOOLTIPS: Record<string, string> = {
   "oncology-support": "Applies oncology-safe nutritional guidance — reduces processed foods, supports immune function, and avoids clinically contraindicated ingredients. Physician-assigned only. No treatment claims are implied.",
   "thyroid-support": "Applies thyroid-aware meal guidance — moderates excess goitrogenic foods, supports iodine and selenium intake, and accounts for medication timing where relevant. Activated via medical directives.",
   "glp1": "GLP-1 receptor agonist protocol — adjusts meal sizing, protein pacing, and satiety-supportive ingredients to complement medication effect. Stacks with diabetic builder. Physician-assigned only.",
+  "hashimotos": "Hashimoto's thyroiditis protocol — autoimmune-aware thyroid support with emphasis on anti-inflammatory, selenium-rich, and goitrogen-moderated meal generation. Reduces immune triggers while supporting thyroid function.",
+  "hypothyroid": "Hypothyroid protocol — supports thyroid hormone production with iodine and selenium-rich foods, medication timing awareness, and anti-inflammatory meal patterns. Avoids excess raw cruciferous in large quantities.",
+  "hyperthyroid": "Hyperthyroid protocol — reduces dietary iodine load, supports caloric needs for elevated metabolism, and includes anti-inflammatory foods to calm thyroid overactivity. Avoids iodine-dense concentrates.",
+  "menopause": "Menopause protocol — supports hormonal stability, bone density, and metabolic health. Prioritizes calcium, vitamin D, phytoestrogens, magnesium, and omega-3s. Reduces refined sugars and inflammatory foods.",
+  "perimenopause": "Perimenopause protocol — supports fluctuating hormones and energy stability during the hormonal transition. Blood-sugar-stabilizing meals with phytoestrogens, iron, B vitamins, and anti-inflammatory ingredients.",
+  "metabolic-recovery": "Metabolic Recovery protocol — targets insulin sensitivity and energy regulation. Every meal pairs lean protein with fiber and healthy fat. Eliminates refined sugars, seed oils, and processed carbohydrates.",
 };
 
 interface TabletEntry {
@@ -194,6 +200,7 @@ export default function ProClientFolderModal({
     goalStartDate?: string | null;
   } | null>(null);
   const [labDerivedConditions, setLabDerivedConditions] = useState<string[]>([]);
+  const [scConditions, setScConditions] = useState<string[]>([]);
   const [dotTooltip, setDotTooltip] = useState<string | null>(null);
   const folderTour = useQuickTour("client-folder");
 
@@ -290,6 +297,7 @@ export default function ProClientFolderModal({
           if (mapped && !derived.includes(mapped)) derived.push(mapped);
         }
         setLabDerivedConditions(derived);
+        setScConditions(scArr);
       })
       .catch(() => {});
     return () => { cancelled = true; };
@@ -832,6 +840,15 @@ export default function ProClientFolderModal({
                     { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!flags?.thyroidSupport,                                                        activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
                     { key: "glp1",               label: "GLP-1 Active",      isActive: !!flags?.glp1             || glp1PhysicianActive,                               activeColor: "text-orange-400", dotColor: "bg-orange-400", dotGlow: "shadow-[0_0_4px_rgba(251,146,60,0.9)]"  },
                   ];
+                  const row2 = [
+                    { key: "hashimotos",         label: "Hashimoto's",       isActive: scConditions.includes("hashimotos"),         activeColor: "text-teal-300",   dotColor: "bg-teal-300",   dotGlow: "shadow-[0_0_4px_rgba(94,234,212,0.9)]"  },
+                    { key: "hypothyroid",        label: "Hypothyroid",       isActive: scConditions.includes("hypothyroid"),        activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                    { key: "hyperthyroid",       label: "Hyperthyroid",      isActive: scConditions.includes("hyperthyroid"),       activeColor: "text-cyan-400",   dotColor: "bg-cyan-400",   dotGlow: "shadow-[0_0_4px_rgba(34,211,238,0.9)]"  },
+                    { key: "menopause",          label: "Menopause",         isActive: scConditions.includes("menopause"),          activeColor: "text-violet-400", dotColor: "bg-violet-400", dotGlow: "shadow-[0_0_4px_rgba(167,139,250,0.9)]" },
+                    { key: "perimenopause",      label: "Perimenopause",     isActive: scConditions.includes("perimenopause"),      activeColor: "text-purple-400", dotColor: "bg-purple-400", dotGlow: "shadow-[0_0_4px_rgba(192,132,252,0.9)]" },
+                    { key: "metabolic-recovery", label: "Metabolic Recovery", isActive: scConditions.includes("metabolic-recovery"), activeColor: "text-amber-400", dotColor: "bg-amber-400",  dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"  },
+                  ];
+                  const allItems = [...conditions, ...row2];
                   return (
                     <>
                       {conditions.map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
@@ -847,11 +864,24 @@ export default function ProClientFolderModal({
                       {dotTooltip && DOT_TOOLTIPS[dotTooltip] && (
                         <div className="w-full mt-1 text-[11px] text-white/70 bg-zinc-700/60 rounded-md px-2.5 py-2 leading-relaxed border border-white/10">
                           <span className="text-white/90 font-semibold">
-                            {conditions.find((c) => c.key === dotTooltip)?.label}:
+                            {allItems.find((c) => c.key === dotTooltip)?.label}:
                           </span>{" "}
                           {DOT_TOOLTIPS[dotTooltip]}
                         </div>
                       )}
+                      <div className="w-full pt-1 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-white/5 mt-1">
+                        <span className="text-[10px] font-medium text-white/50 w-full mb-0.5">Hormonal & Metabolic:</span>
+                        {row2.map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
+                          <span
+                            key={key}
+                            className={`flex items-center gap-1 cursor-pointer select-none ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}
+                            onClick={() => setDotTooltip(dotTooltip === key ? null : key)}
+                          >
+                            <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
+                            {label}
+                          </span>
+                        ))}
+                      </div>
                     </>
                   );
                 })()}

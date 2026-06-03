@@ -1,5 +1,5 @@
 /**
- * resolveProtocolFromLabs — Phase 4
+ * resolveProtocolFromLabs — Phase 5
  *
  * Evaluates a set of clinical lab values against the locked LAB_THRESHOLDS,
  * applies the canonical precedence order, and returns the highest-priority
@@ -9,6 +9,10 @@
  * Precedence (must match clinicalModeResolver.ts exactly):
  *   liver-disease > kidney-disease > heart-failure > liver-support >
  *   metabolic-support > inflammation-support > metabolic-stress > null
+ *
+ * Additive modifier resolvers (run independently, always return a signal struct):
+ *   resolveThyroidFromLabs()  → thyroid-support + subtypes (hypothyroid/hyperthyroid/hashimotos)
+ *   resolveHormoneFromLabs()  → hormone-optimization / menopause / perimenopause
  *
  * Rules:
  *   - Every value passes through safeNum() before any comparison.
@@ -24,6 +28,7 @@ import {
   LAB_THRESHOLDS,
   type LabProtocolSignal,
   type ThyroidLabSignal,
+  type HormoneLabSignal,
   type LabDowngradeSignal,
 } from '../../shared/clinical/protocolDecision';
 
@@ -47,12 +52,13 @@ export interface LabInputForProtocol {
   hdl?: string | number | null;
   bloodPressureSystolic?: string | number | null;
   ejectionFraction?: string | number | null;
-  // Thyroid panel — Phase 1
+  // Thyroid panel — Phase 1 + Phase 5 (rT3)
   tsh?: string | number | null;
   freeT4?: string | number | null;
   freeT3?: string | number | null;
   tpoAntibodies?: string | number | null;
   thyroglobulinAntibodies?: string | number | null;
+  reverseT3?: string | number | null;       // Phase 5 — T4→T3 conversion marker
   // Metabolic / Insulin Resistance — Phase 4
   a1c?: string | number | null;
   glucose?: string | number | null;         // fasting glucose, mg/dL
@@ -62,6 +68,15 @@ export interface LabInputForProtocol {
   crp?: string | number | null;             // mg/L
   // Hormonal / Stress — Phase 4
   cortisol?: string | number | null;        // µg/dL
+  // Sex hormones — Phase 5 (drive hormone-optimization / menopause / perimenopause)
+  totalTestosterone?: string | number | null;  // ng/dL
+  freeTestosterone?: string | number | null;   // pg/mL
+  estradiol?: string | number | null;          // pg/mL
+  progesterone?: string | number | null;       // ng/mL
+  shbg?: string | number | null;              // nmol/L (informational; no threshold trigger yet)
+  lh?: string | number | null;               // mIU/mL
+  fsh?: string | number | null;              // mIU/mL
+  dheaS?: string | number | null;            // µg/dL
 }
 
 export function resolveProtocolFromLabs(
@@ -282,8 +297,9 @@ export function resolveDowngradeSignals(
     const freeT3 = safeNum(labs.freeT3);
     const tpo    = safeNum(labs.tpoAntibodies);
     const tgab   = safeNum(labs.thyroglobulinAntibodies);
+    const rT3    = safeNum(labs.reverseT3);
 
-    const anyThyroidEntered = [tsh, freeT4, freeT3, tpo, tgab].some(v => v !== null);
+    const anyThyroidEntered = [tsh, freeT4, freeT3, tpo, tgab, rT3].some(v => v !== null);
 
     if (anyThyroidEntered) {
       const hasAbnormal =
@@ -291,7 +307,8 @@ export function resolveDowngradeSignals(
         (freeT4 !== null && freeT4 < t.thyroid.freeT4Low)                      ||
         (freeT3 !== null && freeT3 < t.thyroid.freeT3Low)                      ||
         (tpo    !== null && tpo    > t.thyroid.tpoAntibodiesHigh)               ||
-        (tgab   !== null && tgab   > t.thyroid.thyroglobulinAntibodiesHigh);
+        (tgab   !== null && tgab   > t.thyroid.thyroglobulinAntibodiesHigh)     ||
+        (rT3    !== null && rT3    > t.thyroidSubtype.reverseT3High);
 
       if (!hasAbnormal) {
         const normalFields: string[] = [];
@@ -300,6 +317,7 @@ export function resolveDowngradeSignals(
         if (freeT3 !== null) normalFields.push('free_t3');
         if (tpo    !== null) normalFields.push('tpo_antibodies');
         if (tgab   !== null) normalFields.push('thyroglobulin_antibodies');
+        if (rT3    !== null) normalFields.push('reverse_t3');
 
         signals.push({
           protocol:      'thyroid-support',
@@ -506,16 +524,16 @@ export function resolveDowngradeSignals(
           protocolLabel: 'Inflammation Support',
           normalFields:  ['crp'],
           reason:
-            'Your CRP level has returned to the normal reference range, suggesting ' +
-            'reduced systemic inflammation. Based on your updated markers, you may ' +
-            'be ready to transition back to the Anti-Inflammatory foundation. ' +
-            '(AHA / CDC)',
+            'Your C-Reactive Protein (CRP) is now within the normal reference range, suggesting ' +
+            'systemic inflammation has reduced. Based on your updated values, you may be ready ' +
+            'to transition back to the Anti-Inflammatory foundation. A physician would typically ' +
+            'confirm sustained CRP normalization before stepping down. (AHA / CDC)',
         });
       }
     }
   }
 
-  // ── Metabolic Stress downgrade ────────────────────────────────────────────
+  // ── Metabolic Stress downgrade ─────────────────────────────────────────────
   if (opts.previousProtocol === 'metabolic-stress' || opts.currentSpecialtyConditions.includes('metabolic-stress')) {
     const cortisol = safeNum(labs.cortisol);
 
@@ -529,9 +547,10 @@ export function resolveDowngradeSignals(
           normalFields:  ['cortisol'],
           reason:
             'Your cortisol level is now within the normal reference range. Based on your ' +
-            'updated values, you may be ready to transition back to the Anti-Inflammatory ' +
-            'foundation. A physician would typically reassess adrenal and stress markers ' +
-            'before stepping down from a metabolic stress protocol. (Endocrine Society)',
+            'updated markers, your nutrition plan may no longer require active Metabolic ' +
+            'Stress Support modifications. A physician would typically reassess HPA axis ' +
+            'function before stepping down from a cortisol-driven nutrition protocol. ' +
+            '(Endocrine Society)',
         });
       }
     }
@@ -541,57 +560,115 @@ export function resolveDowngradeSignals(
 }
 
 /**
- * Maps a LabProtocolSignal's protocol (or null) to the human-readable
- * subtitle shown in builder headers and dashboards.
+ * labSignalToSubtitle — returns a concise subtitle for the recommendation modal
+ * based on the triggering fields of a LabProtocolSignal.
  */
 export function labSignalToSubtitle(signal: LabProtocolSignal | null): string {
-  if (!signal) return 'Anti-Inflammatory';
-  const labels: Record<string, string> = {
-    'liver-disease':       'Liver Disease',
-    'kidney-disease':      'Kidney Disease',
-    'heart-failure':       'Cardiac Health',
-    'liver-support':       'Liver Support',
-    'metabolic-support':   'Metabolic Support',
-    'inflammation-support':'Inflammation Support',
-    'metabolic-stress':    'Metabolic Stress Support',
-    'anti-inflammatory':   'Anti-Inflammatory',
+  if (!signal) return '';
+  const fieldMap: Record<string, string> = {
+    alt: 'ALT', ast: 'AST', bilirubin: 'Bilirubin', albumin: 'Albumin',
+    creatinine: 'Creatinine', bun: 'BUN',
+    ldl: 'LDL', blood_pressure_systolic: 'Systolic BP', ejection_fraction: 'Ejection Fraction',
+    a1c: 'A1C', glucose: 'Glucose', fasting_insulin: 'Fasting Insulin',
+    triglycerides: 'Triglycerides', tg_hdl_ratio: 'TG/HDL Ratio',
+    crp: 'CRP',
+    cortisol: 'Cortisol',
   };
-  return labels[signal.protocol] ?? 'Anti-Inflammatory';
+  const labels = signal.triggerFields.map(f => fieldMap[f] ?? f).join(', ');
+  return labels ? `Triggered by: ${labels}` : '';
 }
 
 /**
- * Resolve thyroid indicators from lab values.
+ * Resolve thyroid indicators from lab values — Phase 5.
  * Thyroid is an ADDITIVE MODIFIER — not a primary protocol override.
  * It can co-exist with any primary protocol.
+ *
+ * Phase 5 additions:
+ *   - Reverse T3 (rT3) included in trigger evaluation
+ *   - subtypeConditions returned for hashimotos / hypothyroid / hyperthyroid
+ *
+ * Subtype logic:
+ *   hashimotos:  TPO Ab > 9 IU/mL OR TgAb > 1 IU/mL (autoimmune antibody pattern)
+ *   hypothyroid: TSH > 4.5 AND (Free T4 < 0.8 OR Free T3 < 2.3 OR rT3 > 25)
+ *   hyperthyroid: TSH < 0.4 AND (Free T4 > 1.8 OR Free T3 > 4.2)
+ *
+ * Sources: ATA, AACE, Endocrine Society clinical practice guidelines.
  */
 export function resolveThyroidFromLabs(
-  labs: Pick<LabInputForProtocol, 'tsh' | 'freeT4' | 'freeT3' | 'tpoAntibodies' | 'thyroglobulinAntibodies'>,
+  labs: Pick<LabInputForProtocol,
+    'tsh' | 'freeT4' | 'freeT3' | 'tpoAntibodies' | 'thyroglobulinAntibodies' | 'reverseT3'>,
 ): ThyroidLabSignal {
   const t = LAB_THRESHOLDS.thyroid;
+  const ts = LAB_THRESHOLDS.thyroidSubtype;
 
   const tsh    = safeNum(labs.tsh);
   const freeT4 = safeNum(labs.freeT4);
   const freeT3 = safeNum(labs.freeT3);
   const tpo    = safeNum(labs.tpoAntibodies);
   const tgab   = safeNum(labs.thyroglobulinAntibodies);
+  const rT3    = safeNum(labs.reverseT3);
 
   const triggers: string[] = [];
   let isAutoimmune = false;
 
-  if (tsh !== null && tsh > t.tshHigh) triggers.push('tsh_high');
-  if (tsh !== null && tsh < t.tshLow)  triggers.push('tsh_low');
-  if (freeT4 !== null && freeT4 < t.freeT4Low) triggers.push('free_t4_low');
-  if (freeT3 !== null && freeT3 < t.freeT3Low) triggers.push('free_t3_low');
-  if (tpo  !== null && tpo  > t.tpoAntibodiesHigh)          { triggers.push('tpo_antibodies'); isAutoimmune = true; }
-  if (tgab !== null && tgab > t.thyroglobulinAntibodiesHigh) { triggers.push('thyroglobulin_antibodies'); isAutoimmune = true; }
+  if (tsh !== null && tsh > t.tshHigh)   triggers.push('tsh_high');
+  if (tsh !== null && tsh < t.tshLow)    triggers.push('tsh_low');
+  if (freeT4 !== null && freeT4 < t.freeT4Low)  triggers.push('free_t4_low');
+  if (freeT3 !== null && freeT3 < t.freeT3Low)  triggers.push('free_t3_low');
+  if (freeT4 !== null && freeT4 > ts.freeT4High) triggers.push('free_t4_high');
+  if (freeT3 !== null && freeT3 > ts.freeT3High) triggers.push('free_t3_high');
+  if (rT3    !== null && rT3    > ts.reverseT3High) triggers.push('reverse_t3_high');
+  if (tpo    !== null && tpo    > t.tpoAntibodiesHigh)           { triggers.push('tpo_antibodies'); isAutoimmune = true; }
+  if (tgab   !== null && tgab   > t.thyroglobulinAntibodiesHigh) { triggers.push('thyroglobulin_antibodies'); isAutoimmune = true; }
 
   if (triggers.length === 0) {
-    return { hasThyroidIndicators: false, reason: '', triggerFields: [], confidence: 'low', isAutoimmune: false };
+    return {
+      hasThyroidIndicators: false,
+      subtypeConditions: [],
+      reason: '',
+      triggerFields: [],
+      confidence: 'low',
+      isAutoimmune: false,
+    };
   }
 
-  const hasHormoneSignal  = triggers.some(f => ['tsh_high', 'tsh_low', 'free_t4_low', 'free_t3_low'].includes(f));
+  // ── Subtype detection ────────────────────────────────────────────────────
+  const subtypeConditions: Array<'hypothyroid' | 'hyperthyroid' | 'hashimotos'> = [];
+
+  // Hashimoto's: antibody-driven autoimmune pattern
+  if (isAutoimmune) {
+    subtypeConditions.push('hashimotos');
+  }
+
+  // Hypothyroid: TSH high + at least one low hormone marker OR rT3 elevated
+  const tshHigh = tsh !== null && tsh > t.tshHigh;
+  const lowHormoneSignal =
+    (freeT4 !== null && freeT4 < t.freeT4Low) ||
+    (freeT3 !== null && freeT3 < t.freeT3Low) ||
+    (rT3    !== null && rT3    > ts.reverseT3High);
+  if (tshHigh && lowHormoneSignal) {
+    subtypeConditions.push('hypothyroid');
+  } else if (tshHigh && tpo === null && tgab === null) {
+    // TSH high alone (no antibodies, no T4/T3) — still suggest hypothyroid pattern
+    subtypeConditions.push('hypothyroid');
+  }
+
+  // Hyperthyroid: TSH low + at least one elevated hormone marker
+  const tshLow = tsh !== null && tsh < t.tshLow;
+  const highHormoneSignal =
+    (freeT4 !== null && freeT4 > ts.freeT4High) ||
+    (freeT3 !== null && freeT3 > ts.freeT3High);
+  if (tshLow && highHormoneSignal) {
+    subtypeConditions.push('hyperthyroid');
+  } else if (tshLow && freeT4 === null && freeT3 === null) {
+    // TSH low alone — suggest hyperthyroid pattern
+    subtypeConditions.push('hyperthyroid');
+  }
+
+  const hasHormoneSignal  = triggers.some(f => ['tsh_high', 'tsh_low', 'free_t4_low', 'free_t3_low', 'free_t4_high', 'free_t3_high', 'reverse_t3_high'].includes(f));
   const hasAntibodySignal = isAutoimmune;
 
+  // ── Reason string ────────────────────────────────────────────────────────
   let reason = '';
   if (hasAntibodySignal && hasHormoneSignal) {
     reason =
@@ -604,10 +681,15 @@ export function resolveThyroidFromLabs(
       'above the normal reference range. This pattern is associated with autoimmune thyroid ' +
       'activity. A Thyroid Support approach emphasizing anti-inflammatory nutrition may be ' +
       'beneficial. (ATA / AACE)';
+  } else if (triggers.includes('reverse_t3_high')) {
+    reason =
+      'Your Reverse T3 is elevated, which may suggest impaired conversion of T4 to active T3. ' +
+      'A Thyroid Support nutritional approach emphasizing selenium-rich foods, anti-inflammatory ' +
+      'eating, and stress-reduction meal patterns may be beneficial. (ATA / Endocrine Society)';
   } else {
     reason =
-      'One or more of your thyroid markers — TSH, Free T4, or Free T3 — suggests your thyroid ' +
-      'function may benefit from adaptive nutritional support. A Thyroid Support approach ' +
+      'One or more of your thyroid markers — TSH, Free T4, Free T3, or Reverse T3 — suggests your ' +
+      'thyroid function may benefit from adaptive nutritional support. A Thyroid Support approach ' +
       'emphasizes selenium-rich foods, anti-inflammatory eating, and medication timing awareness. ' +
       '(ATA / AACE / Endocrine Society)';
   }
@@ -617,5 +699,154 @@ export function resolveThyroidFromLabs(
     triggers.length >= 2 ? 'moderate' :
     'low';
 
-  return { hasThyroidIndicators: true, reason, triggerFields: triggers, confidence, isAutoimmune };
+  return {
+    hasThyroidIndicators: true,
+    subtypeConditions,
+    reason,
+    triggerFields: triggers,
+    confidence,
+    isAutoimmune,
+  };
+}
+
+/**
+ * Resolve hormone indicators from lab values — Phase 5.
+ * Hormone is an ADDITIVE MODIFIER — not a primary protocol override.
+ *
+ * Drives three conditions:
+ *   hormone-optimization: low testosterone (total < 300 ng/dL OR free < 5 pg/mL)
+ *                         OR low DHEA-S (< 70 µg/dL)
+ *   menopause:            FSH > 40 mIU/mL AND Estradiol < 20 pg/mL (postmenopausal range)
+ *   perimenopause:        FSH 10–40 mIU/mL OR Estradiol 20–50 pg/mL OR
+ *                         Progesterone < 2 ng/mL (anovulatory/peri pattern)
+ *
+ * SHBG and LH are informational — they increase signal confidence but do not
+ * independently trigger a condition without at least one primary marker.
+ *
+ * Sources: AUA (testosterone), Endocrine Society (DHEA-S, testosterone),
+ *          NAMS / ACOG / Endocrine Society (menopause/perimenopause).
+ */
+export function resolveHormoneFromLabs(
+  labs: Pick<LabInputForProtocol,
+    'totalTestosterone' | 'freeTestosterone' | 'dheaS' |
+    'estradiol' | 'progesterone' | 'lh' | 'fsh' | 'shbg'>,
+): HormoneLabSignal {
+  const th = LAB_THRESHOLDS.testosterone;
+  const tm = LAB_THRESHOLDS.menopause;
+
+  const totalT   = safeNum(labs.totalTestosterone);
+  const freeT    = safeNum(labs.freeTestosterone);
+  const dheaS    = safeNum(labs.dheaS);
+  const estradiol = safeNum(labs.estradiol);
+  const progesterone = safeNum(labs.progesterone);
+  const lh       = safeNum(labs.lh);
+  const fsh      = safeNum(labs.fsh);
+  // shbg: informational only — used for context in reason string, no independent trigger
+
+  const conditions: Array<'hormone-optimization' | 'menopause' | 'perimenopause'> = [];
+  const triggerFields: string[] = [];
+
+  // ── Hormone Optimization: low testosterone or DHEA-S ─────────────────────
+  if (totalT !== null && totalT < th.totalTestosteroneLow) {
+    triggerFields.push('total_testosterone');
+  }
+  if (freeT !== null && freeT < th.freeTestosteroneLow) {
+    triggerFields.push('free_testosterone');
+  }
+  if (dheaS !== null && dheaS < th.dheaSLow) {
+    triggerFields.push('dhea_s');
+  }
+  const hasHormoneOptTrigger = triggerFields.some(f =>
+    ['total_testosterone', 'free_testosterone', 'dhea_s'].includes(f)
+  );
+  if (hasHormoneOptTrigger) {
+    conditions.push('hormone-optimization');
+  }
+
+  // ── Menopause: FSH > 40 + Estradiol < 20 ─────────────────────────────────
+  const fshMenopause   = fsh       !== null && fsh       >  tm.fshMenopauseHigh;
+  const e2Menopause    = estradiol  !== null && estradiol <  tm.estradiolMenopauseLow;
+
+  if (fshMenopause && e2Menopause) {
+    conditions.push('menopause');
+    if (!triggerFields.includes('fsh')) triggerFields.push('fsh');
+    triggerFields.push('estradiol');
+  } else {
+    // ── Perimenopause: FSH 10–40 OR E2 20–50 OR Progesterone < 2 ──────────
+    const fshPeri        = fsh        !== null && fsh        >= tm.fshPeriLow && fsh <= tm.fshMenopauseHigh;
+    const e2Peri         = estradiol   !== null && estradiol  >= tm.estradiolMenopauseLow && estradiol < tm.estradiolPeriLow;
+    const progesteronePeri = progesterone !== null && progesterone < tm.progesteroneLow;
+    const lhElevated     = lh          !== null && lh          >  tm.lhElevated;
+
+    const periTriggers: string[] = [];
+    if (fshPeri)          periTriggers.push('fsh');
+    if (e2Peri)           periTriggers.push('estradiol');
+    if (progesteronePeri) periTriggers.push('progesterone');
+    if (lhElevated && (fshPeri || e2Peri)) periTriggers.push('lh'); // LH only additive with other peri markers
+
+    if (periTriggers.length > 0) {
+      conditions.push('perimenopause');
+      for (const f of periTriggers) {
+        if (!triggerFields.includes(f)) triggerFields.push(f);
+      }
+    }
+  }
+
+  if (conditions.length === 0) {
+    return {
+      hasHormoneIndicators: false,
+      conditions: [],
+      reason: '',
+      triggerFields: [],
+      confidence: 'low',
+    };
+  }
+
+  // ── Reason string ────────────────────────────────────────────────────────
+  const parts: string[] = [];
+
+  if (conditions.includes('menopause')) {
+    parts.push(
+      'Your FSH and estradiol levels suggest a postmenopausal hormonal pattern. ' +
+      'A Menopause Support nutritional approach may benefit you by emphasizing ' +
+      'phytoestrogen-containing foods, bone-supportive calcium and vitamin D sources, ' +
+      'and anti-inflammatory eating patterns. (NAMS / ACOG / Endocrine Society)'
+    );
+  }
+
+  if (conditions.includes('perimenopause')) {
+    parts.push(
+      'Your hormone markers suggest a perimenopausal transition pattern. ' +
+      'A Perimenopause Support approach may benefit you by emphasizing ' +
+      'blood-sugar-stabilizing meals, phytoestrogen-rich foods, magnesium-supportive ' +
+      'nutrition, and reduced inflammatory load to support the hormonal transition. ' +
+      '(NAMS / Endocrine Society)'
+    );
+  }
+
+  if (conditions.includes('hormone-optimization')) {
+    const triggers = triggerFields.filter(f => ['total_testosterone', 'free_testosterone', 'dhea_s'].includes(f));
+    parts.push(
+      'Your ' + triggers.map(f => f === 'dhea_s' ? 'DHEA-S' : f === 'total_testosterone' ? 'total testosterone' : 'free testosterone').join(' and ') +
+      ' levels suggest hormone optimization support may be beneficial. ' +
+      'A Hormone Optimization approach emphasizes zinc-rich proteins, healthy fats, ' +
+      'omega-3 sources, and nutrients that support androgen and adrenal health. ' +
+      '(AUA / Endocrine Society)'
+    );
+  }
+
+  const reason = parts.join(' ');
+
+  const confidence: 'high' | 'moderate' | 'low' =
+    triggerFields.length >= 3 ? 'high' :
+    triggerFields.length >= 2 ? 'moderate' :
+    'low';
+
+  return {
+    hasHormoneIndicators: true,
+    conditions,
+    reason,
+    triggerFields,
+    confidence,
+  };
 }

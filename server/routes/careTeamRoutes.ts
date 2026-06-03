@@ -42,10 +42,23 @@ router.post("/invite", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Invalid email format. Please enter a valid email address." });
     }
 
+    // Fetch caller info once — used for both self-invite check and pro detection
+    const [callerUser] = await db
+      .select({ email: users.email, professionalRole: users.professionalRole })
+      .from(users)
+      .where(eq(users.id, userId));
+
+    const callerIsPro = ["physician", "trainer"].includes(callerUser?.professionalRole || "");
+
     // Block self-invites — caller cannot invite their own email address
-    const [callerUser] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId));
     if (callerUser?.email && callerUser.email.trim().toLowerCase() === email) {
-      return res.status(400).json({ error: "You cannot send a care team invite to yourself. Enter your provider's email address." });
+      console.warn(
+        `⚠️ [CareTeam Invite] Self-invite blocked — callerEmail="${callerUser.email}" inviteEmail="${email}" isPro=${callerIsPro} userId=${userId}`
+      );
+      const msg = callerIsPro
+        ? `The email you entered (${email}) matches the email registered to your professional account. Enter your client's email address instead.`
+        : "You cannot send a care team invite to yourself. Enter your provider's email address.";
+      return res.status(400).json({ error: msg });
     }
 
     console.log(`📧 Care Team invite request - role: ${role}`);
@@ -53,12 +66,6 @@ router.post("/invite", requireAuth, async (req, res) => {
     const inviteCode = `MP-${nanoid(4).toUpperCase()}-${nanoid(3).toUpperCase()}`;
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
-
-    const [caller] = await db
-      .select({ professionalRole: users.professionalRole })
-      .from(users)
-      .where(eq(users.id, userId));
-    const callerIsPro = ["physician", "trainer"].includes(caller?.professionalRole || "");
 
     let member = null;
     if (!callerIsPro) {

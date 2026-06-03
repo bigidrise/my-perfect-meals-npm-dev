@@ -426,6 +426,12 @@ export const users = pgTable("users", {
   // name if they are on medication (e.g., "Levothyroxine", "Synthroid"). null = no medication disclosed.
   // Used by the Thyroid Support protocol for medication timing awareness in meal generation.
   thyroidMedication: text("thyroid_medication"),
+  // Thyroid subtype — narrows the Thyroid Support protocol to the specific condition.
+  // 'hypothyroid' = underactive thyroid, selenium/zinc focus, metabolic regularity.
+  // 'hyperthyroid' = overactive thyroid, iodine restriction, caloric density support.
+  // 'hashimotos' = autoimmune thyroid, strengthened anti-inflammatory/gluten-minimal overlay.
+  // null = not specified (generic thyroid support applies).
+  thyroidType: text("thyroid_type").$type<"hypothyroid" | "hyperthyroid" | "hashimotos">(),
   // Flags 'request_support' intent for future professional follow-up surfacing
   needsProfessionalFollowup: boolean("needs_professional_followup").default(false),
   // Client Goals — set during onboarding, displayed on dashboard + coach folder

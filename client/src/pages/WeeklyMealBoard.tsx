@@ -132,6 +132,7 @@ import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { ProTipCard } from "@/components/ProTipCard";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
+import ProtocolStatusBar from "@/components/protocol/ProtocolStatusBar";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
 import { TrialBanner } from "@/components/TrialBanner";
 
@@ -1366,6 +1367,8 @@ export default function WeeklyMealBoard() {
         className="max-w-[1600px] mx-auto px-4 space-y-6"
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${proClientId ? '9rem' : '6rem'})` }}
       >
+        {/* Protocol Status Bar — active clinical protocols for this user */}
+        <ProtocolStatusBar className="mb-1" />
         {/* Nutrition Budget Banner - Phase 1: Read-only awareness */}
         <NutritionBudgetBanner className="mb-2" userId={effectiveUserId} />
 

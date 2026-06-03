@@ -183,6 +183,7 @@ export default function TrainerClientDashboard() {
   const [recommendedProtocol, setRecommendedProtocol] = useState<string | null>(null);
   const [recommendedDirectiveKey, setRecommendedDirectiveKey] = useState<string | null>(null);
   const [labDerivedConditions, setLabDerivedConditions] = useState<string[]>([]);
+  const [scConditions, setScConditions] = useState<string[]>([]);
 
   const PROTOCOL_TO_FLAG: Record<string, string> = {
     "liver-disease": "liverDisease",
@@ -284,6 +285,7 @@ export default function TrainerClientDashboard() {
           if (mapped && !derived.includes(mapped)) derived.push(mapped);
         }
         setLabDerivedConditions(derived);
+        setScConditions(scArr);
       })
       .catch(() => {});
   }, [clientId, resolvedClientUserId]);
@@ -617,6 +619,25 @@ export default function TrainerClientDashboard() {
                   ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
                     <span key={key} className={`flex items-center gap-1 text-xs ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
                       <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              {/* Hormonal & Metabolic — Second Row */}
+              <div className="flex items-start gap-2 pt-0.5">
+                <span className="text-xs text-white/50 w-28 shrink-0 mt-0.5">Hormonal:</span>
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {[
+                    { key: "hashimotos",         label: "Hashimoto's",       activeColor: "text-teal-300",   dotColor: "bg-teal-300",   dotGlow: "shadow-[0_0_4px_rgba(94,234,212,0.9)]"  },
+                    { key: "hypothyroid",        label: "Hypothyroid",       activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                    { key: "hyperthyroid",       label: "Hyperthyroid",      activeColor: "text-cyan-400",   dotColor: "bg-cyan-400",   dotGlow: "shadow-[0_0_4px_rgba(34,211,238,0.9)]"  },
+                    { key: "menopause",          label: "Menopause",         activeColor: "text-violet-400", dotColor: "bg-violet-400", dotGlow: "shadow-[0_0_4px_rgba(167,139,250,0.9)]" },
+                    { key: "perimenopause",      label: "Perimenopause",     activeColor: "text-purple-400", dotColor: "bg-purple-400", dotGlow: "shadow-[0_0_4px_rgba(192,132,252,0.9)]" },
+                    { key: "metabolic-recovery", label: "Metabolic Recovery", activeColor: "text-amber-400", dotColor: "bg-amber-400",  dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"  },
+                  ].map(({ key, label, activeColor, dotColor, dotGlow }) => (
+                    <span key={key} className={`flex items-center gap-1 text-xs ${scConditions.includes(key) ? `${activeColor} font-semibold` : "text-white/25"}`}>
+                      <span className={`inline-block w-1.5 h-1.5 rounded-full ${scConditions.includes(key) ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
                       {label}
                     </span>
                   ))}

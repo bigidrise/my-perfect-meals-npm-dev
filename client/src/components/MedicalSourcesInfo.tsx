@@ -114,10 +114,12 @@ export function MedicalSourcesInfo({
             <p className="text-white/60 text-xs mb-3">
               Reference ranges and clinical thresholds used in the Clinical Labs
               section — including glucose, HbA1c, lipid panels, liver enzymes,
-              kidney markers, and nutritional biomarkers such as prealbumin
-              (transthyretin) — are informed by the following professional
-              and institutional sources. These references are used for general
-              health tracking and educational flagging only, not clinical
+              kidney markers, thyroid markers (TSH, Free T4, Free T3, Reverse T3),
+              hormone markers (Total Testosterone, Free Testosterone, DHEA-S,
+              Estradiol, Progesterone, FSH, LH, SHBG), and nutritional biomarkers
+              such as prealbumin (transthyretin) — are informed by the following
+              professional and institutional sources. These references are used for
+              general health tracking and educational flagging only, not clinical
               diagnosis or individualized medical interpretation.
             </p>
             <ul className="space-y-3">
@@ -153,8 +155,55 @@ export function MedicalSourcesInfo({
               />
               <SourceItem
                 title="American Thyroid Association (ATA) — TSH Reference Ranges"
-                description="Clinical reference ranges for TSH, Free T4, and Free T3 used to support thyroid protocol detection and thyroid-aware meal guidance"
+                description="Clinical reference ranges for TSH, Free T4, Free T3, and Reverse T3 (rT3) used to support thyroid protocol detection, subtype classification (hypothyroid, hyperthyroid, Hashimoto's), and thyroid-aware meal guidance"
                 url="https://www.thyroid.org/professionals/ata-professional-guidelines/"
+              />
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-semibold text-white mb-3">
+              Hormone &amp; menopause nutrition references
+            </h3>
+            <p className="text-white/60 text-xs mb-3">
+              Clinical thresholds and nutrition guidance for Hormone Optimization,
+              Menopause, and Perimenopause protocols — including testosterone,
+              DHEA-S, Estradiol, FSH, LH, Progesterone, and SHBG reference ranges —
+              are informed by the following professional and institutional sources.
+              These references are used for general nutrition education and
+              food-structure guidance only, not diagnosis, treatment, or
+              individualized endocrinology or gynecology care.
+            </p>
+            <ul className="space-y-3">
+              <SourceItem
+                title="North American Menopause Society (NAMS)"
+                description="Evidence-based guidelines for menopause and perimenopause hormone reference ranges, FSH/Estradiol thresholds, and nutrition strategies for bone density, muscle preservation, and phytoestrogen guidance"
+                url="https://www.menopause.org/for-women"
+              />
+              <SourceItem
+                title="American College of Obstetricians and Gynecologists (ACOG)"
+                description="Clinical guidance for menopause transition, perimenopause staging, hormone reference ranges, and nutritional considerations during the reproductive-to-menopause transition"
+                url="https://www.acog.org/womens-health/faqs/the-menopause-years"
+              />
+              <SourceItem
+                title="American Urological Association (AUA) — Testosterone Deficiency Guidelines"
+                description="Evidence-based thresholds for Total Testosterone and Free Testosterone used to inform Hormone Optimization protocol activation; clinical reference for low testosterone and nutritional support strategies"
+                url="https://www.auanet.org/guidelines-and-quality/guidelines/testosterone-deficiency-guideline"
+              />
+              <SourceItem
+                title="Endocrine Society — Hormone Clinical Practice Guidelines"
+                description="Clinical practice guidelines for testosterone deficiency, DHEA-S reference ranges, menopause hormone thresholds, and endocrine nutrition interactions used in hormone protocol design"
+                url="https://www.endocrine.org/clinical-practice-guidelines"
+              />
+              <SourceItem
+                title="NIH Office of Dietary Supplements — Calcium &amp; Vitamin D"
+                description="Evidence-based dietary reference intakes for calcium and Vitamin D — foundational nutrients prioritized in the Menopause Support protocol for bone density preservation"
+                url="https://ods.od.nih.gov/factsheets/Calcium-HealthProfessional/"
+              />
+              <SourceItem
+                title="NIH — Phytoestrogens and Menopause (NIH/NCCIH)"
+                description="Research context for dietary phytoestrogens (flaxseed, soy, edamame) and their role in menopausal nutrition support — the basis for phytoestrogen inclusion in the Menopause Support protocol"
+                url="https://www.nccih.nih.gov/health/menopausal-symptoms-in-depth"
               />
             </ul>
           </section>
