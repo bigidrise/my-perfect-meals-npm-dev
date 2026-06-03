@@ -1,5 +1,5 @@
 import PillButton from "@/components/ui/pill-button";
-import { apiUrl } from "@/lib/queryClient";
+import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
