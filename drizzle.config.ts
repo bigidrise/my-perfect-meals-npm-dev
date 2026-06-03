@@ -20,6 +20,7 @@ export default defineConfig({
     "./server/db/schema/creatorOnboardingSubmissions.ts",
     "./server/db/schema/creators.ts",
     "./server/db/schema/creatorSystemConfigs.ts",
+    "./server/db/schema/certifications.ts",
     "./server/db/schema/founders.ts",
     "./server/db/schema/generatedMeals.ts",
     "./server/db/schema/glp1Shots.ts",
