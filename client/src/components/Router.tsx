@@ -254,6 +254,8 @@ import RestaurantFinderPage from "@/pages/RestaurantFinderPage";
 // Founders page
 import FoundersPage from "@/pages/Founders";
 import CoachesComingSoon from "@/pages/CoachesComingSoon";
+import BusinessCenter from "@/pages/BusinessCenter";
+import BusinessCenterSection from "@/pages/BusinessCenterSection";
 
 // SimpleWalkthroughDemo quarantined - replaced by Quick Tour system
 
@@ -691,6 +693,12 @@ export default function Router() {
         {/* Founders Route */}
         <Route path="/founders" component={FoundersPage} />
         <Route path="/coaches" component={CoachesComingSoon} />
+        {/* Business Center */}
+        <Route path="/business-center" component={BusinessCenter} />
+        <Route path="/business-center/affiliate" component={BusinessCenterSection} />
+        <Route path="/business-center/academy" component={BusinessCenterSection} />
+        <Route path="/business-center/white-label" component={BusinessCenterSection} />
+        <Route path="/business-center/partnerships" component={BusinessCenterSection} />
         {/* Supplement Hub Routes */}
         {/* REMOVED: /supplement-hub-landing route (landing page not used - Copilot routes to /supplement-hub directly) */}
         <Route path="/supplement-hub" component={SupplementHub} />

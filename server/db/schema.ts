@@ -9,6 +9,7 @@ export * from "./schema/patientAssignment";
 export * from "./schema/careTeam";
 export * from "./schema/procare";
 export * from "./schema/founders";
+export * from "./schema/certifications";
 export * from "./schema/generatedMeals";
 export * from "./schema/restaurantGuideSessions";
 export * from "./schema/mealLibrary";
