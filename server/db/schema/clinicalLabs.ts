@@ -32,8 +32,10 @@ export const clinicalLabs = pgTable("clinical_labs", {
   triglycerides:  numeric("triglycerides",   { precision: 6, scale: 1 }),  // mg/dL
   // Inflammation — drives inflammation-support protocol escalation
   crp: numeric("crp", { precision: 6, scale: 2 }),  // mg/L — C-Reactive Protein
-  // Hormonal / Stress — drives metabolic-stress protocol
+  // Hormonal / Stress — sex hormones + cortisol
   cortisol: numeric("cortisol", { precision: 6, scale: 2 }), // µg/dL
+  totalTestosterone: numeric("total_testosterone", { precision: 7, scale: 2 }), // ng/dL
+  freeTestosterone: numeric("free_testosterone", { precision: 7, scale: 3 }), // pg/mL
   // Oncology & Recovery support — nutrition status markers
   prealbumin: numeric("prealbumin", { precision: 5, scale: 2 }), // mg/dL (transthyretin — short-term nutrition status)
   notes: text("notes"),
@@ -68,6 +70,8 @@ export const insertClinicalLabsSchema = createInsertSchema(clinicalLabs, {
   triglycerides:  z.string().or(z.number()).optional().nullable(),
   crp:            z.string().or(z.number()).optional().nullable(),
   cortisol:       z.string().or(z.number()).optional().nullable(),
+  totalTestosterone: z.string().or(z.number()).optional().nullable(),
+  freeTestosterone:  z.string().or(z.number()).optional().nullable(),
   prealbumin:     z.string().or(z.number()).optional().nullable(),
   notes: z.string().optional().nullable(),
   recordedAt: z.string().or(z.date()),

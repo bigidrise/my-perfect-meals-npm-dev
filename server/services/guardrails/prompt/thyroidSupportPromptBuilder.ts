@@ -34,6 +34,14 @@ export interface ThyroidSupportContext {
   labDriven: boolean;
   /** Whether antibody markers were elevated (autoimmune pattern — Hashimoto's). */
   isAutoimmune: boolean;
+  /**
+   * Thyroid subtype — routes to subtype-specific guidance blocks.
+   * 'hypothyroid' = underactive thyroid (selenium/zinc focus, metabolic regularity)
+   * 'hyperthyroid' = overactive thyroid (iodine restriction, caloric density)
+   * 'hashimotos' = autoimmune thyroid (strengthened anti-inflammatory, gluten-minimal)
+   * null = generic thyroid support (existing behavior)
+   */
+  thyroidType?: "hypothyroid" | "hyperthyroid" | "hashimotos" | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -127,6 +135,61 @@ is especially important. Emphasize:
 - Minimal ultra-processed food, no added sugars, no refined grains as primary carbs
 `;
 
+const HASHIMOTOS_EXTENDED_NOTE = `
+=== HASHIMOTO'S THYROIDITIS — ENHANCED AUTOIMMUNE PROTOCOL ===
+This user has Hashimoto's Thyroiditis (autoimmune hypothyroid). Apply these additional guidelines:
+- GLUTEN-MINIMAL preference: many Hashimoto's patients benefit from reducing gluten. Default to gluten-free
+  or whole-grain versions of any bread, pasta, or grain component unless the user has explicitly chosen otherwise.
+  This is a preference, not an absolute ban — do not refuse gluten-containing meals, but prefer alternatives.
+- NO REFINED CARBS as primary starch: white bread, white pasta, refined crackers as the main carb base are discouraged.
+  Upgrade to sweet potato, quinoa, brown rice, or whole grain alternatives.
+- DAIRY-LIGHT: some Hashimoto's patients are dairy-sensitive. When including dairy, prefer Greek yogurt, aged
+  hard cheeses, or goat cheese over large amounts of milk or soft cheese. Do not eliminate dairy.
+- BONE BROTH and collagen-rich preparations are excellent and encouraged — gut lining support.
+- SELENIUM + ZINC emphasis is especially critical for Hashimoto's: Brazil nuts (1-2 only), pumpkin seeds,
+  salmon, eggs. Include at every opportunity.
+- FERMENTED FOODS encouraged: yogurt, kefir, kimchi, sauerkraut, miso — gut microbiome supports autoimmune balance.
+- NO HARD BLOCK on soy — normal culinary soy in food-based amounts is acceptable. Avoid soy protein isolate supplements.
+`;
+
+const HYPOTHYROID_NOTE = `
+=== HYPOTHYROID SUPPORT (UNDERACTIVE THYROID) ===
+This user has hypothyroidism (underactive thyroid). The following guidance applies:
+- METABOLIC REGULARITY: prefer balanced, regular-interval meals over large infrequent meals.
+  Skipping meals can worsen hypothyroid fatigue and metabolic sluggishness.
+- IRON-RICH FOODS at non-medication meal times: lean red meat, chicken, legumes, pumpkin seeds.
+  Iron supports red blood cell oxygen delivery, which is often reduced in hypothyroid patients.
+- AVOID EXCESSIVE RAW GOITROGENIC FOODS: limit very large amounts of raw cruciferous vegetables
+  (kale, Brussels sprouts, broccoli, cabbage) at a single meal. Cooked cruciferous is completely fine
+  and encouraged. This is a "smart limit" for raw/juiced concentrations only — do not eliminate these foods.
+- CALORIC AWARENESS: hypothyroid patients often have slowed metabolism. Prefer nutrient-dense but
+  not calorie-excessive meals. Avoid very heavy, calorie-dense preparations as a default.
+- SELENIUM and ZINC are especially important (see core overlay above).
+`;
+
+const HYPERTHYROID_NOTE = `
+=== HYPERTHYROID SUPPORT (OVERACTIVE THYROID) ===
+This user has hyperthyroidism (overactive thyroid). The following guidance applies:
+- IODINE RESTRICTION — IMPORTANT: Excess dietary iodine can worsen hyperthyroid symptoms by stimulating
+  thyroid hormone production. Apply the following smart restrictions:
+  • LIMIT high-iodine seafood: no kelp, no seaweed sheets/wraps as a featured ingredient. Occasional small
+    amounts of nori in sushi are acceptable. Avoid sea vegetables (kombu, wakame, dulse) as primary ingredients.
+  • Standard seafood (salmon, tuna, shrimp, cod, tilapia) is completely fine — these are moderate-iodine and important
+    for selenium. Do not restrict general seafood.
+  • DAIRY CAUTION: milk, cheese, and yogurt are moderate-iodine sources. They are not banned, but avoid making
+    dairy a dominant ingredient across multiple components of the same meal. One dairy element per meal is fine.
+  • IODIZED SALT: prefer sea salt or kosher salt references over iodized table salt.
+  • No iodine supplements mentioned.
+- CALORIC SUPPORT: hyperthyroid patients often have elevated metabolism and may lose weight unintentionally.
+  Prefer more calorie-dense, satisfying meals. Include healthy fats (avocado, olive oil, nuts) and protein
+  generously. Do not default to light or diet-style meals.
+- HIGH CALCIUM emphasis: hyperthyroidism can accelerate bone loss. Include calcium-rich foods: Greek yogurt,
+  low-fat dairy, broccoli, kale, almonds, fortified plant milk. Pair with Vitamin D sources (salmon, eggs).
+- PROTEIN PRIORITY: adequate protein supports muscle preservation. Minimum 25-30g per main meal.
+- AVOID STIMULANTS as primary beverage features: no energy drinks, no high-caffeine drinks as the featured
+  beverage. Water, herbal teas, and non-stimulant options preferred.
+`;
+
 const SOY_NOTE = `
 === SOY GUIDANCE (SMART LIMITS, NOT ELIMINATION) ===
 Regular culinary soy — tofu, edamame, miso, tempeh, soy sauce in small amounts — is
@@ -167,7 +230,25 @@ export function buildThyroidSupportPrompt(context: ThyroidSupportContext): strin
     "",
   ];
 
-  if (context.isAutoimmune) {
+  // Subtype routing — applied after the core overlay
+  const subtype = context.thyroidType ?? null;
+
+  if (subtype === "hashimotos") {
+    // Hashimoto's: full autoimmune base + extended Hashimoto's-specific overlay
+    lines.push(ANTI_INFLAMMATORY_AUTOIMMUNE_NOTE.trim());
+    lines.push("");
+    lines.push(HASHIMOTOS_EXTENDED_NOTE.trim());
+    lines.push("");
+  } else if (subtype === "hyperthyroid") {
+    // Hyperthyroid: iodine restriction + caloric density support
+    lines.push(HYPERTHYROID_NOTE.trim());
+    lines.push("");
+  } else if (subtype === "hypothyroid") {
+    // Hypothyroid: metabolic regularity + iron + smart cruciferous limits
+    lines.push(HYPOTHYROID_NOTE.trim());
+    lines.push("");
+  } else if (context.isAutoimmune) {
+    // Legacy / lab-driven autoimmune signal with no explicit subtype
     lines.push(ANTI_INFLAMMATORY_AUTOIMMUNE_NOTE.trim());
     lines.push("");
   }

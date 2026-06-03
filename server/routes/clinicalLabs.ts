@@ -65,8 +65,10 @@ const labsPayloadSchema = z.object({
   triglycerides:   z.number().optional().nullable(),  // mg/dL
   // Inflammation
   crp:             z.number().optional().nullable(),  // mg/L — C-Reactive Protein
-  // Hormonal / Stress
-  cortisol:        z.number().optional().nullable(),  // µg/dL
+  // Hormonal / Stress + Sex hormones
+  cortisol:           z.number().optional().nullable(),  // µg/dL
+  total_testosterone: z.number().optional().nullable(),  // ng/dL
+  free_testosterone:  z.number().optional().nullable(),  // pg/mL
   // Oncology & Recovery — nutrition status markers
   prealbumin:      z.number().optional().nullable(),  // mg/dL (transthyretin)
   // ── Metadata ───────────────────────────────────────────────────────────────
@@ -177,8 +179,10 @@ router.post("/", requireAuth, async (req, res) => {
         glucose:        body.glucose         != null ? String(body.glucose)         : null,
         triglycerides:  body.triglycerides   != null ? String(body.triglycerides)   : null,
         crp:            body.crp             != null ? String(body.crp)             : null,
-        cortisol:       body.cortisol        != null ? String(body.cortisol)        : null,
-        prealbumin:     body.prealbumin      != null ? String(body.prealbumin)      : null,
+        cortisol:           body.cortisol           != null ? String(body.cortisol)           : null,
+        totalTestosterone:  body.total_testosterone  != null ? String(body.total_testosterone)  : null,
+        freeTestosterone:   body.free_testosterone   != null ? String(body.free_testosterone)   : null,
+        prealbumin:         body.prealbumin          != null ? String(body.prealbumin)          : null,
         notes: body.notes || null,
         labDate: body.lab_date || new Date().toISOString().split("T")[0],
         recordedAt: body.recorded_at ? new Date(body.recorded_at) : new Date(),
@@ -500,8 +504,10 @@ router.get("/:userId", requireAuth, async (req, res) => {
         glucose:         r.glucose        ? parseFloat(r.glucose)        : null,
         triglycerides:   r.triglycerides  ? parseFloat(r.triglycerides)  : null,
         crp:             r.crp            ? parseFloat(r.crp)            : null,
-        cortisol:        r.cortisol       ? parseFloat(r.cortisol)       : null,
-        prealbumin:      r.prealbumin     ? parseFloat(r.prealbumin)     : null,
+        cortisol:            r.cortisol           ? parseFloat(r.cortisol)           : null,
+        total_testosterone:  r.totalTestosterone  ? parseFloat(r.totalTestosterone)  : null,
+        free_testosterone:   r.freeTestosterone   ? parseFloat(r.freeTestosterone)   : null,
+        prealbumin:          r.prealbumin         ? parseFloat(r.prealbumin)         : null,
         // ── Metadata ──────────────────────────────────────────────────────────
         notes: r.notes,
         lab_date: r.labDate || null,

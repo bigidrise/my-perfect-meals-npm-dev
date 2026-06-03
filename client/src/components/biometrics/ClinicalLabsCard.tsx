@@ -46,8 +46,10 @@ interface LabValues {
   a1c: string;
   glucose: string;
   fasting_insulin: string;
-  // Hormonal / Stress
+  // Hormonal / Stress + Sex Hormones
   cortisol: string;
+  total_testosterone: string;
+  free_testosterone: string;
   // Liver Panel
   alt: string;
   ast: string;
@@ -77,6 +79,8 @@ const EMPTY_LABS: LabValues = {
   blood_pressure_systolic: "", blood_pressure_diastolic: "", ejection_fraction: "",
   a1c: "", glucose: "", fasting_insulin: "",
   cortisol: "",
+  total_testosterone: "",
+  free_testosterone: "",
   alt: "", ast: "", bilirubin: "", albumin: "",
   tsh: "", free_t4: "", free_t3: "", tpo_antibodies: "", thyroglobulin_antibodies: "",
   creatinine: "", bun: "", inr: "",
@@ -251,6 +255,8 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
             glucose:                 l.glucose                 != null ? String(l.glucose)                 : "",
             fasting_insulin:         l.fasting_insulin         != null ? String(l.fasting_insulin)         : "",
             cortisol:                l.cortisol                != null ? String(l.cortisol)                : "",
+            total_testosterone:      l.total_testosterone      != null ? String(l.total_testosterone)      : "",
+            free_testosterone:       l.free_testosterone       != null ? String(l.free_testosterone)       : "",
             alt:                     l.alt                     != null ? String(l.alt)                     : "",
             ast:                     l.ast                     != null ? String(l.ast)                     : "",
             bilirubin:               l.bilirubin               != null ? String(l.bilirubin)               : "",
@@ -274,7 +280,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
           const sectionsWithData = new Set<string>();
           if ([loaded.ldl, loaded.hdl, loaded.triglycerides, loaded.blood_pressure_systolic, loaded.ejection_fraction].some(Boolean)) sectionsWithData.add("cardiac");
           if ([loaded.a1c, loaded.glucose, loaded.fasting_insulin].some(Boolean)) sectionsWithData.add("diabetes");
-          if (loaded.cortisol) sectionsWithData.add("hormonal");
+          if (loaded.cortisol || loaded.total_testosterone || loaded.free_testosterone) sectionsWithData.add("hormonal");
           if ([loaded.alt, loaded.ast, loaded.bilirubin, loaded.albumin].some(Boolean)) sectionsWithData.add("liver");
           if ([loaded.tsh, loaded.free_t4, loaded.free_t3, loaded.tpo_antibodies, loaded.thyroglobulin_antibodies].some(Boolean)) sectionsWithData.add("thyroid");
           if ([loaded.creatinine, loaded.bun, loaded.inr].some(Boolean)) sectionsWithData.add("kidney");
@@ -330,6 +336,8 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
         "blood_pressure_systolic", "blood_pressure_diastolic", "ejection_fraction",
         "a1c", "glucose", "fasting_insulin",
         "cortisol",
+        "total_testosterone",
+        "free_testosterone",
         "alt", "ast", "bilirubin", "albumin",
         "tsh", "free_t4", "free_t3", "tpo_antibodies", "thyroglobulin_antibodies",
         "creatinine", "bun", "inr",
@@ -545,7 +553,11 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
         { key: "cortisol", dir: "high", threshold: 20 },
       ],
       content: (f, oc) => (
-        <LabField label="Cortisol (AM)" name="cortisol" value={f.cortisol} unit="µg/dL" placeholder="e.g. 14" onChange={oc} />
+        <>
+          <LabField label="Cortisol (AM)"       name="cortisol"           value={f.cortisol}           unit="µg/dL" placeholder="e.g. 14"   onChange={oc} />
+          <LabField label="Total Testosterone"  name="total_testosterone" value={f.total_testosterone} unit="ng/dL" placeholder="e.g. 550"  onChange={oc} />
+          <LabField label="Free Testosterone"   name="free_testosterone"  value={f.free_testosterone}  unit="pg/mL" placeholder="e.g. 12.5" onChange={oc} />
+        </>
       ),
     },
     {

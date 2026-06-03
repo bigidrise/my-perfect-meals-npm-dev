@@ -36,7 +36,11 @@ export interface UniversalGuidanceInput {
     medication: string | null;
     labDriven: boolean;
     isAutoimmune: boolean;
+    /** Thyroid subtype — routes to subtype-specific guidance blocks. */
+    thyroidType?: "hypothyroid" | "hyperthyroid" | "hashimotos" | null;
   } | null;
+  /** Hormone Optimization protocol — active when "hormone-optimization" is in specialtyConditions. */
+  hormoneOptimization?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -192,6 +196,40 @@ function buildOncologyGuidance(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// HORMONE OPTIMIZATION
+// ─────────────────────────────────────────────────────────────────────────────
+
+const HORMONE_OPTIMIZATION_GUIDANCE = `
+⚡ HORMONE OPTIMIZATION PROTOCOL — MANDATORY:
+This user is actively supporting their hormonal health through nutrition. Meal generation must follow these guidelines.
+
+PRIORITY NUTRIENTS — actively include:
+- HEALTHY FATS (essential for hormone synthesis): avocado, olive oil, salmon, sardines, mackerel, egg yolks, walnuts, flaxseed, chia seeds. Every meal should include at least one healthy fat source.
+- ZINC (critical for testosterone production): oysters, pumpkin seeds, lean beef, chicken, chickpeas, lentils.
+- VITAMIN D / SELENIUM (hormonal signaling): salmon, sardines, eggs, Brazil nuts (1-2 only), mushrooms.
+- PROTEIN FOUNDATION: lean meats (chicken, turkey, lean beef), fatty fish, eggs, Greek yogurt, legumes. Adequate protein is required at every meal — minimum 25g per meal.
+- MAGNESIUM (hormone regulation, sleep quality): pumpkin seeds, dark leafy greens, dark chocolate (high cacao), almonds, black beans.
+- COMPLEX CARBS (cortisol regulation): sweet potato, oats, quinoa, brown rice, lentils. Never refined or high-glycemic carbs as the primary base.
+
+HARD BLOCKS — never include:
+- NO refined sugars, sweetened beverages, candy, pastries, or high-fructose corn syrup.
+- NO processed meats (bacon, sausage, deli meat, hot dogs) — these contain endocrine-disrupting compounds.
+- NO seed oils (canola, vegetable, soybean, corn, sunflower) — inflammatory and hormone-disrupting. Use olive oil or avocado oil only.
+- NO trans fats, partially hydrogenated oils, margarine, shortening.
+- NO soy protein isolate concentrates in large amounts (normal tofu, edamame, miso are fine).
+- NO alcohol of any kind.
+- NO excessive caffeine as primary beverage focus; suggest water, herbal teas, green tea.
+
+MEAL STRUCTURE:
+- Every meal: protein + healthy fat + complex carb + vegetable. No single-macronutrient meals.
+- Emphasize meals that support steady blood sugar — no blood sugar spikes that elevate cortisol.
+- Cruciferous vegetables (broccoli, cauliflower, Brussels sprouts) are encouraged — they support healthy estrogen metabolism. Cooked or raw is fine.
+- Fiber-rich meals support healthy hormone clearance — prioritize legumes, whole grains, and vegetables.
+
+TONE: Do NOT suggest foods "boost testosterone" or use clinical hormone language. Frame meals as "hormone-supportive," "nutrient-dense," or "built to support hormonal balance." No medical claims.
+`.trim();
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MAIN ENTRY POINT
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -277,9 +315,14 @@ export async function buildUniversalConditionGuidance(
       labDriven: false,
       isAutoimmune: thyroidActiveViaCondition &&
         conditions.some(c => ["hashimoto's", "hashimotos", "autoimmune thyroid"].includes(c)),
+      thyroidType: null,
     };
     const overlay = buildThyroidSupportPrompt(thyroidCtx);
     if (overlay.trim()) blocks.push(overlay);
+  }
+
+  if (input.hormoneOptimization) {
+    blocks.push(HORMONE_OPTIMIZATION_GUIDANCE);
   }
 
   return blocks;

@@ -278,6 +278,9 @@ export default function EditProfilePage() {
   const [thyroidMedication, setThyroidMedication] = useState<string>(
     (user as any)?.thyroidMedication ?? ""
   );
+  const [thyroidType, setThyroidType] = useState<"hypothyroid" | "hyperthyroid" | "hashimotos" | null>(
+    ((user as any)?.thyroidType as "hypothyroid" | "hyperthyroid" | "hashimotos" | null) ?? null
+  );
   const [antiInflammatorySupport, setAntiInflammatorySupport] = useState(false);
 
   // Protocol Ownership Model — physician-set oncology context (read from server)
@@ -516,6 +519,19 @@ export default function EditProfilePage() {
           });
         }
         // Still allow the rest of the save (profile data saved OK — only conditions were blocked)
+      }
+
+      // Save thyroid type (only relevant when thyroid-support is active, but always sync)
+      if (specialtyConditions.includes("thyroid-support") || thyroidType) {
+        await fetch(apiUrl("/api/user/thyroid-type"), {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            ...(authToken ? { "x-auth-token": authToken } : {}),
+          },
+          credentials: "include",
+          body: JSON.stringify({ thyroidType }),
+        }).catch(() => {});
       }
 
       // Save thyroid medication (only relevant when thyroid-support is active, but always sync)
@@ -1110,6 +1126,7 @@ export default function EditProfilePage() {
                     { label: "Liver Support", value: "liver-support" },
                     { label: "Cancer / Oncology Support", value: "oncology-support" },
                     { label: "Thyroid Support", value: "thyroid-support" },
+                    { label: "Hormone Optimization", value: "hormone-optimization" },
                   ] as const).map((opt) => {
                     const locked = isConditionLocked(opt.value);
                     return (
@@ -1159,6 +1176,26 @@ export default function EditProfilePage() {
                       </div>
                     </div>
                     <div>
+                      <label className="text-teal-300/80 text-xs font-medium block mb-1.5">
+                        My thyroid condition <span className="text-white/40 font-normal">(optional — sharpens the protocol)</span>
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {([
+                          { label: "Hypothyroid", value: "hypothyroid" as const },
+                          { label: "Hyperthyroid", value: "hyperthyroid" as const },
+                          { label: "Hashimoto's", value: "hashimotos" as const },
+                        ]).map((opt) => (
+                          <PillButton
+                            key={opt.value}
+                            active={thyroidType === opt.value}
+                            onClick={() => setThyroidType(prev => prev === opt.value ? null : opt.value)}
+                          >
+                            {opt.label}
+                          </PillButton>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
                       <label className="text-teal-300/80 text-xs font-medium block mb-1">
                         Thyroid Medication <span className="text-white/40 font-normal">(optional)</span>
                       </label>
@@ -1170,6 +1207,19 @@ export default function EditProfilePage() {
                         className="w-full bg-black/40 border border-teal-500/30 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-teal-400/60"
                       />
                       <p className="text-white/35 text-[10px] mt-1">Helps the AI suggest appropriate meal timing around your medication schedule.</p>
+                    </div>
+                  </div>
+                )}
+                {specialtyConditions.includes("hormone-optimization") && (
+                  <div className="mt-3 rounded-xl border border-orange-500/40 bg-orange-950/20 p-3">
+                    <div className="flex items-start gap-2">
+                      <span className="text-orange-400 text-base mt-0.5">⚡</span>
+                      <div>
+                        <p className="text-orange-300 text-xs font-semibold mb-1">Hormone Optimization — Nutritional Guidance Only</p>
+                        <p className="text-white/70 text-xs leading-relaxed">
+                          Activates hormone-supportive meal generation — healthy fats, zinc-rich proteins, minimal processed foods, no refined sugars or seed oils. This is <span className="text-white font-medium">not a medical protocol</span> and is <span className="text-white font-medium">not a substitute for your doctor's care</span>.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 )}

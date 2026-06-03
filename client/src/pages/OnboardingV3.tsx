@@ -173,6 +173,7 @@ export default function OnboardingV3() {
   const [oncologyIntroAnswer, setOncologyIntroAnswer] = useState<"yes" | "skip" | null>(null);
   const [oncologySupportIntentChoice, setOncologySupportIntentChoice] = useState<"own_provider" | "request_support" | "self_directed" | null>(null);
   const [specialtyConditions, setSpecialtyConditions] = useState<string[]>([]);
+  const [thyroidType, setThyroidType] = useState<"hypothyroid" | "hyperthyroid" | "hashimotos" | null>(null);
   const [dietaryStyle, setDietaryStyle] = useState("");
   const [customDietInput, setCustomDietInput] = useState("");
   const [countryCode, setCountryCode] = useState<string>("US");
@@ -361,6 +362,14 @@ export default function OnboardingV3() {
           }).catch((err) => {
             captureException(err, { step: "specialty_condition", specialtyConditions });
           });
+          // Save thyroid subtype (non-blocking — null = no subtype specified)
+          if (specialtyConditions.includes("thyroid-support")) {
+            fetch(apiUrl("/api/user/thyroid-type"), {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+              body: JSON.stringify({ thyroidType }),
+            }).catch(() => {});
+          }
           break;
         case 4: {
           const intent = oncologyIntroAnswer === "yes" ? oncologySupportIntentChoice : null;
@@ -752,6 +761,7 @@ export default function OnboardingV3() {
                   { label: "Liver Support", value: "liver-support" },
                   { label: "Cancer / Oncology Support", value: "oncology-support" },
                   { label: "Thyroid Support", value: "thyroid-support" },
+                  { label: "Hormone Optimization", value: "hormone-optimization" },
                 ].map((opt) => (
                   <PillButton
                     key={opt.value}
@@ -769,13 +779,44 @@ export default function OnboardingV3() {
                 ))}
               </div>
               {specialtyConditions.includes("thyroid-support") && (
-                <div className="mt-3 rounded-xl border border-teal-500/40 bg-teal-950/30 p-3">
+                <div className="mt-3 rounded-xl border border-teal-500/40 bg-teal-950/30 p-3 space-y-2">
                   <div className="flex items-start gap-2">
                     <span className="text-teal-400 text-base mt-0.5">🦋</span>
                     <div>
                       <p className="text-teal-300 text-xs font-semibold mb-1">Thyroid Support — Nutritional Guidance Only</p>
                       <p className="text-white/70 text-xs leading-relaxed">
                         This activates anti-inflammatory, selenium-focused meal guidance designed to complement thyroid wellness. It is <span className="text-white font-medium">not a medical diagnosis</span>, not a treatment plan, and <span className="text-white font-medium">not a substitute for your doctor or endocrinologist's care</span>. Always follow your healthcare provider's recommendations first.
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-teal-300/80 text-xs font-medium mb-1.5">My thyroid condition <span className="text-white/40 font-normal">(optional — sharpens the protocol)</span></p>
+                    <div className="flex flex-wrap gap-2">
+                      {([
+                        { label: "Hypothyroid", value: "hypothyroid" as const },
+                        { label: "Hyperthyroid", value: "hyperthyroid" as const },
+                        { label: "Hashimoto's", value: "hashimotos" as const },
+                      ]).map((opt) => (
+                        <PillButton
+                          key={opt.value}
+                          active={thyroidType === opt.value}
+                          onClick={() => setThyroidType(prev => prev === opt.value ? null : opt.value)}
+                        >
+                          {opt.label}
+                        </PillButton>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {specialtyConditions.includes("hormone-optimization") && (
+                <div className="mt-3 rounded-xl border border-orange-500/40 bg-orange-950/20 p-3">
+                  <div className="flex items-start gap-2">
+                    <span className="text-orange-400 text-base mt-0.5">⚡</span>
+                    <div>
+                      <p className="text-orange-300 text-xs font-semibold mb-1">Hormone Optimization — Nutritional Guidance Only</p>
+                      <p className="text-white/70 text-xs leading-relaxed">
+                        Activates hormone-supportive meal generation — healthy fats, zinc-rich proteins, minimal processed foods, no refined sugars or seed oils. This is <span className="text-white font-medium">not a medical protocol</span> and is <span className="text-white font-medium">not a substitute for your doctor's care</span>.
                       </p>
                     </div>
                   </div>

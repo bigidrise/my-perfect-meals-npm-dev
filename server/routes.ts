@@ -2275,7 +2275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // PATCH /api/user/specialty-condition
   // Saves the user's self-selected specialty health protocol(s).
   // Accepts: { condition: string } (single, backward-compat) OR { conditions: string[] } (multi)
-  // Allowed values: 'renal' | 'cardiac' | 'liver-disease' | 'liver-support' | 'oncology-support' | 'thyroid-support'
+  // Allowed values: 'renal' | 'cardiac' | 'liver-disease' | 'liver-support' | 'oncology-support' | 'thyroid-support' | 'hormone-optimization'
   //
   // THREE-TIER HIERARCHY ENFORCEMENT:
   //   Tier 1 — Physician lock:  reject if active studio membership with assigned builder
@@ -2285,7 +2285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const authReq = req as AuthenticatedRequest;
       const userId = authReq.authUser.id;
-      const ALLOWED = ["renal", "cardiac", "liver-disease", "liver-support", "oncology-support", "thyroid-support"];
+      const ALLOWED = ["renal", "cardiac", "liver-disease", "liver-support", "oncology-support", "thyroid-support", "hormone-optimization"];
       const { condition, conditions } = req.body;
 
       // ── Tier 1: Physician lock ────────────────────────────────────────────
@@ -2330,6 +2330,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("[specialty-condition PATCH]", error);
       res.status(500).json({ error: "Failed to save specialty condition" });
+    }
+  });
+
+  // PUT /api/pro/thyroid-type/:userId
+  // ProCare: physician assigns or clears the thyroid subtype for a client.
+  // Narrows the Thyroid Support protocol to subtype-specific guidance at generation time.
+  app.put("/api/pro/thyroid-type/:userId", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const physicianId = authReq.authUser.id;
+      const clientUserId = req.params.userId;
+      const ALLOWED_TYPES = ["hypothyroid", "hyperthyroid", "hashimotos"];
+      const { thyroidType } = req.body;
+      const value = thyroidType === null || thyroidType === undefined
+        ? null
+        : ALLOWED_TYPES.includes(thyroidType) ? thyroidType : null;
+
+      const [membership] = await db
+        .select()
+        .from(studioMemberships)
+        .where(eq(studioMemberships.clientUserId, clientUserId as any))
+        .limit(1);
+      if (!membership) {
+        return res.status(403).json({ error: "No active studio relationship for this client" });
+      }
+
+      await db.update(users).set({ thyroidType: value } as any).where(eq(users.id, clientUserId as any));
+      console.log(`[pro/thyroid-type] Physician ${physicianId} set thyroidType → ${value ?? "cleared"} for user ${clientUserId}`);
+      res.json({ ok: true, thyroidType: value });
+    } catch (error: any) {
+      console.error("[pro/thyroid-type PUT]", error);
+      res.status(500).json({ error: "Failed to update thyroid type" });
+    }
+  });
+
+  // PUT /api/pro/hormone-optimization/:userId
+  // ProCare: physician assigns or removes Hormone Optimization for a client.
+  // Adds or removes "hormone-optimization" from the client's specialtyConditions.
+  app.put("/api/pro/hormone-optimization/:userId", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const physicianId = authReq.authUser.id;
+      const clientUserId = req.params.userId;
+      const { active } = req.body;
+
+      // Verify active studio membership — requester must be a professional linked to this client
+      const [membership] = await db
+        .select()
+        .from(studioMemberships)
+        .where(eq(studioMemberships.clientUserId, clientUserId as any))
+        .limit(1);
+
+      if (!membership) {
+        return res.status(403).json({ error: "No active studio relationship for this client" });
+      }
+
+      const [clientRow] = await db
+        .select({ specialtyConditions: users.specialtyConditions })
+        .from(users)
+        .where(eq(users.id, clientUserId as any))
+        .limit(1);
+
+      const current = (clientRow?.specialtyConditions as string[]) ?? [];
+      const next = active
+        ? current.includes("hormone-optimization") ? current : [...current, "hormone-optimization"]
+        : current.filter((c) => c !== "hormone-optimization");
+
+      await db
+        .update(users)
+        .set({ specialtyConditions: next, updatedAt: new Date() } as any)
+        .where(eq(users.id, clientUserId as any));
+
+      console.log(`[pro/hormone-optimization] Physician ${physicianId} ${active ? "assigned" : "removed"} hormone-optimization for user ${clientUserId}`);
+      res.json({ ok: true, active: !!active, specialtyConditions: next });
+    } catch (error: any) {
+      console.error("[pro/hormone-optimization PUT]", error);
+      res.status(500).json({ error: "Failed to update hormone optimization directive" });
+    }
+  });
+
+  // PATCH /api/user/thyroid-type
+  // Saves the user's thyroid condition subtype ('hypothyroid' | 'hyperthyroid' | 'hashimotos' | null).
+  // Narrows the Thyroid Support protocol to subtype-specific guidance blocks at generation time.
+  app.patch("/api/user/thyroid-type", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const ALLOWED_TYPES = ["hypothyroid", "hyperthyroid", "hashimotos"];
+      const { thyroidType } = req.body;
+      const value = thyroidType === null || thyroidType === undefined
+        ? null
+        : ALLOWED_TYPES.includes(thyroidType) ? thyroidType : null;
+      await db.update(users).set({ thyroidType: value } as any).where(eq(users.id, userId));
+      console.log(`[thyroid-type] User ${userId} set → ${value ?? "cleared"}`);
+      res.json({ ok: true, thyroidType: value });
+    } catch (error: any) {
+      console.error("[thyroid-type PATCH]", error);
+      res.status(500).json({ error: "Failed to save thyroid type" });
     }
   });
 
