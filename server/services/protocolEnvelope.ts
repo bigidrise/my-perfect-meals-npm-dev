@@ -498,6 +498,20 @@ export interface UserProtocolEnvelope {
   thyroidMedication: string | null;
 
   /**
+   * Thyroid subtype — narrows the Thyroid Support protocol to the specific condition.
+   * Routes buildThyroidSupportPrompt to subtype-specific guidance blocks.
+   * Null when thyroid support is inactive or subtype not specified.
+   */
+  thyroidType: "hypothyroid" | "hyperthyroid" | "hashimotos" | null;
+
+  /**
+   * Hormone Optimization protocol active flag.
+   * True when "hormone-optimization" is in the user's specialtyConditions array.
+   * Injects HORMONE_OPTIMIZATION_GUIDANCE block into all generators.
+   */
+  hormoneOptimization: boolean;
+
+  /**
    * Measurement system preference — drives unit display and AI prompt formatting.
    * Defaults to "imperial" for all users. Metric users get g/ml/kg in AI output.
    */
@@ -647,6 +661,7 @@ export async function loadUserProtocolEnvelope(
         specialtyCondition: users.specialtyCondition,
         specialtyConditions: users.specialtyConditions,
         thyroidMedication: users.thyroidMedication,
+        thyroidType: (users as any).thyroidType,
         activeHouseholdProfileId: (users as any).activeHouseholdProfileId,
         measurementSystem: users.measurementSystem,
         fitnessGoal: users.fitnessGoal,
@@ -772,13 +787,24 @@ export async function loadUserProtocolEnvelope(
     const THYROID_ACTIVATION_KEYS = new Set([
       "thyroid-support", "thyroid support", "hashimoto's", "hashimotos",
       "hypothyroidism", "autoimmune thyroid", "thyroid disease",
+      "hypothyroid", "hyperthyroid",
     ]);
     const thyroidSupport: boolean =
       user.specialtyCondition === "thyroid-support" ||
       specialtyConditionsArr.includes("thyroid-support") ||
+      specialtyConditionsArr.includes("hashimotos") ||
+      specialtyConditionsArr.includes("hypothyroid") ||
+      specialtyConditionsArr.includes("hyperthyroid") ||
       mergedHealthConditions.some(c => THYROID_ACTIVATION_KEYS.has(c.trim().toLowerCase()));
 
     const thyroidMedication: string | null = (user.thyroidMedication as string | null) ?? null;
+    const thyroidType = ((user as any).thyroidType as "hypothyroid" | "hyperthyroid" | "hashimotos" | null) ?? null;
+
+    // Hormone Optimization: detected when "hormone-optimization" is in specialtyConditions
+    const hormoneOptimization: boolean = specialtyConditionsArr.includes("hormone-optimization");
+    const menopause: boolean = specialtyConditionsArr.includes("menopause");
+    const perimenopause: boolean = specialtyConditionsArr.includes("perimenopause");
+    const metabolicRecovery: boolean = specialtyConditionsArr.includes("metabolic-recovery");
 
     const conditionGuidanceBlocks = await buildUniversalConditionGuidance({
       userId,
@@ -791,9 +817,19 @@ export async function loadUserProtocolEnvelope(
             labDriven: false,
             isAutoimmune: healthConditions.some(c =>
               ["hashimoto's", "hashimotos", "autoimmune thyroid"].includes(c.trim().toLowerCase())
+            ) || specialtyConditionsArr.includes("hashimotos"),
+            thyroidType: thyroidType ?? (
+              specialtyConditionsArr.includes("hashimotos") ? "hashimotos" :
+              specialtyConditionsArr.includes("hypothyroid") ? "hypothyroid" :
+              specialtyConditionsArr.includes("hyperthyroid") ? "hyperthyroid" :
+              null
             ),
           }
         : null,
+      hormoneOptimization,
+      menopause,
+      perimenopause,
+      metabolicRecovery,
     });
 
     return {
@@ -813,6 +849,8 @@ export async function loadUserProtocolEnvelope(
       conditionGuidanceBlocks,
       thyroidSupport,
       thyroidMedication,
+      thyroidType,
+      hormoneOptimization,
       measurementSystem: ((user as any).measurementSystem as "imperial" | "metric") ?? "imperial",
       fitnessGoal: (user.fitnessGoal as string | null) ?? null,
       goalType: ((user as any).goalType as "lose" | "maintain" | "gain" | null) ?? null,
@@ -848,6 +886,8 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     conditionGuidanceBlocks: [],
     thyroidSupport: false,
     thyroidMedication: null,
+    thyroidType: null,
+    hormoneOptimization: false,
     measurementSystem: "imperial",
     fitnessGoal: null,
     goalType: null,

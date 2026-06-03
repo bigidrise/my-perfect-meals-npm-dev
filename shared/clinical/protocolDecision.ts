@@ -1,11 +1,13 @@
 /**
- * Protocol Decision Contract — Phase 4
+ * Protocol Decision Contract — Phase 5
  *
  * This file is the single source of truth for:
  *   1. safeNum()          — guards every lab comparison against null / NaN / blank
  *   2. ProtocolDecision   — typed union of all possible protocol outcomes
  *   3. LabProtocolSignal  — structured output of resolveProtocolFromLabs()
- *   4. LAB_THRESHOLDS     — every numeric threshold used by the resolver
+ *   4. ThyroidLabSignal   — structured output of resolveThyroidFromLabs() (additive modifier)
+ *   5. HormoneLabSignal   — structured output of resolveHormoneFromLabs() (additive modifier)
+ *   6. LAB_THRESHOLDS     — every numeric threshold used by the resolver
  *
  * NEVER hardcode threshold values anywhere else.
  * NEVER compare a raw lab value without first passing it through safeNum().
@@ -14,6 +16,10 @@
  *   liver-disease > kidney-disease > heart-failure > liver-support >
  *   metabolic-support > inflammation-support > metabolic-stress >
  *   anti-inflammatory (base, no signal)
+ *
+ * Additive modifiers (run independently, do not interrupt primary precedence):
+ *   thyroid-support + subtypes (hypothyroid / hyperthyroid / hashimotos)
+ *   hormone-optimization + menopause / perimenopause
  */
 
 // ---------------------------------------------------------------------------
@@ -89,9 +95,12 @@ export interface LabProtocolSignal {
  *   kidney-disease:      KDIGO / NKF guidelines
  *   cardiac:             ACC / AHA guidelines
  *   thyroid:             ATA / AACE / Endocrine Society
+ *   thyroidSubtype:      ATA / AACE / Endocrine Society
  *   metabolic:           ADA / AHA metabolic risk thresholds
  *   inflammation:        AHA / CDC high-sensitivity CRP classification
  *   metabolicStress:     Endocrine Society / standard clinical lab reference ranges
+ *   testosterone:        AUA / Endocrine Society
+ *   menopause:           NAMS / ACOG / Endocrine Society
  */
 export const LAB_THRESHOLDS = {
   liverDisease: {
@@ -128,6 +137,14 @@ export const LAB_THRESHOLDS = {
     thyroglobulinAntibodiesHigh: 1,   // IU/mL  — TgAb > 1 suggests autoimmune thyroid activity
   },
 
+  // Thyroid Subtype — used to resolve hypothyroid / hyperthyroid / hashimotos from existing markers + rT3.
+  // Sources: ATA, AACE, Endocrine Society.
+  thyroidSubtype: {
+    reverseT3High: 25,   // ng/dL — rT3 > 25 suggests impaired T4→T3 conversion (functional hypothyroid pattern)
+    freeT4High:    1.8,  // ng/dL — Free T4 > 1.8 elevated (hyperthyroid pattern)
+    freeT3High:    4.2,  // pg/mL — Free T3 > 4.2 elevated (hyperthyroid pattern)
+  },
+
   // Metabolic Support — insulin resistance / diabetic-aware support.
   // Sources: ADA Standards of Medical Care in Diabetes, AHA metabolic risk.
   metabolic: {
@@ -148,6 +165,30 @@ export const LAB_THRESHOLDS = {
   // Sources: Endocrine Society, standard clinical lab reference ranges (AM draw).
   metabolicStress: {
     cortisolHigh: 20,  // µg/dL — > 20 above optimal AM range (clinical lab refs)
+  },
+
+  // Testosterone / Hormone Optimization — sex hormone deficiency triggers hormone-optimization.
+  // Sources: AUA guideline on testosterone deficiency (2018, updated 2022),
+  //          Endocrine Society clinical practice guideline on testosterone therapy.
+  testosterone: {
+    totalTestosteroneLow: 300,  // ng/dL — < 300 consistent with testosterone deficiency (AUA)
+    freeTestosteroneLow:    5,  // pg/mL — broadly low free testosterone across sexes
+    dheaSLow:              70,  // µg/dL — low adrenal androgen output (Endocrine Society)
+  },
+
+  // Menopause / Perimenopause — drives menopause and perimenopause additive modifier activation.
+  // Sources: NAMS (North American Menopause Society) Position Statement 2023,
+  //          ACOG Committee Opinion on Menopause,
+  //          Endocrine Society Clinical Practice Guideline.
+  menopause: {
+    // Menopause: consistently elevated FSH + low estradiol = postmenopausal range
+    fshMenopauseHigh:      40,  // mIU/mL — FSH > 40 consistent with menopause (NAMS/ACOG)
+    estradiolMenopauseLow: 20,  // pg/mL  — E2 < 20 = postmenopausal range (NAMS)
+    // Perimenopause: fluctuating FSH + declining estradiol + low luteal progesterone
+    fshPeriLow:            10,  // mIU/mL — FSH ≥ 10 begins perimenopausal range
+    estradiolPeriLow:      50,  // pg/mL  — E2 20–50 pg/mL = perimenopausal transition zone
+    progesteroneLow:        2,  // ng/mL  — luteal phase < 2 suggests anovulatory/perimenopause
+    lhElevated:            20,  // mIU/mL — LH > 20 supports perimenopause when combined with other markers
   },
 } as const;
 
@@ -186,11 +227,22 @@ export interface LabDowngradeSignal {
 // ---------------------------------------------------------------------------
 // 6. ThyroidLabSignal — separate from LabProtocolSignal because thyroid is
 //    an additive modifier, not a primary protocol override.
+//    Phase 5: extended with subtypeConditions for subtype detection.
 // ---------------------------------------------------------------------------
 
 export interface ThyroidLabSignal {
   /** Whether any thyroid threshold was crossed. */
   hasThyroidIndicators: boolean;
+
+  /**
+   * Specific thyroid subtype conditions inferred from lab pattern.
+   * Empty array = generic thyroid-support only (no clear subtype).
+   * These are ADDITIVE — multiple subtypes can coexist.
+   * - 'hashimotos':   TPO Ab or TgAb elevated (autoimmune pattern)
+   * - 'hypothyroid':  TSH high + Free T4/T3 low (or rT3 elevated)
+   * - 'hyperthyroid': TSH low + Free T4/T3 elevated
+   */
+  subtypeConditions: Array<'hypothyroid' | 'hyperthyroid' | 'hashimotos'>;
 
   /**
    * Human-readable reason string used in the recommendation modal.
@@ -206,4 +258,36 @@ export interface ThyroidLabSignal {
 
   /** true when the trigger is antibody-based (autoimmune pattern like Hashimoto's). */
   isAutoimmune: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// 7. HormoneLabSignal — additive modifier for sex hormone protocols.
+//    Drives: hormone-optimization, menopause, perimenopause.
+//    Does NOT affect the primary protocol precedence chain.
+// ---------------------------------------------------------------------------
+
+export interface HormoneLabSignal {
+  /** Whether any hormone threshold was crossed. */
+  hasHormoneIndicators: boolean;
+
+  /**
+   * Specific hormone-related conditions inferred from lab pattern.
+   * Multiple conditions can coexist (e.g., perimenopause + hormone-optimization).
+   * - 'hormone-optimization': low testosterone/DHEA-S → nutrient support protocol
+   * - 'menopause':            FSH > 40 + E2 < 20 (postmenopausal pattern)
+   * - 'perimenopause':        FSH 10–40 OR E2 20–50 OR progesterone < 2
+   */
+  conditions: Array<'hormone-optimization' | 'menopause' | 'perimenopause'>;
+
+  /**
+   * Human-readable reason string for the recommendation modal.
+   * Language MUST be advisory — never diagnostic.
+   */
+  reason: string;
+
+  /** The specific field name(s) that triggered this signal. */
+  triggerFields: string[];
+
+  /** Confidence level driven by number of markers crossed. */
+  confidence: 'high' | 'moderate' | 'low';
 }

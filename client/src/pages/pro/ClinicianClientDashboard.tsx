@@ -42,6 +42,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { ProClientBanner } from "@/components/pro/ProClientBanner";
 import WeeklyWeightTrendCard from "@/components/pro/WeeklyWeightTrendCard";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import ClinicalProtocolCard from "@/components/protocol/ClinicalProtocolCard";
 
 const CLINICIAN_DASHBOARD_TOUR_STEPS: TourStep[] = [
   {
@@ -544,7 +545,8 @@ export default function ClinicianClientDashboard() {
               { key: "liver-support",      label: "Liver Support",     isActive: !!t?.flags?.liverSupport     || labDerivedConditions.includes('liver-support'),    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
               { key: "liver-disease",      label: "Liver Disease",     isActive: !!t?.flags?.liverDisease     || labDerivedConditions.includes('liver-disease'),    activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
               { key: "oncology-support",   label: "Oncology Support",  isActive: !!t?.flags?.oncologySupport  || labDerivedConditions.includes('oncology-support'), activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
-              { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!t?.flags?.thyroidSupport,                                                        activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+              { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!t?.flags?.thyroidSupport,                                                                                                                                    activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+              { key: "hormone-optimization", label: "Hormone Opt.",  isActive: !!((client as any)?.specialtyConditions as string[] | undefined)?.includes("hormone-optimization"), activeColor: "text-orange-400", dotColor: "bg-orange-400", dotGlow: "shadow-[0_0_4px_rgba(251,146,60,0.9)]" },
             ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
               <span key={key} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
                 <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
@@ -552,6 +554,28 @@ export default function ClinicianClientDashboard() {
               </span>
             ))}
           </div>
+          {/* Hormonal & Metabolic — Second Row */}
+          {(() => {
+            const clientSc: string[] = ((client as any)?.specialtyConditions as string[] | undefined) ?? [];
+            return (
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
+                <span className="font-medium text-white/70">Hormonal & Metabolic:</span>
+                {[
+                  { key: "hashimotos",         label: "Hashimoto's",       activeColor: "text-teal-300",   dotColor: "bg-teal-300",   dotGlow: "shadow-[0_0_4px_rgba(94,234,212,0.9)]"  },
+                  { key: "hypothyroid",        label: "Hypothyroid",       activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                  { key: "hyperthyroid",       label: "Hyperthyroid",      activeColor: "text-cyan-400",   dotColor: "bg-cyan-400",   dotGlow: "shadow-[0_0_4px_rgba(34,211,238,0.9)]"  },
+                  { key: "menopause",          label: "Menopause",         activeColor: "text-violet-400", dotColor: "bg-violet-400", dotGlow: "shadow-[0_0_4px_rgba(167,139,250,0.9)]" },
+                  { key: "perimenopause",      label: "Perimenopause",     activeColor: "text-purple-400", dotColor: "bg-purple-400", dotGlow: "shadow-[0_0_4px_rgba(192,132,252,0.9)]" },
+                  { key: "metabolic-recovery", label: "Metabolic Recovery", activeColor: "text-amber-400", dotColor: "bg-amber-400",  dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"  },
+                ].map(({ key, label, activeColor, dotColor, dotGlow }) => (
+                  <span key={key} className={`flex items-center gap-1 ${clientSc.includes(key) ? `${activeColor} font-semibold` : "text-white/25"}`}>
+                    <span className={`inline-block w-1.5 h-1.5 rounded-full ${clientSc.includes(key) ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
+                    {label}
+                  </span>
+                ))}
+              </div>
+            );
+          })()}
           {clientGoal?.goalType && (
             <div className="mt-3 flex items-center gap-3 rounded-xl bg-orange-500/10 border border-orange-500/30 px-4 py-3">
               <span className="text-2xl">
@@ -573,6 +597,17 @@ export default function ClinicianClientDashboard() {
             Set macro targets, clinical context, and physician notes for your patient.
           </p>
         </div>
+
+        {/* Option C — ProCare Clinical Protocol Card */}
+        {client && (
+          <ClinicalProtocolCard
+            clientUserId={clientId}
+            specialtyConditions={(client as any)?.specialtyConditions ?? []}
+            thyroidType={(client as any)?.thyroidType ?? null}
+            thyroidMedication={(client as any)?.thyroidMedication ?? null}
+            onUpdate={() => { setClient({ ...proStore.getClient(clientId) } as any); }}
+          />
+        )}
 
         {(labs?.ldl != null || labs?.a1c != null || labs?.blood_pressure_systolic != null || labs?.ejection_fraction != null) && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

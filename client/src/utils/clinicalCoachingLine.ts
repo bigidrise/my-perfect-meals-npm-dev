@@ -27,6 +27,18 @@ export function getClinicalCoachingLine(builderTypeOrSource?: string | null): st
   if (s.includes("diabet")) {
     return "Built to keep you within your glucose target range.";
   }
+  if (s.includes("hormone-optim") || s.includes("hormone optim") || s.includes("hormoneoptim")) {
+    return "Built for your Hormone Optimization protocol — nutrient-dense, hormone-supportive, clean fats.";
+  }
+  if (s.includes("thyroid") && (s.includes("hashimoto") || s.includes("autoimmune"))) {
+    return "Built for your Hashimoto's protocol — anti-inflammatory, selenium-rich, gluten-minimal.";
+  }
+  if (s.includes("hyperthyroid")) {
+    return "Built for your Hyperthyroid protocol — iodine-aware, calorie-supportive, selenium-rich.";
+  }
+  if (s.includes("thyroid")) {
+    return "Built for your Thyroid Support protocol — selenium-rich, medication-timing friendly.";
+  }
   if (s.includes("anti") || s.includes("inflam")) {
     return "Built around anti-inflammatory principles — whole foods, clean carbs, low-inflammatory fats.";
   }
