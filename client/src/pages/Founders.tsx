@@ -18,22 +18,6 @@ const FOUNDING_COACHES: {
   photo: string | null;
   bio: string | null;
 }[] = [
-  {
-    name: "Kristen Bogan",
-    title: "Founding Coach",
-    credentials: "CPT · Corrective Exercise · Strength & Recovery",
-    photo: "/assets/kristen-bogan-2.jpg",
-    bio: "As a dedicated personal trainer, Kristen specializes in helping clients build strength, lose weight, and recover safely and effectively from surgery or injury. Her approach is rooted in functional and lifestyle-based training focusing on movements that make everyday life easier, safer, and more enjoyable. With a background in muscle development and corrective exercise, she designs programs that improve mobility, stability, and overall body mechanics. Recovery and longevity are at the core of her philosophy empowering clients with the strength, confidence, and resilience to thrive in both the gym and everyday life.",
-  },
-  {
-    name: "Danielle Affatato",
-    title: "Founding Coach",
-    credentials:
-      "Certified Nutrition Coach · Macro Strategy · Habit-Based Coaching",
-    photo: "/assets/danielle-affatato.jpg",
-    bio: null,
-  },
-
   // ── Add new founding coaches below this line ──
   // {
   //   name: "First Last",
