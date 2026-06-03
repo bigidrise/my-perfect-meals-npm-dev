@@ -82,7 +82,7 @@ router.post("/invite", requireAuth, async (req, res) => {
         .returning();
       member = m;
     } else {
-      console.log(`ℹ️ [CareTeam Invite] Pro caller (${caller?.professionalRole}) inviting patient — deferring careTeamMember creation to /connect`);
+      console.log(`ℹ️ [CareTeam Invite] Pro caller (${callerUser?.professionalRole}) inviting patient — deferring careTeamMember creation to /connect`);
     }
 
     await db.insert(careInvite).values({

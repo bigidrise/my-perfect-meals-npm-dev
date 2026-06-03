@@ -9,7 +9,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { logClientActivity, logClientActivityForStudioMember } from "../services/activityLog";
 import { pushToUser } from "../services/pushNotify";
-import { deactivateProCareClient, ActivationError } from "../services/procareActivation";
+import { activateProCareClient, deactivateProCareClient, ActivationError } from "../services/procareActivation";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
 import { assertSameOrg, handleOrgIsolationError } from "../lib/orgIsolation";
 import { logAudit, getClientIp } from "../lib/auditLog";
@@ -253,14 +253,9 @@ router.patch("/:studioId/clients/:clientUserId/restore", async (req, res) => {
       if (handleOrgIsolationError(err, res)) return; throw err;
     }
 
-    await db
-      .update(studioMemberships)
-      .set({ isArchived: false, updatedAt: new Date() })
-      .where(and(
-        eq(studioMemberships.studioId, studioId),
-        eq(studioMemberships.clientUserId, clientUserId),
-      ));
+    await activateProCareClient(clientUserId, userId, "provider_unarchive");
 
+    console.log(`♻️ [StudioRestore] Client ${clientUserId} fully reactivated by pro ${userId} (studio ${studioId})`);
     res.json({ success: true });
   } catch (error) {
     console.error("Error restoring client:", error);
