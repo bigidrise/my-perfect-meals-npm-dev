@@ -186,6 +186,38 @@ const SECTION_START_HERE: LibraryTopic[] = [
           text: "Supports cholesterol and lipid goals. Focus on fat quality, fiber, and heart-supportive meals.",
         },
         {
+          heading: "Thyroid Support",
+          text: "Applies thyroid-aware ingredient guidance across all meal generators. Adjusts selenium and iodine levels, supports T4→T3 conversion efficiency, and monitors goitrogenic foods. Can activate automatically when TSH, Free T4, Free T3, or Reverse T3 lab values cross established clinical thresholds.",
+        },
+        {
+          heading: "Hashimoto's (Autoimmune Thyroid)",
+          text: "A specialized layer for Hashimoto's thyroiditis. Applies gluten-minimal preference, dairy-light structure, and emphasizes selenium, zinc, and bone broth for autoimmune thyroid support. Anti-inflammatory reinforcement is built in. Stacks on top of your primary meal builder without replacing it.",
+        },
+        {
+          heading: "Hypothyroid Support",
+          text: "Supports underactive thyroid function. Emphasizes metabolic regularity and iron-rich foods. Applies smart limits on raw goitrogenic vegetables — cruciferous vegetables are guided toward cooked preparation to reduce goitrogenic interference. If Levothyroxine (Synthroid) is listed in your medications, breakfast structure is adjusted to support optimal medication absorption.",
+        },
+        {
+          heading: "Hyperthyroid Support",
+          text: "Supports overactive thyroid management. Enforces strict iodine restriction — kelp, seaweed, and high-iodine dairy are blocked. Adds caloric and nutrient-density support to account for the elevated metabolic rate associated with hyperthyroidism.",
+        },
+        {
+          heading: "Hormone Optimization",
+          text: "Designed for low testosterone, low DHEA-S, or general hormone-optimization goals. Requires healthy fats (avocado, salmon, nuts, olive oil) in every meal to support hormone synthesis. Seed oils and refined sugars are blocked. Zinc-rich proteins are prioritized. Can activate automatically when Total Testosterone, Free Testosterone, or DHEA-S lab values fall below clinical thresholds.",
+        },
+        {
+          heading: "Menopause Support",
+          text: "Designed for menopause. Prioritizes bone density through calcium and Vitamin D. Phytoestrogens — flaxseed, edamame, and soy — are actively included to support hormonal balance. Every meal targets 25g or more of protein to protect lean muscle mass. Can activate automatically when FSH and Estradiol lab values indicate menopause.",
+        },
+        {
+          heading: "Perimenopause Support",
+          text: "Designed for the hormonal transition before menopause. Emphasizes blood sugar stability to manage energy fluctuations and mood variability. Iron-rich foods including lean beef, lentils, and spinach are prioritized. Can activate automatically when FSH and Estradiol lab values indicate the perimenopause transition.",
+        },
+        {
+          heading: "Metabolic Recovery",
+          text: "Designed for metabolic repair and restoration. Emphasizes nutrient density, gut health support, and glycemic stability. High-glycemic spikes are actively limited. Works best alongside Anti-Inflammatory or General Nutrition as the primary meal builder.",
+        },
+        {
           heading: "Cancer Support Nutrition (Physician Assigned)",
           text: "A physician-assigned support system — not treatment or medical care. Built on an anti-inflammatory foundation with protein support, easier-to-tolerate meals, appetite-aware structure, and symptom-sensitive adjustments. Examples include low-appetite support, nausea-friendly meals, soft food options, and low-prep meals during fatigue.",
         },
@@ -604,18 +636,23 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
         {
           heading: "Clinical Labs — What You Can Track",
           text: "The clinical labs section lets you log your lab values so everything lives in one place. Markers you can track include:",
+
           list: [
             "Blood glucose and HbA1c — blood sugar and diabetes management",
             "LDL, HDL, total cholesterol, and triglycerides — cardiovascular health",
             "ALT and AST — liver enzyme markers",
             "Creatinine and BUN — kidney function markers",
-            "TSH, Free T4, and Free T3 — thyroid hormone markers",
-            "Prealbumin (transthyretin) — a nutritional status biomarker used in recovery and oncology-supportive care to track protein status and nutritional adequacy over time",
+            "TSH, Free T4, Free T3, and Reverse T3 (rT3) — full thyroid hormone panel including T4→T3 conversion efficiency",
+            "Total Testosterone and Free Testosterone — hormone optimization markers",
+            "DHEA-S — adrenal androgen, used for hormone optimization protocol detection",
+            "Estradiol (E2), Progesterone, FSH, and LH — menopause and perimenopause hormone panel",
+            "SHBG (Sex Hormone Binding Globulin) — hormone transport and bioavailability marker",
+            "Prealbumin (transthyretin) — nutritional status biomarker used in recovery and oncology-supportive care",
           ],
         },
         {
           heading: "How Lab Values Are Used",
-          text: "When you log a lab value, the system evaluates it against established clinical thresholds. Markers that cross a threshold are flagged so you and your care team are aware. Some clinical protocols — such as cardiac, renal, and thyroid support — can activate automatically when the corresponding lab values cross their respective thresholds. Physician-assigned supports like Oncology Support always require direct physician assignment and are never triggered automatically.",
+          text: "When you log a lab value, the system evaluates it against established clinical thresholds. Markers that cross a threshold are flagged so you and your care team are aware. Clinical protocols — including cardiac, renal, thyroid support, thyroid subtypes (Hashimoto's, Hypothyroid, Hyperthyroid), Hormone Optimization, Menopause, and Perimenopause — can activate automatically when the corresponding lab values cross their respective thresholds. Physician-assigned supports like Oncology Support always require direct physician assignment and are never triggered automatically.",
         },
         {
           heading: "Labs and ProCare",
