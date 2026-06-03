@@ -290,12 +290,14 @@ export default function EditProfilePage() {
   const [physicianProtocolClearing, setPhysicianProtocolClearing] = useState(false);
 
   // ── Control hierarchy ────────────────────────────────────────────────────
-  // Only a physician assignment locks conditions. Lab values are guidance only —
-  // the user always has final say ("last decision wins").
+  // Tier 1 — Physician lock: physician controls everything
+  // Tier 2 — Lab-driven lock: conditions triggered by objective lab values cannot
+  //           be silently removed. User sees them illuminated with a lab indicator.
+  // Tier 3 — Self-select: user controls all non-lab, non-physician conditions.
   const physicianLocked: boolean = !!(user as any)?.physicianLocked;
-  // Still fetch labDrivenConditions for informational display (not for locking)
   const labDrivenConditions: string[] = (user as any)?.labDrivenConditions ?? [];
-  const isConditionLocked = (val: string): boolean => physicianLocked;
+  const isConditionLocked = (val: string): boolean =>
+    physicianLocked || labDrivenConditions.includes(val);
 
   const [allergiesUnlocked, setAllergiesUnlocked] = useState(false);
   const [allergyEditToken, setAllergyEditToken] = useState<string | null>(null);
@@ -1096,10 +1098,13 @@ export default function EditProfilePage() {
 
                 {/* ── Lab-driven lock banner ─────────────────────────────── */}
                 {labDrivenConditions.length > 0 && !physicianLocked && (
-                  <div className="mb-3 rounded-xl border border-white/10 bg-white/5 p-3">
-                    <p className="text-white/50 text-xs leading-relaxed">
-                      Some protocols below were recommended based on your lab results. You can turn any of them on or off freely.
-                    </p>
+                  <div className="mb-3 rounded-xl border border-sky-500/30 bg-sky-950/20 p-3">
+                    <div className="flex items-start gap-2">
+                      <span className="text-sky-400 text-xs mt-0.5">🔬</span>
+                      <p className="text-sky-300/80 text-xs leading-relaxed">
+                        <span className="font-semibold text-sky-300">Lab-activated protocols</span> are shown below with a <span className="font-semibold">🔬</span> indicator. These protocols are active because your lab values support them. To remove them, update your lab values in Biometrics.
+                      </p>
+                    </div>
                   </div>
                 )}
 
@@ -1134,11 +1139,13 @@ export default function EditProfilePage() {
                     { label: "Perimenopause", value: "perimenopause" },
                     { label: "Metabolic Recovery", value: "metabolic-recovery" },
                   ] as const).map((opt) => {
+                    const isLabDriven = labDrivenConditions.includes(opt.value);
                     const locked = isConditionLocked(opt.value);
+                    const isActive = specialtyConditions.includes(opt.value) || isLabDriven;
                     return (
                       <PillButton
                         key={opt.value}
-                        active={specialtyConditions.includes(opt.value) || labDrivenConditions.includes(opt.value)}
+                        active={isActive}
                         onClick={() => {
                           if (locked) return;
                           if (physicianOncologyLocked && opt.value === "oncology-support") return;
@@ -1146,9 +1153,9 @@ export default function EditProfilePage() {
                             prev.includes(opt.value) ? prev.filter(c => c !== opt.value) : [...prev, opt.value]
                           );
                         }}
-                        className={(physicianOncologyLocked && opt.value === "oncology-support") ? "opacity-60 cursor-not-allowed" : ""}
+                        className={locked ? "opacity-80 cursor-not-allowed" : ""}
                       >
-                        {opt.label}
+                        {isLabDriven ? <span className="mr-1 text-[10px]">🔬</span> : null}{opt.label}
                       </PillButton>
                     );
                   })}
@@ -1158,11 +1165,11 @@ export default function EditProfilePage() {
                   >
                     GLP-1 Active
                   </PillButton>
-                  {(specialtyConditions.length > 0 || glp1Active) && !physicianOncologyLocked && !physicianLocked && (
+                  {(specialtyConditions.filter(c => !labDrivenConditions.includes(c)).length > 0 || glp1Active) && !physicianOncologyLocked && !physicianLocked && (
                     <PillButton
                       active={false}
                       onClick={() => {
-                        setSpecialtyConditions([]);
+                        setSpecialtyConditions(prev => prev.filter(c => labDrivenConditions.includes(c)));
                         setGlp1Active(false);
                       }}
                     >

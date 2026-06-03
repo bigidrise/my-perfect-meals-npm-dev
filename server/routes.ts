@@ -2297,30 +2297,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // ── Tier 2 (REMOVED): Lab values are guidance only, not locks ────────────
-      // Users always have final say over their own protocols unless a physician
-      // has explicitly taken control. "Last decision wins."
+      // ── Tier 2: Lab-value lock — preserve lab-driven conditions ─────────────
+      // Conditions triggered by objective lab values cannot be silently removed
+      // via profile edit. We fetch the current lab-driven set and merge it into
+      // whatever the user submits, so lab-driven conditions always survive.
+      const labDriven = await getLabDrivenConditions(userId);
 
-      // ── Tier 2/3: Self-select — apply the change ─────────────────────────
+      // ── Tier 3: Self-select — apply the change ────────────────────────────
       // Multi-condition path: conditions[]
       if (conditions !== undefined) {
         if (!Array.isArray(conditions)) return res.status(400).json({ error: "conditions must be an array" });
         const invalid = conditions.find((c: any) => !ALLOWED.includes(c));
         if (invalid) return res.status(400).json({ error: `Invalid condition: ${invalid}` });
-        const primaryCondition = conditions.length > 0 ? conditions[0] : null;
+        // Merge: preserve any lab-driven conditions even if user omitted them
+        const merged = Array.from(new Set([...conditions, ...labDriven]));
+        const primaryCondition = merged.length > 0 ? merged[0] : null;
         await db.update(users).set({
           specialtyCondition: primaryCondition,
-          specialtyConditions: conditions,
+          specialtyConditions: merged,
         } as any).where(eq(users.id, userId));
-        console.log(`[specialty-condition] User ${userId} multi-set → ${conditions.length} conditions`);
-        return res.json({ ok: true, specialtyConditions: conditions, specialtyCondition: primaryCondition });
+        console.log(`[specialty-condition] User ${userId} multi-set → ${merged.length} conditions (${labDriven.length} lab-protected)`);
+        return res.json({ ok: true, specialtyConditions: merged, specialtyCondition: primaryCondition });
       }
 
       // Single-condition path: backward compat
       if (condition !== null && condition !== undefined && !ALLOWED.includes(condition)) {
         return res.status(400).json({ error: "Invalid specialty condition value" });
       }
-      const newArray = condition ? [condition] : [];
+      // Merge single-condition with lab-driven set
+      const baseArray = condition ? [condition] : [];
+      const newArray = Array.from(new Set([...baseArray, ...labDriven]));
       await db.update(users).set({
         specialtyCondition: condition ?? null,
         specialtyConditions: newArray,
