@@ -697,6 +697,7 @@ export default function Router() {
         <Route path="/business-center" component={BusinessCenter} />
         <Route path="/business-center/affiliate" component={BusinessCenterSection} />
         <Route path="/business-center/academy" component={BusinessCenterSection} />
+        <Route path="/business-center/industry" component={BusinessCenterSection} />
         <Route path="/business-center/white-label" component={BusinessCenterSection} />
         <Route path="/business-center/partnerships" component={BusinessCenterSection} />
         {/* Supplement Hub Routes */}
