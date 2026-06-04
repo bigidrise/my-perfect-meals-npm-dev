@@ -64,6 +64,10 @@ router.get("/:certType/progress", requireAuth, async (req, res) => {
         ),
     ]);
 
+    // Never cache this response — module status changes after every quiz
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     return res.json({
       certification: certification[0] ?? null,
       moduleProgress,
