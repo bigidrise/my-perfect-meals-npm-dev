@@ -1,7 +1,6 @@
 import { useLocation } from "wouter";
-import { ArrowLeft, TrendingUp, Users, GraduationCap, Building2, HeartPulse, ChevronRight, Handshake } from "lucide-react";
+import { ArrowLeft, TrendingUp, Users, Building2, HeartPulse, ChevronRight, Handshake } from "lucide-react";
 import { motion } from "framer-motion";
-import { useAuth } from "@/contexts/AuthContext";
 
 const sections = [
   {
@@ -19,14 +18,6 @@ const sections = [
     icon: Users,
     color: "blue",
     route: "/procare-welcome",
-  },
-  {
-    id: "academy",
-    title: "Business Success Academy",
-    description: "Courses, certifications, and resources to grow your practice",
-    icon: GraduationCap,
-    color: "orange",
-    route: "/business-center/academy",
   },
   {
     id: "industry",
@@ -69,7 +60,6 @@ const colorMap = {
 
 export default function BusinessCenter() {
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
 
   return (
     <motion.div
@@ -100,7 +90,6 @@ export default function BusinessCenter() {
         className="px-4 max-w-2xl mx-auto space-y-4"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
       >
-        {/* Intro */}
         <div className="text-center py-4">
           <p className="text-white/70 text-sm leading-relaxed">
             Grow with My Perfect Meals — whether you want to earn as an affiliate,
@@ -108,7 +97,6 @@ export default function BusinessCenter() {
           </p>
         </div>
 
-        {/* Cards */}
         {sections.map((section, i) => {
           const Icon = section.icon;
           const colors = colorMap[section.color as keyof typeof colorMap];
@@ -135,7 +123,6 @@ export default function BusinessCenter() {
           );
         })}
 
-        {/* Footer note */}
         <p className="text-center text-white/30 text-xs pb-4 pt-2">
           New opportunities added regularly
         </p>
