@@ -1037,7 +1037,7 @@ export const AFFILIATE_MODULES: CertificationModule[] = [
         },
         {
           id: "m6q5",
-          question: "Elena asks about cayenne pepper, handful diets, and quick fixes. She then says she will 'try' My Perfect Meals for 30 days. What is the deeper coaching lesson here?",
+          question: "A potential client asks about cayenne pepper, handful diets, and quick fixes. She then says she will 'try' My Perfect Meals for 30 days. What is the deeper coaching lesson here?",
           options: [
             "She needs more nutrition education and more recipes",
             "She is looking for shortcuts and has not yet fully committed to the process of change",
@@ -1347,7 +1347,7 @@ export const AFFILIATE_MODULES: CertificationModule[] = [
         },
         {
           id: "fq11",
-          question: "Elena asks about cayenne pepper, handful diets, and other quick fixes. She then says she will 'try' My Perfect Meals for 30 days. What is the deeper coaching lesson?",
+          question: "A potential client asks about cayenne pepper, handful diets, and other quick fixes. She then says she will 'try' My Perfect Meals for 30 days. What is the deeper coaching lesson?",
           options: [
             "She needs more nutrition education and recipe variety",
             "She is looking for shortcuts and has not yet committed to the process of real change",
