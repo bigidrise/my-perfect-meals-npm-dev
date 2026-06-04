@@ -1,5 +1,8 @@
 import { pgTable, uuid, text, timestamp, integer, unique, jsonb } from "drizzle-orm/pg-core";
 
+// NOTE: user_certifications has a unique constraint on (user_id, certification_type)
+// added via migration (not drizzle-kit push — that tool times out on this project).
+// Constraint name: uniq_user_cert_type
 export const certificationModuleProgress = pgTable("certification_module_progress", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").notNull(),
@@ -25,7 +28,9 @@ export const userCertifications = pgTable("user_certifications", {
   certificateName: text("certificate_name"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => ({
+  uniqUserCertType: unique("uniq_user_cert_type").on(t.userId, t.certificationType),
+}));
 
 export const certificationQuizAttempts = pgTable("certification_quiz_attempts", {
   id: uuid("id").defaultRandom().primaryKey(),

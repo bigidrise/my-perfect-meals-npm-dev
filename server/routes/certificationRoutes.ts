@@ -1,4 +1,6 @@
 import express from "express";
+import path from "path";
+import fs from "fs";
 import { db } from "../db";
 import { eq, and } from "drizzle-orm";
 import { sql } from "drizzle-orm";
@@ -31,6 +33,22 @@ router.get("/certificate-name", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("[Cert] certificate-name GET error:", err);
     return res.status(500).json({ error: "Failed to fetch certificate name" });
+  }
+});
+
+// GET /api/certifications/assets/signature — serve signature image for in-app cert
+router.get("/assets/signature", requireAuth, async (req, res) => {
+  try {
+    const sigPath = path.join(process.cwd(), "server", "assets", "cert-signature.png");
+    if (!fs.existsSync(sigPath)) {
+      return res.status(404).json({ error: "Signature not found" });
+    }
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    return res.sendFile(sigPath);
+  } catch (err) {
+    console.error("[Cert] signature asset error:", err);
+    return res.status(500).json({ error: "Failed to serve signature" });
   }
 });
 
@@ -319,9 +337,12 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
     );
 
     const year = new Date().getFullYear();
+    const pathCode = certType === "affiliate_coaching" ? "COA" : "SOC";
     const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const certificateNumber = `MPM-AFF-${year}-${random}`;
+    const newCertNumber = `MPM-AFF-${pathCode}-${year}-${random}`;
 
+    // Deterministic upsert — unique constraint on (user_id, certification_type)
+    // On conflict: only update name if it was previously null; never overwrite cert number or completedAt
     await db
       .insert(userCertifications)
       .values({
@@ -330,10 +351,18 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
         status: "completed",
         score: avgScore,
         completedAt: new Date(),
-        certificateNumber,
+        certificateNumber: newCertNumber,
         certificateName: certificateName ?? null,
+        updatedAt: new Date(),
       })
-      .onConflictDoNothing();
+      .onConflictDoUpdate({
+        target: [userCertifications.userId, userCertifications.certificationType],
+        set: {
+          // Only update name if provided and not already set
+          certificateName: sql`CASE WHEN ${userCertifications.certificateName} IS NULL AND ${certificateName ?? null} IS NOT NULL THEN ${certificateName ?? null} ELSE ${userCertifications.certificateName} END`,
+          updatedAt: new Date(),
+        },
+      });
 
     const [existing] = await db
       .select()
@@ -346,14 +375,7 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
       )
       .limit(1);
 
-    const finalCertNumber = existing?.certificateNumber ?? certificateNumber;
-
-    if (existing && !existing.certificateName && certificateName) {
-      await db
-        .update(userCertifications)
-        .set({ certificateName })
-        .where(eq(userCertifications.id, existing.id));
-    }
+    const finalCertNumber = existing?.certificateNumber ?? newCertNumber;
 
     try {
       const [user] = await db
