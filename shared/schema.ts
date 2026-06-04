@@ -385,7 +385,7 @@ export const users = pgTable("users", {
   measurementSystem: text("measurement_system").$type<"imperial"|"metric">().default("imperial"),
   countryCode: text("country_code").$type<"US"|"CA"|"AU"|"UK"|"NZ">().default("US"),
   // ProCare Professional Onboarding - Phase 1
-  professionalRole: text("professional_role").$type<"trainer"|"physician">(),
+  professionalRole: text("professional_role").$type<"trainer"|"physician"|"dietitian"|"nurse_practitioner">(),
   professionalCategory: text("professional_category").$type<"certified"|"experienced"|"non_certified">(),
   credentialType: text("credential_type"), // e.g. "Personal Trainer", "Physician", "Dietitian"
   credentialBody: text("credential_body"), // e.g. "NASM", "ACE", license state

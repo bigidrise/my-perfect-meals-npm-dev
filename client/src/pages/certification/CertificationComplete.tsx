@@ -28,9 +28,9 @@ export default function CertificationComplete() {
   const [nameError, setNameError] = useState("");
 
   useEffect(() => {
+    // apiRequest already returns parsed JSON — do NOT call .json() again
     apiRequest(`/api/certifications/${certType}/progress`)
-      .then((r) => r.json())
-      .then((data) => {
+      .then((data: any) => {
         if (data.certification) {
           setCert(data.certification);
         }
@@ -48,15 +48,13 @@ export default function CertificationComplete() {
     setNameError("");
     setNameSaving(true);
     try {
-      // Re-complete with name (idempotent — updates name on existing record)
+      // apiRequest returns parsed JSON — do NOT call .json() again
       await apiRequest(`/api/certifications/${certType}/complete`, {
         method: "POST",
         body: JSON.stringify({ certificateName: name }),
         headers: { "Content-Type": "application/json" },
       });
-      // Reload progress
-      const res = await apiRequest(`/api/certifications/${certType}/progress`);
-      const data = await res.json();
+      const data: any = await apiRequest(`/api/certifications/${certType}/progress`);
       if (data.certification) setCert(data.certification);
     } catch {
       setNameError("Failed to save. Please try again.");
@@ -69,7 +67,11 @@ export default function CertificationComplete() {
     if (downloading) return;
     setDownloading(true);
     try {
-      const res = await apiRequest(`/api/certifications/${certType}/certificate`);
+      // Must use raw fetch for blob responses — apiRequest only returns parsed JSON
+      const token = localStorage.getItem("mpm_auth_token");
+      const res = await fetch(`/api/certifications/${certType}/certificate`, {
+        headers: token ? { "x-auth-token": token } : {},
+      });
       if (!res.ok) {
         console.error("[Cert] PDF download failed:", res.status);
         return;
@@ -215,23 +217,33 @@ export default function CertificationComplete() {
               transition={{ delay: 0.45 }}
             >
               {hasName && (
-                <button
-                  onClick={handleDownload}
-                  disabled={downloading}
-                  className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-60"
-                >
-                  {downloading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                      Generating PDF…
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4" />
-                      Download Certificate
-                    </>
-                  )}
-                </button>
+                <>
+                  <button
+                    onClick={() => setLocation(`/business-center/affiliate/${pathId}/certification/view`)}
+                    className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                  >
+                    <FileText className="h-4 w-4" />
+                    View Certificate
+                  </button>
+
+                  <button
+                    onClick={handleDownload}
+                    disabled={downloading}
+                    className="w-full p-4 rounded-2xl bg-white/10 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-60"
+                  >
+                    {downloading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                        Generating PDF…
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4" />
+                        Download PDF
+                      </>
+                    )}
+                  </button>
+                </>
               )}
 
               <button
