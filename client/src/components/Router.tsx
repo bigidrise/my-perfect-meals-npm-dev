@@ -256,6 +256,8 @@ import FoundersPage from "@/pages/Founders";
 import CoachesComingSoon from "@/pages/CoachesComingSoon";
 import BusinessCenter from "@/pages/BusinessCenter";
 import BusinessCenterSection from "@/pages/BusinessCenterSection";
+import AffiliateOpportunities from "@/pages/AffiliateOpportunities";
+import AffiliatePathPage from "@/pages/AffiliatePathPage";
 
 // SimpleWalkthroughDemo quarantined - replaced by Quick Tour system
 
@@ -695,7 +697,9 @@ export default function Router() {
         <Route path="/coaches" component={CoachesComingSoon} />
         {/* Business Center */}
         <Route path="/business-center" component={BusinessCenter} />
-        <Route path="/business-center/affiliate" component={BusinessCenterSection} />
+        <Route path="/business-center/affiliate" component={AffiliateOpportunities} />
+        <Route path="/business-center/affiliate/social" component={AffiliatePathPage} />
+        <Route path="/business-center/affiliate/coaching" component={AffiliatePathPage} />
         <Route path="/business-center/academy" component={BusinessCenterSection} />
         <Route path="/business-center/industry" component={BusinessCenterSection} />
         <Route path="/business-center/white-label" component={BusinessCenterSection} />
