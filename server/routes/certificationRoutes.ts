@@ -36,8 +36,9 @@ router.get("/certificate-name", requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/certifications/assets/signature — serve signature image for in-app cert
-router.get("/assets/signature", requireAuth, async (req, res) => {
+// GET /api/certifications/assets/signature — public static asset, no auth required
+// (signature appears on every certificate; it is not a user secret)
+router.get("/assets/signature", async (req, res) => {
   try {
     const sigPath = path.join(process.cwd(), "server", "assets", "cert-signature.png");
     if (!fs.existsSync(sigPath)) {
@@ -337,9 +338,8 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
     );
 
     const year = new Date().getFullYear();
-    const pathCode = certType === "affiliate_coaching" ? "COA" : "SOC";
     const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const newCertNumber = `MPM-AFF-${pathCode}-${year}-${random}`;
+    const newCertNumber = `MPM-AFF-${year}-${random}`;
 
     // Deterministic upsert — unique constraint on (user_id, certification_type)
     // On conflict: only update name if it was previously null; never overwrite cert number or completedAt
