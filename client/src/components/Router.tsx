@@ -262,6 +262,7 @@ import CertificationDashboard from "@/pages/certification/CertificationDashboard
 import CertificationLesson from "@/pages/certification/CertificationLesson";
 import CertificationQuiz from "@/pages/certification/CertificationQuiz";
 import CertificationComplete from "@/pages/certification/CertificationComplete";
+import CertificationCertificateView from "@/pages/certification/CertificationCertificateView";
 
 // SimpleWalkthroughDemo quarantined - replaced by Quick Tour system
 
@@ -705,6 +706,7 @@ export default function Router() {
         <Route path="/business-center/affiliate/social" component={AffiliatePathPage} />
         <Route path="/business-center/affiliate/coaching" component={AffiliatePathPage} />
         <Route path="/business-center/affiliate/:pathId/certification/complete" component={CertificationComplete} />
+        <Route path="/business-center/affiliate/:pathId/certification/view" component={CertificationCertificateView} />
         <Route path="/business-center/affiliate/:pathId/certification/:moduleId/quiz" component={CertificationQuiz} />
         <Route path="/business-center/affiliate/:pathId/certification/:moduleId" component={CertificationLesson} />
         <Route path="/business-center/affiliate/:pathId/certification" component={CertificationDashboard} />
