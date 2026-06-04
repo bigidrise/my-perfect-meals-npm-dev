@@ -22,6 +22,7 @@ export const userCertifications = pgTable("user_certifications", {
   score: integer("score"),
   completedAt: timestamp("completed_at", { withTimezone: true }),
   certificateNumber: text("certificate_number"),
+  certificateName: text("certificate_name"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

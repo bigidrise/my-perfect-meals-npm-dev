@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { ArrowLeft, CheckCircle2, Circle, Clock, Lock, Award } from "lucide-react";
-import { motion } from "framer-motion";
-import { AFFILIATE_MODULES, PASSING_SCORE } from "@/data/affiliateCertification";
+import { ArrowLeft, CheckCircle2, Circle, Clock, Lock, Award, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { AFFILIATE_MODULES } from "@/data/affiliateCertification";
 import { apiRequest } from "@/lib/queryClient";
 
 interface ModuleProgress {
@@ -14,7 +14,13 @@ interface ModuleProgress {
 }
 
 interface CertificationData {
-  certification: { status: string; score: number; certificateNumber: string; completedAt: string } | null;
+  certification: {
+    status: string;
+    score: number;
+    certificateNumber: string;
+    certificateName: string | null;
+    completedAt: string;
+  } | null;
   moduleProgress: ModuleProgress[];
 }
 
@@ -40,6 +46,11 @@ export default function CertificationDashboard() {
 
   const [data, setData] = useState<CertificationData | null>(null);
   const [loading, setLoading] = useState(true);
+  // Name modal state
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [certFirstName, setCertFirstName] = useState("");
+  const [certLastName, setCertLastName] = useState("");
+  const [nameSaving, setNameSaving] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -55,6 +66,20 @@ export default function CertificationDashboard() {
     };
     load();
   }, [certType]);
+
+  // Pre-fill name from any existing cert
+  useEffect(() => {
+    apiRequest("/api/certifications/certificate-name")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.certificateName) {
+          const parts = d.certificateName.trim().split(" ");
+          setCertFirstName(parts.slice(0, -1).join(" ") || parts[0]);
+          setCertLastName(parts.length > 1 ? parts[parts.length - 1] : "");
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const progressMap = new Map(
     (data?.moduleProgress ?? []).map((p) => [p.moduleId, p])
@@ -75,10 +100,15 @@ export default function CertificationDashboard() {
     setLocation(`/business-center/affiliate/${pathId}/certification/${moduleId}`);
   };
 
-  const handleComplete = async () => {
+  const handleCompleteWithName = async () => {
+    const fullName = `${certFirstName.trim()} ${certLastName.trim()}`.trim();
+    if (!fullName) return;
+    setNameSaving(true);
     try {
       const res = await apiRequest(`/api/certifications/${certType}/complete`, {
         method: "POST",
+        body: JSON.stringify({ certificateName: fullName }),
+        headers: { "Content-Type": "application/json" },
       });
       const json = await res.json();
       if (json.ok) {
@@ -86,7 +116,13 @@ export default function CertificationDashboard() {
       }
     } catch {
       // handled
+    } finally {
+      setNameSaving(false);
     }
+  };
+
+  const handleCompleteClick = () => {
+    setShowNameModal(true);
   };
 
   const certPathLabel = pathId === "coaching" ? "Business & Coaching" : "Social & Referral";
@@ -222,7 +258,7 @@ export default function CertificationDashboard() {
         {allDone && !data?.certification && (
           <motion.button
             className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm active:scale-[0.98] transition-transform"
-            onClick={handleComplete}
+            onClick={handleCompleteClick}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
@@ -230,6 +266,80 @@ export default function CertificationDashboard() {
           </motion.button>
         )}
       </div>
+
+      {/* Name capture modal */}
+      <AnimatePresence>
+        {showNameModal && (
+          <motion.div
+            className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center px-4 pb-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              onClick={() => setShowNameModal(false)}
+            />
+            <motion.div
+              className="relative w-full max-w-sm bg-[#1a1a1a] border border-white/10 rounded-3xl p-6 space-y-5"
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40 }}
+            >
+              <button
+                className="absolute top-4 right-4 p-1.5 rounded-xl bg-white/5 text-white/40 active:scale-95 transition-transform"
+                onClick={() => setShowNameModal(false)}
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              <div className="space-y-1">
+                <h2 className="text-base font-bold text-white">Before Your Certificate Is Issued</h2>
+                <p className="text-xs text-white/50 leading-relaxed">
+                  Enter your full name exactly as you want it to appear on your certificate.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-white/50 font-medium">First Name</label>
+                  <input
+                    type="text"
+                    value={certFirstName}
+                    onChange={(e) => setCertFirstName(e.target.value)}
+                    placeholder="First name"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500/50"
+                    autoFocus
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-white/50 font-medium">Last Name</label>
+                  <input
+                    type="text"
+                    value={certLastName}
+                    onChange={(e) => setCertLastName(e.target.value)}
+                    placeholder="Last name"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500/50"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && certFirstName.trim() && certLastName.trim()) {
+                        handleCompleteWithName();
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={handleCompleteWithName}
+                disabled={!certFirstName.trim() || !certLastName.trim() || nameSaving}
+                className="w-full p-3.5 rounded-2xl bg-orange-600 text-white font-bold text-sm active:scale-[0.98] transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {nameSaving ? "Issuing Certificate…" : "Issue My Certificate"}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
