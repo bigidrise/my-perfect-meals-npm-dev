@@ -1037,7 +1037,7 @@ export const AFFILIATE_MODULES: CertificationModule[] = [
         },
         {
           id: "m6q5",
-          question: "A potential client asks about cayenne pepper, handful diets, and quick fixes. She then says she will 'try' My Perfect Meals for 30 days. What is the deeper coaching lesson here?",
+          question: "A prospective client has tried the grapefruit diet, the cookie diet, cayenne pepper cleanses, and intermittent fasting — none of which worked. When introduced to a structured, proven program, she says she'll 'give it 30 days.' What does this pattern reveal to a skilled coach?",
           options: [
             "She needs more nutrition education and more recipes",
             "She is looking for shortcuts and has not yet fully committed to the process of change",
@@ -1045,7 +1045,7 @@ export const AFFILIATE_MODULES: CertificationModule[] = [
             "She is ready to commit and just needs direction",
           ],
           correctIndex: 1,
-          explanation: "The issue is not food knowledge. The issue is commitment. Asking about shortcuts and saying 'I'll try it' signals someone who wants the outcome but is still looking for a way around the work required for real change. A skilled coach recognizes this distinction and helps the client move toward genuine commitment rather than another temporary experiment.",
+          explanation: "The issue is not food knowledge. The issue is commitment. She has tried countless gimmicks indefinitely with no time limit — but puts a 30-day ceiling on the first structured program she encounters. That ceiling reveals she has already mentally prepared to leave. A skilled coach recognizes this distinction and helps the client move toward genuine commitment rather than another temporary experiment.",
         },
       ],
     },
@@ -1347,7 +1347,7 @@ export const AFFILIATE_MODULES: CertificationModule[] = [
         },
         {
           id: "fq11",
-          question: "A potential client asks about cayenne pepper, handful diets, and other quick fixes. She then says she will 'try' My Perfect Meals for 30 days. What is the deeper coaching lesson?",
+          question: "A prospective client has spent years trying gimmicks — grapefruit diets, cookie diets, cayenne pepper cleanses, intermittent fasting — none of which worked. When introduced to a structured program, she agrees to 'try it for 30 days.' What does this pattern reveal?",
           options: [
             "She needs more nutrition education and recipe variety",
             "She is looking for shortcuts and has not yet committed to the process of real change",
