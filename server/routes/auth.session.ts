@@ -77,10 +77,11 @@ router.post("/api/auth/signup", async (req, res) => {
     };
 
     if (procare && procare.professionalCategory) {
-      const validRoles = ["trainer", "physician"];
+      const validRoles = ["trainer", "physician", "dietitian", "nurse_practitioner"];
       const validCategories = ["certified", "experienced", "non_certified"];
+      const licensedRoles = ["physician", "dietitian", "nurse_practitioner"];
       if (!procare.professionalRole || !validRoles.includes(procare.professionalRole)) {
-        return res.status(400).json({ error: "Professional role (trainer or physician) is required" });
+        return res.status(400).json({ error: "Invalid professional role" });
       }
       if (!validCategories.includes(procare.professionalCategory)) {
         return res.status(400).json({ error: "Invalid professional category" });
@@ -88,6 +89,16 @@ router.post("/api/auth/signup", async (req, res) => {
       if (!procare.attestationText || !procare.attestedAt) {
         return res.status(400).json({ error: "Attestation is required for professional accounts" });
       }
+      // Licensed roles (physician / dietitian / NP-PA) must supply license number + state
+      if (licensedRoles.includes(procare.professionalRole) && procare.professionalCategory === "certified") {
+        if (!procare.credentialNumber?.trim()) {
+          return res.status(400).json({ error: "License number is required for licensed professionals" });
+        }
+        if (!procare.credentialBody?.trim()) {
+          return res.status(400).json({ error: "License state is required for licensed professionals" });
+        }
+      }
+      // Trainers / coaches: no license required (cert body is optional)
       userValues.role = "coach";
       userValues.isProCare = true;
       userValues.professionalRole = procare.professionalRole;
@@ -158,17 +169,27 @@ router.post("/api/auth/upgrade-to-procare", requireAuth, async (req: any, res) =
       return res.status(400).json({ error: "Professional category is required" });
     }
 
-    const validRoles = ["trainer", "physician"];
+    const validRoles = ["trainer", "physician", "dietitian", "nurse_practitioner"];
     const validCategories = ["certified", "experienced", "non_certified"];
+    const licensedRoles = ["physician", "dietitian", "nurse_practitioner"];
 
     if (!procare.professionalRole || !validRoles.includes(procare.professionalRole)) {
-      return res.status(400).json({ error: "Professional role (trainer or physician) is required" });
+      return res.status(400).json({ error: "Invalid professional role" });
     }
     if (!validCategories.includes(procare.professionalCategory)) {
       return res.status(400).json({ error: "Invalid professional category" });
     }
     if (!procare.attestationText || !procare.attestedAt) {
       return res.status(400).json({ error: "Attestation is required for professional accounts" });
+    }
+    // Licensed roles (physician / dietitian / NP-PA) must supply license number + state
+    if (licensedRoles.includes(procare.professionalRole) && procare.professionalCategory === "certified") {
+      if (!procare.credentialNumber?.trim()) {
+        return res.status(400).json({ error: "License number is required for licensed professionals" });
+      }
+      if (!procare.credentialBody?.trim()) {
+        return res.status(400).json({ error: "License state is required for licensed professionals" });
+      }
     }
 
     const proFlow = procare.professionalRole === "physician" ? "physician" : "professional";
