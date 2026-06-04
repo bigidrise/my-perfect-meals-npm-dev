@@ -65,6 +65,17 @@ export default function CertificationDashboard() {
       }
     };
     load();
+
+    // Refresh whenever the user navigates back to this page
+    const handleVisibility = () => {
+      if (!document.hidden) load();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", handleVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", handleVisibility);
+    };
   }, [certType]);
 
   // Pre-fill name from any existing cert

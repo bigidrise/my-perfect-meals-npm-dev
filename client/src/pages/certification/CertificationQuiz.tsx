@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useLocation, useParams } from "wouter";
 import { ArrowLeft, CheckCircle2, XCircle, RotateCcw, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getModuleById, PASSING_SCORE } from "@/data/affiliateCertification";
+import { getModuleById, getNextModuleId, PASSING_SCORE } from "@/data/affiliateCertification";
 import { apiRequest } from "@/lib/queryClient";
 
 type AnswerMap = Record<string, number>;
@@ -104,9 +104,15 @@ export default function CertificationQuiz() {
     setPhase("quiz");
   };
 
-  // After passing, always go to dashboard (name modal + Complete flow lives there)
+  // After passing, go directly to the next module's lesson — no dashboard detour
   const handleContinue = () => {
-    setLocation(`/business-center/affiliate/${pathId}/certification`);
+    const nextId = getNextModuleId(moduleId);
+    if (nextId) {
+      setLocation(`/business-center/affiliate/${pathId}/certification/${nextId}`);
+    } else {
+      // No next module — all done, go to dashboard for completion
+      setLocation(`/business-center/affiliate/${pathId}/certification`);
+    }
   };
 
   const passed = score >= passingScore;

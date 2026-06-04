@@ -234,7 +234,8 @@ router.post("/:certType/modules/:moduleId/view", requireAuth, async (req, res) =
         ],
         set: {
           lastViewedAt: new Date(),
-          status: "in_progress",
+          // Never downgrade a completed module back to in_progress
+          status: sql`CASE WHEN ${certificationModuleProgress.status} = 'completed' THEN 'completed' ELSE 'in_progress' END`,
         },
       });
 
