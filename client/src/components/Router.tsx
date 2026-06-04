@@ -254,6 +254,14 @@ import RestaurantFinderPage from "@/pages/RestaurantFinderPage";
 // Founders page
 import FoundersPage from "@/pages/Founders";
 import CoachesComingSoon from "@/pages/CoachesComingSoon";
+import BusinessCenter from "@/pages/BusinessCenter";
+import BusinessCenterSection from "@/pages/BusinessCenterSection";
+import AffiliateOpportunities from "@/pages/AffiliateOpportunities";
+import AffiliatePathPage from "@/pages/AffiliatePathPage";
+import CertificationDashboard from "@/pages/certification/CertificationDashboard";
+import CertificationLesson from "@/pages/certification/CertificationLesson";
+import CertificationQuiz from "@/pages/certification/CertificationQuiz";
+import CertificationComplete from "@/pages/certification/CertificationComplete";
 
 // SimpleWalkthroughDemo quarantined - replaced by Quick Tour system
 
@@ -691,6 +699,19 @@ export default function Router() {
         {/* Founders Route */}
         <Route path="/founders" component={FoundersPage} />
         <Route path="/coaches" component={CoachesComingSoon} />
+        {/* Business Center */}
+        <Route path="/business-center" component={BusinessCenter} />
+        <Route path="/business-center/affiliate" component={AffiliateOpportunities} />
+        <Route path="/business-center/affiliate/social" component={AffiliatePathPage} />
+        <Route path="/business-center/affiliate/coaching" component={AffiliatePathPage} />
+        <Route path="/business-center/affiliate/:pathId/certification/complete" component={CertificationComplete} />
+        <Route path="/business-center/affiliate/:pathId/certification/:moduleId/quiz" component={CertificationQuiz} />
+        <Route path="/business-center/affiliate/:pathId/certification/:moduleId" component={CertificationLesson} />
+        <Route path="/business-center/affiliate/:pathId/certification" component={CertificationDashboard} />
+        <Route path="/business-center/academy" component={BusinessCenterSection} />
+        <Route path="/business-center/industry" component={BusinessCenterSection} />
+        <Route path="/business-center/white-label" component={BusinessCenterSection} />
+        <Route path="/business-center/partnerships" component={BusinessCenterSection} />
         {/* Supplement Hub Routes */}
         {/* REMOVED: /supplement-hub-landing route (landing page not used - Copilot routes to /supplement-hub directly) */}
         <Route path="/supplement-hub" component={SupplementHub} />
