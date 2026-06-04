@@ -206,8 +206,8 @@ export default function VisualCertificate({
         >
           {dateStr}
         </p>
-      </div>    {/* end inner full-size container */}
-      </div>    {/* end outer crop shell */}
-    </div>      {/* end overflow-x-auto wrapper */}
+      </div>
+      </div>
+    </div>
   );
 }
