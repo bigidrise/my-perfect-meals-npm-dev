@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { ArrowLeft, CheckCircle2, Circle, Clock, Lock, Award, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -39,7 +39,7 @@ function statusLabel(status: string) {
 }
 
 export default function CertificationDashboard() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const params = useParams<{ pathId: string }>();
   const pathId = params.pathId ?? "social";
   const certType = `affiliate_${pathId}`;
@@ -52,31 +52,40 @@ export default function CertificationDashboard() {
   const [certLastName, setCertLastName] = useState("");
   const [nameSaving, setNameSaving] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await apiRequest(`/api/certifications/${certType}/progress`);
-        const json = await res.json();
-        setData(json);
-      } catch {
-        setData({ certification: null, moduleProgress: [] });
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-
-    // Refresh whenever the user navigates back to this page
-    const handleVisibility = () => {
-      if (!document.hidden) load();
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("focus", handleVisibility);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("focus", handleVisibility);
-    };
+  // Hoisted so the location watcher can call it without stale closures
+  const load = useCallback(async () => {
+    try {
+      // Cache-bust: server sends no-store headers, but also add _t so the
+      // browser never serves a 304 from a prior visit to this component.
+      const res = await apiRequest(
+        `/api/certifications/${certType}/progress?_t=${Date.now()}`
+      );
+      const json = await res.json();
+      setData(json);
+    } catch {
+      setData({ certification: null, moduleProgress: [] });
+    } finally {
+      setLoading(false);
+    }
   }, [certType]);
+
+  // Fire on initial mount
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // Re-fetch every time Wouter routes back to this dashboard path.
+  // SPA navigation never triggers visibilitychange/focus events, so we watch
+  // the location instead.  prevLocationRef prevents a double-fetch on mount.
+  const prevLocationRef = useRef<string | null>(null);
+  useEffect(() => {
+    const dashboardPath = `/business-center/affiliate/${pathId}/certification`;
+    if (prevLocationRef.current !== null && location === dashboardPath) {
+      setLoading(true);
+      load();
+    }
+    prevLocationRef.current = location;
+  }, [location, pathId, load]);
 
   // Pre-fill name from any existing cert
   useEffect(() => {
