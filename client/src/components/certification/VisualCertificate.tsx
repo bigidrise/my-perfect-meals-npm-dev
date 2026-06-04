@@ -176,9 +176,9 @@ export default function VisualCertificate({
           {/* Cert type subtitle */}
           <p
             style={{
-              fontSize: 7.5,
+              fontSize: 9,
               color: GOLD,
-              letterSpacing: "0.22em",
+              letterSpacing: "0.18em",
               fontFamily: "Arial, Helvetica, sans-serif",
               fontWeight: 700,
               marginTop: 4,
@@ -191,7 +191,7 @@ export default function VisualCertificate({
           {/* This certifies that */}
           <p
             style={{
-              fontSize: 9.5,
+              fontSize: 11,
               color: "#8B7355",
               marginTop: 8,
               fontFamily: "Georgia, serif",
@@ -228,7 +228,7 @@ export default function VisualCertificate({
           {/* Completion text */}
           <p
             style={{
-              fontSize: 9.5,
+              fontSize: 11,
               color: "#8B7355",
               marginTop: 6,
               fontFamily: "Georgia, serif",
@@ -239,7 +239,7 @@ export default function VisualCertificate({
           </p>
           <p
             style={{
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: 700,
               color: NAVY,
               fontFamily: "Arial, Helvetica, sans-serif",
@@ -253,7 +253,7 @@ export default function VisualCertificate({
           {/* Competency label */}
           <p
             style={{
-              fontSize: 8.5,
+              fontSize: 10,
               color: "#8B7355",
               marginTop: 7,
               fontFamily: "Georgia, serif",
@@ -290,13 +290,13 @@ export default function VisualCertificate({
                 </div>
                 <p
                   style={{
-                    fontSize: 6,
+                    fontSize: 7.5,
                     color: NAVY,
                     textAlign: "center",
                     marginTop: 3,
                     fontFamily: "Arial, Helvetica, sans-serif",
                     fontWeight: 700,
-                    letterSpacing: "0.05em",
+                    letterSpacing: "0.04em",
                     lineHeight: 1.35,
                     whiteSpace: "pre-line",
                   }}
@@ -310,7 +310,7 @@ export default function VisualCertificate({
           {/* Description */}
           <p
             style={{
-              fontSize: 7.5,
+              fontSize: 9,
               color: "#8B7355",
               textAlign: "center",
               marginTop: 6,
@@ -390,9 +390,9 @@ export default function VisualCertificate({
             <div style={{ paddingBottom: 2 }}>
               <p
                 style={{
-                  fontSize: 6.5,
+                  fontSize: 8,
                   color: GOLD,
-                  letterSpacing: "0.16em",
+                  letterSpacing: "0.14em",
                   fontFamily: "Arial, Helvetica, sans-serif",
                   fontWeight: 700,
                   marginBottom: 3,
@@ -402,7 +402,7 @@ export default function VisualCertificate({
               </p>
               <p
                 style={{
-                  fontSize: 9.5,
+                  fontSize: 10.5,
                   color: NAVY,
                   fontFamily: "'Courier New', monospace",
                   fontWeight: 700,
@@ -417,7 +417,13 @@ export default function VisualCertificate({
               <img
                 src={sigUrl}
                 alt="Signature"
-                style={{ height: 62, objectFit: "contain", marginBottom: 3 }}
+                style={{
+                  height: 62,
+                  objectFit: "contain",
+                  objectPosition: "bottom center",
+                  display: "block",
+                  marginBottom: 0,
+                }}
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = "none";
                 }}
@@ -425,7 +431,7 @@ export default function VisualCertificate({
               <div style={{ width: 210, height: 0.8, background: "#B8960C" }} />
               <p
                 style={{
-                  fontSize: 8.5,
+                  fontSize: 10,
                   fontWeight: 700,
                   color: NAVY,
                   fontFamily: "Arial, Helvetica, sans-serif",
@@ -437,7 +443,7 @@ export default function VisualCertificate({
               </p>
               <p
                 style={{
-                  fontSize: 7,
+                  fontSize: 8.5,
                   color: "#8B7355",
                   fontFamily: "Georgia, serif",
                   marginTop: 1,
@@ -451,9 +457,9 @@ export default function VisualCertificate({
             <div className="text-right" style={{ paddingBottom: 2 }}>
               <p
                 style={{
-                  fontSize: 6.5,
+                  fontSize: 8,
                   color: GOLD,
-                  letterSpacing: "0.16em",
+                  letterSpacing: "0.14em",
                   fontFamily: "Arial, Helvetica, sans-serif",
                   fontWeight: 700,
                   marginBottom: 3,
@@ -463,7 +469,7 @@ export default function VisualCertificate({
               </p>
               <p
                 style={{
-                  fontSize: 9.5,
+                  fontSize: 10.5,
                   color: NAVY,
                   fontFamily: "Arial, Helvetica, sans-serif",
                   fontWeight: 700,
@@ -483,9 +489,9 @@ export default function VisualCertificate({
           <div style={{ width: 32, height: 0.8, background: GOLD, opacity: 0.8 }} />
           <span
             style={{
-              fontSize: 7,
+              fontSize: 8.5,
               color: GOLD,
-              letterSpacing: "0.22em",
+              letterSpacing: "0.18em",
               fontFamily: "Arial, Helvetica, sans-serif",
               fontWeight: 600,
             }}
