@@ -201,17 +201,28 @@ export default function CertificationDashboard() {
         <div className="p-4 rounded-2xl bg-black/30 backdrop-blur-lg border border-white/10 space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-sm font-semibold text-white">Progress</span>
-            <span className="text-sm font-bold text-orange-400">{progressPct}%</span>
+            {loading ? (
+              <div className="h-4 w-10 rounded bg-white/10 animate-pulse" />
+            ) : (
+              <span className="text-sm font-bold text-orange-400">{progressPct}%</span>
+            )}
           </div>
           <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-orange-500 rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${progressPct}%` }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-            />
+            {loading ? (
+              <div className="h-full w-1/3 rounded-full bg-white/10 animate-pulse" />
+            ) : (
+              <motion.div
+                className="h-full bg-orange-500 rounded-full"
+                animate={{ width: `${progressPct}%` }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+              />
+            )}
           </div>
-          <p className="text-xs text-white/40">{completedCount} of {totalModules} modules complete</p>
+          {loading ? (
+            <div className="h-3 w-36 rounded bg-white/10 animate-pulse" />
+          ) : (
+            <p className="text-xs text-white/40">{completedCount} of {totalModules} modules complete</p>
+          )}
         </div>
 
         {/* Module list */}
