@@ -5,8 +5,32 @@ import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { userCertifications, certificationModuleProgress } from "../db/schema/certifications";
 import { users } from "../../shared/schema";
 import { sendCertificationCompleteEmail } from "../services/emailService";
+import { generateCertificatePDF } from "../services/certificateService";
 
 const router = express.Router();
+
+// ─── STATIC ROUTES (must come before /:certType dynamic routes) ───────────────
+
+// GET /api/certifications/certificate-name — fetch stored cert name for this user
+router.get("/certificate-name", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser.id;
+    // Look for any existing cert with a name
+    const existing = await db
+      .select({ certificateName: userCertifications.certificateName })
+      .from(userCertifications)
+      .where(eq(userCertifications.userId, userId))
+      .limit(10);
+
+    const found = existing.find((r) => r.certificateName);
+    return res.json({ certificateName: found?.certificateName ?? null });
+  } catch (err) {
+    console.error("[Cert] certificate-name GET error:", err);
+    return res.status(500).json({ error: "Failed to fetch certificate name" });
+  }
+});
+
+// ─── DYNAMIC ROUTES ───────────────────────────────────────────────────────────
 
 // GET /api/certifications/:certType/progress
 router.get("/:certType/progress", requireAuth, async (req, res) => {
@@ -43,6 +67,49 @@ router.get("/:certType/progress", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("[Cert] progress error:", err);
     return res.status(500).json({ error: "Failed to load progress" });
+  }
+});
+
+// GET /api/certifications/:certType/certificate — stream PDF
+router.get("/:certType/certificate", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser.id;
+    const { certType } = req.params;
+
+    const [cert] = await db
+      .select()
+      .from(userCertifications)
+      .where(
+        and(
+          eq(userCertifications.userId, userId),
+          eq(userCertifications.certificationType, certType)
+        )
+      )
+      .limit(1);
+
+    if (!cert || cert.status !== "completed") {
+      return res.status(404).json({ error: "Certification not found" });
+    }
+
+    if (!cert.certificateName) {
+      return res.status(400).json({ error: "Certificate name not set" });
+    }
+
+    const pdfBuffer = await generateCertificatePDF({
+      name: cert.certificateName,
+      certType,
+      certificateNumber: cert.certificateNumber ?? "MPM-AFF-XXXXXX",
+      completedAt: cert.completedAt ?? new Date(),
+    });
+
+    const safeNum = (cert.certificateNumber ?? "certificate").replace(/[^a-zA-Z0-9-]/g, "");
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="MPM-Certificate-${safeNum}.pdf"`);
+    res.setHeader("Content-Length", pdfBuffer.length);
+    return res.send(pdfBuffer);
+  } catch (err) {
+    console.error("[Cert] certificate PDF error:", err);
+    return res.status(500).json({ error: "Failed to generate certificate" });
   }
 });
 
@@ -126,6 +193,7 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const { certType } = req.params;
+    const { certificateName } = req.body as { certificateName?: string };
 
     const completedModules = await db
       .select()
@@ -160,10 +228,11 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
         score: avgScore,
         completedAt: new Date(),
         certificateNumber,
+        certificateName: certificateName ?? null,
       })
       .onConflictDoNothing();
 
-    // Check if already completed (conflict = already issued)
+    // Fetch the actual record (handles the case where it already existed)
     const [existing] = await db
       .select()
       .from(userCertifications)
@@ -177,7 +246,15 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
 
     const finalCertNumber = existing?.certificateNumber ?? certificateNumber;
 
-    // Send completion email (best effort)
+    // If cert already existed but had no name, update the name
+    if (existing && !existing.certificateName && certificateName) {
+      await db
+        .update(userCertifications)
+        .set({ certificateName })
+        .where(eq(userCertifications.id, existing.id));
+    }
+
+    // Completion email (best effort)
     try {
       const [user] = await db
         .select()
@@ -188,7 +265,7 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
       if (user?.email) {
         await sendCertificationCompleteEmail({
           to: user.email,
-          userName: (user as any).name ?? user.email,
+          userName: certificateName ?? (user as any).name ?? user.email,
           certType,
           certificateNumber: finalCertNumber,
         });
