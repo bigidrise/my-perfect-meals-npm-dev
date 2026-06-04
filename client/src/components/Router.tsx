@@ -258,6 +258,10 @@ import BusinessCenter from "@/pages/BusinessCenter";
 import BusinessCenterSection from "@/pages/BusinessCenterSection";
 import AffiliateOpportunities from "@/pages/AffiliateOpportunities";
 import AffiliatePathPage from "@/pages/AffiliatePathPage";
+import CertificationDashboard from "@/pages/certification/CertificationDashboard";
+import CertificationLesson from "@/pages/certification/CertificationLesson";
+import CertificationQuiz from "@/pages/certification/CertificationQuiz";
+import CertificationComplete from "@/pages/certification/CertificationComplete";
 
 // SimpleWalkthroughDemo quarantined - replaced by Quick Tour system
 
@@ -700,6 +704,10 @@ export default function Router() {
         <Route path="/business-center/affiliate" component={AffiliateOpportunities} />
         <Route path="/business-center/affiliate/social" component={AffiliatePathPage} />
         <Route path="/business-center/affiliate/coaching" component={AffiliatePathPage} />
+        <Route path="/business-center/affiliate/:pathId/certification/complete" component={CertificationComplete} />
+        <Route path="/business-center/affiliate/:pathId/certification/:moduleId/quiz" component={CertificationQuiz} />
+        <Route path="/business-center/affiliate/:pathId/certification/:moduleId" component={CertificationLesson} />
+        <Route path="/business-center/affiliate/:pathId/certification" component={CertificationDashboard} />
         <Route path="/business-center/academy" component={BusinessCenterSection} />
         <Route path="/business-center/industry" component={BusinessCenterSection} />
         <Route path="/business-center/white-label" component={BusinessCenterSection} />
