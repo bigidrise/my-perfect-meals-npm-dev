@@ -48,6 +48,12 @@ uri = "file://artifacts/mockup-sandbox/public/images/chef-rush.png"
 type = "image"
 title = "Performance athlete chef avatar"
 
+[[generated]]
+id = "Idfro1aZexyAJR9R70EXL"
+uri = "file://server/assets/cert-signature.png"
+type = "image"
+title = "Idrise Ward-EL signature"
+
 [[outputs]]
 id = "-FON7OPnx1Y51w6BHr36p"
 uri = "file://downloads/Chef-Nolan-Kitchen-Landing.png"
@@ -119,3 +125,9 @@ id = "33KUrQ1_sMkySYLiKWvPI"
 uri = "file://mpm_launch_roster_2026-05-31.csv"
 type = "table"
 title = "MPM Cleaned Launch Roster — May 31, 2026"
+
+[[outputs]]
+id = "dhirxpIDylvj0paqU4HC1"
+uri = "file://server/assets/cert-signature.png"
+type = "image"
+title = "Coach Idrise Ward-EL — Certificate Signature"
