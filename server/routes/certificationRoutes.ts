@@ -1,21 +1,25 @@
 import express from "express";
 import { db } from "../db";
 import { eq, and } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
-import { userCertifications, certificationModuleProgress } from "../db/schema/certifications";
+import {
+  userCertifications,
+  certificationModuleProgress,
+  certificationQuizAttempts,
+} from "../db/schema/certifications";
 import { users } from "../../shared/schema";
 import { sendCertificationCompleteEmail } from "../services/emailService";
 import { generateCertificatePDF } from "../services/certificateService";
 
 const router = express.Router();
 
-// ─── STATIC ROUTES (must come before /:certType dynamic routes) ───────────────
+// ─── STATIC ROUTES (before /:certType dynamic routes) ────────────────────────
 
-// GET /api/certifications/certificate-name — fetch stored cert name for this user
+// GET /api/certifications/certificate-name
 router.get("/certificate-name", requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
-    // Look for any existing cert with a name
     const existing = await db
       .select({ certificateName: userCertifications.certificateName })
       .from(userCertifications)
@@ -112,6 +116,100 @@ router.get("/:certType/certificate", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "Failed to generate certificate" });
   }
 });
+
+// ─── QUIZ ATTEMPT ROUTES ──────────────────────────────────────────────────────
+
+// GET /api/certifications/:certType/modules/:moduleId/quiz-attempt
+router.get("/:certType/modules/:moduleId/quiz-attempt", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser.id;
+    const { certType, moduleId } = req.params;
+
+    const [attempt] = await db
+      .select()
+      .from(certificationQuizAttempts)
+      .where(
+        and(
+          eq(certificationQuizAttempts.userId, userId),
+          eq(certificationQuizAttempts.certificationType, certType),
+          eq(certificationQuizAttempts.moduleId, moduleId),
+          eq(certificationQuizAttempts.status, "in_progress")
+        )
+      )
+      .limit(1);
+
+    return res.json({ attempt: attempt ?? null });
+  } catch (err) {
+    console.error("[Cert] quiz-attempt GET error:", err);
+    return res.status(500).json({ error: "Failed to fetch quiz attempt" });
+  }
+});
+
+// POST /api/certifications/:certType/modules/:moduleId/quiz-attempt/answer
+router.post("/:certType/modules/:moduleId/quiz-attempt/answer", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser.id;
+    const { certType, moduleId } = req.params;
+    const { questionId, answerIndex } = req.body as { questionId: string; answerIndex: number };
+
+    if (!questionId || answerIndex === undefined) {
+      return res.status(400).json({ error: "questionId and answerIndex required" });
+    }
+
+    const answerPatch = JSON.stringify({ [questionId]: answerIndex });
+
+    await db
+      .insert(certificationQuizAttempts)
+      .values({
+        userId,
+        certificationType: certType,
+        moduleId,
+        status: "in_progress",
+        answersJson: { [questionId]: answerIndex },
+        startedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [
+          certificationQuizAttempts.userId,
+          certificationQuizAttempts.certificationType,
+          certificationQuizAttempts.moduleId,
+        ],
+        set: {
+          answersJson: sql`COALESCE(${certificationQuizAttempts.answersJson}, '{}') || ${answerPatch}::jsonb`,
+        },
+      });
+
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("[Cert] quiz-attempt answer error:", err);
+    return res.status(500).json({ error: "Failed to save answer" });
+  }
+});
+
+// DELETE /api/certifications/:certType/modules/:moduleId/quiz-attempt
+router.delete("/:certType/modules/:moduleId/quiz-attempt", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser.id;
+    const { certType, moduleId } = req.params;
+
+    await db
+      .delete(certificationQuizAttempts)
+      .where(
+        and(
+          eq(certificationQuizAttempts.userId, userId),
+          eq(certificationQuizAttempts.certificationType, certType),
+          eq(certificationQuizAttempts.moduleId, moduleId)
+        )
+      );
+
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("[Cert] quiz-attempt DELETE error:", err);
+    return res.status(500).json({ error: "Failed to clear quiz attempt" });
+  }
+});
+
+// ─── MODULE ROUTES ────────────────────────────────────────────────────────────
 
 // POST /api/certifications/:certType/modules/:moduleId/view
 router.post("/:certType/modules/:moduleId/view", requireAuth, async (req, res) => {
@@ -232,7 +330,6 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
       })
       .onConflictDoNothing();
 
-    // Fetch the actual record (handles the case where it already existed)
     const [existing] = await db
       .select()
       .from(userCertifications)
@@ -246,7 +343,6 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
 
     const finalCertNumber = existing?.certificateNumber ?? certificateNumber;
 
-    // If cert already existed but had no name, update the name
     if (existing && !existing.certificateName && certificateName) {
       await db
         .update(userCertifications)
@@ -254,7 +350,6 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
         .where(eq(userCertifications.id, existing.id));
     }
 
-    // Completion email (best effort)
     try {
       const [user] = await db
         .select()

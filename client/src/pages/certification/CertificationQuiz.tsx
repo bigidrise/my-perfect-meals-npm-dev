@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation, useParams } from "wouter";
-import { ArrowLeft, CheckCircle2, XCircle, RotateCcw } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, RotateCcw, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getModuleById, PASSING_SCORE } from "@/data/affiliateCertification";
 import { apiRequest } from "@/lib/queryClient";
 
 type AnswerMap = Record<string, number>;
-type Phase = "quiz" | "results";
+type Phase = "loading" | "quiz" | "results";
 
 export default function CertificationQuiz() {
   const [, setLocation] = useLocation();
@@ -16,10 +16,25 @@ export default function CertificationQuiz() {
   const certType = `affiliate_${pathId}`;
   const module = getModuleById(moduleId);
 
+  const [phase, setPhase] = useState<Phase>("loading");
   const [answers, setAnswers] = useState<AnswerMap>({});
-  const [phase, setPhase] = useState<Phase>("quiz");
   const [score, setScore] = useState(0);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+
+  // ── Restore in-progress attempt on mount ──────────────────────────────────
+  useEffect(() => {
+    if (!moduleId) return;
+    apiRequest(`/api/certifications/${certType}/modules/${moduleId}/quiz-attempt`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.attempt?.answersJson) {
+          setAnswers(data.attempt.answersJson as AnswerMap);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setPhase("quiz"));
+  }, [certType, moduleId]);
 
   if (!module) {
     return (
@@ -30,60 +45,71 @@ export default function CertificationQuiz() {
   }
 
   const { questions, passingScore } = module.quiz;
-  const allAnswered = questions.every((q) => answers[q.id] !== undefined);
+  const answeredCount = questions.filter((q) => answers[q.id] !== undefined).length;
+  const allAnswered = answeredCount === questions.length;
+  const isFinal = moduleId === "final-assessment";
+
+  // ── Auto-save a single answer (fire-and-forget) ───────────────────────────
+  const saveAnswer = (questionId: string, answerIndex: number) => {
+    apiRequest(`/api/certifications/${certType}/modules/${moduleId}/quiz-attempt/answer`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ questionId, answerIndex }),
+    }).catch(() => {});
+  };
+
+  // ── Clear the attempt record (retry or submit) ────────────────────────────
+  const clearAttempt = () => {
+    apiRequest(`/api/certifications/${certType}/modules/${moduleId}/quiz-attempt`, {
+      method: "DELETE",
+    }).catch(() => {});
+  };
+
+  const handleAnswer = (questionId: string, answerIndex: number) => {
+    setAnswers((prev) => ({ ...prev, [questionId]: answerIndex }));
+    saveAnswer(questionId, answerIndex);
+  };
 
   const handleSubmit = async () => {
-    if (!allAnswered) return;
+    if (!allAnswered || savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
 
     const correct = questions.filter((q) => answers[q.id] === q.correctIndex).length;
     const pct = Math.round((correct / questions.length) * 100);
     const passed = pct >= passingScore;
     setScore(pct);
-    setPhase("results");
 
-    setSaving(true);
     try {
       await apiRequest(`/api/certifications/${certType}/modules/${moduleId}/quiz`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ score: pct, passed }),
       });
+      clearAttempt();
     } catch {
-      // non-fatal
+      // non-fatal — score is shown to user regardless
     } finally {
       setSaving(false);
+      savingRef.current = false;
     }
+
+    setPhase("results");
   };
 
   const handleRetry = () => {
+    clearAttempt();
     setAnswers({});
-    setPhase("quiz");
     setScore(0);
+    setPhase("quiz");
+  };
+
+  // After passing, always go to dashboard (name modal + Complete flow lives there)
+  const handleContinue = () => {
+    setLocation(`/business-center/affiliate/${pathId}/certification`);
   };
 
   const passed = score >= passingScore;
-  const isFinal = moduleId === "final-assessment";
-
-  const handleContinue = async () => {
-    if (isFinal) {
-      setSaving(true);
-      try {
-        const res = await apiRequest(`/api/certifications/${certType}/complete`, {
-          method: "POST",
-        });
-        const json = await res.json();
-        if (json.ok) {
-          setLocation(`/business-center/affiliate/${pathId}/certification/complete`);
-          return;
-        }
-      } catch {
-        // fall through to dashboard
-      } finally {
-        setSaving(false);
-      }
-    }
-    setLocation(`/business-center/affiliate/${pathId}/certification`);
-  };
 
   return (
     <motion.div
@@ -91,12 +117,13 @@ export default function CertificationQuiz() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
+      {/* Header */}
       <div
         className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
-          {phase === "quiz" && (
+          {phase !== "results" && (
             <button
               onClick={() =>
                 setLocation(`/business-center/affiliate/${pathId}/certification/${moduleId}`)
@@ -107,9 +134,16 @@ export default function CertificationQuiz() {
               Back
             </button>
           )}
-          <h1 className="text-base font-bold text-white">
-            {isFinal ? "Final Assessment" : `${module.title} — Quiz`}
-          </h1>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base font-bold text-white truncate">
+              {isFinal ? "Final Assessment" : `${module.title} — Quiz`}
+            </h1>
+            {phase === "quiz" && answeredCount > 0 && answeredCount < questions.length && (
+              <p className="text-xs text-orange-400">
+                {answeredCount} of {questions.length} answered · progress saved
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -118,6 +152,22 @@ export default function CertificationQuiz() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
       >
         <AnimatePresence mode="wait">
+
+          {/* ── Loading ── */}
+          {phase === "loading" && (
+            <motion.div
+              key="loading"
+              className="flex flex-col items-center justify-center py-24 gap-3"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <div className="w-6 h-6 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin" />
+              <p className="text-xs text-white/30">Restoring your progress…</p>
+            </motion.div>
+          )}
+
+          {/* ── Quiz ── */}
           {phase === "quiz" && (
             <motion.div
               key="quiz"
@@ -126,6 +176,20 @@ export default function CertificationQuiz() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
+              {/* Resume banner when partially answered */}
+              {answeredCount > 0 && answeredCount < questions.length && (
+                <motion.div
+                  className="flex items-center gap-3 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20"
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <BookOpen className="h-4 w-4 text-orange-400 flex-shrink-0" />
+                  <p className="text-xs text-orange-200">
+                    Resuming — your answers have been saved. Continue where you left off.
+                  </p>
+                </motion.div>
+              )}
+
               <p className="text-sm text-white/50 text-center">
                 {questions.length} questions · {passingScore}% to pass
               </p>
@@ -136,7 +200,7 @@ export default function CertificationQuiz() {
                   className="space-y-3"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: qi * 0.04 }}
+                  transition={{ delay: qi * 0.03 }}
                 >
                   <p className="text-sm font-semibold text-white leading-relaxed">
                     <span className="text-orange-400 mr-1">{qi + 1}.</span>
@@ -148,7 +212,7 @@ export default function CertificationQuiz() {
                       return (
                         <button
                           key={oi}
-                          onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: oi }))}
+                          onClick={() => handleAnswer(q.id, oi)}
                           className={`w-full text-left px-4 py-3 rounded-xl border text-sm font-medium transition-all duration-150 active:scale-[0.98] ${
                             selected
                               ? "bg-orange-600 border-orange-500 text-white"
@@ -166,18 +230,23 @@ export default function CertificationQuiz() {
 
               <button
                 onClick={handleSubmit}
-                disabled={!allAnswered}
+                disabled={!allAnswered || saving}
                 className={`w-full p-4 rounded-2xl font-bold text-sm transition-all duration-200 active:scale-[0.98] ${
-                  allAnswered
+                  allAnswered && !saving
                     ? "bg-orange-600 text-white"
                     : "bg-white/10 text-white/30 cursor-default"
                 }`}
               >
-                {allAnswered ? "Submit Quiz" : `Answer all ${questions.length} questions to submit`}
+                {saving
+                  ? "Submitting…"
+                  : allAnswered
+                  ? "Submit Quiz"
+                  : `${questions.length - answeredCount} question${questions.length - answeredCount !== 1 ? "s" : ""} remaining`}
               </button>
             </motion.div>
           )}
 
+          {/* ── Results ── */}
           {phase === "results" && (
             <motion.div
               key="results"
@@ -243,10 +312,9 @@ export default function CertificationQuiz() {
               {passed ? (
                 <button
                   onClick={handleContinue}
-                  disabled={saving}
                   className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm active:scale-[0.98] transition-transform"
                 >
-                  {saving ? "Saving…" : isFinal ? "Complete Certification" : "Continue"}
+                  {isFinal ? "Complete Certification →" : "Continue →"}
                 </button>
               ) : (
                 <div className="flex gap-3">
@@ -269,6 +337,7 @@ export default function CertificationQuiz() {
               )}
             </motion.div>
           )}
+
         </AnimatePresence>
       </div>
     </motion.div>
