@@ -13,6 +13,11 @@ const sectionMeta: Record<string, { title: string; description: string; eta: str
     description: "A full curriculum for building and scaling your nutrition coaching business using the My Perfect Meals platform. Courses, assessments, and credentials — coming soon.",
     eta: "Launching with Platform Certification",
   },
+  industry: {
+    title: "Industry & Strategic Partnerships",
+    description: "We partner with supplement companies, nutrition brands, fitness organizations, certification bodies, and software platforms to build meaningful integrations and co-branded opportunities. If your organization serves the nutrition or wellness space, we'd love to connect.",
+    eta: "Contact us to explore a strategic partnership",
+  },
   "white-label": {
     title: "White Label Opportunities",
     description: "Interested in licensing the My Perfect Meals platform for your organization or brand? We'd love to talk. White label partnerships are handled personally — reach out below.",
@@ -20,8 +25,8 @@ const sectionMeta: Record<string, { title: string; description: string; eta: str
   },
   partnerships: {
     title: "Healthcare & Clinical Partnerships",
-    description: "Looking to integrate My Perfect Meals into a clinical setting, health system, or wellness program? We support healthcare organizations with tailored integration options.",
-    eta: "Contact us to explore partnership options",
+    description: "We work with physicians, registered dietitians, clinics, hospitals, and patient-care organizations to integrate My Perfect Meals into clinical and care workflows.",
+    eta: "Contact us to explore clinical partnership options",
   },
 };
 
@@ -29,11 +34,13 @@ export default function BusinessCenterSection() {
   const [, setLocation] = useLocation();
   const [matchAffiliate] = useRoute("/business-center/affiliate");
   const [matchAcademy] = useRoute("/business-center/academy");
+  const [matchIndustry] = useRoute("/business-center/industry");
   const [matchWhiteLabel] = useRoute("/business-center/white-label");
   const [matchPartnerships] = useRoute("/business-center/partnerships");
 
   const sectionKey = matchAffiliate ? "affiliate"
     : matchAcademy ? "academy"
+    : matchIndustry ? "industry"
     : matchWhiteLabel ? "white-label"
     : matchPartnerships ? "partnerships"
     : null;

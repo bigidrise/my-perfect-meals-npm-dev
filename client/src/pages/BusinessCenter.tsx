@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { ArrowLeft, TrendingUp, Users, GraduationCap, Building2, HeartPulse, ChevronRight } from "lucide-react";
+import { ArrowLeft, TrendingUp, Users, GraduationCap, Building2, HeartPulse, ChevronRight, Handshake } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -29,6 +29,14 @@ const sections = [
     route: "/business-center/academy",
   },
   {
+    id: "industry",
+    title: "Industry & Strategic Partnerships",
+    description: "Supplement brands, nutrition companies, fitness organizations, certification bodies, and software partners",
+    icon: Handshake,
+    color: "orange",
+    route: "/business-center/industry",
+  },
+  {
     id: "white-label",
     title: "White Label Opportunities",
     description: "License the My Perfect Meals platform for your brand",
@@ -39,7 +47,7 @@ const sections = [
   {
     id: "partnerships",
     title: "Healthcare & Clinical Partnerships",
-    description: "Integrate MPM into clinical workflows and health programs",
+    description: "For physicians, dietitians, clinics, hospitals, and patient-care organizations",
     icon: HeartPulse,
     color: "orange",
     route: "/business-center/partnerships",
