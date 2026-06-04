@@ -1,2 +1,3 @@
 - [Clinical Labs Phase 5 — Architecture](clinical-labs-phase5.md) — 7 new lab columns + hormone/thyroid subtype resolver pattern; drizzle-kit not installed, use migration script.
 - [Affiliate Certification — PDF Certificate System](affiliate-cert-pdf.md) — pdfkit installed; certificate_name on user_certifications; signature drop-in at server/assets/cert-signature.png.
+- [Affiliate Certification — Quiz Persistence](affiliate-cert-quiz-persistence.md) — certification_quiz_attempts table; JSONB merge upsert pattern; final-assessment routes to dashboard not /complete directly.
