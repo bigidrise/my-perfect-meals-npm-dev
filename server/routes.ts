@@ -70,6 +70,7 @@ import inspirationRouter from "./routes/inspiration";
 import alcoholLogRouter from './routes/alcohol-log';
 import vitalsBpRouter from './routes/vitals-bp';
 import proteinTargetsRouter from './routes/proteinTargets';
+import certificationRouter from './routes/certificationRoutes';
 import { cookingRouter } from './routes/cooking';
 import { mealImagesRouter } from './routes/mealImages';
 import weekBoardRoutes from './routes/weekBoard';
@@ -421,6 +422,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(alcoholLogRouter);
   app.use('/api/vitals/bp', vitalsBpRouter);
   app.use('/api', proteinTargetsRouter);
+  app.use('/api/certifications', certificationRouter);
   app.use('/api', cookingRouter);
   app.use('/api', mealImagesRouter);
   // Deleted: diabeticHubRouter route

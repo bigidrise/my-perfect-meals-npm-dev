@@ -400,3 +400,61 @@ export async function sendCoachingInviteEmail({
     return null;
   }
 }
+
+export async function sendCertificationCompleteEmail({
+  to,
+  userName,
+  certType,
+  certificateNumber,
+}: {
+  to: string;
+  userName: string;
+  certType: string;
+  certificateNumber: string;
+}): Promise<boolean> {
+  if (!resend) {
+    console.log('[Cert] Resend not available - skipping certification email');
+    return false;
+  }
+
+  const certLabel = certType.includes('coaching')
+    ? 'Business & Coaching Affiliate Certification'
+    : 'Social & Referral Affiliate Certification';
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: EMAIL_FROM,
+      to: [to],
+      subject: `Certification Complete — ${certLabel}`,
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+          <div style="background:linear-gradient(135deg,#ea580c 0%,#9a3412 100%);padding:30px;border-radius:12px 12px 0 0;text-align:center;">
+            <h1 style="color:white;margin:0;font-size:26px;">Affiliate Certification Complete</h1>
+            <p style="color:rgba(255,255,255,0.85);margin:8px 0 0;font-size:15px;">My Perfect Meals</p>
+          </div>
+          <div style="background:#f9fafb;padding:30px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb;border-top:none;">
+            <h2 style="color:#111827;font-size:20px;margin-top:0;">Congratulations, ${userName}!</h2>
+            <p style="color:#374151;font-size:15px;line-height:1.6;">You have successfully completed the <strong>${certLabel}</strong>.</p>
+            <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:20px;margin:20px 0;text-align:center;">
+              <p style="color:#92400e;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 6px;">Certificate Number</p>
+              <p style="color:#7c2d12;font-size:22px;font-weight:700;font-family:monospace;margin:0;">${certificateNumber}</p>
+            </div>
+            <p style="color:#374151;font-size:14px;line-height:1.6;">Your Affiliate Dashboard and marketing resources are now available inside the My Perfect Meals Business Center.</p>
+            <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;">
+            <p style="color:#9ca3af;font-size:12px;text-align:center;margin:0;">My Perfect Meals — Personalized Nutrition &amp; Meal Planning</p>
+          </div>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error('[Cert] Resend error:', error);
+      return false;
+    }
+    console.log('[Cert] Certification email sent:', data?.id);
+    return true;
+  } catch (err) {
+    console.error('[Cert] Email failed:', err);
+    return false;
+  }
+}

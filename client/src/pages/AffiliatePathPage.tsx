@@ -1,5 +1,5 @@
 import { useLocation, useRoute } from "wouter";
-import { ArrowLeft, Clock, Share2, Briefcase } from "lucide-react";
+import { ArrowLeft, Share2, Briefcase, ChevronRight, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 
 const pathMeta = {
@@ -9,11 +9,11 @@ const pathMeta = {
     description:
       "Everything you need to promote My Perfect Meals as a social or referral affiliate — certifications, marketing assets, your dashboard, and your referral link.",
     resources: [
-      { name: "Affiliate Certification", eta: "Coming soon" },
+      { name: "Affiliate Certification", action: "certification" },
       { name: "Marketing Resources", eta: "Coming soon" },
       { name: "Monthly Marketing Packets", eta: "Coming soon" },
-      { name: "Affiliate Dashboard", eta: "Coming soon" },
-      { name: "Referral Link Management", eta: "Coming soon" },
+      { name: "Affiliate Dashboard", eta: "Unlocks after certification" },
+      { name: "Referral Link Management", eta: "Unlocks after certification" },
     ],
   },
   coaching: {
@@ -22,13 +22,13 @@ const pathMeta = {
     description:
       "The full affiliate toolkit for coaches, trainers, and wellness professionals — including platform certification and the Business Success Academy.",
     resources: [
-      { name: "Affiliate Certification", eta: "Coming soon" },
-      { name: "Platform Certification", eta: "Coming soon" },
-      { name: "Business Success Academy", eta: "Coming soon" },
+      { name: "Affiliate Certification", action: "certification" },
+      { name: "Platform Certification", eta: "Unlocks after Affiliate Certification" },
+      { name: "Business Success Academy", eta: "Unlocks after Affiliate Certification" },
       { name: "Marketing Resources", eta: "Coming soon" },
       { name: "Monthly Marketing Packets", eta: "Coming soon" },
-      { name: "Affiliate Dashboard", eta: "Coming soon" },
-      { name: "Referral Link Management", eta: "Coming soon" },
+      { name: "Affiliate Dashboard", eta: "Unlocks after certification" },
+      { name: "Referral Link Management", eta: "Unlocks after certification" },
     ],
   },
 };
@@ -84,29 +84,44 @@ export default function AffiliatePathPage() {
 
         {/* Resource list */}
         <div className="space-y-3">
-          {meta.resources.map((resource, i) => (
-            <motion.div
-              key={resource.name}
-              className="flex items-center gap-4 p-4 rounded-2xl bg-black/30 backdrop-blur-lg border border-white/10"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06 }}
-            >
-              <div className="p-2 rounded-lg bg-orange-500/10 flex-shrink-0">
-                <Clock className="h-4 w-4 text-orange-400/60" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white">{resource.name}</p>
-                <p className="text-xs text-white/40">{resource.eta}</p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl px-4 py-3 text-center">
-          <p className="text-xs text-orange-300 font-medium">
-            This section is being built — resources will appear here as they launch.
-          </p>
+          {meta.resources.map((resource, i) => {
+            const isLive = "action" in resource;
+            return isLive ? (
+              <motion.button
+                key={resource.name}
+                className="w-full text-left flex items-center gap-4 p-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 active:scale-[0.98] transition-transform"
+                onClick={() => setLocation(`/business-center/affiliate/${key}/${resource.action}`)}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.06 }}
+              >
+                <div className="p-2 rounded-lg bg-orange-500/20 flex-shrink-0">
+                  <Briefcase className="h-4 w-4 text-orange-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white">{resource.name}</p>
+                  <p className="text-xs text-orange-300/80">Start here</p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-orange-400 flex-shrink-0" />
+              </motion.button>
+            ) : (
+              <motion.div
+                key={resource.name}
+                className="flex items-center gap-4 p-4 rounded-2xl bg-black/30 backdrop-blur-lg border border-white/10"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.06 }}
+              >
+                <div className="p-2 rounded-lg bg-orange-500/10 flex-shrink-0">
+                  <Clock className="h-4 w-4 text-orange-400/60" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white">{resource.name}</p>
+                  <p className="text-xs text-white/40">{resource.eta}</p>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </motion.div>
