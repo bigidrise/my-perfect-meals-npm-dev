@@ -68,6 +68,7 @@ router.get("/:certType/progress", requireAuth, async (req, res) => {
     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
+    console.log(`[Cert/progress] userId=${userId} certType=${certType} rows=${moduleProgress.length} statuses=${moduleProgress.map(r => `${r.moduleId}:${r.status}`).join(",")}`);
     return res.json({
       certification: certification[0] ?? null,
       moduleProgress,
