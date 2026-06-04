@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { ArrowLeft, CheckCircle2, Circle, Clock, Lock, Award, X } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, Clock, Lock, Award, X, PlayCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AFFILIATE_MODULES } from "@/data/affiliateCertification";
 import { apiRequest } from "@/lib/queryClient";
@@ -26,14 +26,14 @@ interface CertificationData {
 
 function statusIcon(status: string) {
   if (status === "completed") return <CheckCircle2 className="h-5 w-5 text-green-400 flex-shrink-0" />;
-  if (status === "in_progress") return <Clock className="h-5 w-5 text-orange-400 flex-shrink-0" />;
+  if (status === "in_progress") return <PlayCircle className="h-5 w-5 text-orange-400 flex-shrink-0" />;
   if (status === "quiz_failed") return <Clock className="h-5 w-5 text-red-400 flex-shrink-0" />;
   return <Circle className="h-5 w-5 text-white/20 flex-shrink-0" />;
 }
 
 function statusLabel(status: string) {
   if (status === "completed") return <span className="text-xs text-green-400 font-medium">Completed</span>;
-  if (status === "in_progress") return <span className="text-xs text-orange-400 font-medium">In Progress</span>;
+  if (status === "in_progress") return <span className="text-xs text-orange-400 font-semibold">Current — Tap to Continue</span>;
   if (status === "quiz_failed") return <span className="text-xs text-red-400 font-medium">Quiz — Retry</span>;
   return <span className="text-xs text-white/30">Not Started</span>;
 }
@@ -46,17 +46,13 @@ export default function CertificationDashboard() {
 
   const [data, setData] = useState<CertificationData | null>(null);
   const [loading, setLoading] = useState(true);
-  // Name modal state
   const [showNameModal, setShowNameModal] = useState(false);
   const [certFirstName, setCertFirstName] = useState("");
   const [certLastName, setCertLastName] = useState("");
   const [nameSaving, setNameSaving] = useState(false);
 
-  // Hoisted so the location watcher can call it without stale closures
   const load = useCallback(async () => {
     try {
-      // Cache-bust: server sends no-store headers, but also add _t so the
-      // browser never serves a 304 from a prior visit to this component.
       const res = await apiRequest(
         `/api/certifications/${certType}/progress?_t=${Date.now()}`
       );
@@ -69,14 +65,10 @@ export default function CertificationDashboard() {
     }
   }, [certType]);
 
-  // Fire on initial mount
   useEffect(() => {
     load();
   }, [load]);
 
-  // Re-fetch every time Wouter routes back to this dashboard path.
-  // SPA navigation never triggers visibilitychange/focus events, so we watch
-  // the location instead.  prevLocationRef prevents a double-fetch on mount.
   const prevLocationRef = useRef<string | null>(null);
   useEffect(() => {
     const dashboardPath = `/business-center/affiliate/${pathId}/certification`;
@@ -87,7 +79,6 @@ export default function CertificationDashboard() {
     prevLocationRef.current = location;
   }, [location, pathId, load]);
 
-  // Pre-fill name from any existing cert
   useEffect(() => {
     apiRequest("/api/certifications/certificate-name")
       .then((r) => r.json())
@@ -113,11 +104,30 @@ export default function CertificationDashboard() {
   const progressPct = Math.round((completedCount / totalModules) * 100);
   const allDone = completedCount === totalModules;
 
+  // Find the first module the user should work on next
+  const currentModuleIndex = AFFILIATE_MODULES.findIndex((m) => {
+    const s = progressMap.get(m.id)?.status;
+    return s === "in_progress" || s === "quiz_failed";
+  });
+  const nextNotStartedIndex = AFFILIATE_MODULES.findIndex((m, i) => {
+    const s = progressMap.get(m.id)?.status ?? "not_started";
+    const prevDone = i === 0 || progressMap.get(AFFILIATE_MODULES[i - 1].id)?.status === "completed";
+    return s === "not_started" && prevDone;
+  });
+  const continueIndex = currentModuleIndex !== -1 ? currentModuleIndex : nextNotStartedIndex;
+  const continueModule = continueIndex !== -1 ? AFFILIATE_MODULES[continueIndex] : null;
+
   const handleModuleClick = (moduleId: string, moduleIndex: number) => {
     const prevModule = moduleIndex > 0 ? AFFILIATE_MODULES[moduleIndex - 1] : null;
     const prevStatus = prevModule ? progressMap.get(prevModule.id)?.status : "completed";
     if (moduleIndex > 0 && prevStatus !== "completed") return;
     setLocation(`/business-center/affiliate/${pathId}/certification/${moduleId}`);
+  };
+
+  const handleContinue = () => {
+    if (continueModule) {
+      setLocation(`/business-center/affiliate/${pathId}/certification/${continueModule.id}`);
+    }
   };
 
   const handleCompleteWithName = async () => {
@@ -141,10 +151,6 @@ export default function CertificationDashboard() {
     }
   };
 
-  const handleCompleteClick = () => {
-    setShowNameModal(true);
-  };
-
   const certPathLabel = pathId === "coaching" ? "Business & Coaching" : "Social & Referral";
 
   return (
@@ -153,6 +159,7 @@ export default function CertificationDashboard() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
+      {/* Header */}
       <div
         className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
@@ -225,6 +232,26 @@ export default function CertificationDashboard() {
           )}
         </div>
 
+        {/* Continue Certification CTA */}
+        {!loading && continueModule && !allDone && !data?.certification && (
+          <motion.button
+            className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm flex items-center justify-between active:scale-[0.98] transition-transform"
+            onClick={handleContinue}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="flex flex-col items-start gap-0.5">
+              <span className="text-xs text-orange-200 font-medium uppercase tracking-wide">Continue Certification</span>
+              <span className="text-base font-bold text-white">
+                {continueIndex === AFFILIATE_MODULES.length - 1
+                  ? "Final Assessment"
+                  : `Module ${continueIndex + 1} — ${continueModule.title}`}
+              </span>
+            </div>
+            <PlayCircle className="h-6 w-6 text-white/80 flex-shrink-0" />
+          </motion.button>
+        )}
+
         {/* Module list */}
         {loading ? (
           <div className="flex justify-center py-12">
@@ -239,57 +266,75 @@ export default function CertificationDashboard() {
               const prevCompleted = i === 0 || progressMap.get(AFFILIATE_MODULES[i - 1].id)?.status === "completed";
               const isLocked = !isFirstModule && !prevCompleted && status === "not_started";
               const isFinal = module.id === "final-assessment";
+              const isCurrent = i === continueIndex && !allDone;
+
+              // Separator: show a divider before the current module if some are completed
+              const showSeparator = isCurrent && completedCount > 0 && i > 0;
 
               return (
-                <motion.button
-                  key={module.id}
-                  className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 ${
-                    isLocked
-                      ? "bg-black/20 border-white/5 opacity-50 cursor-default"
-                      : isFinal && !prevCompleted
-                      ? "bg-black/20 border-white/5 opacity-50 cursor-default"
-                      : "bg-black/30 backdrop-blur-lg border-white/10 active:scale-[0.98]"
-                  }`}
-                  onClick={() => !isLocked && handleModuleClick(module.id, i)}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                >
-                  <div className="flex items-center gap-3">
-                    {isLocked ? (
-                      <Lock className="h-5 w-5 text-white/20 flex-shrink-0" />
-                    ) : (
-                      statusIcon(status)
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-white/40 flex-shrink-0">
-                          {isFinal ? "Final" : `Module ${i + 1}`}
-                        </span>
-                        <h3 className="text-sm font-semibold text-white truncate">{module.title}</h3>
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        {statusLabel(status)}
-                        {progress?.score != null && (
-                          <span className="text-xs text-white/30">· Score: {progress.score}%</span>
-                        )}
-                        {status === "not_started" && !isLocked && (
-                          <span className="text-xs text-white/30">· ~{module.estimatedMinutes} min</span>
-                        )}
+                <div key={module.id}>
+                  {showSeparator && (
+                    <div className="flex items-center gap-3 py-2">
+                      <div className="flex-1 h-px bg-white/10" />
+                      <span className="text-[10px] text-white/30 uppercase tracking-widest font-semibold">Up Next</span>
+                      <div className="flex-1 h-px bg-white/10" />
+                    </div>
+                  )}
+                  <motion.button
+                    className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 ${
+                      isLocked
+                        ? "bg-black/20 border-white/5 opacity-50 cursor-default"
+                        : isFinal && !prevCompleted
+                        ? "bg-black/20 border-white/5 opacity-50 cursor-default"
+                        : isCurrent
+                        ? "bg-orange-500/10 border-orange-500/30"
+                        : status === "completed"
+                        ? "bg-black/20 border-white/5"
+                        : "bg-black/30 backdrop-blur-lg border-white/10 active:scale-[0.98]"
+                    }`}
+                    onClick={() => !isLocked && handleModuleClick(module.id, i)}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.04 }}
+                  >
+                    <div className="flex items-center gap-3">
+                      {isLocked ? (
+                        <Lock className="h-5 w-5 text-white/20 flex-shrink-0" />
+                      ) : (
+                        statusIcon(status)
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs flex-shrink-0 ${status === "completed" ? "text-white/20" : "text-white/40"}`}>
+                            {isFinal ? "Final" : `Module ${i + 1}`}
+                          </span>
+                          <h3 className={`text-sm font-semibold truncate ${status === "completed" ? "text-white/50" : "text-white"}`}>
+                            {module.title}
+                          </h3>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {statusLabel(status)}
+                          {progress?.score != null && (
+                            <span className="text-xs text-white/30">· Score: {progress.score}%</span>
+                          )}
+                          {status === "not_started" && !isLocked && (
+                            <span className="text-xs text-white/30">· ~{module.estimatedMinutes} min</span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </motion.button>
+                  </motion.button>
+                </div>
               );
             })}
           </div>
         )}
 
-        {/* Complete button */}
+        {/* Complete button when all done */}
         {allDone && !data?.certification && (
           <motion.button
             className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm active:scale-[0.98] transition-transform"
-            onClick={handleCompleteClick}
+            onClick={() => setShowNameModal(true)}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
