@@ -115,7 +115,7 @@ export default function VisualCertificate({
         <p
           style={{
             position: "absolute",
-            top: "69%",
+            top: "74%",
             left: "19%",
             width: "17%",
             fontFamily: "Arial, Helvetica, sans-serif",
@@ -135,7 +135,7 @@ export default function VisualCertificate({
         <p
           style={{
             position: "absolute",
-            top: "73%",
+            top: "78%",
             left: "19%",
             width: "17%",
             fontFamily: "Arial, Helvetica, sans-serif",
@@ -159,8 +159,8 @@ export default function VisualCertificate({
         <p
           style={{
             position: "absolute",
-            top: "69%",
-            right: "10%",
+            top: "74%",
+            right: "22%",
             width: "16%",
             fontFamily: "Arial, Helvetica, sans-serif",
             fontWeight: 700,
@@ -180,8 +180,8 @@ export default function VisualCertificate({
         <p
           style={{
             position: "absolute",
-            top: "73%",
-            right: "10%",
+            top: "78%",
+            right: "22%",
             width: "16%",
             fontFamily: "Arial, Helvetica, sans-serif",
             fontWeight: 700,

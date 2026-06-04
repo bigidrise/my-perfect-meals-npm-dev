@@ -68,8 +68,8 @@ export function generateCertificatePDF(opts: CertificateOptions): Promise<Buffer
 
     // ── OVERLAY 2: CERTIFICATION NUMBER ──
     // Bottom-left column, right of seal. Template is blank — no cover needed.
-    const fieldLabelY = H * 0.69;
-    const fieldValueY = H * 0.73;
+    const fieldLabelY = H * 0.74;
+    const fieldValueY = H * 0.78;
     const cnX = W * 0.19;
     const cnW = W * 0.17;
 
@@ -98,7 +98,7 @@ export function generateCertificatePDF(opts: CertificateOptions): Promise<Buffer
       day: "numeric",
     });
     const dtW = W * 0.16;
-    const dtX = W * 0.74; // ~67% start, right column
+    const dtX = W * 0.62; // moved toward center (right:22% equivalent)
 
     // Label
     doc.fillColor(GOLD).font("Helvetica-Bold").fontSize(6)
