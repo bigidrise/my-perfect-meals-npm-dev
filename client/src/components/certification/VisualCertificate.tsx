@@ -18,15 +18,20 @@ function formatDate(isoDate: string): string {
 // Template image: 2000 × 1545 px  (matches landscape LETTER almost exactly)
 // Display at 760 × 587 px.
 //
-// NEW TEMPLATE: The cert-number and date areas in the bottom section are BLANK —
-// the user removed the placeholder text. We simply place label + value there.
-// The name area still has the faded ghost placeholder — we cover it with a cream rect.
+// CROP: The PNG has ~5% white margin at top and bottom outside the decorative border.
+// We clip those with overflow:hidden + a negative marginTop on the inner div.
+// Overlays stay % relative to the inner (full) height — no position math needed.
 //
 // Bottom section layout (left → right):
 //   [Gold Seal ~3–18%] | [CERT NUMBER ~19–36%] | [Signature center] | [DATE ~67–86%]
 
 const W = 760;
-const H = Math.round(W * 1545 / 2000); // 587
+const H = Math.round(W * 1545 / 2000); // 587 — full inner height (used for overlays)
+
+// How many px to slice from top and bottom of the displayed image
+const CROP_TOP    = Math.round(H * 0.05); // ~29 px
+const CROP_BOTTOM = Math.round(H * 0.05); // ~29 px
+const DISPLAY_H   = H - CROP_TOP - CROP_BOTTOM; // ~529 px visible
 
 const CREAM = "#F7F2E7";
 const NAVY  = "#0F1F3D";
@@ -44,9 +49,16 @@ export default function VisualCertificate({
     <div className="overflow-x-auto w-full print:overflow-visible">
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');`}</style>
 
+      {/* Outer crop shell — clips top and bottom white margins */}
       <div
-        className="relative mx-auto print:mx-0 select-none"
-        style={{ width: W, minWidth: W, height: H }}
+        className="mx-auto print:mx-0"
+        style={{ width: W, minWidth: W, height: DISPLAY_H, overflow: "hidden" }}
+      >
+
+      {/* Inner full-size container — shifted up by CROP_TOP to center-crop */}
+      <div
+        className="relative select-none"
+        style={{ width: W, height: H, marginTop: -CROP_TOP }}
       >
         {/* ── STATIC TEMPLATE ── */}
         <img
@@ -194,7 +206,8 @@ export default function VisualCertificate({
         >
           {dateStr}
         </p>
-      </div>
-    </div>
+      </div>    {/* end inner full-size container */}
+      </div>    {/* end outer crop shell */}
+    </div>      {/* end overflow-x-auto wrapper */}
   );
 }
