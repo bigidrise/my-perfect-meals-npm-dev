@@ -15,21 +15,22 @@ function formatDate(isoDate: string): string {
   });
 }
 
-// Template image: 2000 × 1545 px (ratio 1.2945 — matches landscape LETTER almost exactly)
-// Display at 760 px wide → height = 587 px
-// All overlay positions expressed as percentages of 760 × 587.
+// Template image: 2000 × 1545 px  (matches landscape LETTER almost exactly)
+// Display at 760 × 587 px.
 //
-// Dynamic fields only (everything else is baked into the template):
-//   1. Recipient name  — covers faded placeholder at ~30 – 42 % height, horizontally centered
-//   2. Cert number     — covers "MPCP-2026-0001" at ~71 % height, left column
-//   3. Date issued     — covers "May 30, 2026"   at ~71 % height, right column
+// NEW TEMPLATE: The cert-number and date areas in the bottom section are BLANK —
+// the user removed the placeholder text. We simply place label + value there.
+// The name area still has the faded ghost placeholder — we cover it with a cream rect.
+//
+// Bottom section layout (left → right):
+//   [Gold Seal ~3–18%] | [CERT NUMBER ~19–36%] | [Signature center] | [DATE ~67–86%]
 
 const W = 760;
 const H = Math.round(W * 1545 / 2000); // 587
 
-// Cream colour sampled from the template background
 const CREAM = "#F7F2E7";
 const NAVY  = "#0F1F3D";
+const GOLD  = "#C4973A";
 
 export default function VisualCertificate({
   recipientName,
@@ -47,10 +48,10 @@ export default function VisualCertificate({
         className="relative mx-auto print:mx-0 select-none"
         style={{ width: W, minWidth: W, height: H }}
       >
-        {/* ── STATIC TEMPLATE ── logo, borders, seal, signature, icons, all fixed text */}
+        {/* ── STATIC TEMPLATE ── */}
         <img
           src="/cert-template-professional.png"
-          alt="Certificate template"
+          alt="Certificate"
           style={{
             position: "absolute",
             inset: 0,
@@ -62,11 +63,10 @@ export default function VisualCertificate({
           draggable={false}
         />
 
-        {/* ══════════════════════════════════════════════
+        {/* ══════════════════════════════════════════
             OVERLAY 1 — RECIPIENT NAME
-            Template has a faded "Your paragraph text" placeholder here.
-            We cover it with a cream rectangle then render the real name.
-        ══════════════════════════════════════════════ */}
+            Cover the faded "Your paragraph text" ghost, render real name.
+        ══════════════════════════════════════════ */}
         <div
           aria-hidden
           style={{
@@ -105,29 +105,42 @@ export default function VisualCertificate({
           </p>
         </div>
 
-        {/* ══════════════════════════════════════════════
+        {/* ══════════════════════════════════════════
             OVERLAY 2 — CERTIFICATION NUMBER
-            Covers baked-in "MPCP-2026-0001" value and replaces it.
-        ══════════════════════════════════════════════ */}
-        <div
-          aria-hidden
-          style={{
-            position: "absolute",
-            top: "71%",
-            left: "15%",
-            width: "19%",
-            height: "5.5%",
-            background: CREAM,
-          }}
-        />
+            Bottom-left column, right of the gold seal (~19–36% width).
+            Template is blank here — no cream cover needed, just place text.
+        ══════════════════════════════════════════ */}
+
+        {/* Label */}
         <p
           style={{
             position: "absolute",
-            top: "71.5%",
-            left: "15.5%",
+            top: "69%",
+            left: "19%",
+            width: "17%",
             fontFamily: "Arial, Helvetica, sans-serif",
             fontWeight: 700,
-            fontSize: 12,
+            fontSize: 7,
+            color: GOLD,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            margin: 0,
+            lineHeight: 1,
+          }}
+        >
+          Certification Number
+        </p>
+
+        {/* Value */}
+        <p
+          style={{
+            position: "absolute",
+            top: "73%",
+            left: "19%",
+            width: "17%",
+            fontFamily: "Arial, Helvetica, sans-serif",
+            fontWeight: 700,
+            fontSize: 11,
             color: NAVY,
             margin: 0,
             lineHeight: 1,
@@ -136,29 +149,43 @@ export default function VisualCertificate({
           {certificateNumber}
         </p>
 
-        {/* ══════════════════════════════════════════════
+        {/* ══════════════════════════════════════════
             OVERLAY 3 — DATE ISSUED
-            Covers baked-in "May 30, 2026" value and replaces it.
-        ══════════════════════════════════════════════ */}
-        <div
-          aria-hidden
-          style={{
-            position: "absolute",
-            top: "71%",
-            right: "9%",
-            width: "18%",
-            height: "5.5%",
-            background: CREAM,
-          }}
-        />
+            Bottom-right column (~67–86% width).
+            Template is blank here — no cream cover needed.
+        ══════════════════════════════════════════ */}
+
+        {/* Label */}
         <p
           style={{
             position: "absolute",
-            top: "71.5%",
-            right: "9.5%",
+            top: "69%",
+            right: "10%",
+            width: "16%",
             fontFamily: "Arial, Helvetica, sans-serif",
             fontWeight: 700,
-            fontSize: 12,
+            fontSize: 7,
+            color: GOLD,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            margin: 0,
+            lineHeight: 1,
+            textAlign: "right",
+          }}
+        >
+          Date Issued
+        </p>
+
+        {/* Value */}
+        <p
+          style={{
+            position: "absolute",
+            top: "73%",
+            right: "10%",
+            width: "16%",
+            fontFamily: "Arial, Helvetica, sans-serif",
+            fontWeight: 700,
+            fontSize: 11,
             color: NAVY,
             margin: 0,
             lineHeight: 1,
