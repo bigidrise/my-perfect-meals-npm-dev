@@ -25,8 +25,8 @@ export default function CertificationQuiz() {
   // ── Restore in-progress attempt on mount ──────────────────────────────────
   useEffect(() => {
     if (!moduleId) return;
+    // apiRequest already returns parsed JSON — do NOT call .json() again
     apiRequest(`/api/certifications/${certType}/modules/${moduleId}/quiz-attempt`)
-      .then((r) => r.json())
       .then((data) => {
         if (data.attempt?.answersJson) {
           setAnswers(data.attempt.answersJson as AnswerMap);

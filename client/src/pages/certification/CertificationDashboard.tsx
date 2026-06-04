@@ -4,6 +4,7 @@ import { ArrowLeft, CheckCircle2, Circle, Clock, Lock, Award, X, PlayCircle } fr
 import { motion, AnimatePresence } from "framer-motion";
 import { AFFILIATE_MODULES } from "@/data/affiliateCertification";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ModuleProgress {
   moduleId: string;
@@ -44,6 +45,8 @@ export default function CertificationDashboard() {
   const pathId = params.pathId ?? "social";
   const certType = `affiliate_${pathId}`;
 
+  const { user } = useAuth();
+
   const [data, setData] = useState<CertificationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showNameModal, setShowNameModal] = useState(false);
@@ -53,21 +56,24 @@ export default function CertificationDashboard() {
 
   const load = useCallback(async () => {
     try {
-      const res = await apiRequest(
+      // apiRequest already returns parsed JSON — do NOT call .json() again
+      const json = await apiRequest(
         `/api/certifications/${certType}/progress?_t=${Date.now()}`
       );
-      const json = await res.json();
       setData(json);
     } catch {
-      setData({ certification: null, moduleProgress: [] });
+      setData((prev) => prev ?? { certification: null, moduleProgress: [] });
     } finally {
       setLoading(false);
     }
   }, [certType]);
 
+  // Only load once auth is established — prevents 401 race on hard reload
   useEffect(() => {
-    load();
-  }, [load]);
+    if (user) {
+      load();
+    }
+  }, [user, load]);
 
   const prevLocationRef = useRef<string | null>(null);
   useEffect(() => {
@@ -80,8 +86,8 @@ export default function CertificationDashboard() {
   }, [location, pathId, load]);
 
   useEffect(() => {
+    // apiRequest already returns parsed JSON — do NOT call .json() again
     apiRequest("/api/certifications/certificate-name")
-      .then((r) => r.json())
       .then((d) => {
         if (d.certificateName) {
           const parts = d.certificateName.trim().split(" ");
@@ -135,12 +141,12 @@ export default function CertificationDashboard() {
     if (!fullName) return;
     setNameSaving(true);
     try {
-      const res = await apiRequest(`/api/certifications/${certType}/complete`, {
+      // apiRequest already returns parsed JSON — do NOT call .json() again
+      const json = await apiRequest(`/api/certifications/${certType}/complete`, {
         method: "POST",
         body: JSON.stringify({ certificateName: fullName }),
         headers: { "Content-Type": "application/json" },
       });
-      const json = await res.json();
       if (json.ok) {
         setLocation(`/business-center/affiliate/${pathId}/certification/complete`);
       }

@@ -27,8 +27,8 @@ export default function CertificationLesson() {
       }).catch(() => {});
     }
 
+    // apiRequest already returns parsed JSON — do NOT call .json() again
     apiRequest(`/api/certifications/${certType}/progress?_t=${Date.now()}`)
-      .then((r) => r.json())
       .then((d: { moduleProgress?: Array<{ moduleId: string; status: string; score: number | null }> }) => {
         const prog = d.moduleProgress?.find((p) => p.moduleId === moduleId);
         if (prog) {
