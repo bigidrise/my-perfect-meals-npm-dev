@@ -26,8 +26,8 @@ export function useGlp1Shots(userId: string, opts?: { start?: string; end?: stri
   return useQuery({
     queryKey: [base(userId), qs],
     queryFn: async () => {
-      const result = await get<{ items: ShotEntry[] }>(`${base(userId)}${qs}`);
-      return result.items;
+      const result = await get<ShotEntry[]>(`${base(userId)}${qs}`);
+      return result ?? [];
     },
     staleTime: 60_000,
     retry: 2,
