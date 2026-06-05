@@ -47,9 +47,9 @@ export default function Builders() {
       builderId: "diabetic",
     },
     {
-      title: "GLP-1 Hub and Meal Builder",
+      title: "Metabolic Medication Hub",
       description:
-        "Shot and location logging with specialized AI created meal plans for GLP-1 users",
+        "Shot and location logging with specialized AI created meal plans for metabolic medication users",
       icon: Pill,
       route: "/glp1-hub",
       testId: "card-glp1-hub",

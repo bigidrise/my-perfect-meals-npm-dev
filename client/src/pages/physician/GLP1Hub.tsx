@@ -38,7 +38,7 @@ const GLP1_TOUR_STEPS: TourStep[] = [
     icon: "2",
     title: "Track Your Shots",
     description:
-      "Log your GLP-1 injections to stay on schedule and monitor your progress.",
+      "Log your medication injections to stay on schedule and monitor your progress.",
   },
   {
     icon: "3",
@@ -48,7 +48,7 @@ const GLP1_TOUR_STEPS: TourStep[] = [
   },
   {
     icon: "4",
-    title: "Get GLP-1 Friendly Meals",
+    title: "Get Medication-Friendly Meals",
     description:
       "Browse meals designed for smaller portions with maximum nutrition.",
   },
@@ -98,7 +98,7 @@ export default function GLP1Hub() {
   const hasHydratedFromServer = useRef(false);
 
   useEffect(() => {
-    document.title = "GLP-1 Hub | My Perfect Meals";
+    document.title = "Metabolic Medication Hub | My Perfect Meals";
     if (!localStorage.getItem("glp1-hub-info-seen")) {
       localStorage.setItem("glp1-hub-info-seen", "true");
     }
@@ -150,7 +150,7 @@ export default function GLP1Hub() {
     };
     saveMutation.mutate(sanitizedGuardrails);
     toast({
-      title: "GLP-1 Profile Saved",
+      title: "Medication Profile Saved",
       description: "Your guardrail settings have been updated.",
     });
   };
@@ -170,7 +170,7 @@ export default function GLP1Hub() {
           <Pill className="h-6 w-6 text-orange-500 flex-shrink-0" />
           {/* Title */}
           <h1 className="text-lg font-bold text-white truncate min-w-0">
-            GLP-1 Hub
+            Metabolic Medication Hub
           </h1>
 
           <div className="flex-grow" />
@@ -192,7 +192,7 @@ export default function GLP1Hub() {
         {/* ── Copilot Banner ── */}
         <div className="rounded-xl border-l-[3px] border-purple-500/60 bg-purple-500/5 px-4 py-3 space-y-1.5">
           <p className="text-sm text-white/80 leading-relaxed">
-            This hub makes sure every meal you get works with your GLP-1 medication — portion size, protein focus, and timing enforced automatically.
+            This hub makes sure every meal you get works with your metabolic medication — portion size, protein focus, and timing enforced automatically.
           </p>
           <p className="text-sm text-white/50 leading-relaxed">
             Expect smaller meals and steadier intake while your medication is active.
@@ -250,7 +250,7 @@ export default function GLP1Hub() {
         {/* Shot Tracker - Database-backed */}
         <section className="bg-black/60 border border-purple-300/20 rounded-xl p-4 backdrop-blur">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg text-white font-bold">GLP-1 Shot Tracker</h2>
+            <h2 className="text-lg text-white font-bold">Medication Shot Tracker</h2>
             <div className="flex flex-col items-center gap-1">
               <PillButton
                 onClick={() => setShotTrackerOpen(!shotTrackerOpen)}
@@ -292,7 +292,7 @@ export default function GLP1Hub() {
             Doctor / Coach Guardrails
           </h2>
           <p className="text-white/80 text-md mb-4">
-            Set clinical meal guardrails for GLP-1 patients (portion, macros,
+            Set clinical meal guardrails for patients on metabolic medications (portion, macros,
             hydration).
           </p>
 
@@ -468,7 +468,7 @@ export default function GLP1Hub() {
         {/* CTA → Meals */}
         <section className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl p-4 shadow-xl">
           <h3 className="text-white font-bold text-lg mb-1">
-            Find Meals for GLP-1 Users
+            Find Meals for Metabolic Med Users
           </h3>
           <p className="text-white/90 text-md mb-3">
             Small portions • Calorie-dense • Mixed cuisines.
@@ -478,7 +478,7 @@ export default function GLP1Hub() {
             className="bg-lime-600 text-md font-bold text-white w-full rounded-xl"
             data-testid="button-go-to-glp1-meals"
           >
-            GLP-1 Meal Builder
+            Metabolic Medication Builder
           </Button>
         </section>
       </div>
@@ -487,7 +487,7 @@ export default function GLP1Hub() {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title="How to Use GLP-1 Hub"
+        title="How to Use Metabolic Medication Hub"
         steps={GLP1_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />

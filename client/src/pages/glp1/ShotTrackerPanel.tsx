@@ -21,23 +21,31 @@ const LABEL: Record<InjectionLocation, string> = {
   buttock: "Buttock",
 };
 
+const MEDICATION_OPTIONS = [
+  "Ozempic",
+  "Wegovy",
+  "Mounjaro",
+  "Zepbound",
+  "Rybelsus",
+  "Retatrutide (Research/Trial)",
+  "Other",
+];
+
 export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => void; userId: string }) {
-  const shotsQ = useGlp1Shots(userId, { enabled: !!userId }); // mounted by user → fetch
+  const shotsQ = useGlp1Shots(userId, { enabled: !!userId });
   const createM = useCreateShot(userId);
   const updateM = useUpdateShot(userId);
   const deleteM = useDeleteShot(userId);
 
   const shots = (shotsQ.data as ShotEntry[]) ?? [];
   const isNative = Capacitor.isNativePlatform();
-  
-  // Environment fingerprint on mount (iOS only)
+
   useEffect(() => {
     if (isNative) {
       logEnvironmentFingerprint('ShotTracker:mount', userId);
     }
   }, [isNative, userId]);
-  
-  // Debug logging for iOS query state changes
+
   useEffect(() => {
     if (isNative && (shotsQ.isError || shotsQ.isFetched)) {
       const error = shotsQ.error as ApiError | Error | null;
@@ -52,8 +60,7 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
       });
     }
   }, [isNative, shotsQ.isLoading, shotsQ.isError, shotsQ.error, shotsQ.data, shotsQ.isFetched]);
-  
-  // Explicit auth check
+
   const hasValidAuth = !!userId && userId !== 'undefined' && userId !== 'null';
 
   // quick add state
@@ -63,46 +70,44 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
     return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   });
   const [site, setSite] = useState<InjectionLocation | "">("");
+  const [medicationName, setMedicationName] = useState<string>("");
   const [notes, setNotes] = useState("");
 
   // edit state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDose, setEditDose] = useState<number>(0);
   const [editSite, setEditSite] = useState<InjectionLocation | "">("");
+  const [editMedicationName, setEditMedicationName] = useState<string>("");
   const [editNotes, setEditNotes] = useState("");
   const [editDateLocal, setEditDateLocal] = useState("");
 
   const addShot = async () => {
-    // Explicit auth check BEFORE API call
     if (!hasValidAuth) {
       alert("Session not available — please sign in again.");
       return;
     }
-    
     if (!doseMg || doseMg <= 0) return alert("Enter a valid dose (mg).");
     const asUTC = new Date(dateLocal).toISOString();
-    
     try {
       if (isNative) {
         logEnvironmentFingerprint('ShotTracker:saveShot', userId);
-        console.log("[ShotTracker] Saving shot on iOS:", { dateUtc: asUTC, doseMg, site });
+        console.log("[ShotTracker] Saving shot on iOS:", { dateUtc: asUTC, doseMg, site, medicationName });
       }
       await createM.mutateAsync({
         dateUtc: asUTC,
         doseMg: Number(doseMg),
         location: site || undefined,
+        medicationName: medicationName || undefined,
         notes: notes?.trim() || undefined,
       });
       if (isNative) {
         console.log("[ShotTracker] Shot saved successfully on iOS");
       }
-      setNotes(""); setSite("");
+      setNotes(""); setSite(""); setMedicationName("");
       const d = new Date(); d.setSeconds(0, 0);
       setDateLocal(new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16));
     } catch (err: any) {
       console.error("[ShotTracker] Error saving shot:", err);
-      
-      // Provide specific error messages based on error type
       let errorMsg = "Connection error";
       if (err instanceof ApiError) {
         if (err.isAuthError) {
@@ -117,7 +122,6 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
       } else if (err?.message) {
         errorMsg = err.message;
       }
-      
       if (isNative) {
         alert(`Failed to save shot: ${errorMsg}`);
       }
@@ -128,6 +132,7 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
     setEditingId(s.id);
     setEditDose(s.doseMg);
     setEditSite(s.location || "");
+    setEditMedicationName(s.medicationName || "");
     setEditNotes(s.notes || "");
     const local = new Date(s.dateUtc);
     setEditDateLocal(new Date(local.getTime() - local.getTimezoneOffset() * 60000).toISOString().slice(0, 16));
@@ -140,6 +145,7 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
       dateUtc: new Date(editDateLocal).toISOString(),
       doseMg: Number(editDose),
       location: editSite || undefined,
+      medicationName: editMedicationName || undefined,
       notes: editNotes?.trim() || undefined,
     });
     setEditingId(null);
@@ -166,8 +172,21 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
         </div>
       </div>
 
-      {/* Quick Add - Always visible and functional */}
+      {/* Quick Add */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="text-white/80 text-sm">Medication</label>
+          <select
+            value={medicationName}
+            onChange={(e) => setMedicationName(e.target.value)}
+            className="w-full mt-1 rounded-md border border-white/20 bg-black/40 text-white p-2"
+          >
+            <option value="">Select medication…</option>
+            {MEDICATION_OPTIONS.map((m) => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+        </div>
         <div>
           <label className="text-white/80 text-sm">Dose (mg)</label>
           <input
@@ -199,7 +218,7 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
             <option value="buttock">Buttock</option>
           </select>
         </div>
-        <div>
+        <div className="sm:col-span-2">
           <label className="text-white/80 text-sm">Notes (optional)</label>
           <input
             value={notes} onChange={(e) => setNotes(e.target.value)}
@@ -225,7 +244,7 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
         <div className="text-white/60 text-sm">{nextHint}</div>
       </div>
 
-      {/* History - Resilient to loading/error states */}
+      {/* History */}
       <div className="bg-black/40 border border-white/15 rounded-xl p-3 mt-4">
         <h4 className="text-white font-semibold mb-2">History</h4>
         {!hasValidAuth ? (
@@ -240,7 +259,6 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
             const isApiError = error instanceof ApiError;
             const statusCode = isApiError ? error.status : null;
             const isAuthError = isApiError && error.isAuthError;
-            
             return (
               <div className="text-red-400/80 text-sm space-y-1">
                 <div>
@@ -252,8 +270,8 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
                     {error?.message || "Connection failed"}
                   </div>
                 )}
-                <Button 
-                  onClick={() => shotsQ.refetch()} 
+                <Button
+                  onClick={() => shotsQ.refetch()}
                   className="mt-2 bg-white/10 hover:bg-white/20 text-white h-7 px-3 text-xs"
                 >
                   Retry
@@ -270,6 +288,16 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
                 {editingId === s.id ? (
                   <div className="space-y-2">
                     <div className="grid sm:grid-cols-2 gap-2">
+                      <select
+                        value={editMedicationName}
+                        onChange={(e) => setEditMedicationName(e.target.value)}
+                        className="rounded-md border border-white/20 bg-black/40 text-white p-2"
+                      >
+                        <option value="">Select medication…</option>
+                        {MEDICATION_OPTIONS.map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
                       <input
                         type="number" step="0.1" min="0" max="20"
                         value={editDose}
@@ -283,18 +311,18 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
                         onChange={(e) => setEditDateLocal(e.target.value)}
                         className="rounded-md border border-white/20 bg-black/40 text-white p-2"
                       />
+                      <select
+                        value={editSite}
+                        onChange={(e) => setEditSite(e.target.value as any)}
+                        className="rounded-md border border-white/20 bg-black/40 text-white p-2"
+                      >
+                        <option value="">Select site…</option>
+                        <option value="abdomen">Abdomen</option>
+                        <option value="thigh">Thigh</option>
+                        <option value="upper_arm">Upper Arm</option>
+                        <option value="buttock">Buttock</option>
+                      </select>
                     </div>
-                    <select
-                      value={editSite}
-                      onChange={(e) => setEditSite(e.target.value as any)}
-                      className="w-full rounded-md border border-white/20 bg-black/40 text-white p-2"
-                    >
-                      <option value="">Select site…</option>
-                      <option value="abdomen">Abdomen</option>
-                      <option value="thigh">Thigh</option>
-                      <option value="upper_arm">Upper Arm</option>
-                      <option value="buttock">Buttock</option>
-                    </select>
                     <input
                       value={editNotes}
                       onChange={(e) => setEditNotes(e.target.value)}
@@ -311,8 +339,13 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
                 ) : (
                   <div className="flex items-center justify-between">
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs font-normal truncate flex items-center gap-2">
+                      <div className="text-xs font-normal flex flex-wrap items-center gap-2">
                         <span>{new Date(s.dateUtc).toLocaleDateString()} — {s.doseMg} mg</span>
+                        {s.medicationName && (
+                          <span className="px-2 py-0.5 rounded-full text-xs bg-orange-600/30 border border-orange-400/50 text-orange-300">
+                            {s.medicationName}
+                          </span>
+                        )}
                         {s.location && (
                           <span className="px-2 py-0.5 rounded-full text-xs bg-emerald-600/30 border border-emerald-400/50 text-emerald-300">
                             {LABEL[s.location as InjectionLocation]}
@@ -331,7 +364,7 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
                         disabled={deleteM.isPending}
                         size="sm"
                         confirm
-                        confirmMessage="Delete this GLP-1 shot log?"
+                        confirmMessage="Delete this shot log?"
                         ariaLabel="Delete shot"
                         title="Delete shot"
                         data-testid={`button-delete-shot-${s.id}`}

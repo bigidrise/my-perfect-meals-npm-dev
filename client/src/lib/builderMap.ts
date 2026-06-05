@@ -29,7 +29,7 @@ export const BUILDER_MAP: Record<BuilderKey, BuilderEntry> = {
   },
   glp1: {
     key: "glp1",
-    label: "GLP-1",
+    label: "Metabolic Med",
     clientRoute: "/glp1-meal-builder",
     proRoute: "glp1-builder",
   },

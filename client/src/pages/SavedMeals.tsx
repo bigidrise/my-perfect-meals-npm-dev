@@ -16,7 +16,7 @@ const SOURCE_LABELS: Record<string, string> = {
   "general-nutrition": "General Nutrition",
   "performance-competition": "Performance",
   "diabetic": "Diabetic",
-  "glp1": "GLP-1",
+  "glp1": "Metabolic Med",
   "anti-inflammatory": "Anti-Inflammatory",
   "craving-creator": "Craving Creator",
   "dessert-creator": "Dessert Creator",

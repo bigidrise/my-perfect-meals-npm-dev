@@ -17,7 +17,7 @@ interface Config {
 
 const BUILDER_CONFIG: Record<string, Config> = {
   diabetic:          { label: "Diabetic",          color: "bg-blue-500/20 border-blue-400/40 text-blue-300" },
-  glp1:              { label: "GLP-1 Friendly",    color: "bg-violet-500/20 border-violet-400/40 text-violet-300" },
+  glp1:              { label: "Metabolic Med Friendly", color: "bg-violet-500/20 border-violet-400/40 text-violet-300" },
   anti_inflammatory: { label: "Anti-Inflammatory", color: "bg-orange-500/20 border-orange-400/40 text-orange-300" },
   cardiac:           { label: "Cardiac Health",    color: "bg-red-500/20 border-red-400/40 text-red-300" },
   renal:             { label: "Kidney Disease",    color: "bg-teal-500/20 border-teal-400/40 text-teal-300" },

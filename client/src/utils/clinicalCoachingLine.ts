@@ -22,7 +22,7 @@ export function getClinicalCoachingLine(builderTypeOrSource?: string | null): st
     return "Built for your Cardiac Health protocol — heart-healthy, low sodium.";
   }
   if (s.includes("glp1") || s.includes("glp-1")) {
-    return "Built for your GLP-1 phase — small portion, protein-first, easy to digest.";
+    return "Built for your metabolic medication phase — small portion, protein-first, easy to digest.";
   }
   if (s.includes("diabet")) {
     return "Built to keep you within your glucose target range.";

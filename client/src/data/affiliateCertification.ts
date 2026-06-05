@@ -755,7 +755,7 @@ export const AFFILIATE_MODULES: CertificationModule[] = [
         list: [
           "Diabetes",
           "Cardiac concerns",
-          "GLP-1 support",
+          "Metabolic medication support",
           "Anti-inflammatory protocols",
           "Food allergies",
           "Cultural cuisines",

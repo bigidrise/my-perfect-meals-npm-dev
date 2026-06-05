@@ -77,7 +77,7 @@ const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
     icon: "6",
     title: "System Protocols",
     description:
-      "This section shows any active clinical protocols shaping your client's meals — like GLP-1, Cardiac Health, or Oncology Support. These are read-only and managed by the physician. Use them to understand why certain meals look the way they do.",
+      "This section shows any active clinical protocols shaping your client's meals — like Metabolic Medication, Cardiac Health, or Oncology Support. These are read-only and managed by the physician. Use them to understand why certain meals look the way they do.",
   },
 ];
 
@@ -103,7 +103,7 @@ const SECTION_EXPLAINERS: Record<string, TourStep[]> = {
       icon: "🩺",
       title: "System Protocols",
       description:
-        "These are clinical rules active for this client — set by their physician or triggered by lab values. They are not your controls.\n\nUse this section to understand what the AI is already enforcing. If GLP-1 is active, do not lower protein targets or increase starchy carbs — the system manages portions.\n\nProtocol changes must go through the physician portal.",
+        "These are clinical rules active for this client — set by their physician or triggered by lab values. They are not your controls.\n\nUse this section to understand what the AI is already enforcing. If Metabolic Med is active, do not lower protein targets or increase starchy carbs — the system manages portions.\n\nProtocol changes must go through the physician portal.",
     },
   ],
 };
@@ -1094,7 +1094,7 @@ export default function TrainerClientDashboard() {
               implication: "Goitrogenic foods are moderated and iodine sources are prioritized. Maintain current macro targets.",
             },
             glp1: {
-              label: "GLP-1 Active",
+              label: "Metabolic Med Active",
               dot: "bg-cyan-400",
               implication: "Portion sizes are reduced and protein density is high to complement medication effect. Do not lower protein targets or increase starchy carbs.",
             },

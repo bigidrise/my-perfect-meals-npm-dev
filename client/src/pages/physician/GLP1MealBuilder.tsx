@@ -118,7 +118,7 @@ import { TrialBanner } from "@/components/TrialBanner";
 
 const GLP1_BUILDER_TOUR_STEPS: TourStep[] = [
   { icon: "1", title: "Small Portions", description: "All meals are designed for reduced appetite with maximum nutrition density." },
-  { icon: "2", title: "Add Your Meals", description: "Tap + on any meal card to add GLP-1 optimized recipes." },
+  { icon: "2", title: "Add Your Meals", description: "Tap + on any meal card to add medication-optimized recipes." },
   { icon: "3", title: "Duplicate Days", description: "Copy meals to other days when you find what works for you." },
   { icon: "4", title: "Track Macros", description: "Send meals to the Macro Calculator to ensure adequate protein." },
   { icon: "5", title: "Shopping List", description: "Export ingredients for easy meal prep shopping." },
@@ -132,7 +132,7 @@ const GLP1_BUILDER_TOUR_STEPS: TourStep[] = [
 // Using noon UTC anchor pattern to prevent day-shift bugs
 
 export default function GLP1MealBuilder() {
-  usePageTitle("GLP-1 Builder");
+  usePageTitle("Metabolic Medication Builder");
   const quickTour = useQuickTour("glp1-meal-builder");
   const [, setLocation] = useLocation();
   
@@ -1070,7 +1070,7 @@ export default function GLP1MealBuilder() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24 overflow-x-hidden"
     >
-      <BuilderHeader title="GLP-1 Builder" onOpenTour={quickTour.openTour} clientId={proClientId} />
+      <BuilderHeader title="Metabolic Medication Builder" onOpenTour={quickTour.openTour} clientId={proClientId} />
       <TrialBanner />
 
       {/* Main Content */}
@@ -1267,7 +1267,7 @@ export default function GLP1MealBuilder() {
                             meal={meal}
                             showStarchBadge={true}
                             builderType="glp1"
-                                coachingLine="Built for your GLP-1 phase — small portion, protein-first, easy to digest."
+                                coachingLine="Built for your metabolic medication phase — small portion, protein-first, easy to digest."
                             data-wt="wmb-meal-card"
                             onUpdated={(m) => {
                               if (m === null) {
@@ -1333,7 +1333,7 @@ export default function GLP1MealBuilder() {
                             meal={meal}
                             showStarchBadge={true}
                             builderType="glp1"
-                                coachingLine="Built for your GLP-1 phase — small portion, protein-first, easy to digest."
+                                coachingLine="Built for your metabolic medication phase — small portion, protein-first, easy to digest."
                             onUpdated={(m) => {
                               if (m === null) {
                                 const updatedDayLists = { ...dayLists, snacks: dayLists.snacks.filter((e) => e.id !== meal.id) };
@@ -1384,7 +1384,7 @@ export default function GLP1MealBuilder() {
                       meal={meal}
                       showStarchBadge={true}
                       builderType="glp1"
-                                coachingLine="Built for your GLP-1 phase — small portion, protein-first, easy to digest."
+                                coachingLine="Built for your metabolic medication phase — small portion, protein-first, easy to digest."
                       onUpdated={(m) => {
                         if (m === null) {
                           if (!board) return;
@@ -1751,7 +1751,7 @@ export default function GLP1MealBuilder() {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title="GLP-1 Meal Builder Guide"
+        title="Metabolic Medication Builder Guide"
         steps={GLP1_BUILDER_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />

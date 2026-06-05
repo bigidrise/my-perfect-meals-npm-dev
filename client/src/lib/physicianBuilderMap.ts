@@ -20,9 +20,9 @@ export const PHYSICIAN_BUILDER_MAP: Record<PhysicianBuilderKey, PhysicianBuilder
   },
   glp1: {
     key: "glp1",
-    label: "GLP-1 Meal Builder",
+    label: "Metabolic Medication Builder",
     proRoute: "glp1-builder",
-    description: "Portion-aware meals designed for patients on GLP-1 medications.",
+    description: "Portion-aware meals designed for patients on metabolic medications.",
   },
   anti_inflammatory: {
     key: "anti_inflammatory",
