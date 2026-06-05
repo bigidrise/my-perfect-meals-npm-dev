@@ -16,6 +16,7 @@ export interface AuthenticatedUser {
   trialEndsAt: Date | null;
   selectedMealBuilder: string | null;
   isTester: boolean;
+  isSandbox: boolean;
   accessTier: AccessTier;
   trialDaysRemaining: number | null;
   hasHadTrial: boolean;
@@ -49,6 +50,7 @@ function buildAuthUser(user: any): AuthenticatedUser {
     trialEndsAt: user.trialEndsAt || null,
     selectedMealBuilder: user.selectedMealBuilder || null,
     isTester: user.isTester || false,
+    isSandbox: user.isSandbox || false,
     accessTier,
     trialDaysRemaining,
     hasHadTrial,
