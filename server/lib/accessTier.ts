@@ -36,6 +36,9 @@ const PAID_PLAN_KEYS = [
   "mpm_physician_50",
   "mpm_physician_150",
   "mpm_guidance",
+  // Internal / contributor / special-access keys — never expire
+  "mpm_contributor",
+  "mpm_special_access",
 ];
 
 // BILLING_ENFORCED=true in env means real paywalls are live.
