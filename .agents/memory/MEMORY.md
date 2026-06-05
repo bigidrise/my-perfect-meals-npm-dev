@@ -1,4 +1,5 @@
 - [Clinical Labs Phase 5 — Architecture](clinical-labs-phase5.md) — 7 new lab columns + hormone/thyroid subtype resolver pattern; drizzle-kit not installed, use migration script.
+- [Express async middleware + sub-routers](express-async-subrouter-bug.md) — Express v4 won't await async middleware in app.use(path, asyncFn, router); fix by putting requireAuth inside the router itself.
 - [apiRequest returns parsed JSON](apiRequest-returns-parsed-json.md) — apiRequest() already calls res.json() internally; never call .json() on the result or it always throws and silently returns empty data.
 - [Affiliate Certification — PDF Certificate System](affiliate-cert-pdf.md) — pdfkit installed; certificate_name on user_certifications; signature drop-in at server/assets/cert-signature.png.
 - [Affiliate Certification — Quiz Persistence](affiliate-cert-quiz-persistence.md) — certification_quiz_attempts table; JSONB merge upsert pattern; final-assessment routes to dashboard not /complete directly.
