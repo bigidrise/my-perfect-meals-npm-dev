@@ -2,8 +2,15 @@
 import express from "express";
 import { z } from "zod";
 import OpenAI from "openai";
+import { requireAuth } from "../middleware/requireAuth";
 
 const router = express.Router();
+
+// Auth identity must be established first inside this router.
+// See: express-async-subrouter-bug — Express v4 does not await async middleware
+// in app.use(path, asyncFn, router). requireAuth inside the router guarantees
+// the paid-access paywall is enforced before any OpenAI call runs.
+router.use(requireAuth);
 
 function getOpenAI() {
   if (!process.env.OPENAI_API_KEY) {
@@ -14,7 +21,7 @@ function getOpenAI() {
 
 const RecipeParseReq = z.object({
   name: z.string().min(2),
-  description: z.string().min(5), // free text the user pastes
+  description: z.string().min(5),
 });
 
 router.post("/api/holiday-family-recipe", async (req, res) => {
@@ -46,39 +53,16 @@ Do not add commentary. Quantities may be null if truly missing.`;
     const raw = resp.choices?.[0]?.message?.content || "{}";
     const json = JSON.parse(raw);
 
-    // Normalize units a touch for consistency with the feast generator
     const normalizeUnit = (u?: string | null) => {
       if (!u) return null;
       const key = u.toLowerCase();
       const map: Record<string, string> = {
-        grams: "g",
-        g: "g",
-        kilogram: "kg",
-        kilograms: "kg",
-        kg: "kg",
-        ounce: "oz",
-        ounces: "oz",
-        oz: "oz",
-        pound: "lb",
-        pounds: "lb",
-        lb: "lb",
-        lbs: "lb",
-        teaspoon: "tsp",
-        teaspoons: "tsp",
-        tsp: "tsp",
-        tablespoon: "tbsp",
-        tablespoons: "tbsp",
-        tbsp: "tbsp",
-        cup: "cup",
-        cups: "cup",
-        milliliter: "ml",
-        milliliters: "ml",
-        ml: "ml",
-        liter: "l",
-        liters: "l",
-        l: "l",
-        piece: "piece",
-        pieces: "piece",
+        grams: "g", g: "g", kilogram: "kg", kilograms: "kg", kg: "kg",
+        ounce: "oz", ounces: "oz", oz: "oz", pound: "lb", pounds: "lb",
+        lb: "lb", lbs: "lb", teaspoon: "tsp", teaspoons: "tsp", tsp: "tsp",
+        tablespoon: "tbsp", tablespoons: "tbsp", tbsp: "tbsp",
+        cup: "cup", cups: "cup", milliliter: "ml", milliliters: "ml", ml: "ml",
+        liter: "l", liters: "l", l: "l", piece: "piece", pieces: "piece",
       };
       return map[key] || u;
     };
