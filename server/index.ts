@@ -183,6 +183,12 @@ app.set('trust proxy', isProd ? 1 : false);
 // Create rate limiter ONCE at app initialization (after trust proxy is set)
 const apiRateLimit = createApiRateLimit();
 
+// ── Sandbox password reset (one-time, token-gated, no auth required) ──
+// Must be registered at module scope BEFORE registerRoutes() and all broad
+// /api middleware so it is never intercepted by requireAuth layers.
+import { registerSandboxReset } from "./routes/sandboxReset";
+registerSandboxReset(app);
+
 // Enhanced health check with OpenAI/S3 status (same fields as prod.ts)
 import { getFallbackStats } from "./services/fallbackMealService";
 app.get("/api/health", (_req, res) => {

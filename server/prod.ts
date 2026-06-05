@@ -28,8 +28,11 @@ process.on("uncaughtException", (error) => {
 const app = express();
 app.set("trust proxy", 1);
 
-// Trust proxy for correct IP handling (Cloud Run uses 1 proxy hop)
-app.set("trust proxy", 1);
+// ── Sandbox password reset (one-time, token-gated, no auth required) ──
+// Registered immediately after app creation, before all broad /api middleware,
+// so requireAuth layers can never intercept it.
+import { registerSandboxReset } from "./routes/sandboxReset";
+registerSandboxReset(app);
 
 // Track initialization state
 let isInitialized = false;
@@ -172,6 +175,22 @@ async function initializeApp() {
           );
           await database.execute(
             sql`ALTER TABLE client_links ADD COLUMN IF NOT EXISTS board_control_updated_at timestamptz`,
+          );
+          // Diabetic Meal Builder saved-meals columns
+          await database.execute(
+            sql`ALTER TABLE saved_meals ADD COLUMN IF NOT EXISTS saved_from_diabetic_builder boolean NOT NULL DEFAULT false`,
+          );
+          await database.execute(
+            sql`ALTER TABLE saved_meals ADD COLUMN IF NOT EXISTS generated_bgl_mgdl integer`,
+          );
+          await database.execute(
+            sql`ALTER TABLE saved_meals ADD COLUMN IF NOT EXISTS glucose_context varchar(64)`,
+          );
+          await database.execute(
+            sql`ALTER TABLE saved_meals ADD COLUMN IF NOT EXISTS protocol_type varchar(64)`,
+          );
+          await database.execute(
+            sql`ALTER TABLE saved_meals ADD COLUMN IF NOT EXISTS bgl_bucket varchar(16)`,
           );
         })(),
         migTimeout(6000),
