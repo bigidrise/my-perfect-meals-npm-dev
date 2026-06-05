@@ -1,0 +1,147 @@
+import { useEffect, useState } from "react";
+import { useLocation, useParams } from "wouter";
+import { Award, Download, ArrowLeft } from "lucide-react";
+import { motion } from "framer-motion";
+import { apiRequest } from "@/lib/queryClient";
+
+interface CertData {
+  status: string;
+  certificateNumber: string;
+  certificateName: string | null;
+  completedAt: string;
+  score: number;
+}
+
+const CERT_LABELS: Record<string, string> = {
+  platform: "Platform Certification",
+  business_success: "Business Success Certification",
+};
+
+export default function PlatformCertComplete() {
+  const [, setLocation] = useLocation();
+  const params = useParams<{ certType: string }>();
+  const certType = params.certType ?? "platform";
+  const [cert, setCert] = useState<CertData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
+
+  useEffect(() => {
+    apiRequest(`/api/certifications/${certType}/progress?_t=${Date.now()}`)
+      .then((d: { certification: CertData | null }) => {
+        setCert(d.certification);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [certType]);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const response = await fetch(`/api/certifications/${certType}/certificate`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Download failed");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `MPM-Certificate-${cert?.certificateNumber ?? "cert"}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("Certificate download failed. Please try again.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <motion.div
+      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 pb-28"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+    >
+      <div className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+        <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
+          <button onClick={() => setLocation(`/certifications/${certType}`)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform">
+            <ArrowLeft className="h-4 w-4" /> Back
+          </button>
+          <h1 className="text-base font-bold text-white">{CERT_LABELS[certType] ?? "Certification"}</h1>
+        </div>
+      </div>
+
+      <div className="px-4 max-w-2xl mx-auto space-y-6" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}>
+        <motion.div className="flex flex-col items-center gap-4 py-8" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}>
+          <div className="h-24 w-24 rounded-full bg-orange-500/20 border-2 border-orange-500/40 flex items-center justify-center">
+            <Award className="h-12 w-12 text-orange-400" />
+          </div>
+          <div className="text-center">
+            <h2 className="text-2xl font-black text-white">Certified!</h2>
+            <p className="text-sm text-orange-400 font-semibold mt-1">{CERT_LABELS[certType] ?? "Certification"}</p>
+          </div>
+        </motion.div>
+
+        {cert && (
+          <motion.div className="p-5 rounded-2xl bg-black/30 backdrop-blur-lg border border-white/10 space-y-4" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+            {cert.certificateName && (
+              <div>
+                <p className="text-xs text-white/40 uppercase tracking-widest font-semibold">Certificate Issued To</p>
+                <p className="text-lg font-bold text-white mt-1">{cert.certificateName}</p>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-white/40 uppercase tracking-widest font-semibold">Certificate ID</p>
+                <p className="text-sm font-mono text-orange-400 mt-1">{cert.certificateNumber}</p>
+              </div>
+              <div>
+                <p className="text-xs text-white/40 uppercase tracking-widest font-semibold">Completed</p>
+                <p className="text-sm text-white mt-1">{new Date(cert.completedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</p>
+              </div>
+            </div>
+            {cert.score != null && (
+              <div>
+                <p className="text-xs text-white/40 uppercase tracking-widest font-semibold">Final Score</p>
+                <p className="text-sm text-green-400 font-semibold mt-1">{cert.score}%</p>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        <motion.button
+          onClick={handleDownload}
+          disabled={downloading}
+          className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-40"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          {downloading ? (
+            <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+          ) : (
+            <Download className="h-4 w-4" />
+          )}
+          {downloading ? "Downloading…" : "Download Certificate (PDF)"}
+        </motion.button>
+
+        <motion.button
+          onClick={() => setLocation("/learning")}
+          className="w-full p-4 rounded-2xl bg-white/10 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+        >
+          Back to Learning Hub
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+}

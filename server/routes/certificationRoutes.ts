@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import { db } from "../db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, asc, inArray, ne } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import {
@@ -10,11 +10,243 @@ import {
   certificationModuleProgress,
   certificationQuizAttempts,
 } from "../db/schema/certifications";
+import { certModules, certQuestions, certQuestionOptions } from "../db/schema/lms";
 import { users } from "../../shared/schema";
 import { sendCertificationCompleteEmail } from "../services/emailService";
 import { generateCertificatePDF } from "../services/certificateService";
 
 const router = express.Router();
+
+const DB_DRIVEN_CERT_TYPES = ["platform", "business_success"];
+
+// ─── DB-DRIVEN CERT: MODULE LIST WITH QUESTIONS ───────────────────────────────
+
+// GET /api/certifications/:certType/modules — DB-driven module list + questions (no correct answers)
+router.get("/:certType/modules", requireAuth, async (req, res) => {
+  try {
+    const { certType } = req.params;
+    if (!DB_DRIVEN_CERT_TYPES.includes(certType)) {
+      return res.status(400).json({ error: "Not a DB-driven certification type" });
+    }
+
+    const modules = await db
+      .select()
+      .from(certModules)
+      .where(and(eq(certModules.certType, certType), eq(certModules.isActive, true)))
+      .orderBy(asc(certModules.sortOrder));
+
+    // For each quiz/final module, fetch its questions + options (no isCorrect sent to client)
+    const quizModuleSlugs = modules
+      .filter((m) => m.moduleType === "quiz" || m.moduleType === "final_assessment")
+      .map((m) => m.slug);
+
+    let questions: typeof certQuestions.$inferSelect[] = [];
+    let options: typeof certQuestionOptions.$inferSelect[] = [];
+
+    if (quizModuleSlugs.length > 0) {
+      if (modules.some((m) => m.moduleType === "final_assessment")) {
+        // Final assessment: all active questions for this cert type (excluding final itself)
+        questions = await db
+          .select()
+          .from(certQuestions)
+          .where(and(eq(certQuestions.certType, certType), eq(certQuestions.isActive, true), ne(certQuestions.moduleSlug, "final")))
+          .orderBy(asc(certQuestions.sortOrder));
+      } else {
+        questions = await db
+          .select()
+          .from(certQuestions)
+          .where(and(
+            eq(certQuestions.certType, certType),
+            eq(certQuestions.isActive, true),
+            inArray(certQuestions.moduleSlug, quizModuleSlugs)
+          ))
+          .orderBy(asc(certQuestions.sortOrder));
+      }
+
+      if (questions.length > 0) {
+        options = await db
+          .select({ id: certQuestionOptions.id, questionId: certQuestionOptions.questionId, optionText: certQuestionOptions.optionText, sortOrder: certQuestionOptions.sortOrder })
+          .from(certQuestionOptions)
+          .where(inArray(certQuestionOptions.questionId, questions.map((q) => q.id)));
+      }
+    }
+
+    const optsByQ = options.reduce<Record<string, typeof options>>((acc, o) => {
+      const k = o.questionId as string;
+      if (!acc[k]) acc[k] = [];
+      acc[k].push(o);
+      return acc;
+    }, {});
+
+    const questionsBySlug = questions.reduce<Record<string, Array<{ id: string; questionText: string; options: Array<{ id: string; optionText: string; sortOrder: number }> }>>>((acc, q) => {
+      if (!acc[q.moduleSlug]) acc[q.moduleSlug] = [];
+      acc[q.moduleSlug].push({
+        id: q.id,
+        questionText: q.questionText,
+        options: (optsByQ[q.id] ?? []).sort((a, b) => a.sortOrder - b.sortOrder),
+      });
+      return acc;
+    }, {});
+
+    const result = modules.map((m) => {
+      const baseModule: Record<string, unknown> = { ...m };
+      if (m.moduleType === "quiz") {
+        baseModule.questions = questionsBySlug[m.slug] ?? [];
+      } else if (m.moduleType === "final_assessment") {
+        // Shuffle all questions and limit to questionLimit
+        const allQ = Object.values(questionsBySlug).flat();
+        const shuffled = allQ.sort(() => Math.random() - 0.5).slice(0, m.questionLimit ?? 20);
+        baseModule.questions = shuffled;
+      }
+      return baseModule;
+    });
+
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    return res.json({ modules: result });
+  } catch (err) {
+    console.error("[Cert] DB modules error:", err);
+    return res.status(500).json({ error: "Failed to load modules" });
+  }
+});
+
+// POST /api/certifications/:certType/modules/:moduleId/video-progress — track video watch %
+router.post("/:certType/modules/:moduleId/video-progress", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser.id;
+    const { certType, moduleId } = req.params;
+    const { pct } = req.body as { pct: number };
+    if (typeof pct !== "number") return res.status(400).json({ error: "pct required" });
+
+    const clampedPct = Math.min(100, Math.max(0, Math.round(pct)));
+    const newStatus = clampedPct >= 90 ? "completed" : "in_progress";
+
+    await db
+      .insert(certificationModuleProgress)
+      .values({
+        userId,
+        certificationType: certType,
+        moduleId,
+        status: newStatus,
+        videoWatchedPct: clampedPct,
+        lastViewedAt: new Date(),
+        completedAt: newStatus === "completed" ? new Date() : null,
+      })
+      .onConflictDoUpdate({
+        target: [
+          certificationModuleProgress.userId,
+          certificationModuleProgress.certificationType,
+          certificationModuleProgress.moduleId,
+        ],
+        set: {
+          videoWatchedPct: clampedPct,
+          lastViewedAt: new Date(),
+          status: sql`CASE WHEN ${certificationModuleProgress.status} = 'completed' THEN 'completed' WHEN ${clampedPct} >= 90 THEN 'completed' ELSE 'in_progress' END`,
+          completedAt: sql`CASE WHEN ${certificationModuleProgress.status} = 'completed' THEN ${certificationModuleProgress.completedAt} WHEN ${clampedPct} >= 90 THEN NOW() ELSE NULL END`,
+        },
+      });
+
+    return res.json({ ok: true, status: newStatus, videoWatchedPct: clampedPct });
+  } catch (err) {
+    console.error("[Cert] video-progress error:", err);
+    return res.status(500).json({ error: "Failed to save video progress" });
+  }
+});
+
+// POST /api/certifications/:certType/modules/:moduleId/quiz/evaluate — server-side quiz evaluation (DB-driven certs)
+router.post("/:certType/modules/:moduleId/quiz/evaluate", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser.id;
+    const { certType, moduleId } = req.params;
+    const { answers } = req.body as { answers: Record<string, string> }; // { questionId: optionId }
+
+    if (!DB_DRIVEN_CERT_TYPES.includes(certType)) {
+      return res.status(400).json({ error: "Not a DB-driven cert type" });
+    }
+
+    // Fetch all questions for this module (or all for final assessment)
+    const isFinal = moduleId === "final";
+    let questions: typeof certQuestions.$inferSelect[];
+    if (isFinal) {
+      questions = await db.select().from(certQuestions).where(and(eq(certQuestions.certType, certType), eq(certQuestions.isActive, true)));
+    } else {
+      questions = await db.select().from(certQuestions).where(and(eq(certQuestions.certType, certType), eq(certQuestions.moduleSlug, moduleId), eq(certQuestions.isActive, true)));
+    }
+
+    if (questions.length === 0) {
+      return res.status(404).json({ error: "No questions found for this module" });
+    }
+
+    const questionIds = questions.map((q) => q.id);
+    const correctOptions = await db
+      .select({ questionId: certQuestionOptions.questionId, id: certQuestionOptions.id })
+      .from(certQuestionOptions)
+      .where(and(inArray(certQuestionOptions.questionId, questionIds), eq(certQuestionOptions.isCorrect, true)));
+
+    const correctMap = new Map(correctOptions.map((o) => [o.questionId as string, o.id as string]));
+
+    const answeredQuestionIds = Object.keys(answers);
+    let correct = 0;
+    const correctAnswers: Record<string, string> = {};
+
+    for (const qId of answeredQuestionIds) {
+      const correctOptionId = correctMap.get(qId);
+      correctAnswers[qId] = correctOptionId ?? "";
+      if (correctOptionId && answers[qId] === correctOptionId) {
+        correct++;
+      }
+    }
+
+    const total = answeredQuestionIds.length;
+    const score = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+    // Get passing score from module config
+    const [moduleConfig] = await db.select({ passingScorePct: certModules.passingScorePct }).from(certModules).where(and(eq(certModules.certType, certType), eq(certModules.slug, moduleId))).limit(1);
+    const passingScore = moduleConfig?.passingScorePct ?? 80;
+    const passed = score >= passingScore;
+
+    const status = passed ? "completed" : "quiz_failed";
+
+    await db
+      .insert(certificationModuleProgress)
+      .values({ userId, certificationType: certType, moduleId, status, score, completedAt: passed ? new Date() : null, lastViewedAt: new Date() })
+      .onConflictDoUpdate({
+        target: [certificationModuleProgress.userId, certificationModuleProgress.certificationType, certificationModuleProgress.moduleId],
+        set: { status, score, completedAt: passed ? new Date() : null, lastViewedAt: new Date() },
+      });
+
+    return res.json({ ok: true, score, passed, total, correct, correctAnswers });
+  } catch (err) {
+    console.error("[Cert] quiz evaluate error:", err);
+    return res.status(500).json({ error: "Failed to evaluate quiz" });
+  }
+});
+
+// ─── AFFILIATE CERT STATUS (used by affiliate gating) ────────────────────────
+
+// GET /api/certifications/affiliate-status — check both certs for affiliate unlock
+router.get("/affiliate-status", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser.id;
+
+    const certs = await db
+      .select({ certType: userCertifications.certificationType, status: userCertifications.status })
+      .from(userCertifications)
+      .where(and(
+        eq(userCertifications.userId, userId),
+        inArray(userCertifications.certificationType, ["business_success", "platform"])
+      ));
+
+    const certMap = new Map(certs.map((c) => [c.certType, c.status]));
+    const businessCertified = certMap.get("business_success") === "completed";
+    const platformCertified = certMap.get("platform") === "completed";
+    const eligible = businessCertified && platformCertified;
+
+    return res.json({ eligible, businessCertified, platformCertified });
+  } catch (err) {
+    console.error("[Cert] affiliate-status error:", err);
+    return res.status(500).json({ error: "Failed to check affiliate status" });
+  }
+});
 
 // ─── STATIC ROUTES (before /:certType dynamic routes) ────────────────────────
 
