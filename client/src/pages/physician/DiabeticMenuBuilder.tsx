@@ -821,6 +821,8 @@ export default function DiabeticMenuBuilder() {
       if (!activeDayISO) return;
       if (checkLockedDay()) return;
 
+      // Snapshot the BGL context at birth — never updated by future glucose readings.
+      const bglSnapshot = diabeticMemoryCtx ?? undefined;
       const transformedMeal: Meal = {
         id: `ai-meal-${Date.now()}`,
         name: generatedMeal.name,
@@ -839,6 +841,7 @@ export default function DiabeticMenuBuilder() {
           carbs: generatedMeal.carbs || 0,
           fat: generatedMeal.fat || 0,
         },
+        ...(bglSnapshot ? { diabeticMemory: bglSnapshot } : {}),
       };
 
       const newMeals = [transformedMeal];
@@ -1411,7 +1414,7 @@ export default function DiabeticMenuBuilder() {
                             showStarchBadge={true}
                             builderType="diabetic"
                             coachingLine="Built to keep you within your glucose target range."
-                            diabeticMemoryContext={diabeticMemoryCtx ?? undefined}
+                            diabeticMemoryContext={meal.diabeticMemory ?? undefined}
                             data-wt="wmb-meal-card"
                             onUpdated={(m) => {
                               if (m === null) {
@@ -1467,7 +1470,7 @@ export default function DiabeticMenuBuilder() {
                       {dayLists.snacks.map((meal: Meal) => (
                         <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true} builderType="diabetic"
                                 coachingLine="Built to keep you within your glucose target range."
-                                diabeticMemoryContext={diabeticMemoryCtx ?? undefined}
+                                diabeticMemoryContext={meal.diabeticMemory ?? undefined}
                           onUpdated={(m) => {
                             if (m === null) {
                               const updatedDayLists = { ...dayLists, snacks: dayLists.snacks.filter((e) => e.id !== meal.id) };
@@ -1519,7 +1522,7 @@ export default function DiabeticMenuBuilder() {
                       showStarchBadge={true}
                       builderType="diabetic"
                       coachingLine="Built to keep you within your glucose target range."
-                      diabeticMemoryContext={diabeticMemoryCtx ?? undefined}
+                      diabeticMemoryContext={meal.diabeticMemory ?? undefined}
                       onUpdated={(m) => {
                         if (m === null) {
                           if (!board) return;
