@@ -28,11 +28,9 @@ process.on("uncaughtException", (error) => {
 const app = express();
 app.set("trust proxy", 1);
 
-// ── Sandbox password reset (one-time, token-gated, no auth required) ──
-// Registered immediately after app creation, before all broad /api middleware,
-// so requireAuth layers can never intercept it.
-import { registerSandboxReset } from "./routes/sandboxReset";
-registerSandboxReset(app);
+// Sandbox reset is registered inside initializeApp() via dynamic import,
+// placed explicitly before registerRoutes() so it precedes any
+// app.use("/api", requireAuth, ...) layers added by registerRoutes.
 
 // Track initialization state
 let isInitialized = false;
@@ -393,6 +391,17 @@ async function initializeApp() {
     );
 
     console.log("✅ [INIT] Additional routes mounted");
+
+    // ── Sandbox password reset — registered BEFORE registerRoutes() so it
+    //    sits earlier in the Express stack than any app.use("/api", requireAuth)
+    //    layer that registerRoutes() adds. Dynamic import catches any load errors.
+    try {
+      const { registerSandboxReset } = await import("./routes/sandboxReset");
+      registerSandboxReset(app);
+      console.log("✅ [INIT] Sandbox reset endpoint registered");
+    } catch (sbErr) {
+      console.error("⚠️ [INIT] Failed to register sandbox reset endpoint:", sbErr);
+    }
 
     // Register main routes
     console.log("📋 [INIT] Registering main routes...");
