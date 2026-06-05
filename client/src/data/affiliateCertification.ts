@@ -1216,6 +1216,141 @@ export const AFFILIATE_MODULES: CertificationModule[] = [
     },
   },
   {
+    id: "module-8",
+    title: "Brand Standards & Affiliate Accountability",
+    description: "The formal prohibited practices list, brand representation requirements, and the consequences process for non-compliance.",
+    estimatedMinutes: 10,
+    sections: [
+      {
+        heading: "Introduction",
+        text: "Module 6 explained the philosophy behind My Perfect Meals marketing.\n\nThis module covers the formal standards.\n\nThese are not suggestions. They are requirements.\n\nMy Perfect Meals has built a brand around honesty, clinical integrity, and respect for the people using the platform. Every affiliate and partner represents that brand. How you market My Perfect Meals — in person, on social media, through email, in videos, or anywhere else — either strengthens that brand or damages it.\n\nThis module exists so there is no ambiguity about what is expected and what the consequences are if those expectations are not met.",
+      },
+      {
+        heading: "Prohibited Marketing Practices",
+        text: "Affiliates may not, under any circumstances:",
+        list: [
+          "Make false or misleading claims about results",
+          "Guarantee weight loss, disease reversal, or specific health outcomes",
+          "Use fear-based, shame-based, or manipulative marketing tactics",
+          "Use artificial scarcity, false urgency, or misleading countdown offers that have not been approved by My Perfect Meals",
+          "Represent themselves as medical professionals unless properly licensed and authorized to do so",
+          "Alter, misrepresent, or contradict official My Perfect Meals product descriptions, features, pricing, or capabilities",
+          "Create marketing materials that conflict with official My Perfect Meals branding guidelines",
+          "Make medical claims, treatment claims, or disease management claims that the platform has not authorized",
+        ],
+      },
+      {
+        heading: "What Affiliates Are Expected To Do",
+        text: "All marketing should:",
+        list: [
+          "Accurately represent what the platform does and does not do",
+          "Educate people about the platform's features and real-world applications",
+          "Focus on helping individuals make informed decisions",
+          "Use approved brand assets and messaging when available",
+          "Reflect the My Perfect Meals commitment to honesty and evidence-based nutrition",
+          "Direct specific medical, clinical, or legal questions to appropriate professionals",
+        ],
+      },
+      {
+        heading: "Non-Compliance: First Violation",
+        text: "If an affiliate is found to be violating My Perfect Meals brand standards, marketing guidelines, or compliance requirements, the following process applies.\n\nFirst Violation:\n\nThe affiliate will receive written notice identifying the specific issue. The affiliate will be given a defined timeframe to correct or remove the non-compliant content. This is a one-time opportunity to fix an honest mistake. My Perfect Meals reserves the right to determine what constitutes a correctable violation.",
+      },
+      {
+        heading: "Non-Compliance: Continued Or Serious Violations",
+        text: "If violations continue or if the first violation was serious enough to bypass the correction period, the following may occur:",
+        list: [
+          "Suspension of affiliate privileges",
+          "Removal of affiliate commissions associated with non-compliant activity where permitted by law",
+          "Permanent termination from the affiliate program",
+        ],
+      },
+      {
+        heading: "Immediate Termination Offenses",
+        text: "My Perfect Meals may immediately terminate an affiliate relationship without notice or a corrective period in cases involving:",
+        list: [
+          "Fraud or intentional deception",
+          "Unauthorized medical claims or treatment claims",
+          "Reputational harm to My Perfect Meals, its clients, or its partners",
+          "Conduct that endangers the health or safety of users",
+          "Serious misconduct of any kind",
+        ],
+      },
+      {
+        heading: "Why These Standards Exist",
+        text: "These standards are not designed to control affiliates.\n\nThey exist to protect the people using the platform.\n\nMany of the individuals who come to My Perfect Meals are managing real health challenges — diabetes, obesity, oncology support needs, metabolic conditions. They are looking for honest information and real help.\n\nThey deserve to be told the truth.\n\nAny affiliate who markets My Perfect Meals using false promises, exaggerated claims, or manipulative tactics is not just violating a business agreement — they are exploiting people who are already struggling.\n\nThat is not who My Perfect Meals is. That is not who our affiliates are.\n\nParticipation in the affiliate program constitutes agreement to follow all current and future brand, compliance, and marketing standards established by My Perfect Meals.",
+      },
+      {
+        heading: "Key Takeaway",
+        text: "The rules are simple.\n\nTell the truth. Represent the platform accurately. Do not make promises you cannot keep.\n\nIf you make an honest mistake, you will get a chance to fix it.\n\nIf you intentionally deceive people, you will lose the relationship.\n\nEvery affiliate who holds this standard makes My Perfect Meals stronger for everyone — including themselves.",
+      },
+    ],
+    quiz: {
+      passingScore: PASSING_SCORE,
+      questions: [
+        {
+          id: "m8q1",
+          question: "Which of the following is explicitly prohibited under My Perfect Meals affiliate standards?",
+          options: [
+            "Sharing a personal story about using the platform",
+            "Explaining how the meal builder works",
+            "Guaranteeing a client will lose a specific amount of weight",
+            "Using approved brand assets in a social post",
+          ],
+          correctIndex: 2,
+          explanation: "Guaranteeing weight loss, disease reversal, or specific health outcomes is explicitly prohibited. Affiliates may share their personal experiences and explain how the platform works, but they may never guarantee outcomes.",
+        },
+        {
+          id: "m8q2",
+          question: "An affiliate posts a video making misleading claims about the platform. It is their first violation. What happens next?",
+          options: [
+            "Immediate termination without notice",
+            "A written notice identifying the issue and a defined timeframe to correct or remove the content",
+            "Nothing — first violations are ignored",
+            "Suspension of commissions for 12 months",
+          ],
+          correctIndex: 1,
+          explanation: "On a first violation, My Perfect Meals provides written notice identifying the issue and gives the affiliate a defined timeframe to correct or remove the non-compliant content. This is a one-time opportunity to fix an honest mistake.",
+        },
+        {
+          id: "m8q3",
+          question: "Which situation would result in immediate termination without a corrective period?",
+          options: [
+            "Accidentally using an outdated price in a post",
+            "Sharing the platform without using official brand assets",
+            "Intentional fraud or unauthorized medical claims",
+            "Posting about the platform without prior approval",
+          ],
+          correctIndex: 2,
+          explanation: "Fraud, intentional deception, and unauthorized medical claims are immediate termination offenses. There is no corrective period for intentional misconduct. Accidental errors — like an outdated price — would follow the standard first-violation process.",
+        },
+        {
+          id: "m8q4",
+          question: "Why do My Perfect Meals brand standards prohibit false urgency and artificial scarcity tactics?",
+          options: [
+            "Because they are difficult to implement correctly",
+            "Because they violate advertising platform policies",
+            "Because they are manipulative — and many platform users are managing serious health challenges and deserve honest information",
+            "Because they only work for physical product businesses",
+          ],
+          correctIndex: 2,
+          explanation: "Many My Perfect Meals users are managing diabetes, metabolic conditions, oncology support needs, and other real health challenges. They deserve to be told the truth. Manipulative marketing tactics exploit people who are already vulnerable. That is why the standards exist.",
+        },
+        {
+          id: "m8q5",
+          question: "By participating in the My Perfect Meals affiliate program, what does an affiliate agree to?",
+          options: [
+            "Only the specific rules listed at the time of sign-up",
+            "Marketing guidelines as they existed when they first joined, but not future updates",
+            "All current and future brand, compliance, and marketing standards established by My Perfect Meals",
+            "A fixed set of marketing rules that cannot be updated without their consent",
+          ],
+          correctIndex: 2,
+          explanation: "Participation in the affiliate program constitutes agreement to follow all current and future brand, compliance, and marketing standards established by My Perfect Meals. Affiliates are expected to stay informed and maintain compliance as the brand evolves.",
+        },
+      ],
+    },
+  },
+  {
     id: "final-assessment",
     title: "Final Assessment",
     description: "Comprehensive assessment covering all seven modules. Passing score: 80%.",
