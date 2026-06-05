@@ -23,9 +23,14 @@ diabetesRouter.use(enforceAssignedBuilder(...)); // ← access checks second
 
 **Also implicated**: `glp1ShotsRoutes` is mounted as `app.use("/api", glp1ShotsRoutes)` with `router.use(requireAuth, requireOrgFlag("glp1Support"))` at its top — this intercepts ALL `/api/*` requests including diabetes routes. If `requireOrgFlag` returns 403, diabetes requests are blocked there before even reaching the diabetes mount.
 
-**Affected routers** (same pattern, same risk):
-- `cookingChallengesRouter` — `app.use("/api/cooking-challenges", requireAuth, requireActiveAccess, router)`
-- `cookingClassesRouter` — same
-- `holidayFamilyRecipeRouter` — same
+**Routers fixed** (all now have `router.use(requireAuth)` as first middleware):
+- `diabetesRouter` — original bug; also fixed `enforceAssignedBuilder` ordering
+- `cookingChallengesRouter` — fixed; also replaced `req.body.userId` → `authUser.id` on writes; added IDOR guard on `/user/:userId/badges`
+- `cookingClassesRouter` — fixed; also replaced `req.body.userId` → `authUser.id` on journal submit/vote; added IDOR guard on `/progress/:userId/:track`
+- `holidayFamilyRecipeRouter` — fixed; no userId used, but paywall now correctly enforced
 
-**Regression test**: `scripts/smoke-diabetes.sh` — verifies 401 for anon, 201 for authed write, 400/422 for bad input.
+**Regression tests**:
+- `scripts/smoke-diabetes.sh` — 401 for anon, 201 for authed write, 400/422 for bad input
+- `scripts/smoke-cooking.sh` — 11 checks: 401 for anon across all cooking-challenges, cooking-classes, holiday-feast routes
+
+**Rule codified in**: `docs/agent-rules.md` §Async Auth / Sub-Router Safety Rule + §Smoke Test Gate
