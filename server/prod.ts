@@ -28,8 +28,11 @@ process.on("uncaughtException", (error) => {
 const app = express();
 app.set("trust proxy", 1);
 
-// Trust proxy for correct IP handling (Cloud Run uses 1 proxy hop)
-app.set("trust proxy", 1);
+// ── Sandbox password reset (one-time, token-gated, no auth required) ──
+// Registered immediately after app creation, before all broad /api middleware,
+// so requireAuth layers can never intercept it.
+import { registerSandboxReset } from "./routes/sandboxReset";
+registerSandboxReset(app);
 
 // Track initialization state
 let isInitialized = false;
