@@ -190,6 +190,79 @@ async function initializeApp() {
           await database.execute(
             sql`ALTER TABLE saved_meals ADD COLUMN IF NOT EXISTS bgl_bucket varchar(16)`,
           );
+          // LMS: video progress + cert version tracking
+          await database.execute(
+            sql`ALTER TABLE certification_module_progress ADD COLUMN IF NOT EXISTS video_watched_pct integer DEFAULT 0`,
+          );
+          await database.execute(
+            sql`ALTER TABLE user_certifications ADD COLUMN IF NOT EXISTS is_current_version boolean DEFAULT true`,
+          );
+          await database.execute(
+            sql`ALTER TABLE user_certifications ADD COLUMN IF NOT EXISTS updates_pending integer DEFAULT 0`,
+          );
+          // LMS content tables
+          await database.execute(sql`
+            CREATE TABLE IF NOT EXISTS cert_modules (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              cert_type text NOT NULL,
+              slug text NOT NULL,
+              title text NOT NULL,
+              description text,
+              module_type text NOT NULL DEFAULT 'quiz',
+              video_url text,
+              sort_order integer NOT NULL DEFAULT 0,
+              passing_score_pct integer DEFAULT 80,
+              question_limit integer DEFAULT 5,
+              is_active boolean DEFAULT true,
+              created_at timestamptz NOT NULL DEFAULT now(),
+              CONSTRAINT uniq_cert_module_slug UNIQUE (cert_type, slug)
+            )
+          `);
+          await database.execute(sql`
+            CREATE TABLE IF NOT EXISTS cert_questions (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              cert_type text NOT NULL,
+              module_slug text NOT NULL,
+              question_text text NOT NULL,
+              is_active boolean DEFAULT true,
+              sort_order integer NOT NULL DEFAULT 0,
+              created_at timestamptz NOT NULL DEFAULT now()
+            )
+          `);
+          await database.execute(sql`
+            CREATE TABLE IF NOT EXISTS cert_question_options (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              question_id uuid NOT NULL,
+              option_text text NOT NULL,
+              is_correct boolean DEFAULT false,
+              sort_order integer NOT NULL DEFAULT 0
+            )
+          `);
+          await database.execute(sql`
+            CREATE TABLE IF NOT EXISTS lms_update_modules (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              title text NOT NULL,
+              description text,
+              video_url text,
+              target_roles text[],
+              is_required boolean DEFAULT false,
+              related_cert_type text,
+              released_at timestamptz,
+              created_at timestamptz NOT NULL DEFAULT now()
+            )
+          `);
+          await database.execute(sql`
+            CREATE TABLE IF NOT EXISTS user_lms_updates (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              user_id text NOT NULL,
+              update_module_id uuid NOT NULL,
+              video_watched boolean DEFAULT false,
+              completed boolean DEFAULT false,
+              completed_at timestamptz,
+              created_at timestamptz NOT NULL DEFAULT now(),
+              CONSTRAINT uniq_user_lms_update UNIQUE (user_id, update_module_id)
+            )
+          `);
         })(),
         migTimeout(6000),
       ]);

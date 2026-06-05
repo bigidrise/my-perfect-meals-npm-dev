@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, integer, unique, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, integer, boolean, unique, jsonb } from "drizzle-orm/pg-core";
 
 // NOTE: user_certifications has a unique constraint on (user_id, certification_type)
 // added via migration (not drizzle-kit push — that tool times out on this project).
@@ -12,6 +12,7 @@ export const certificationModuleProgress = pgTable("certification_module_progres
   score: integer("score"),
   completedAt: timestamp("completed_at", { withTimezone: true }),
   lastViewedAt: timestamp("last_viewed_at", { withTimezone: true }),
+  videoWatchedPct: integer("video_watched_pct").default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({
   uniqUserCertModule: unique().on(t.userId, t.certificationType, t.moduleId),
@@ -26,6 +27,8 @@ export const userCertifications = pgTable("user_certifications", {
   completedAt: timestamp("completed_at", { withTimezone: true }),
   certificateNumber: text("certificate_number"),
   certificateName: text("certificate_name"),
+  isCurrentVersion: boolean("is_current_version").default(true),
+  updatesPending: integer("updates_pending").default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({

@@ -4,3 +4,4 @@
 - [Affiliate Certification — PDF Certificate System](affiliate-cert-pdf.md) — pdfkit installed; certificate_name on user_certifications; signature drop-in at server/assets/cert-signature.png.
 - [Affiliate Certification — Quiz Persistence](affiliate-cert-quiz-persistence.md) — certification_quiz_attempts table; JSONB merge upsert pattern; final-assessment routes to dashboard not /complete directly.
 - [Diabetic Meal Memory System](diabetic-meal-memory.md) — Phase 0+1 shipped; Phase 2+3 held; BGL-bucket hash differentiates favorites; ProCare stamp deferred.
+- [LMS Boot Migrations — Dev vs Prod](lms-boot-migrations.md) — Boot migrations must go in BOTH server/index.ts (dev) and server/prod.ts (prod); dev server never runs prod.ts.

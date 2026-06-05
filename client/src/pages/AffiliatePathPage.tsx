@@ -9,11 +9,11 @@ const pathMeta = {
     description:
       "Everything you need to promote My Perfect Meals as a social or referral affiliate — certifications, marketing assets, your dashboard, and your referral link.",
     resources: [
-      { name: "Affiliate Certification", action: "certification" },
+      { name: "Learning & Certifications", action: "learning", description: "Business Success + Platform Certifications" },
       { name: "Marketing Resources", eta: "Coming soon" },
       { name: "Monthly Marketing Packets", eta: "Coming soon" },
-      { name: "Affiliate Dashboard", eta: "Unlocks after certification" },
-      { name: "Referral Link Management", eta: "Unlocks after certification" },
+      { name: "Affiliate Dashboard", eta: "Unlocks after both certifications" },
+      { name: "Referral Link Management", eta: "Unlocks after both certifications" },
     ],
   },
   coaching: {
@@ -22,13 +22,11 @@ const pathMeta = {
     description:
       "The full affiliate toolkit for coaches, trainers, and wellness professionals — including platform certification and the Business Success Academy.",
     resources: [
-      { name: "Affiliate Certification", action: "certification" },
-      { name: "Platform Certification", eta: "Unlocks after Affiliate Certification" },
-      { name: "Business Success Academy", eta: "Unlocks after Affiliate Certification" },
+      { name: "Learning & Certifications", action: "learning", description: "Business Success + Platform Certifications" },
       { name: "Marketing Resources", eta: "Coming soon" },
       { name: "Monthly Marketing Packets", eta: "Coming soon" },
-      { name: "Affiliate Dashboard", eta: "Unlocks after certification" },
-      { name: "Referral Link Management", eta: "Unlocks after certification" },
+      { name: "Affiliate Dashboard", eta: "Unlocks after both certifications" },
+      { name: "Referral Link Management", eta: "Unlocks after both certifications" },
     ],
   },
 };
@@ -90,7 +88,13 @@ export default function AffiliatePathPage() {
               <motion.button
                 key={resource.name}
                 className="w-full text-left flex items-center gap-4 p-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 active:scale-[0.98] transition-transform"
-                onClick={() => setLocation(`/business-center/affiliate/${key}/${resource.action}`)}
+                onClick={() => {
+                if (resource.action === "learning") {
+                  setLocation("/learning");
+                } else {
+                  setLocation(`/business-center/affiliate/${key}/${resource.action}`);
+                }
+              }}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.06 }}
