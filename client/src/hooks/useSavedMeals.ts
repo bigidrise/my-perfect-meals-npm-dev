@@ -9,6 +9,11 @@ export interface SavedMealRow {
   signatureHash: string;
   mealData: any;
   createdAt: string;
+  savedFromDiabeticBuilder?: boolean;
+  generatedBglMgdl?: number | null;
+  glucoseContext?: string | null;
+  protocolType?: string | null;
+  bglBucket?: string | null;
 }
 
 export function useSavedMealsCheck() {

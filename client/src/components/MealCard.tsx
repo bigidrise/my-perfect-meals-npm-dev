@@ -45,6 +45,7 @@ export type Meal = {
   fibrousCarbs?: number;
   dietClassification?: DietClassification | null;
   builderType?: string;
+  diabeticMemory?: { generatedBglMgdl: number; glucoseContext: string; protocolTypeLabel: string; bglBucket: string; recommendedBglRange: string; generatedAt: string; source: string; };
 };
 
 type Slot = "breakfast" | "lunch" | "dinner" | "snacks";
