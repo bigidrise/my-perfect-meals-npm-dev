@@ -65,7 +65,7 @@ const TREND_BG: Record<string, string> = {
 
 const HUB_LABEL: Record<string, string> = {
   diabetic: "Diabetic",
-  glp1: "GLP-1",
+  glp1: "Metabolic Med",
 };
 
 const DIABETES_TYPE_LABEL: Record<string, string> = {
@@ -244,7 +244,7 @@ export default function ProNutritionStrategyCard({ clientId, isPhysician }: Prop
           <div className="rounded-lg bg-white/5 border border-white/8 p-3 space-y-1.5">
             <div className="flex items-center gap-2">
               <Syringe className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-              <span className="text-xs font-semibold text-white/70">GLP-1 Status</span>
+              <span className="text-xs font-semibold text-white/70">Metabolic Med Status</span>
             </div>
             <div className="grid grid-cols-2 gap-x-4 text-xs mt-1">
               <div>

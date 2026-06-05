@@ -1,8 +1,15 @@
 import type { Meal } from "@/components/MealCard";
 import type { SavedMealRow } from "@/hooks/useSavedMeals";
+import { buildDiabeticMemory } from "@/lib/diabeticMemory";
 
 export function savedMealToMeal(row: SavedMealRow): Meal {
   const d = (row.mealData || {}) as any;
+
+  const diabeticMemory =
+    row.savedFromDiabeticBuilder && row.generatedBglMgdl != null
+      ? buildDiabeticMemory(row.generatedBglMgdl, row.glucoseContext ?? "RANDOM")
+      : undefined;
+
   return {
     id: `fav-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
     name: d?.name || d?.title || row.title,
@@ -18,5 +25,6 @@ export function savedMealToMeal(row: SavedMealRow): Meal {
     builderType: row.sourceType,
     badges: d?.badges,
     medicalBadges: d?.medicalBadges,
+    ...(diabeticMemory ? { diabeticMemory } : {}),
   };
 }

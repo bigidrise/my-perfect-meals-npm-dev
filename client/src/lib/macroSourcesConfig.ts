@@ -45,7 +45,7 @@ export const MACRO_SOURCES = [
     route: "/diabetic-menu-builder"
   },
   {
-    label: "GLP-1 Menu Builder",
+    label: "Metabolic Medication Builder",
     slug: "glp1-menu-builder",
     route: "/glp1-meal-builder"
   },

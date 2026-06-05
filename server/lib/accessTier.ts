@@ -6,6 +6,7 @@ interface UserForAccess {
   trialEndsAt?: Date | null;
   isTester?: boolean | null;
   isFounder?: boolean | null;
+  isSandbox?: boolean | null;
 }
 
 const PAID_PLAN_KEYS = [
@@ -36,6 +37,9 @@ const PAID_PLAN_KEYS = [
   "mpm_physician_50",
   "mpm_physician_150",
   "mpm_guidance",
+  // Internal / contributor / special-access keys — never expire
+  "mpm_contributor",
+  "mpm_special_access",
 ];
 
 // BILLING_ENFORCED=true in env means real paywalls are live.
@@ -47,7 +51,10 @@ export function resolveAccessTier(user: UserForAccess, now: Date = new Date()): 
   // Pre-launch bypass: remove by setting BILLING_ENFORCED=true in env
   if (!BILLING_ENFORCED) return "PAID_FULL";
 
-  // Tier 1: Founders — permanent free access (core family, business partners, contributors)
+  // Tier 1: Internal sandbox accounts — permanent full access, no plan/trial/Stripe required
+  if (user.isSandbox) return "PAID_FULL";
+
+  // Tier 2: Founders — permanent free access (core family, business partners, contributors)
   if (user.isFounder) return "PAID_FULL";
 
   // Tier 2: Active paid subscription

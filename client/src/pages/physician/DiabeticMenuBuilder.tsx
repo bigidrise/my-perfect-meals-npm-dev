@@ -118,6 +118,8 @@ import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { PillButton } from "@/components/ui/pill-button";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
 import { TrialBanner } from "@/components/TrialBanner";
+import { useGlucoseLogs } from "@/hooks/useDiabetes";
+import { buildDiabeticMemory } from "@/lib/diabeticMemory";
 
 const DIABETIC_BUILDER_TOUR_STEPS: TourStep[] = [
   {
@@ -194,6 +196,15 @@ export default function DiabeticMenuBuilder() {
   const { user } = useAuth();
 
   const effectiveUserId = proClientId || user?.id;
+
+  // Diabetic Meal Memory: fetch latest glucose (own user only; ProCare stamp deferred)
+  const { data: glucoseLogsData } = useGlucoseLogs(proClientId ? undefined : user?.id?.toString(), 1);
+  const diabeticMemoryCtx = useMemo(() => {
+    if (proClientId) return null;
+    const latest = glucoseLogsData?.data?.[0];
+    if (!latest?.valueMgdl) return null;
+    return buildDiabeticMemory(latest.valueMgdl, latest.context ?? "RANDOM");
+  }, [glucoseLogsData, proClientId]);
 
   // Thyroid modifier bridge + lab/specialty condition indicator state.
   // Single labs fetch populates both thyroid bridge and all active protocol indicators.
@@ -810,6 +821,8 @@ export default function DiabeticMenuBuilder() {
       if (!activeDayISO) return;
       if (checkLockedDay()) return;
 
+      // Snapshot the BGL context at birth — never updated by future glucose readings.
+      const bglSnapshot = diabeticMemoryCtx ?? undefined;
       const transformedMeal: Meal = {
         id: `ai-meal-${Date.now()}`,
         name: generatedMeal.name,
@@ -828,6 +841,7 @@ export default function DiabeticMenuBuilder() {
           carbs: generatedMeal.carbs || 0,
           fat: generatedMeal.fat || 0,
         },
+        ...(bglSnapshot ? { diabeticMemory: bglSnapshot } : {}),
       };
 
       const newMeals = [transformedMeal];
@@ -1399,7 +1413,8 @@ export default function DiabeticMenuBuilder() {
                             meal={meal}
                             showStarchBadge={true}
                             builderType="diabetic"
-                                coachingLine="Built to keep you within your glucose target range."
+                            coachingLine="Built to keep you within your glucose target range."
+                            diabeticMemoryContext={meal.diabeticMemory ?? undefined}
                             data-wt="wmb-meal-card"
                             onUpdated={(m) => {
                               if (m === null) {
@@ -1455,6 +1470,7 @@ export default function DiabeticMenuBuilder() {
                       {dayLists.snacks.map((meal: Meal) => (
                         <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true} builderType="diabetic"
                                 coachingLine="Built to keep you within your glucose target range."
+                                diabeticMemoryContext={meal.diabeticMemory ?? undefined}
                           onUpdated={(m) => {
                             if (m === null) {
                               const updatedDayLists = { ...dayLists, snacks: dayLists.snacks.filter((e) => e.id !== meal.id) };
@@ -1505,7 +1521,8 @@ export default function DiabeticMenuBuilder() {
                       meal={meal}
                       showStarchBadge={true}
                       builderType="diabetic"
-                                coachingLine="Built to keep you within your glucose target range."
+                      coachingLine="Built to keep you within your glucose target range."
+                      diabeticMemoryContext={meal.diabeticMemory ?? undefined}
                       onUpdated={(m) => {
                         if (m === null) {
                           if (!board) return;

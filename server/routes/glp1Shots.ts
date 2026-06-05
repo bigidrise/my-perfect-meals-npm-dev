@@ -18,6 +18,7 @@ const createShotSchema = z.object({
   dateUtc: z.string().datetime(),
   doseMg: z.number().positive(),
   location: z.enum(["abdomen", "thigh", "upper_arm", "buttock"]).optional(),
+  medicationName: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -25,6 +26,7 @@ const updateShotSchema = z.object({
   dateUtc: z.string().datetime().optional(),
   doseMg: z.number().positive().optional(),
   location: z.enum(["abdomen", "thigh", "upper_arm", "buttock"]).optional(),
+  medicationName: z.string().optional(),
   notes: z.string().optional(),
 });
 

@@ -61,7 +61,7 @@ const CLINICIAN_DASHBOARD_TOUR_STEPS: TourStep[] = [
     icon: "3",
     title: "Medical Directives — Protocol Stack",
     description:
-      "Each flag you activate adds a guidance block to the AI's Protocol Envelope for this patient. Cardiac adds sodium caps and saturated fat limits. Renal moderates protein. GLP-1 reduces portions and boosts protein density. Multiple flags stack simultaneously — the AI enforces all of them together on every meal generated.",
+      "Each flag you activate adds a guidance block to the AI's Protocol Envelope for this patient. Cardiac adds sodium caps and saturated fat limits. Renal moderates protein. Metabolic Med reduces portions and boosts protein density. Multiple flags stack simultaneously — the AI enforces all of them together on every meal generated.",
   },
   {
     icon: "4",
@@ -79,7 +79,7 @@ const CLINICIAN_DASHBOARD_TOUR_STEPS: TourStep[] = [
     icon: "6",
     title: "Clinical Meal Builders",
     description:
-      "Access protocol-specific builders — Diabetic, GLP-1, and Anti-Inflammatory — for direct clinical meal generation. These builders apply the full Protocol Envelope: all active medical flags enforce simultaneously, including any secondary conditions like Cardiac, Thyroid, or Renal stacked on top of the primary builder.",
+      "Access protocol-specific builders — Diabetic, Metabolic Medication, and Anti-Inflammatory — for direct clinical meal generation. These builders apply the full Protocol Envelope: all active medical flags enforce simultaneously, including any secondary conditions like Cardiac, Thyroid, or Renal stacked on top of the primary builder.",
   },
 ];
 
@@ -746,7 +746,7 @@ export default function ClinicianClientDashboard() {
                         }`}
                       >
                         {isOn && <Check className="inline h-3 w-3 mr-1 -mt-0.5" />}
-                        💉 GLP-1 Active
+                        💉 Metabolic Med Active
                       </button>
                     );
                   })()}
@@ -756,7 +756,7 @@ export default function ClinicianClientDashboard() {
                     <span className="text-xs text-rose-300/80">Oncology overlay active — save to persist</span>
                   )}
                   {!!(t.flags as Record<string, boolean> | undefined)?.glp1 && (
-                    <span className="text-xs text-orange-300/80">GLP-1 protocol active — stacks with diabetic builder on save</span>
+                    <span className="text-xs text-orange-300/80">Metabolic Med protocol active — stacks with diabetic builder on save</span>
                   )}
                 </div>
               </div>

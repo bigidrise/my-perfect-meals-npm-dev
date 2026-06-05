@@ -356,6 +356,7 @@ export const users = pgTable("users", {
   builderChangeLimit: integer("builder_change_limit").default(4),            // cap (default 4 during beta)
   isTester: boolean("is_tester").default(false), // Temporary beta testers — transitions to paid after launch
   isFounder: boolean("is_founder").default(false), // Permanent free access — core family, business partners, founding contributors only
+  isSandbox: boolean("is_sandbox").default(false), // Internal QA/demo accounts — permanent full access, no Stripe/trial required
   // Token-based authentication (secure alternative to session)
   authToken: text("auth_token").unique(), // 256-bit random token for API authentication
   authTokenCreatedAt: timestamp("auth_token_created_at", { withTimezone: true }),

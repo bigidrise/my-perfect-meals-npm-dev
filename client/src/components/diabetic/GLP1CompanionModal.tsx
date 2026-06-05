@@ -34,7 +34,7 @@ export function GLP1CompanionModal({ isOpen, onClose }: GLP1CompanionModalProps)
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <Pill className="h-5 w-5 text-orange-400 shrink-0" />
             <div>
-              <h2 className="text-white font-bold text-base leading-tight">GLP-1 Companion</h2>
+              <h2 className="text-white font-bold text-base leading-tight">Metabolic Med Companion</h2>
               <p className="text-orange-400/80 text-xs">Active alongside your diabetic protocol</p>
             </div>
           </div>
@@ -59,7 +59,7 @@ export function GLP1CompanionModal({ isOpen, onClose }: GLP1CompanionModalProps)
           {/* Protocol stack notice */}
           <div className="rounded-xl border border-orange-500/25 bg-orange-500/8 px-4 py-3 space-y-1">
             <p className="text-sm text-white/80 leading-relaxed">
-              Your meals are being generated with <span className="text-orange-400 font-semibold">both protocols active</span> — diabetic carb limits and GLP-1 portion / protein guardrails apply simultaneously. The stricter limit wins on each constraint.
+              Your meals are being generated with <span className="text-orange-400 font-semibold">both protocols active</span> — diabetic carb limits and metabolic medication portion / protein guardrails apply simultaneously. The stricter limit wins on each constraint.
             </p>
             <div className="flex flex-wrap gap-1.5 pt-1">
               {["Carb Control", "400 kcal Cap", "Protein ≥25g", "Nausea-Safe"].map(chip => (
@@ -80,7 +80,7 @@ export function GLP1CompanionModal({ isOpen, onClose }: GLP1CompanionModalProps)
                 onClick={() => setShowGuardrails(!showGuardrails)}
                 className="w-full px-4 py-3 flex items-center justify-between text-white"
               >
-                <span className="text-sm font-semibold">GLP-1 Guardrails</span>
+                <span className="text-sm font-semibold">Metabolic Medication Guardrails</span>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-white/40">
                     {showGuardrails ? "Hide" : "View active limits"}
@@ -129,7 +129,7 @@ export function GLP1CompanionModal({ isOpen, onClose }: GLP1CompanionModalProps)
                       onClick={() => { onClose(); setLocation("/glp1-hub"); }}
                       variant="default"
                     >
-                      Edit Guardrails in GLP-1 Hub
+                      Edit Guardrails in Metabolic Medication Hub
                     </PillButton>
                   </div>
                 </div>

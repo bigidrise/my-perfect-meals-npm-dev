@@ -494,7 +494,7 @@ export default function ProClientDashboard() {
                         })
                       }
                     />
-                    GLP-1 Support
+                    Metabolic Med Support
                   </label>
                   <label className="flex items-center gap-2 text-sm text-white/80">
                     <input
@@ -893,13 +893,13 @@ export default function ProClientDashboard() {
           <Card className="bg-white/5 border border-purple-400/20">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
-                💉 GLP-1 Guardrails Status
+                💉 Metabolic Med Guardrails Status
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="bg-black/30 border border-purple-400/30 rounded-xl p-4">
                 <p className="text-white/60 text-sm mb-2">
-                  GLP-1 guardrails are managed in the dedicated GLP-1 Hub. View
+                  Metabolic Med guardrails are managed in the dedicated Metabolic Medication Hub. View
                   and edit patient-specific protocols below.
                 </p>
                 <Button
@@ -909,7 +909,7 @@ export default function ProClientDashboard() {
                   }}
                   className="bg-purple-600 hover:bg-purple-700 text-white"
                 >
-                  View GLP-1 Guardrails
+                  View Metabolic Med Guardrails
                 </Button>
               </div>
             </CardContent>
@@ -938,7 +938,7 @@ export default function ProClientDashboard() {
               className="w-full sm:w-[400px] bg-black backdrop-blur-md border border-white/20 text-white font-semibold rounded-xl shadow-lg"
               data-testid="button-glp1-hub"
             >
-              💉 GLP-1 Hub
+              💉 Metabolic Med Hub
             </Button>
             <Button
               onClick={() => {

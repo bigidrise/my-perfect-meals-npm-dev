@@ -48,7 +48,7 @@ const MEDICAL_CONDITIONS = [
   { label: "Type 1 Diabetes", value: "diabetes-type1" },
   { label: "Type 2 Diabetes", value: "diabetes-type2" },
   { label: "Prediabetes", value: "prediabetes" },
-  { label: "GLP-1 Medication", value: "glp1" },
+  { label: "Metabolic Medication", value: "glp1" },
   { label: "Crohn's Disease", value: "crohns" },
   { label: "Ulcerative Colitis", value: "ulcerative-colitis" },
   { label: "Irritable Bowel Syndrome (IBS)", value: "ibs" },
@@ -116,7 +116,7 @@ const DIETARY_IDENTITY_HINTS: Record<string, string> = {
 const BUILDER_OPTIONS = [
   { id: "weekly", name: "Weekly Meal Builder", description: "Balanced, healthy meals for everyday life" },
   { id: "diabetic", name: "Diabetes Support", description: "Blood-sugar awareness and stability" },
-  { id: "glp1", name: "GLP-1 Support", description: "For users on GLP-1 medications" },
+  { id: "glp1", name: "Metabolic Med Support", description: "For users on metabolic medications" },
   { id: "anti_inflammatory", name: "Anti-Inflammatory", description: "Support long-term inflammation management" },
 ];
 

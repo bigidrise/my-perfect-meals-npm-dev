@@ -6724,7 +6724,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api/glp1", glp1Routes);
 
   // Mount diabetes routes (glucose logging, profile)
-  app.use("/api/diabetes", diabetesRouter);
+  app.use("/api/diabetes", requireAuth, diabetesRouter);
 
   // Public image serve for companion dog photos — must be before the global requireAuth guard below.
   // <img src> requests cannot send custom headers, so these are served without auth.
@@ -6805,8 +6805,13 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   // ── Saved Meals / Favorites ──────────────────────────────────────
   const crypto = await import("crypto");
 
-  function mealSignature(title: string, sourceType: string, macros?: { calories?: number; protein?: number; carbs?: number; fat?: number }): string {
-    const raw = `${title.trim().toLowerCase()}|${sourceType}|${macros?.calories ?? 0}|${macros?.protein ?? 0}|${macros?.carbs ?? 0}|${macros?.fat ?? 0}`;
+  function mealSignature(
+    title: string,
+    sourceType: string,
+    macros?: { calories?: number; protein?: number; carbs?: number; fat?: number },
+    bglBucket?: string
+  ): string {
+    const raw = `${title.trim().toLowerCase()}|${sourceType}|${macros?.calories ?? 0}|${macros?.protein ?? 0}|${macros?.carbs ?? 0}|${macros?.fat ?? 0}|${bglBucket ?? ""}`;
     return crypto.createHash("sha256").update(raw).digest("hex").slice(0, 64);
   }
 
@@ -6817,8 +6822,12 @@ Provide a single exceptional meal recommendation in JSON format with the followi
       const { title, sourceType, mealData } = req.body;
       if (!title || !mealData) return res.status(400).json({ error: "title and mealData required" });
 
+      const diabeticMemory = mealData?.diabeticMemory as {
+        generatedBglMgdl?: number; glucoseContext?: string; protocolTypeLabel?: string; bglBucket?: string;
+      } | undefined;
+
       const macros = mealData.nutrition || { calories: mealData.calories, protein: mealData.protein, carbs: mealData.carbs, fat: mealData.fat };
-      const hash = mealSignature(title, sourceType || "unknown", macros);
+      const hash = mealSignature(title, sourceType || "unknown", macros, diabeticMemory?.bglBucket);
 
       const existing = await db.select().from(savedMealsTable).where(
         and(eq(savedMealsTable.userId, String(userId)), eq(savedMealsTable.signatureHash, hash))
@@ -6856,6 +6865,13 @@ Provide a single exceptional meal recommendation in JSON format with the followi
         sourceType: sourceType || "unknown",
         signatureHash: hash,
         mealData: finalMealData,
+        ...(diabeticMemory?.bglBucket ? {
+          generatedBglMgdl: diabeticMemory.generatedBglMgdl ?? null,
+          glucoseContext: diabeticMemory.glucoseContext ?? null,
+          protocolType: diabeticMemory.protocolTypeLabel ?? null,
+          bglBucket: diabeticMemory.bglBucket,
+          savedFromDiabeticBuilder: true,
+        } : {}),
       }).returning();
 
       return res.json({ saved: true, id: row.id });

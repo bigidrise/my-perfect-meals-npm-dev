@@ -336,7 +336,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
     performance: "Performance & Competition",
     performance_competition: "Performance & Competition",
     diabetic: "Diabetic",
-    glp1: "GLP-1",
+    glp1: "Metabolic Med",
     "anti-inflammatory": "Anti-Inflammatory",
     anti_inflammatory: "Anti-Inflammatory",
     weekly: "Weekly",
