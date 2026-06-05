@@ -64,7 +64,7 @@ const DOT_TOOLTIPS: Record<string, string> = {
   "liver-disease": "Applies stricter hepatic nutrient controls for diagnosed liver disease — reduced protein load, sodium, and compounds that stress the liver. Activates on significantly elevated ALT or specialist assignment.",
   "oncology-support": "Applies oncology-safe nutritional guidance — reduces processed foods, supports immune function, and avoids clinically contraindicated ingredients. Physician-assigned only. No treatment claims are implied.",
   "thyroid-support": "Applies thyroid-aware meal guidance — moderates excess goitrogenic foods, supports iodine and selenium intake, and accounts for medication timing where relevant. Activated via medical directives.",
-  "glp1": "GLP-1 receptor agonist protocol — adjusts meal sizing, protein pacing, and satiety-supportive ingredients to complement medication effect. Stacks with diabetic builder. Physician-assigned only.",
+  "glp1": "Metabolic medication protocol (GLP-1, dual-agonist, triple-agonist) — adjusts meal sizing, protein pacing, and satiety-supportive ingredients to complement medication effect. Stacks with diabetic builder. Physician-assigned only.",
   "hashimotos": "Hashimoto's thyroiditis protocol — autoimmune-aware thyroid support with emphasis on anti-inflammatory, selenium-rich, and goitrogen-moderated meal generation. Reduces immune triggers while supporting thyroid function.",
   "hypothyroid": "Hypothyroid protocol — supports thyroid hormone production with iodine and selenium-rich foods, medication timing awareness, and anti-inflammatory meal patterns. Avoids excess raw cruciferous in large quantities.",
   "hyperthyroid": "Hyperthyroid protocol — reduces dietary iodine load, supports caloric needs for elevated metabolism, and includes anti-inflammatory foods to calm thyroid overactivity. Avoids iodine-dense concentrates.",
@@ -104,7 +104,7 @@ const BUILDER_LABELS: Record<string, string> = {
   performance: "Performance & Competition",
   performance_competition: "Performance & Competition",
   diabetic: "Diabetic",
-  glp1: "GLP-1",
+  glp1: "Metabolic Med",
   "anti-inflammatory": "Anti-Inflammatory",
   anti_inflammatory: "Anti-Inflammatory",
   weekly: "Weekly",
@@ -838,7 +838,7 @@ export default function ProClientFolderModal({
                     { key: "liver-disease",      label: "Liver Disease",     isActive: !!flags?.liverDisease     || labDerivedConditions.includes('liver-disease'),    activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
                     { key: "oncology-support",   label: "Oncology Support",  isActive: !!flags?.oncologySupport  || labDerivedConditions.includes('oncology-support'), activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
                     { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!flags?.thyroidSupport,                                                        activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
-                    { key: "glp1",               label: "GLP-1 Active",      isActive: !!flags?.glp1             || glp1PhysicianActive,                               activeColor: "text-orange-400", dotColor: "bg-orange-400", dotGlow: "shadow-[0_0_4px_rgba(251,146,60,0.9)]"  },
+                    { key: "glp1",               label: "Metabolic Med Active",      isActive: !!flags?.glp1             || glp1PhysicianActive,                               activeColor: "text-orange-400", dotColor: "bg-orange-400", dotGlow: "shadow-[0_0_4px_rgba(251,146,60,0.9)]"  },
                   ];
                   const row2 = [
                     { key: "hashimotos",         label: "Hashimoto's",       isActive: scConditions.includes("hashimotos"),         activeColor: "text-teal-300",   dotColor: "bg-teal-300",   dotGlow: "shadow-[0_0_4px_rgba(94,234,212,0.9)]"  },
@@ -896,13 +896,13 @@ export default function ProClientFolderModal({
                 <div className="min-w-0">
                   <p className="text-[11px] font-semibold text-white/80 flex items-center gap-1.5">
                     <span>💉</span>
-                    GLP-1 Protocol
+                    Metabolic Medication Protocol
                     {glp1PhysicianActive && <span className="text-orange-400 font-bold">· Active</span>}
                   </p>
                   <p className="text-[10px] text-white/45 leading-snug mt-0.5">
                     {glp1PhysicianActive
-                      ? "Physician-assigned. Meal generation stacks GLP-1 satiety guidance with diabetic builder."
-                      : "Assign to activate GLP-1 aware meal generation for this client."}
+                      ? "Physician-assigned. Meal generation stacks metabolic medication satiety guidance with diabetic builder."
+                      : "Assign to activate metabolic medication-aware meal generation for this client."}
                   </p>
                 </div>
                 <button
@@ -929,7 +929,7 @@ export default function ProClientFolderModal({
                       : "bg-black/40 border-orange-900/40 text-orange-300/80 hover:bg-orange-950/40"
                   } ${glp1Saving ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
-                  {glp1Saving ? "Saving…" : glp1PhysicianActive ? "Remove GLP-1" : "Assign GLP-1"}
+                  {glp1Saving ? "Saving…" : glp1PhysicianActive ? "Remove Protocol" : "Assign Protocol"}
                 </button>
               </div>
             </div>

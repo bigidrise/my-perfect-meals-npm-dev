@@ -22,7 +22,7 @@ const MAP: Record<string, { label: string; desc: string }> = {
   protein_high: { label: "High protein", desc: "High in protein" },
   balanced: { label: "Balanced", desc: "Balanced protein, carbs, and fat" },
   allergen: { label: "Allergen", desc: "Contains common allergens" },
-  glp1_friendly: { label: "GLP-1 friendly", desc: "Helps GLP-1 goals" },
+  glp1_friendly: { label: "Metabolic Med friendly", desc: "Supports metabolic medication goals" },
 };
 
 function normalize(

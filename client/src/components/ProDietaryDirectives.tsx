@@ -25,7 +25,7 @@ export function ProDietaryDirectives() {
   // Medical flags
   if (resolved.flags.lowSodium) medicalFlags.push('Low-Sodium');
   if (resolved.flags.diabetesFriendly) medicalFlags.push('Diabetes-Friendly');
-  if (resolved.flags.glp1) medicalFlags.push('GLP-1 Support');
+  if (resolved.flags.glp1) medicalFlags.push('Metabolic Medication Support');
   if (resolved.flags.cardiac) medicalFlags.push('Cardiac-Friendly');
   if (resolved.flags.renal) medicalFlags.push('Renal-Friendly');
   if (resolved.flags.postBariatric) medicalFlags.push('Post-Bariatric');

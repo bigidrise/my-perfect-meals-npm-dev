@@ -56,7 +56,7 @@ const BUILDER_OPTIONS: BuilderOption[] = [
   },
   {
     id: "glp1",
-    title: "GLP-1 Meal Builder",
+    title: "Metabolic Medication Builder",
     description:
       "Optimized for Ozempic, Wegovy, Mounjaro users. Protein-focused, smaller portions.",
     icon: <Pill className="w-8 h-8" />,

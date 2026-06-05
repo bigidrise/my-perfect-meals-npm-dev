@@ -83,8 +83,8 @@ const PHASE_1_BUTTONS: ActionButton[] = [
   },
   {
     id: "glp1",
-    label: "GLP-1 Meal Builder",
-    description: "Meals designed for GLP-1 medication users with smaller portions",
+    label: "Metabolic Medication Builder",
+    description: "Meals designed for metabolic medication users with smaller portions",
     lockedDescription: "Complete macros to unlock",
     icon: <Pill className="h-6 w-6" />,
     iconColor: "text-teal-400",

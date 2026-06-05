@@ -405,7 +405,7 @@ export default function EditProfilePage() {
     const builderNames: Record<string, string> = {
       weekly: "Weekly Meal Board",
       diabetic: "Diabetic Builder",
-      glp1: "GLP-1 Builder",
+      glp1: "Metabolic Medication Builder",
       general_nutrition: "General Nutrition Builder",
       performance_competition: "Performance Builder",
       anti_inflammatory: "Anti-Inflammatory",
@@ -1163,7 +1163,7 @@ export default function EditProfilePage() {
                     active={glp1Active}
                     onClick={() => setGlp1Active(prev => !prev)}
                   >
-                    GLP-1 Active
+                    Metabolic Med Active
                   </PillButton>
                   {(specialtyConditions.filter(c => !labDrivenConditions.includes(c)).length > 0 || glp1Active) && !physicianOncologyLocked && !physicianLocked && (
                     <PillButton
@@ -1254,9 +1254,9 @@ export default function EditProfilePage() {
                     <div className="flex items-start gap-2">
                       <span className="text-orange-400 text-base mt-0.5">💉</span>
                       <div>
-                        <p className="text-orange-300 text-xs font-semibold mb-1">GLP-1 Medication Support — Nutritional Guidance Only</p>
+                        <p className="text-orange-300 text-xs font-semibold mb-1">Metabolic Medication Support — Nutritional Guidance Only</p>
                         <p className="text-white/70 text-xs leading-relaxed">
-                          Enabling this activates GLP-1 aware meal generation — smaller, nutrient-dense portions, high protein floors (≥25g), nausea-safe ingredients, and reduced fat ceilings to match how GLP-1 medications affect appetite and digestion. If you are on a diabetic protocol, both layers stack automatically. This is <span className="text-white font-medium">not a substitute for your prescribing doctor's guidance</span>. Always follow your physician's instructions.
+                          Enabling this activates metabolic medication-aware meal generation — smaller, nutrient-dense portions, high protein floors (≥25g), nausea-safe ingredients, and reduced fat ceilings to match how these medications affect appetite and digestion. If you are on a diabetic protocol, both layers stack automatically. This is <span className="text-white font-medium">not a substitute for your prescribing doctor's guidance</span>. Always follow your physician's instructions.
                         </p>
                       </div>
                     </div>
@@ -1268,7 +1268,7 @@ export default function EditProfilePage() {
               <div className="rounded-xl border border-green-500/20 bg-green-950/10 p-3">
                 <p className="text-white/80 text-xs font-semibold mb-1">Anti-Inflammatory Support</p>
                 <p className="text-white/50 text-xs mb-3 leading-relaxed">
-                  Layer anti-inflammatory nutrition optimization onto any builder — including GLP-1 and Diabetic. Emphasizes food quality, healthy fats, and reduced ultra-processed ingredients. No medical condition required.
+                  Layer anti-inflammatory nutrition optimization onto any builder — including Metabolic Med and Diabetic. Emphasizes food quality, healthy fats, and reduced ultra-processed ingredients. No medical condition required.
                 </p>
                 <PillButton
                   active={antiInflammatorySupport}

@@ -9,7 +9,7 @@ export default function GLP1MealsTracking() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    document.title = "GLP-1 Meals & Tracking | My Perfect Meals";
+    document.title = "Metabolic Medication Tracking | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
@@ -35,7 +35,7 @@ export default function GLP1MealsTracking() {
             </Button>
             <div className="flex items-center gap-2">
               <Pill className="h-6 w-6 text-violet-400" />
-              <h1 className="text-xl font-bold text-white">GLP-1 Meals & Tracking</h1>
+              <h1 className="text-xl font-bold text-white">Metabolic Medication Tracking</h1>
             </div>
           </div>
         </div>
@@ -47,7 +47,7 @@ export default function GLP1MealsTracking() {
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <Activity className="h-5 w-5 text-violet-400" />
-              Specialized Meal Plans for GLP-1 Medications
+              Specialized Meal Plans for Metabolic Medications
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -62,7 +62,7 @@ export default function GLP1MealsTracking() {
               </p>
               <p className="flex items-start gap-2">
                 <TrendingUp className="h-5 w-5 text-violet-400 mt-0.5 flex-shrink-0" />
-                <span>Nutrition tracking aligned with GLP-1 therapy</span>
+                <span>Nutrition tracking aligned with metabolic medication therapy</span>
               </p>
             </div>
 

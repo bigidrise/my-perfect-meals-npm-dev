@@ -56,7 +56,7 @@ const NAV_SECTIONS: NavSection[] = [
       { path: "/weekly-meal-board", label: "Weekly Meal Board" },
       { path: "/beach-body-meal-board", label: "Beach Body Builder" },
       { path: "/diabetic-menu-builder", label: "Diabetic Builder" },
-      { path: "/glp1-meal-builder", label: "GLP-1 Builder" },
+      { path: "/glp1-meal-builder", label: "Metabolic Med Builder" },
       { path: "/anti-inflammatory-menu-builder", label: "Anti-Inflammatory Builder" },
       { path: "/performance-competition-builder", label: "Performance Builder" },
       { path: "/pro/general-nutrition-builder", label: "General Nutrition Builder" },
@@ -81,8 +81,8 @@ const NAV_SECTIONS: NavSection[] = [
     routes: [
       { path: "/diabetic-hub", label: "Diabetic Hub" },
       { path: "/diabetes-support", label: "Diabetes Support" },
-      { path: "/glp1-hub", label: "GLP-1 Hub" },
-      { path: "/glp1-meals-tracking", label: "GLP-1 Meals Tracking" },
+      { path: "/glp1-hub", label: "Metabolic Med Hub" },
+      { path: "/glp1-meals-tracking", label: "Metabolic Med Tracking" },
     ],
   },
   {

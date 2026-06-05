@@ -167,10 +167,10 @@ export const useCopilotBrain = (props: CopilotBrainProps) => {
     if (persona === "glp1" && heavyFatCount >= 1) {
       dynamic.push({
         id: "brain-glp1-comfort",
-        label: "GLP-1 friendly comfort swap",
+        label: "Metabolic Med friendly comfort swap",
         description:
           "You picked some heavier fats. I can swap to a nausea-friendly version of this same vibe.",
-        badge: "GLP-1",
+        badge: "Metabolic Med",
         emphasis: "high",
         action: { type: "run-command", id: "glp1.makeComfortSwap" },
       });

@@ -109,8 +109,8 @@ export const buildBaseSuggestions = (
       {
         id: "glp1-volume",
         label: "Increase fullness without calories",
-        description: "Boost veggies and protein for GLP-1 satiety.",
-        badge: "GLP-1",
+        description: "Boost veggies and protein for metabolic medication satiety.",
+        badge: "Metabolic Med",
         emphasis: "high",
         action: makeAction({ type: "run-command", id: "glp1.volumeBoost" }),
       },

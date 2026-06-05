@@ -48,7 +48,7 @@ export const PLAN_SKUS: PlanSku[] = [
       "Master Shopping List & Grocery Organization",
       "Weekly Meal Planner",
       "Saved Meals & Favorites — save any AI-generated meal to your collection",
-      "GLP-1, Diabetic & Anti-Inflammatory builders",
+      "Metabolic Medication, Diabetic & Anti-Inflammatory builders",
       "SafeGuard Allergy Protection (2-layer)",
       "Biometrics Tracking",
     ],

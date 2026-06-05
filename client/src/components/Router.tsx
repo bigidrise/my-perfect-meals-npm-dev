@@ -319,8 +319,8 @@ const SafeWorkspaceShell = withPageErrorBoundary(WorkspaceShell, "Client Workspa
 const SafeDiabeticHub = withPageErrorBoundary(DiabeticHub, "Diabetic Hub");
 const SafeDiabetesSupport = withPageErrorBoundary(DiabetesSupportPage, "Diabetes Support");
 const SafeDiabeticMenuBuilder = withPageErrorBoundary(DiabeticMenuBuilder, "Diabetic Menu Builder");
-const SafeGLP1Hub = withPageErrorBoundary(GLP1Hub, "GLP-1 Hub");
-const SafeGLP1MealBuilder = withPageErrorBoundary(GLP1MealBuilder, "GLP-1 Meal Builder");
+const SafeGLP1Hub = withPageErrorBoundary(GLP1Hub, "Metabolic Medication Hub");
+const SafeGLP1MealBuilder = withPageErrorBoundary(GLP1MealBuilder, "Metabolic Medication Builder");
 const SafeAntiInflammatoryMenuBuilder = withPageErrorBoundary(AntiInflammatoryMenuBuilder, "Anti-Inflammatory Menu Builder");
 
 const GuardedWeeklyMealBoard = () => <BuilderAccessGuard builderKey="weekly" component={SafeWeeklyMealBoard} />;

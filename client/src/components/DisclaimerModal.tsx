@@ -98,7 +98,7 @@ export default function DisclaimerModal({ onAccept }: DisclaimerModalProps) {
               <ol className="mt-2 space-y-2 text-blue-700 text-sm list-none pl-0">
                 <li className="flex items-start gap-2">
                   <span className="font-bold text-blue-900 min-w-[20px]">1.</span>
-                  <span><strong>Medical safety</strong> — Diabetes, renal, cardiac, GLP-1, oncology, and allergies are enforced first. These are not suggestions.</span>
+                  <span><strong>Medical safety</strong> — Diabetes, renal, cardiac, metabolic medication, oncology, and allergies are enforced first. These are not suggestions.</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="font-bold text-blue-900 min-w-[20px]">2.</span>

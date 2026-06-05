@@ -192,8 +192,8 @@ export const glp1Rules: GLP1Rules = {
 };
 
 export function getGLP1SystemPrompt(): string {
-  return `CRITICAL GLP-1 MEDICATION DIETARY REQUIREMENTS:
-The user is on GLP-1 medication (such as Ozempic, Wegovy, or Mounjaro).
+  return `CRITICAL METABOLIC MEDICATION DIETARY REQUIREMENTS:
+The user is on a metabolic medication (such as Ozempic, Wegovy, Mounjaro, Zepbound, Rybelsus, or a similar GLP-1, dual-agonist, or triple-agonist drug).
 All meals MUST follow these strict guidelines:
 
 PORTION SIZE: Small portions ONLY. Never large, heavy, or high-volume meals.

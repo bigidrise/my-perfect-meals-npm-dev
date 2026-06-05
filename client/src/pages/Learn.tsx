@@ -146,8 +146,8 @@ const SECTION_START_HERE: LibraryTopic[] = [
           text: "Built for blood sugar awareness. Carb control, glucose stability, real-time adjustments through GlucoseGuard.",
         },
         {
-          heading: "GLP-1 Support",
-          text: "Built for reduced appetite environments. Nutrient density, protein priority, easier-to-finish meals for GLP-1 users.",
+          heading: "Metabolic Medication Support",
+          text: "Built for reduced appetite environments. Nutrient density, protein priority, easier-to-finish meals for metabolic medication users.",
         },
         {
           heading: "Create a Dish",
@@ -352,20 +352,20 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
           text: "A meal that looks healthy — like a banana smoothie or honey-glazed chicken — will be blocked if its ingredients spike blood sugar above your safe range. The system checks ingredients, not just meal names. You will never receive a meal that violates your diabetic guardrails, even if it sounds clean on the surface.",
         },
         {
-          heading: "How the GLP-1 Hub Changes Meal Generation",
-          text: "When the GLP-1 Hub is active, the AI generates meals built for a reduced-appetite environment — not just smaller portions, but a fundamentally different composition.",
+          heading: "How the Metabolic Medication Hub Changes Meal Generation",
+          text: "When the Metabolic Medication Hub is active, the AI generates meals built for a reduced-appetite environment — not just smaller portions, but a fundamentally different composition.",
           list: [
             "Maximum meal volume is enforced — meals are designed to be completable, not just nutritious",
             "Protein minimum per meal is enforced — muscle support is prioritized when appetite is suppressed",
             "Fat ceiling limits heavy, slow-digesting meals that cause discomfort during the active medication phase",
             "Carbonated ingredients and alcohol are flagged and removed when those settings are active",
             "Slow-digesting foods are prioritized when that setting is on — helping sustain fullness between meals",
-            "Meal count is locked to your GLP-1 profile setting — the system adapts to how many meals you can realistically eat per day",
+            "Meal count is locked to your medication profile setting — the system adapts to how many meals you can realistically eat per day",
           ],
         },
         {
           heading: "When Both Hubs Are Active",
-          text: "If you have both the Diabetic Hub and GLP-1 Hub active at the same time, every generated meal must satisfy both protocols simultaneously. Carb ceilings, GI caps, and blocked ingredients apply from the diabetic layer. Portion limits, protein floors, and volume constraints apply from the GLP-1 layer. The strictest rule from either hub always wins.",
+          text: "If you have both the Diabetic Hub and Metabolic Medication Hub active at the same time, every generated meal must satisfy both protocols simultaneously. Carb ceilings, GI caps, and blocked ingredients apply from the diabetic layer. Portion limits, protein floors, and volume constraints apply from the metabolic medication layer. The strictest rule from either hub always wins.",
         },
       ],
     },
@@ -398,7 +398,7 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
         {
           heading: "Where It Is Applied",
           list: [
-            "All six diet builders — Anti-Inflammatory, Diabetic, GLP-1, General Nutrition, Performance, Beach Body",
+            "All six diet builders — Anti-Inflammatory, Diabetic, Metabolic Med, General Nutrition, Performance, Beach Body",
             "Weekly AI Meal Planner",
             "Craving Creator",
             "Fridge Rescue",
@@ -434,7 +434,7 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
             "Age, sex, height, and weight",
             "Activity level and exercise frequency",
             "Your specific goal (lose fat, build muscle, maintain)",
-            "Metabolic considerations like diabetes or GLP-1 use",
+            "Metabolic considerations like diabetes or metabolic medication use",
           ],
         },
         {
@@ -551,7 +551,7 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
         },
         {
           heading: "Works Across All Builders",
-          text: "This shopping system is the same across every meal builder in the app — Weekly, GLP-1, Anti-Inflammatory, Diabetic, Performance, Beach Body, and General Nutrition. Same experience, no matter which builder you use.",
+          text: "This shopping system is the same across every meal builder in the app — Weekly, Metabolic Med, Anti-Inflammatory, Diabetic, Performance, Beach Body, and General Nutrition. Same experience, no matter which builder you use.",
         },
         {
           heading: "Your List Syncs Automatically",
@@ -694,7 +694,7 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
         },
         {
           heading: "Why You and a Friend Get Different Results",
-          text: "The same product will produce different guidance for different users. A protein bar that rates B for a general fitness user might rate C for someone on a GLP-1 medication, or D for someone managing blood sugar closely. This is intentional — the entire analysis is run against your personal protocol, not a generic standard. There is no universal 'good' or 'bad' ingredient list.",
+          text: "The same product will produce different guidance for different users. A protein bar that rates B for a general fitness user might rate C for someone on a metabolic medication, or D for someone managing blood sugar closely. This is intentional — the entire analysis is run against your personal protocol, not a generic standard. There is no universal 'good' or 'bad' ingredient list.",
         },
         {
           heading: "What Goes Into the Analysis",
@@ -703,7 +703,7 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
             "Your dietary identity — Kosher, Halal, Vegan, Carnivore, Keto, and others",
             "Your food allergies and personal avoidances",
             "Your current wellness goals — fat loss, muscle gain, blood sugar stability, anti-inflammatory eating, and more",
-            "Your GLP-1, oncology support, diabetes, or thyroid protocol if active",
+            "Your metabolic medication, oncology support, diabetes, or thyroid protocol if active",
             "Household context — dye sensitivities, children in the home, or other family members with different needs",
           ],
         },
@@ -1119,7 +1119,7 @@ const SECTION_HEALTH_SAFETY: LibraryTopic[] = [
           list: [
             "Structured food and ingredient taxonomies",
             "Common allergen classifications recognized by public health organizations",
-            "Clinical nutrition principles for diabetes support, GLP-1 support, anti-inflammatory eating, and oncology-supportive meal planning",
+            "Clinical nutrition principles for diabetes support, metabolic medication support, anti-inflammatory eating, and oncology-supportive meal planning",
             "AI-assisted language understanding to interpret user input, ingredient families, compound foods, and common substitutions",
           ],
         },
@@ -1826,8 +1826,8 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
           heading: "How Physicians Use It",
           text: "Physicians and clinicians work inside the Physicians Clinic — a clinical workspace built for medical-grade nutrition oversight. The platform is designed as a compliance partner, not a diagnostic tool. It applies an NIH-based evidence baseline that the physician can adjust or override at any time.",
           list: [
-            "Access specialized clinical hubs — Diabetic, GLP-1, and Anti-Inflammatory meal builders",
-            "Set clinical macro targets and toggle medical directives (Diabetes-Friendly, Low-Sodium, GLP-1 Support, and more)",
+            "Access specialized clinical hubs — Diabetic, Metabolic Medication, and Anti-Inflammatory meal builders",
+            "Set clinical macro targets and toggle medical directives (Diabetes-Friendly, Low-Sodium, Metabolic Medication Support, and more)",
             "View patient lab values — A1C, LDL, blood pressure, ALT, creatinine — and see which have crossed clinical thresholds",
             "Assign clinical protocols based on lab findings or physician judgment",
             "Configure SafetyGuard allergen restrictions and dietary guardrails",
@@ -1877,7 +1877,7 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
             "LDL ≥ 130 mg/dL activates Cardiac Health support",
             "Elevated creatinine or specialist assignment activates Kidney Disease support",
             "Elevated ALT activates Liver Support or Liver Disease depending on severity",
-            "A1C in diabetic range reinforces GLP-1 and Diabetic builder recommendations",
+            "A1C in diabetic range reinforces Metabolic Med and Diabetic builder recommendations",
             "Physician-assigned Oncology Support is never activated automatically — it requires physician assignment only",
             "When a protocol activates from labs, the client is informed and a protocol recommendation modal explains the clinical reasoning with source citations",
             "If a physician has already assigned a protocol, lab-based changes defer to the physician's judgment",
@@ -2227,7 +2227,7 @@ const SECTION_PERFORMANCE_MODES: LibraryTopic[] = [
           list: [
             "Medical protections (always highest — physician-assigned rules and clinical safety)",
             "Dietary identity (kosher, halal, vegan, gluten-free — cannot be overridden)",
-            "Health conditions (diabetic, anti-inflammatory, GLP-1 settings)",
+            "Health conditions (diabetic, anti-inflammatory, metabolic medication settings)",
             "Performance Mode (applies within all the above constraints)",
             "Flavor and behavioral preferences (softest layer, shapes meals within everything above)",
           ],

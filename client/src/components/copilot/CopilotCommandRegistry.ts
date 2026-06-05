@@ -930,8 +930,8 @@ const Commands: Record<string, CommandHandler> = {
     if (!responseCallback) return;
     responseCallback({
       title: "Dose Logged",
-      description: "GLP-1 dose saved to history.",
-      spokenText: "Logging GLP-1 dose.",
+      description: "Medication dose saved to history.",
+      spokenText: "Logging medication dose.",
     });
   },
 
@@ -939,17 +939,17 @@ const Commands: Record<string, CommandHandler> = {
     if (!responseCallback) return;
     responseCallback({
       title: "Guardrails Saved",
-      description: "GLP-1 guardrails activated.",
-      spokenText: "Saving GLP-1 guardrails.",
+      description: "Medication guardrails activated.",
+      spokenText: "Saving medication guardrails.",
     });
   },
 
   "glp1.goToMenuBuilder": async () => {
     if (!responseCallback) return;
     responseCallback({
-      title: "GLP-1 Menu Builder",
-      description: "Opening GLP-1 Menu Builder.",
-      spokenText: "Opening GLP-1 Menu Builder.",
+      title: "Metabolic Medication Builder",
+      description: "Opening Metabolic Medication Builder.",
+      spokenText: "Opening Metabolic Medication Builder.",
     });
   },
 };

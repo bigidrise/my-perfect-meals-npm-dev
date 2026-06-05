@@ -9,6 +9,7 @@ export type ShotEntry = {
   dateUtc: string;
   doseMg: number;
   location?: InjectionLocation;
+  medicationName?: string;
   notes?: string;
   createdAt: string;
   updatedAt: string;
@@ -37,7 +38,7 @@ export function useGlp1Shots(userId: string, opts?: { start?: string; end?: stri
 export function useCreateShot(userId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { dateUtc: string; doseMg: number; location?: InjectionLocation; notes?: string }) =>
+    mutationFn: (input: { dateUtc: string; doseMg: number; location?: InjectionLocation; medicationName?: string; notes?: string }) =>
       post<ShotEntry>(base(userId), input),
     onSuccess: () => qc.invalidateQueries({ queryKey: [base(userId)] }),
   });
@@ -46,7 +47,7 @@ export function useCreateShot(userId: string) {
 export function useUpdateShot(userId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...patchData }: { id: string; dateUtc?: string; doseMg?: number; location?: InjectionLocation; notes?: string }) =>
+    mutationFn: ({ id, ...patchData }: { id: string; dateUtc?: string; doseMg?: number; location?: InjectionLocation; medicationName?: string; notes?: string }) =>
       patch<ShotEntry>(`${base(userId)}/${id}`, patchData),
     onSuccess: () => qc.invalidateQueries({ queryKey: [base(userId)] }),
   });

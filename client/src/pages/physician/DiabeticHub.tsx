@@ -329,21 +329,21 @@ export default function DiabeticHub() {
               ))}
               {isGlp1Active && (
                 <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-300">
-                  GLP-1 Active
+                  Metabolic Med Active
                 </span>
               )}
             </div>
             {isGlp1Active && (
               <div className="flex items-center gap-3 pt-1.5">
                 <p className="text-[11px] text-orange-400/70 leading-relaxed">
-                  GLP-1 guardrails (portion caps, protein floors, nausea-safe ingredients) are stacked with your diabetic protocol.
+                  Metabolic Med guardrails (portion caps, protein floors, nausea-safe ingredients) are stacked with your diabetic protocol.
                 </p>
                 <div className="shrink-0">
                   <PillButton
                     onClick={() => setShowGlp1Companion(true)}
                     variant="default"
                   >
-                    Manage GLP-1
+                    Manage Metabolic Med
                   </PillButton>
                 </div>
               </div>
@@ -359,16 +359,16 @@ export default function DiabeticHub() {
               <span className="text-orange-400 text-base mt-0.5 shrink-0">💉</span>
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-semibold text-orange-300 mb-0.5">
-                  Using a GLP-1 medication like Ozempic, Wegovy, or Mounjaro?
+                  Using a metabolic medication like Ozempic, Wegovy, or Mounjaro?
                 </p>
                 <p className="text-[11px] text-white/50 leading-relaxed mb-2">
-                  Enable GLP-1 Active in your profile to personalize meal sizing, protein targeting, and nausea-friendly meal support — stacked with your diabetic protocol.
+                  Enable Metabolic Med in your profile to personalize meal sizing, protein targeting, and nausea-friendly meal support — stacked with your diabetic protocol.
                 </p>
                 <PillButton
                   onClick={() => setLocation("/profile/edit")}
                   variant="default"
                 >
-                  Enable GLP-1 in Profile
+                  Enable Metabolic Med in Profile
                 </PillButton>
               </div>
             </div>

@@ -109,7 +109,7 @@ export function detectBuilderConflict(
 export function getBuilderLabel(dietType: string): string {
   const labels: Record<string, string> = {
     'anti-inflammatory': 'Anti-Inflammatory',
-    'glp1': 'GLP-1',
+    'glp1': 'Metabolic Med',
     'diabetic': 'Diabetic',
     'beachbody': 'Beachbody',
     'performance': 'Performance',

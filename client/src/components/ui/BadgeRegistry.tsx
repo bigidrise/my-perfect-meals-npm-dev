@@ -58,8 +58,8 @@ export const BADGE_REGISTRY: Record<string, BadgeDefinition> = {
   },
   "glp1": {
     id: "glp1",
-    label: "GLP-1 Optimized",
-    description: "Supports GLP-1 medication therapy",
+    label: "Metabolic Med Optimized",
+    description: "Supports metabolic medication therapy",
     icon: Pill,
     type: "critical",
     category: "medical",

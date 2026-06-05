@@ -76,7 +76,7 @@ export default function Paywall() {
           <Feature text="Fridge Rescue" />
           <Feature text="Craving Creator" />
           <Feature text="Kids & Toddler Hubs" />
-          <Feature text="Lifestyle Hubs (GLP-1, Diabetic, Athlete)" />
+          <Feature text="Lifestyle Hubs (Metabolic Med, Diabetic, Athlete)" />
           <Feature text="Shopping Delivery" />
           <Feature text="Fast Food Survival Guide" />
           <Feature text="Holiday Meal Planner" />
