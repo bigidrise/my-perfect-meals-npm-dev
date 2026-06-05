@@ -153,7 +153,7 @@ export default function SavedMeals() {
               <div className="text-white font-medium truncate">{row.title}</div>
               <div className="text-xs text-white/50">{sourceLabel(row.sourceType)}</div>
               {isDiabetic && generatedBglMgdl !== null && (
-                <div className="text-xs text-amber-400/80 flex items-center gap-1 mt-0.5">
+                <div className={`text-xs ${bannerAccent.text} flex items-center gap-1 mt-0.5 opacity-80`}>
                   <Activity className="h-3 w-3 shrink-0" />
                   <span>BGL {generatedBglMgdl} mg/dL</span>
                 </div>
