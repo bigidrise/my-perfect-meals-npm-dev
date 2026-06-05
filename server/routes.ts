@@ -6826,6 +6826,13 @@ Provide a single exceptional meal recommendation in JSON format with the followi
         generatedBglMgdl?: number; glucoseContext?: string; protocolTypeLabel?: string; bglBucket?: string;
       } | undefined;
 
+      // Treat as diabetic-builder meal if sourceType OR builderType signals it.
+      // bglBucket may be absent for users without a recent glucose reading, but the
+      // meal still came from the diabetic builder and must be categorized accordingly.
+      const isDiabeticBuilderMeal =
+        sourceType === "diabetic" ||
+        (mealData?.builderType as string | undefined) === "diabetic";
+
       const macros = mealData.nutrition || { calories: mealData.calories, protein: mealData.protein, carbs: mealData.carbs, fat: mealData.fat };
       const hash = mealSignature(title, sourceType || "unknown", macros, diabeticMemory?.bglBucket);
 
@@ -6865,12 +6872,14 @@ Provide a single exceptional meal recommendation in JSON format with the followi
         sourceType: sourceType || "unknown",
         signatureHash: hash,
         mealData: finalMealData,
-        ...(diabeticMemory?.bglBucket ? {
-          generatedBglMgdl: diabeticMemory.generatedBglMgdl ?? null,
-          glucoseContext: diabeticMemory.glucoseContext ?? null,
-          protocolType: diabeticMemory.protocolTypeLabel ?? null,
-          bglBucket: diabeticMemory.bglBucket,
+        ...(isDiabeticBuilderMeal ? {
           savedFromDiabeticBuilder: true,
+          ...(diabeticMemory?.bglBucket ? {
+            generatedBglMgdl: diabeticMemory.generatedBglMgdl ?? null,
+            glucoseContext: diabeticMemory.glucoseContext ?? null,
+            protocolType: diabeticMemory.protocolTypeLabel ?? null,
+            bglBucket: diabeticMemory.bglBucket,
+          } : {}),
         } : {}),
       }).returning();
 
