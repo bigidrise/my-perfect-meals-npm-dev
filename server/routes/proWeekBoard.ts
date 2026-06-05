@@ -67,6 +67,9 @@ function normalizeBoard(raw: any): any {
       medicalBadges: Array.isArray(m?.medicalBadges)
         ? m.medicalBadges
         : undefined,
+
+      // Diabetic Meal Memory — BGL context stamped at meal birth, must survive round-trip
+      diabeticMemory: (m?.diabeticMemory && typeof m.diabeticMemory === 'object') ? m.diabeticMemory : undefined,
     }));
   };
 
