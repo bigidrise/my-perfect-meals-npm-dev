@@ -19,16 +19,16 @@ declare global {
   }
 }
 
-function getUserId(req: Request): string {
+function getUserId(req: Request): string | null {
+  if ((req as any).authUser?.id) return (req as any).authUser.id as string;
   if ((req as any).session?.userId) return (req as any).session.userId as string;
-  const headerUserId = req.headers["x-user-id"] as string;
-  if (headerUserId) return headerUserId;
-  return "00000000-0000-0000-0000-000000000001";
+  return null;
 }
 
 export async function loadStudioMembership(req: Request, res: Response, next: NextFunction) {
   try {
     const userId = getUserId(req);
+    if (!userId) { next(); return; }
 
     const [membership] = await db
       .select()
@@ -86,7 +86,7 @@ export function enforceAssignedBuilder(allowedBuilders: string[]) {
     // Studio owner is never blocked by builder assignment — they may be enrolled
     // in their own studio as a test client and need access to all routes.
     const userId = getUserId(req);
-    if (req.studioMembership.studioOwnerUserId === userId) {
+    if (userId && req.studioMembership.studioOwnerUserId === userId) {
       return next();
     }
 
@@ -134,7 +134,7 @@ export function enforceBuilderFromParam(paramName: string = "program") {
     }
 
     const userId = getUserId(req);
-    if (req.studioMembership.studioOwnerUserId === userId) {
+    if (userId && req.studioMembership.studioOwnerUserId === userId) {
       return next();
     }
 

@@ -2,3 +2,4 @@
 - [apiRequest returns parsed JSON](apiRequest-returns-parsed-json.md) — apiRequest() already calls res.json() internally; never call .json() on the result or it always throws and silently returns empty data.
 - [Affiliate Certification — PDF Certificate System](affiliate-cert-pdf.md) — pdfkit installed; certificate_name on user_certifications; signature drop-in at server/assets/cert-signature.png.
 - [Affiliate Certification — Quiz Persistence](affiliate-cert-quiz-persistence.md) — certification_quiz_attempts table; JSONB merge upsert pattern; final-assessment routes to dashboard not /complete directly.
+- [Diabetic Meal Memory System](diabetic-meal-memory.md) — Phase 0+1 shipped; Phase 2+3 held; BGL-bucket hash differentiates favorites; ProCare stamp deferred.

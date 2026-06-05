@@ -59,7 +59,7 @@ function MacroPill({ label, value, suffix = "" }: { label: string; value: number
 }
 
 export function MealCard({
-  date, slot, meal, onUpdated, showStarchBadge = false, coachingLine, builderType,
+  date, slot, meal, onUpdated, showStarchBadge = false, coachingLine, builderType, diabeticMemoryContext,
 }: {
   date: string; // "board" or "YYYY-MM-DD"
   slot: Slot;
@@ -68,6 +68,7 @@ export function MealCard({
   showStarchBadge?: boolean; // Show starch/fiber classification badge on meal boards
   coachingLine?: string; // Optional coaching confirmation line shown below the meal image
   builderType?: string; // Builder identity override — used by medical builders (e.g. "oncology-support")
+  diabeticMemoryContext?: { generatedBglMgdl: number; glucoseContext: string; protocolTypeLabel: string; bglBucket: string; recommendedBglRange: string; generatedAt: string; source: string; };
 }) {
   const { toast } = useToast();
   const [macrosLogged, setMacrosLogged] = React.useState(false);
@@ -209,7 +210,7 @@ export function MealCard({
             <FavoriteButton
               title={title}
               sourceType={builderType ?? meal.builderType ?? "meal-builder"}
-              mealData={{ ...meal, builderType: builderType ?? meal.builderType }}
+              mealData={{ ...meal, builderType: builderType ?? meal.builderType, ...(diabeticMemoryContext ? { diabeticMemory: diabeticMemoryContext } : {}) }}
               size={20}
             />
           </div>
@@ -222,6 +223,14 @@ export function MealCard({
             <MealClassificationPill dietClassification={meal.dietClassification} />
             <KosherProTip dietClassification={meal.dietClassification} />
           </div>
+          {diabeticMemoryContext && (
+            <div className="mt-2 rounded-lg bg-lime-950/60 border border-lime-700/40 px-3 py-2 text-xs space-y-0.5">
+              <div className="text-lime-400 font-semibold tracking-wide uppercase text-[10px]">Diabetes Protocol</div>
+              <div className="text-white/80">Generated for BGL: <span className="text-white font-medium">{diabeticMemoryContext.generatedBglMgdl} mg/dL</span></div>
+              <div className="text-white/60">{diabeticMemoryContext.protocolTypeLabel}</div>
+              <div className="text-white/50 text-[10px]">Relevant range: {diabeticMemoryContext.recommendedBglRange}</div>
+            </div>
+          )}
 
           {/* Description */}
           {displayDescription && (
