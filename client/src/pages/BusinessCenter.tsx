@@ -1,16 +1,8 @@
 import { useLocation } from "wouter";
-import { ArrowLeft, TrendingUp, Users, Building2, HeartPulse, ChevronRight, Handshake, GraduationCap } from "lucide-react";
+import { ArrowLeft, TrendingUp, Users, Building2, HeartPulse, ChevronRight, Handshake } from "lucide-react";
 import { motion } from "framer-motion";
 
 const sections = [
-  {
-    id: "learning",
-    title: "Learning & Certifications",
-    description: "For coaches & professionals — Business Success Certification, Platform Certification, and update modules",
-    icon: GraduationCap,
-    color: "orange",
-    route: "/learning",
-  },
   {
     id: "affiliate",
     title: "Affiliate Opportunities",
