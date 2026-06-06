@@ -161,11 +161,11 @@ router.post("/seed-affiliate-cert", async (req, res) => {
 });
 
 /**
- * DELETE /api/dev/seed-affiliate-cert
+ * POST /api/dev/clear-affiliate-cert
  * Body: { email, certType? }
  * Removes seeded data so you can re-test the full flow.
  */
-router.delete("/seed-affiliate-cert", async (req, res) => {
+router.post("/clear-affiliate-cert", async (req, res) => {
   const { email, certType = "affiliate_social" } = req.body ?? {};
   if (!email) return res.status(400).json({ error: "email is required" });
 
