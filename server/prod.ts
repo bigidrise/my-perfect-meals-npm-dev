@@ -404,6 +404,7 @@ async function initializeApp() {
     const clinicalLabsRouter = (await import("./routes/clinicalLabs")).default;
     const translateRouter = (await import("./routes/translate")).default;
     const mealsRouter = (await import("./routes/meals")).default;
+    const macroCalculatorRouter = (await import("./routes/macroCalculatorRoutes")).default;
     const { requireAuth } = await import("./middleware/requireAuth");
     const { requireActiveAccess } = await import(
       "./middleware/requireActiveAccess"
@@ -414,6 +415,7 @@ async function initializeApp() {
     app.use("/api/meals", mealsRouter);
     app.use("/api/restaurants", resolveCuisineMiddleware, restaurantRoutes);
     app.use("/api", manualMacrosRouter);
+    app.use("/api", macroCalculatorRouter);
     app.use("/api/biometrics/labs", clinicalLabsRouter);
     app.use(
       "/api/translate",
