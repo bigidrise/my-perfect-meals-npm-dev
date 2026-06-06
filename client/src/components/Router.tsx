@@ -263,6 +263,13 @@ import CertificationLesson from "@/pages/certification/CertificationLesson";
 import CertificationQuiz from "@/pages/certification/CertificationQuiz";
 import CertificationComplete from "@/pages/certification/CertificationComplete";
 import CertificationCertificateView from "@/pages/certification/CertificationCertificateView";
+import LearningHub from "@/pages/learning/LearningHub";
+import PlatformCertDashboard from "@/pages/learning/PlatformCertDashboard";
+import PlatformCertVideo from "@/pages/learning/PlatformCertVideo";
+import PlatformCertQuiz from "@/pages/learning/PlatformCertQuiz";
+import PlatformCertComplete from "@/pages/learning/PlatformCertComplete";
+import UpdatesInbox from "@/pages/learning/UpdatesInbox";
+import AdminCertifications from "@/pages/admin/AdminCertifications";
 
 // SimpleWalkthroughDemo quarantined - replaced by Quick Tour system
 
@@ -702,6 +709,16 @@ export default function Router() {
         <Route path="/coaches" component={CoachesComingSoon} />
         {/* Business Center */}
         <Route path="/business-center" component={BusinessCenter} />
+        {/* LMS / Learning & Certification System */}
+        <Route path="/learning" component={LearningHub} />
+        <Route path="/certifications/updates" component={UpdatesInbox} />
+        <Route path="/certifications/:certType/complete" component={PlatformCertComplete} />
+        <Route path="/certifications/:certType/video/:slug" component={PlatformCertVideo} />
+        <Route path="/certifications/:certType/quiz/:slug" component={PlatformCertQuiz} />
+        <Route path="/certifications/:certType" component={PlatformCertDashboard} />
+        {/* Admin */}
+        <Route path="/admin/certifications" component={AdminCertifications} />
+        {/* Legacy affiliate cert routes */}
         <Route path="/business-center/affiliate" component={AffiliateOpportunities} />
         <Route path="/business-center/affiliate/social" component={AffiliatePathPage} />
         <Route path="/business-center/affiliate/coaching" component={AffiliatePathPage} />
