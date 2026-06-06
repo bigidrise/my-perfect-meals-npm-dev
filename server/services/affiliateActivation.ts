@@ -120,24 +120,9 @@ export async function evaluateAffiliateActivation(userId: string): Promise<void>
       .where(eq(userAffiliateAccounts.userId, userId));
 
     console.log(`[Affiliate] ✅ Rewardful affiliate created: ${affiliate.id} | state=${affiliate.state}`);
-
-    // Send welcome email via Resend (non-blocking)
-    sendAffiliateWelcomeEmail({
-      to: user.email,
-      name: `${firstName} ${lastName}`,
-      referralUrl,
-      referralToken,
-      track,
-    }).then((sent) => {
-      if (sent) {
-        db.update(userAffiliateAccounts)
-          .set({ welcomeEmailSentAt: new Date(), updatedAt: new Date() })
-          .where(eq(userAffiliateAccounts.userId, userId))
-          .catch((e) => console.error("[Affiliate] welcomeEmailSentAt update failed:", e));
-      }
-    }).catch((emailErr) => {
-      console.error("[Affiliate] Welcome email failed:", emailErr);
-    });
+    // Welcome email is sent AFTER Rewardful confirms activation via webhook (state → "active"),
+    // not here. Rewardful first sends their own invitation email; MPM welcome email follows
+    // only once the user has accepted and Rewardful marks them active.
   } catch (err) {
     console.error("[Affiliate] evaluateAffiliateActivation error:", err);
     // Never throw — cert completion must succeed even if affiliate activation fails
