@@ -430,6 +430,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/lms', lmsRouter);
   app.use('/api/affiliate', affiliateRouter);
   app.post('/api/webhooks/rewardful', handleRewardfulWebhook);
+
+  // Dev-only: seed certification / affiliate state without taking the test
+  if (process.env.NODE_ENV !== "production") {
+    const { default: devSeedRouter } = await import('./routes/devSeedRoutes');
+    app.use('/api/dev', devSeedRouter);
+    console.log("[Dev] 🧪 Seed routes mounted at /api/dev");
+  }
   app.use('/api', cookingRouter);
   app.use('/api', mealImagesRouter);
   // Deleted: diabeticHubRouter route
