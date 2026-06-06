@@ -233,11 +233,12 @@ router.get("/affiliate-status", requireAuth, async (req, res) => {
       .from(userCertifications)
       .where(and(
         eq(userCertifications.userId, userId),
-        inArray(userCertifications.certificationType, ["business_success", "platform"])
+        inArray(userCertifications.certificationType, ["affiliate_social", "platform"])
       ));
 
     const certMap = new Map(certs.map((c) => [c.certType, c.status]));
-    const businessCertified = certMap.get("business_success") === "completed";
+    // businessCertified = Phase 1 (Business Success Cert = affiliate_social, shared between social & coaching paths)
+    const businessCertified = certMap.get("affiliate_social") === "completed";
     const platformCertified = certMap.get("platform") === "completed";
     const eligible = businessCertified && platformCertified;
 
