@@ -61,11 +61,20 @@ export default function AffiliateDashboard() {
     (async () => {
       try {
         const data = await apiRequest("/api/affiliate/account") as { account: AffiliateAccount | null };
-        if (!data.account?.isActive) {
+        const acct = data.account;
+        if (!acct) {
           setLocation("/business-center/affiliate");
           return;
         }
-        setAccount(data.account);
+        const certRequirementsMet =
+          (acct.requiredPhases === "phase_1_only" && !!acct.phase1CompletedAt) ||
+          (acct.requiredPhases === "both_phases" && !!acct.phase2CompletedAt);
+        const hasAccess = acct.isActive || !!acct.activatedAt || certRequirementsMet;
+        if (!hasAccess) {
+          setLocation("/business-center/affiliate");
+          return;
+        }
+        setAccount(acct);
       } catch {
         setLocation("/business-center/affiliate");
       } finally {
@@ -177,8 +186,8 @@ export default function AffiliateDashboard() {
           {/* Card 1 — Account Status */}
           <Card delay={0.04}>
             <div className="flex items-start gap-4">
-              <div className="h-11 w-11 rounded-xl bg-green-500/20 border border-green-500/30 flex items-center justify-center flex-shrink-0">
-                <Shield className="h-5 w-5 text-green-400" />
+              <div className={`h-11 w-11 rounded-xl flex items-center justify-center flex-shrink-0 ${account.isActive ? "bg-green-500/20 border border-green-500/30" : "bg-orange-500/20 border border-orange-500/30"}`}>
+                <Shield className={`h-5 w-5 ${account.isActive ? "text-green-400" : "text-orange-400"}`} />
               </div>
               <div className="flex-1 min-w-0">
                 <CardLabel>Account Status</CardLabel>
@@ -186,12 +195,25 @@ export default function AffiliateDashboard() {
                   <span className="text-sm font-bold text-white">{trackLabel}</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <span className="px-2.5 py-1 rounded-full bg-green-500/15 border border-green-500/30 text-xs font-bold text-green-400">
-                    ● Active
-                  </span>
-                  <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-white/50">
-                    Since {formatDate(account.activatedAt)}
-                  </span>
+                  {account.isActive ? (
+                    <>
+                      <span className="px-2.5 py-1 rounded-full bg-green-500/15 border border-green-500/30 text-xs font-bold text-green-400">
+                        ● Active
+                      </span>
+                      <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-white/50">
+                        Since {formatDate(account.activatedAt)}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="px-2.5 py-1 rounded-full bg-orange-500/15 border border-orange-500/30 text-xs font-bold text-orange-400">
+                        ◌ Activation Pending
+                      </span>
+                      <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-white/50">
+                        Certified — link generating
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

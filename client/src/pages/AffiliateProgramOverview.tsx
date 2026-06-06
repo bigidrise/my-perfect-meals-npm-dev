@@ -126,13 +126,35 @@ export default function AffiliateProgramOverview() {
   useEffect(() => {
     (async () => {
       try {
-        const data = await apiRequest("/api/affiliate/account") as { account: { affiliateTrack?: string; isActive?: boolean } | null };
+        const data = await apiRequest("/api/affiliate/account") as {
+          account: {
+            affiliateTrack?: string;
+            isActive?: boolean;
+            activatedAt?: string | null;
+            requiredPhases?: string | null;
+            phase1CompletedAt?: string | null;
+            phase2CompletedAt?: string | null;
+          } | null;
+        };
         const acct = data?.account;
         if (!acct) return;
-        if (acct.isActive) {
+
+        // Determine if the user has met all cert requirements for their track
+        const certRequirementsMet =
+          (acct.requiredPhases === "phase_1_only" && !!acct.phase1CompletedAt) ||
+          (acct.requiredPhases === "both_phases" && !!acct.phase2CompletedAt);
+
+        // Send to dashboard if: Rewardful confirmed active, OR we set activatedAt, OR all certs done
+        if (acct.isActive || acct.activatedAt || certRequirementsMet) {
+          // If certs are done but Rewardful wasn't created yet, trigger retry silently
+          if (certRequirementsMet && !acct.activatedAt && !acct.isActive) {
+            apiRequest("/api/affiliate/activate-retry", { method: "POST" }).catch(() => {});
+          }
           setLocation("/business-center/affiliate/dashboard");
           return;
         }
+
+        // They chose a track but haven't finished certs yet → send to their track page
         if (acct.affiliateTrack) {
           const path = acct.affiliateTrack === "business_affiliate"
             ? "/business-center/affiliate/coaching"
