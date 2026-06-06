@@ -592,8 +592,11 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
       .onConflictDoUpdate({
         target: [userCertifications.userId, userCertifications.certificationType],
         set: {
-          // Only update name if provided and not already set
-          certificateName: sql`CASE WHEN ${userCertifications.certificateName} IS NULL AND ${certificateName ?? null} IS NOT NULL THEN ${certificateName ?? null} ELSE ${userCertifications.certificateName} END`,
+          // Only update name if a name was provided and the existing row has none.
+          // Resolve the conditional in TS so PostgreSQL never sees a bare untyped null.
+          certificateName: certificateName
+            ? sql`CASE WHEN ${userCertifications.certificateName} IS NULL THEN ${certificateName}::text ELSE ${userCertifications.certificateName} END`
+            : sql`${userCertifications.certificateName}`,
           updatedAt: new Date(),
         },
       });
