@@ -303,6 +303,33 @@ export async function handleRewardfulWebhook(req: any, res: any) {
             .set({ rewardfulState: newState, updatedAt: new Date() })
             .where(eq(userAffiliateAccounts.userId, account.userId));
           console.log(`[Rewardful Webhook] affiliate.updated userId=${account.userId} state→${newState}`);
+
+          // When Rewardful confirms active, send the MPM activation email with referral link
+          if (newState === "active" && !account.welcomeEmailSentAt) {
+            const [affiliateUser] = await db
+              .select({ email: users.email, firstName: users.firstName, lastName: users.lastName })
+              .from(users)
+              .where(eq(users.id, account.userId))
+              .limit(1);
+
+            if (affiliateUser?.email) {
+              const name = [affiliateUser.firstName, affiliateUser.lastName].filter(Boolean).join(" ") || "Affiliate";
+              sendAffiliateWelcomeEmail({
+                to: affiliateUser.email,
+                name,
+                referralUrl: account.rewardfulReferralUrl ?? "",
+                referralToken: account.rewardfulReferralToken ?? "",
+                track: account.affiliateTrack ?? "social_affiliate",
+              }).then((sent) => {
+                if (sent) {
+                  db.update(userAffiliateAccounts)
+                    .set({ welcomeEmailSentAt: new Date(), updatedAt: new Date() })
+                    .where(eq(userAffiliateAccounts.userId, account.userId))
+                    .catch(() => {});
+                }
+              }).catch((e) => console.error("[Rewardful Webhook] Welcome email failed:", e));
+            }
+          }
         }
         break;
 
