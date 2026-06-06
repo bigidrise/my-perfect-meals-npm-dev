@@ -7,22 +7,22 @@ const pathMeta = {
     title: "Social & Referral Affiliate",
     icon: Share2,
     description:
-      "Everything you need to promote My Perfect Meals as a social or referral affiliate — certifications, marketing assets, your dashboard, and your referral link.",
+      "Everything you need to promote My Perfect Meals as a social or referral affiliate — your certification, marketing assets, your dashboard, and your referral link.",
     resources: [
-      { name: "Learning & Certifications", action: "learning", description: "Business Success + Platform Certifications" },
+      { name: "Affiliate Certification", action: "certification", description: "Complete your affiliate certification to unlock access" },
       { name: "Marketing Resources", eta: "Coming soon" },
       { name: "Monthly Marketing Packets", eta: "Coming soon" },
-      { name: "Affiliate Dashboard", eta: "Unlocks after both certifications" },
-      { name: "Referral Link Management", eta: "Unlocks after both certifications" },
+      { name: "Affiliate Dashboard", eta: "Unlocks after certification" },
+      { name: "Referral Link Management", eta: "Unlocks after certification" },
     ],
   },
   coaching: {
     title: "Business & Coaching Affiliate",
     icon: Briefcase,
     description:
-      "The full affiliate toolkit for coaches, trainers, and wellness professionals — including platform certification and the Business Success Academy.",
+      "The full affiliate toolkit for coaches, trainers, and wellness professionals — including the Business Success Academy and Platform Certification.",
     resources: [
-      { name: "Learning & Certifications", action: "learning", description: "Business Success + Platform Certifications" },
+      { name: "Learning & Certifications", action: "learning", description: "Business Success + Platform Certifications (both required)" },
       { name: "Marketing Resources", eta: "Coming soon" },
       { name: "Monthly Marketing Packets", eta: "Coming soon" },
       { name: "Affiliate Dashboard", eta: "Unlocks after both certifications" },
@@ -89,12 +89,12 @@ export default function AffiliatePathPage() {
                 key={resource.name}
                 className="w-full text-left flex items-center gap-4 p-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 active:scale-[0.98] transition-transform"
                 onClick={() => {
-                if (resource.action === "learning") {
-                  setLocation("/learning");
-                } else {
-                  setLocation(`/business-center/affiliate/${key}/${resource.action}`);
-                }
-              }}
+                  if (resource.action === "learning") {
+                    setLocation("/learning");
+                  } else if (resource.action === "certification") {
+                    setLocation(`/business-center/affiliate/${key}/certification`);
+                  }
+                }}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.06 }}
@@ -104,7 +104,7 @@ export default function AffiliatePathPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white">{resource.name}</p>
-                  <p className="text-xs text-orange-300/80">Start here</p>
+                  <p className="text-xs text-orange-300/80">{"description" in resource ? resource.description : "Start here"}</p>
                 </div>
                 <ChevronRight className="h-5 w-5 text-orange-400 flex-shrink-0" />
               </motion.button>
@@ -121,7 +121,7 @@ export default function AffiliatePathPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white">{resource.name}</p>
-                  <p className="text-xs text-white/40">{resource.eta}</p>
+                  <p className="text-xs text-white/40">{"eta" in resource ? resource.eta : ""}</p>
                 </div>
               </motion.div>
             );
