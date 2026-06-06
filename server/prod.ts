@@ -467,6 +467,38 @@ async function initializeApp() {
 
     console.log("✅ [INIT] Additional routes mounted");
 
+    // ── Routes present in index.ts (dev) but not previously in prod.ts ──────
+    // coaching — notify-coach, activate-client, send-invite, client queue
+    const coachingRouter = (await import("./routes/coaching")).default;
+    app.use("/api/coaching", coachingRouter);
+
+    // admin — user search, onboarding reset, subscription management, etc.
+    const adminRouter = (await import("./routes/admin")).default;
+    app.use("/api/admin", requireAuth, requireAdmin, adminRouter);
+
+    // product-codes — promo / redemption code apply
+    const productCodesRouter = (await import("./routes/product-codes")).default;
+    app.use("/api/product-codes", productCodesRouter);
+
+    // sms — user SMS settings & consent
+    const smsRoutes = (await import("./routes/sms")).default;
+    app.use("/api/sms", smsRoutes);
+
+    // ai-voice-journal — voice check-in, mood timeline, prefs
+    const aiVoiceJournalRoutes = (await import("./routes/ai-voice-journal")).default;
+    app.use("/api/ai-voice-journal", aiVoiceJournalRoutes);
+
+    // legal-pages — privacy policy, terms-of-service rendered pages
+    const legalPagesRouter = (await import("./routes/legal-pages")).default;
+    app.use(legalPagesRouter);
+
+    // mealPlan — /api/meal-plan/current and related plan CRUD
+    const mealPlanRouter = (await import("./routes/mealPlan")).default;
+    app.use("/api/meal-plan", mealPlanRouter);
+    app.use("/api/meal-plans", mealPlanRouter);
+
+    console.log("✅ [INIT] Parity routes mounted");
+
     // ── Sandbox password reset — registered BEFORE registerRoutes() so it
     //    sits earlier in the Express stack than any app.use("/api", requireAuth)
     //    layer that registerRoutes() adds. Dynamic import catches any load errors.
