@@ -9,7 +9,7 @@ import { sendEmail } from "../emailService";
 
 const CAMPAIGN_ID = process.env.REWARDFUL_CAMPAIGN_ID ?? "";
 
-async function isCertCompleted(userId: number, certType: string): Promise<boolean> {
+async function isCertCompleted(userId: string, certType: string): Promise<boolean> {
   const [row] = await db
     .select({ status: userCertifications.status })
     .from(userCertifications)
@@ -81,7 +81,7 @@ async function sendAffiliateWelcomeEmail(params: {
  * Called after every cert completion.
  * Checks if the user's affiliate track requirements are now met and activates if so.
  */
-export async function evaluateAffiliateActivation(userId: number): Promise<void> {
+export async function evaluateAffiliateActivation(userId: string): Promise<void> {
   try {
     const [account] = await db
       .select()
