@@ -97,12 +97,44 @@ router.get("/account", requireAuth, async (req, res) => {
 
     if (!account) return res.json({ account: null });
 
+    // Resolve phase completion dates — prefer user_affiliate_accounts but fall back
+    // to user_certifications so the entry gate never gets stuck in a catch-22.
+    let phase1CompletedAt = account.phase1CompletedAt;
+    let phase2CompletedAt = account.phase2CompletedAt;
+
+    if (!phase1CompletedAt || !phase2CompletedAt) {
+      const { userCertifications } = await import("../db/schema/certifications");
+      const certs = await db
+        .select({ type: userCertifications.certificationType, completedAt: userCertifications.completedAt })
+        .from(userCertifications)
+        .where(eq(userCertifications.userId, String(userId)));
+
+      for (const cert of certs) {
+        if (!cert.completedAt) continue;
+        if (!phase1CompletedAt && cert.type === "affiliate_social") {
+          phase1CompletedAt = cert.completedAt;
+          // Back-fill the affiliate account so next call is fast
+          db.update(userAffiliateAccounts)
+            .set({ phase1CompletedAt: cert.completedAt, updatedAt: new Date() })
+            .where(eq(userAffiliateAccounts.userId, userId))
+            .catch(() => {});
+        }
+        if (!phase2CompletedAt && (cert.type === "platform" || cert.type === "affiliate_coaching")) {
+          phase2CompletedAt = cert.completedAt;
+          db.update(userAffiliateAccounts)
+            .set({ phase2CompletedAt: cert.completedAt, updatedAt: new Date() })
+            .where(eq(userAffiliateAccounts.userId, userId))
+            .catch(() => {});
+        }
+      }
+    }
+
     return res.json({
       account: {
         affiliateTrack: account.affiliateTrack,
         requiredPhases: account.requiredPhases,
-        phase1CompletedAt: account.phase1CompletedAt,
-        phase2CompletedAt: account.phase2CompletedAt,
+        phase1CompletedAt,
+        phase2CompletedAt,
         rewardfulState: account.rewardfulState,
         rewardfulReferralUrl: account.rewardfulReferralUrl,
         rewardfulReferralToken: account.rewardfulReferralToken,
