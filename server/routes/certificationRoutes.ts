@@ -118,7 +118,7 @@ router.post("/:certType/modules/:moduleId/video-progress", requireAuth, async (r
     if (typeof pct !== "number") return res.status(400).json({ error: "pct required" });
 
     const clampedPct = Math.min(100, Math.max(0, Math.round(pct)));
-    const newStatus = clampedPct >= 90 ? "completed" : "in_progress";
+    const newStatus = clampedPct >= 100 ? "completed" : "in_progress";
 
     await db
       .insert(certificationModuleProgress)
@@ -140,8 +140,8 @@ router.post("/:certType/modules/:moduleId/video-progress", requireAuth, async (r
         set: {
           videoWatchedPct: clampedPct,
           lastViewedAt: new Date(),
-          status: sql`CASE WHEN ${certificationModuleProgress.status} = 'completed' THEN 'completed' WHEN ${clampedPct} >= 90 THEN 'completed' ELSE 'in_progress' END`,
-          completedAt: sql`CASE WHEN ${certificationModuleProgress.status} = 'completed' THEN ${certificationModuleProgress.completedAt} WHEN ${clampedPct} >= 90 THEN NOW() ELSE NULL END`,
+          status: sql`CASE WHEN ${certificationModuleProgress.status} = 'completed' THEN 'completed' WHEN ${clampedPct} >= 100 THEN 'completed' ELSE 'in_progress' END`,
+          completedAt: sql`CASE WHEN ${certificationModuleProgress.status} = 'completed' THEN ${certificationModuleProgress.completedAt} WHEN ${clampedPct} >= 100 THEN NOW() ELSE NULL END`,
         },
       });
 

@@ -1,6 +1,6 @@
 import express from "express";
 import { db } from "../db";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, and, asc, inArray } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { users } from "../../shared/schema";
@@ -247,116 +247,170 @@ router.delete("/options/:id", async (req, res) => {
 router.post("/seed/:certType", async (req, res) => {
   try {
     const { certType } = req.params;
+    const force = req.query.force === "true";
+
     if (certType !== "platform" && certType !== "business_success") {
       return res.status(400).json({ error: "Only 'platform' and 'business_success' can be seeded" });
     }
 
     const existing = await db.select({ id: certModules.id }).from(certModules).where(eq(certModules.certType, certType)).limit(1);
-    if (existing.length > 0) {
-      return res.json({ ok: true, message: "Already seeded — use admin panel to edit content" });
+    if (existing.length > 0 && !force) {
+      return res.json({ ok: true, message: "Already seeded — use ?force=true to reseed or admin panel to edit" });
     }
 
+    if (existing.length > 0 && force) {
+      // Delete existing data for this cert type in dependency order
+      const existingQs = await db.select({ id: certQuestions.id }).from(certQuestions).where(eq(certQuestions.certType, certType));
+      if (existingQs.length > 0) {
+        await db.delete(certQuestionOptions).where(inArray(certQuestionOptions.questionId, existingQs.map((q) => q.id)));
+        await db.delete(certQuestions).where(eq(certQuestions.certType, certType));
+      }
+      await db.delete(certModules).where(eq(certModules.certType, certType));
+    }
+
+    type QuestionSeed = { moduleSlug: string; questionText: string; options: { text: string; isCorrect: boolean }[] };
+
     if (certType === "platform") {
+      // Module structure: Module 1 (full), Module 2 & 3 (placeholders, locked)
       const moduleSeed = [
-        { slug: "video-1", title: "Dashboard Overview", description: "Dashboard → Business Center → ProCare Studio → Provider Dashboard", moduleType: "video", sortOrder: 1 },
-        { slug: "quiz-1", title: "Dashboard Overview Quiz", description: "5 questions — 80% to advance", moduleType: "quiz", sortOrder: 2, passingScorePct: 80, questionLimit: 5 },
-        { slug: "video-2", title: "Provider Dashboard & Client Management", description: "Provider Dashboard → Client Management → Folder Sections → Client Dashboard", moduleType: "video", sortOrder: 3 },
-        { slug: "quiz-2", title: "Client Management Quiz", description: "5 questions — 80% to advance", moduleType: "quiz", sortOrder: 4, passingScorePct: 80, questionLimit: 5 },
-        { slug: "video-3", title: "Client Dashboard & Meal Creation", description: "Client Dashboard → Scheduling → Meal Builders → AI Creative Chef → Creating and Sending Meals", moduleType: "video", sortOrder: 5 },
-        { slug: "quiz-3", title: "Meal Creation Quiz", description: "5 questions — 80% to advance", moduleType: "quiz", sortOrder: 6, passingScorePct: 80, questionLimit: 5 },
-        { slug: "final", title: "Final Assessment", description: "20 questions from all three modules — 80% (16/20) to pass", moduleType: "final_assessment", sortOrder: 7, passingScorePct: 80, questionLimit: 20 },
+        {
+          slug: "module-1",
+          title: "ProCare Certification Module 1",
+          description: "Dashboard, Client Invitations, and Client Folder Access",
+          moduleType: "video",
+          sortOrder: 1,
+          videoUrl: "",
+        },
+        {
+          slug: "quiz-1",
+          title: "Module 1 Knowledge Check",
+          description: "10 questions — score 80% or higher to advance",
+          moduleType: "quiz",
+          sortOrder: 2,
+          passingScorePct: 80,
+          questionLimit: 10,
+        },
+        {
+          slug: "module-2",
+          title: "ProCare Certification Module 2",
+          description: "Coming soon — locked until Module 1 is complete",
+          moduleType: "video",
+          sortOrder: 3,
+          videoUrl: "",
+        },
+        {
+          slug: "module-3",
+          title: "ProCare Certification Module 3",
+          description: "Coming soon — locked until Module 2 is complete",
+          moduleType: "video",
+          sortOrder: 4,
+          videoUrl: "",
+        },
       ];
       await db.insert(certModules).values(moduleSeed.map((m) => ({ ...m, certType })));
 
-      type QuestionSeed = { moduleSlug: string; questionText: string; options: { text: string; isCorrect: boolean }[] };
+      // Module 1 Knowledge Check — 10 questions from spec
       const questionSeed: QuestionSeed[] = [
-        // Quiz 1 — Video 1
-        { moduleSlug: "quiz-1", questionText: "What is the primary purpose of the Business Center?", options: [
-          { text: "Track personal health goals", isCorrect: false },
-          { text: "Access coaching tools and business management features", isCorrect: true },
-          { text: "Create meal plans for clients", isCorrect: false },
-          { text: "Manage billing only", isCorrect: false },
-        ]},
-        { moduleSlug: "quiz-1", questionText: "Which area of the platform is used to access coaching tools and client management?", options: [
-          { text: "Meal Builder", isCorrect: false },
-          { text: "Biometrics", isCorrect: false },
-          { text: "ProCare Studio", isCorrect: true },
-          { text: "Profile Settings", isCorrect: false },
-        ]},
-        { moduleSlug: "quiz-1", questionText: "What is the first step a provider takes before working with clients inside ProCare?", options: [
-          { text: "Create a meal plan", isCorrect: false },
-          { text: "Set up the Provider Dashboard", isCorrect: true },
-          { text: "Add billing details", isCorrect: false },
-          { text: "Complete a quiz", isCorrect: false },
-        ]},
-        { moduleSlug: "quiz-1", questionText: "True or False: The Provider Dashboard is where coaches manage client relationships and nutrition workflows.", options: [
-          { text: "True", isCorrect: true },
-          { text: "False", isCorrect: false },
-        ]},
-        { moduleSlug: "quiz-1", questionText: "Why is it important to understand the dashboard before working with clients?", options: [
-          { text: "It is required by law", isCorrect: false },
-          { text: "It ensures providers can navigate the platform efficiently to support clients", isCorrect: true },
-          { text: "It unlocks additional meal templates", isCorrect: false },
-          { text: "It is optional", isCorrect: false },
-        ]},
-        // Quiz 2 — Video 2
-        { moduleSlug: "quiz-2", questionText: "What is the purpose of the client management area?", options: [
-          { text: "To manage billing", isCorrect: false },
-          { text: "To organize and review information for each individual client", isCorrect: true },
-          { text: "To create AI meal plans", isCorrect: false },
-          { text: "To send marketing emails", isCorrect: false },
-        ]},
-        { moduleSlug: "quiz-2", questionText: "Where can a provider review information related to a specific client?", options: [
-          { text: "In the Business Center settings", isCorrect: false },
-          { text: "In the individual client's dashboard", isCorrect: true },
-          { text: "In the admin portal", isCorrect: false },
-          { text: "On the home screen", isCorrect: false },
-        ]},
-        { moduleSlug: "quiz-2", questionText: "True or False: A provider must connect with a client before accessing the client dashboard.", options: [
-          { text: "True", isCorrect: true },
-          { text: "False", isCorrect: false },
-        ]},
-        { moduleSlug: "quiz-2", questionText: "What is the benefit of keeping client information organized within the platform?", options: [
-          { text: "It speeds up AI meal generation", isCorrect: false },
-          { text: "It allows providers to quickly access and act on each client's data", isCorrect: true },
-          { text: "It automatically sends reports", isCorrect: false },
-          { text: "It reduces subscription costs", isCorrect: false },
-        ]},
-        { moduleSlug: "quiz-2", questionText: "What action takes you from the provider workspace into an individual client's dashboard?", options: [
-          { text: "Clicking 'New Meal Plan'", isCorrect: false },
-          { text: "Searching the meal library", isCorrect: false },
-          { text: "Opening the specific client from the client management area", isCorrect: true },
-          { text: "Logging biometrics", isCorrect: false },
-        ]},
-        // Quiz 3 — Video 3
-        { moduleSlug: "quiz-3", questionText: "What is the purpose of the client dashboard?", options: [
-          { text: "To manage the provider's billing", isCorrect: false },
-          { text: "To give the provider a centralized view of a client's health and nutrition data", isCorrect: true },
-          { text: "To create new provider accounts", isCorrect: false },
-          { text: "To access global settings", isCorrect: false },
-        ]},
-        { moduleSlug: "quiz-3", questionText: "Where can providers schedule activities and follow-up actions for clients?", options: [
-          { text: "In the Business Center", isCorrect: false },
-          { text: "In the Scheduling section of the client dashboard", isCorrect: true },
-          { text: "In the Meal Builder", isCorrect: false },
-          { text: "In the profile settings", isCorrect: false },
-        ]},
-        { moduleSlug: "quiz-3", questionText: "Which tool is used to create customized meals for a client?", options: [
-          { text: "The Shopping List", isCorrect: false },
-          { text: "The Meal Builder", isCorrect: true },
-          { text: "The Progress Tracker", isCorrect: false },
-          { text: "The Biometrics Chart", isCorrect: false },
-        ]},
-        { moduleSlug: "quiz-3", questionText: "True or False: The AI Creative Chef helps generate meal options based on client information and preferences.", options: [
-          { text: "True", isCorrect: true },
-          { text: "False", isCorrect: false },
-        ]},
-        { moduleSlug: "quiz-3", questionText: "What is the final step after creating a meal before it becomes available to the client?", options: [
-          { text: "Printing the meal plan", isCorrect: false },
-          { text: "Sending or saving the meal to the client's board", isCorrect: true },
-          { text: "Adjusting the macro targets", isCorrect: false },
-          { text: "Reloading the page", isCorrect: false },
-        ]},
+        {
+          moduleSlug: "quiz-1",
+          questionText: "What is the primary purpose of the ProCare Dashboard?",
+          options: [
+            { text: "Create recipes", isCorrect: false },
+            { text: "Manage and support clients", isCorrect: true },
+            { text: "Build shopping lists", isCorrect: false },
+            { text: "Track workouts", isCorrect: false },
+          ],
+        },
+        {
+          moduleSlug: "quiz-1",
+          questionText: "What is the first step in connecting a client to your studio?",
+          options: [
+            { text: "Create meal plan", isCorrect: false },
+            { text: "Open client folder", isCorrect: false },
+            { text: "Send invitation", isCorrect: true },
+            { text: "Assign macros", isCorrect: false },
+          ],
+        },
+        {
+          moduleSlug: "quiz-1",
+          questionText: "How does a client connect to your studio?",
+          options: [
+            { text: "Contact support", isCorrect: false },
+            { text: "Accept invitation", isCorrect: true },
+            { text: "Purchase subscription", isCorrect: false },
+            { text: "Complete profile", isCorrect: false },
+          ],
+        },
+        {
+          moduleSlug: "quiz-1",
+          questionText: "Where do you access client information after connection?",
+          options: [
+            { text: "Dashboard", isCorrect: false },
+            { text: "Shopping List", isCorrect: false },
+            { text: "Client Folder", isCorrect: true },
+            { text: "Biometrics", isCorrect: false },
+          ],
+        },
+        {
+          moduleSlug: "quiz-1",
+          questionText: "What should you verify after sending an invitation?",
+          options: [
+            { text: "Client receives email", isCorrect: true },
+            { text: "Client changes password", isCorrect: false },
+            { text: "Client uploads photo", isCorrect: false },
+            { text: "Client creates meal plan", isCorrect: false },
+          ],
+        },
+        {
+          moduleSlug: "quiz-1",
+          questionText: "What happens before you can access a client folder?",
+          options: [
+            { text: "Client must accept invitation", isCorrect: true },
+            { text: "Client must purchase upgrade", isCorrect: false },
+            { text: "Client must complete biometrics", isCorrect: false },
+            { text: "Client must create recipes", isCorrect: false },
+          ],
+        },
+        {
+          moduleSlug: "quiz-1",
+          questionText: "Why is understanding the invitation process important?",
+          options: [
+            { text: "It connects clients to your studio", isCorrect: true },
+            { text: "It changes subscription pricing", isCorrect: false },
+            { text: "It creates recipes", isCorrect: false },
+            { text: "It changes macros", isCorrect: false },
+          ],
+        },
+        {
+          moduleSlug: "quiz-1",
+          questionText: "Which area contains the client's information and tools?",
+          options: [
+            { text: "Meal Board", isCorrect: false },
+            { text: "Client Folder", isCorrect: true },
+            { text: "Shopping List", isCorrect: false },
+            { text: "Dashboard Settings", isCorrect: false },
+          ],
+        },
+        {
+          moduleSlug: "quiz-1",
+          questionText: "What is the purpose of ProCare?",
+          options: [
+            { text: "Manage and support clients", isCorrect: true },
+            { text: "Build websites", isCorrect: false },
+            { text: "Create advertisements", isCorrect: false },
+            { text: "Sell subscriptions", isCorrect: false },
+          ],
+        },
+        {
+          moduleSlug: "quiz-1",
+          questionText: "What should a coach do if they are unsure how a feature works?",
+          options: [
+            { text: "Ignore it", isCorrect: false },
+            { text: "Contact support or review training", isCorrect: true },
+            { text: "Guess", isCorrect: false },
+            { text: "Skip the feature", isCorrect: false },
+          ],
+        },
       ];
 
       for (let i = 0; i < questionSeed.length; i++) {
