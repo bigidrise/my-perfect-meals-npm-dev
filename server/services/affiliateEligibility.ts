@@ -48,7 +48,9 @@ export async function checkBusinessAffiliateEligibility(userId: number): Promise
   return { eligible: true };
 }
 
-export function eligibilityErrorMessage(reason: EligibilityResult extends { eligible: false } ? EligibilityResult["reason"] : never): string {
+type IneligibleReason = "no_provider_account" | "studio_inactive" | "license_not_verified" | "no_studio";
+
+export function eligibilityErrorMessage(reason: IneligibleReason): string {
   switch (reason) {
     case "no_provider_account":
       return "You must have an approved provider account before enrolling in the Business & Coaching Affiliate Program.";
