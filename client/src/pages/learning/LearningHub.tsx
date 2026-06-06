@@ -167,52 +167,36 @@ export default function LearningHub() {
         <div className="space-y-2">
           <p className="text-xs text-white/40 uppercase tracking-widest font-semibold px-1">Phase 2</p>
           <motion.button
-            className={`w-full p-4 rounded-2xl backdrop-blur-lg border text-left transition-transform ${
-              phase1Complete
-                ? "bg-black/30 border-white/10 active:scale-[0.98]"
-                : "bg-black/10 border-white/5 cursor-not-allowed"
-            }`}
-            onClick={() => { if (phase1Complete) setLocation("/certifications/platform"); }}
-            disabled={!phase1Complete && !loading}
+            className="w-full p-4 rounded-2xl backdrop-blur-lg border text-left transition-transform bg-black/30 border-white/10 active:scale-[0.98]"
+            onClick={() => setLocation("/certifications/platform")}
+            disabled={false}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
           >
             <div className="flex items-center gap-4">
-              <div className={`h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                phase1Complete
-                  ? "bg-orange-500/20 border border-orange-500/30"
-                  : "bg-white/5 border border-white/10"
-              }`}>
-                {phase1Complete
-                  ? <Award className="h-6 w-6 text-orange-400" />
-                  : <Lock className="h-6 w-6 text-white/20" />}
+              <div className="h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-orange-500/20 border border-orange-500/30">
+                <Award className="h-6 w-6 text-orange-400" />
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className={`text-sm font-bold ${phase1Complete ? "text-white" : "text-white/30"}`}>
-                  Platform Certification
+                <h2 className="text-sm font-bold text-white">
+                  ProCare Certification
                 </h2>
-                <p className={`text-xs mt-0.5 leading-relaxed ${phase1Complete ? "text-white/50" : "text-white/20"}`}>
-                  {phase1Complete
-                    ? "3 training videos, module quizzes, and a 20-question final assessment."
-                    : "Locked — complete Phase 1 first."}
+                <p className="text-xs mt-0.5 leading-relaxed text-white/50">
+                  3 training videos, module quizzes, and a 20-question final assessment.
                 </p>
-                {phase1Complete && (
-                  <div className="flex items-center gap-3 mt-2">
-                    {loading
-                      ? <div className="h-3 w-24 rounded bg-white/10 animate-pulse" />
-                      : statusBadge(platformStatus?.status)}
-                    {platformStatus?.status === "completed" && platformStatus.isCurrentVersion === false && (
-                      <span className="flex items-center gap-1 text-xs text-amber-400 font-medium">
-                        <AlertCircle className="h-3 w-3" /> Updates pending
-                      </span>
-                    )}
-                  </div>
-                )}
+                <div className="flex items-center gap-3 mt-2">
+                  {loading
+                    ? <div className="h-3 w-24 rounded bg-white/10 animate-pulse" />
+                    : statusBadge(platformStatus?.status)}
+                  {platformStatus?.status === "completed" && platformStatus.isCurrentVersion === false && (
+                    <span className="flex items-center gap-1 text-xs text-amber-400 font-medium">
+                      <AlertCircle className="h-3 w-3" /> Updates pending
+                    </span>
+                  )}
+                </div>
               </div>
-              {phase1Complete
-                ? <ChevronRight className="h-5 w-5 text-white/30 flex-shrink-0" />
-                : <Lock className="h-4 w-4 text-white/15 flex-shrink-0" />}
+              <ChevronRight className="h-5 w-5 text-white/30 flex-shrink-0" />
             </div>
           </motion.button>
         </div>
