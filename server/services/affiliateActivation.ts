@@ -4,8 +4,7 @@ import { users } from "../../shared/schema";
 import { userCertifications } from "../db/schema/certifications";
 import { userAffiliateAccounts } from "../db/schema/affiliateAccounts";
 import { createRewardfulAffiliate } from "./rewardfulApi";
-import { sendEmail } from "../emailService";
-// sendEmail lives in server/emailService.ts (not server/services/)
+import { sendAffiliateWelcomeEmail } from "./emailService";
 
 const CAMPAIGN_ID = process.env.REWARDFUL_CAMPAIGN_ID ?? "";
 
@@ -23,59 +22,6 @@ async function isCertCompleted(userId: string, certType: string): Promise<boolea
   return row?.status === "completed";
 }
 
-async function sendAffiliateWelcomeEmail(params: {
-  to: string;
-  name: string;
-  referralUrl: string;
-  referralToken: string;
-  track: string;
-}): Promise<void> {
-  const trackLabel =
-    params.track === "business_affiliate"
-      ? "Business & Coaching Affiliate"
-      : "Social & Referral Affiliate";
-
-  await sendEmail({
-    to: params.to,
-    subject: "Welcome to the My Perfect Meals Affiliate Program",
-    html: `
-      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;background:#0a0a0a;color:#fff;border-radius:16px;">
-        <h1 style="color:#f97316;font-size:24px;margin-bottom:8px;">Congratulations, ${params.name}!</h1>
-        <p style="color:#ccc;font-size:15px;line-height:1.6;margin-bottom:24px;">
-          You have successfully completed your <strong>${trackLabel}</strong> certification and your affiliate account is now active.
-        </p>
-
-        <div style="background:#111;border:1px solid #f97316;border-radius:12px;padding:20px;margin-bottom:24px;">
-          <p style="color:#f97316;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin:0 0 8px;">Your Referral Link</p>
-          <p style="font-family:monospace;font-size:14px;color:#fff;margin:0;word-break:break-all;">${params.referralUrl}</p>
-          <p style="color:#888;font-size:12px;margin:8px 0 0;">Token: <strong style="color:#f97316;">${params.referralToken}</strong></p>
-        </div>
-
-        <div style="background:#111;border:1px solid #333;border-radius:12px;padding:20px;margin-bottom:24px;">
-          <p style="color:#f97316;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin:0 0 12px;">Commission Terms</p>
-          <ul style="color:#ccc;font-size:14px;line-height:1.8;margin:0;padding-left:20px;">
-            <li>30% commission on every referred subscription</li>
-            <li>Commission paid for 24 months per referred customer</li>
-            <li>Real-time tracking in your affiliate dashboard</li>
-          </ul>
-        </div>
-
-        <p style="color:#888;font-size:13px;line-height:1.6;margin-bottom:24px;">
-          <strong style="color:#fff;">Brand Standards Reminder:</strong> When promoting My Perfect Meals, please use only approved marketing materials and messaging. Do not make medical claims, income guarantees, or use unapproved imagery.
-        </p>
-
-        <div style="text-align:center;margin-top:32px;">
-          <a href="https://myperfectmeals.app/business-center/affiliate" style="display:inline-block;background:#f97316;color:#fff;font-weight:700;text-decoration:none;padding:14px 28px;border-radius:12px;font-size:15px;">Open Affiliate Dashboard</a>
-        </div>
-
-        <p style="color:#555;font-size:12px;margin-top:32px;text-align:center;">
-          My Perfect Meals — Adaptive AI Nutrition Platform<br/>
-          Questions? Contact your affiliate support team.
-        </p>
-      </div>
-    `,
-  });
-}
 
 /**
  * Called after every cert completion.
@@ -175,21 +121,23 @@ export async function evaluateAffiliateActivation(userId: string): Promise<void>
 
     console.log(`[Affiliate] ✅ Rewardful affiliate created: ${affiliate.id} | state=${affiliate.state}`);
 
-    // Send welcome email (non-blocking)
-    try {
-      await sendAffiliateWelcomeEmail({
-        to: user.email,
-        name: `${firstName} ${lastName}`,
-        referralUrl,
-        referralToken,
-        track,
-      });
-      await db.update(userAffiliateAccounts)
-        .set({ welcomeEmailSentAt: new Date(), updatedAt: new Date() })
-        .where(eq(userAffiliateAccounts.userId, userId));
-    } catch (emailErr) {
+    // Send welcome email via Resend (non-blocking)
+    sendAffiliateWelcomeEmail({
+      to: user.email,
+      name: `${firstName} ${lastName}`,
+      referralUrl,
+      referralToken,
+      track,
+    }).then((sent) => {
+      if (sent) {
+        db.update(userAffiliateAccounts)
+          .set({ welcomeEmailSentAt: new Date(), updatedAt: new Date() })
+          .where(eq(userAffiliateAccounts.userId, userId))
+          .catch((e) => console.error("[Affiliate] welcomeEmailSentAt update failed:", e));
+      }
+    }).catch((emailErr) => {
       console.error("[Affiliate] Welcome email failed:", emailErr);
-    }
+    });
   } catch (err) {
     console.error("[Affiliate] evaluateAffiliateActivation error:", err);
     // Never throw — cert completion must succeed even if affiliate activation fails

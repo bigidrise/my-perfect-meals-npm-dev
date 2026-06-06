@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
   ArrowLeft, DollarSign, Clock, TrendingUp, Users, ShieldCheck,
   ChevronRight, CheckCircle2, XCircle, Stethoscope, Briefcase, Calculator,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { apiRequest } from "@/lib/queryClient";
 
 const COMMISSION_RATE = 0.30;
 
@@ -114,11 +115,44 @@ const ACKNOWLEDGMENTS = [
 export default function AffiliateProgramOverview() {
   const [, setLocation] = useLocation();
   const [checked, setChecked] = useState<boolean[]>([false, false, false]);
+  const [gateChecked, setGateChecked] = useState(false);
 
   const allChecked = checked.every(Boolean);
 
   function toggle(i: number) {
     setChecked((prev) => prev.map((v, idx) => (idx === i ? !v : v)));
+  }
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await apiRequest("/api/affiliate/account") as { account: { affiliateTrack?: string; isActive?: boolean } | null };
+        const acct = data?.account;
+        if (!acct) return;
+        if (acct.isActive) {
+          setLocation("/business-center/affiliate/dashboard");
+          return;
+        }
+        if (acct.affiliateTrack) {
+          const path = acct.affiliateTrack === "business_affiliate"
+            ? "/business-center/affiliate/coaching"
+            : "/business-center/affiliate/social";
+          setLocation(path);
+        }
+      } catch {
+        // Non-blocking — show overview on error
+      } finally {
+        setGateChecked(true);
+      }
+    })();
+  }, []);
+
+  if (!gateChecked) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin" />
+      </div>
+    );
   }
 
   return (

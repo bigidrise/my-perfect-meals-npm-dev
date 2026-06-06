@@ -458,3 +458,152 @@ export async function sendCertificationCompleteEmail({
     return false;
   }
 }
+
+// ─── AFFILIATE WELCOME EMAIL ──────────────────────────────────────────────────
+
+export async function sendAffiliateWelcomeEmail({
+  to,
+  name,
+  referralUrl,
+  referralToken,
+  track,
+}: {
+  to: string;
+  name: string;
+  referralUrl: string;
+  referralToken: string;
+  track: string;
+}): Promise<boolean> {
+  if (!resend) {
+    console.log('⚠️ Resend not available — skipping affiliate welcome email');
+    return false;
+  }
+
+  const trackLabel =
+    track === 'business_affiliate'
+      ? 'Business & Coaching Affiliate'
+      : 'Social & Referral Affiliate';
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: EMAIL_FROM,
+      to: [to],
+      subject: 'Welcome to the My Perfect Meals Affiliate Program',
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;background:#0a0a0a;color:#fff;border-radius:16px;">
+          <h1 style="color:#f97316;font-size:24px;margin-bottom:8px;">Congratulations, ${name}!</h1>
+          <p style="color:#ccc;font-size:15px;line-height:1.6;margin-bottom:24px;">
+            You have successfully completed your <strong>${trackLabel}</strong> certification and your affiliate account is now active.
+          </p>
+
+          <div style="background:#111;border:1px solid #f97316;border-radius:12px;padding:20px;margin-bottom:24px;">
+            <p style="color:#f97316;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin:0 0 8px;">Your Referral Link</p>
+            <p style="font-family:monospace;font-size:14px;color:#fff;margin:0;word-break:break-all;">${referralUrl}</p>
+            <p style="color:#888;font-size:12px;margin:8px 0 0;">Token: <strong style="color:#f97316;">${referralToken}</strong></p>
+          </div>
+
+          <div style="background:#111;border:1px solid #333;border-radius:12px;padding:20px;margin-bottom:24px;">
+            <p style="color:#f97316;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin:0 0 12px;">Commission Terms</p>
+            <ul style="color:#ccc;font-size:14px;line-height:1.8;margin:0;padding-left:20px;">
+              <li>30% commission on every referred subscription</li>
+              <li>Commission paid for 24 months per referred customer</li>
+              <li>Real-time tracking in your affiliate dashboard</li>
+            </ul>
+          </div>
+
+          <p style="color:#888;font-size:13px;line-height:1.6;margin-bottom:24px;">
+            <strong style="color:#fff;">Brand Standards Reminder:</strong> When promoting My Perfect Meals, please use only approved marketing materials and messaging. Do not make medical claims, income guarantees, or use unapproved imagery.
+          </p>
+
+          <div style="text-align:center;margin-top:32px;">
+            <a href="https://myperfectmeals.app/business-center/affiliate/dashboard" style="display:inline-block;background:#f97316;color:#fff;font-weight:700;text-decoration:none;padding:14px 28px;border-radius:12px;font-size:15px;">Open Affiliate Dashboard</a>
+          </div>
+
+          <p style="color:#555;font-size:12px;margin-top:32px;text-align:center;">
+            My Perfect Meals — Adaptive AI Nutrition Platform<br/>
+            Questions? Contact your affiliate support team.
+          </p>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error('[Affiliate] Welcome email Resend error:', error);
+      return false;
+    }
+    console.log('[Affiliate] Welcome email sent:', data?.id);
+    return true;
+  } catch (err) {
+    console.error('[Affiliate] Welcome email failed:', err);
+    return false;
+  }
+}
+
+// ─── AFFILIATE REFERRAL INVITE ────────────────────────────────────────────────
+
+export async function sendAffiliateReferralInvite({
+  to,
+  toName,
+  fromName,
+  referralUrl,
+}: {
+  to: string;
+  toName: string;
+  fromName: string;
+  referralUrl: string;
+}): Promise<boolean> {
+  if (!resend) {
+    console.log('⚠️ Resend not available — skipping affiliate referral invite');
+    return false;
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: EMAIL_FROM,
+      to: [to],
+      subject: `${fromName} invited you to try My Perfect Meals`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;background:#0a0a0a;color:#fff;border-radius:16px;">
+          <p style="color:#f97316;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin:0 0 16px;">Personal Invitation</p>
+          <h1 style="color:#fff;font-size:24px;margin-bottom:8px;">Hi ${toName || 'there'},</h1>
+          <p style="color:#ccc;font-size:15px;line-height:1.6;margin-bottom:24px;">
+            <strong style="color:#f97316;">${fromName}</strong> thinks you'd love My Perfect Meals — an AI-powered nutrition platform that builds personalized meal plans around your dietary needs, health goals, and food preferences.
+          </p>
+
+          <div style="background:#111;border:1px solid #f97316;border-radius:12px;padding:20px;margin-bottom:24px;">
+            <p style="color:#f97316;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin:0 0 8px;">Your Invitation Link</p>
+            <p style="font-family:monospace;font-size:13px;color:#fff;margin:0;word-break:break-all;">${referralUrl}</p>
+          </div>
+
+          <div style="background:#111;border:1px solid #333;border-radius:12px;padding:20px;margin-bottom:24px;">
+            <p style="color:#f97316;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin:0 0 12px;">What You Get</p>
+            <ul style="color:#ccc;font-size:14px;line-height:1.8;margin:0;padding-left:20px;">
+              <li>AI-generated meal plans tailored to your diet</li>
+              <li>Macro tracking and nutrition insights</li>
+              <li>Chef's Kitchen, Snack Creator, Meal Planner &amp; more</li>
+              <li>Clinical support for medical dietary needs</li>
+            </ul>
+          </div>
+
+          <div style="text-align:center;margin-top:32px;">
+            <a href="${referralUrl}" style="display:inline-block;background:#f97316;color:#fff;font-weight:700;text-decoration:none;padding:14px 28px;border-radius:12px;font-size:15px;">Get Started Free</a>
+          </div>
+
+          <p style="color:#555;font-size:12px;margin-top:32px;text-align:center;">
+            My Perfect Meals — Adaptive AI Nutrition Platform
+          </p>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error('[Affiliate] Referral invite Resend error:', error);
+      return false;
+    }
+    console.log('[Affiliate] Referral invite sent:', data?.id);
+    return true;
+  } catch (err) {
+    console.error('[Affiliate] Referral invite failed:', err);
+    return false;
+  }
+}

@@ -259,6 +259,7 @@ import BusinessCenterSection from "@/pages/BusinessCenterSection";
 import AffiliateOpportunities from "@/pages/AffiliateOpportunities";
 import AffiliatePathPage from "@/pages/AffiliatePathPage";
 import AffiliateProgramOverview from "@/pages/AffiliateProgramOverview";
+import AffiliateDashboard from "@/pages/AffiliateDashboard";
 import CertificationDashboard from "@/pages/certification/CertificationDashboard";
 import CertificationLesson from "@/pages/certification/CertificationLesson";
 import CertificationQuiz from "@/pages/certification/CertificationQuiz";
@@ -720,6 +721,7 @@ export default function Router() {
         {/* Admin */}
         <Route path="/admin/certifications" component={AdminCertifications} />
         {/* Affiliate Program — overview gates path selection */}
+        <Route path="/business-center/affiliate/dashboard" component={AffiliateDashboard} />
         <Route path="/business-center/affiliate" component={AffiliateProgramOverview} />
         <Route path="/business-center/affiliate/choose" component={AffiliateOpportunities} />
         <Route path="/business-center/affiliate/social" component={AffiliatePathPage} />
