@@ -6,7 +6,7 @@ const sections = [
   {
     id: "learning",
     title: "Learning & Certifications",
-    description: "Platform Certification, Business Success Certification, and platform update modules",
+    description: "For coaches & professionals — Business Success Certification, Platform Certification, and update modules",
     icon: GraduationCap,
     color: "orange",
     route: "/learning",

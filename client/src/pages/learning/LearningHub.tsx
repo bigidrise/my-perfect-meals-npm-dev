@@ -90,7 +90,7 @@ export default function LearningHub() {
             </button>
             <div className="flex-1 min-w-0">
               <h1 className="text-base font-bold text-white">Learning & Certifications</h1>
-              <p className="text-xs text-white/40">MPM Professional Training</p>
+              <p className="text-xs text-white/40">Coaching & Professional Training</p>
             </div>
             {pendingUpdates > 0 && (
               <button onClick={() => setLocation("/certifications/updates")} className="relative p-2 rounded-xl bg-orange-500/20 border border-orange-500/30">
