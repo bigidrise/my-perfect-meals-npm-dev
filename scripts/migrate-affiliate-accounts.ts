@@ -6,7 +6,7 @@ async function migrate() {
   await db.execute(`
     CREATE TABLE IF NOT EXISTS user_affiliate_accounts (
       id                        SERIAL PRIMARY KEY,
-      user_id                   INTEGER NOT NULL UNIQUE,
+      user_id                   TEXT NOT NULL UNIQUE,
       affiliate_track           TEXT NOT NULL,
       required_phases           TEXT NOT NULL,
       phase_1_completed_at      TIMESTAMPTZ,

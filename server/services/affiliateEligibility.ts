@@ -14,7 +14,7 @@ const APPROVED_PROFESSIONAL_ROLES = new Set([
   "nurse_practitioner",
 ]);
 
-export async function checkBusinessAffiliateEligibility(userId: number): Promise<EligibilityResult> {
+export async function checkBusinessAffiliateEligibility(userId: string): Promise<EligibilityResult> {
   const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
 
   if (!user || !(user as any).isProCare) {

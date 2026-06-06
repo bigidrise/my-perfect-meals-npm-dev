@@ -1,8 +1,8 @@
-import { pgTable, serial, integer, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, boolean } from "drizzle-orm/pg-core";
 
 export const userAffiliateAccounts = pgTable("user_affiliate_accounts", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().unique(),
+  userId: text("user_id").notNull().unique(),
 
   affiliateTrack: text("affiliate_track").notNull(),
   requiredPhases: text("required_phases").notNull(),
