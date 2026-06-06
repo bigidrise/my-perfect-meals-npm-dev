@@ -14,6 +14,7 @@ import { certModules, certQuestions, certQuestionOptions } from "../db/schema/lm
 import { users } from "../../shared/schema";
 import { sendCertificationCompleteEmail } from "../services/emailService";
 import { generateCertificatePDF } from "../services/certificateService";
+import { evaluateAffiliateActivation } from "../services/affiliateActivation";
 
 const router = express.Router();
 
@@ -591,8 +592,11 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
       .onConflictDoUpdate({
         target: [userCertifications.userId, userCertifications.certificationType],
         set: {
-          // Only update name if provided and not already set
-          certificateName: sql`CASE WHEN ${userCertifications.certificateName} IS NULL AND ${certificateName ?? null} IS NOT NULL THEN ${certificateName ?? null} ELSE ${userCertifications.certificateName} END`,
+          // Only update name if a name was provided and the existing row has none.
+          // Resolve the conditional in TS so PostgreSQL never sees a bare untyped null.
+          certificateName: certificateName
+            ? sql`CASE WHEN ${userCertifications.certificateName} IS NULL THEN ${certificateName}::text ELSE ${userCertifications.certificateName} END`
+            : sql`${userCertifications.certificateName}`,
           updatedAt: new Date(),
         },
       });
@@ -628,6 +632,11 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
     } catch (emailErr) {
       console.error("[Cert] completion email failed:", emailErr);
     }
+
+    // Evaluate affiliate activation — non-blocking, never throws
+    evaluateAffiliateActivation(userId).catch((e) =>
+      console.error("[Cert] affiliate activation check failed:", e)
+    );
 
     return res.json({ ok: true, certificateNumber: finalCertNumber, score: avgScore });
   } catch (err) {

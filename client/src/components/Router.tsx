@@ -258,6 +258,8 @@ import BusinessCenter from "@/pages/BusinessCenter";
 import BusinessCenterSection from "@/pages/BusinessCenterSection";
 import AffiliateOpportunities from "@/pages/AffiliateOpportunities";
 import AffiliatePathPage from "@/pages/AffiliatePathPage";
+import AffiliateProgramOverview from "@/pages/AffiliateProgramOverview";
+import AffiliateDashboard from "@/pages/AffiliateDashboard";
 import CertificationDashboard from "@/pages/certification/CertificationDashboard";
 import CertificationLesson from "@/pages/certification/CertificationLesson";
 import CertificationQuiz from "@/pages/certification/CertificationQuiz";
@@ -718,8 +720,10 @@ export default function Router() {
         <Route path="/certifications/:certType" component={PlatformCertDashboard} />
         {/* Admin */}
         <Route path="/admin/certifications" component={AdminCertifications} />
-        {/* Legacy affiliate cert routes */}
-        <Route path="/business-center/affiliate" component={AffiliateOpportunities} />
+        {/* Affiliate Program — overview gates path selection */}
+        <Route path="/business-center/affiliate/dashboard" component={AffiliateDashboard} />
+        <Route path="/business-center/affiliate" component={AffiliateProgramOverview} />
+        <Route path="/business-center/affiliate/choose" component={AffiliateOpportunities} />
         <Route path="/business-center/affiliate/social" component={AffiliatePathPage} />
         <Route path="/business-center/affiliate/coaching" component={AffiliatePathPage} />
         <Route path="/business-center/affiliate/:pathId/certification/complete" component={CertificationComplete} />
