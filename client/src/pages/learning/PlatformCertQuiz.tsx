@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { ArrowLeft, CheckCircle2, XCircle, ChevronRight } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, ChevronRight, Award } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -27,6 +27,19 @@ interface CertModule {
 
 type QuizPhase = "taking" | "results";
 
+function shuffleArray<T>(arr: T[]): T[] {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+function shuffleQuestions(qs: QuizQuestion[]): QuizQuestion[] {
+  return qs.map((q) => ({ ...q, options: shuffleArray(q.options) }));
+}
+
+function getModuleNum(slug: string): string | null {
+  const m = slug.match(/^quiz-(\d+)$/);
+  return m ? m[1] : null;
+}
+
 export default function PlatformCertQuiz() {
   const [, setLocation] = useLocation();
   const params = useParams<{ certType: string; slug: string }>();
@@ -34,17 +47,19 @@ export default function PlatformCertQuiz() {
   const slug = params.slug ?? "";
 
   const [module, setModule] = useState<CertModule | null>(null);
+  const [rawQuestions, setRawQuestions] = useState<QuizQuestion[]>([]);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
-  const [answers, setAnswers] = useState<Record<string, string>>({}); // { questionId: optionId }
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [phase, setPhase] = useState<QuizPhase>("taking");
   const [currentIdx, setCurrentIdx] = useState(0);
   const [result, setResult] = useState<{ score: number; passed: boolean; correct: number; total: number; correctAnswers: Record<string, string> } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [nextModule, setNextModule] = useState<CertModule | null>(null);
 
   const isFinal = slug === "final";
   const passingScore = module?.passingScorePct ?? 80;
+  const moduleNum = getModuleNum(slug);
+  const videoSlug = moduleNum ? `module-${moduleNum}` : null;
 
   useEffect(() => {
     if (!slug) return;
@@ -54,11 +69,10 @@ export default function PlatformCertQuiz() {
         const mod = mods.find((m) => m.slug === slug);
         if (mod) {
           setModule(mod);
-          setQuestions(mod.questions ?? []);
+          const qs = mod.questions ?? [];
+          setRawQuestions(qs);
+          setQuestions(shuffleQuestions(qs));
         }
-        const idx = mods.findIndex((m) => m.slug === slug);
-        const next = mods[idx + 1];
-        if (next) setNextModule(next);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -92,7 +106,6 @@ export default function PlatformCertQuiz() {
       setResult(res);
       setPhase("results");
     } catch {
-      // Fallback: client-side scoring is not available (server-side only)
     } finally {
       setSubmitting(false);
     }
@@ -103,20 +116,19 @@ export default function PlatformCertQuiz() {
     setCurrentIdx(0);
     setPhase("taking");
     setResult(null);
+    setQuestions(shuffleQuestions(rawQuestions));
   };
 
-  const handleContinue = () => {
-    if (result?.passed && isFinal) {
-      setLocation(`/certifications/${certType}`);
-    } else if (result?.passed && nextModule) {
-      if (nextModule.moduleType === "final_assessment" || nextModule.moduleType === "quiz") {
-        setLocation(`/certifications/${certType}/quiz/${nextModule.slug}`);
-      } else {
-        setLocation(`/certifications/${certType}/video/${nextModule.slug}`);
-      }
+  const handleReviewTraining = () => {
+    if (videoSlug) {
+      setLocation(`/certifications/${certType}/video/${videoSlug}`);
     } else {
       setLocation(`/certifications/${certType}`);
     }
+  };
+
+  const handleContinue = () => {
+    setLocation(`/certifications/${certType}`);
   };
 
   if (loading) {
@@ -148,7 +160,9 @@ export default function PlatformCertQuiz() {
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-base font-bold text-white truncate">{module?.title ?? "Quiz"}</h1>
+            <h1 className="text-base font-bold text-white truncate">
+              {phase === "taking" ? "Knowledge Check" : "Quiz Results"}
+            </h1>
             {phase === "taking" && <p className="text-xs text-white/40">Question {currentIdx + 1} of {totalQuestions}</p>}
           </div>
         </div>
@@ -163,6 +177,7 @@ export default function PlatformCertQuiz() {
 
       <div className="px-4 max-w-2xl mx-auto" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}>
         <AnimatePresence mode="wait">
+          {/* ── QUIZ TAKING ── */}
           {phase === "taking" && currentQuestion && (
             <motion.div
               key={`q-${currentIdx}`}
@@ -177,7 +192,7 @@ export default function PlatformCertQuiz() {
               </div>
 
               <div className="space-y-2">
-                {currentQuestion.options.sort((a, b) => a.sortOrder - b.sortOrder).map((opt) => {
+                {currentQuestion.options.map((opt) => {
                   const isSelected = answers[currentQuestion.id] === opt.id;
                   return (
                     <motion.button
@@ -197,12 +212,13 @@ export default function PlatformCertQuiz() {
                 disabled={!answers[currentQuestion.id] || submitting}
                 onClick={handleNext}
               >
-                <span>{currentIdx < totalQuestions - 1 ? "Next Question" : "Submit Quiz"}</span>
+                <span>{currentIdx < totalQuestions - 1 ? "Next Question" : "Submit"}</span>
                 {submitting ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <ChevronRight className="h-5 w-5" />}
               </button>
             </motion.div>
           )}
 
+          {/* ── RESULTS ── */}
           {phase === "results" && result && (
             <motion.div
               key="results"
@@ -213,21 +229,53 @@ export default function PlatformCertQuiz() {
               {/* Score card */}
               <div className={`p-6 rounded-2xl border text-center ${result.passed ? "bg-green-500/10 border-green-500/30" : "bg-red-500/10 border-red-500/30"}`}>
                 {result.passed ? (
-                  <CheckCircle2 className="h-12 w-12 text-green-400 mx-auto mb-3" />
+                  <Award className="h-12 w-12 text-green-400 mx-auto mb-3" />
                 ) : (
                   <XCircle className="h-12 w-12 text-red-400 mx-auto mb-3" />
                 )}
-                <p className="text-3xl font-black text-white">{result.score}%</p>
-                <p className={`text-sm font-semibold mt-1 ${result.passed ? "text-green-400" : "text-red-400"}`}>
-                  {result.passed ? "Passed!" : "Not quite — try again"}
+                <p className="text-4xl font-black text-white mb-1">{result.score}%</p>
+                <p className={`text-xs text-white/50 mb-4`}>
+                  {result.correct} of {result.total} correct · {passingScore}% required to pass
                 </p>
-                <p className="text-xs text-white/40 mt-1">
-                  {result.correct} of {result.total} correct · {passingScore}% needed to pass
-                </p>
+                {result.passed ? (
+                  <p className="text-sm font-semibold text-green-400 leading-snug">
+                    Congratulations. You have successfully completed ProCare Certification{moduleNum ? ` Module ${moduleNum}` : ""}.
+                  </p>
+                ) : (
+                  <p className="text-sm font-semibold text-red-400">
+                    You must score at least {passingScore}% to continue.
+                  </p>
+                )}
               </div>
 
+              {/* Action buttons */}
+              {result.passed ? (
+                <button
+                  onClick={handleContinue}
+                  className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm active:scale-[0.98] transition-transform"
+                >
+                  {moduleNum ? `Continue to Module ${parseInt(moduleNum) + 1} →` : isFinal ? "View Certificate →" : "Continue →"}
+                </button>
+              ) : (
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleReviewTraining}
+                    className="flex-1 p-4 rounded-2xl bg-white/10 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
+                  >
+                    Review Training
+                  </button>
+                  <button
+                    onClick={handleRetake}
+                    className="flex-1 p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm active:scale-[0.98] transition-transform"
+                  >
+                    Retake Quiz
+                  </button>
+                </div>
+              )}
+
               {/* Question review */}
-              <div className="space-y-2">
+              <div className="space-y-2 pt-2">
+                <p className="text-xs text-white/30 uppercase tracking-widest font-semibold px-1">Question Review</p>
                 {questions.map((q) => {
                   const userAnswer = answers[q.id];
                   const correctOptId = result.correctAnswers[q.id];
@@ -236,29 +284,18 @@ export default function PlatformCertQuiz() {
                   const correctOpt = q.options.find((o) => o.id === correctOptId);
                   return (
                     <div key={q.id} className={`p-4 rounded-2xl border text-xs ${isCorrect ? "bg-green-500/5 border-green-500/20" : "bg-red-500/5 border-red-500/20"}`}>
-                      <p className="text-white/80 font-medium mb-2 text-sm">{q.questionText}</p>
+                      <p className="text-white/80 font-medium mb-2 text-sm leading-snug">{q.questionText}</p>
                       {isCorrect ? (
-                        <p className="text-green-400 flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5" /> {userOpt?.optionText}</p>
+                        <p className="text-green-400 flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" /> {userOpt?.optionText}</p>
                       ) : (
                         <div className="space-y-1">
-                          <p className="text-red-400 flex items-center gap-1.5"><XCircle className="h-3.5 w-3.5" /> Your answer: {userOpt?.optionText ?? "Not answered"}</p>
-                          <p className="text-green-400 flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5" /> Correct: {correctOpt?.optionText}</p>
+                          <p className="text-red-400 flex items-center gap-1.5"><XCircle className="h-3.5 w-3.5 flex-shrink-0" /> Your answer: {userOpt?.optionText ?? "Not answered"}</p>
+                          <p className="text-green-400 flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" /> Correct: {correctOpt?.optionText}</p>
                         </div>
                       )}
                     </div>
                   );
                 })}
-              </div>
-
-              <div className="flex gap-3">
-                {!result.passed && (
-                  <button onClick={handleRetake} className="flex-1 p-4 rounded-2xl bg-white/10 text-white font-semibold text-sm active:scale-[0.98] transition-transform">
-                    Retake Quiz
-                  </button>
-                )}
-                <button onClick={handleContinue} className="flex-1 p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm active:scale-[0.98] transition-transform">
-                  {result.passed ? (isFinal ? "View Certificate" : "Continue →") : "Back to Overview"}
-                </button>
               </div>
             </motion.div>
           )}
