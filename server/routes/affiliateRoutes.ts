@@ -3,8 +3,10 @@ import { db } from "../db";
 import { eq } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { userAffiliateAccounts } from "../db/schema/affiliateAccounts";
+import { users } from "../../shared/schema";
 import { checkBusinessAffiliateEligibility } from "../services/affiliateEligibility";
 import { getRewardfulMagicLink, getRewardfulAffiliate } from "../services/rewardfulApi";
+import { sendAffiliateReferralInvite } from "../services/emailService";
 
 const router = Router();
 
@@ -141,6 +143,60 @@ router.get("/dashboard-link", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("[Affiliate] dashboard-link error:", err);
     return res.status(500).json({ error: "Failed to generate dashboard link" });
+  }
+});
+
+// ─── POST /api/affiliate/send-invite ─────────────────────────────────────────
+router.post("/send-invite", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser.id;
+    const { name, email } = req.body as { name?: string; email?: string };
+
+    if (!name?.trim() || !email?.trim()) {
+      return res.status(400).json({ error: "name and email are required" });
+    }
+
+    // Basic email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      return res.status(400).json({ error: "Invalid email address" });
+    }
+
+    // Verify sender is an active affiliate
+    const [account] = await db
+      .select()
+      .from(userAffiliateAccounts)
+      .where(eq(userAffiliateAccounts.userId, userId))
+      .limit(1);
+
+    if (!account?.rewardfulReferralUrl || account.rewardfulState !== "active") {
+      return res.status(403).json({ error: "Active affiliate account required to send invitations" });
+    }
+
+    // Get sender name
+    const [sender] = await db
+      .select({ firstName: users.firstName, lastName: users.lastName })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const fromName = [sender?.firstName, sender?.lastName].filter(Boolean).join(" ") || "A My Perfect Meals Affiliate";
+
+    const sent = await sendAffiliateReferralInvite({
+      to: email.trim(),
+      toName: name.trim(),
+      fromName,
+      referralUrl: account.rewardfulReferralUrl,
+    });
+
+    if (!sent) {
+      return res.status(502).json({ error: "Failed to send invitation email" });
+    }
+
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("[Affiliate] send-invite error:", err);
+    return res.status(500).json({ error: "Failed to send invitation" });
   }
 });
 
