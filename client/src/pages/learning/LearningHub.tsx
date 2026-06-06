@@ -4,7 +4,6 @@ import { Award, BookOpen, ChevronRight, CheckCircle2, Clock, AlertCircle, Bell }
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 interface CertStatus {
   status: "not_started" | "in_progress" | "completed";
@@ -73,8 +72,7 @@ export default function LearningHub() {
   }
 
   return (
-    <MobileHeaderGuard>
-      <motion.div
+    <motion.div
         className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-28"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -213,7 +211,6 @@ export default function LearningHub() {
             </div>
           </motion.button>
         </div>
-      </motion.div>
-    </MobileHeaderGuard>
+    </motion.div>
   );
 }
