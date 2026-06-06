@@ -1,6 +1,12 @@
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, DollarSign, Clock, TrendingUp, Users, ShieldCheck, ChevronRight, CheckCircle2, XCircle, Stethoscope, Briefcase } from "lucide-react";
+import {
+  ArrowLeft, DollarSign, Clock, TrendingUp, Users, ShieldCheck,
+  ChevronRight, CheckCircle2, XCircle, Stethoscope, Briefcase, Calculator,
+} from "lucide-react";
 import { motion } from "framer-motion";
+
+const COMMISSION_RATE = 0.30;
 
 function Section({ title, children, delay = 0 }: { title: string; children: React.ReactNode; delay?: number }) {
   return (
@@ -16,17 +22,104 @@ function Section({ title, children, delay = 0 }: { title: string; children: Reac
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div className="flex items-start justify-between gap-4 py-2 border-b border-white/5 last:border-0">
       <span className="text-xs text-white/50 flex-1">{label}</span>
-      <span className="text-xs font-semibold text-orange-300 text-right flex-shrink-0">{value}</span>
+      <span className={`text-xs font-semibold text-right flex-shrink-0 ${highlight ? "text-orange-400" : "text-orange-300"}`}>{value}</span>
     </div>
   );
 }
 
+function fmt(n: number) {
+  return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+}
+
+function EarningsCalculator() {
+  const [referrals, setReferrals] = useState(10);
+  const [subValue, setSubValue] = useState(29.99);
+
+  const monthly = referrals * subValue * COMMISSION_RATE;
+  const twelveMonth = monthly * 12;
+  const twentyFourMonth = monthly * 24;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 pb-1">
+        <div className="h-10 w-10 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
+          <Calculator className="h-5 w-5 text-orange-400" />
+        </div>
+        <p className="text-xs text-white/50 leading-relaxed">
+          Adjust the numbers to see what your commissions could look like. These are estimates based on active subscribers only.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-semibold text-white/40 uppercase tracking-widest">
+            Referrals
+          </label>
+          <div className="relative">
+            <input
+              type="number"
+              min={1}
+              max={10000}
+              value={referrals}
+              onChange={(e) => setReferrals(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm font-semibold focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20"
+            />
+          </div>
+          <p className="text-[10px] text-white/25">number of customers</p>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-semibold text-white/40 uppercase tracking-widest">
+            Avg. Sub Value
+          </label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-sm">$</span>
+            <input
+              type="number"
+              min={1}
+              max={999}
+              step={0.01}
+              value={subValue}
+              onChange={(e) => setSubValue(Math.max(1, parseFloat(e.target.value) || 1))}
+              className="w-full pl-6 pr-3 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm font-semibold focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20"
+            />
+          </div>
+          <p className="text-[10px] text-white/25">per month / per subscriber</p>
+        </div>
+      </div>
+
+      <div className="rounded-xl bg-orange-500/10 border border-orange-500/20 p-4 space-y-1">
+        <Row label="Monthly commission" value={fmt(monthly)} highlight />
+        <Row label="12-month earnings" value={fmt(twelveMonth)} />
+        <Row label="24-month earnings (full term)" value={fmt(twentyFourMonth)} />
+      </div>
+
+      <p className="text-xs text-white/25 leading-relaxed">
+        Assumes all referred customers remain active for the full period. Actual earnings depend on subscriber retention, plan type, and qualifying payment status.
+      </p>
+    </div>
+  );
+}
+
+const ACKNOWLEDGMENTS = [
+  "I understand commissions are paid for the first 24 months of a qualifying customer subscription.",
+  "I understand affiliate marketing guidelines must be followed.",
+  "I understand violations may result in suspension or termination of affiliate privileges.",
+];
+
 export default function AffiliateProgramOverview() {
   const [, setLocation] = useLocation();
+  const [checked, setChecked] = useState<boolean[]>([false, false, false]);
+
+  const allChecked = checked.every(Boolean);
+
+  function toggle(i: number) {
+    setChecked((prev) => prev.map((v, idx) => (idx === i ? !v : v)));
+  }
 
   return (
     <motion.div
@@ -100,7 +193,7 @@ export default function AffiliateProgramOverview() {
               If you refer 10 customers each paying $29.99/month:
             </p>
           </div>
-          <div className="rounded-xl bg-orange-500/10 border border-orange-500/20 p-4 space-y-2">
+          <div className="rounded-xl bg-orange-500/10 border border-orange-500/20 p-4 space-y-1">
             <Row label="Your commission per customer" value="~$9/month" />
             <Row label="Monthly total (10 customers)" value="~$90/month" />
             <Row label="Duration" value="Up to 24 months while they stay active" />
@@ -111,8 +204,13 @@ export default function AffiliateProgramOverview() {
           </p>
         </Section>
 
+        {/* Earnings Calculator */}
+        <Section title="Estimated Earnings Calculator" delay={0.10}>
+          <EarningsCalculator />
+        </Section>
+
         {/* Why 24 Months */}
-        <Section title="Why 24 Months?" delay={0.11}>
+        <Section title="Why 24 Months?" delay={0.13}>
           <div className="flex items-center gap-3 pb-2">
             <div className="h-10 w-10 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
               <Clock className="h-5 w-5 text-orange-400" />
@@ -121,7 +219,7 @@ export default function AffiliateProgramOverview() {
               Most affiliate and sales commission programs pay once, or for one year at most. Here is how ours compares.
             </p>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-0">
             {[
               { label: "Typical one-time sales commission", value: "Single payment" },
               { label: "Most SaaS affiliate programs", value: "12 months or less" },
@@ -138,8 +236,8 @@ export default function AffiliateProgramOverview() {
           </p>
         </Section>
 
-        {/* Successful vs unsuccessful */}
-        <Section title="What Actually Works" delay={0.14}>
+        {/* What Actually Works */}
+        <Section title="What Actually Works" delay={0.16}>
           <div className="flex items-center gap-3 pb-1">
             <div className="h-10 w-10 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
               <Users className="h-5 w-5 text-orange-400" />
@@ -148,7 +246,6 @@ export default function AffiliateProgramOverview() {
               Based on what successful affiliates consistently do — and what doesn't work.
             </p>
           </div>
-
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <p className="text-[10px] font-bold text-green-400 uppercase tracking-widest">Works</p>
@@ -184,7 +281,7 @@ export default function AffiliateProgramOverview() {
         </Section>
 
         {/* For Coaches & Physicians */}
-        <Section title="For Coaches & Physicians" delay={0.17}>
+        <Section title="For Coaches & Physicians" delay={0.19}>
           <div className="flex items-center gap-3 pb-2">
             <div className="h-10 w-10 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
               <Stethoscope className="h-5 w-5 text-orange-400" />
@@ -219,7 +316,7 @@ export default function AffiliateProgramOverview() {
         </Section>
 
         {/* Compliance Policy */}
-        <Section title="Compliance Requirements" delay={0.20}>
+        <Section title="Compliance Requirements" delay={0.22}>
           <div className="flex items-center gap-3 pb-2">
             <div className="h-10 w-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center flex-shrink-0">
               <ShieldCheck className="h-5 w-5 text-white/60" />
@@ -256,23 +353,75 @@ export default function AffiliateProgramOverview() {
           </div>
         </Section>
 
+        {/* Before You Continue — acknowledgment gate */}
+        <motion.div
+          className="p-5 rounded-2xl bg-black/40 border border-orange-500/30 space-y-4"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.26 }}
+        >
+          <h2 className="text-sm font-bold text-white">Before You Continue</h2>
+          <p className="text-xs text-white/40 leading-relaxed">
+            Confirm that you have read and understood the following. All three are required.
+          </p>
+
+          <div className="space-y-3">
+            {ACKNOWLEDGMENTS.map((text, i) => (
+              <button
+                key={i}
+                onClick={() => toggle(i)}
+                className="w-full flex items-start gap-3 p-3.5 rounded-xl bg-white/5 border border-white/10 text-left active:scale-[0.99] transition-all duration-150"
+                style={{
+                  borderColor: checked[i] ? "rgba(249,115,22,0.4)" : undefined,
+                  backgroundColor: checked[i] ? "rgba(249,115,22,0.08)" : undefined,
+                }}
+              >
+                <div
+                  className="w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all duration-150"
+                  style={{
+                    borderColor: checked[i] ? "rgb(249,115,22)" : "rgba(255,255,255,0.2)",
+                    backgroundColor: checked[i] ? "rgb(249,115,22)" : "transparent",
+                  }}
+                >
+                  {checked[i] && (
+                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 12 12">
+                      <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </div>
+                <span className={`text-xs leading-relaxed transition-colors duration-150 ${checked[i] ? "text-white/80" : "text-white/45"}`}>
+                  {text}
+                </span>
+              </button>
+            ))}
+          </div>
+        </motion.div>
+
         {/* CTA */}
         <motion.div
           className="space-y-3 pt-2"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.24 }}
+          transition={{ delay: 0.30 }}
         >
           <button
-            onClick={() => setLocation("/business-center/affiliate/choose")}
-            className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm flex items-center justify-between active:scale-[0.98] transition-transform"
+            onClick={() => { if (allChecked) setLocation("/business-center/affiliate/choose"); }}
+            disabled={!allChecked}
+            className="w-full p-4 rounded-2xl font-bold text-sm flex items-center justify-between transition-all duration-200 active:scale-[0.98]"
+            style={{
+              backgroundColor: allChecked ? "rgb(234,88,12)" : "rgba(255,255,255,0.06)",
+              color: allChecked ? "white" : "rgba(255,255,255,0.25)",
+              cursor: allChecked ? "pointer" : "default",
+            }}
           >
             <span>Choose Your Affiliate Path</span>
             <ChevronRight className="h-5 w-5" />
           </button>
-          <p className="text-center text-xs text-white/25 leading-relaxed px-4">
-            By continuing you confirm you have read and understood the commission structure, earnings expectations, and compliance requirements above.
-          </p>
+          {!allChecked && (
+            <p className="text-center text-xs text-white/25 leading-relaxed">
+              Confirm all three items above to continue.
+            </p>
+          )}
         </motion.div>
       </div>
     </motion.div>
