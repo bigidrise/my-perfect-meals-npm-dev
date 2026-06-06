@@ -1,8 +1,15 @@
 import { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { Award, CheckCircle2, Download, FileText } from "lucide-react";
+import { Award, CheckCircle2, Download, FileText, Link2, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
+
+interface AffiliateAccount {
+  isActive: boolean;
+  rewardfulReferralUrl: string | null;
+  rewardfulReferralToken: string | null;
+  affiliateTrack: string;
+}
 
 interface CertData {
   status: string;
@@ -21,6 +28,8 @@ export default function CertificationComplete() {
   const [cert, setCert] = useState<CertData | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [affiliate, setAffiliate] = useState<AffiliateAccount | null>(null);
+  const [affiliateChecking, setAffiliateChecking] = useState(true);
 
   // Inline name capture (for certs issued without a name)
   const [nameInput, setNameInput] = useState("");
@@ -38,6 +47,15 @@ export default function CertificationComplete() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [certType]);
+
+  useEffect(() => {
+    apiRequest("/api/affiliate/account")
+      .then((data: any) => {
+        if (data.account) setAffiliate(data.account);
+      })
+      .catch(() => {})
+      .finally(() => setAffiliateChecking(false));
+  }, []);
 
   const handleSaveName = async () => {
     const name = nameInput.trim();
@@ -207,6 +225,43 @@ export default function CertificationComplete() {
                   </button>
                 </div>
               )}
+            </motion.div>
+
+            {/* Affiliate activation banner */}
+            <motion.div
+              className="w-full"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              {affiliateChecking ? (
+                <div className="flex items-center justify-center gap-2 py-3 text-white/30 text-xs">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Checking affiliate status…
+                </div>
+              ) : affiliate?.isActive ? (
+                <div className="p-4 rounded-2xl bg-green-500/10 border border-green-500/30 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-400 flex-shrink-0" />
+                    <span className="text-sm font-bold text-green-400">Affiliate Account Activated!</span>
+                  </div>
+                  {affiliate.rewardfulReferralUrl && (
+                    <>
+                      <p className="text-xs text-white/50 leading-relaxed">Your referral link is ready. Share it to start earning commissions.</p>
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-black/30 border border-white/10">
+                        <Link2 className="h-3.5 w-3.5 text-orange-400 flex-shrink-0" />
+                        <p className="text-xs font-mono text-orange-300 truncate">{affiliate.rewardfulReferralUrl}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : affiliate && !affiliate.isActive ? (
+                <div className="p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20">
+                  <p className="text-xs text-orange-300 leading-relaxed text-center">
+                    <span className="font-bold">Almost there!</span> Complete all required certifications to unlock your affiliate account and referral link.
+                  </p>
+                </div>
+              ) : null}
             </motion.div>
 
             {/* Action buttons */}

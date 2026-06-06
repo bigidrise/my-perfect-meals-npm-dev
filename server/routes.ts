@@ -73,6 +73,7 @@ import proteinTargetsRouter from './routes/proteinTargets';
 import certificationRouter from './routes/certificationRoutes';
 import adminCertRouter from './routes/adminCertRoutes';
 import lmsRouter from './routes/lmsRoutes';
+import affiliateRouter, { handleRewardfulWebhook } from './routes/affiliateRoutes';
 import { cookingRouter } from './routes/cooking';
 import { mealImagesRouter } from './routes/mealImages';
 import weekBoardRoutes from './routes/weekBoard';
@@ -427,6 +428,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/certifications', certificationRouter);
   app.use('/api/admin/certifications', adminCertRouter);
   app.use('/api/lms', lmsRouter);
+  app.use('/api/affiliate', affiliateRouter);
+  app.post('/api/webhooks/rewardful', handleRewardfulWebhook);
   app.use('/api', cookingRouter);
   app.use('/api', mealImagesRouter);
   // Deleted: diabeticHubRouter route

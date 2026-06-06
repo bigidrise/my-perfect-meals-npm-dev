@@ -14,6 +14,7 @@ import { certModules, certQuestions, certQuestionOptions } from "../db/schema/lm
 import { users } from "../../shared/schema";
 import { sendCertificationCompleteEmail } from "../services/emailService";
 import { generateCertificatePDF } from "../services/certificateService";
+import { evaluateAffiliateActivation } from "../services/affiliateActivation";
 
 const router = express.Router();
 
@@ -628,6 +629,11 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
     } catch (emailErr) {
       console.error("[Cert] completion email failed:", emailErr);
     }
+
+    // Evaluate affiliate activation — non-blocking, never throws
+    evaluateAffiliateActivation(userId).catch((e) =>
+      console.error("[Cert] affiliate activation check failed:", e)
+    );
 
     return res.json({ ok: true, certificateNumber: finalCertNumber, score: avgScore });
   } catch (err) {
