@@ -146,6 +146,21 @@ router.get("/dashboard-link", requireAuth, async (req, res) => {
   }
 });
 
+// ─── POST /api/affiliate/activate-retry ──────────────────────────────────────
+// Re-triggers Rewardful activation for users whose cert requirements are met
+// but whose Rewardful account was never created (e.g., campaign ID missing at time of cert).
+router.post("/activate-retry", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser.id;
+    const { evaluateAffiliateActivation } = await import("../services/affiliateActivation");
+    await evaluateAffiliateActivation(userId);
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("[Affiliate] activate-retry error:", err);
+    return res.status(500).json({ error: "Activation retry failed" });
+  }
+});
+
 // ─── POST /api/affiliate/send-invite ─────────────────────────────────────────
 router.post("/send-invite", requireAuth, async (req, res) => {
   try {
