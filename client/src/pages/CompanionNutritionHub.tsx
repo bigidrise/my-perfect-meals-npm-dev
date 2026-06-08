@@ -53,6 +53,9 @@ interface DogProfile {
   breed: string;
   isMixedBreed: boolean;
   ageYears: number;
+  ageMonths?: number;
+  sex?: string;
+  isNeutered?: boolean;
   weightLbs: number;
   wellnessGoals: string[];
   photoUrl?: string;
@@ -297,13 +300,26 @@ export default function CompanionNutritionHub() {
                     <div className="p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <div className="w-11 h-11 rounded-full bg-orange-500/20 border border-orange-400/30 flex items-center justify-center flex-shrink-0">
-                            <PawPrint className="h-5 w-5 text-orange-400" />
-                          </div>
+                          {/* Avatar: primary photo or paw-icon fallback */}
+                          {profile.images && profile.images.length > 0 ? (
+                            <img
+                              src={profile.images[0]}
+                              alt={profile.name}
+                              className="w-16 h-16 rounded-full object-cover border-2 border-orange-400/40 flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 rounded-full bg-orange-500/20 border-2 border-orange-400/30 flex items-center justify-center flex-shrink-0">
+                              <PawPrint className="h-7 w-7 text-orange-400" />
+                            </div>
+                          )}
                           <div className="min-w-0">
-                            <p className="text-white font-semibold text-sm">{profile.name}</p>
-                            <p className="text-white/50 text-xs truncate">
-                              {profile.breed}{profile.isMixedBreed ? " Mix" : ""} · {profile.ageYears}yr · {profile.weightLbs}lbs
+                            <p className="text-white font-bold text-sm leading-tight">{profile.name}</p>
+                            <p className="text-white/60 text-xs mt-0.5">
+                              {profile.breed}{profile.isMixedBreed ? " Mix" : ""}
+                            </p>
+                            <p className="text-white/50 text-xs">
+                              {profile.sex ? `${profile.sex} · ` : ""}{profile.ageYears}yr · {profile.weightLbs} lbs
+                              {profile.isNeutered ? " · Neutered/Spayed" : ""}
                             </p>
                             {Array.isArray(profile.wellnessGoals) && profile.wellnessGoals.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-1.5">
