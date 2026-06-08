@@ -1,37 +1,40 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useParams, useSearch } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { PawPrint, ArrowLeft, ArrowRight, Check, Camera, Star, X, Upload } from "lucide-react";
+import { PawPrint, ArrowLeft, Check, Camera, Star, X, Upload } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
-const WELLNESS_GOALS = [
+const CAT_WELLNESS_GOALS = [
   "healthy weight support",
-  "overweight dog support",
+  "overweight cat support",
   "senior wellness support",
-  "anti-inflammatory support",
+  "urinary tract health",
+  "kidney support nutrition",
+  "hairball reduction",
+  "indoor cat wellness",
   "digestive wellness support",
   "sensitive stomach support",
-  "joint wellness support",
   "skin & coat support",
-  "kidney support nutrition",
+  "dental health support",
   "diabetic support nutrition",
+  "anti-inflammatory support",
   "allergy-sensitive meals",
-  "active dog performance nutrition",
+  "taurine optimization",
 ];
 
 const ACTIVITY_LEVELS = [
-  { value: "low", label: "Low", sub: "Mostly resting" },
-  { value: "moderate", label: "Moderate", sub: "Daily walks" },
+  { value: "low", label: "Low", sub: "Mostly sleeping" },
+  { value: "moderate", label: "Moderate", sub: "Playful daily" },
   { value: "high", label: "High", sub: "Very active" },
-  { value: "working", label: "Working", sub: "Sport / work dog" },
+  { value: "indoor", label: "Indoor only", sub: "No outdoor access" },
 ];
 
 const DIET_TYPES = [
-  { value: "commercial", label: "Kibble" },
-  { value: "wet", label: "Wet Food" },
+  { value: "commercial_dry", label: "Dry Kibble" },
+  { value: "commercial_wet", label: "Wet Food" },
   { value: "raw", label: "Raw Diet" },
   { value: "homemade", label: "Homemade" },
   { value: "mixed", label: "Mixed" },
@@ -83,7 +86,7 @@ const empty: ProfileForm = {
   bodyConditionScore: "",
   foodSensitivities: "",
   allergies: "",
-  currentDietType: "commercial",
+  currentDietType: "commercial_wet",
   treatsPerDay: "0",
   behaviorNotes: "",
   vetDietaryRestrictions: "",
@@ -95,7 +98,7 @@ function inputClass() {
   return "w-full bg-black/40 border border-white/15 rounded-xl px-4 py-3 text-white text-sm placeholder-white/30 focus:outline-none focus:border-orange-500/60";
 }
 
-export default function DogProfileSetup() {
+export default function CatProfileSetup() {
   const [, setLocation] = useLocation();
   const params = useParams<{ id?: string }>();
   const search = useSearch();
@@ -108,22 +111,23 @@ export default function DogProfileSetup() {
   const [error, setError] = useState<string | null>(null);
   const [savedProfileId, setSavedProfileId] = useState<string | null>(null);
 
-  // Step 5 photo upload state
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photosFetched = useRef(false);
 
+  const profileName = form.name || "your cat";
+
   useEffect(() => {
-    document.title = isEdit ? "Edit Dog Profile" : "Add Your Dog | My Perfect Pets";
+    document.title = isEdit ? "Edit Cat Profile" : "Add Your Cat | My Perfect Pets";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [isEdit]);
 
   useEffect(() => {
     if (isEdit && params.id) {
       setSavedProfileId(params.id);
-      fetch(apiUrl("/api/companion/profiles"), { headers: getAuthHeaders() })
+      fetch(apiUrl("/api/companion/profiles?type=cat"), { headers: getAuthHeaders() })
         .then((r) => r.json())
         .then((d) => {
           const p = (d.profiles || []).find((p: any) => p.id === params.id);
@@ -142,7 +146,7 @@ export default function DogProfileSetup() {
               bodyConditionScore: p.bodyConditionScore ? String(p.bodyConditionScore) : "",
               foodSensitivities: (p.foodSensitivities || []).join(", "),
               allergies: (p.allergies || []).join(", "),
-              currentDietType: p.currentDietType || "commercial",
+              currentDietType: p.currentDietType || "commercial_wet",
               treatsPerDay: String(p.treatsPerDay || "0"),
               behaviorNotes: p.behaviorNotes || "",
               vetDietaryRestrictions: p.vetDietaryRestrictions || "",
@@ -155,7 +159,6 @@ export default function DogProfileSetup() {
     }
   }, [isEdit, params.id]);
 
-  // Load existing photos whenever we arrive at step 5 with a known profile
   useEffect(() => {
     const profileId = savedProfileId || (isEdit ? params.id : null);
     if (step === 5 && profileId && !photosFetched.current) {
@@ -200,6 +203,7 @@ export default function DogProfileSetup() {
     setSaving(true);
     try {
       const payload = {
+        petType: "cat",
         name: form.name.trim(),
         breed: form.breed.trim(),
         isMixedBreed: form.isMixedBreed,
@@ -243,7 +247,11 @@ export default function DogProfileSetup() {
         throw new Error(data.error || "Save failed");
       }
 
-      setLocation("/companion/dogs");
+      const data = await res.json();
+      if (!isEdit && data.profile?.id) {
+        setSavedProfileId(data.profile.id);
+      }
+      setStep(5);
     } catch (e: any) {
       setError(e.message || "Something went wrong. Please try again.");
     } finally {
@@ -253,85 +261,60 @@ export default function DogProfileSetup() {
 
   async function handleImagePick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file || !savedProfileId) return;
+    const profileId = savedProfileId || (isEdit ? params.id : null);
+    if (!file || !profileId) return;
     if (images.length >= 4) {
-      setUploadError("Maximum 4 photos per dog.");
+      setUploadError("Maximum 4 photos per cat.");
       return;
     }
     setUploading(true);
     setUploadError(null);
-
-    const previewUrl = URL.createObjectURL(file);
     try {
       const formData = new FormData();
       formData.append("image", file);
-
-      const res = await fetch(apiUrl(`/api/companion/profiles/${savedProfileId}/images/upload`), {
+      const res = await fetch(apiUrl(`/api/companion/profiles/${profileId}/images/upload`), {
         method: "POST",
         headers: getAuthHeaders(),
         body: formData,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Upload failed. Please try again.");
-      }
-      const { image: saved } = await res.json();
-      const isPrimary = saved.isPrimary as boolean;
-
-      // Use the local blob URL for display — server response intentionally omits the
-      // large base64 imageUrl to keep the response small and fast.
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      const preview = URL.createObjectURL(file);
       setImages((prev) => [
-        ...prev.map((img) => isPrimary ? { ...img, isPrimary: false } : img),
-        { id: saved.id, objectPath: previewUrl, previewUrl, isPrimary, saved: true },
+        ...prev,
+        {
+          id: data.image?.id,
+          objectPath: preview,
+          previewUrl: preview,
+          isPrimary: prev.length === 0,
+          saved: true,
+        },
       ]);
     } catch (e: any) {
-      setUploadError(e.message || "Upload failed. Please try again.");
-      URL.revokeObjectURL(previewUrl);
+      setUploadError(e.message || "Upload failed.");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
-  async function handleSetPrimary(idx: number) {
-    const profileId = savedProfileId || (isEdit ? params.id : null);
-    if (!profileId) return;
-    const img = images[idx];
-    const imageId = img.id;
-    if (!imageId) return;
-    try {
-      await fetch(apiUrl(`/api/companion/profiles/${profileId}/images/${imageId}/set-primary`), {
-        method: "PUT",
-        headers: getAuthHeaders(),
-      });
-      setImages((prev) => prev.map((i, j) => ({ ...i, isPrimary: j === idx })));
-    } catch {}
+  function handleSetPrimary(idx: number) {
+    setImages((prev) => prev.map((img, i) => ({ ...img, isPrimary: i === idx })));
   }
 
   async function handleRemoveImage(idx: number) {
-    const profileId = savedProfileId || (isEdit ? params.id : null);
-    if (!profileId) return;
     const img = images[idx];
-    const imageId = img.id;
-    if (!imageId) return;
-    try {
-      await fetch(apiUrl(`/api/companion/profiles/${profileId}/images/${imageId}`), {
+    const profileId = savedProfileId || (isEdit ? params.id : null);
+    if (img.id && profileId) {
+      await fetch(apiUrl(`/api/companion/profiles/${profileId}/images/${img.id}`), {
         method: "DELETE",
         headers: getAuthHeaders(),
-      });
-      // Only revoke blob URLs (not object storage URLs)
-      if (img.previewUrl.startsWith("blob:")) URL.revokeObjectURL(img.previewUrl);
-      setImages((prev) => {
-        const next = prev.filter((_, j) => j !== idx);
-        if (img.isPrimary && next.length > 0) {
-          next[0] = { ...next[0], isPrimary: true };
-        }
-        return next;
-      });
-    } catch {}
+      }).catch(() => {});
+    }
+    setImages((prev) => prev.filter((_, i) => i !== idx));
   }
 
-  const profileName = form.name.trim() || "your dog";
+  const progressPct = Math.round(((step - 1) / (TOTAL_STEPS - 1)) * 100);
 
   return (
     <motion.div
@@ -344,34 +327,28 @@ export default function DogProfileSetup() {
           className="fixed top-0 left-0 right-0 z-40 bg-black/40 backdrop-blur-lg border-b border-white/10"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
-          <div className="px-4 py-3 flex items-center gap-3">
-            <div>
+          <div className="px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <PawPrint className="h-4 w-4 text-orange-400" />
               <h1 className="text-sm font-bold text-white">
-                {step === 5
-                  ? isEdit
-                    ? `${form.name || "Dog"}'s Photos`
-                    : `Add Photos of ${profileName}`
-                  : isEdit
-                  ? `Edit ${form.name || "Dog"}'s Profile`
-                  : "Add Your Dog"}
+                {isEdit ? `Edit ${form.name || "Profile"}` : "Add Your Cat"}
               </h1>
-              <p className="text-xs text-white/50">Step {step} of {TOTAL_STEPS}</p>
             </div>
+            <span className="text-white/40 text-xs">{step} / {TOTAL_STEPS}</span>
           </div>
-          <div className="h-0.5 bg-white/10 mx-4 mb-1 rounded-full overflow-hidden">
+          <div className="h-0.5 bg-white/10">
             <div
-              className="h-full bg-orange-500 rounded-full transition-all duration-500"
-              style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
+              className="h-full bg-orange-500 transition-all duration-300"
+              style={{ width: `${progressPct}%` }}
             />
           </div>
         </div>
       </MobileHeaderGuard>
 
       <div className="max-w-lg mx-auto px-4" style={{ paddingTop: "5rem" }}>
-
         <div className="mb-4">
-          <PillButton onClick={() => step > 1 && step < 5 ? setStep((s) => s - 1) : setLocation("/companion/dogs")}>
-            <ArrowLeft className="h-3 w-3" /> {step === 5 ? "Skip" : "Back"}
+          <PillButton onClick={() => step > 1 ? setStep(step - 1) : setLocation("/companion/cats")}>
+            <ArrowLeft className="h-3 w-3" /> {step > 1 ? "Back" : "My Cats"}
           </PillButton>
         </div>
 
@@ -379,36 +356,32 @@ export default function DogProfileSetup() {
           {/* STEP 1: Identity */}
           {step === 1 && (
             <motion.div key="step1" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="space-y-4">
-              <div className="flex items-center gap-2 mb-5">
-                <PawPrint className="h-5 w-5 text-orange-400" />
-                <h2 className="text-white font-bold text-base">Who's your dog?</h2>
-              </div>
+              <h2 className="text-white font-bold text-base mb-5">Tell us about your cat</h2>
 
               <div>
-                <label className="text-white/60 text-xs mb-1 block">Dog's Name *</label>
-                <input className={inputClass()} placeholder="e.g. Biscuit" value={form.name} onChange={(e) => set("name", e.target.value)} />
+                <label className="text-white/60 text-xs mb-1 block">Cat's Name *</label>
+                <input className={inputClass()} placeholder="e.g. Luna" value={form.name} onChange={(e) => set("name", e.target.value)} />
               </div>
 
               <div>
                 <label className="text-white/60 text-xs mb-1 block">Breed *</label>
-                <input className={inputClass()} placeholder="e.g. Golden Retriever" value={form.breed} onChange={(e) => set("breed", e.target.value)} />
+                <input className={inputClass()} placeholder="e.g. Domestic Shorthair, Siamese, Maine Coon" value={form.breed} onChange={(e) => set("breed", e.target.value)} />
               </div>
 
               <div className="flex items-center gap-3">
                 <PillButton active={form.isMixedBreed} onClick={() => set("isMixedBreed", !form.isMixedBreed)}>
                   {form.isMixedBreed ? <Check className="h-3 w-3" /> : null} Mixed Breed
                 </PillButton>
-                <span className="text-white/40 text-xs">Toggle if mixed breed</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-white/60 text-xs mb-1 block">Age (Years) *</label>
-                  <input className={inputClass()} type="number" min="0" max="25" placeholder="e.g. 3" value={form.ageYears} onChange={(e) => set("ageYears", e.target.value)} />
+                  <label className="text-white/60 text-xs mb-1 block">Age (years) *</label>
+                  <input className={inputClass()} type="number" min="0" max="30" placeholder="e.g. 4" value={form.ageYears} onChange={(e) => set("ageYears", e.target.value)} />
                 </div>
                 <div>
                   <label className="text-white/60 text-xs mb-1 block">Months</label>
-                  <input className={inputClass()} type="number" min="0" max="11" placeholder="0–11" value={form.ageMonths} onChange={(e) => set("ageMonths", e.target.value)} />
+                  <input className={inputClass()} type="number" min="0" max="11" placeholder="0" value={form.ageMonths} onChange={(e) => set("ageMonths", e.target.value)} />
                 </div>
               </div>
 
@@ -423,7 +396,7 @@ export default function DogProfileSetup() {
 
               <div className="flex items-center gap-3">
                 <PillButton active={form.isNeutered} onClick={() => set("isNeutered", !form.isNeutered)}>
-                  {form.isNeutered ? <Check className="h-3 w-3" /> : null} Neutered / Spayed
+                  {form.isNeutered ? <Check className="h-3 w-3" /> : null} Spayed / Neutered
                 </PillButton>
               </div>
             </motion.div>
@@ -437,7 +410,7 @@ export default function DogProfileSetup() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-white/60 text-xs mb-1 block">Current Weight (lbs) *</label>
-                  <input className={inputClass()} type="number" placeholder="e.g. 45" value={form.weightLbs} onChange={(e) => set("weightLbs", e.target.value)} />
+                  <input className={inputClass()} type="number" placeholder="e.g. 10" value={form.weightLbs} onChange={(e) => set("weightLbs", e.target.value)} />
                 </div>
                 <div>
                   <label className="text-white/60 text-xs mb-1 block">Goal Weight (lbs)</label>
@@ -493,10 +466,10 @@ export default function DogProfileSetup() {
           {step === 3 && (
             <motion.div key="step3" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="space-y-4">
               <h2 className="text-white font-bold text-base mb-1">Wellness Goals</h2>
-              <p className="text-white/50 text-xs mb-4">Select all that apply. Conditions can be stacked.</p>
+              <p className="text-white/50 text-xs mb-4">Select all that apply.</p>
 
               <div className="flex flex-wrap gap-2">
-                {WELLNESS_GOALS.map((goal) => (
+                {CAT_WELLNESS_GOALS.map((goal) => (
                   <PillButton key={goal} active={form.wellnessGoals.includes(goal)} onClick={() => toggleGoal(goal)}>
                     {form.wellnessGoals.includes(goal) && <Check className="h-3 w-3" />}
                     {goal}
@@ -506,7 +479,7 @@ export default function DogProfileSetup() {
 
               <div>
                 <label className="text-white/60 text-xs mb-1 block">Allergies (comma-separated)</label>
-                <input className={inputClass()} placeholder="e.g. chicken, beef, dairy" value={form.allergies} onChange={(e) => set("allergies", e.target.value)} />
+                <input className={inputClass()} placeholder="e.g. fish, dairy, chicken" value={form.allergies} onChange={(e) => set("allergies", e.target.value)} />
               </div>
 
               <div>
@@ -526,7 +499,7 @@ export default function DogProfileSetup() {
                 <label className="text-white/60 text-xs mb-1 block">Veterinarian Dietary Restrictions</label>
                 <textarea
                   className={`${inputClass()} resize-none h-20`}
-                  placeholder="e.g. Low phosphorus, avoid chicken per vet recommendation"
+                  placeholder="e.g. Low phosphorus, prescription kidney diet"
                   value={form.vetDietaryRestrictions}
                   onChange={(e) => set("vetDietaryRestrictions", e.target.value)}
                 />
@@ -534,15 +507,15 @@ export default function DogProfileSetup() {
 
               <div>
                 <label className="text-white/60 text-xs mb-1 block">Medications (comma-separated, optional)</label>
-                <input className={inputClass()} placeholder="e.g. Apoquel, Galliprant" value={form.medications} onChange={(e) => set("medications", e.target.value)} />
-                <p className="text-white/30 text-[10px] mt-1">No dosage or drug interaction analysis is performed. For nutrition awareness only.</p>
+                <input className={inputClass()} placeholder="e.g. Methimazole, Prednisolone" value={form.medications} onChange={(e) => set("medications", e.target.value)} />
+                <p className="text-white/30 text-[10px] mt-1">For nutrition awareness only. No drug interaction analysis performed.</p>
               </div>
 
               <div>
                 <label className="text-white/60 text-xs mb-1 block">Behavior Notes (optional)</label>
                 <textarea
                   className={`${inputClass()} resize-none h-20`}
-                  placeholder="e.g. Picky eater, food anxiety, gulps food quickly"
+                  placeholder="e.g. Picky eater, only eats pâté, food aggression"
                   value={form.behaviorNotes}
                   onChange={(e) => set("behaviorNotes", e.target.value)}
                 />
@@ -564,10 +537,9 @@ export default function DogProfileSetup() {
                 <h2 className="text-white font-bold text-base">Add Photos of {profileName}</h2>
               </div>
               <p className="text-white/50 text-xs leading-relaxed">
-                Your dog's photos will appear on meal cards, giving every recipe a personal visual identity. Up to 4 photos.
+                Add a photo so {profileName}'s profile card shows their face. Up to 4 photos.
               </p>
 
-              {/* Photo grid */}
               <div className="grid grid-cols-2 gap-3">
                 {images.map((img, idx) => (
                   <div key={idx} className="relative rounded-xl overflow-hidden aspect-square border border-white/15">
@@ -616,6 +588,8 @@ export default function DogProfileSetup() {
                 )}
               </div>
 
+              {uploadError && <p className="text-red-300 text-xs">{uploadError}</p>}
+
               <input
                 ref={fileInputRef}
                 type="file"
@@ -624,68 +598,28 @@ export default function DogProfileSetup() {
                 onChange={handleImagePick}
               />
 
-              {uploadError && (
-                <div className="bg-red-900/30 border border-red-500/30 rounded-xl p-3">
-                  <p className="text-red-300 text-xs">{uploadError}</p>
-                </div>
-              )}
-
-              <p className="text-white/30 text-[10px] leading-relaxed">
-                First photo uploaded becomes the primary — it appears on profile cards and meal collections. You can change this anytime.
-              </p>
+              <PillButton onClick={() => setLocation("/companion/cats")}>
+                Done — Go to My Cats
+              </PillButton>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Navigation */}
-        <div className="flex gap-3 mt-8">
-          {step === 5 ? (
-            <>
-              <PillButton onClick={() => setLocation("/companion")} className="flex-1">
-                {images.length > 0 ? "Done" : "Skip for Now"}
+        {/* Footer nav */}
+        {step < 5 && (
+          <div className="mt-8 flex justify-end">
+            {step < 4 ? (
+              <PillButton
+                onClick={() => setStep(step + 1)}
+                disabled={!canAdvance()}
+              >
+                Next <ArrowLeft className="h-3 w-3 rotate-180" />
               </PillButton>
-            </>
-          ) : step > 1 ? (
-            <>
-              <PillButton onClick={() => setStep((s) => s - 1)} className="flex-1">
-                <ArrowLeft className="h-3 w-3" /> Back
+            ) : (
+              <PillButton onClick={handleSave} disabled={saving}>
+                {saving ? "Saving…" : isEdit ? "Save Changes" : "Save & Add Photos"}
               </PillButton>
-              {step < TOTAL_STEPS - 1 ? (
-                <PillButton
-                  onClick={() => setStep((s) => s + 1)}
-                  className="flex-1"
-                  disabled={!canAdvance()}
-                >
-                  Next <ArrowRight className="h-3 w-3" />
-                </PillButton>
-              ) : (
-                <PillButton onClick={handleSave} className="flex-1" disabled={saving}>
-                  {saving ? "Saving..." : isEdit ? "Save Changes" : "Save & Add Photos →"}
-                </PillButton>
-              )}
-            </>
-          ) : (
-            <PillButton
-              onClick={() => setStep((s) => s + 1)}
-              className="flex-1"
-              disabled={!canAdvance()}
-            >
-              Next <ArrowRight className="h-3 w-3" />
-            </PillButton>
-          )}
-        </div>
-
-        {/* Save & Exit shortcut — edit mode only, steps 1–3 */}
-        {isEdit && step < TOTAL_STEPS - 1 && step !== 5 && (
-          <div className="mt-3">
-            <PillButton
-              onClick={handleSave}
-              disabled={saving}
-              className="w-full"
-            >
-              <Check className="h-3 w-3" />
-              {saving ? "Saving..." : "Save & Exit"}
-            </PillButton>
+            )}
           </div>
         )}
       </div>

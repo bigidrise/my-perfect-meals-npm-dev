@@ -28,6 +28,7 @@ function getFeatureNameFromPath(path: string): string {
     "/sushi-creator": "Sushi Creator",
     "/social-hub": "Restaurant Guide",
     "/companion": "My Perfect Pets",
+    "/companion/dogs": "My Perfect Pets — Dogs",
     "/gatherings": "My Perfect Gatherings",
     "/pairings": "Chef Pairings",
     "/pairings-hub": "Chef Pairings Hub",
@@ -286,10 +287,13 @@ import SupplementHub from "@/pages/supplement-hub";
 import SupplementEducationPage from "@/pages/supplement-education";
 
 // Companion Nutrition Intelligence (My Perfect Pets)
+import PetsHub from "@/pages/PetsHub";
 import CompanionNutritionHub from "@/pages/CompanionNutritionHub";
 import DogProfileSetup from "@/pages/companion/DogProfileSetup";
 import CompanionMealGenerator from "@/pages/companion/CompanionMealGenerator";
 import DogIngredientScanner from "@/pages/companion/DogIngredientScanner";
+import CatNutritionHub from "@/pages/companion/CatNutritionHub";
+import CatProfileSetup from "@/pages/companion/CatProfileSetup";
 
 // Admin Dashboard
 import AdminDashboard from "@/pages/AdminDashboard";
@@ -353,10 +357,13 @@ const GuardedPairingsHub = () => <ProGuard component={PairingsHub} />;
 const GuardedPairingsAI = () => <ProGuard component={PairingsAI} />;
 const GuardedWineListHelper = () => <ProGuard component={WineListHelper} />;
 const GuardedReduceDrinkingPlan = () => <ProGuard component={ReduceDrinkingPlan} />;
+const GuardedPetsHub = () => <ProGuard component={PetsHub} />;
 const GuardedCompanionHub = () => <ProGuard component={CompanionNutritionHub} />;
 const GuardedDogProfileSetup = () => <ProGuard component={DogProfileSetup} />;
 const GuardedCompanionMealGenerator = () => <ProGuard component={CompanionMealGenerator} />;
 const GuardedDogIngredientScanner = () => <ProGuard component={DogIngredientScanner} />;
+const GuardedCatNutritionHub = () => <ProGuard component={CatNutritionHub} />;
+const GuardedCatProfileSetup = () => <ProGuard component={CatProfileSetup} />;
 const GuardedSocializingHub = () => <ProGuard component={SocializingHub} />;
 const GuardedSocialFindMeals = () => <ProGuard component={SocialFindMeals} />;
 const GuardedSocialRestaurantGuide = () => <ProGuard component={SocialRestaurantGuide} />;
@@ -577,11 +584,16 @@ export default function Router() {
         <Route path="/craving-creator" component={GuardedCravingCreator} />
         <Route path="/fridge-rescue" component={FridgeRescuePage} />
         {/* Companion Nutrition Intelligence (My Perfect Pets) — Pro+ */}
-        <Route path="/companion" component={GuardedCompanionHub} />
+        <Route path="/companion" component={GuardedPetsHub} />
+        <Route path="/companion/dogs" component={GuardedCompanionHub} />
         <Route path="/companion/setup" component={GuardedDogProfileSetup} />
         <Route path="/companion/setup/:id" component={GuardedDogProfileSetup} />
         <Route path="/companion/generator" component={GuardedCompanionMealGenerator} />
         <Route path="/companion/scanner" component={GuardedDogIngredientScanner} />
+        <Route path="/companion/cats" component={GuardedCatNutritionHub} />
+        <Route path="/companion/cat-setup" component={GuardedCatProfileSetup} />
+        <Route path="/companion/cat-setup/:id" component={GuardedCatProfileSetup} />
+        <Route path="/companion/cat-generator" component={GuardedCompanionMealGenerator} />
         <Route path="/ab-testing-demo" component={ABTestingDemo} />
         {/* DELETED: HolidayFeastPlannerPage, MealFinderPage, BreakfastMealsHub, LunchMealsHub, DinnerMealsHub, SnacksMealsHub, CulturalCuisinesPage, VegetableFiberInfo, PotluckPlanner, RestaurantGuide (old) routes */}
         {/* Socializing Hub Routes — Pro+ */}

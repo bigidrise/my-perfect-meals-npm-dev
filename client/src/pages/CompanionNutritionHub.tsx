@@ -18,7 +18,7 @@ import { ShoppingIngredientSheet } from "@/components/shopping/ShoppingIngredien
 import { saveProductScan } from "@/lib/shoppingScanStorage";
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 
-const COMPANION_HERO = "/images/companion-hero.png";
+const COMPANION_HERO = "/images/dog-wellness-hero.png";
 const PREMIUM_MSG = "My Perfect Pets is a premium feature. Upgrade to access personalized dog nutrition.";
 
 export const DOG_MEAL_IMAGES = [
@@ -53,6 +53,9 @@ interface DogProfile {
   breed: string;
   isMixedBreed: boolean;
   ageYears: number;
+  ageMonths?: number;
+  sex?: string;
+  isNeutered?: boolean;
   weightLbs: number;
   wellnessGoals: string[];
   photoUrl?: string;
@@ -216,26 +219,17 @@ export default function CompanionNutritionHub() {
         </div>
       </MobileHeaderGuard>
 
-      {/* Back button — always visible */}
-      <div className="flex max-w-2xl mx-auto px-4 pt-6 pb-0">
-        <PillButton onClick={() => window.history.back()}>
-          <ArrowLeft className="h-3 w-3" /> Back
-        </PillButton>
-      </div>
+      <div className="max-w-2xl mx-auto px-4" style={{ paddingTop: "5rem" }}>
 
-      <div className="max-w-2xl mx-auto px-4" style={{ paddingTop: "1rem" }}>
+        <div className="mb-4">
+          <PillButton onClick={() => setLocation("/companion")}>
+            <ArrowLeft className="h-3 w-3" /> Back
+          </PillButton>
+        </div>
 
         {/* Hero */}
         <div className="relative h-52 rounded-2xl overflow-hidden mb-3">
-          <img src={COMPANION_HERO} alt="My Perfect Pets" className="w-full h-full object-cover object-top" />
-        </div>
-
-        {/* Info card */}
-        <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-3 mb-5">
-          <p className="text-white font-semibold text-sm">Companion Nutrition Intelligence</p>
-          <p className="text-white/65 text-xs mt-1 leading-relaxed">
-            The same adaptive protocol engine that powers your meals — now for your dog.
-          </p>
+          <img src={COMPANION_HERO} alt="My Perfect Pets" className="w-full h-full object-cover" style={{ objectPosition: "center 72%" }} />
         </div>
 
         {/* Quick Actions */}
@@ -297,13 +291,30 @@ export default function CompanionNutritionHub() {
                     <div className="p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <div className="w-11 h-11 rounded-full bg-orange-500/20 border border-orange-400/30 flex items-center justify-center flex-shrink-0">
-                            <PawPrint className="h-5 w-5 text-orange-400" />
-                          </div>
+                          {/* Avatar: primary photo or paw-icon fallback */}
+                          {profile.images && profile.images.length > 0 ? (
+                            <img
+                              src={profile.images[0]}
+                              alt={profile.name}
+                              className="w-16 h-16 rounded-full object-cover border-2 border-orange-400/40 flex-shrink-0"
+                            />
+                          ) : (
+                            <button
+                              onClick={() => guardAction(PREMIUM_MSG, () => setLocation(`/companion/setup/${profile.id}?photos=true`))}
+                              className="w-16 h-16 rounded-full bg-orange-500/20 border-2 border-dashed border-orange-400/40 flex flex-col items-center justify-center flex-shrink-0 gap-0.5"
+                            >
+                              <Camera className="h-5 w-5 text-orange-400" />
+                              <span className="text-orange-300 text-[8px] font-semibold leading-none">Add Photo</span>
+                            </button>
+                          )}
                           <div className="min-w-0">
-                            <p className="text-white font-semibold text-sm">{profile.name}</p>
-                            <p className="text-white/50 text-xs truncate">
-                              {profile.breed}{profile.isMixedBreed ? " Mix" : ""} · {profile.ageYears}yr · {profile.weightLbs}lbs
+                            <p className="text-white font-bold text-sm leading-tight">{profile.name}</p>
+                            <p className="text-white/60 text-xs mt-0.5">
+                              {profile.breed}{profile.isMixedBreed ? " Mix" : ""}
+                            </p>
+                            <p className="text-white/50 text-xs">
+                              {profile.sex ? `${profile.sex} · ` : ""}{profile.ageYears}yr · {profile.weightLbs} lbs
+                              {profile.isNeutered ? " · Neutered/Spayed" : ""}
                             </p>
                             {Array.isArray(profile.wellnessGoals) && profile.wellnessGoals.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-1.5">
@@ -386,6 +397,14 @@ export default function CompanionNutritionHub() {
               })}
             </div>
           )}
+        </div>
+
+        {/* Companion Nutrition Intelligence — moved below profile cards */}
+        <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-3 mb-6">
+          <p className="text-white font-semibold text-sm">Companion Nutrition Intelligence</p>
+          <p className="text-white/65 text-xs mt-1 leading-relaxed">
+            The same adaptive protocol engine that powers your meals — now for your dog.
+          </p>
         </div>
 
         {/* ── In Memory ──────────────────────────────────────── */}
