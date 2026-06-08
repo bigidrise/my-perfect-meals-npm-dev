@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { ArrowLeft, TrendingUp, Users, Building2, HeartPulse, ChevronRight, Handshake } from "lucide-react";
+import { ArrowLeft, TrendingUp, Users, Building2, HeartPulse, ChevronRight, Handshake, ChefHat } from "lucide-react";
 import { motion } from "framer-motion";
 
 const sections = [
@@ -18,6 +18,14 @@ const sections = [
     icon: Users,
     color: "blue",
     route: "/procare-welcome",
+  },
+  {
+    id: "creator-brand",
+    title: "Creator & Brand Studio",
+    description: "Build a custom branded experience for chefs, supplement companies, beverage brands, culinary creators, and strategic partners",
+    icon: ChefHat,
+    color: "orange",
+    route: "/creator-studio",
   },
   {
     id: "industry",

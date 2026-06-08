@@ -427,13 +427,12 @@ export default function LifestyleLandingPage() {
               );
             })}
           </div>
-          {/* Creator Studio Card — visible to all users */}
-          <div data-testid="card-creator-system-teaser" className="relative mt-2">
-            {user?.isCreator ? (
+          {/* Active creator shortcut — only shown to existing creators */}
+          {user?.isCreator && (
+            <div data-testid="card-creator-studio" className="relative mt-2">
               <Card
                 className="relative rounded-xl shadow-md overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 hover:scale-[1.02] bg-gradient-to-r from-black via-orange-950/40 to-black backdrop-blur-lg border border-orange-400/30 hover:shadow-[0_0_30px_rgba(251,146,60,0.3)] hover:border-orange-500/50"
                 onClick={() => setLocation("/creator/studio")}
-                data-testid="card-creator-studio"
               >
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
@@ -455,41 +454,8 @@ export default function LifestyleLandingPage() {
                   </div>
                 </CardContent>
               </Card>
-            ) : (
-              <Card
-                className="relative rounded-xl shadow-sm overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 hover:scale-[1.02] bg-black/30 backdrop-blur-lg border border-orange-400/20 hover:border-orange-500/40"
-                onClick={() => setLocation("/creator-studio")}
-                data-testid="card-creator-studio-teaser"
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-orange-500/20 mt-0.5 flex-shrink-0">
-                      <ChefHat className="h-4 w-4 text-orange-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-sm font-semibold text-white">
-                          Creator Studio
-                        </h3>
-                        <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">
-                          Premium
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-white/70 mt-0.5 font-medium">
-                        Chef Studio · Brand Beverage Studio
-                      </p>
-                      <p className="text-xs text-white/60 mt-1.5 leading-relaxed">
-                        We build a custom system inside My Perfect Meals — your style, your identity, your audience.
-                      </p>
-                      <div className="flex items-center gap-1 mt-2.5 text-xs text-orange-400 font-medium">
-                        View & Apply <ArrowRight className="h-3 w-3" />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </motion.div>
