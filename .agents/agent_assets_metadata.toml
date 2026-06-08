@@ -54,6 +54,12 @@ uri = "file://server/assets/cert-signature.png"
 type = "image"
 title = "Idrise Ward-EL signature"
 
+[[generated]]
+id = "E21-DmWyjpM6JgHoWcuUy"
+uri = "file://public/images/dog-wellness-hero.png"
+type = "image"
+title = "misty forest trail dog walker hero"
+
 [[outputs]]
 id = "-FON7OPnx1Y51w6BHr36p"
 uri = "file://downloads/Chef-Nolan-Kitchen-Landing.png"
@@ -213,3 +219,9 @@ id = "q2nMyNBoi41IQ11-tj9t6"
 uri = "file://attached_assets/image_search/dog_hero_d4.jpg"
 type = "image"
 title = "Attractive young woman with dog outdoors. Gril on a green grass with labrador retriever."
+
+[[outputs]]
+id = "kwnLilPbPAX4KRaGlzAeY"
+uri = "file://public/images/dog-wellness-hero.png"
+type = "image"
+title = "Dog Wellness Hero — Misty Forest Trail"
