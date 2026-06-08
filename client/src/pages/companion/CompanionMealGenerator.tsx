@@ -169,7 +169,7 @@ export default function CompanionMealGenerator() {
         >
           <div className="px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <PillButton onClick={() => setLocation("/companion")}>
+              <PillButton onClick={() => setLocation("/companion/dogs")}>
                 <ArrowLeft className="h-3 w-3" /> Back
               </PillButton>
               <h1 className="text-sm font-bold text-white">Meal Generator</h1>
@@ -181,7 +181,7 @@ export default function CompanionMealGenerator() {
 
       {/* Desktop back button */}
       <div className="hidden md:flex max-w-lg mx-auto px-4 pt-6 pb-0">
-        <PillButton onClick={() => setLocation("/companion")}>
+        <PillButton onClick={() => setLocation("/companion/dogs")}>
           <ArrowLeft className="h-3 w-3" /> Back to My Perfect Pets
         </PillButton>
       </div>

@@ -28,6 +28,7 @@ function getFeatureNameFromPath(path: string): string {
     "/sushi-creator": "Sushi Creator",
     "/social-hub": "Restaurant Guide",
     "/companion": "My Perfect Pets",
+    "/companion/dogs": "My Perfect Pets — Dogs",
     "/gatherings": "My Perfect Gatherings",
     "/pairings": "Chef Pairings",
     "/pairings-hub": "Chef Pairings Hub",
@@ -286,6 +287,7 @@ import SupplementHub from "@/pages/supplement-hub";
 import SupplementEducationPage from "@/pages/supplement-education";
 
 // Companion Nutrition Intelligence (My Perfect Pets)
+import PetsHub from "@/pages/PetsHub";
 import CompanionNutritionHub from "@/pages/CompanionNutritionHub";
 import DogProfileSetup from "@/pages/companion/DogProfileSetup";
 import CompanionMealGenerator from "@/pages/companion/CompanionMealGenerator";
@@ -353,6 +355,7 @@ const GuardedPairingsHub = () => <ProGuard component={PairingsHub} />;
 const GuardedPairingsAI = () => <ProGuard component={PairingsAI} />;
 const GuardedWineListHelper = () => <ProGuard component={WineListHelper} />;
 const GuardedReduceDrinkingPlan = () => <ProGuard component={ReduceDrinkingPlan} />;
+const GuardedPetsHub = () => <ProGuard component={PetsHub} />;
 const GuardedCompanionHub = () => <ProGuard component={CompanionNutritionHub} />;
 const GuardedDogProfileSetup = () => <ProGuard component={DogProfileSetup} />;
 const GuardedCompanionMealGenerator = () => <ProGuard component={CompanionMealGenerator} />;
@@ -577,7 +580,8 @@ export default function Router() {
         <Route path="/craving-creator" component={GuardedCravingCreator} />
         <Route path="/fridge-rescue" component={FridgeRescuePage} />
         {/* Companion Nutrition Intelligence (My Perfect Pets) — Pro+ */}
-        <Route path="/companion" component={GuardedCompanionHub} />
+        <Route path="/companion" component={GuardedPetsHub} />
+        <Route path="/companion/dogs" component={GuardedCompanionHub} />
         <Route path="/companion/setup" component={GuardedDogProfileSetup} />
         <Route path="/companion/setup/:id" component={GuardedDogProfileSetup} />
         <Route path="/companion/generator" component={GuardedCompanionMealGenerator} />

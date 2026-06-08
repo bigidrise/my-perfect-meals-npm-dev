@@ -243,7 +243,7 @@ export default function DogProfileSetup() {
         throw new Error(data.error || "Save failed");
       }
 
-      setLocation("/companion");
+      setLocation("/companion/dogs");
     } catch (e: any) {
       setError(e.message || "Something went wrong. Please try again.");
     } finally {
