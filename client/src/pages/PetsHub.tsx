@@ -52,7 +52,7 @@ export default function PetsHub() {
         </div>
       </MobileHeaderGuard>
 
-      <div className="max-w-2xl mx-auto px-4" style={{ paddingTop: "5rem" }}>
+      <div className="max-w-2xl mx-auto px-4" style={{ paddingTop: "calc(5rem + env(safe-area-inset-top, 0px))" }}>
 
         {/* Back */}
         <div className="mb-4">
