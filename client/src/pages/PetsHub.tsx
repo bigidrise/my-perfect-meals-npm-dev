@@ -62,21 +62,21 @@ export default function PetsHub() {
         </div>
 
         {/* Hero */}
-        <div className="relative h-48 rounded-2xl overflow-hidden mb-5">
+        <div className="relative h-48 rounded-2xl overflow-hidden mb-4">
           <img
             src={DOG_HERO}
             alt="My Perfect Pets"
             className="w-full h-full object-cover object-top"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-          <div className="absolute bottom-4 left-4 right-4">
-            <div className="bg-black/55 backdrop-blur-sm rounded-xl px-3 py-2.5">
-              <p className="text-white font-semibold text-sm">Companion Nutrition Intelligence</p>
-              <p className="text-white/70 text-xs mt-0.5">
-                The same adaptive protocol engine that powers your meals — now for your pets.
-              </p>
-            </div>
-          </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
+        </div>
+
+        {/* Companion Nutrition Intelligence banner */}
+        <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-3 mb-5">
+          <p className="text-white font-semibold text-sm">Companion Nutrition Intelligence</p>
+          <p className="text-white/65 text-xs mt-1 leading-relaxed">
+            The same adaptive protocol engine that powers your meals — now for your pets.
+          </p>
         </div>
 
         {/* Choose Your Pet */}
