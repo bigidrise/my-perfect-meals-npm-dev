@@ -11,7 +11,7 @@ const pets = [
     id: "dog",
     emoji: "🐕",
     title: "Dogs",
-    subtitle: "Companion Nutrition Intelligence",
+    subtitle: "Canine Nutrition Intelligence",
     description:
       "Personalized homemade meals, treats, and ingredient safety — built on the same adaptive protocol engine as your own nutrition.",
     route: "/companion/dogs",
