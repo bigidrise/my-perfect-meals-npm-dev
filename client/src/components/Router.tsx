@@ -292,6 +292,8 @@ import CompanionNutritionHub from "@/pages/CompanionNutritionHub";
 import DogProfileSetup from "@/pages/companion/DogProfileSetup";
 import CompanionMealGenerator from "@/pages/companion/CompanionMealGenerator";
 import DogIngredientScanner from "@/pages/companion/DogIngredientScanner";
+import CatNutritionHub from "@/pages/companion/CatNutritionHub";
+import CatProfileSetup from "@/pages/companion/CatProfileSetup";
 
 // Admin Dashboard
 import AdminDashboard from "@/pages/AdminDashboard";
@@ -360,6 +362,8 @@ const GuardedCompanionHub = () => <ProGuard component={CompanionNutritionHub} />
 const GuardedDogProfileSetup = () => <ProGuard component={DogProfileSetup} />;
 const GuardedCompanionMealGenerator = () => <ProGuard component={CompanionMealGenerator} />;
 const GuardedDogIngredientScanner = () => <ProGuard component={DogIngredientScanner} />;
+const GuardedCatNutritionHub = () => <ProGuard component={CatNutritionHub} />;
+const GuardedCatProfileSetup = () => <ProGuard component={CatProfileSetup} />;
 const GuardedSocializingHub = () => <ProGuard component={SocializingHub} />;
 const GuardedSocialFindMeals = () => <ProGuard component={SocialFindMeals} />;
 const GuardedSocialRestaurantGuide = () => <ProGuard component={SocialRestaurantGuide} />;
@@ -586,6 +590,10 @@ export default function Router() {
         <Route path="/companion/setup/:id" component={GuardedDogProfileSetup} />
         <Route path="/companion/generator" component={GuardedCompanionMealGenerator} />
         <Route path="/companion/scanner" component={GuardedDogIngredientScanner} />
+        <Route path="/companion/cats" component={GuardedCatNutritionHub} />
+        <Route path="/companion/cat-setup" component={GuardedCatProfileSetup} />
+        <Route path="/companion/cat-setup/:id" component={GuardedCatProfileSetup} />
+        <Route path="/companion/cat-generator" component={GuardedCompanionMealGenerator} />
         <Route path="/ab-testing-demo" component={ABTestingDemo} />
         {/* DELETED: HolidayFeastPlannerPage, MealFinderPage, BreakfastMealsHub, LunchMealsHub, DinnerMealsHub, SnacksMealsHub, CulturalCuisinesPage, VegetableFiberInfo, PotluckPlanner, RestaurantGuide (old) routes */}
         {/* Socializing Hub Routes — Pro+ */}

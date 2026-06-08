@@ -60,6 +60,12 @@ uri = "file://public/images/dog-wellness-hero.png"
 type = "image"
 title = "dog walker trail medium shot hero"
 
+[[generated]]
+id = "i8oG0gX1s7HBifb2175jQ"
+uri = "file://public/images/cat-wellness-hero.png"
+type = "image"
+title = "cat wellness hero cozy window"
+
 [[outputs]]
 id = "-FON7OPnx1Y51w6BHr36p"
 uri = "file://downloads/Chef-Nolan-Kitchen-Landing.png"
