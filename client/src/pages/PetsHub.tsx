@@ -56,7 +56,7 @@ export default function PetsHub() {
 
         {/* Back */}
         <div className="mb-4">
-          <PillButton onClick={() => window.history.back()}>
+          <PillButton onClick={() => setLocation("/lifestyle")}>
             <ArrowLeft className="h-3 w-3" /> Back
           </PillButton>
         </div>
