@@ -230,7 +230,7 @@ export default function CompanionNutritionHub() {
 
         {/* Hero */}
         <div className="relative h-52 rounded-2xl overflow-hidden mb-3">
-          <img src={COMPANION_HERO} alt="My Perfect Pets" className="w-full h-full object-cover" style={{ objectPosition: "center 65%" }} />
+          <img src={COMPANION_HERO} alt="My Perfect Pets" className="w-full h-full object-cover" style={{ objectPosition: "center 55%" }} />
         </div>
 
         {/* Quick Actions */}
