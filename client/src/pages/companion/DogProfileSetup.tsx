@@ -367,7 +367,7 @@ export default function DogProfileSetup() {
         </div>
       </MobileHeaderGuard>
 
-      <div className="max-w-lg mx-auto px-4" style={{ paddingTop: "5rem" }}>
+      <div className="max-w-lg mx-auto px-4" style={{ paddingTop: "calc(5rem + env(safe-area-inset-top, 0px))" }}>
 
         <div className="mb-4">
           <PillButton onClick={() => step > 1 && step < 5 ? setStep((s) => s - 1) : setLocation("/companion/dogs")}>

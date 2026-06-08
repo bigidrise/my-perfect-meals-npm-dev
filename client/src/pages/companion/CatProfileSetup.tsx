@@ -345,7 +345,7 @@ export default function CatProfileSetup() {
         </div>
       </MobileHeaderGuard>
 
-      <div className="max-w-lg mx-auto px-4" style={{ paddingTop: "5rem" }}>
+      <div className="max-w-lg mx-auto px-4" style={{ paddingTop: "calc(5rem + env(safe-area-inset-top, 0px))" }}>
         <div className="mb-4">
           <PillButton onClick={() => step > 1 ? setStep(step - 1) : setLocation("/companion/cats")}>
             <ArrowLeft className="h-3 w-3" /> {step > 1 ? "Back" : "My Cats"}
