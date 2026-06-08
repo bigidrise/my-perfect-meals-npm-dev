@@ -18,7 +18,7 @@ import { ShoppingIngredientSheet } from "@/components/shopping/ShoppingIngredien
 import { saveProductScan } from "@/lib/shoppingScanStorage";
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 
-const COMPANION_HERO = "/images/companion-hero.png";
+const COMPANION_HERO = "/images/dog-wellness-hero.png";
 const PREMIUM_MSG = "My Perfect Pets is a premium feature. Upgrade to access personalized dog nutrition.";
 
 export const DOG_MEAL_IMAGES = [
