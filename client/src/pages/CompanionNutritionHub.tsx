@@ -219,14 +219,13 @@ export default function CompanionNutritionHub() {
         </div>
       </MobileHeaderGuard>
 
-      {/* Back button — always visible */}
-      <div className="flex max-w-2xl mx-auto px-4 pt-6 pb-0">
-        <PillButton onClick={() => window.history.back()}>
-          <ArrowLeft className="h-3 w-3" /> Back
-        </PillButton>
-      </div>
+      <div className="max-w-2xl mx-auto px-4" style={{ paddingTop: "5rem" }}>
 
-      <div className="max-w-2xl mx-auto px-4" style={{ paddingTop: "1rem" }}>
+        <div className="mb-4">
+          <PillButton onClick={() => window.history.back()}>
+            <ArrowLeft className="h-3 w-3" /> Back
+          </PillButton>
+        </div>
 
         {/* Hero */}
         <div className="relative h-52 rounded-2xl overflow-hidden mb-3">
