@@ -233,14 +233,6 @@ export default function CompanionNutritionHub() {
           <img src={COMPANION_HERO} alt="My Perfect Pets" className="w-full h-full object-cover object-top" />
         </div>
 
-        {/* Info card */}
-        <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-3 mb-5">
-          <p className="text-white font-semibold text-sm">Companion Nutrition Intelligence</p>
-          <p className="text-white/65 text-xs mt-1 leading-relaxed">
-            The same adaptive protocol engine that powers your meals — now for your dog.
-          </p>
-        </div>
-
         {/* Quick Actions */}
         <div className="grid grid-cols-3 gap-3 mb-6">
           {[
@@ -308,9 +300,13 @@ export default function CompanionNutritionHub() {
                               className="w-16 h-16 rounded-full object-cover border-2 border-orange-400/40 flex-shrink-0"
                             />
                           ) : (
-                            <div className="w-16 h-16 rounded-full bg-orange-500/20 border-2 border-orange-400/30 flex items-center justify-center flex-shrink-0">
-                              <PawPrint className="h-7 w-7 text-orange-400" />
-                            </div>
+                            <button
+                              onClick={() => guardAction(PREMIUM_MSG, () => setLocation(`/companion/setup/${profile.id}`))}
+                              className="w-16 h-16 rounded-full bg-orange-500/20 border-2 border-dashed border-orange-400/40 flex flex-col items-center justify-center flex-shrink-0 gap-0.5"
+                            >
+                              <Camera className="h-5 w-5 text-orange-400" />
+                              <span className="text-orange-300 text-[8px] font-semibold leading-none">Add Photo</span>
+                            </button>
                           )}
                           <div className="min-w-0">
                             <p className="text-white font-bold text-sm leading-tight">{profile.name}</p>
@@ -402,6 +398,14 @@ export default function CompanionNutritionHub() {
               })}
             </div>
           )}
+        </div>
+
+        {/* Companion Nutrition Intelligence — moved below profile cards */}
+        <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-3 mb-6">
+          <p className="text-white font-semibold text-sm">Companion Nutrition Intelligence</p>
+          <p className="text-white/65 text-xs mt-1 leading-relaxed">
+            The same adaptive protocol engine that powers your meals — now for your dog.
+          </p>
         </div>
 
         {/* ── In Memory ──────────────────────────────────────── */}
