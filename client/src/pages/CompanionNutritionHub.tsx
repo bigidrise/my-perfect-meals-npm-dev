@@ -222,7 +222,7 @@ export default function CompanionNutritionHub() {
       <div className="max-w-2xl mx-auto px-4" style={{ paddingTop: "5rem" }}>
 
         <div className="mb-4">
-          <PillButton onClick={() => window.history.back()}>
+          <PillButton onClick={() => setLocation("/companion")}>
             <ArrowLeft className="h-3 w-3" /> Back
           </PillButton>
         </div>
