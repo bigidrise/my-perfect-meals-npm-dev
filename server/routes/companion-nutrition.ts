@@ -70,15 +70,22 @@ async function getProfileImages(profileId: string): Promise<string[]> {
 }
 
 // GET /api/companion/profiles — returns all profiles with their images
+// Optional ?type=dog|cat filter
 router.get("/profiles", requireAuth, async (req, res) => {
   try {
     const userId = resolveUserId(req);
     if (!userId) return res.json({ profiles: [] });
 
+    const petTypeFilter = req.query.type as string | undefined;
+
     const rows = await db
       .select()
       .from(companionProfiles)
-      .where(eq(companionProfiles.userId, userId))
+      .where(
+        petTypeFilter
+          ? and(eq(companionProfiles.userId, userId), eq(companionProfiles.petType, petTypeFilter))
+          : eq(companionProfiles.userId, userId)
+      )
       .orderBy(companionProfiles.createdAt);
 
     const profilesWithImages = await Promise.all(
@@ -91,7 +98,7 @@ router.get("/profiles", requireAuth, async (req, res) => {
     res.json({ profiles: profilesWithImages });
   } catch (err) {
     console.error("[companion] GET profiles error:", err);
-    res.status(500).json({ error: "Failed to fetch dog profiles" });
+    res.status(500).json({ error: "Failed to fetch profiles" });
   }
 });
 
@@ -113,7 +120,7 @@ router.post("/profiles", requireAuth, async (req, res) => {
     }
 
     const {
-      name, breed, isMixedBreed, ageYears, ageMonths, sex, isNeutered,
+      petType, name, breed, isMixedBreed, ageYears, ageMonths, sex, isNeutered,
       weightLbs, goalWeightLbs, activityLevel, bodyConditionScore,
       foodSensitivities, allergies, currentDietType, treatsPerDay,
       behaviorNotes, vetDietaryRestrictions, medications, wellnessGoals, photoUrl,
@@ -127,6 +134,7 @@ router.post("/profiles", requireAuth, async (req, res) => {
       .insert(companionProfiles)
       .values({
         userId,
+        petType: petType ?? "dog",
         name,
         breed,
         isMixedBreed: isMixedBreed ?? false,

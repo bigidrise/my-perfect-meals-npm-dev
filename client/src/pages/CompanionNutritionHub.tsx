@@ -301,7 +301,7 @@ export default function CompanionNutritionHub() {
                             />
                           ) : (
                             <button
-                              onClick={() => guardAction(PREMIUM_MSG, () => setLocation(`/companion/setup/${profile.id}`))}
+                              onClick={() => guardAction(PREMIUM_MSG, () => setLocation(`/companion/setup/${profile.id}?photos=true`))}
                               className="w-16 h-16 rounded-full bg-orange-500/20 border-2 border-dashed border-orange-400/40 flex flex-col items-center justify-center flex-shrink-0 gap-0.5"
                             >
                               <Camera className="h-5 w-5 text-orange-400" />

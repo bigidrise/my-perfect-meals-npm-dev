@@ -200,6 +200,9 @@ async function initializeApp() {
           await database.execute(
             sql`ALTER TABLE user_certifications ADD COLUMN IF NOT EXISTS updates_pending integer DEFAULT 0`,
           );
+          await database.execute(
+            sql`ALTER TABLE companion_profiles ADD COLUMN IF NOT EXISTS pet_type text DEFAULT 'dog'`,
+          );
           // LMS content tables
           await database.execute(sql`
             CREATE TABLE IF NOT EXISTS cert_modules (

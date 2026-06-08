@@ -24,10 +24,10 @@ const pets = [
     title: "Cats",
     subtitle: "Feline Nutrition Intelligence",
     description:
-      "Coming soon — obligate carnivore meal planning, taurine-optimized recipes, and cat-safe ingredient scanning.",
-    route: null,
-    available: false,
-    badge: "Coming Soon",
+      "Obligate carnivore meal planning, taurine-optimized recipes, and cat-safe ingredient guidance — built on the same adaptive protocol engine.",
+    route: "/companion/cats",
+    available: true,
+    badge: null,
   },
 ];
 

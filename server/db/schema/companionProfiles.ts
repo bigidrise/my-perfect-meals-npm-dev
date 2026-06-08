@@ -14,6 +14,7 @@ export const companionProfiles = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     userId: uuid("user_id").notNull(),
+    petType: text("pet_type").notNull().default("dog"),
     name: text("name").notNull(),
     breed: text("breed").notNull(),
     isMixedBreed: boolean("is_mixed_breed").notNull().default(false),

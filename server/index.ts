@@ -604,6 +604,7 @@ setTimeout(async () => {
     await db.execute(sql`ALTER TABLE certification_module_progress ADD COLUMN IF NOT EXISTS video_watched_pct integer DEFAULT 0`);
     await db.execute(sql`ALTER TABLE user_certifications ADD COLUMN IF NOT EXISTS is_current_version boolean DEFAULT true`);
     await db.execute(sql`ALTER TABLE user_certifications ADD COLUMN IF NOT EXISTS updates_pending integer DEFAULT 0`);
+    await db.execute(sql`ALTER TABLE companion_profiles ADD COLUMN IF NOT EXISTS pet_type text DEFAULT 'dog'`);
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS cert_modules (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
