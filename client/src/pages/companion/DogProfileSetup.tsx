@@ -345,9 +345,6 @@ export default function DogProfileSetup() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 py-3 flex items-center gap-3">
-            <PillButton onClick={() => step > 1 && step < 5 ? setStep((s) => s - 1) : setLocation("/companion")}>
-              <ArrowLeft className="h-3 w-3" /> {step === 5 ? "Skip" : "Back"}
-            </PillButton>
             <div>
               <h1 className="text-sm font-bold text-white">
                 {step === 5
@@ -370,16 +367,14 @@ export default function DogProfileSetup() {
         </div>
       </MobileHeaderGuard>
 
-      <div className="hidden md:flex max-w-lg mx-auto px-4 pt-6 pb-0">
-        <PillButton onClick={() => step === 5 ? setLocation("/companion") : step > 1 ? setStep((s) => s - 1) : setLocation("/companion")}>
-          <ArrowLeft className="h-3 w-3" /> {step === 5 ? "Skip & Finish" : "Back to My Perfect Pets"}
-        </PillButton>
-      </div>
+      <div className="max-w-lg mx-auto px-4" style={{ paddingTop: "5rem" }}>
 
-      <div
-        className="max-w-lg mx-auto px-4"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
-      >
+        <div className="mb-4">
+          <PillButton onClick={() => step > 1 && step < 5 ? setStep((s) => s - 1) : setLocation("/companion/dogs")}>
+            <ArrowLeft className="h-3 w-3" /> {step === 5 ? "Skip" : "Back"}
+          </PillButton>
+        </div>
+
         <AnimatePresence mode="wait">
           {/* STEP 1: Identity */}
           {step === 1 && (

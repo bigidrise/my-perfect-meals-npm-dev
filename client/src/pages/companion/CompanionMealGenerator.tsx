@@ -168,28 +168,19 @@ export default function CompanionMealGenerator() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <PillButton onClick={() => setLocation("/companion/dogs")}>
-                <ArrowLeft className="h-3 w-3" /> Back
-              </PillButton>
-              <h1 className="text-sm font-bold text-white">Meal Generator</h1>
-            </div>
+            <h1 className="text-sm font-bold text-white">Meal Generator</h1>
             <PillButton onClick={handleCopilotOpen}>How it works</PillButton>
           </div>
         </div>
       </MobileHeaderGuard>
 
-      {/* Desktop back button */}
-      <div className="hidden md:flex max-w-lg mx-auto px-4 pt-6 pb-0">
-        <PillButton onClick={() => setLocation("/companion/dogs")}>
-          <ArrowLeft className="h-3 w-3" /> Back to My Perfect Pets
-        </PillButton>
-      </div>
+      <div className="max-w-lg mx-auto px-4" style={{ paddingTop: "5rem" }}>
 
-      <div
-        className="max-w-lg mx-auto px-4"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
-      >
+        <div className="mb-4">
+          <PillButton onClick={() => setLocation("/companion/dogs")}>
+            <ArrowLeft className="h-3 w-3" /> Back
+          </PillButton>
+        </div>
         {/* Hero — uses dog's primary photo */}
         <div className="relative h-36 rounded-xl overflow-hidden mb-5">
           <img src={heroImage} alt={selectedProfile?.name || "Dog meal"} className="w-full h-full object-cover" />
