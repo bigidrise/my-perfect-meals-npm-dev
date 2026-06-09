@@ -704,12 +704,42 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
 
   "/companion": {
     pageId: "companion-hub",
-    title: "My Perfect Pets — Companion Nutrition",
+    title: "My Perfect Pets",
     description:
-      "Personalized homemade dog meals, ingredient safety scanning, and wellness nutrition — built on the same adaptive protocol engine as your own meals.",
+      "Personalized homemade meal planning and ingredient safety for your dogs and cats — built on the same adaptive protocol engine as your own nutrition.",
     spokenText:
-      "Welcome to My Perfect Pets, Companion Nutrition Intelligence. This is a premium wellness nutrition system for your dog, built directly on the same adaptive protocol engine that powers your own meals. Start by creating your dog's profile — name, breed, age, weight, and any wellness goals. From there you can generate personalized homemade meals, scan any ingredient to instantly check if it is safe for your dog, and save your favorite recipes. Every recipe is screened through the Toxic Ingredient Firewall before you see it, which means known canine toxins like chocolate, xylitol, grapes, garlic, and onions are blocked before they ever appear in a result. You can also stack wellness conditions just like your own protocol system — senior support, kidney support, anti-inflammatory, joint wellness, diabetic support, and more can all run simultaneously. All wellness protocols include veterinary citation sources from pre-approved references including WSAVA, AAHA, and Tufts Cummings. This is wellness nutrition guidance only — not veterinary medicine. Always consult your veterinarian for health conditions or significant dietary changes.",
+      "Welcome to My Perfect Pets. This is a premium wellness nutrition system for your companion animals, built on the same adaptive protocol engine that powers your own meals. Choose Dogs for Canine Nutrition Intelligence or Cats for Feline Nutrition Intelligence — each has its own dedicated hub. In both hubs you can create a personalized profile for your pet, generate safe homemade meals tailored to their breed, age, weight, and wellness goals, and save your favorite recipes. Every meal is screened before you see it — for dogs that means the Toxic Ingredient Firewall blocking known canine toxins like chocolate, xylitol, grapes, garlic, and onions, and for cats the system enforces feline-specific nutritional requirements including adequate taurine and protein as obligate carnivores. You can stack wellness conditions just like your own protocol — senior support, kidney support, anti-inflammatory, joint wellness, and more can all run simultaneously. All protocols include veterinary citation sources from pre-approved references including WSAVA, AAHA, and Tufts Cummings. This is wellness nutrition guidance only — not veterinary medicine. Always consult your veterinarian for health conditions or significant dietary changes.",
     autoClose: true,
+  },
+
+  "/companion/dogs": {
+    pageId: "canine-wellness-hub",
+    title: "Canine Wellness Hub",
+    description:
+      "Your dog's personalized nutrition center — generate homemade meals, scan ingredients for safety, and manage wellness profiles.",
+    spokenText:
+      "Welcome to the Canine Wellness Hub. This is your dog's complete nutrition center inside My Perfect Pets. If you have not yet created a dog profile, tap Add Dog to get started — you will enter your dog's name, breed, age, weight, activity level, and any wellness goals or veterinary restrictions. Once your profile is set up, you can generate fully personalized homemade meals from this hub by tapping the Generate Meal button on your dog's card. Every meal is built using your dog's complete wellness protocol and run through the Toxic Ingredient Firewall before you see it, blocking known canine toxins from appearing in any result. You can save meals you like by tapping the heart icon, and access your saved recipes in the Saved Meals section at the bottom of the page. You can also scan any ingredient directly from this page using the ingredient scanner to instantly check if it is safe for your dog before using it in a recipe. If you have multiple dogs, you can manage separate profiles for each one, and generate meals tailored to each dog's individual needs. Tap any dog's card to expand their profile and access all of their options.",
+    autoClose: true,
+  },
+
+  "/companion/cats": {
+    pageId: "feline-wellness-hub",
+    title: "Feline Wellness Hub",
+    description:
+      "Your cat's personalized nutrition center — generate taurine-optimized homemade meals and manage feline wellness profiles.",
+    spokenText:
+      "Welcome to the Feline Wellness Hub. This is your cat's complete nutrition center inside My Perfect Pets. If you have not yet created a cat profile, tap Add Cat to get started — you will enter your cat's name, breed, age, weight, activity level, and any wellness goals or veterinary restrictions. Cats are obligate carnivores, which means their bodies require specific nutrients — particularly taurine and animal-based protein — that the system enforces automatically in every generated meal. Once your profile is set up, you can generate fully personalized homemade meals tailored to your cat's needs. Every meal is built using your cat's complete wellness protocol and screened for feline safety before you see it, blocking known cat toxins including onions, garlic, grapes, xylitol, and other harmful ingredients. You can save meals you like and access your saved recipes in the Saved Meals section at the bottom of the page. If you have multiple cats, you can manage separate profiles for each one. Feline wellness conditions such as senior support, kidney support, urinary health, and weight management can all be stacked and run simultaneously. This is wellness nutrition guidance only — always consult your veterinarian for health conditions or significant dietary changes.",
+    autoClose: true,
+  },
+
+  "/companion/cat-setup": {
+    pageId: "cat-profile-setup",
+    title: "Cat Profile Setup",
+    description:
+      "Create your cat's personalized nutrition profile — breed, age, wellness goals, and veterinary restrictions.",
+    spokenText:
+      "This is the Cat Profile Setup. Walk through each step to build a complete picture of your cat. You will enter your cat's name, breed, age, sex, and whether they are spayed or neutered. Then body details — current weight, activity level, and body condition. Next, pick wellness goals from the stackable condition list — options like senior support, kidney support, urinary health, weight management, and more can all be selected together. Finally, add any food allergies, sensitivities, veterinarian-specified dietary restrictions, and any notes about your cat's preferences or behavior. The more complete the profile, the more personalized and precise every generated meal will be. Once saved, your cat's profile drives every meal generation in the Feline Wellness Hub.",
+    autoClose: false,
   },
 
   "/companion/setup": {

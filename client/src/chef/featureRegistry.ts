@@ -207,5 +207,55 @@ export const FEATURES: Feature[] = [
     displayName: 'Game Hub',
     synonyms: ['games', 'trivia', 'fitbrain', 'brain games', 'nutrition games'],
     hidden: true  // Not a card but Chef should know about it
+  },
+
+  // My Perfect Pets — Companion Nutrition
+  {
+    id: 'my-perfect-pets',
+    path: '/companion',
+    displayName: '🐾 My Perfect Pets',
+    synonyms: ['my perfect pets', 'pets hub', 'companion nutrition', 'pet nutrition', 'dog and cat nutrition', 'pet meals']
+  },
+  {
+    id: 'canine-wellness-hub',
+    path: '/companion/dogs',
+    displayName: 'Canine Wellness Hub',
+    synonyms: ['dog nutrition', 'dog meals', 'canine hub', 'dog wellness', 'dog food', 'homemade dog food', 'dog meal generator'],
+    hidden: true
+  },
+  {
+    id: 'feline-wellness-hub',
+    path: '/companion/cats',
+    displayName: 'Feline Wellness Hub',
+    synonyms: ['cat nutrition', 'cat meals', 'feline hub', 'cat wellness', 'cat food', 'homemade cat food', 'cat meal generator', 'taurine meals'],
+    hidden: true
+  },
+  {
+    id: 'dog-profile-setup',
+    path: '/companion/setup',
+    displayName: 'Dog Profile Setup',
+    synonyms: ['add dog', 'dog profile', 'set up dog', 'new dog profile'],
+    hidden: true
+  },
+  {
+    id: 'cat-profile-setup',
+    path: '/companion/cat-setup',
+    displayName: 'Cat Profile Setup',
+    synonyms: ['add cat', 'cat profile', 'set up cat', 'new cat profile'],
+    hidden: true
+  },
+  {
+    id: 'companion-meal-generator',
+    path: '/companion/generator',
+    displayName: 'Companion Meal Generator',
+    synonyms: ['generate pet meal', 'pet meal creator', 'dog meal creator', 'cat meal creator', 'companion generator'],
+    hidden: true
+  },
+  {
+    id: 'companion-ingredient-scanner',
+    path: '/companion/scanner',
+    displayName: 'Pet Ingredient Scanner',
+    synonyms: ['scan pet food', 'pet ingredient scanner', 'dog food scanner', 'cat food scanner', 'pet ingredient safety'],
+    hidden: true
   }
 ];
