@@ -607,3 +607,109 @@ export async function sendAffiliateReferralInvite({
     return false;
   }
 }
+
+export async function sendWhiteLabelAdminNotification({
+  name,
+  email,
+  businessName,
+  audienceSize,
+  useCase,
+}: {
+  name: string;
+  email: string;
+  businessName: string;
+  audienceSize?: string;
+  useCase: string;
+}) {
+  if (!resend) {
+    console.log('[WhiteLabel] Resend not available — skipping admin notification');
+    return null;
+  }
+  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || 'hello@myperfectmeals.com';
+  try {
+    const { data, error } = await resend.emails.send({
+      from: EMAIL_FROM,
+      to: [adminEmail],
+      subject: `New White Label Partnership Application — ${businessName}`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); padding: 28px 30px; border-radius: 12px 12px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 22px; font-weight: 700;">New Partnership Application</h1>
+            <p style="color: rgba(255,255,255,0.8); margin: 6px 0 0; font-size: 14px;">White Label Solutions — Action Required</p>
+          </div>
+          <div style="background: #f9fafb; padding: 28px 30px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr><td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; color: #6b7280; font-size: 13px; width: 160px;">Name</td><td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 14px; font-weight: 600;">${name}</td></tr>
+              <tr><td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; color: #6b7280; font-size: 13px;">Email</td><td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 14px;"><a href="mailto:${email}" style="color: #ea580c;">${email}</a></td></tr>
+              <tr><td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; color: #6b7280; font-size: 13px;">Organization</td><td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 14px; font-weight: 600;">${businessName}</td></tr>
+              <tr><td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; color: #6b7280; font-size: 13px;">Audience Size</td><td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 14px;">${audienceSize || 'Not provided'}</td></tr>
+            </table>
+            <div style="margin-top: 20px;">
+              <p style="color: #6b7280; font-size: 13px; margin: 0 0 8px;">Use Case</p>
+              <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; color: #111827; font-size: 14px; line-height: 1.6;">${useCase}</div>
+            </div>
+            <p style="margin: 24px 0 0; color: #6b7280; font-size: 13px;">This application was submitted through the White Label Solutions qualification funnel. All 13 stages were acknowledged before submission.</p>
+          </div>
+        </div>
+      `,
+    });
+    if (error) console.error('[WhiteLabel] Admin notification Resend error:', error);
+    else console.log('[WhiteLabel] Admin notification sent:', data?.id);
+    return data;
+  } catch (err) {
+    console.error('[WhiteLabel] Admin notification failed:', err);
+    return null;
+  }
+}
+
+export async function sendWhiteLabelApplicantConfirmation({
+  name,
+  email,
+}: {
+  name: string;
+  email: string;
+}) {
+  if (!resend) {
+    console.log('[WhiteLabel] Resend not available — skipping applicant confirmation');
+    return null;
+  }
+  try {
+    const { data, error } = await resend.emails.send({
+      from: EMAIL_FROM,
+      to: [email],
+      subject: 'We received your White Label Partnership application',
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); padding: 28px 30px; border-radius: 12px 12px 0 0; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 22px; font-weight: 700;">Application Received</h1>
+          </div>
+          <div style="background: #f9fafb; padding: 28px 30px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
+            <h2 style="color: #111827; font-size: 18px; margin: 0 0 12px;">Hi ${name},</h2>
+            <p style="color: #374151; font-size: 15px; line-height: 1.7; margin: 0 0 16px;">
+              Thank you for applying to the My Perfect Meals White Label Partnership Program. We've received your application and our partnership team will complete an initial review and fit assessment.
+            </p>
+            <p style="color: #374151; font-size: 15px; line-height: 1.7; margin: 0 0 24px;">
+              If your application indicates a strong fit, you'll hear from us to schedule a discovery call.
+            </p>
+            <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+              <p style="color: #111827; font-size: 14px; font-weight: 600; margin: 0 0 12px;">What happens next:</p>
+              <ol style="color: #374151; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
+                <li>Initial review and fit assessment</li>
+                <li>Discovery call (if strong fit confirmed)</li>
+                <li>Written proposal with investment breakdown</li>
+                <li>Agreement and 12-week launch kickoff</li>
+              </ol>
+            </div>
+            <p style="color: #6b7280; font-size: 13px; margin: 0;">Please note that submitting this application does not guarantee acceptance. We review each application individually.</p>
+          </div>
+        </div>
+      `,
+    });
+    if (error) console.error('[WhiteLabel] Applicant confirmation Resend error:', error);
+    else console.log('[WhiteLabel] Applicant confirmation sent:', data?.id);
+    return data;
+  } catch (err) {
+    console.error('[WhiteLabel] Applicant confirmation failed:', err);
+    return null;
+  }
+}
