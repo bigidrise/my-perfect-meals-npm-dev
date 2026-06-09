@@ -3,7 +3,7 @@ import { BC_GRADIENT } from "@/components/BusinessCenterShell";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 
-const TOTAL_STAGES = 13;
+const TOTAL_STAGES = 14;
 const LS_KEY = "mpm.wl.progress";
 
 interface SavedProgress {
@@ -328,6 +328,34 @@ const STAGES = [
   },
   {
     number: 13,
+    title: "Investment & Pricing Expectations",
+    subtitle: "These are ranges and expectations — not a quote.",
+    content: [
+      {
+        heading: "Independent Coach or Small Practice",
+        body: "Typically serves dozens to a few hundred clients. Usually the entry tier — lower clinical scope, standard dietary personalization, no App Store deployment. The lowest overall implementation cost.",
+      },
+      {
+        heading: "Growing Organization",
+        body: "Multiple coaches, providers, or locations with an expanded member base. Includes anti-inflammatory or GLP-1 protocols, custom domain, and a more developed coaching persona. A meaningfully larger investment than an individual practice.",
+      },
+      {
+        heading: "Regional or National Organization",
+        body: "Large member populations across multiple markets. Requires advanced integrations, clinical compliance configuration, deep persona development, and dedicated onboarding support. A significant business-level investment.",
+      },
+      {
+        heading: "Enterprise Healthcare Deployment",
+        body: "Health systems, insurers, employer wellness programs. Full clinical mode, App Store presence under your brand, physician-assigned protocol support, and enterprise support agreements. The highest implementation tier.",
+      },
+      {
+        heading: "Every deployment is scoped individually.",
+        body: "The tiers above are provided to help you understand the level of investment and commitment involved before requesting a consultation — not to give you a quote. Final pricing depends on your clinical scope, persona requirements, member volume, and deployment needs. We do not publish exact pricing until we understand your specific use case.",
+      },
+    ],
+    ack: "I understand this is a professional platform deployment — not a consumer subscription. These are ranges and expectations. Final pricing depends on my scope and requirements.",
+  },
+  {
+    number: 14,
     title: "White Label Partnership Application",
     subtitle: "Before we connect, confirm you've read and understood this program.",
     isApplication: true,
@@ -384,7 +412,16 @@ function loadProgress(): SavedProgress | null {
   try {
     const raw = localStorage.getItem(LS_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as SavedProgress;
+    const parsed = JSON.parse(raw) as SavedProgress;
+    const len = STAGES.length;
+    const ack = parsed.acknowledged ?? [];
+    const normalized =
+      ack.length === len
+        ? ack
+        : ack.length < len
+          ? [...ack, ...new Array(len - ack.length).fill(false)]
+          : ack.slice(0, len);
+    return { ...parsed, acknowledged: normalized };
   } catch {
     return null;
   }
@@ -489,7 +526,7 @@ export default function WhiteLabelSolutions() {
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err: any) {
-      setSubmitError("Something went wrong submitting your application. Please try again.");
+      setSubmitError("Something went wrong sending your request. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -504,9 +541,9 @@ export default function WhiteLabelSolutions() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold mb-2">Application Submitted</h1>
+          <h1 className="text-2xl font-bold mb-2">Consultation Requested</h1>
           <p className="text-white/60 text-sm max-w-xs mx-auto">
-            You'll hear from us after our initial review. Check your email for a confirmation.
+            Our partnership team will review your information and follow up. Check your email for a confirmation.
           </p>
         </div>
 
@@ -692,10 +729,10 @@ export default function WhiteLabelSolutions() {
                     : "bg-white/10 text-white/30 cursor-not-allowed"
                 }`}
               >
-                {submitting ? "Submitting…" : "Submit Application"}
+                {submitting ? "Sending…" : "Request White Label Consultation"}
               </button>
               <p className="text-white/30 text-xs text-center">
-                Not a commitment. We'll review and respond after our initial fit assessment.
+                Not a commitment. Our partnership team reviews every request personally.
               </p>
             </div>
           </div>
