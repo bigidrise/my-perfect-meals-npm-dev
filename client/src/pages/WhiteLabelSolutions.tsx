@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { BC_GRADIENT } from "@/components/BusinessCenterShell";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -496,7 +497,7 @@ export default function WhiteLabelSolutions() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white flex flex-col">
+      <div className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} text-white flex flex-col`}>
         <div className="px-6 pt-12 pb-6 text-center">
           <div className="w-14 h-14 rounded-full bg-orange-600 flex items-center justify-center mx-auto mb-4">
             <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -517,7 +518,7 @@ export default function WhiteLabelSolutions() {
             {WHAT_HAPPENS_NEXT.map((item) => (
               <div
                 key={item.step}
-                className="bg-white/5 border border-white/10 rounded-xl p-4 flex gap-4"
+                className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl p-4 flex gap-4"
               >
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-orange-600 flex items-center justify-center text-sm font-bold">
                   {item.step}
@@ -541,7 +542,7 @@ export default function WhiteLabelSolutions() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white flex flex-col">
+    <div className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} text-white flex flex-col`}>
       {/* Progress header */}
       <div className="px-4 pt-6 pb-3 flex-shrink-0 max-w-2xl mx-auto w-full">
         <div className="flex items-center justify-between mb-3">
@@ -584,7 +585,7 @@ export default function WhiteLabelSolutions() {
         {!(stage as any).isApplication && (
           <div className="space-y-4 mt-2">
             {(stage.content as any[]).map((block: any, i: number) => (
-              <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-4">
+              <div key={i} className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl p-4">
                 <div className="text-orange-300 font-semibold text-sm mb-2">
                   {block.heading}
                 </div>
@@ -594,7 +595,7 @@ export default function WhiteLabelSolutions() {
                 {block.examples && (
                   <div className="space-y-3 mt-3">
                     {block.examples.map((ex: any, j: number) => (
-                      <div key={j} className="bg-white/5 border border-white/10 rounded-lg p-3">
+                      <div key={j} className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-lg p-3">
                         <div className="text-orange-400 text-xs font-semibold mb-1">{ex.label}</div>
                         <p className="text-white/60 text-xs leading-relaxed">{ex.desc}</p>
                       </div>
@@ -620,7 +621,7 @@ export default function WhiteLabelSolutions() {
                   className={`w-full text-left flex items-start gap-3 rounded-xl border p-3 transition-colors ${
                     appChecks[i]
                       ? "bg-orange-600/20 border-orange-500"
-                      : "bg-white/5 border-white/10"
+                      : "bg-black/40 border-white/10"
                   }`}
                 >
                   <div
@@ -707,7 +708,7 @@ export default function WhiteLabelSolutions() {
           <button
             onClick={() => toggleAck(currentStage)}
             className={`w-full text-left flex items-start gap-3 rounded-xl border p-3 mt-4 mb-3 transition-colors ${
-              ackDone ? "bg-orange-600/20 border-orange-500" : "bg-white/5 border-white/10"
+              ackDone ? "bg-orange-600/20 border-orange-500" : "bg-black/40 border-white/10"
             }`}
           >
             <div
