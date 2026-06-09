@@ -239,7 +239,7 @@ export default function PlatformCertQuiz() {
                 </p>
                 {result.passed ? (
                   <p className="text-sm font-semibold text-green-400 leading-snug">
-                    Congratulations. You have successfully completed ProCare Certification{moduleNum ? ` Module ${moduleNum}` : ""}.
+                    Congratulations. You have successfully completed{moduleNum ? ` Module ${moduleNum}` : isFinal ? " the final assessment" : " this module"}.
                   </p>
                 ) : (
                   <p className="text-sm font-semibold text-red-400">
