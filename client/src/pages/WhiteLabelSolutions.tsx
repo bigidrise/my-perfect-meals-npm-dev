@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { BC_GRADIENT } from "@/components/BusinessCenterShell";
 import { useLocation } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
 
 const TOTAL_STAGES = 14;
 const LS_KEY = "mpm.wl.progress";
@@ -406,38 +405,6 @@ const STAGES = [
   },
 ] as const;
 
-const WHAT_HAPPENS_NEXT = [
-  {
-    step: 1,
-    title: "Initial review and fit assessment",
-    body: "Our partnership team reviews every application personally. You'll receive a response confirming receipt and whether your use case is a strong fit for the program.",
-  },
-  {
-    step: 2,
-    title: "Discovery call scheduled",
-    body: "If your application indicates a strong fit, we'll schedule a 45-minute discovery call to understand your use case, member profile, and clinical requirements.",
-  },
-  {
-    step: 3,
-    title: "Proposal & investment breakdown",
-    body: "Following the discovery call, we deliver a written proposal with your specific platform fee, setup cost, and configuration scope.",
-  },
-  {
-    step: 4,
-    title: "Agreement & kickoff",
-    body: "Once terms are agreed, you sign the partnership agreement and we schedule your Week 1 kickoff. The 12-week clock starts here.",
-  },
-  {
-    step: 5,
-    title: "Environment delivery",
-    body: "Week 5: your staging environment is delivered for review. Week 12: production goes live.",
-  },
-  {
-    step: 6,
-    title: "Your branded product is live",
-    body: "Your members log in to your app, with your name on it, powered by MPM's AI — and none of them will ever know we exist.",
-  },
-];
 
 function loadProgress(): SavedProgress | null {
   try {
@@ -464,11 +431,6 @@ function saveProgress(data: SavedProgress) {
   } catch {}
 }
 
-function clearProgress() {
-  try {
-    localStorage.removeItem(LS_KEY);
-  } catch {}
-}
 
 export default function WhiteLabelSolutions() {
   const [, setLocation] = useLocation();
@@ -481,34 +443,16 @@ export default function WhiteLabelSolutions() {
   const [appChecks, setAppChecks] = useState<boolean[]>(
     new Array(10).fill(false)
   );
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    businessName: "",
-    audienceSize: "",
-    useCase: "",
-  });
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
 
   const stage = STAGES[currentStage];
   const isLast = currentStage === STAGES.length - 1;
   const ackDone = acknowledged[currentStage];
   const allBoxesChecked = appChecks.every(Boolean);
-  const formValid =
-    formData.name.trim() !== "" &&
-    formData.email.trim() !== "" &&
-    formData.businessName.trim() !== "" &&
-    formData.useCase.trim() !== "";
-  const canSubmit = allBoxesChecked && formValid && !submitting;
 
   useEffect(() => {
-    if (!submitted) {
-      saveProgress({ currentStage, acknowledged });
-    }
-  }, [currentStage, acknowledged, submitted]);
+    saveProgress({ currentStage, acknowledged });
+  }, [currentStage, acknowledged]);
 
   function goBack() {
     if (currentStage > 0) {
@@ -538,76 +482,6 @@ export default function WhiteLabelSolutions() {
       next[i] = !next[i];
       return next;
     });
-  }
-
-  async function handleSubmit() {
-    if (!canSubmit) return;
-    setSubmitting(true);
-    setSubmitError(null);
-    try {
-      await apiRequest("POST", "/api/white-label/inquiry", {
-        name: formData.name,
-        email: formData.email,
-        businessName: formData.businessName,
-        audienceSize: formData.audienceSize || undefined,
-        useCase: formData.useCase,
-        checkboxesAcknowledged: appChecks,
-        stagesAcknowledged: acknowledged,
-      });
-      clearProgress();
-      setSubmitted(true);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch (err: any) {
-      setSubmitError("Something went wrong sending your request. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  if (submitted) {
-    return (
-      <div className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} text-white flex flex-col`}>
-        <div className="px-6 pt-12 pb-6 text-center">
-          <div className="w-14 h-14 rounded-full bg-orange-600 flex items-center justify-center mx-auto mb-4">
-            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold mb-2">Consultation Requested</h1>
-          <p className="text-white/60 text-sm max-w-xs mx-auto">
-            Our partnership team will review your information and follow up. Check your email for a confirmation.
-          </p>
-        </div>
-
-        <div className="px-4 flex-1 pb-12 max-w-2xl mx-auto w-full">
-          <h2 className="text-orange-400 font-semibold text-xs uppercase tracking-wider mb-4">
-            What Happens Next
-          </h2>
-          <div className="space-y-3">
-            {WHAT_HAPPENS_NEXT.map((item) => (
-              <div
-                key={item.step}
-                className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl p-4 flex gap-4"
-              >
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-orange-600 flex items-center justify-center text-sm font-bold">
-                  {item.step}
-                </div>
-                <div>
-                  <div className="font-semibold text-sm mb-1">{item.title}</div>
-                  <div className="text-white/60 text-xs leading-relaxed">{item.body}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <button
-            onClick={() => setLocation("/business-center")}
-            className="mt-8 w-full py-3 rounded-xl bg-white/10 text-white/70 text-sm font-medium"
-          >
-            Return to Business Center
-          </button>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -846,60 +720,23 @@ export default function WhiteLabelSolutions() {
               ))}
             </div>
 
-            {/* Form — visible but locked until all boxes checked */}
+            {/* Application CTA — visible once all boxes checked */}
             <div className={`space-y-3 transition-opacity duration-300 ${allBoxesChecked ? "opacity-100" : "opacity-30 pointer-events-none select-none"}`}>
-              <p className="text-white/50 text-xs uppercase tracking-wider font-semibold pt-2">
-                Your Information
-              </p>
-
-              {[
-                { key: "name", label: "Full Name", placeholder: "Your full name", type: "text" },
-                { key: "email", label: "Business Email", placeholder: "you@yourbusiness.com", type: "email" },
-                { key: "businessName", label: "Business / Practice Name", placeholder: "Your organization name", type: "text" },
-                { key: "audienceSize", label: "Estimated Audience or Member Size (optional)", placeholder: "e.g. 200 active clients, 5,000 newsletter subscribers", type: "text" },
-              ].map((field) => (
-                <div key={field.key}>
-                  <label className="text-white/50 text-xs mb-1 block">{field.label}</label>
-                  <input
-                    type={field.type}
-                    placeholder={field.placeholder}
-                    value={formData[field.key as keyof typeof formData]}
-                    onChange={(e) => setFormData((f) => ({ ...f, [field.key]: e.target.value }))}
-                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-orange-500 transition-colors"
-                  />
-                </div>
-              ))}
-
-              <div>
-                <label className="text-white/50 text-xs mb-1 block">
-                  Describe your use case in 2–3 sentences
-                </label>
-                <textarea
-                  rows={4}
-                  placeholder="Who are your members, what clinical needs do they have, and what would a branded nutrition app do for your business?"
-                  value={formData.useCase}
-                  onChange={(e) => setFormData((f) => ({ ...f, useCase: e.target.value }))}
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-orange-500 transition-colors resize-none"
-                />
+              <div className="bg-orange-600/10 border border-orange-500/20 rounded-xl px-4 py-4 text-center space-y-1">
+                <p className="text-orange-300 font-semibold text-sm">You're ready to apply.</p>
+                <p className="text-white/50 text-xs">The application opens in a new tab and takes approximately 5–8 minutes to complete.</p>
               </div>
 
-              {submitError && (
-                <p className="text-red-400 text-sm text-center">{submitError}</p>
-              )}
-
-              <button
-                onClick={handleSubmit}
-                disabled={!canSubmit}
-                className={`w-full py-4 rounded-xl font-semibold text-sm transition-colors ${
-                  canSubmit
-                    ? "bg-orange-600 text-white"
-                    : "bg-white/10 text-white/30 cursor-not-allowed"
-                }`}
+              <a
+                href="https://forms.gle/i6NsVnb3hirSgGTz5"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full py-4 rounded-xl font-semibold text-sm text-center bg-orange-600 text-white"
               >
-                {submitting ? "Sending…" : "Request White Label Consultation"}
-              </button>
+                Open Partnership Application →
+              </a>
               <p className="text-white/30 text-xs text-center">
-                Not a commitment. Our partnership team reviews every request personally.
+                Not a commitment. Our partnership team reviews every application personally.
               </p>
             </div>
           </div>
