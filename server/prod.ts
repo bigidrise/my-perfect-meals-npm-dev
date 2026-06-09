@@ -266,6 +266,21 @@ async function initializeApp() {
               CONSTRAINT uniq_user_lms_update UNIQUE (user_id, update_module_id)
             )
           `);
+          await database.execute(sql`
+            CREATE TABLE IF NOT EXISTS white_label_inquiries (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              name text NOT NULL,
+              email text NOT NULL,
+              business_name text NOT NULL,
+              audience_size text,
+              use_case text NOT NULL,
+              checkboxes_acknowledged jsonb NOT NULL,
+              stages_acknowledged jsonb NOT NULL,
+              submitted_at timestamptz NOT NULL DEFAULT now(),
+              ip_address text,
+              user_agent text
+            )
+          `);
         })(),
         migTimeout(6000),
       ]);
