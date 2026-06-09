@@ -45,6 +45,7 @@ export default function BodyCompositionPro() {
   const [latestSource, setLatestSource] = useState<Source | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
 
   const user = getCurrentUser();
   const userId = user?.id;
@@ -171,6 +172,7 @@ export default function BodyCompositionPro() {
         description: "Your body composition measurements have been saved successfully.",
       });
 
+      setSavedAt(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
       loadLatest();
       loadHistory();
     } catch (err) {
@@ -391,7 +393,7 @@ export default function BodyCompositionPro() {
               />
             </div>
 
-            <div className="md:col-span-2 flex flex-wrap gap-3 pt-2">
+            <div className="md:col-span-2 flex flex-wrap items-center gap-3 pt-2">
               <Button
                 onClick={save}
                 disabled={isSaving || !bodyFatPct}
@@ -399,6 +401,12 @@ export default function BodyCompositionPro() {
               >
                 {isSaving ? "Saving..." : "Save"}
               </Button>
+              {savedAt && !isSaving && (
+                <span className="flex items-center gap-1.5 text-sm font-medium text-green-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                  Saved at {savedAt}
+                </span>
+              )}
             </div>
           </CardContent>
         </Card>
