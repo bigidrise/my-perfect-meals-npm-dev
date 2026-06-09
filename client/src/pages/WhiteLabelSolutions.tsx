@@ -329,52 +329,61 @@ const STAGES = [
   {
     number: 13,
     title: "Investment & Pricing Expectations",
-    subtitle: "Review investment ranges before you apply. Final pricing is set during consultation.",
-    content: [
+    subtitle: "Select the category that best describes your organization.",
+    isPathSelector: true,
+    paths: [
       {
-        heading: "Two components to every deployment.",
-        body: "Every white label partnership includes a one-time setup investment and an ongoing monthly platform fee. Both scale with your requirements — clinical scope, branding depth, App Store deployment, integrations, and member volume.",
+        id: "independent-coach",
+        label: "Independent Coach / Small Practice",
+        description: "Solo providers, small teams, and individual practitioners.",
+        active: true,
+        detail: {
+          whoFor: [
+            "Nutrition Coaches",
+            "Health Coaches",
+            "Fitness Coaches",
+            "Functional Medicine Practitioners",
+            "Small Wellness Clinics",
+            "Solo Providers",
+            "Small 1099 Teams",
+          ],
+          included: [
+            "White Label Branding",
+            "Provider Dashboard",
+            "Care Team Access",
+            "ProCare Access",
+            "Client Management Tools",
+            "Business Success Certification",
+            "Platform Certification",
+            "Marketing Resources",
+            "Affiliate Infrastructure",
+            "Ongoing Platform Updates",
+          ],
+          setupLabel: "Starting at $2,500",
+          monthlyLabel: "Starting at $297 / month",
+          pricingNote: "Additional customization, integrations, compliance requirements, support levels, and deployment complexity may increase investment requirements.",
+        },
       },
       {
-        heading: null,
-        body: null,
-        tiers: [
-          {
-            label: "Independent Coach or Small Practice",
-            forWhom: "Individual coaches, dietitians, nutritionists, and small practices serving a limited client base.",
-            setup: "$10,000 – $35,000",
-            monthly: "$1,500 – $5,000 / month",
-            drivers: ["Standard branding", "Web deployment", "Basic clinical protocols", "Up to ~200 active members"],
-          },
-          {
-            label: "Growing Organization",
-            forWhom: "Multi-coach practices, fitness brands, or wellness organizations with expanded branding and higher member volume.",
-            setup: "$35,000 – $120,000",
-            monthly: "$5,000 – $20,000 / month",
-            drivers: ["Custom branding & persona", "Custom domain", "Clinical protocol suite", "Mobile app (optional)", "500–2,000 active members"],
-          },
-          {
-            label: "Regional or National Organization",
-            forWhom: "Multi-location organizations with large member populations and advanced clinical or compliance requirements.",
-            setup: "$120,000 – $350,000",
-            monthly: "$20,000 – $70,000 / month",
-            drivers: ["Deep persona config", "iOS + Android App Store", "Full clinical suite", "Custom integrations", "2,000–10,000+ members"],
-          },
-          {
-            label: "Enterprise Healthcare Deployment",
-            forWhom: "Health systems, insurers, and employer wellness programs with enterprise compliance and large populations.",
-            setup: "Custom scope",
-            monthly: "Custom scope",
-            drivers: ["Enterprise clinical protocols", "EMR / custom integrations", "HIPAA compliance + BAA", "Dedicated implementation", "10,000+ members"],
-          },
-        ],
+        id: "growing-organization",
+        label: "Growing Organization",
+        description: "Multi-coach practices, fitness brands, and wellness organizations.",
+        active: false,
       },
       {
-        heading: "Final pricing is determined during consultation.",
-        body: "The ranges above reflect typical deployments at each tier. Your final investment depends on clinical scope, branding requirements, integrations, compliance posture, support level, and member volume. We do not issue a final quote until we understand your specific use case.",
+        id: "regional-national",
+        label: "Regional or National Organization",
+        description: "Multi-location organizations with large member populations.",
+        active: false,
+      },
+      {
+        id: "enterprise",
+        label: "Enterprise Healthcare",
+        description: "Health systems, insurers, and employer wellness programs.",
+        active: false,
       },
     ],
-    ack: "I understand the investment ranges above. I am entering a business licensing conversation — not a consumer subscription — and I am prepared to discuss my specific requirements.",
+    ack: "I understand these investment expectations. I am prepared to discuss my specific requirements during a consultation.",
   },
   {
     number: 14,
@@ -482,6 +491,7 @@ export default function WhiteLabelSolutions() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [selectedTier, setSelectedTier] = useState<string | null>(null);
 
   const stage = STAGES[currentStage];
   const isLast = currentStage === STAGES.length - 1;
@@ -640,8 +650,110 @@ export default function WhiteLabelSolutions() {
           <p className="text-white/50 text-sm">{stage.subtitle}</p>
         </div>
 
+        {/* Path selector stage (Stage 13) */}
+        {(stage as any).isPathSelector && (
+          <div className="mt-2">
+            {selectedTier === null ? (
+              <div className="space-y-3">
+                {(stage as any).paths.map((path: any) => (
+                  path.active ? (
+                    <button
+                      key={path.id}
+                      onClick={() => setSelectedTier(path.id)}
+                      className="w-full text-left bg-black/40 border border-white/15 rounded-xl p-4"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-white font-semibold text-sm">{path.label}</div>
+                          <div className="text-white/50 text-xs mt-0.5">{path.description}</div>
+                        </div>
+                        <div className="flex-shrink-0 ml-3 w-7 h-7 rounded-full bg-orange-600 flex items-center justify-center">
+                          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </button>
+                  ) : (
+                    <div
+                      key={path.id}
+                      className="bg-black/20 border border-white/5 rounded-xl p-4 opacity-40"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-white font-semibold text-sm">{path.label}</div>
+                          <div className="text-white/40 text-xs mt-0.5">{path.description}</div>
+                        </div>
+                        <span className="text-xs text-white/30 border border-white/10 rounded-full px-2.5 py-1 flex-shrink-0 ml-3">Coming Soon</span>
+                      </div>
+                    </div>
+                  )
+                ))}
+              </div>
+            ) : (
+              (() => {
+                const activePath = (stage as any).paths.find((p: any) => p.id === selectedTier);
+                const detail = activePath?.detail;
+                if (!detail) return null;
+                return (
+                  <div className="space-y-4">
+                    <button
+                      onClick={() => setSelectedTier(null)}
+                      className="text-white/50 text-xs underline underline-offset-2"
+                    >
+                      ← Back to categories
+                    </button>
+
+                    <div className="bg-orange-600/10 border border-orange-500/20 rounded-xl px-4 py-3">
+                      <div className="text-orange-300 font-bold text-sm">{activePath.label}</div>
+                    </div>
+
+                    <div className="bg-black/40 border border-white/10 rounded-xl p-4">
+                      <div className="text-orange-300 font-semibold text-xs uppercase tracking-wider mb-3">Who This Is For</div>
+                      <div className="flex flex-wrap gap-2">
+                        {detail.whoFor.map((role: string, i: number) => (
+                          <span key={i} className="text-xs bg-white/8 border border-white/10 text-white/70 rounded-full px-3 py-1">{role}</span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="bg-black/40 border border-white/10 rounded-xl p-4">
+                      <div className="text-orange-300 font-semibold text-xs uppercase tracking-wider mb-3">What's Included</div>
+                      <div className="space-y-1.5">
+                        {detail.included.map((item: string, i: number) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <svg className="w-3.5 h-3.5 text-orange-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span className="text-white/70 text-sm">{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="bg-black/40 border border-white/10 rounded-xl p-4">
+                      <div className="text-orange-300 font-semibold text-xs uppercase tracking-wider mb-3">Investment Expectations</div>
+                      <div className="grid grid-cols-2 gap-4 mb-3">
+                        <div>
+                          <div className="text-white/40 text-xs mb-1">Setup & Launch</div>
+                          <div className="text-white font-bold text-base">{detail.setupLabel}</div>
+                        </div>
+                        <div>
+                          <div className="text-white/40 text-xs mb-1">Monthly Licensing</div>
+                          <div className="text-white font-bold text-base">{detail.monthlyLabel}</div>
+                        </div>
+                      </div>
+                      <p className="text-white/40 text-xs leading-relaxed border-t border-white/5 pt-3">{detail.pricingNote}</p>
+                    </div>
+                  </div>
+                );
+              })()
+            )}
+          </div>
+        )}
+
         {/* Regular stage blocks */}
-        {!(stage as any).isApplication && (
+        {!(stage as any).isApplication && !(stage as any).isPathSelector && (
           <div className="space-y-4 mt-2">
             {(stage.content as any[]).map((block: any, i: number) => {
               if (block.tiers) {
@@ -795,7 +907,7 @@ export default function WhiteLabelSolutions() {
       </div>
 
       {/* Acknowledgment + Continue — non-application stages */}
-      {!(stage as any).isApplication && (
+      {!(stage as any).isApplication && (!(stage as any).isPathSelector || selectedTier !== null) && (
         <div className="px-4 pb-10 pt-2 flex-shrink-0 border-t border-white/10 max-w-2xl mx-auto w-full">
           <button
             onClick={() => toggleAck(currentStage)}
