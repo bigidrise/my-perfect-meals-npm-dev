@@ -4,6 +4,7 @@ import { ArrowLeft, CheckCircle2, XCircle, RotateCcw, BookOpen } from "lucide-re
 import { motion, AnimatePresence } from "framer-motion";
 import { getModuleById, getNextModuleId, PASSING_SCORE } from "@/data/affiliateCertification";
 import { apiRequest } from "@/lib/queryClient";
+import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 
 type AnswerMap = Record<string, number>;
 type Phase = "loading" | "quiz" | "results";
@@ -119,13 +120,13 @@ export default function CertificationQuiz() {
 
   return (
     <motion.div
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 pb-28"
+      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
       {/* Header */}
       <div
-        className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/10"
+        className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
@@ -222,7 +223,7 @@ export default function CertificationQuiz() {
                           className={`w-full text-left px-4 py-3 rounded-xl border text-sm font-medium transition-all duration-150 active:scale-[0.98] ${
                             selected
                               ? "bg-orange-600 border-orange-500 text-white"
-                              : "bg-white/5 border-white/10 text-white/80"
+                              : "bg-black/40 border-white/15 text-white/85"
                           }`}
                         >
                           <span className="opacity-50 mr-2">{String.fromCharCode(65 + oi)}.</span>

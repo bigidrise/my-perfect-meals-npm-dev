@@ -1,6 +1,7 @@
 import { useLocation, useRoute } from "wouter";
 import { ArrowLeft, Share2, Briefcase, ChevronRight, Clock } from "lucide-react";
 import { motion } from "framer-motion";
+import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 
 const pathMeta = {
   social: {
@@ -45,14 +46,14 @@ export default function AffiliatePathPage() {
 
   return (
     <motion.div
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 pb-28"
+      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
       {/* Header */}
       <div
-        className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/10"
+        className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
@@ -111,7 +112,7 @@ export default function AffiliatePathPage() {
             ) : (
               <motion.div
                 key={resource.name}
-                className="flex items-center gap-4 p-4 rounded-2xl bg-black/30 backdrop-blur-lg border border-white/10"
+                className="flex items-center gap-4 p-4 rounded-2xl bg-black/50 backdrop-blur-md border border-white/10"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.06 }}

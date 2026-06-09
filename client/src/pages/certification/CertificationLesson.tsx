@@ -4,6 +4,7 @@ import { ArrowLeft, BookOpen, CheckCircle2, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import { getModuleById } from "@/data/affiliateCertification";
 import { apiRequest } from "@/lib/queryClient";
+import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 
 export default function CertificationLesson() {
   const [, setLocation] = useLocation();
@@ -53,12 +54,12 @@ export default function CertificationLesson() {
 
   return (
     <motion.div
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 pb-32"
+      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-32`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
       <div
-        className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/10"
+        className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">

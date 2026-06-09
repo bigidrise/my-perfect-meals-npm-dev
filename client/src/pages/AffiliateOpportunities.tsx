@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { ArrowLeft, Share2, Briefcase, ChevronRight, X, UserCheck, Stethoscope, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
+import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 
 const paths = [
   {
@@ -102,14 +103,14 @@ export default function AffiliateOpportunities() {
   return (
     <>
       <motion.div
-        className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 pb-28"
+        className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28`}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
       >
         {/* Header */}
         <div
-          className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/10"
+          className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
@@ -142,7 +143,7 @@ export default function AffiliateOpportunities() {
             return (
               <motion.button
                 key={path.id}
-                className="w-full text-left p-5 rounded-2xl bg-black/30 backdrop-blur-lg border border-orange-500/30 active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
+                className="w-full text-left p-5 rounded-2xl bg-black/50 backdrop-blur-md border border-orange-500/30 active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
                 onClick={() => handlePathClick(path)}
                 disabled={!!checking}
                 initial={{ opacity: 0, y: 14 }}
@@ -217,7 +218,7 @@ export default function AffiliateOpportunities() {
                 </div>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="p-1.5 rounded-xl bg-white/5 text-white/50 active:scale-[0.95] transition-transform"
+                  className="p-1.5 rounded-xl bg-black/40 text-white/60 active:scale-[0.95] transition-transform"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -271,7 +272,7 @@ export default function AffiliateOpportunities() {
                     setShowModal(false);
                     setLocation("/procare-info");
                   }}
-                  className="w-full p-3 rounded-2xl bg-white/5 text-white/60 font-medium text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                  className="w-full p-3 rounded-2xl bg-black/30 text-white/65 font-medium text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
                 >
                   <Info className="h-4 w-4" />
                   Learn More
