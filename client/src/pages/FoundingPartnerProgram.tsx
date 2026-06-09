@@ -111,11 +111,57 @@ export default function FoundingPartnerProgram() {
           </div>
         </motion.div>
 
-        {/* Section 2 — Ideal Founding Partners */}
+        {/* Section 1b — Why We Created This Program */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
+          className="bg-black/50 border border-white/10 rounded-2xl p-5"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="h-4 w-4 text-orange-400 flex-shrink-0" />
+            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Why We Created This Program</h3>
+          </div>
+          <p className="text-white/65 text-sm leading-relaxed mb-3">
+            My Perfect Meals has reached the stage where real-world implementation and feedback are more valuable than theoretical planning.
+          </p>
+          <p className="text-white/65 text-sm leading-relaxed mb-4">
+            While the platform is mature enough for organizations to begin using it today, we believe the best way to continue improving the product is by partnering with real businesses serving real clients, patients, and members.
+          </p>
+          <p className="text-white/45 text-xs uppercase tracking-wider font-semibold mb-2">The Founding Partner Program was created to help us</p>
+          <div className="space-y-1.5 mb-4">
+            {[
+              "Validate real-world workflows",
+              "Gather provider and client feedback",
+              "Improve onboarding experiences",
+              "Refine business and coaching tools",
+              "Identify opportunities for future development",
+              "Build case studies and success stories",
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0" />
+                <span className="text-white/60 text-sm">{item}</span>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-white/8 pt-4 space-y-2">
+            <p className="text-white/70 text-sm leading-relaxed font-medium">
+              Founding Partners are not simply customers.
+            </p>
+            <p className="text-white/55 text-sm leading-relaxed">
+              They are early collaborators helping shape the future of the platform. In return for their participation, feedback, and partnership, Founding Partners receive reduced implementation costs, reduced monthly pricing, priority support, and direct access to the My Perfect Meals team.
+            </p>
+            <p className="text-white/45 text-sm leading-relaxed">
+              This program is intentionally limited and is designed for organizations that want to grow alongside the platform while helping us make it even better.
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Section 2 — Ideal Founding Partners */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
           className="bg-black/50 border border-white/10 rounded-2xl p-5"
         >
           <div className="flex items-center gap-2 mb-3">
@@ -157,11 +203,53 @@ export default function FoundingPartnerProgram() {
           </div>
         </motion.div>
 
+        {/* Section 3b — What Implementation Includes */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-black/50 border border-white/10 rounded-2xl p-5"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <CheckCircle2 className="h-4 w-4 text-orange-400 flex-shrink-0" />
+            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">What Implementation Includes</h3>
+          </div>
+          <p className="text-white/65 text-sm leading-relaxed mb-3">
+            A Founding Partner deployment involves far more than access to software. Our goal is to help organizations successfully implement My Perfect Meals into their business, coaching, wellness, or healthcare workflows.
+          </p>
+          <p className="text-white/45 text-xs uppercase tracking-wider font-semibold mb-2">Depending on the organization, implementation may include</p>
+          <div className="space-y-1.5 mb-4">
+            {[
+              "Discovery and planning sessions",
+              "Business workflow discussions",
+              "Provider onboarding",
+              "Team onboarding",
+              "Platform certification",
+              "Business Success Certification",
+              "Team training sessions",
+              "Launch preparation",
+              "Initial implementation support",
+              "Workflow refinement and feedback reviews",
+              "Ongoing collaboration during the launch period",
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0" />
+                <span className="text-white/60 text-sm">{item}</span>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-white/8 pt-3">
+            <p className="text-white/45 text-xs leading-relaxed">
+              Every organization is different, and implementation requirements vary based on team size, services offered, and desired outcomes. The Founding Partner Program is designed to provide direct support throughout the onboarding and implementation process so organizations can begin using the platform effectively and confidently.
+            </p>
+          </div>
+        </motion.div>
+
         {/* Section 4 — Expectations */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
+          transition={{ delay: 0.35 }}
           className="bg-black/50 border border-white/10 rounded-2xl p-5"
         >
           <div className="flex items-center gap-2 mb-3">
