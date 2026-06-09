@@ -1,6 +1,7 @@
 import { useLocation } from "wouter";
 import { ArrowLeft, TrendingUp, Users, Building2, HeartPulse, ChevronRight, Handshake, ChefHat } from "lucide-react";
 import { motion } from "framer-motion";
+import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 
 const sections = [
   {
@@ -71,14 +72,14 @@ export default function BusinessCenter() {
 
   return (
     <motion.div
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 pb-28"
+      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
       {/* Header */}
       <div
-        className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/10"
+        className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
@@ -111,7 +112,7 @@ export default function BusinessCenter() {
           return (
             <motion.button
               key={section.id}
-              className={`w-full text-left p-4 rounded-2xl bg-black/30 backdrop-blur-lg border ${colors.border} active:scale-[0.98] transition-all duration-200`}
+              className={`w-full text-left p-4 rounded-2xl bg-black/50 backdrop-blur-md border ${colors.border} active:scale-[0.98] transition-all duration-200`}
               onClick={() => setLocation(section.route)}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}

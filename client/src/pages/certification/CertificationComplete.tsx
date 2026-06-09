@@ -3,6 +3,7 @@ import { useLocation, useParams } from "wouter";
 import { Award, CheckCircle2, Copy, Download, ExternalLink, FileText, Link2, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
+import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 
 interface AffiliateAccount {
   isActive: boolean;
@@ -301,7 +302,7 @@ export default function CertificationComplete() {
 
   return (
     <motion.div
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 pb-28 flex flex-col"
+      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28 flex flex-col`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
@@ -389,7 +390,7 @@ export default function CertificationComplete() {
                     value={nameInput}
                     onChange={(e) => { setNameInput(e.target.value); setNameError(""); }}
                     placeholder="First and last name"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500/50"
+                    className="w-full bg-black/40 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-orange-500/50"
                   />
                   {nameError && <p className="text-xs text-red-400">{nameError}</p>}
                   <button

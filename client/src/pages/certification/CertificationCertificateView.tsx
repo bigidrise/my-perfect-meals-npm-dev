@@ -3,6 +3,7 @@ import { useLocation, useParams } from "wouter";
 import { Download, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
+import { BC_GRADIENT } from "@/components/BusinessCenterShell";
 import VisualCertificate from "@/components/certification/VisualCertificate";
 
 interface CertData {
@@ -62,7 +63,7 @@ export default function CertificationCertificateView() {
 
   return (
     <motion.div
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 pb-28 flex flex-col"
+      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28 flex flex-col`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >

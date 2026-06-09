@@ -4,6 +4,7 @@ import { Award, BookOpen, ChevronRight, CheckCircle2, Clock, AlertCircle, Bell, 
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
+import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 
 interface CertStatus {
   status: "not_started" | "in_progress" | "completed";
@@ -75,12 +76,12 @@ export default function LearningHub() {
 
   return (
     <motion.div
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-28"
+      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
       <div
-        className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/10"
+        className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
@@ -138,7 +139,7 @@ export default function LearningHub() {
         <div className="space-y-2">
           <p className="text-xs text-white/40 uppercase tracking-widest font-semibold px-1">Phase 1</p>
           <motion.button
-            className="w-full p-4 rounded-2xl bg-black/30 backdrop-blur-lg border border-white/10 text-left active:scale-[0.98] transition-transform"
+            className="w-full p-4 rounded-2xl bg-black/50 backdrop-blur-md border border-white/10 text-left active:scale-[0.98] transition-transform"
             onClick={() => setLocation("/business-center/affiliate/social/certification")}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -167,7 +168,7 @@ export default function LearningHub() {
         <div className="space-y-2">
           <p className="text-xs text-white/40 uppercase tracking-widest font-semibold px-1">Phase 2</p>
           <motion.button
-            className={`w-full p-4 rounded-2xl backdrop-blur-lg border text-left transition-transform ${phase1Complete ? "bg-black/30 border-white/10 active:scale-[0.98]" : "bg-black/20 border-white/5 opacity-50 cursor-default"}`}
+            className={`w-full p-4 rounded-2xl backdrop-blur-md border text-left transition-transform ${phase1Complete ? "bg-black/50 border-white/10 active:scale-[0.98]" : "bg-black/20 border-white/5 opacity-50 cursor-default"}`}
             onClick={() => { if (phase1Complete) setLocation("/certifications/platform"); }}
             disabled={!phase1Complete}
             initial={{ opacity: 0, y: 8 }}
@@ -175,7 +176,7 @@ export default function LearningHub() {
             transition={{ delay: 0.05 }}
           >
             <div className="flex items-center gap-4">
-              <div className={`h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 ${phase1Complete ? "bg-orange-500/20 border border-orange-500/30" : "bg-white/5 border border-white/10"}`}>
+              <div className={`h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 ${phase1Complete ? "bg-orange-500/20 border border-orange-500/30" : "bg-black/30 border border-white/10"}`}>
                 {phase1Complete
                   ? <Award className="h-6 w-6 text-orange-400" />
                   : <Lock className="h-6 w-6 text-white/30" />}
@@ -210,14 +211,14 @@ export default function LearningHub() {
         {/* Platform Updates (only shown after Phase 1 complete) */}
         {phase1Complete && (
           <motion.button
-            className="w-full p-4 rounded-2xl bg-black/20 border border-white/5 text-left active:scale-[0.98] transition-transform"
+            className="w-full p-4 rounded-2xl bg-black/50 backdrop-blur-md border border-white/10 text-left active:scale-[0.98] transition-transform"
             onClick={() => setLocation("/certifications/updates")}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
             <div className="flex items-center gap-4">
-              <div className={`h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 ${pendingUpdates > 0 ? "bg-amber-500/20 border border-amber-500/30" : "bg-white/5 border border-white/10"}`}>
+              <div className={`h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 ${pendingUpdates > 0 ? "bg-amber-500/20 border border-amber-500/30" : "bg-black/30 border border-white/10"}`}>
                 <Bell className={`h-6 w-6 ${pendingUpdates > 0 ? "text-amber-400" : "text-white/30"}`} />
               </div>
               <div className="flex-1 min-w-0">
