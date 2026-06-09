@@ -266,6 +266,68 @@ export default function FoundingPartnerProgram() {
           </div>
         </motion.div>
 
+        {/* Section 4b — What Happens After Acceptance */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-black/50 border border-white/10 rounded-2xl p-5"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <CheckCircle2 className="h-4 w-4 text-orange-400 flex-shrink-0" />
+            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">What Happens After Acceptance?</h3>
+          </div>
+          <p className="text-white/65 text-sm leading-relaxed mb-4">
+            Once accepted into the Founding Partner Program, organizations enter an implementation and onboarding process designed to prepare their team for a successful launch.
+          </p>
+          <p className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-3">A typical implementation may include</p>
+
+          <div className="space-y-4">
+            {[
+              {
+                phase: "Phase 1 — Discovery & Planning",
+                items: ["Business goals review", "Workflow discussions", "Service model review", "Team structure review", "Launch planning"],
+              },
+              {
+                phase: "Phase 2 — Platform Configuration",
+                items: ["Branding setup", "Account configuration", "Provider access setup", "Team access setup", "Initial platform configuration"],
+              },
+              {
+                phase: "Phase 3 — Team Training",
+                items: ["Leadership training", "Coach / provider training", "Platform certification", "Business Success Certification", "Workflow training", "Q&A sessions"],
+              },
+              {
+                phase: "Phase 4 — Launch Support",
+                items: ["Launch preparation", "Early implementation support", "Workflow refinement", "Feedback collection", "Follow-up sessions"],
+              },
+            ].map((block, i) => (
+              <div key={i} className="bg-black/30 border border-white/8 rounded-xl p-3">
+                <div className="text-orange-300 text-xs font-semibold mb-2">{block.phase}</div>
+                <div className="space-y-1">
+                  {block.items.map((item, j) => (
+                    <div key={j} className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-orange-500/60 flex-shrink-0" />
+                      <span className="text-white/55 text-xs">{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 border-t border-white/8 pt-4 space-y-2">
+            <p className="text-white/70 text-sm font-medium leading-snug">
+              Founding Partner pricing reflects a collaborative implementation process, not simply access to software.
+            </p>
+            <p className="text-white/50 text-xs leading-relaxed">
+              The setup investment helps support the time, planning, onboarding, training, configuration, and launch support required to help organizations successfully deploy the platform.
+            </p>
+            <p className="text-white/50 text-xs leading-relaxed">
+              Our objective is to help organizations implement a solution that creates value for their clients, patients, members, and business operations. This is why Founding Partner pricing remains significantly reduced from future standard deployment pricing while still reflecting the real work required to support a successful launch.
+            </p>
+          </div>
+        </motion.div>
+
         {/* Section 5 — Investment */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
