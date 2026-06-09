@@ -180,6 +180,12 @@ export default function PlatformCertVideo() {
   };
 
   // ── INTRO SCREEN ──────────────────────────────────────────────────────────
+  const CERT_LABELS: Record<string, string> = {
+    platform: "ProCare Certification",
+    business_success: "Business Success Certification",
+  };
+  const certLabel = CERT_LABELS[certType] ?? "Certification";
+
   if (showIntro && !isCompleted) {
     return (
       <motion.div
@@ -192,7 +198,7 @@ export default function PlatformCertVideo() {
             <button onClick={() => setLocation(`/certifications/${certType}`)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform">
               <ArrowLeft className="h-4 w-4" /> Back
             </button>
-            <h1 className="text-base font-bold text-white">ProCare Certification</h1>
+            <h1 className="text-base font-bold text-white">{certLabel}</h1>
           </div>
         </div>
 
@@ -207,9 +213,9 @@ export default function PlatformCertVideo() {
               <Play className="h-10 w-10 text-orange-400 ml-1" />
             </div>
             <div className="space-y-2">
-              <p className="text-xs text-orange-400 font-semibold uppercase tracking-widest">ProCare Certification</p>
+              <p className="text-xs text-orange-400 font-semibold uppercase tracking-widest">{certLabel}</p>
               <h1 className="text-2xl font-black text-white leading-tight">
-                {module?.title ?? "Module 1"}
+                {module?.title ?? "Training Video"}
               </h1>
               {module?.description && (
                 <p className="text-sm text-white/60 leading-relaxed max-w-sm mx-auto">{module.description}</p>
@@ -217,7 +223,7 @@ export default function PlatformCertVideo() {
             </div>
 
             <div className="flex items-center justify-center gap-6 text-xs text-white/40 pt-2">
-              <span>3:35 min video</span>
+              <span>Watch full video to continue</span>
               <span>·</span>
               <span>Knowledge check required</span>
               <span>·</span>

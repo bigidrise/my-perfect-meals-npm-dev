@@ -54,6 +54,17 @@ function CoachingAdminGate({ component: Component }: { component: React.Componen
   return <Component />;
 }
 
+function AdminGuard({ component: Component }: { component: React.ComponentType }) {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  if (!user) return null;
+  if (!(user as any).isAdmin) {
+    setLocation("/");
+    return null;
+  }
+  return <Component />;
+}
+
 function BuilderAccessGuard({ builderKey, component: Component }: { builderKey: BuilderKey; component: React.ComponentType }) {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
@@ -731,7 +742,7 @@ export default function Router() {
         <Route path="/certifications/:certType/quiz/:slug" component={PlatformCertQuiz} />
         <Route path="/certifications/:certType" component={PlatformCertDashboard} />
         {/* Admin */}
-        <Route path="/admin/certifications" component={AdminCertifications} />
+        <Route path="/admin/certifications" component={() => <AdminGuard component={AdminCertifications} />} />
         {/* Affiliate Program — overview gates path selection */}
         <Route path="/business-center/affiliate/dashboard" component={AffiliateDashboard} />
         <Route path="/business-center/affiliate" component={AffiliateProgramOverview} />
