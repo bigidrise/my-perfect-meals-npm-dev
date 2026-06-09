@@ -385,7 +385,7 @@ export default function MorePage() {
                   <TrendingUp className="h-5 w-5 text-orange-400" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-white">Business Center</h3>
+                  <h3 className="text-sm font-semibold text-white">Business Suite</h3>
                   <p className="text-xs text-white/70">Affiliates, coaching, academy &amp; partnerships</p>
                 </div>
               </div>

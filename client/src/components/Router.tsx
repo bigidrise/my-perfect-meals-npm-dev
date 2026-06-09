@@ -268,6 +268,7 @@ import FoundersPage from "@/pages/Founders";
 import CoachesComingSoon from "@/pages/CoachesComingSoon";
 import BusinessCenter from "@/pages/BusinessCenter";
 import BusinessCenterSection from "@/pages/BusinessCenterSection";
+import FoundingPartnerProgram from "@/pages/FoundingPartnerProgram";
 import WhiteLabelSolutions from "@/pages/WhiteLabelSolutions";
 import AffiliateOpportunities from "@/pages/AffiliateOpportunities";
 import AffiliatePathPage from "@/pages/AffiliatePathPage";
@@ -755,6 +756,7 @@ export default function Router() {
         <Route path="/business-center/affiliate/:pathId/certification/:moduleId/quiz" component={CertificationQuiz} />
         <Route path="/business-center/affiliate/:pathId/certification/:moduleId" component={CertificationLesson} />
         <Route path="/business-center/affiliate/:pathId/certification" component={CertificationDashboard} />
+        <Route path="/business-center/founding-partner" component={FoundingPartnerProgram} />
         <Route path="/business-center/academy" component={BusinessCenterSection} />
         <Route path="/business-center/industry" component={BusinessCenterSection} />
         <Route path="/business-center/white-label" component={WhiteLabelSolutions} />

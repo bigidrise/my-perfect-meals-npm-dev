@@ -439,7 +439,7 @@ export async function sendCertificationCompleteEmail({
               <p style="color:#92400e;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 6px;">Certificate Number</p>
               <p style="color:#7c2d12;font-size:22px;font-weight:700;font-family:monospace;margin:0;">${certificateNumber}</p>
             </div>
-            <p style="color:#374151;font-size:14px;line-height:1.6;">Your Affiliate Dashboard and marketing resources are now available inside the My Perfect Meals Business Center.</p>
+            <p style="color:#374151;font-size:14px;line-height:1.6;">Your Affiliate Dashboard and marketing resources are now available inside the My Perfect Meals Business Suite.</p>
             <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;">
             <p style="color:#9ca3af;font-size:12px;text-align:center;margin:0;">My Perfect Meals — Personalized Nutrition &amp; Meal Planning</p>
           </div>

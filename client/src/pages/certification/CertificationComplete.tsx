@@ -460,7 +460,7 @@ export default function CertificationComplete() {
                 onClick={() => setLocation("/business-center")}
                 className="w-full p-4 rounded-2xl bg-white/10 text-white font-bold text-sm active:scale-[0.98] transition-transform"
               >
-                Go to Business Center
+                Go to Business Suite
               </button>
 
               <button
