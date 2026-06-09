@@ -14,7 +14,7 @@ const STAGES = [
       },
       {
         heading: "Clients change. Nutrition rarely keeps up.",
-        body: "A client starts GLP-1 medication. Another develops kidney issues. Someone goes on vacation and wants different cuisine. Someone else simply gets bored of the plan. In most platforms, every one of those changes lands back on the professional as a manual task.",
+        body: "A coach creates a meal plan. The client gets bored. The client wants Mexican food instead of Mediterranean food. The client goes on vacation. The client starts a GLP-1 medication. The coach is suddenly rebuilding nutrition from scratch — and this happens with every client, continuously. My Perfect Meals was built to help professionals keep nutrition aligned while allowing food choices to adapt.",
       },
       {
         heading: "My Perfect Meals was built to solve that problem.",
@@ -126,7 +126,7 @@ const STAGES = [
     content: [
       {
         heading: "What makes this different from other platforms.",
-        body: "Traditional platforms help you manage clients. My Perfect Meals helps you manage both the client experience and the nutrition experience. Coaches, dietitians, and healthcare professionals remain in control of the relationship while the platform continuously adapts meals, recipes, shopping, and nutrition recommendations to the individual.",
+        body: "Traditional platforms help you manage clients. My Perfect Meals helps you manage both the client experience and the nutrition experience. Coaches, dietitians, and healthcare professionals remain in control of the relationship while the platform continuously adapts meals, recipes, shopping, and nutrition recommendations to the individual. The platform doesn't replace the professional. It extends the professional.",
       },
       {
         heading: "You own the member relationship.",
@@ -225,7 +225,7 @@ const STAGES = [
     subtitle: "How the ongoing relationship is organized.",
     content: [
       {
-        heading: "Licensing model.",
+        heading: "You are licensing the platform, not purchasing the underlying technology.",
         body: "Partners access the platform through a licensing arrangement — not a software resale or revenue-share model. You pay for platform access; what you charge your members is entirely your business.",
       },
       {
@@ -332,6 +332,7 @@ const STAGES = [
       "I represent a real organization — not an affiliate, influencer, or reseller arrangement.",
       "I am ready to speak with the MPM partnership team about my specific use case.",
       "I understand that submitting this application does not guarantee acceptance into the White Label Partnership Program.",
+      "I understand that white label partnerships are collaborative projects and require participation from both parties throughout implementation.",
     ],
     ack: null,
   },
