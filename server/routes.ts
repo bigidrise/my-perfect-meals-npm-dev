@@ -74,6 +74,7 @@ import certificationRouter from './routes/certificationRoutes';
 import adminCertRouter from './routes/adminCertRoutes';
 import lmsRouter from './routes/lmsRoutes';
 import affiliateRouter, { handleRewardfulWebhook } from './routes/affiliateRoutes';
+import whiteLabelRouter from './routes/whiteLabelRoutes';
 import { cookingRouter } from './routes/cooking';
 import { mealImagesRouter } from './routes/mealImages';
 import weekBoardRoutes from './routes/weekBoard';
@@ -430,6 +431,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/lms', lmsRouter);
   app.use('/api/affiliate', affiliateRouter);
   app.post('/api/webhooks/rewardful', handleRewardfulWebhook);
+  app.use('/api/white-label', whiteLabelRouter);
 
   // Dev-only: seed certification / affiliate state without taking the test
   if (process.env.NODE_ENV !== "production") {

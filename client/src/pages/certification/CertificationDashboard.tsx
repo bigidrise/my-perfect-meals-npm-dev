@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AFFILIATE_MODULES } from "@/data/affiliateCertification";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
+import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 
 interface ModuleProgress {
   moduleId: string;
@@ -161,13 +162,13 @@ export default function CertificationDashboard() {
 
   return (
     <motion.div
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 pb-28"
+      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
       {/* Header */}
       <div
-        className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/10"
+        className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
@@ -211,7 +212,7 @@ export default function CertificationDashboard() {
         )}
 
         {/* Progress bar */}
-        <div className="p-4 rounded-2xl bg-black/30 backdrop-blur-lg border border-white/10 space-y-3">
+        <div className="p-4 rounded-2xl bg-black/50 backdrop-blur-md border border-white/10 space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-sm font-semibold text-white">Progress</span>
             {loading ? (
@@ -295,8 +296,8 @@ export default function CertificationDashboard() {
                         : isCurrent
                         ? "bg-orange-500/10 border-orange-500/30"
                         : status === "completed"
-                        ? "bg-black/20 border-white/5"
-                        : "bg-black/30 backdrop-blur-lg border-white/10 active:scale-[0.98]"
+                        ? "bg-black/30 border-white/10"
+                        : "bg-black/50 backdrop-blur-md border-white/10 active:scale-[0.98]"
                     }`}
                     onClick={() => !isLocked && handleModuleClick(module.id, i)}
                     initial={{ opacity: 0, y: 8 }}
@@ -369,7 +370,7 @@ export default function CertificationDashboard() {
               exit={{ opacity: 0, y: 40 }}
             >
               <button
-                className="absolute top-4 right-4 p-1.5 rounded-xl bg-white/5 text-white/40 active:scale-95 transition-transform"
+                className="absolute top-4 right-4 p-1.5 rounded-xl bg-black/40 text-white/50 active:scale-95 transition-transform"
                 onClick={() => setShowNameModal(false)}
               >
                 <X className="h-4 w-4" />
@@ -390,7 +391,7 @@ export default function CertificationDashboard() {
                     value={certFirstName}
                     onChange={(e) => setCertFirstName(e.target.value)}
                     placeholder="First name"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500/50"
+                    className="w-full bg-black/40 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-orange-500/50"
                     autoFocus
                   />
                 </div>
@@ -401,7 +402,7 @@ export default function CertificationDashboard() {
                     value={certLastName}
                     onChange={(e) => setCertLastName(e.target.value)}
                     placeholder="Last name"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500/50"
+                    className="w-full bg-black/40 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-orange-500/50"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && certFirstName.trim() && certLastName.trim()) {
                         handleCompleteWithName();

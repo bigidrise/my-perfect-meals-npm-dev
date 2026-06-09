@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { BC_GRADIENT, BC_CARD, BC_HEADER } from "@/components/BusinessCenterShell";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -24,7 +25,7 @@ interface AffiliateAccount {
 function Card({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
     <motion.div
-      className={`p-5 rounded-2xl bg-black/30 backdrop-blur-lg border border-white/10 ${className}`}
+      className={`p-5 rounded-2xl bg-black/50 backdrop-blur-md border border-white/10 ${className}`}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
@@ -137,7 +138,7 @@ export default function AffiliateDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 flex items-center justify-center">
+      <div className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} flex items-center justify-center`}>
         <div className="w-8 h-8 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin" />
       </div>
     );
@@ -148,13 +149,13 @@ export default function AffiliateDashboard() {
   return (
     <>
       <motion.div
-        className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-32"
+        className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-32`}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
         {/* Header */}
         <div
-          className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/10"
+          className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
@@ -200,7 +201,7 @@ export default function AffiliateDashboard() {
                       <span className="px-2.5 py-1 rounded-full bg-green-500/15 border border-green-500/30 text-xs font-bold text-green-400">
                         ● Active
                       </span>
-                      <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-white/50">
+                      <span className="px-2.5 py-1 rounded-full bg-black/40 border border-white/10 text-xs text-white/60">
                         Since {formatDate(account.activatedAt)}
                       </span>
                     </>
@@ -209,7 +210,7 @@ export default function AffiliateDashboard() {
                       <span className="px-2.5 py-1 rounded-full bg-orange-500/15 border border-orange-500/30 text-xs font-bold text-orange-400">
                         ◌ Activation Pending
                       </span>
-                      <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-white/50">
+                      <span className="px-2.5 py-1 rounded-full bg-black/40 border border-white/10 text-xs text-white/60">
                         Certified — link generating
                       </span>
                     </>
@@ -268,7 +269,7 @@ export default function AffiliateDashboard() {
               </div>
 
               {account.affiliateTrack === "business_affiliate" && (
-                <div className={`flex items-center justify-between p-3 rounded-xl border ${account.phase2CompletedAt ? "bg-green-500/10 border-green-500/20" : "bg-white/5 border-white/10"}`}>
+                <div className={`flex items-center justify-between p-3 rounded-xl border ${account.phase2CompletedAt ? "bg-green-500/10 border-green-500/20" : "bg-black/40 border-white/10"}`}>
                   <div>
                     <p className="text-xs font-semibold text-white">Phase 2 — ProCare Certification</p>
                     <p className="text-[10px] text-white/40 mt-0.5">
@@ -330,7 +331,7 @@ export default function AffiliateDashboard() {
                 { label: "Estimated Commissions", value: "$0.00", sublabel: "pending" },
                 { label: "Last Activity", value: "N/A", sublabel: "no activity yet" },
               ].map((stat) => (
-                <div key={stat.label} className="p-3 rounded-xl bg-black/30 border border-white/5">
+                <div key={stat.label} className="p-3 rounded-xl bg-black/50 border border-white/10">
                   <p className="text-[10px] text-white/40 mb-1">{stat.label}</p>
                   <p className="text-xl font-black text-white">{stat.value}</p>
                   <p className="text-[10px] text-white/25 mt-0.5">{stat.sublabel}</p>
@@ -381,7 +382,7 @@ export default function AffiliateDashboard() {
                 { title: "Monthly Marketing Packets", desc: "Pre-built social content, captions, and graphics" },
                 { title: "Email Templates", desc: "Done-for-you outreach templates for your audience" },
               ].map((res) => (
-                <div key={res.title} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
+                <div key={res.title} className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-white/10">
                   <div className="flex-1 min-w-0 pr-3">
                     <p className="text-xs font-semibold text-white">{res.title}</p>
                     <p className="text-[10px] text-white/40 mt-0.5 leading-snug">{res.desc}</p>
@@ -422,7 +423,7 @@ export default function AffiliateDashboard() {
                 </div>
                 <button
                   onClick={() => setShowInvite(false)}
-                  className="p-1.5 rounded-xl bg-white/5 text-white/50 active:scale-[0.95] transition-transform"
+                  className="p-1.5 rounded-xl bg-black/40 text-white/60 active:scale-[0.95] transition-transform"
                 >
                   <X className="h-4 w-4" />
                 </button>

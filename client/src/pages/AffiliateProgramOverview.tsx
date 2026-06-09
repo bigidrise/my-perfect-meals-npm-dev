@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { BC_GRADIENT, BC_CARD, BC_HEADER } from "@/components/BusinessCenterShell";
 import { useLocation } from "wouter";
 import {
   ArrowLeft, DollarSign, Clock, TrendingUp, Users, ShieldCheck,
@@ -12,7 +13,7 @@ const COMMISSION_RATE = 0.30;
 function Section({ title, children, delay = 0 }: { title: string; children: React.ReactNode; delay?: number }) {
   return (
     <motion.div
-      className="p-5 rounded-2xl bg-black/30 backdrop-blur-lg border border-white/10 space-y-3"
+      className={`p-5 rounded-2xl bg-black/50 backdrop-blur-md border border-white/10 space-y-3`}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
@@ -171,7 +172,7 @@ export default function AffiliateProgramOverview() {
 
   if (!gateChecked) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 flex items-center justify-center">
+      <div className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} flex items-center justify-center`}>
         <div className="w-8 h-8 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin" />
       </div>
     );
@@ -179,13 +180,13 @@ export default function AffiliateProgramOverview() {
 
   return (
     <motion.div
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-32"
+      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-32`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
       {/* Header */}
       <div
-        className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/10"
+        className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
@@ -226,7 +227,7 @@ export default function AffiliateProgramOverview() {
             <div className="h-10 w-10 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
               <DollarSign className="h-5 w-5 text-orange-400" />
             </div>
-            <p className="text-xs text-white/50 leading-relaxed">
+            <p className="text-xs text-white/65 leading-relaxed">
               Earn a percentage of qualifying subscription payments for every active customer you refer.
             </p>
           </div>
@@ -234,7 +235,7 @@ export default function AffiliateProgramOverview() {
           <Row label="Commission period" value="First 24 months per customer" />
           <Row label="After 24 months" value="Commissions on that customer end" />
           <Row label="Customer cap" value="None — refer as many as you can" />
-          <p className="text-xs text-white/30 pt-1 leading-relaxed">
+          <p className="text-xs text-white/50 pt-1 leading-relaxed">
             The commission window starts from the date each referred customer subscribes, not from when you joined the program.
           </p>
         </Section>
@@ -287,7 +288,7 @@ export default function AffiliateProgramOverview() {
               </div>
             ))}
           </div>
-          <p className="text-xs text-white/40 leading-relaxed pt-1">
+          <p className="text-xs text-white/55 leading-relaxed pt-1">
             The 24-month structure rewards you for bringing quality customers — and allows us to keep investing in the platform you are promoting.
           </p>
         </Section>
@@ -347,12 +348,12 @@ export default function AffiliateProgramOverview() {
             </p>
           </div>
           <div className="space-y-3">
-            <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-1">
+            <div className="p-3.5 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 space-y-1">
               <div className="flex items-center gap-2">
                 <Briefcase className="h-4 w-4 text-orange-400" />
                 <p className="text-xs font-bold text-white">Direct Revenue</p>
               </div>
-              <p className="text-xs text-white/50 leading-relaxed pl-6">
+              <p className="text-xs text-white/65 leading-relaxed pl-6">
                 Revenue from your coaching, training, consulting, or medical services. This is typically where professionals earn the most.
               </p>
             </div>
@@ -366,7 +367,7 @@ export default function AffiliateProgramOverview() {
               </p>
             </div>
           </div>
-          <p className="text-xs text-white/30 leading-relaxed">
+          <p className="text-xs text-white/50 leading-relaxed">
             Most coaches and physicians will earn significantly more from their core practice than from affiliate commissions. Both are valuable — just understand the difference.
           </p>
         </Section>
@@ -426,7 +427,7 @@ export default function AffiliateProgramOverview() {
               <button
                 key={i}
                 onClick={() => toggle(i)}
-                className="w-full flex items-start gap-3 p-3.5 rounded-xl bg-white/5 border border-white/10 text-left active:scale-[0.99] transition-all duration-150"
+                className="w-full flex items-start gap-3 p-3.5 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-left active:scale-[0.99] transition-all duration-150"
                 style={{
                   borderColor: checked[i] ? "rgba(249,115,22,0.4)" : undefined,
                   backgroundColor: checked[i] ? "rgba(249,115,22,0.08)" : undefined,

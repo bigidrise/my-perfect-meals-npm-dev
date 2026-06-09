@@ -3,6 +3,7 @@ import { useLocation, useParams } from "wouter";
 import { ArrowLeft, CheckCircle2, Play, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
+import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 
 interface CertModule {
   slug: string;
@@ -180,19 +181,25 @@ export default function PlatformCertVideo() {
   };
 
   // ── INTRO SCREEN ──────────────────────────────────────────────────────────
+  const CERT_LABELS: Record<string, string> = {
+    platform: "ProCare Certification",
+    business_success: "Business Success Certification",
+  };
+  const certLabel = CERT_LABELS[certType] ?? "Certification";
+
   if (showIntro && !isCompleted) {
     return (
       <motion.div
-        className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 pb-28"
+        className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28`}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
-        <div className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+        <div className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
           <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
             <button onClick={() => setLocation(`/certifications/${certType}`)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform">
               <ArrowLeft className="h-4 w-4" /> Back
             </button>
-            <h1 className="text-base font-bold text-white">ProCare Certification</h1>
+            <h1 className="text-base font-bold text-white">{certLabel}</h1>
           </div>
         </div>
 
@@ -207,9 +214,9 @@ export default function PlatformCertVideo() {
               <Play className="h-10 w-10 text-orange-400 ml-1" />
             </div>
             <div className="space-y-2">
-              <p className="text-xs text-orange-400 font-semibold uppercase tracking-widest">ProCare Certification</p>
+              <p className="text-xs text-orange-400 font-semibold uppercase tracking-widest">{certLabel}</p>
               <h1 className="text-2xl font-black text-white leading-tight">
-                {module?.title ?? "Module 1"}
+                {module?.title ?? "Training Video"}
               </h1>
               {module?.description && (
                 <p className="text-sm text-white/60 leading-relaxed max-w-sm mx-auto">{module.description}</p>
@@ -217,7 +224,7 @@ export default function PlatformCertVideo() {
             </div>
 
             <div className="flex items-center justify-center gap-6 text-xs text-white/40 pt-2">
-              <span>3:35 min video</span>
+              <span>Watch full video to continue</span>
               <span>·</span>
               <span>Knowledge check required</span>
               <span>·</span>
@@ -240,11 +247,11 @@ export default function PlatformCertVideo() {
   // ── VIDEO SCREEN ──────────────────────────────────────────────────────────
   return (
     <motion.div
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 pb-28"
+      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      <div className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <div className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
           <button onClick={() => setLocation(`/certifications/${certType}`)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform">
             <ArrowLeft className="h-4 w-4" /> Back
@@ -319,7 +326,7 @@ export default function PlatformCertVideo() {
         {!module?.videoUrl && !isCompleted && (
           <button
             onClick={() => handleVideoComplete()}
-            className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-xs text-white/40 active:scale-[0.98] transition-transform"
+            className="w-full p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-white/50 active:scale-[0.98] transition-transform"
           >
             Mark as Watched (video not yet available)
           </button>

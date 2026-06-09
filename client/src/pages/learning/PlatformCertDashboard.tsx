@@ -3,6 +3,7 @@ import { useLocation, useParams } from "wouter";
 import { ArrowLeft, CheckCircle2, Circle, Clock, Lock, Award, PlayCircle, FileText, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
+import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface CertModule {
@@ -176,11 +177,11 @@ export default function PlatformCertDashboard() {
 
   return (
     <motion.div
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 pb-28"
+      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      <div className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <div className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
           <button onClick={() => setLocation("/learning")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform">
             <ArrowLeft className="h-4 w-4" /> Back
@@ -209,7 +210,7 @@ export default function PlatformCertDashboard() {
         )}
 
         {/* Progress bar */}
-        <div className="p-4 rounded-2xl bg-black/30 backdrop-blur-lg border border-white/10 space-y-3">
+        <div className="p-4 rounded-2xl bg-black/50 backdrop-blur-md border border-white/10 space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-sm font-semibold text-white">Progress</span>
             {loading ? <div className="h-4 w-10 rounded bg-white/10 animate-pulse" /> : <span className="text-sm font-bold text-orange-400">{progressPct}%</span>}
@@ -267,7 +268,7 @@ export default function PlatformCertDashboard() {
                     </div>
                   )}
                   <motion.button
-                    className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 ${locked ? "bg-black/20 border-white/5 opacity-50 cursor-default" : isCurrent ? "bg-orange-500/10 border-orange-500/30" : status === "completed" ? "bg-black/20 border-white/5" : "bg-black/30 backdrop-blur-lg border-white/10 active:scale-[0.98]"}`}
+                    className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 ${locked ? "bg-black/20 border-white/5 opacity-50 cursor-default" : isCurrent ? "bg-orange-500/10 border-orange-500/30" : status === "completed" ? "bg-black/30 border-white/10" : "bg-black/50 backdrop-blur-md border-white/10 active:scale-[0.98]"}`}
                     onClick={() => !locked && handleModuleClick(mod, i)}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -312,7 +313,7 @@ export default function PlatformCertDashboard() {
           <motion.div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center px-4 pb-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <motion.div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowNameModal(false)} />
             <motion.div className="relative w-full max-w-sm bg-[#1a1a1a] border border-white/10 rounded-3xl p-6 space-y-5" initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 40 }}>
-              <button className="absolute top-4 right-4 p-1.5 rounded-xl bg-white/5 text-white/40 active:scale-95" onClick={() => setShowNameModal(false)}>✕</button>
+              <button className="absolute top-4 right-4 p-1.5 rounded-xl bg-black/40 text-white/50 active:scale-95" onClick={() => setShowNameModal(false)}>✕</button>
               <div>
                 <h2 className="text-base font-bold text-white">Before Your Certificate Is Issued</h2>
                 <p className="text-xs text-white/50 mt-1 leading-relaxed">Enter your full name exactly as you want it to appear on your certificate.</p>
@@ -320,11 +321,11 @@ export default function PlatformCertDashboard() {
               <div className="space-y-3">
                 <div className="space-y-1.5">
                   <label className="text-xs text-white/50 font-medium">First Name</label>
-                  <input type="text" value={certFirstName} onChange={(e) => setCertFirstName(e.target.value)} placeholder="First name" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500/50" autoFocus />
+                  <input type="text" value={certFirstName} onChange={(e) => setCertFirstName(e.target.value)} placeholder="First name" className="w-full bg-black/40 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-orange-500/50" autoFocus />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs text-white/50 font-medium">Last Name</label>
-                  <input type="text" value={certLastName} onChange={(e) => setCertLastName(e.target.value)} placeholder="Last name" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500/50" onKeyDown={(e) => { if (e.key === "Enter" && certFirstName.trim() && certLastName.trim()) handleCompleteWithName(); }} />
+                  <input type="text" value={certLastName} onChange={(e) => setCertLastName(e.target.value)} placeholder="Last name" className="w-full bg-black/40 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-orange-500/50" onKeyDown={(e) => { if (e.key === "Enter" && certFirstName.trim() && certLastName.trim()) handleCompleteWithName(); }} />
                 </div>
               </div>
               <button onClick={handleCompleteWithName} disabled={!certFirstName.trim() || !certLastName.trim() || nameSaving} className="w-full p-3.5 rounded-2xl bg-orange-600 text-white font-bold text-sm active:scale-[0.98] transition-transform disabled:opacity-40 disabled:cursor-not-allowed">

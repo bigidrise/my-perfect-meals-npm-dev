@@ -54,6 +54,17 @@ function CoachingAdminGate({ component: Component }: { component: React.Componen
   return <Component />;
 }
 
+function AdminGuard({ component: Component }: { component: React.ComponentType }) {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  if (!user) return null;
+  if (!(user as any).isAdmin) {
+    setLocation("/");
+    return null;
+  }
+  return <Component />;
+}
+
 function BuilderAccessGuard({ builderKey, component: Component }: { builderKey: BuilderKey; component: React.ComponentType }) {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
@@ -257,6 +268,7 @@ import FoundersPage from "@/pages/Founders";
 import CoachesComingSoon from "@/pages/CoachesComingSoon";
 import BusinessCenter from "@/pages/BusinessCenter";
 import BusinessCenterSection from "@/pages/BusinessCenterSection";
+import WhiteLabelSolutions from "@/pages/WhiteLabelSolutions";
 import AffiliateOpportunities from "@/pages/AffiliateOpportunities";
 import AffiliatePathPage from "@/pages/AffiliatePathPage";
 import AffiliateProgramOverview from "@/pages/AffiliateProgramOverview";
@@ -731,7 +743,7 @@ export default function Router() {
         <Route path="/certifications/:certType/quiz/:slug" component={PlatformCertQuiz} />
         <Route path="/certifications/:certType" component={PlatformCertDashboard} />
         {/* Admin */}
-        <Route path="/admin/certifications" component={AdminCertifications} />
+        <Route path="/admin/certifications" component={() => <AdminGuard component={AdminCertifications} />} />
         {/* Affiliate Program — overview gates path selection */}
         <Route path="/business-center/affiliate/dashboard" component={AffiliateDashboard} />
         <Route path="/business-center/affiliate" component={AffiliateProgramOverview} />
@@ -745,7 +757,7 @@ export default function Router() {
         <Route path="/business-center/affiliate/:pathId/certification" component={CertificationDashboard} />
         <Route path="/business-center/academy" component={BusinessCenterSection} />
         <Route path="/business-center/industry" component={BusinessCenterSection} />
-        <Route path="/business-center/white-label" component={BusinessCenterSection} />
+        <Route path="/business-center/white-label" component={WhiteLabelSolutions} />
         <Route path="/business-center/partnerships" component={BusinessCenterSection} />
         {/* Supplement Hub Routes */}
         {/* REMOVED: /supplement-hub-landing route (landing page not used - Copilot routes to /supplement-hub directly) */}

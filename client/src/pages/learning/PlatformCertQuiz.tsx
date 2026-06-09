@@ -3,6 +3,7 @@ import { useLocation, useParams } from "wouter";
 import { ArrowLeft, CheckCircle2, XCircle, ChevronRight, Award } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
+import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 
 interface QuizOption {
   id: string;
@@ -133,7 +134,7 @@ export default function PlatformCertQuiz() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 flex items-center justify-center">
+      <div className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} flex items-center justify-center`}>
         <div className="w-8 h-8 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin" />
       </div>
     );
@@ -141,7 +142,7 @@ export default function PlatformCertQuiz() {
 
   if (questions.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 flex flex-col items-center justify-center gap-4 px-4">
+      <div className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} flex flex-col items-center justify-center gap-4 px-4`}>
         <p className="text-white/50 text-sm text-center">Quiz questions are being prepared for this module.</p>
         <button onClick={() => setLocation(`/certifications/${certType}`)} className="px-4 py-2 rounded-xl bg-orange-600 text-white text-sm font-medium">Back to Overview</button>
       </div>
@@ -150,11 +151,11 @@ export default function PlatformCertQuiz() {
 
   return (
     <motion.div
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-900 to-black/80 pb-28"
+      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      <div className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <div className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
           <button onClick={() => setLocation(`/certifications/${certType}`)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform">
             <ArrowLeft className="h-4 w-4" /> Back
@@ -187,7 +188,7 @@ export default function PlatformCertQuiz() {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="p-5 rounded-2xl bg-black/30 backdrop-blur-lg border border-white/10">
+              <div className="p-5 rounded-2xl bg-black/50 backdrop-blur-md border border-white/10">
                 <p className="text-sm font-semibold text-white leading-relaxed">{currentQuestion.questionText}</p>
               </div>
 
@@ -239,7 +240,7 @@ export default function PlatformCertQuiz() {
                 </p>
                 {result.passed ? (
                   <p className="text-sm font-semibold text-green-400 leading-snug">
-                    Congratulations. You have successfully completed ProCare Certification{moduleNum ? ` Module ${moduleNum}` : ""}.
+                    Congratulations. You have successfully completed{moduleNum ? ` Module ${moduleNum}` : isFinal ? " the final assessment" : " this module"}.
                   </p>
                 ) : (
                   <p className="text-sm font-semibold text-red-400">
