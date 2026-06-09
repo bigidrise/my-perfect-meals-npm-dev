@@ -329,30 +329,52 @@ const STAGES = [
   {
     number: 13,
     title: "Investment & Pricing Expectations",
-    subtitle: "These are ranges and expectations — not a quote.",
+    subtitle: "Review investment ranges before you apply. Final pricing is set during consultation.",
     content: [
       {
-        heading: "Independent Coach or Small Practice",
-        body: "Typically serves dozens to a few hundred clients. Usually the entry tier — lower clinical scope, standard dietary personalization, no App Store deployment. The lowest overall implementation cost.",
+        heading: "Two components to every deployment.",
+        body: "Every white label partnership includes a one-time setup investment and an ongoing monthly platform fee. Both scale with your requirements — clinical scope, branding depth, App Store deployment, integrations, and member volume.",
       },
       {
-        heading: "Growing Organization",
-        body: "Multiple coaches, providers, or locations with an expanded member base. Includes anti-inflammatory or GLP-1 protocols, custom domain, and a more developed coaching persona. A meaningfully larger investment than an individual practice.",
+        heading: null,
+        body: null,
+        tiers: [
+          {
+            label: "Independent Coach or Small Practice",
+            forWhom: "Individual coaches, dietitians, nutritionists, and small practices serving a limited client base.",
+            setup: "$10,000 – $35,000",
+            monthly: "$1,500 – $5,000 / month",
+            drivers: ["Standard branding", "Web deployment", "Basic clinical protocols", "Up to ~200 active members"],
+          },
+          {
+            label: "Growing Organization",
+            forWhom: "Multi-coach practices, fitness brands, or wellness organizations with expanded branding and higher member volume.",
+            setup: "$35,000 – $120,000",
+            monthly: "$5,000 – $20,000 / month",
+            drivers: ["Custom branding & persona", "Custom domain", "Clinical protocol suite", "Mobile app (optional)", "500–2,000 active members"],
+          },
+          {
+            label: "Regional or National Organization",
+            forWhom: "Multi-location organizations with large member populations and advanced clinical or compliance requirements.",
+            setup: "$120,000 – $350,000",
+            monthly: "$20,000 – $70,000 / month",
+            drivers: ["Deep persona config", "iOS + Android App Store", "Full clinical suite", "Custom integrations", "2,000–10,000+ members"],
+          },
+          {
+            label: "Enterprise Healthcare Deployment",
+            forWhom: "Health systems, insurers, and employer wellness programs with enterprise compliance and large populations.",
+            setup: "Custom scope",
+            monthly: "Custom scope",
+            drivers: ["Enterprise clinical protocols", "EMR / custom integrations", "HIPAA compliance + BAA", "Dedicated implementation", "10,000+ members"],
+          },
+        ],
       },
       {
-        heading: "Regional or National Organization",
-        body: "Large member populations across multiple markets. Requires advanced integrations, clinical compliance configuration, deep persona development, and dedicated onboarding support. A significant business-level investment.",
-      },
-      {
-        heading: "Enterprise Healthcare Deployment",
-        body: "Health systems, insurers, employer wellness programs. Full clinical mode, App Store presence under your brand, physician-assigned protocol support, and enterprise support agreements. The highest implementation tier.",
-      },
-      {
-        heading: "Every deployment is scoped individually.",
-        body: "The tiers above are provided to help you understand the level of investment and commitment involved before requesting a consultation — not to give you a quote. Final pricing depends on your clinical scope, persona requirements, member volume, and deployment needs. We do not publish exact pricing until we understand your specific use case.",
+        heading: "Final pricing is determined during consultation.",
+        body: "The ranges above reflect typical deployments at each tier. Your final investment depends on clinical scope, branding requirements, integrations, compliance posture, support level, and member volume. We do not issue a final quote until we understand your specific use case.",
       },
     ],
-    ack: "I understand this is a professional platform deployment — not a consumer subscription. These are ranges and expectations. Final pricing depends on my scope and requirements.",
+    ack: "I understand the investment ranges above. I am entering a business licensing conversation — not a consumer subscription — and I am prepared to discuss my specific requirements.",
   },
   {
     number: 14,
@@ -621,26 +643,59 @@ export default function WhiteLabelSolutions() {
         {/* Regular stage blocks */}
         {!(stage as any).isApplication && (
           <div className="space-y-4 mt-2">
-            {(stage.content as any[]).map((block: any, i: number) => (
-              <div key={i} className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl p-4">
-                <div className="text-orange-300 font-semibold text-sm mb-2">
-                  {block.heading}
-                </div>
-                {block.body && (
-                  <p className="text-white/70 text-sm leading-relaxed">{block.body}</p>
-                )}
-                {block.examples && (
-                  <div className="space-y-3 mt-3">
-                    {block.examples.map((ex: any, j: number) => (
-                      <div key={j} className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-lg p-3">
-                        <div className="text-orange-400 text-xs font-semibold mb-1">{ex.label}</div>
-                        <p className="text-white/60 text-xs leading-relaxed">{ex.desc}</p>
+            {(stage.content as any[]).map((block: any, i: number) => {
+              if (block.tiers) {
+                return (
+                  <div key={i} className="space-y-3">
+                    {block.tiers.map((tier: any, j: number) => (
+                      <div key={j} className="bg-black/50 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden">
+                        <div className="bg-orange-600/15 border-b border-white/10 px-4 py-3">
+                          <div className="text-orange-300 font-bold text-sm">{tier.label}</div>
+                          <p className="text-white/50 text-xs mt-0.5 leading-snug">{tier.forWhom}</p>
+                        </div>
+                        <div className="px-4 py-3 grid grid-cols-2 gap-3">
+                          <div>
+                            <div className="text-white/40 text-xs uppercase tracking-wider mb-1">Setup Investment</div>
+                            <div className={`font-bold leading-tight ${tier.setup === "Custom scope" ? "text-white/60 text-sm" : "text-white text-sm"}`}>{tier.setup}</div>
+                          </div>
+                          <div>
+                            <div className="text-white/40 text-xs uppercase tracking-wider mb-1">Monthly Platform Fee</div>
+                            <div className={`font-bold leading-tight ${tier.monthly === "Custom scope" ? "text-white/60 text-sm" : "text-white text-sm"}`}>{tier.monthly}</div>
+                          </div>
+                        </div>
+                        <div className="px-4 pb-3 flex flex-wrap gap-1.5">
+                          {tier.drivers.map((d: string, k: number) => (
+                            <span key={k} className="text-xs bg-white/5 border border-white/10 text-white/50 rounded-full px-2.5 py-0.5">{d}</span>
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
-            ))}
+                );
+              }
+              return (
+                <div key={i} className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+                  {block.heading && (
+                    <div className="text-orange-300 font-semibold text-sm mb-2">
+                      {block.heading}
+                    </div>
+                  )}
+                  {block.body && (
+                    <p className="text-white/70 text-sm leading-relaxed">{block.body}</p>
+                  )}
+                  {block.examples && (
+                    <div className="space-y-3 mt-3">
+                      {block.examples.map((ex: any, j: number) => (
+                        <div key={j} className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-lg p-3">
+                          <div className="text-orange-400 text-xs font-semibold mb-1">{ex.label}</div>
+                          <p className="text-white/60 text-xs leading-relaxed">{ex.desc}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 
