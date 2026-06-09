@@ -1,8 +1,34 @@
 import React, { useState } from "react";
 
+const TOTAL = 13;
+
 const STAGES = [
   {
     number: 1,
+    title: "Why We Built This",
+    subtitle: "The problem we set out to solve.",
+    content: [
+      {
+        heading: "Existing software organizes people. It doesn't manage nutrition.",
+        body: "Coaches, dietitians, and healthcare professionals spend enormous amounts of time trying to personalize nutrition — writing meal plans, adjusting for medical changes, handling food preferences, responding to cravings, updating shopping lists. None of that is automated. It's all manual.",
+      },
+      {
+        heading: "Clients change. Nutrition rarely keeps up.",
+        body: "A client starts GLP-1 medication. Another develops kidney issues. Someone goes on vacation and wants different cuisine. Someone else simply gets bored of the plan. In most platforms, every one of those changes lands back on the professional as a manual task.",
+      },
+      {
+        heading: "My Perfect Meals was built to solve that problem.",
+        body: "We built adaptive, clinically-safe AI that personalizes nutrition for each individual — and keeps personalizing as that individual changes. Professionals stay in control of the guardrails, the relationship, and the outcomes. The platform handles the continuous nutrition work.",
+      },
+      {
+        heading: "The white label program makes that possible under your brand.",
+        body: "If you serve clients, patients, or members who need better nutrition — and you want a professional-grade platform that represents your practice — this program was built for you.",
+      },
+    ],
+    ack: "I understand the problem this platform was built to solve and why it exists.",
+  },
+  {
+    number: 2,
     title: "What This Program Creates",
     subtitle: "Before anything else — here's the outcome.",
     content: [
@@ -12,7 +38,7 @@ const STAGES = [
       },
       {
         heading: "Your members get a clinical-grade nutrition engine.",
-        body: "The same AI that powers MyPerfectMeals — personalized meal generation, dietary tracking, macro management, and medical-safe guardrails — runs invisibly inside your branded product.",
+        body: "The same AI that powers My Perfect Meals — personalized meal generation, dietary tracking, macro management, and medical-safe guardrails — runs invisibly inside your branded product.",
       },
       {
         heading: "You keep the relationship. We keep the infrastructure.",
@@ -22,12 +48,12 @@ const STAGES = [
     ack: "I understand what this program produces — a fully branded nutrition app powered by MPM's AI.",
   },
   {
-    number: 2,
-    title: "Who This Program Is Built For",
+    number: 3,
+    title: "Who This Is Built For",
     subtitle: "This isn't for everyone — and that's by design.",
     content: [
       {
-        heading: "Health & wellness professionals with an existing audience.",
+        heading: "Health & wellness professionals with an existing client base.",
         body: "Registered dietitians, certified nutritionists, coaches, and practitioners who already serve clients and want to deepen that relationship through a proprietary digital product.",
       },
       {
@@ -39,14 +65,14 @@ const STAGES = [
         body: "Practitioners who need clinical-mode capabilities — anti-inflammatory protocols, oncology support, GLP-1/diabetes-appropriate meal generation — with their name on the product.",
       },
       {
-        heading: "This is NOT for influencers, affiliate marketers, or resellers.",
-        body: "Partners take operational responsibility for their member community. This program requires a real business, real clients, and a real commitment to their nutrition outcomes.",
+        heading: "Organizations building a branded nutrition platform.",
+        body: "Startups, physician groups, insurance programs, and wellness brands that intend to serve members, clients, patients, or customers through a dedicated nutrition experience — whether or not they have an established audience today.",
       },
     ],
-    ack: "I confirm I have an existing audience or client base I would bring to this program.",
+    ack: "I understand this program is designed for organizations that intend to serve members, clients, patients, or customers through a branded nutrition platform.",
   },
   {
-    number: 3,
+    number: 4,
     title: "What Your Members Experience",
     subtitle: "This is what your clients actually get inside your branded app.",
     content: [
@@ -70,7 +96,7 @@ const STAGES = [
     ack: "I understand what my members will experience inside the branded product.",
   },
   {
-    number: 4,
+    number: 5,
     title: "How Your Brand Shows Up",
     subtitle: "The difference between a reskin and a real branded product.",
     content: [
@@ -94,10 +120,14 @@ const STAGES = [
     ack: "I understand what 'branded' means in this context and what is and isn't customizable.",
   },
   {
-    number: 5,
+    number: 6,
     title: "Your Role as a Partner",
     subtitle: "Partnership means shared responsibility — here's yours.",
     content: [
+      {
+        heading: "What makes this different from other platforms.",
+        body: "Traditional platforms help you manage clients. My Perfect Meals helps you manage both the client experience and the nutrition experience. Coaches, dietitians, and healthcare professionals remain in control of the relationship while the platform continuously adapts meals, recipes, shopping, and nutrition recommendations to the individual.",
+      },
       {
         heading: "You own the member relationship.",
         body: "You recruit, onboard, support, and retain your members. We don't handle your community, your communications, or your customer service.",
@@ -118,7 +148,7 @@ const STAGES = [
     ack: "I understand my operational responsibilities as a partner — this is a real commitment, not a passive license.",
   },
   {
-    number: 6,
+    number: 7,
     title: "How the AI Actually Works",
     subtitle: "What happens when your member generates a meal.",
     content: [
@@ -142,7 +172,7 @@ const STAGES = [
     ack: "I understand how the AI personalization and medical guardrail system works.",
   },
   {
-    number: 7,
+    number: 8,
     title: "What You Can and Cannot Change",
     subtitle: "Clear lines. No surprises after you launch.",
     content: [
@@ -166,7 +196,7 @@ const STAGES = [
     ack: "I understand what is and isn't configurable — and I'm comfortable with those boundaries.",
   },
   {
-    number: 8,
+    number: 9,
     title: "Who Handles What",
     subtitle: "Responsibilities divided clearly between us.",
     content: [
@@ -190,31 +220,31 @@ const STAGES = [
     ack: "I understand the division of responsibilities between partner and platform.",
   },
   {
-    number: 9,
-    title: "Partnership Terms at a Glance",
-    subtitle: "The structure of the ongoing relationship.",
+    number: 10,
+    title: "Partnership Structure",
+    subtitle: "How the ongoing relationship is organized.",
     content: [
       {
-        heading: "Minimum 12-month initial commitment.",
-        body: "White label partnerships require a 12-month minimum. This is not a monthly subscription you can cancel after 30 days. The onboarding alone runs 12 weeks — a long-term mindset is required.",
+        heading: "Licensing model.",
+        body: "Partners access the platform through a licensing arrangement — not a software resale or revenue-share model. You pay for platform access; what you charge your members is entirely your business.",
       },
       {
-        heading: "Monthly platform fee — regardless of your member count.",
-        body: "You pay a flat monthly platform fee to maintain your branded environment. Your revenue from members is entirely separate and entirely yours.",
+        heading: "Platform support and ongoing maintenance.",
+        body: "Your platform fee covers continued access to the AI infrastructure, security updates, compliance maintenance, and platform feature development. The platform improves continuously — your members benefit from updates without additional cost.",
       },
       {
-        heading: "Seat-based scaling applies above threshold.",
-        body: "Platform fees scale with active member counts above a defined threshold. Exact tiers are discussed during the qualification call — they depend on your use case and clinical configuration.",
+        heading: "Infrastructure and updates are included.",
+        body: "Server uptime, database management, AI model refinements, and new feature releases are part of the partnership — not add-ons you purchase separately.",
       },
       {
-        heading: "Partner exits require 90-day notice.",
-        body: "If you choose not to renew after your initial term, 90 days written notice is required. This protects your members from abrupt service disruption.",
+        heading: "Commitment terms.",
+        body: "White label partnerships require a 12-month initial term, reflecting the depth of the setup and onboarding investment on both sides. Partner exits after the initial term require 90 days' written notice to protect your members from disruption.",
       },
     ],
-    ack: "I understand the commitment structure — 12-month minimum, monthly platform fee, 90-day exit notice.",
+    ack: "I understand how the partnership is structured — licensing model, included support, and commitment terms.",
   },
   {
-    number: 10,
+    number: 11,
     title: "Investment & Cost Drivers",
     subtitle: "What shapes your platform fee — before we give you a number.",
     content: [
@@ -238,11 +268,29 @@ const STAGES = [
         heading: "Setup fee is separate from the monthly platform fee.",
         body: "There is a one-time setup fee covering brand configuration, environment build-out, and launch support. Monthly platform fees begin after your environment is delivered.",
       },
+      {
+        heading: "Cost looks different depending on your use case.",
+        body: null,
+        examples: [
+          {
+            label: "Small coaching company",
+            desc: "An individual coach or small practice serving 50–200 members with standard dietary personalization and no clinical-mode requirements. Lower clinical scope, no App Store deployment, basic persona config.",
+          },
+          {
+            label: "Regional wellness organization",
+            desc: "A multi-location fitness brand or wellness group with 500–2,000 members, anti-inflammatory or GLP-1 protocols enabled, custom domain, and a moderately developed coaching persona.",
+          },
+          {
+            label: "Enterprise healthcare deployment",
+            desc: "A hospital system, insurance program, or large clinical practice with 5,000+ members, full clinical mode, physician-assigned protocol support, App Store presence, and deep persona configuration.",
+          },
+        ],
+      },
     ],
     ack: "I understand the cost drivers — I don't need an exact number yet, but I understand what shapes it.",
   },
   {
-    number: 11,
+    number: 12,
     title: "Timeline: Week by Week",
     subtitle: "From signed agreement to live product — 12 weeks.",
     content: [
@@ -270,19 +318,20 @@ const STAGES = [
     ack: "I understand the 12-week launch timeline and what's expected of me at each phase.",
   },
   {
-    number: 12,
+    number: 13,
     title: "White Label Partnership Application",
     subtitle: "Before we connect, confirm you've read and understood this program.",
     isApplication: true,
     checkboxes: [
-      "I have an existing audience, client base, or member community I would bring to this program.",
-      "I understand this is a 12-month minimum commitment with a monthly platform fee.",
+      "I have an existing audience, client base, or member community — or I represent an organization building one.",
+      "I understand this is a licensing arrangement with a 12-month initial term and a monthly platform fee.",
       "I am prepared to own the member relationship — onboarding, support, and community management.",
       "I understand the medical guardrails cannot be modified or removed.",
       "I understand the cost is shaped by clinical scope, persona depth, member volume, and deployment type — and I'm prepared to discuss this on a call.",
       "I understand the 12-week launch timeline and what's expected of me during that period.",
-      "I represent a real business — not an affiliate, influencer, or reseller arrangement.",
+      "I represent a real organization — not an affiliate, influencer, or reseller arrangement.",
       "I am ready to speak with the MPM partnership team about my specific use case.",
+      "I understand that submitting this application does not guarantee acceptance into the White Label Partnership Program.",
     ],
     ack: null,
   },
@@ -291,8 +340,8 @@ const STAGES = [
 const WHAT_HAPPENS_NEXT = [
   {
     step: 1,
-    title: "Application reviewed within 2 business days",
-    body: "Our partnership team reviews every application personally. You'll receive a response confirming receipt and initial fit assessment.",
+    title: "Initial review and fit assessment",
+    body: "Our partnership team reviews every application personally. You'll receive a response confirming receipt and whether your use case is a strong fit for the program.",
   },
   {
     step: 2,
@@ -327,7 +376,7 @@ export default function WhiteLabelJourney() {
     new Array(STAGES.length).fill(false)
   );
   const [appChecks, setAppChecks] = useState<boolean[]>(
-    new Array(8).fill(false)
+    new Array(9).fill(false)
   );
   const [formData, setFormData] = useState({
     name: "",
@@ -380,7 +429,7 @@ export default function WhiteLabelJourney() {
           <div className="text-orange-400 text-4xl mb-3">✓</div>
           <h1 className="text-2xl font-bold mb-2">Application Submitted</h1>
           <p className="text-white/60 text-sm">
-            You'll hear from us within 2 business days.
+            You'll hear from us after our initial review.
           </p>
         </div>
 
@@ -415,7 +464,7 @@ export default function WhiteLabelJourney() {
       <div className="px-4 pt-6 pb-3 flex-shrink-0">
         <div className="flex items-center justify-between mb-3">
           <span className="text-orange-400 text-xs font-semibold uppercase tracking-wider">
-            Stage {stage.number} of 12
+            Stage {stage.number} of {TOTAL}
           </span>
           {currentStage > 0 && (
             <button
@@ -426,11 +475,10 @@ export default function WhiteLabelJourney() {
             </button>
           )}
         </div>
-        {/* Progress bar */}
         <div className="h-1 bg-white/10 rounded-full overflow-hidden">
           <div
             className="h-full bg-orange-500 rounded-full transition-all duration-500"
-            style={{ width: `${(stage.number / 12) * 100}%` }}
+            style={{ width: `${(stage.number / TOTAL) * 100}%` }}
           />
         </div>
       </div>
@@ -438,26 +486,40 @@ export default function WhiteLabelJourney() {
       {/* Stage content */}
       <div className="flex-1 overflow-y-auto px-4 pb-4">
         <div className="pt-4 pb-2">
-          <h1 className="text-xl font-bold leading-tight mb-1">
-            {stage.title}
-          </h1>
+          <h1 className="text-xl font-bold leading-tight mb-1">{stage.title}</h1>
           <p className="text-white/50 text-sm">{stage.subtitle}</p>
         </div>
 
-        {/* Regular stage content blocks */}
+        {/* Regular stage content */}
         {!stage.isApplication && (
           <div className="space-y-4 mt-4">
-            {stage.content.map((block, i) => (
-              <div
-                key={i}
-                className="bg-white/5 border border-white/10 rounded-xl p-4"
-              >
+            {(stage.content as any[]).map((block: any, i: number) => (
+              <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-4">
                 <div className="text-orange-300 font-semibold text-sm mb-2">
                   {block.heading}
                 </div>
-                <div className="text-white/70 text-sm leading-relaxed">
-                  {block.body}
-                </div>
+                {block.body && (
+                  <div className="text-white/70 text-sm leading-relaxed">
+                    {block.body}
+                  </div>
+                )}
+                {block.examples && (
+                  <div className="space-y-3 mt-3">
+                    {block.examples.map((ex: any, j: number) => (
+                      <div
+                        key={j}
+                        className="bg-white/5 border border-white/10 rounded-lg p-3"
+                      >
+                        <div className="text-orange-400 text-xs font-semibold mb-1">
+                          {ex.label}
+                        </div>
+                        <div className="text-white/60 text-xs leading-relaxed">
+                          {ex.desc}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -466,12 +528,11 @@ export default function WhiteLabelJourney() {
         {/* Application stage */}
         {stage.isApplication && (
           <div className="mt-4 space-y-4">
-            {/* 8 checkboxes */}
             <div className="space-y-3">
               <p className="text-white/50 text-xs uppercase tracking-wider font-semibold">
-                Confirm all 8 statements before applying
+                Confirm all {(stage as any).checkboxes.length} statements before applying
               </p>
-              {stage.checkboxes!.map((label, i) => (
+              {(stage as any).checkboxes.map((label: string, i: number) => (
                 <button
                   key={i}
                   onClick={() => toggleAppCheck(i)}
@@ -497,10 +558,12 @@ export default function WhiteLabelJourney() {
               ))}
             </div>
 
-            {/* Application form */}
+            {/* Form — fades in once all boxes checked */}
             <div
               className={`space-y-3 transition-all duration-300 ${
-                allBoxesChecked ? "opacity-100" : "opacity-30 pointer-events-none"
+                allBoxesChecked
+                  ? "opacity-100"
+                  : "opacity-30 pointer-events-none"
               }`}
             >
               <p className="text-white/50 text-xs uppercase tracking-wider font-semibold pt-2">
@@ -510,10 +573,10 @@ export default function WhiteLabelJourney() {
               {[
                 { key: "name", label: "Full Name", placeholder: "Your full name" },
                 { key: "email", label: "Business Email", placeholder: "you@yourbusiness.com" },
-                { key: "business", label: "Business / Practice Name", placeholder: "Your business name" },
+                { key: "business", label: "Business / Practice Name", placeholder: "Your organization name" },
                 {
                   key: "audience",
-                  label: "Estimated Audience Size",
+                  label: "Estimated Audience or Member Size",
                   placeholder: "e.g. 200 active clients, 5,000 newsletter subscribers",
                 },
               ].map((field) => (
@@ -559,7 +622,7 @@ export default function WhiteLabelJourney() {
                 Submit Application
               </button>
               <p className="text-white/30 text-xs text-center pb-2">
-                Not a commitment. We'll review and respond within 2 business days.
+                Not a commitment. We'll review and respond after our initial fit assessment.
               </p>
             </div>
           </div>
@@ -586,9 +649,7 @@ export default function WhiteLabelJourney() {
             >
               {ackDone ? "✓" : ""}
             </div>
-            <span className="text-sm text-white/80 leading-snug">
-              {stage.ack}
-            </span>
+            <span className="text-sm text-white/80 leading-snug">{stage.ack}</span>
           </button>
 
           <button
