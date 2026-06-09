@@ -228,6 +228,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
   const { toast } = useToast();
   const [form, setForm] = useState<LabValues>(EMPTY_LABS);
   const [saving, setSaving] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
@@ -391,6 +392,8 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
       setLastSaved(new Date().toLocaleDateString(undefined, {
         month: "short", day: "numeric", year: "numeric",
       }));
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 6000);
 
       const hasProtocol        = !!data.protocolSignal;
       const hasThyroid         = !!data.thyroidSignal?.hasThyroidIndicators;
@@ -921,6 +924,15 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
                 {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                 Save Lab Values
               </Button>
+              {justSaved && (
+                <div className="flex items-center justify-center gap-2 rounded-lg bg-green-900/40 border border-green-500/40 px-4 py-2 mt-1">
+                  <svg className="w-4 h-4 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                  <span className="text-sm font-medium text-green-300">Lab values saved successfully</span>
+                </div>
+              )}
+              {lastSaved && !justSaved && (
+                <p className="text-xs text-white/50 text-center mt-1">Last saved: {lastSaved}</p>
+              )}
             </>
           )}
         </CardContent>
