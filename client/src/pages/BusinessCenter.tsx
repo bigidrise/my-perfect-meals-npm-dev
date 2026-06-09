@@ -1,9 +1,17 @@
 import { useLocation } from "wouter";
-import { ArrowLeft, TrendingUp, Users, Building2, HeartPulse, ChevronRight, Handshake, ChefHat } from "lucide-react";
+import { ArrowLeft, TrendingUp, Users, Building2, HeartPulse, ChevronRight, Handshake, ChefHat, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 
 const sections = [
+  {
+    id: "founding-partner",
+    title: "Founding Partner Program",
+    description: "A limited program for pioneering organizations helping validate and shape the platform",
+    icon: Star,
+    color: "orange",
+    route: "/business-center/founding-partner",
+  },
   {
     id: "affiliate",
     title: "Affiliate Opportunities",
@@ -90,7 +98,7 @@ export default function BusinessCenter() {
             <ArrowLeft className="h-4 w-4" />
             Back
           </button>
-          <h1 className="text-lg font-bold text-white">Business Center</h1>
+          <h1 className="text-lg font-bold text-white">Business Suite</h1>
         </div>
       </div>
 
