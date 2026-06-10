@@ -31,13 +31,6 @@ const EXPECTATIONS = [
   "Willingness to share implementation feedback, workflow insights, and outcomes",
 ];
 
-const PRICING_DRIVERS = [
-  "Organization size and member count",
-  "Number of providers, coaches, or staff",
-  "Level of support and onboarding required",
-  "Participation pathway (Powered by MPM or White Label)",
-  "Implementation complexity",
-];
 
 export default function FoundingPartnerProgram() {
   const [, setLocation] = useLocation();
@@ -99,12 +92,12 @@ export default function FoundingPartnerProgram() {
             <h3 className="text-white font-semibold text-sm uppercase tracking-wider">How Organizations Participate</h3>
           </div>
           <p className="text-white/60 text-sm leading-relaxed mb-4">
-            Founding Business Partners typically participate through one of two pathways. Both involve onboarding, implementation, training, marketing alignment, and direct collaboration with the MPM team. The primary difference is how the platform is presented to your clients and community.
+            There are two tracks inside this program: <span className="text-orange-300 font-medium">Founding Affiliate Partner</span> and <span className="text-white/70 font-medium">Founding Business Partner</span>. Both involve direct collaboration with the MPM team. The key difference is the workload — and therefore the investment.
           </p>
 
           {/* Path 1 */}
           <div className="bg-orange-600/10 border border-orange-500/20 rounded-xl p-4 mb-3">
-            <div className="text-orange-300 text-xs font-bold uppercase tracking-wider mb-2">Path 1 — Powered by My Perfect Meals</div>
+            <div className="text-orange-300 text-xs font-bold uppercase tracking-wider mb-2">Founding Affiliate Partner</div>
             <p className="text-white/65 text-sm leading-relaxed mb-3">
               Designed for coaches, educators, practitioners, influencers, and businesses that want to incorporate My Perfect Meals directly into their existing services. You continue operating under your own brand while offering your clients access to the MPM platform.
             </p>
@@ -134,7 +127,7 @@ export default function FoundingPartnerProgram() {
 
           {/* Path 2 */}
           <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-            <div className="text-white/60 text-xs font-bold uppercase tracking-wider mb-2">Path 2 — White Label Partnership</div>
+            <div className="text-white/60 text-xs font-bold uppercase tracking-wider mb-2">Founding Business Partner</div>
             <p className="text-white/65 text-sm leading-relaxed mb-3">
               Designed for organizations that want a branded experience powered by My Perfect Meals. White Label Partners operate under their own business identity while MPM provides the platform, implementation support, team training, and launch infrastructure.
             </p>
@@ -505,36 +498,66 @@ export default function FoundingPartnerProgram() {
         >
           <div className="flex items-center gap-2 mb-4">
             <Star className="h-4 w-4 text-orange-400 flex-shrink-0" />
-            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Founding Business Partner Investment</h3>
+            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Founding Partner Investment</h3>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="bg-black/40 border border-white/8 rounded-xl p-3">
-              <div className="text-white/40 text-xs mb-1">Setup Investment</div>
-              <div className="text-white font-bold text-sm">$1,500 – $3,000</div>
-              <div className="text-white/35 text-xs mt-1">one-time</div>
-            </div>
-            <div className="bg-black/40 border border-white/8 rounded-xl p-3">
-              <div className="text-white/40 text-xs mb-1">Monthly Investment</div>
-              <div className="text-white font-bold text-sm">$297 – $997</div>
-              <div className="text-white/35 text-xs mt-1">per month</div>
-            </div>
-          </div>
+          <p className="text-white/55 text-sm leading-relaxed mb-4">
+            Pricing reflects the actual work involved — not access to software. Each track has different investment levels because the workload is fundamentally different.
+          </p>
 
-          <div className="border-t border-white/8 pt-3">
-            <p className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-2">Final pricing depends on</p>
-            <div className="space-y-1.5">
-              {PRICING_DRIVERS.map((d, i) => (
+          {/* Founding Affiliate Partner card */}
+          <div className="bg-orange-600/10 border border-orange-500/20 rounded-xl p-4 mb-3">
+            <div className="text-orange-300 text-xs font-bold uppercase tracking-wider mb-3">Founding Affiliate Partner</div>
+            <div className="flex items-baseline gap-2 mb-1">
+              <span className="text-white font-black text-2xl">$197</span>
+              <span className="text-white/40 text-sm">/ month</span>
+            </div>
+            <div className="text-orange-400/60 text-xs font-semibold mb-3">No setup fee</div>
+            <p className="text-white/45 text-xs leading-relaxed mb-3">
+              For coaches, creators, and practitioners collaborating directly with the MPM team. You're not deploying a system — you're building a partnership.
+            </p>
+            <div className="space-y-1">
+              {[
+                "Monthly founder call",
+                "Direct access channel",
+                "Early feature access & roadmap input",
+                "Business Success & Platform Certification",
+                "Marketing resources & review",
+                "Enhanced affiliate commissions",
+              ].map((item, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-white/20 flex-shrink-0" />
-                  <span className="text-white/50 text-xs">{d}</span>
+                  <div className="w-1.5 h-1.5 rounded-full bg-orange-400/60 flex-shrink-0" />
+                  <span className="text-white/55 text-xs">{item}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <p className="text-white/30 text-xs leading-relaxed mt-3 border-t border-white/5 pt-3">
-            Founding Business Partner pricing reflects a meaningful discount from standard deployment rates in recognition of the early commitment, feedback participation, and trust required of this program.
+          {/* Founding Business Partner card */}
+          <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+            <div className="text-white/60 text-xs font-bold uppercase tracking-wider mb-3">Founding Business Partner</div>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <div className="text-white/30 text-xs mb-0.5">Setup Investment</div>
+                <div className="text-white font-black text-lg">$1,500 – $3,000</div>
+                <div className="text-white/30 text-xs">one-time</div>
+              </div>
+              <div>
+                <div className="text-white/30 text-xs mb-0.5">Monthly</div>
+                <div className="text-white font-black text-lg">$297 – $997</div>
+                <div className="text-white/30 text-xs">per month</div>
+              </div>
+            </div>
+            <p className="text-white/45 text-xs leading-relaxed mb-3">
+              For practices, clinics, and organizations requiring real deployment work — team onboarding, workflow configuration, staff training, and launch support.
+            </p>
+            <p className="text-white/30 text-xs leading-relaxed">
+              Final pricing depends on team size, number of providers, implementation complexity, and selected pathway (Powered by MPM or White Label).
+            </p>
+          </div>
+
+          <p className="text-white/25 text-xs leading-relaxed mt-3 border-t border-white/5 pt-3">
+            Both tracks reflect meaningful discounts from standard rates in recognition of early commitment, feedback participation, and the collaborative nature of this program.
           </p>
         </motion.div>
 
