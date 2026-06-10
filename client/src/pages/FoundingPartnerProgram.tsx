@@ -3,7 +3,7 @@ import { ArrowLeft, Star, Users, CheckCircle2, TrendingUp, Clock, ChevronRight }
 import { motion } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 
-const FOUNDING_PARTNER_FORM = "https://forms.gle/i6NsVnb3hirSgGTz5";
+const FOUNDING_PARTNER_FORM = "https://forms.gle/7wAMmDA1vz1wCzzKA";
 
 const WHO_FOR = [
   "Health Coaching Practices",
