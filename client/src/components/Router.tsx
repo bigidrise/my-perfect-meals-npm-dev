@@ -269,6 +269,7 @@ import CoachesComingSoon from "@/pages/CoachesComingSoon";
 import BusinessCenter from "@/pages/BusinessCenter";
 import BusinessCenterSection from "@/pages/BusinessCenterSection";
 import FoundingPartnerProgram from "@/pages/FoundingPartnerProgram";
+import IndustryPartnerships from "@/pages/IndustryPartnerships";
 import WhiteLabelSolutions from "@/pages/WhiteLabelSolutions";
 import AffiliateOpportunities from "@/pages/AffiliateOpportunities";
 import AffiliatePathPage from "@/pages/AffiliatePathPage";
@@ -758,7 +759,7 @@ export default function Router() {
         <Route path="/business-center/affiliate/:pathId/certification" component={CertificationDashboard} />
         <Route path="/business-center/founding-partner" component={FoundingPartnerProgram} />
         <Route path="/business-center/academy" component={BusinessCenterSection} />
-        <Route path="/business-center/industry" component={BusinessCenterSection} />
+        <Route path="/business-center/industry" component={IndustryPartnerships} />
         <Route path="/business-center/white-label" component={WhiteLabelSolutions} />
         <Route path="/business-center/partnerships" component={BusinessCenterSection} />
         {/* Supplement Hub Routes */}
