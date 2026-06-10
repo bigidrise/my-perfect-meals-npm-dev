@@ -328,6 +328,60 @@ export default function FoundingPartnerProgram() {
           </div>
         </motion.div>
 
+        {/* Section 4c — Brand & Marketing Alignment */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+          className="bg-black/50 border border-white/10 rounded-2xl p-5"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="h-4 w-4 text-orange-400 flex-shrink-0" />
+            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Brand & Marketing Alignment</h3>
+          </div>
+          <p className="text-white/65 text-sm leading-relaxed mb-4">
+            Successful implementation involves more than technology and training. Organizations must also understand how My Perfect Meals is positioned, communicated, and marketed.
+          </p>
+
+          <p className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-2">As part of implementation, organizations may receive</p>
+          <div className="space-y-1.5 mb-4">
+            {[
+              "Marketing guidance",
+              "Approved messaging frameworks",
+              "Positioning recommendations",
+              "Brand alignment support",
+              "Launch communication guidance",
+              "Educational content recommendations",
+              "Marketing resource access",
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0" />
+                <span className="text-white/60 text-sm">{item}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-3 border-t border-white/8 pt-4">
+            <div>
+              <p className="text-white/70 text-sm font-medium leading-snug mb-1">My Perfect Meals is not marketed as a weight-loss product.</p>
+              <p className="text-white/50 text-xs leading-relaxed">
+                The platform is not marketed as a medical treatment, cure, or guaranteed outcome system. Organizations are expected to market their programs responsibly and in alignment with platform guidelines — this protects your members and your professional standing.
+              </p>
+            </div>
+            <div>
+              <p className="text-white/70 text-sm font-medium leading-snug mb-1">Brand standards apply when the platform is represented publicly.</p>
+              <p className="text-white/50 text-xs leading-relaxed">
+                While organizations maintain full ownership of their brand and customer relationships, My Perfect Meals reserves the right to require compliance with platform branding, marketing, and communication standards when the platform is being represented publicly.
+              </p>
+            </div>
+            <div className="bg-orange-600/8 border border-orange-500/15 rounded-xl p-3">
+              <p className="text-orange-300/80 text-xs leading-relaxed">
+                The objective is to protect consumers, maintain brand integrity, and ensure consistent messaging across all organizations using the platform — for the benefit of every partner and every member.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
         {/* Section 5 — Investment */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}

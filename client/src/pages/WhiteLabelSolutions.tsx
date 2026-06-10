@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { BC_GRADIENT } from "@/components/BusinessCenterShell";
 import { useLocation } from "wouter";
 
-const TOTAL_STAGES = 14;
+const TOTAL_STAGES = 15;
 const LS_KEY = "mpm.wl.progress";
 
 interface SavedProgress {
@@ -327,6 +327,34 @@ const STAGES = [
   },
   {
     number: 13,
+    title: "Brand & Marketing Alignment",
+    subtitle: "How My Perfect Meals is positioned — and what that means for your organization.",
+    content: [
+      {
+        heading: "Successful implementation involves more than technology and training.",
+        body: "Organizations must also understand how My Perfect Meals is positioned, communicated, and marketed. As part of the implementation process, partners receive marketing guidance and brand alignment support to ensure their programs are launched and represented effectively.",
+      },
+      {
+        heading: "What you may receive as part of onboarding.",
+        body: "Marketing guidance, approved messaging frameworks, positioning recommendations, brand alignment support, launch communication guidance, educational content recommendations, and access to marketing resources.",
+      },
+      {
+        heading: "My Perfect Meals is not marketed as a weight-loss product.",
+        body: "The platform is not marketed as a medical treatment, cure, or guaranteed outcome system. Organizations are expected to market their programs responsibly and in alignment with platform guidelines — this protects your members and your professional standing.",
+      },
+      {
+        heading: "Brand standards apply when the platform is represented publicly.",
+        body: "While you maintain full ownership of your brand and customer relationships, My Perfect Meals reserves the right to require compliance with platform branding, marketing, and communication standards when the platform is being represented publicly.",
+      },
+      {
+        heading: "The shared goal.",
+        body: "To protect consumers, maintain brand integrity, and ensure consistent messaging across all organizations using the platform. This benefits every partner in the program — and every member on it.",
+      },
+    ],
+    ack: "I understand the brand alignment and responsible marketing standards that are part of this partnership.",
+  },
+  {
+    number: 14,
     title: "Investment & Pricing Expectations",
     subtitle: "Select the category that best describes your organization.",
     isPathSelector: true,
@@ -385,7 +413,7 @@ const STAGES = [
     ack: "I understand these investment expectations. I am prepared to discuss my specific requirements during a consultation.",
   },
   {
-    number: 14,
+    number: 15,
     title: "White Label Partnership Application",
     subtitle: "Before we connect, confirm you've read and understood this program.",
     isApplication: true,
