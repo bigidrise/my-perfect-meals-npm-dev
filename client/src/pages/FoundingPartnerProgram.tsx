@@ -35,7 +35,7 @@ const PRICING_DRIVERS = [
   "Organization size and member count",
   "Number of providers, coaches, or staff",
   "Level of support and onboarding required",
-  "Customization and branding requirements",
+  "Participation pathway (Powered by MPM or White Label)",
   "Implementation complexity",
 ];
 
@@ -85,6 +85,80 @@ export default function FoundingPartnerProgram() {
           <p className="text-white/60 text-sm leading-relaxed">
             The Founding Business Partner Program is open to a very small number of organizations, practices, clinics, and businesses. Founding Business Partners work directly with the MPM team to validate, refine, and improve the platform through real-world implementation.
           </p>
+        </motion.div>
+
+        {/* Section 0 — How Organizations Participate */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08 }}
+          className="bg-black/50 border border-white/10 rounded-2xl p-5"
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <Users className="h-4 w-4 text-orange-400 flex-shrink-0" />
+            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">How Organizations Participate</h3>
+          </div>
+          <p className="text-white/60 text-sm leading-relaxed mb-4">
+            Founding Business Partners typically participate through one of two pathways. Both involve onboarding, implementation, training, marketing alignment, and direct collaboration with the MPM team. The primary difference is how the platform is presented to your clients and community.
+          </p>
+
+          {/* Path 1 */}
+          <div className="bg-orange-600/10 border border-orange-500/20 rounded-xl p-4 mb-3">
+            <div className="text-orange-300 text-xs font-bold uppercase tracking-wider mb-2">Path 1 — Powered by My Perfect Meals</div>
+            <p className="text-white/65 text-sm leading-relaxed mb-3">
+              Designed for coaches, educators, practitioners, influencers, and businesses that want to incorporate My Perfect Meals directly into their existing services. You continue operating under your own brand while offering your clients access to the MPM platform.
+            </p>
+            <p className="text-white/45 text-xs leading-relaxed mb-2">Partners in this pathway receive</p>
+            <div className="space-y-1">
+              {[
+                "Dedicated onboarding and implementation support",
+                "Business Success & Platform Certification",
+                "Marketing materials and positioning guidance",
+                "Launch planning and communication support",
+                "Affiliate tools, product codes, and commission structure",
+                "Direct collaboration and strategic guidance",
+                "Early feature access and direct feedback channel",
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-orange-400/60 flex-shrink-0" />
+                  <span className="text-white/55 text-xs">{item}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {["Coaches", "Educators", "Influencers", "Health Professionals", "Membership Communities"].map((t, i) => (
+                <span key={i} className="text-[10px] bg-orange-500/10 border border-orange-500/20 text-orange-300/70 rounded-full px-2.5 py-0.5">{t}</span>
+              ))}
+            </div>
+          </div>
+
+          {/* Path 2 */}
+          <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+            <div className="text-white/60 text-xs font-bold uppercase tracking-wider mb-2">Path 2 — White Label Partnership</div>
+            <p className="text-white/65 text-sm leading-relaxed mb-3">
+              Designed for organizations that want a branded experience powered by My Perfect Meals. White Label Partners operate under their own business identity while MPM provides the platform, implementation support, team training, and launch infrastructure.
+            </p>
+            <p className="text-white/45 text-xs leading-relaxed mb-2">Partners in this pathway receive</p>
+            <div className="space-y-1">
+              {[
+                "Full brand configuration and setup",
+                "Team onboarding and provider training",
+                "Implementation and workflow planning",
+                "Launch support and marketing alignment",
+                "Brand integration and compliance guidance",
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white/30 flex-shrink-0" />
+                  <span className="text-white/55 text-xs">{item}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {["Clinics", "Practices", "Wellness Organizations", "Healthcare Companies", "Multi-Provider Businesses"].map((t, i) => (
+                <span key={i} className="text-[10px] bg-white/5 border border-white/10 text-white/40 rounded-full px-2.5 py-0.5">{t}</span>
+              ))}
+            </div>
+          </div>
         </motion.div>
 
         {/* Section 1 — What Is a Founding Partner */}
@@ -290,7 +364,7 @@ export default function FoundingPartnerProgram() {
               },
               {
                 phase: "Phase 2 — Platform Configuration",
-                items: ["Branding setup", "Account configuration", "Provider access setup", "Team access setup", "Initial platform configuration"],
+                items: ["Account configuration", "Provider access setup", "Team access setup", "Initial platform configuration", "Pathway-specific setup (branding or standard)"],
               },
               {
                 phase: "Phase 3 — Team Training",
@@ -379,6 +453,46 @@ export default function FoundingPartnerProgram() {
                 The objective is to protect consumers, maintain brand integrity, and ensure consistent messaging across all organizations using the platform — for the benefit of every partner and every member.
               </p>
             </div>
+          </div>
+        </motion.div>
+
+        {/* Section 4d — Why Founding Partners Pay */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+          className="bg-black/50 border border-white/10 rounded-2xl p-5"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Star className="h-4 w-4 text-orange-400 flex-shrink-0" />
+            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Why Founding Partners Pay</h3>
+          </div>
+          <p className="text-white/65 text-sm leading-relaxed mb-3">
+            Founding Business Partners are not purchasing software access.
+          </p>
+          <p className="text-white/60 text-sm leading-relaxed mb-3">
+            The investment reflects the direct, personal work involved in helping your organization implement, train, launch, market, and integrate My Perfect Meals into your business — not just unlocking a platform.
+          </p>
+          <p className="text-white/45 text-xs uppercase tracking-wider font-semibold mb-2">What the investment covers</p>
+          <div className="space-y-1.5 mb-4">
+            {[
+              "Direct, personalized implementation support",
+              "Hands-on onboarding and launch planning",
+              "Team training and certification guidance",
+              "Marketing alignment and communication strategy",
+              "Strategic collaboration during your launch period",
+              "Ongoing feedback sessions and workflow refinement",
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0" />
+                <span className="text-white/60 text-sm">{item}</span>
+              </div>
+            ))}
+          </div>
+          <div className="bg-orange-600/8 border border-orange-500/15 rounded-xl p-3">
+            <p className="text-orange-300/80 text-xs leading-relaxed">
+              Founding Business Partners are early collaborators. The reduced pricing reflects that relationship — and what both sides are committing to.
+            </p>
           </div>
         </motion.div>
 
