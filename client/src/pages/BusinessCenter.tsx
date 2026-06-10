@@ -13,6 +13,14 @@ const sections = [
     route: "/business-center/founding-partner",
   },
   {
+    id: "industry",
+    title: "Industry & Strategic Partnerships",
+    description: "How Different Organizations Work With My Perfect Meals",
+    icon: Handshake,
+    color: "orange",
+    route: "/business-center/industry",
+  },
+  {
     id: "affiliate",
     title: "Affiliate Opportunities",
     description: "Earn commissions by referring members to My Perfect Meals",
@@ -35,14 +43,6 @@ const sections = [
     icon: ChefHat,
     color: "orange",
     route: "/creator-studio",
-  },
-  {
-    id: "industry",
-    title: "Industry & Strategic Partnerships",
-    description: "Supplement brands, nutrition companies, fitness organizations, certification bodies, and software partners",
-    icon: Handshake,
-    color: "orange",
-    route: "/business-center/industry",
   },
   {
     id: "white-label",
