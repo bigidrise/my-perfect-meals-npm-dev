@@ -6,8 +6,8 @@ import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 const sections = [
   {
     id: "founding-partner",
-    title: "Founding Partner Program",
-    description: "A limited program for pioneering organizations helping validate and shape the platform",
+    title: "Founding Business Partner Program",
+    description: "A limited program for practices, clinics, and organizations helping validate and shape the platform",
     icon: Star,
     color: "orange",
     route: "/business-center/founding-partner",

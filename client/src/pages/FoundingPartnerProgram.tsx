@@ -6,8 +6,8 @@ import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 const FOUNDING_PARTNER_FORM = "https://forms.gle/i6NsVnb3hirSgGTz5";
 
 const WHO_FOR = [
-  "Health Coaches",
-  "Nutrition Coaches",
+  "Health Coaching Practices",
+  "Nutrition Coaching Practices",
   "Functional Medicine Practices",
   "Wellness Clinics",
   "Fitness Organizations",
@@ -19,8 +19,8 @@ const BENEFITS = [
   { label: "Early access to new features", sub: "See and shape what's coming before anyone else" },
   { label: "Priority support", sub: "Direct line to the MPM team — not a ticket queue" },
   { label: "Influence on platform development", sub: "Your feedback shapes what gets built next" },
-  { label: "Founding Partner recognition", sub: "Permanently recognized as a program founder" },
-  { label: "Reduced Founding Partner pricing", sub: "Locked-in rates that reflect your early commitment" },
+  { label: "Founding Business Partner recognition", sub: "Permanently recognized as a program founder" },
+  { label: "Reduced Founding Business Partner pricing", sub: "Locked-in rates that reflect your early commitment" },
 ];
 
 const EXPECTATIONS = [
@@ -62,7 +62,7 @@ export default function FoundingPartnerProgram() {
             <ArrowLeft className="h-4 w-4" />
             Back
           </button>
-          <h1 className="text-lg font-bold text-white">Founding Partner Program</h1>
+          <h1 className="text-lg font-bold text-white">Founding Business Partner Program</h1>
         </div>
       </div>
 
@@ -83,7 +83,7 @@ export default function FoundingPartnerProgram() {
           </div>
           <h2 className="text-white font-bold text-base mb-1">Intentionally Limited</h2>
           <p className="text-white/60 text-sm leading-relaxed">
-            The Founding Partner Program is open to a very small number of organizations. Founding Partners work directly with the MPM team to validate, refine, and improve the platform through real-world implementation.
+            The Founding Business Partner Program is open to a very small number of organizations, practices, clinics, and businesses. Founding Business Partners work directly with the MPM team to validate, refine, and improve the platform through real-world implementation.
           </p>
         </motion.div>
 
@@ -96,10 +96,10 @@ export default function FoundingPartnerProgram() {
         >
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="h-4 w-4 text-orange-400 flex-shrink-0" />
-            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">What Is a Founding Partner?</h3>
+            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">What Is a Founding Business Partner?</h3>
           </div>
           <p className="text-white/65 text-sm leading-relaxed">
-            Founding Partners are real businesses implementing My Perfect Meals with real members. In exchange for early access and reduced pricing, Founding Partners participate in refining the platform — sharing workflow feedback, client outcomes, retention data, and candid insights that help the product improve faster than it could in isolation.
+            Founding Business Partners are organizations, practices, clinics, and teams implementing My Perfect Meals with real members, patients, or clients. In exchange for early access and reduced pricing, Founding Business Partners participate in refining the platform — sharing workflow feedback, client outcomes, retention data, and candid insights that help the product improve faster than it could in isolation.
           </p>
           <div className="mt-3 space-y-1.5">
             {["Provider feedback", "Client feedback", "Workflow feedback", "Business feedback", "Retention data", "Testimonials and case studies"].map((item, i) => (
@@ -128,7 +128,7 @@ export default function FoundingPartnerProgram() {
           <p className="text-white/65 text-sm leading-relaxed mb-4">
             While the platform is mature enough for organizations to begin using it today, we believe the best way to continue improving the product is by partnering with real businesses serving real clients, patients, and members.
           </p>
-          <p className="text-white/45 text-xs uppercase tracking-wider font-semibold mb-2">The Founding Partner Program was created to help us</p>
+          <p className="text-white/45 text-xs uppercase tracking-wider font-semibold mb-2">The Founding Business Partner Program was created to help us</p>
           <div className="space-y-1.5 mb-4">
             {[
               "Validate real-world workflows",
@@ -146,13 +146,13 @@ export default function FoundingPartnerProgram() {
           </div>
           <div className="border-t border-white/8 pt-4 space-y-2">
             <p className="text-white/70 text-sm leading-relaxed font-medium">
-              Founding Partners are not simply customers.
+              Founding Business Partners are not simply customers.
             </p>
             <p className="text-white/55 text-sm leading-relaxed">
-              They are early collaborators helping shape the future of the platform. In return for their participation, feedback, and partnership, Founding Partners receive reduced implementation costs, reduced monthly pricing, priority support, and direct access to the My Perfect Meals team.
+              They are early collaborators helping shape the future of the platform. In return for their participation, feedback, and partnership, Founding Business Partners receive reduced implementation costs, reduced monthly pricing, priority support, and direct access to the My Perfect Meals team.
             </p>
             <p className="text-white/45 text-sm leading-relaxed">
-              This program is intentionally limited and is designed for organizations that want to grow alongside the platform while helping us make it even better.
+              This program is intentionally limited and is designed for organizations and businesses that want to grow alongside the platform while helping us make it even better.
             </p>
           </div>
         </motion.div>
@@ -166,7 +166,7 @@ export default function FoundingPartnerProgram() {
         >
           <div className="flex items-center gap-2 mb-3">
             <Users className="h-4 w-4 text-orange-400 flex-shrink-0" />
-            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Ideal Founding Partners</h3>
+            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Ideal Founding Business Partners</h3>
           </div>
           <div className="flex flex-wrap gap-2">
             {WHO_FOR.map((role, i) => (
@@ -186,7 +186,7 @@ export default function FoundingPartnerProgram() {
         >
           <div className="flex items-center gap-2 mb-3">
             <CheckCircle2 className="h-4 w-4 text-orange-400 flex-shrink-0" />
-            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Founding Partner Benefits</h3>
+            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Founding Business Partner Benefits</h3>
           </div>
           <div className="space-y-3">
             {BENEFITS.map((b, i) => (
@@ -215,7 +215,7 @@ export default function FoundingPartnerProgram() {
             <h3 className="text-white font-semibold text-sm uppercase tracking-wider">What Implementation Includes</h3>
           </div>
           <p className="text-white/65 text-sm leading-relaxed mb-3">
-            A Founding Partner deployment involves far more than access to software. Our goal is to help organizations successfully implement My Perfect Meals into their business, coaching, wellness, or healthcare workflows.
+            A Founding Business Partner deployment involves far more than access to software. Our goal is to help organizations successfully implement My Perfect Meals into their business, coaching, wellness, or healthcare workflows.
           </p>
           <p className="text-white/45 text-xs uppercase tracking-wider font-semibold mb-2">Depending on the organization, implementation may include</p>
           <div className="space-y-1.5 mb-4">
@@ -240,7 +240,7 @@ export default function FoundingPartnerProgram() {
           </div>
           <div className="border-t border-white/8 pt-3">
             <p className="text-white/45 text-xs leading-relaxed">
-              Every organization is different, and implementation requirements vary based on team size, services offered, and desired outcomes. The Founding Partner Program is designed to provide direct support throughout the onboarding and implementation process so organizations can begin using the platform effectively and confidently.
+              Every organization is different, and implementation requirements vary based on team size, services offered, and desired outcomes. The Founding Business Partner Program is designed to provide direct support throughout the onboarding and implementation process so organizations can begin using the platform effectively and confidently.
             </p>
           </div>
         </motion.div>
@@ -278,7 +278,7 @@ export default function FoundingPartnerProgram() {
             <h3 className="text-white font-semibold text-sm uppercase tracking-wider">What Happens After Acceptance?</h3>
           </div>
           <p className="text-white/65 text-sm leading-relaxed mb-4">
-            Once accepted into the Founding Partner Program, organizations enter an implementation and onboarding process designed to prepare their team for a successful launch.
+            Once accepted into the Founding Business Partner Program, organizations enter an implementation and onboarding process designed to prepare their team for a successful launch.
           </p>
           <p className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-3">A typical implementation may include</p>
 
@@ -317,13 +317,13 @@ export default function FoundingPartnerProgram() {
 
           <div className="mt-4 border-t border-white/8 pt-4 space-y-2">
             <p className="text-white/70 text-sm font-medium leading-snug">
-              Founding Partner pricing reflects a collaborative implementation process, not simply access to software.
+              Founding Business Partner pricing reflects a collaborative implementation process, not simply access to software.
             </p>
             <p className="text-white/50 text-xs leading-relaxed">
               The setup investment helps support the time, planning, onboarding, training, configuration, and launch support required to help organizations successfully deploy the platform.
             </p>
             <p className="text-white/50 text-xs leading-relaxed">
-              Our objective is to help organizations implement a solution that creates value for their clients, patients, members, and business operations. This is why Founding Partner pricing remains significantly reduced from future standard deployment pricing while still reflecting the real work required to support a successful launch.
+              Our objective is to help organizations implement a solution that creates value for their clients, patients, members, and business operations. This is why Founding Business Partner pricing remains significantly reduced from future standard deployment pricing while still reflecting the real work required to support a successful launch.
             </p>
           </div>
         </motion.div>
@@ -391,7 +391,7 @@ export default function FoundingPartnerProgram() {
         >
           <div className="flex items-center gap-2 mb-4">
             <Star className="h-4 w-4 text-orange-400 flex-shrink-0" />
-            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Founding Partner Investment</h3>
+            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Founding Business Partner Investment</h3>
           </div>
 
           <div className="grid grid-cols-2 gap-4 mb-4">
@@ -420,7 +420,7 @@ export default function FoundingPartnerProgram() {
           </div>
 
           <p className="text-white/30 text-xs leading-relaxed mt-3 border-t border-white/5 pt-3">
-            Founding Partner pricing reflects a meaningful discount from standard white label rates in recognition of the early commitment, feedback participation, and trust required of this program.
+            Founding Business Partner pricing reflects a meaningful discount from standard deployment rates in recognition of the early commitment, feedback participation, and trust required of this program.
           </p>
         </motion.div>
 
@@ -431,9 +431,9 @@ export default function FoundingPartnerProgram() {
           transition={{ delay: 0.35 }}
           className="bg-orange-600/10 border border-orange-500/20 rounded-2xl p-5"
         >
-          <h3 className="text-orange-300 font-bold text-sm mb-1">Apply for Founding Partner Consideration</h3>
+          <h3 className="text-orange-300 font-bold text-sm mb-1">Apply for Founding Business Partner Consideration</h3>
           <p className="text-white/55 text-xs leading-relaxed mb-4">
-            This program is intentionally limited. Applications are reviewed personally by the MPM team. Submitting a request is not a commitment — it's the start of a conversation.
+            This program is intentionally limited to organizations, practices, clinics, and businesses ready for real implementation. Applications are reviewed personally by the MPM team. Submitting a request is not a commitment — it's the start of a conversation.
           </p>
 
           <a
@@ -442,7 +442,7 @@ export default function FoundingPartnerProgram() {
             rel="noopener noreferrer"
             className="flex items-center justify-between w-full bg-orange-600 text-white rounded-xl px-4 py-3.5 font-semibold text-sm active:scale-[0.98] transition-transform"
           >
-            <span>Request Founding Partner Consultation</span>
+            <span>Request Founding Business Partner Consultation</span>
             <ChevronRight className="h-4 w-4 flex-shrink-0" />
           </a>
 
