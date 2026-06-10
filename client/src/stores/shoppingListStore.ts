@@ -199,21 +199,30 @@ function deduplicateServerItems(items: ShoppingListItem[]): ShoppingListItem[] {
   return deduped;
 }
 
-/** Fire-and-forget POST of items to the server */
-function serverPost(items: ShoppingListItem[]) {
-  if (items.length === 0) return;
-  fetch('/api/shopping-list', {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-    body: JSON.stringify({
-      items,
-      scopeType: 'adhoc',
-      scopeKey: 'cross-device',
-    }),
-  }).catch(() => {
-    // Fail silently — hydration on page open will recover any missed writes
-  });
+/**
+ * POST items to the server and return the server-assigned rows.
+ * Callers MUST chain .then() to assign serverId back to local items —
+ * without this, delete will never fire a server DELETE.
+ */
+async function serverPost(items: ShoppingListItem[]): Promise<Array<{ id: string; name: string; unit: string }>> {
+  if (items.length === 0) return [];
+  try {
+    const res = await fetch('/api/shopping-list', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify({
+        items,
+        scopeType: 'adhoc',
+        scopeKey: 'cross-device',
+      }),
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data.items) ? data.items : [];
+  } catch {
+    return [];
+  }
 }
 
 /** Fire-and-forget PATCH of a quantity update to an existing server item */
@@ -390,9 +399,19 @@ export const useShoppingListStore = create<ShoppingListStore>()(
           return { items: [...state.items, newEntry] };
         });
 
-        // Server sync (fire-and-forget)
+        // Server sync — assign serverId back so future deletes work
         if (created) {
-          serverPost([created]);
+          const localId = created.id;
+          serverPost([created]).then((serverItems) => {
+            const serverRow = serverItems[0];
+            if (serverRow?.id) {
+              set((state) => ({
+                items: state.items.map((i) =>
+                  i.id === localId ? { ...i, serverId: serverRow.id } : i
+                ),
+              }));
+            }
+          });
         } else if (mergedServerId) {
           serverPatch(mergedServerId, mergedQty, mergedUnit);
         }
@@ -455,8 +474,21 @@ export const useShoppingListStore = create<ShoppingListStore>()(
           return { items: updatedItems };
         });
 
-        // Server sync (fire-and-forget)
-        serverPost(toPost);
+        // Server sync — assign serverIds back so future deletes work
+        if (toPost.length > 0) {
+          const localIds = toPost.map((i) => i.id);
+          serverPost(toPost).then((serverItems) => {
+            if (!serverItems.length) return;
+            set((state) => ({
+              items: state.items.map((i) => {
+                const localIdx = localIds.indexOf(i.id);
+                if (localIdx === -1) return i;
+                const serverRow = serverItems[localIdx];
+                return serverRow?.id ? { ...i, serverId: serverRow.id } : i;
+              }),
+            }));
+          });
+        }
         toMergePatch.forEach(({ serverId, quantity, unit }) => serverPatch(serverId, quantity, unit));
       },
 

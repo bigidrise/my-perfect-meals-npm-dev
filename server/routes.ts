@@ -1715,15 +1715,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         checked: false,
       }));
 
-      // Insert items
+      // Insert items — return the inserted rows so the client can assign serverIds
+      let insertedItems: any[] = [];
       if (itemsToInsert.length > 0) {
-        await db.insert(shoppingListItems).values(itemsToInsert);
+        insertedItems = await db.insert(shoppingListItems).values(itemsToInsert).returning();
       }
 
       res.status(201).json({ 
         ok: true,
         success: true, 
         itemsAdded: itemsToInsert.length,
+        items: insertedItems,
         scope,
         strategy 
       });
