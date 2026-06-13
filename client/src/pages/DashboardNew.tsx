@@ -63,6 +63,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useProUnreadCount } from "@/hooks/useProUnreadCount";
 import { PatternAlertBanner } from "@/components/PatternAlertBanner";
+import { TipsBanner } from "@/components/TipsBanner";
 import InspirationCaptureModal from "@/components/InspirationCaptureModal";
 
 interface FeatureCard {
@@ -732,6 +733,7 @@ export default function DashboardNew() {
         }}
       >
         <PatternAlertBanner />
+        <TipsBanner />
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}

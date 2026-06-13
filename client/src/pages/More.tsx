@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
-import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X, Link2Off, ShieldCheck, Users, TrendingUp } from "lucide-react";
+import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X, Link2Off, ShieldCheck, Users, TrendingUp, Lightbulb } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActivePaidSubscription, isClinicalOrAbove } from "@/lib/subscriptionCheck";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
@@ -255,6 +255,28 @@ export default function MorePage() {
           </div>
 
           
+
+          {/* Tips & Strategies — always visible */}
+          <Card
+            className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-orange-500/40 transition-all duration-300 rounded-xl shadow-md relative overflow-hidden"
+            onClick={() => setLocation("/tips")}
+            data-testid="card-tips-strategies"
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-orange-500/20">
+                  <Lightbulb className="h-5 w-5 text-orange-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-semibold text-white">Tips & Strategies</h3>
+                  <p className="text-xs text-white/70">Hidden features, workflow shortcuts, and coaching techniques</p>
+                </div>
+                <div className="flex-shrink-0 px-2 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/30">
+                  <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wide">Guide</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Household Profiles — Family plan only */}
           {isHouseholdPlan(user?.planLookupKey) && (
