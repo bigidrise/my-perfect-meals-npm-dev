@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, ChevronDown, ChevronUp, Lightbulb, BookOpen } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, Lightbulb, BookOpen, Bot, Library, Wrench, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useCopilot } from "@/components/copilot/CopilotContext";
 
 const PLATFORM_TIPS = [
   {
@@ -268,6 +269,7 @@ function TipCard({ title, content }: { title: string; content: string }) {
 
 export default function TipsStrategiesPage() {
   const [, setLocation] = useLocation();
+  const { open: openCopilot } = useCopilot();
 
   useEffect(() => {
     document.title = "Tips & Strategies | My Perfect Meals";
@@ -303,6 +305,7 @@ export default function TipsStrategiesPage() {
         className="px-4 max-w-3xl mx-auto space-y-8"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
       >
+        {/* Intro */}
         <div className="p-5 rounded-2xl bg-black/40 border border-orange-500/20 space-y-3">
           <div className="flex items-start gap-3">
             <div className="p-2 rounded-xl bg-orange-500/20 flex-shrink-0 mt-0.5">
@@ -313,14 +316,75 @@ export default function TipsStrategiesPage() {
                 My Perfect Meals is more than a meal planner.
               </h2>
               <p className="text-sm text-white/60 mt-2 leading-relaxed">
-                It's a complete adaptive nutrition platform. Many users only scratch the surface of what it can do. This guide teaches you proven strategies, hidden features, workflow shortcuts, and coaching techniques developed from decades of nutrition experience.
+                It's a complete adaptive nutrition platform. The tips, strategies, and coaching wisdom in this guide were developed from decades of real nutrition coaching experience — and they're here for the people who want to go deeper.
+              </p>
+              <p className="text-sm text-white/50 mt-2 leading-relaxed">
+                Not everyone reads instructions, and that's completely fine — people learn differently and that's just human nature. This guide exists for the ones who do: the people genuinely looking for change, willing to dig in, and ready to get the most out of every tool the platform has to offer.
               </p>
               <p className="text-sm text-orange-300 mt-2 font-medium">
-                Think of this as your insider guide to My Perfect Meals.
+                If that's you — you're in the right place.
               </p>
             </div>
           </div>
         </div>
+
+        {/* Other ways to learn inside the app */}
+        <section className="space-y-3">
+          <div className="flex items-center gap-2 mb-1">
+            <Wrench className="h-4 w-4 text-orange-400" />
+            <h3 className="text-xs font-bold text-orange-400 uppercase tracking-widest">More Ways to Learn Inside the App</h3>
+          </div>
+          <p className="text-xs text-white/40 leading-relaxed -mt-1">
+            This guide is one of several learning resources built into My Perfect Meals. Here's where else to find help:
+          </p>
+
+          {/* Chef Copilot */}
+          <button
+            onClick={() => openCopilot()}
+            className="w-full text-left p-4 rounded-2xl bg-black/30 border border-white/10 flex items-center gap-3 active:scale-[0.98] transition-transform"
+          >
+            <div className="p-2 rounded-xl bg-orange-500/20 flex-shrink-0">
+              <Bot className="h-5 w-5 text-orange-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white">Chef Copilot</p>
+              <p className="text-xs text-white/50 mt-0.5 leading-relaxed">
+                Your coach in your pocket — available on every page. Tap to get a guided explanation of wherever you are in the app, ask questions, or turn on Auto mode for step-by-step coaching as you go.
+              </p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-orange-400 flex-shrink-0" />
+          </button>
+
+          {/* App Library */}
+          <button
+            onClick={() => setLocation("/learn")}
+            className="w-full text-left p-4 rounded-2xl bg-black/30 border border-white/10 flex items-center gap-3 active:scale-[0.98] transition-transform"
+          >
+            <div className="p-2 rounded-xl bg-orange-500/20 flex-shrink-0">
+              <Library className="h-5 w-5 text-orange-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white">App Library</p>
+              <p className="text-xs text-white/50 mt-0.5 leading-relaxed">
+                The brain of the app. Deep-dive explainers on every feature, builder, and tool — organized so you can find exactly what you need. Think of it as the full manual, always available from your Hub.
+              </p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-orange-400 flex-shrink-0" />
+          </button>
+
+          {/* In-builder tips */}
+          <div className="p-4 rounded-2xl bg-black/20 border border-white/5 flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-white/5 flex-shrink-0 mt-0.5">
+              <BookOpen className="h-5 w-5 text-white/40" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white/80">Builder Tips & Pro Tips</p>
+              <p className="text-xs text-white/40 mt-0.5 leading-relaxed">
+                Each meal builder has tips and pro guidance built directly into it — look for the info icons, tip banners, and guided prompts as you create. You don't have to leave the builder to learn how to use it better.
+              </p>
+            </div>
+          </div>
+        </section>
 
         <section className="space-y-3">
           <div className="flex items-center gap-2 mb-1">
