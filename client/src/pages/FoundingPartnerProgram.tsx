@@ -129,19 +129,19 @@ export default function FoundingPartnerProgram() {
               <div className="flex items-center gap-3 mb-3">
                 <div className="flex-1 text-center bg-orange-600/20 border border-orange-500/30 rounded-lg py-2.5">
                   <div className="text-2xl font-black text-orange-300">60%</div>
-                  <div className="text-[10px] text-orange-300/70 font-medium mt-0.5">You Earn</div>
+                  <div className="text-[10px] text-orange-300/70 font-medium mt-0.5">My Perfect Meals</div>
                 </div>
                 <div className="text-white/30 text-xs font-bold">/</div>
                 <div className="flex-1 text-center bg-white/5 border border-white/10 rounded-lg py-2.5">
-                  <div className="text-2xl font-black text-white/40">40%</div>
-                  <div className="text-[10px] text-white/30 font-medium mt-0.5">MPM</div>
+                  <div className="text-2xl font-black text-white/60">40%</div>
+                  <div className="text-[10px] text-white/40 font-medium mt-0.5">You Earn</div>
                 </div>
               </div>
               <p className="text-white/55 text-xs leading-relaxed mb-1.5">
-                Founding Affiliates receive a <span className="text-orange-300 font-semibold">60% recurring commission</span> on every subscription they refer — significantly higher than standard affiliate rates.
+                Founding Affiliates earn a <span className="text-white/80 font-semibold">40% recurring commission</span> on every subscription they refer — a strong rate that reflects the value and trust we place in founding partners.
               </p>
               <p className="text-white/40 text-xs leading-relaxed">
-                This split reflects the real value founding affiliates bring. Founding Affiliates are more than promoters — they are the early proof of concept that helps us demonstrate the platform works in the real world, which is critical for the business's growth and investment strategy. We need them, we value them, and the commission structure reflects that.
+                We're transparent about the split because founding affiliates are genuine partners, not just promoters. They are the early proof of concept that helps demonstrate the platform works in the real world — which is critical for our growth and investment strategy. The 40% affiliate share reflects that partnership and the real value they bring to building this business.
               </p>
             </div>
 
