@@ -137,6 +137,10 @@ export default function ProtocolVisibilityPanel({
     ...diets,
   ];
 
+  const PILL_CAP = 4;
+  const visibleLabels = outcomeLabels.slice(0, PILL_CAP);
+  const hiddenCount = outcomeLabels.length - visibleLabels.length;
+
   const contextLabel =
     context === "beverage"
       ? "this drink"
@@ -152,7 +156,7 @@ export default function ProtocolVisibilityPanel({
           <span className="text-[10px] text-white/40 font-semibold uppercase tracking-widest shrink-0">
             Built using
           </span>
-          {outcomeLabels.map((label) => (
+          {visibleLabels.map((label) => (
             <span
               key={label}
               className="text-[10px] bg-orange-500/15 border border-orange-500/25 text-orange-300 rounded-full px-2 py-0.5 font-medium"
@@ -160,6 +164,11 @@ export default function ProtocolVisibilityPanel({
               {label}
             </span>
           ))}
+          {hiddenCount > 0 && (
+            <span className="text-[10px] bg-white/8 border border-white/10 text-white/45 rounded-full px-2 py-0.5 font-medium">
+              +{hiddenCount} more
+            </span>
+          )}
           {hasMacros && (
             <span className="text-[10px] bg-white/8 border border-white/10 text-white/50 rounded-full px-2 py-0.5 font-medium">
               {macroSummary}
