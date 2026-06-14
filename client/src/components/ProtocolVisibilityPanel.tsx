@@ -8,32 +8,38 @@ interface ProtocolVisibilityPanelProps {
   context?: "meal" | "beverage" | "restaurant";
 }
 
-const PROTOCOL_MAP: Record<string, { label: string; level: "high" | "moderate" }> = {
-  diabetes: { label: "Diabetes Protocol", level: "high" },
-  diabetic: { label: "Diabetes Protocol", level: "high" },
-  "glp-1": { label: "GLP-1 Protocol", level: "high" },
-  glp1: { label: "GLP-1 Protocol", level: "high" },
-  semaglutide: { label: "GLP-1 Protocol", level: "high" },
-  "anti-inflammatory": { label: "Anti-Inflammatory Protocol", level: "high" },
-  "anti_inflammatory": { label: "Anti-Inflammatory Protocol", level: "high" },
-  cardiac: { label: "Cardiac Protocol", level: "high" },
-  "heart disease": { label: "Cardiac Protocol", level: "high" },
-  "heart-disease": { label: "Cardiac Protocol", level: "high" },
-  renal: { label: "Renal Protocol", level: "high" },
-  "kidney disease": { label: "Renal Protocol", level: "high" },
-  ckd: { label: "Renal Protocol", level: "high" },
-  oncology: { label: "Oncology Protocol", level: "high" },
-  cancer: { label: "Oncology Protocol", level: "high" },
-  "thyroid-support": { label: "Thyroid Support Protocol", level: "moderate" },
-  thyroid: { label: "Thyroid Support Protocol", level: "moderate" },
-  hashimotos: { label: "Thyroid Support Protocol", level: "moderate" },
-  "hormone-optimization": { label: "Hormone Optimization Protocol", level: "moderate" },
-  hormone: { label: "Hormone Optimization Protocol", level: "moderate" },
-  menopause: { label: "Menopause Protocol", level: "moderate" },
-  perimenopause: { label: "Menopause Protocol", level: "moderate" },
-  "liver-disease": { label: "Liver Support Protocol", level: "moderate" },
-  "liver-support": { label: "Liver Support Protocol", level: "moderate" },
-  nafld: { label: "Liver Support Protocol", level: "moderate" },
+interface ProtocolEntry {
+  outcomeLabel: string;
+  displayLabel: string;
+  level: "high" | "moderate";
+}
+
+const PROTOCOL_MAP: Record<string, ProtocolEntry> = {
+  diabetes:            { outcomeLabel: "Blood Glucose",              displayLabel: "Diabetes Support",        level: "high" },
+  diabetic:            { outcomeLabel: "Blood Glucose",              displayLabel: "Diabetes Support",        level: "high" },
+  "glp-1":             { outcomeLabel: "Metabolic Support",          displayLabel: "GLP-1 Protocol",          level: "high" },
+  glp1:                { outcomeLabel: "Metabolic Support",          displayLabel: "GLP-1 Protocol",          level: "high" },
+  semaglutide:         { outcomeLabel: "Metabolic Support",          displayLabel: "GLP-1 Protocol",          level: "high" },
+  "anti-inflammatory": { outcomeLabel: "Anti-Inflammatory",          displayLabel: "Anti-Inflammatory Diet",  level: "high" },
+  "anti_inflammatory": { outcomeLabel: "Anti-Inflammatory",          displayLabel: "Anti-Inflammatory Diet",  level: "high" },
+  cardiac:             { outcomeLabel: "Sodium Control",             displayLabel: "Cardiac Support",         level: "high" },
+  "heart disease":     { outcomeLabel: "Sodium Control",             displayLabel: "Cardiac Support",         level: "high" },
+  "heart-disease":     { outcomeLabel: "Sodium Control",             displayLabel: "Cardiac Support",         level: "high" },
+  renal:               { outcomeLabel: "Kidney-Safe Filtering",      displayLabel: "Renal Support",           level: "high" },
+  "kidney disease":    { outcomeLabel: "Kidney-Safe Filtering",      displayLabel: "Renal Support",           level: "high" },
+  ckd:                 { outcomeLabel: "Kidney-Safe Filtering",      displayLabel: "Renal Support",           level: "high" },
+  oncology:            { outcomeLabel: "Oncology Protocol",          displayLabel: "Oncology Protocol",       level: "high" },
+  cancer:              { outcomeLabel: "Oncology Protocol",          displayLabel: "Oncology Protocol",       level: "high" },
+  "thyroid-support":   { outcomeLabel: "Thyroid Support",            displayLabel: "Thyroid Support",         level: "moderate" },
+  thyroid:             { outcomeLabel: "Thyroid Support",            displayLabel: "Thyroid Support",         level: "moderate" },
+  hashimotos:          { outcomeLabel: "Thyroid Support",            displayLabel: "Thyroid Support",         level: "moderate" },
+  "hormone-optimization": { outcomeLabel: "Hormone Balance",         displayLabel: "Hormone Optimization",    level: "moderate" },
+  hormone:             { outcomeLabel: "Hormone Balance",            displayLabel: "Hormone Optimization",    level: "moderate" },
+  menopause:           { outcomeLabel: "Menopause Support",          displayLabel: "Menopause Support",       level: "moderate" },
+  perimenopause:       { outcomeLabel: "Menopause Support",          displayLabel: "Menopause Support",       level: "moderate" },
+  "liver-disease":     { outcomeLabel: "Liver Support",              displayLabel: "Liver Support",           level: "moderate" },
+  "liver-support":     { outcomeLabel: "Liver Support",              displayLabel: "Liver Support",           level: "moderate" },
+  nafld:               { outcomeLabel: "Liver Support",              displayLabel: "Liver Support",           level: "moderate" },
 };
 
 const DIET_MAP: Record<string, string> = {
@@ -51,27 +57,25 @@ const DIET_MAP: Record<string, string> = {
   mediterranean: "Mediterranean",
 };
 
-function getActiveProtocols(user: any): Array<{ label: string; level: "high" | "moderate" }> {
-  const seen = new Set<string>();
-  const results: Array<{ label: string; level: "high" | "moderate" }> = [];
+function getActiveProtocols(user: any): ProtocolEntry[] {
+  const seenLabel = new Set<string>();
+  const results: ProtocolEntry[] = [];
 
   const checkSlug = (slug: string) => {
     if (!slug) return;
     const normalized = slug.toLowerCase().trim();
     const match = PROTOCOL_MAP[normalized];
-    if (match && !seen.has(match.label)) {
-      seen.add(match.label);
+    if (match && !seenLabel.has(match.displayLabel)) {
+      seenLabel.add(match.displayLabel);
       results.push(match);
     }
   };
 
   if (user?.specialtyCondition) checkSlug(user.specialtyCondition);
   if (Array.isArray(user?.medicalConditions)) user.medicalConditions.forEach(checkSlug);
-  if (user?.oncologySupportContext) {
-    if (!seen.has("Oncology Protocol")) {
-      seen.add("Oncology Protocol");
-      results.push({ label: "Oncology Protocol", level: "high" });
-    }
+  if (user?.oncologySupportContext && !seenLabel.has("Oncology Protocol")) {
+    seenLabel.add("Oncology Protocol");
+    results.push({ outcomeLabel: "Oncology Protocol", displayLabel: "Oncology Protocol", level: "high" });
   }
 
   return results;
@@ -83,8 +87,7 @@ function getActiveDiets(user: any): string[] {
 
   const checkDiet = (d: string) => {
     if (!d) return;
-    const normalized = d.toLowerCase().trim();
-    const label = DIET_MAP[normalized];
+    const label = DIET_MAP[d.toLowerCase().trim()];
     if (label && !seen.has(label)) {
       seen.add(label);
       results.push(label);
@@ -103,7 +106,7 @@ function getMacroSummary(user: any): string | null {
   if (!cal && !prot) return null;
   const parts: string[] = [];
   if (cal) parts.push(`${cal} cal/day`);
-  if (prot) parts.push(`${prot}g protein target`);
+  if (prot) parts.push(`${prot}g protein`);
   return parts.join(" · ");
 }
 
@@ -118,13 +121,21 @@ export default function ProtocolVisibilityPanel({
   const protocols = getActiveProtocols(user);
   const diets = getActiveDiets(user);
   const macroSummary = getMacroSummary(user);
-  const explanation = whyThisComplies || reasoning || null;
+  const explanation = reasoning || whyThisComplies || null;
 
   const hasProtocols = protocols.length > 0;
   const hasDiets = diets.length > 0;
   const hasMacros = !!macroSummary;
 
   if (!hasProtocols && !hasDiets && !hasMacros) return null;
+
+  const highProtocols = protocols.filter((p) => p.level === "high");
+  const moderateProtocols = protocols.filter((p) => p.level === "moderate");
+
+  const outcomeLabels = [
+    ...protocols.map((p) => p.outcomeLabel),
+    ...diets,
+  ];
 
   const contextLabel =
     context === "beverage"
@@ -133,71 +144,101 @@ export default function ProtocolVisibilityPanel({
       ? "this recommendation"
       : "this meal";
 
-  const highProtocols = protocols.filter((p) => p.level === "high");
-  const moderateProtocols = protocols.filter((p) => p.level === "moderate");
-
   return (
     <div className="rounded-xl border border-white/10 bg-black/30 overflow-hidden">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-3.5 py-2.5 text-left active:bg-white/5 transition-colors select-none"
-      >
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="h-4 w-4 text-orange-400 flex-shrink-0" />
-          <span className="text-xs font-semibold text-white/80">
-            How This Was Built For You
+      {/* ── Level 1: Always-visible "Built Using" strip ── */}
+      {outcomeLabels.length > 0 && (
+        <div className="px-3.5 pt-2.5 pb-2 flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] text-white/40 font-semibold uppercase tracking-widest shrink-0">
+            Built using
           </span>
-          {hasProtocols && (
-            <span className="text-[10px] bg-orange-500/20 border border-orange-500/30 text-orange-300 rounded-full px-2 py-0.5 font-medium">
-              {protocols.length} Protocol{protocols.length !== 1 ? "s" : ""} Applied
+          {outcomeLabels.map((label) => (
+            <span
+              key={label}
+              className="text-[10px] bg-orange-500/15 border border-orange-500/25 text-orange-300 rounded-full px-2 py-0.5 font-medium"
+            >
+              {label}
+            </span>
+          ))}
+          {hasMacros && (
+            <span className="text-[10px] bg-white/8 border border-white/10 text-white/50 rounded-full px-2 py-0.5 font-medium">
+              {macroSummary}
             </span>
           )}
         </div>
+      )}
+
+      {/* ── Expandable header ── */}
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-3.5 py-2 text-left active:bg-white/5 transition-colors select-none border-t border-white/8"
+      >
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="h-3.5 w-3.5 text-orange-400 flex-shrink-0" />
+          <span className="text-[11px] font-semibold text-white/65">
+            How This Was Built For You
+          </span>
+        </div>
         {open ? (
-          <ChevronUp className="h-3.5 w-3.5 text-white/40 flex-shrink-0" />
+          <ChevronUp className="h-3 w-3 text-white/35 flex-shrink-0" />
         ) : (
-          <ChevronDown className="h-3.5 w-3.5 text-white/40 flex-shrink-0" />
+          <ChevronDown className="h-3 w-3 text-white/35 flex-shrink-0" />
         )}
       </button>
 
       {open && (
         <div className="px-3.5 pb-3.5 space-y-3 border-t border-white/8">
-          {/* Medical Protocols */}
+
+          {/* ── Level 3 first: Clinical reasoning (most important) ── */}
+          {explanation && (
+            <div className="pt-3 bg-white/5 border border-white/8 rounded-lg p-3 mt-3">
+              <p className="text-[10px] text-orange-400/70 uppercase tracking-widest font-semibold mb-1.5">
+                Why {contextLabel} fits your profile
+              </p>
+              <p className="text-xs text-white/70 leading-relaxed">{explanation}</p>
+            </div>
+          )}
+
+          {/* ── Level 2: Protocol breakdown ── */}
           {hasProtocols && (
-            <div className="pt-3">
-              <p className="text-[10px] text-white/40 uppercase tracking-widest font-semibold mb-2">
-                Medical Protocols Active
+            <div className={explanation ? "" : "pt-3"}>
+              <p className="text-[10px] text-white/35 uppercase tracking-widest font-semibold mb-2">
+                Protocols Applied
               </p>
               <div className="space-y-1.5">
                 {highProtocols.map((p) => (
-                  <div key={p.label} className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" />
-                    <span className="text-xs text-white/80">{p.label}</span>
-                    <span className="text-[10px] text-orange-400/70 font-medium">High</span>
+                  <div key={p.displayLabel} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" />
+                      <span className="text-xs text-white/75">{p.displayLabel}</span>
+                    </div>
+                    <span className="text-[10px] text-orange-400/60 font-medium">High</span>
                   </div>
                 ))}
                 {moderateProtocols.map((p) => (
-                  <div key={p.label} className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-amber-400/70 flex-shrink-0" />
-                    <span className="text-xs text-white/70">{p.label}</span>
-                    <span className="text-[10px] text-amber-400/60 font-medium">Moderate</span>
+                  <div key={p.displayLabel} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-amber-400/60 flex-shrink-0" />
+                      <span className="text-xs text-white/60">{p.displayLabel}</span>
+                    </div>
+                    <span className="text-[10px] text-amber-400/50 font-medium">Moderate</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Dietary Identity */}
+          {/* ── Dietary identity ── */}
           {hasDiets && (
-            <div className={hasProtocols ? "" : "pt-3"}>
-              <p className="text-[10px] text-white/40 uppercase tracking-widest font-semibold mb-2">
+            <div>
+              <p className="text-[10px] text-white/35 uppercase tracking-widest font-semibold mb-2">
                 Dietary Identity
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {diets.map((d) => (
                   <span
                     key={d}
-                    className="text-[11px] bg-white/8 border border-white/10 text-white/65 rounded-full px-2.5 py-0.5"
+                    className="text-[11px] bg-white/8 border border-white/10 text-white/60 rounded-full px-2.5 py-0.5"
                   >
                     {d}
                   </span>
@@ -206,29 +247,10 @@ export default function ProtocolVisibilityPanel({
             </div>
           )}
 
-          {/* Macro Targets */}
-          {hasMacros && (
-            <div>
-              <p className="text-[10px] text-white/40 uppercase tracking-widest font-semibold mb-1.5">
-                Macro Targets Applied
-              </p>
-              <p className="text-xs text-white/60">{macroSummary}</p>
-            </div>
-          )}
-
-          {/* Why This Complies */}
-          {explanation && (
-            <div className="bg-white/5 border border-white/8 rounded-lg p-3">
-              <p className="text-[10px] text-white/40 uppercase tracking-widest font-semibold mb-1.5">
-                Why {contextLabel} fits your profile
-              </p>
-              <p className="text-xs text-white/65 leading-relaxed">{explanation}</p>
-            </div>
-          )}
-
+          {/* ── Fallback if no explanation ── */}
           {!explanation && (
-            <p className="text-[11px] text-white/35 leading-relaxed">
-              The AI applied all active protocols and dietary rules from your profile when generating {contextLabel}.
+            <p className="text-[11px] text-white/30 leading-relaxed pt-1">
+              All active protocols and dietary rules from your profile were applied when generating {contextLabel}.
             </p>
           )}
         </div>

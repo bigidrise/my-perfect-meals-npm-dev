@@ -397,7 +397,12 @@ export function MealCard({
 
         {/* Protocol Visibility */}
         <div className="mt-3">
-          <ProtocolVisibilityPanel user={user} context="meal" />
+          <ProtocolVisibilityPanel
+            user={user}
+            reasoning={(meal as any).reasoning}
+            whyThisComplies={(meal as any).complianceSection?.whyThisComplies}
+            context="meal"
+          />
         </div>
 
         {/* Action Buttons */}
