@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { ArrowLeft, Star, Users, CheckCircle2, TrendingUp, Clock, ChevronRight } from "lucide-react";
+import { ArrowLeft, Star, Users, CheckCircle2, TrendingUp, Clock, ChevronRight, Percent } from "lucide-react";
 import { motion } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 
@@ -118,6 +118,33 @@ export default function FoundingPartnerProgram() {
                 </div>
               ))}
             </div>
+            {/* Commission split callout */}
+            <div className="mt-4 bg-orange-500/10 border border-orange-500/30 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                  <Percent className="h-3.5 w-3.5 text-orange-400" />
+                </div>
+                <span className="text-orange-300 text-xs font-bold uppercase tracking-wider">Founding Affiliate Commission</span>
+              </div>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex-1 text-center bg-orange-600/20 border border-orange-500/30 rounded-lg py-2.5">
+                  <div className="text-2xl font-black text-orange-300">60%</div>
+                  <div className="text-[10px] text-orange-300/70 font-medium mt-0.5">You Earn</div>
+                </div>
+                <div className="text-white/30 text-xs font-bold">/</div>
+                <div className="flex-1 text-center bg-white/5 border border-white/10 rounded-lg py-2.5">
+                  <div className="text-2xl font-black text-white/40">40%</div>
+                  <div className="text-[10px] text-white/30 font-medium mt-0.5">MPM</div>
+                </div>
+              </div>
+              <p className="text-white/55 text-xs leading-relaxed mb-1.5">
+                Founding Affiliates receive a <span className="text-orange-300 font-semibold">60% recurring commission</span> on every subscription they refer — significantly higher than standard affiliate rates.
+              </p>
+              <p className="text-white/40 text-xs leading-relaxed">
+                This split reflects the real value founding affiliates bring. Founding Affiliates are more than promoters — they are the early proof of concept that helps us demonstrate the platform works in the real world, which is critical for the business's growth and investment strategy. We need them, we value them, and the commission structure reflects that.
+              </p>
+            </div>
+
             <div className="mt-3 flex flex-wrap gap-1.5">
               {["Coaches", "Educators", "Influencers", "Health Professionals", "Membership Communities"].map((t, i) => (
                 <span key={i} className="text-[10px] bg-orange-500/10 border border-orange-500/20 text-orange-300/70 rounded-full px-2.5 py-0.5">{t}</span>
