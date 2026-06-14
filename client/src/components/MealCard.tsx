@@ -20,6 +20,8 @@ import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import FavoriteButton from "@/components/FavoriteButton";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
+import ProtocolVisibilityPanel from "@/components/ProtocolVisibilityPanel";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Keep your Meal type colocated here (WeeklyMealBoard imports from this file)
 export type Meal = {
@@ -72,6 +74,7 @@ export function MealCard({
   diabeticMemoryContext?: { generatedBglMgdl: number; glucoseContext: string; protocolTypeLabel: string; bglBucket: string; recommendedBglRange: string; generatedAt: string; source: string; };
 }) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [macrosLogged, setMacrosLogged] = React.useState(false);
   const [ingredientsExpanded, setIngredientsExpanded] = React.useState(false);
   const [instructionsExpanded, setInstructionsExpanded] = React.useState(false);
@@ -391,6 +394,11 @@ export function MealCard({
             </div>
           );
         })()}
+
+        {/* Protocol Visibility */}
+        <div className="mt-3">
+          <ProtocolVisibilityPanel user={user} context="meal" />
+        </div>
 
         {/* Action Buttons */}
         <div className="mt-3 flex flex-col gap-2">

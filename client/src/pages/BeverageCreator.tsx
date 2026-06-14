@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Sparkles, ArrowLeft, Brain, Wine } from "lucide-react";
+import ProtocolVisibilityPanel from "@/components/ProtocolVisibilityPanel";
 import { useToast } from "@/hooks/use-toast";
 import {
   isAllergyRelatedError,
@@ -932,6 +933,14 @@ export default function BeverageCreator() {
                       </p>
                     </div>
                   )}
+
+                  <div className="mb-4">
+                    <ProtocolVisibilityPanel
+                      user={user}
+                      reasoning={generatedBeverage.reasoning}
+                      context="beverage"
+                    />
+                  </div>
 
                   <div className="space-y-2">
                     <GlassButton

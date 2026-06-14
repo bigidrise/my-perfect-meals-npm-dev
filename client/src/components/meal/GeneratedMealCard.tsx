@@ -1,4 +1,5 @@
 import { Sparkles, Users, Brain, ChefHat, CalendarPlus, Leaf } from "lucide-react";
+import ProtocolVisibilityPanel from "@/components/ProtocolVisibilityPanel";
 import { formatAmount } from "@/utils/formatAmount";
 import { useLocation } from "wouter";
 import { useState as useStateCard, useEffect as useEffectCard } from "react";
@@ -390,6 +391,14 @@ export default function GeneratedMealCard({
           </ul>
         </div>
       )}
+
+      {/* Protocol Visibility */}
+      <ProtocolVisibilityPanel
+        user={user}
+        whyThisComplies={mealToShow.complianceSection?.whyThisComplies}
+        reasoning={mealToShow.reasoning}
+        context="meal"
+      />
 
       {/* 9. Action Buttons - Standardized 3-Row Layout */}
       <div className="space-y-2">

@@ -79,6 +79,7 @@ import { ChefHat } from "lucide-react";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
+import ProtocolVisibilityPanel from "@/components/ProtocolVisibilityPanel";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 
 // Guided flow step type - step-by-step wizard
@@ -1272,6 +1273,15 @@ export default function FastFoodGuidePage() {
                                 </p>
                               </div>
                             )}
+
+                            {/* Protocol Visibility */}
+                            <div className="mb-3">
+                              <ProtocolVisibilityPanel
+                                user={user}
+                                reasoning={meal.reason || (meal as any).reasoning}
+                                context="restaurant"
+                              />
+                            </div>
 
                             {/* Action Buttons */}
                             <div className="flex flex-col gap-2">
