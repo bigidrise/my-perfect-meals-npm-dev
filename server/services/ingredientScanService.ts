@@ -23,12 +23,22 @@ export interface ScanScoreCards {
   fitnessGoal: ScoreCard;
 }
 
+export type OutcomeVerdict = 'supports' | 'caution' | 'conflicts' | 'neutral';
+
+export interface ProtocolOutcomeCard {
+  protocolKey: string;
+  label: string;
+  verdict: OutcomeVerdict;
+  reason: string;
+}
+
 export interface IngredientScanResult {
   alignmentGrade: 'A' | 'B' | 'C' | 'D';
   overallSummary: string;
   verdict: string;
   verdictLevel: 'buy' | 'caution' | 'skip';
   scoreCards: ScanScoreCards;
+  outcomeCards: ProtocolOutcomeCard[];
   ingredientDecoder: Array<{ name: string; plain: string; flag: 'ok' | 'watch' | 'avoid' }>;
   ingredientConsiderations: string[];
   mayNotAlignWith: string[];
@@ -41,10 +51,99 @@ export interface IngredientScanResult {
   fallbackUsed: boolean;
 }
 
+// ─── Protocol card derivation ────────────────────────────────────────────────
+// Inspects the live user envelope and returns the ordered list of protocol
+// outcome cards the AI should assess. De-duplicates by key. Caps at 6.
+
+interface CardSpec { protocolKey: string; label: string; }
+
+function deriveProtocolCards(envelope: UserProtocolEnvelope): CardSpec[] {
+  const cards: CardSpec[] = [];
+  const seen = new Set<string>();
+
+  const add = (key: string, label: string) => {
+    if (!seen.has(key)) { seen.add(key); cards.push({ protocolKey: key, label }); }
+  };
+
+  const allText = [
+    ...envelope.medicalHardLimits,
+    ...envelope.medicalOptimization,
+    ...envelope.conditionGuidanceBlocks,
+  ].join(' ').toLowerCase();
+
+  const hasGlp1        = /glp[-\s]?1|ozempic|wegovy|mounjaro|tirzepatide|semaglutide/.test(allText);
+  const hasCardiac     = /cardiac|hypertension|blood pressure|heart disease/.test(allText);
+  const hasRenal       = /renal|kidney/.test(allText);
+  const hasAntiInflam  = /anti.?inflam|inflammation/.test(allText);
+  const hasOncology    = /oncology|cancer/.test(allText);
+
+  if (envelope.hasDiabetes) {
+    add('blood-glucose',  'Blood Glucose Support');
+    add('fiber',          'Fiber Support');
+    add('protein',        'Protein Adequacy');
+  }
+  if (hasGlp1) {
+    add('protein',    'Protein Adequacy');
+    add('satiety',    'Satiety Support');
+    add('digestive',  'Digestive Tolerance');
+  }
+  if (hasCardiac) {
+    add('sodium',   'Sodium Control');
+    add('heart',    'Heart Health Support');
+    add('protein',  'Protein Adequacy');
+  }
+  if (hasRenal) {
+    add('kidney',   'Kidney Support');
+    add('sodium',   'Sodium Control');
+    add('protein',  'Protein Adequacy');
+  }
+  if (hasAntiInflam) {
+    add('inflammation',       'Inflammation Support');
+    add('ingredient-quality', 'Ingredient Quality');
+    add('protein',            'Protein Adequacy');
+  }
+  if (envelope.thyroidSupport) {
+    add('thyroid',  'Thyroid Hormone Support');
+    add('iodine',   'Iodine Balance');
+    add('protein',  'Protein Adequacy');
+  }
+  if (envelope.hormoneOptimization) {
+    add('hormone',            'Hormone Support');
+    add('protein',            'Protein Adequacy');
+    add('ingredient-quality', 'Ingredient Quality');
+  }
+  if (hasOncology) {
+    add('ingredient-quality', 'Ingredient Quality');
+    add('immune',             'Immune Support');
+    add('protein',            'Protein Adequacy');
+  }
+  if (envelope.goalType === 'lose') {
+    add('satiety',         'Satiety Support');
+    add('caloric-balance', 'Caloric Balance');
+    add('protein',         'Protein Adequacy');
+  } else if (envelope.goalType === 'gain') {
+    add('protein',          'Protein Adequacy');
+    add('caloric-support',  'Caloric Support');
+    add('recovery',         'Recovery Support');
+  }
+
+  const result = cards.slice(0, 6);
+
+  if (result.length === 0) {
+    return [
+      { protocolKey: 'overall-nutrition',   label: 'Overall Nutrition' },
+      { protocolKey: 'diet-compat',         label: 'Diet Compatibility' },
+      { protocolKey: 'goal-alignment',      label: 'Goal Alignment' },
+      { protocolKey: 'ingredient-quality',  label: 'Ingredient Quality' },
+    ];
+  }
+
+  return result;
+}
+
 function buildCompactProtocolContext(envelope: UserProtocolEnvelope): string {
   const lines: string[] = [];
 
-  // ── Fitness goals (set during onboarding) ────────────────────────────────
   if (envelope.goalType || envelope.fitnessGoal) {
     const goalParts: string[] = [];
     if (envelope.goalType) {
@@ -113,6 +212,7 @@ RESPONSE FORMAT (strict JSON only):
     "diet": { "verdict": "neutral", "reason": "Not applicable — companion scan." },
     "fitnessGoal": { "verdict": "neutral", "reason": "Not applicable — companion scan." }
   },
+  "outcomeCards": [],
   "ingredientDecoder": [],
   "ingredientConsiderations": [],
   "mayNotAlignWith": ["List the specific active profile considerations that conflict with this product — e.g. 'Chicken Sensitivity', 'Senior Wellness', 'Healthy Weight Support'. Use short label-style strings (3-4 words max). Empty array if none conflict."],
@@ -134,6 +234,7 @@ D = notable conflicts with documented sensitivities or goals
 
 CRITICAL RULES:
 - scoreCards are always stub/neutral for companion scans — do NOT analyze for human categories
+- outcomeCards is always an empty array for companion scans
 - The overallSummary is the most important field — invest effort here
 - mayNotAlignWith should be short label strings (not sentences) — they become chips in the UI
 - betterFor should be actionable and specific to this dog's situation
@@ -162,23 +263,19 @@ RESPONSE FORMAT (strict JSON only):
   "verdict": "One clear, direct sentence — should this user buy this product? Be warm and personal, like a friend giving advice.",
   "verdictLevel": "buy" | "caution" | "skip",
   "scoreCards": {
-    "kids": {
-      "verdict": "thumbsUp" | "thumbsDown" | "neutral",
-      "reason": "One plain-English sentence about why this is or isn't good for kids. Always check for: artificial dyes (Red 40, Yellow 5, etc.), high sugar, caffeine, artificial sweeteners, preservatives."
-    },
-    "adults": {
-      "verdict": "thumbsUp" | "thumbsDown" | "neutral",
-      "reason": "One plain-English sentence about general adult suitability — common allergens, sodium, saturated fat, additives."
-    },
-    "diet": {
-      "verdict": "thumbsUp" | "thumbsDown" | "neutral",
-      "reason": "One sentence about how this fits the user's dietary identity (vegan, keto, gluten-free, etc.). If no dietary restrictions are on file, give general nutrition quality feedback."
-    },
-    "fitnessGoal": {
-      "verdict": "thumbsUp" | "thumbsDown" | "neutral",
-      "reason": "One sentence connecting this product to the user's fitness/weight goal (weight loss, muscle gain, maintenance). If no goal is on file, give general comment on macros."
-    }
+    "kids": { "verdict": "neutral", "reason": "" },
+    "adults": { "verdict": "neutral", "reason": "" },
+    "diet": { "verdict": "neutral", "reason": "" },
+    "fitnessGoal": { "verdict": "neutral", "reason": "" }
   },
+  "outcomeCards": [
+    {
+      "protocolKey": "exact key from the PROTOCOL CARDS list",
+      "label": "exact label from the PROTOCOL CARDS list",
+      "verdict": "supports" | "caution" | "conflicts" | "neutral",
+      "reason": "One plain English sentence: how does this product impact this specific outcome goal for this user? Reference a specific ingredient or nutrient."
+    }
+  ],
   "ingredientDecoder": [
     {
       "name": "Exact ingredient name as it appears on the label",
@@ -189,16 +286,19 @@ RESPONSE FORMAT (strict JSON only):
   "ingredientConsiderations": ["Factual observations about specific ingredients relevant to this user's health profile"],
   "mayNotAlignWith": ["Personalized conflicts with this user's goals/conditions — only if genuinely relevant. Empty array if none."],
   "betterFor": ["Contextual positives or appropriate use cases — or empty array"],
-  "householdNotes": ["Any additional household member notes beyond the kids scorecard — or empty array"],
+  "householdNotes": ["Any additional household member notes — or empty array"],
   "educationalFooter": "Brief friendly non-diagnostic note"
 }
 
-scoreCards rules:
-- ALWAYS return all 4 scoreCards — never omit any
-- neutral = it's fine, no strong signals either way
-- thumbsUp = genuinely good signal for this category
-- thumbsDown = notable concern for this category
-- Keep reasons short, friendly, and coach-like — not scary
+outcomeCards rules:
+- A PROTOCOL CARDS TO ASSESS list is provided in the user message
+- Return one entry for EVERY card in that list — use the exact protocolKey and label provided, in the same order
+- verdict: "supports" = product meaningfully helps this goal, "caution" = mixed signal or partial concern, "conflicts" = product works against this goal, "neutral" = no meaningful signal either way
+- Base verdicts strictly on the actual ingredient and nutritional content vs. the user's specific health conditions — not generic food quality judgments
+- Keep reasons short, direct, and specific: reference actual ingredients or nutrients where possible (e.g. "The 28g added sugar directly conflicts with blood glucose control." or "18g protein per serving strongly supports your GLP-1 protein goal.")
+- If a card has no relevant information to assess, return "neutral" with a brief note
+
+scoreCards: always return all 4 as neutral stubs — the outcomeCards are the primary analysis now.
 
 ingredientDecoder rules:
 - Decode ALL chemical-sounding, unfamiliar, or hard-to-pronounce ingredients (e.g., Red 40, TBHQ, carrageenan, sodium benzoate, BHA, BHT, MSG, xanthan gum, maltodextrin, etc.)
@@ -261,10 +361,10 @@ Do NOT invent or guess ingredients. If text is partially obscured, set confidenc
 }
 
 const DEFAULT_SCORE_CARDS: ScanScoreCards = {
-  kids: { verdict: 'neutral', reason: 'No specific child concerns detected.' },
-  adults: { verdict: 'neutral', reason: 'No major adult concerns detected.' },
-  diet: { verdict: 'neutral', reason: 'No dietary conflicts identified.' },
-  fitnessGoal: { verdict: 'neutral', reason: 'No strong signals relative to your goal.' },
+  kids: { verdict: 'neutral', reason: '' },
+  adults: { verdict: 'neutral', reason: '' },
+  diet: { verdict: 'neutral', reason: '' },
+  fitnessGoal: { verdict: 'neutral', reason: '' },
 };
 
 function parseScoreCards(raw: any): ScanScoreCards {
@@ -281,6 +381,19 @@ function parseScoreCards(raw: any): ScanScoreCards {
   };
 }
 
+function parseOutcomeCards(raw: any, _expected: CardSpec[]): ProtocolOutcomeCard[] {
+  if (!Array.isArray(raw) || raw.length === 0) return [];
+  const validVerdicts: OutcomeVerdict[] = ['supports', 'caution', 'conflicts', 'neutral'];
+  return raw
+    .filter((c: any) => c && typeof c.protocolKey === 'string' && typeof c.label === 'string')
+    .map((c: any) => ({
+      protocolKey: c.protocolKey as string,
+      label: c.label as string,
+      verdict: validVerdicts.includes(c.verdict) ? (c.verdict as OutcomeVerdict) : 'neutral',
+      reason: typeof c.reason === 'string' ? c.reason : '',
+    }));
+}
+
 const LOW_CONFIDENCE_RESULT: IngredientScanResult = {
   alignmentGrade: 'B',
   overallSummary:
@@ -288,6 +401,7 @@ const LOW_CONFIDENCE_RESULT: IngredientScanResult = {
   verdict: "Try retaking the photo so we can give you a personalized assessment.",
   verdictLevel: 'caution',
   scoreCards: DEFAULT_SCORE_CARDS,
+  outcomeCards: [],
   ingredientDecoder: [],
   ingredientConsiderations: [],
   mayNotAlignWith: [],
@@ -315,6 +429,10 @@ export async function analyzeIngredientContent(
     : 'No specific dietary or medical constraints on file.';
   const dietaryProtocols = envelope
     ? envelope.dietaryIdentity.map((d) => d.toLowerCase())
+    : [];
+
+  const cardRequests: CardSpec[] = (!isCompanionScan && envelope)
+    ? deriveProtocolCards(envelope)
     : [];
 
   let extractedText = '';
@@ -356,8 +474,13 @@ export async function analyzeIngredientContent(
       ? `\nKnown high-risk findings: ${highRiskFindings.map((f) => `${f.ingredientName} (${f.reason})`).join('; ')}`
       : '';
 
+  const cardListText = cardRequests.length > 0
+    ? `\nPROTOCOL CARDS TO ASSESS:\n${cardRequests.map(c => `${c.protocolKey}: ${c.label}`).join('\n')}\n\nReturn one outcomeCard entry for each card above using the exact protocolKey and label.`
+    : '\nPROTOCOL CARDS TO ASSESS: none (return empty outcomeCards array)';
+
   const userMessage = `USER HEALTH PROFILE:
 ${protocolContext}
+${cardListText}
 
 PRODUCT INGREDIENT LIST:
 ${extractedText}
@@ -391,6 +514,7 @@ Analyze how this product aligns with this specific user's health profile.`;
         ? alignment.verdictLevel
         : 'caution',
       scoreCards: parseScoreCards(alignment.scoreCards),
+      outcomeCards: parseOutcomeCards(alignment.outcomeCards, cardRequests),
       ingredientDecoder,
       ingredientConsiderations: Array.isArray(alignment.ingredientConsiderations)
         ? alignment.ingredientConsiderations
@@ -414,6 +538,7 @@ Analyze how this product aligns with this specific user's health profile.`;
       verdict: '',
       verdictLevel: 'caution',
       scoreCards: DEFAULT_SCORE_CARDS,
+      outcomeCards: [],
       ingredientDecoder: [],
       ingredientConsiderations: [],
       mayNotAlignWith: [],
