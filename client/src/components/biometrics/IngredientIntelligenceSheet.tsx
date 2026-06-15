@@ -221,6 +221,39 @@ function LegacyScoreCardsGrid({ scoreCards }: { scoreCards: IngredientScanResult
   );
 }
 
+function AnalysisProfileSection({ items }: { items: string[] }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/5 p-4 mb-3">
+      <p className="text-xs font-bold uppercase tracking-wide text-orange-400/80 mb-2">
+        Your Analysis Profile
+      </p>
+      {items.length > 0 ? (
+        <>
+          <p className="text-[11px] text-white/40 mb-2.5">This recommendation is based on:</p>
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {items.map((item) => (
+              <span
+                key={item}
+                className="inline-flex items-center gap-1 text-[11px] font-medium text-white/70 bg-white/8 border border-white/12 rounded-full px-2.5 py-1"
+              >
+                <span className="text-orange-400 text-[10px] font-bold">✓</span>
+                {item}
+              </span>
+            ))}
+          </div>
+          <p className="text-[10px] text-white/25 leading-relaxed border-t border-white/8 pt-2.5">
+            Recommendations are generated from ingredient composition, nutrition facts, and your health profile. MPM does not receive compensation from food manufacturers and recommendations are never influenced by brand partnerships.
+          </p>
+        </>
+      ) : (
+        <p className="text-xs text-white/45 leading-relaxed">
+          Add health goals and conditions in your profile to get a fully personalized analysis.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
   const grade = result ? GRADE_CONFIG[result.alignmentGrade] ?? GRADE_CONFIG.B : null;
   const verdictCfg = result ? VERDICT_CONFIG[result.verdictLevel ?? 'caution'] : null;
@@ -271,6 +304,9 @@ export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
                   </div>
                 </div>
               )}
+
+              {/* Analysis Profile — what data powered this result */}
+              <AnalysisProfileSection items={result.analysisProfile ?? []} />
 
               {/* Chef verdict */}
               {verdictCfg && result.verdict && (
