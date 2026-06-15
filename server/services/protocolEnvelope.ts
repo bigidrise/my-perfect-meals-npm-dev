@@ -720,8 +720,10 @@ export async function loadUserProtocolEnvelope(
     // Stack all active specialty conditions into healthConditions so EVERY active protocol
     // gets its guidance block injected simultaneously via buildUniversalConditionGuidance.
     // Falls back to single specialtyCondition value for backward compat with existing users.
-    const specialtyConditionsArr: string[] = ((user as any).specialtyConditions as string[] | null) ||
-      (user.specialtyCondition ? [user.specialtyCondition] : []);
+    const _rawSpecialtyConditions: string[] = ((user as any).specialtyConditions as string[] | null) ?? [];
+    const specialtyConditionsArr: string[] = _rawSpecialtyConditions.length > 0
+      ? _rawSpecialtyConditions
+      : (user.specialtyCondition ? [user.specialtyCondition] : []);
     // Also pull 'glp1' out of medicalConditions so diabetic-builder generation stacks the GLP-1
     // protocol automatically when a user is on GLP-1 medication. Only 'glp1' is extracted —
     // other medicalConditions values (e.g. 'diabetes-type2') are builder-routing flags, not
