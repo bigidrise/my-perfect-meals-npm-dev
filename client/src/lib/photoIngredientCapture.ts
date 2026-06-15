@@ -32,6 +32,7 @@ export interface IngredientScanResult {
   verdictLevel: 'buy' | 'caution' | 'skip';
   scoreCards: ScanScoreCards;
   outcomeCards: ProtocolOutcomeCard[];
+  analysisProfile: string[];
   ingredientDecoder: Array<{ name: string; plain: string; flag: 'ok' | 'watch' | 'avoid' }>;
   ingredientConsiderations: string[];
   mayNotAlignWith: string[];

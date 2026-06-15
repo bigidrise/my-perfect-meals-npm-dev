@@ -39,6 +39,7 @@ export interface IngredientScanResult {
   verdictLevel: 'buy' | 'caution' | 'skip';
   scoreCards: ScanScoreCards;
   outcomeCards: ProtocolOutcomeCard[];
+  analysisProfile: string[];
   ingredientDecoder: Array<{ name: string; plain: string; flag: 'ok' | 'watch' | 'avoid' }>;
   ingredientConsiderations: string[];
   mayNotAlignWith: string[];
@@ -49,6 +50,68 @@ export interface IngredientScanResult {
   highRiskFindings: HighRiskFlag[];
   ocrConfidenceLow: boolean;
   fallbackUsed: boolean;
+}
+
+// ─── Analysis profile ────────────────────────────────────────────────────────
+// Human-readable list of what data points were used in this scan. Shown in the
+// UI so users understand why their result is personalised to them specifically.
+
+function buildAnalysisProfile(envelope: UserProtocolEnvelope): string[] {
+  const items: string[] = [];
+
+  if (envelope.goalType === 'lose') items.push('Weight-loss goal');
+  else if (envelope.goalType === 'gain') items.push('Muscle-gain goal');
+  else if (envelope.goalType === 'maintain') items.push('Maintenance goal');
+
+  if (envelope.hasDiabetes) {
+    const diabetesText = [
+      ...envelope.medicalHardLimits,
+      ...envelope.conditionGuidanceBlocks,
+    ].join(' ').toLowerCase();
+    if (/type\s*1/.test(diabetesText)) items.push('Type 1 Diabetes');
+    else if (/prediabetes/.test(diabetesText)) items.push('Prediabetes');
+    else items.push('Type 2 Diabetes');
+  }
+
+  const allText = [
+    ...envelope.medicalHardLimits,
+    ...envelope.medicalOptimization,
+    ...envelope.conditionGuidanceBlocks,
+  ].join(' ').toLowerCase();
+
+  if (/glp[-\s]?1|ozempic|wegovy|mounjaro|tirzepatide|semaglutide/.test(allText)) items.push('GLP-1 protocol');
+  if (/hypertension|blood pressure/.test(allText)) items.push('Hypertension');
+  if (/cardiac|heart disease/.test(allText)) items.push('Cardiac protocol');
+  if (/renal|kidney/.test(allText)) items.push('Renal protocol');
+  if (/anti.?inflam/.test(allText)) items.push('Anti-inflammatory protocol');
+  if (/oncology|cancer/.test(allText)) items.push('Oncology protocol');
+
+  if (envelope.thyroidSupport) {
+    if (envelope.thyroidType === 'hypothyroid') items.push('Hypothyroid support');
+    else if (envelope.thyroidType === 'hashimotos') items.push("Hashimoto's support");
+    else if (envelope.thyroidType === 'hyperthyroid') items.push('Hyperthyroid support');
+    else items.push('Thyroid support');
+  }
+  if (envelope.hormoneOptimization) items.push('Hormone optimization');
+
+  for (const d of envelope.dietaryIdentity.slice(0, 2)) {
+    const clean = d.replace(/_/g, ' ').toLowerCase();
+    const label =
+      clean === 'vegan'                   ? 'Vegan diet' :
+      clean === 'vegetarian'              ? 'Vegetarian diet' :
+      clean === 'keto' || clean === 'ketogenic' ? 'Keto diet' :
+      clean === 'gluten-free' || clean === 'gluten free' ? 'Gluten-free' :
+      clean === 'paleo'                   ? 'Paleo diet' :
+      clean === 'halal'                   ? 'Halal' :
+      clean === 'kosher'                  ? 'Kosher' :
+      clean === 'low-fodmap' || clean === 'fodmap' ? 'Low-FODMAP' :
+      d.charAt(0).toUpperCase() + d.slice(1);
+    if (label) items.push(label);
+  }
+
+  if (envelope.diabeticGuidance) items.push('Recent blood glucose logs');
+
+  return items;
 }
 
 // ─── Protocol card derivation ────────────────────────────────────────────────
@@ -402,6 +465,7 @@ const LOW_CONFIDENCE_RESULT: IngredientScanResult = {
   verdictLevel: 'caution',
   scoreCards: DEFAULT_SCORE_CARDS,
   outcomeCards: [],
+  analysisProfile: [],
   ingredientDecoder: [],
   ingredientConsiderations: [],
   mayNotAlignWith: [],
@@ -433,6 +497,10 @@ export async function analyzeIngredientContent(
 
   const cardRequests: CardSpec[] = (!isCompanionScan && envelope)
     ? deriveProtocolCards(envelope)
+    : [];
+
+  const analysisProfile: string[] = (!isCompanionScan && envelope)
+    ? buildAnalysisProfile(envelope)
     : [];
 
   let extractedText = '';
@@ -515,6 +583,7 @@ Analyze how this product aligns with this specific user's health profile.`;
         : 'caution',
       scoreCards: parseScoreCards(alignment.scoreCards),
       outcomeCards: parseOutcomeCards(alignment.outcomeCards, cardRequests),
+      analysisProfile,
       ingredientDecoder,
       ingredientConsiderations: Array.isArray(alignment.ingredientConsiderations)
         ? alignment.ingredientConsiderations
@@ -539,6 +608,7 @@ Analyze how this product aligns with this specific user's health profile.`;
       verdictLevel: 'caution',
       scoreCards: DEFAULT_SCORE_CARDS,
       outcomeCards: [],
+      analysisProfile,
       ingredientDecoder: [],
       ingredientConsiderations: [],
       mayNotAlignWith: [],
