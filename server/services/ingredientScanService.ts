@@ -32,6 +32,12 @@ export interface ProtocolOutcomeCard {
   reason: string;
 }
 
+export interface BetterAlternative {
+  category: string;
+  whyBetter: string[];
+  targetCriteria: string;
+}
+
 export interface IngredientScanResult {
   alignmentGrade: 'A' | 'B' | 'C' | 'D';
   overallSummary: string;
@@ -40,6 +46,7 @@ export interface IngredientScanResult {
   scoreCards: ScanScoreCards;
   outcomeCards: ProtocolOutcomeCard[];
   analysisProfile: string[];
+  betterAlternatives: BetterAlternative[];
   ingredientDecoder: Array<{ name: string; plain: string; flag: 'ok' | 'watch' | 'avoid' }>;
   ingredientConsiderations: string[];
   mayNotAlignWith: string[];
@@ -276,6 +283,7 @@ RESPONSE FORMAT (strict JSON only):
     "fitnessGoal": { "verdict": "neutral", "reason": "Not applicable — companion scan." }
   },
   "outcomeCards": [],
+  "betterAlternatives": [],
   "ingredientDecoder": [],
   "ingredientConsiderations": [],
   "mayNotAlignWith": ["List the specific active profile considerations that conflict with this product — e.g. 'Chicken Sensitivity', 'Senior Wellness', 'Healthy Weight Support'. Use short label-style strings (3-4 words max). Empty array if none conflict."],
@@ -349,9 +357,24 @@ RESPONSE FORMAT (strict JSON only):
   "ingredientConsiderations": ["Factual observations about specific ingredients relevant to this user's health profile"],
   "mayNotAlignWith": ["Personalized conflicts with this user's goals/conditions — only if genuinely relevant. Empty array if none."],
   "betterFor": ["Contextual positives or appropriate use cases — or empty array"],
+  "betterAlternatives": [
+    {
+      "category": "Look for a [product type] with [key property]",
+      "whyBetter": ["Specific advantage vs. this product, e.g. '12g+ protein per serving'", "Second advantage tied to user's protocol"],
+      "targetCriteria": "Aim for [specific thresholds] per serving when shopping"
+    }
+  ],
   "householdNotes": ["Any additional household member notes — or empty array"],
   "educationalFooter": "Brief friendly non-diagnostic note"
 }
+
+betterAlternatives rules:
+- Only populate when verdictLevel is "caution" or "skip" — return empty array when "buy"
+- Return 1–3 generic product category alternatives ONLY — NEVER name specific brands, products, or retailers
+- Frame each as what type of product to look for (e.g. "Look for a chickpea or legume-based pasta") not what to buy
+- whyBetter: 2–4 short phrases citing specific nutritional advantages vs. this product; reference the user's active protocols directly (e.g. "Lower glycemic load supports blood glucose goals")
+- targetCriteria: one actionable sentence with concrete thresholds the user can use while reading labels (e.g. "Aim for 10g+ protein, 5g+ fiber, under 35g net carbs per serving")
+- Tie alternatives directly to the specific protocol conflicts identified — not generic "healthier" advice
 
 outcomeCards rules:
 - A PROTOCOL CARDS TO ASSESS list is provided in the user message
@@ -444,6 +467,18 @@ function parseScoreCards(raw: any): ScanScoreCards {
   };
 }
 
+function parseBetterAlternatives(raw: any): BetterAlternative[] {
+  if (!Array.isArray(raw) || raw.length === 0) return [];
+  return raw
+    .filter((a: any) => a && typeof a.category === 'string')
+    .slice(0, 3)
+    .map((a: any) => ({
+      category: a.category as string,
+      whyBetter: Array.isArray(a.whyBetter) ? a.whyBetter.filter((w: any) => typeof w === 'string') : [],
+      targetCriteria: typeof a.targetCriteria === 'string' ? a.targetCriteria : '',
+    }));
+}
+
 function parseOutcomeCards(raw: any, _expected: CardSpec[]): ProtocolOutcomeCard[] {
   if (!Array.isArray(raw) || raw.length === 0) return [];
   const validVerdicts: OutcomeVerdict[] = ['supports', 'caution', 'conflicts', 'neutral'];
@@ -466,6 +501,7 @@ const LOW_CONFIDENCE_RESULT: IngredientScanResult = {
   scoreCards: DEFAULT_SCORE_CARDS,
   outcomeCards: [],
   analysisProfile: [],
+  betterAlternatives: [],
   ingredientDecoder: [],
   ingredientConsiderations: [],
   mayNotAlignWith: [],
@@ -584,6 +620,7 @@ Analyze how this product aligns with this specific user's health profile.`;
       scoreCards: parseScoreCards(alignment.scoreCards),
       outcomeCards: parseOutcomeCards(alignment.outcomeCards, cardRequests),
       analysisProfile,
+      betterAlternatives: parseBetterAlternatives(alignment.betterAlternatives),
       ingredientDecoder,
       ingredientConsiderations: Array.isArray(alignment.ingredientConsiderations)
         ? alignment.ingredientConsiderations
@@ -609,6 +646,7 @@ Analyze how this product aligns with this specific user's health profile.`;
       scoreCards: DEFAULT_SCORE_CARDS,
       outcomeCards: [],
       analysisProfile,
+      betterAlternatives: [],
       ingredientDecoder: [],
       ingredientConsiderations: [],
       mayNotAlignWith: [],
