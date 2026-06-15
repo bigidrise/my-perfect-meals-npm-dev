@@ -127,13 +127,22 @@ function buildAnalysisProfile(envelope: UserProtocolEnvelope): string[] {
 
 interface CardSpec { protocolKey: string; label: string; }
 
-function deriveProtocolCards(envelope: UserProtocolEnvelope): CardSpec[] {
+function deriveProtocolCards(envelope: UserProtocolEnvelope | null): CardSpec[] {
   const cards: CardSpec[] = [];
   const seen = new Set<string>();
 
   const add = (key: string, label: string) => {
     if (!seen.has(key)) { seen.add(key); cards.push({ protocolKey: key, label }); }
   };
+
+  if (!envelope) {
+    return [
+      { protocolKey: 'overall-nutrition',  label: 'Overall Nutrition' },
+      { protocolKey: 'diet-compat',        label: 'Diet Compatibility' },
+      { protocolKey: 'goal-alignment',     label: 'Goal Alignment' },
+      { protocolKey: 'ingredient-quality', label: 'Ingredient Quality' },
+    ];
+  }
 
   const allText = [
     ...envelope.medicalHardLimits,
@@ -384,7 +393,7 @@ outcomeCards rules:
 - Keep reasons short, direct, and specific: reference actual ingredients or nutrients where possible (e.g. "The 28g added sugar directly conflicts with blood glucose control." or "18g protein per serving strongly supports your GLP-1 protein goal.")
 - If a card has no relevant information to assess, return "neutral" with a brief note
 
-scoreCards: always return all 4 as neutral stubs — the outcomeCards are the primary analysis now.
+scoreCards: fill in all 4 with real verdicts and reasons based on the ingredient list — these are the visible explanation cards for kids, adults, diet compatibility, and the user's fitness goal. Do not return neutral stubs; give genuine assessments with a short reason for each.
 
 ingredientDecoder rules:
 - Decode ALL chemical-sounding, unfamiliar, or hard-to-pronounce ingredients (e.g., Red 40, TBHQ, carrageenan, sodium benzoate, BHA, BHT, MSG, xanthan gum, maltodextrin, etc.)
@@ -531,7 +540,7 @@ export async function analyzeIngredientContent(
     ? envelope.dietaryIdentity.map((d) => d.toLowerCase())
     : [];
 
-  const cardRequests: CardSpec[] = (!isCompanionScan && envelope)
+  const cardRequests: CardSpec[] = !isCompanionScan
     ? deriveProtocolCards(envelope)
     : [];
 

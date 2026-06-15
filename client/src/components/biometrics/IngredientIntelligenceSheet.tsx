@@ -400,11 +400,14 @@ export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
               {/* Phase 2 — Protocol Impact summary (aligns with / watch for) */}
               {hasOutcomeCards && <ProtocolImpactSummary cards={result.outcomeCards} />}
 
-              {/* Phase 1 — Protocol Outcome Cards grid (or legacy fallback) */}
+              {/* Phase 1 — Protocol Outcome Cards grid */}
               {hasOutcomeCards
                 ? <OutcomeCardsGrid cards={result.outcomeCards} />
-                : result.scoreCards && <LegacyScoreCardsGrid scoreCards={result.scoreCards} />
+                : null
               }
+
+              {/* Legacy scoreCards — Kids / Adults / Diet / Goal explanation cards */}
+              {result.scoreCards && <LegacyScoreCardsGrid scoreCards={result.scoreCards} />}
 
               {/* Phase 3 — Better Choices (only on caution/skip) */}
               {result.verdictLevel !== 'buy' && (
