@@ -221,7 +221,19 @@ function LegacyScoreCardsGrid({ scoreCards }: { scoreCards: IngredientScanResult
   );
 }
 
+const LAB_CONDITION_KEYWORDS = [
+  'diabetes', 'glp-1', 'hypertension', 'cardiac', 'renal',
+  'anti-inflammatory', 'oncology', 'thyroid', 'hashimoto', 'hormone',
+];
+
+function hasLabRelevantCondition(items: string[]): boolean {
+  const joined = items.join(' ').toLowerCase();
+  return LAB_CONDITION_KEYWORDS.some((kw) => joined.includes(kw));
+}
+
 function AnalysisProfileSection({ items }: { items: string[] }) {
+  const showLabTeaser = items.length > 0 && hasLabRelevantCondition(items);
+
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 p-4 mb-3">
       <p className="text-xs font-bold uppercase tracking-wide text-orange-400/80 mb-2">
@@ -241,6 +253,25 @@ function AnalysisProfileSection({ items }: { items: string[] }) {
               </span>
             ))}
           </div>
+
+          {showLabTeaser && (
+            <div className="rounded-lg bg-orange-500/8 border border-orange-500/20 px-3 py-2.5 mb-3 flex items-start gap-2.5">
+              <span className="text-orange-400 text-base leading-none mt-0.5 shrink-0">⚗️</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-white/75 mb-0.5">Want deeper personalization?</p>
+                <p className="text-[11px] text-white/45 leading-snug mb-2">
+                  Add lab values such as A1C, fasting glucose, cholesterol, triglycerides, kidney markers, or inflammation markers.
+                </p>
+                <a
+                  href="/biometrics"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-orange-400 bg-orange-500/15 border border-orange-500/30 rounded-full px-2.5 py-1"
+                >
+                  Update Health Profile →
+                </a>
+              </div>
+            </div>
+          )}
+
           <p className="text-[10px] text-white/25 leading-relaxed border-t border-white/8 pt-2.5">
             Recommendations are generated from ingredient composition, nutrition facts, and your health profile. MPM does not receive compensation from food manufacturers and recommendations are never influenced by brand partnerships.
           </p>
