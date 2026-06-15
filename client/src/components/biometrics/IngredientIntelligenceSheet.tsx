@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { X, ChevronDown, ChevronUp } from 'lucide-react';
-import type { IngredientScanResult, ScoreVerdict, OutcomeVerdict } from '@/lib/photoIngredientCapture';
+import type { IngredientScanResult, ScoreVerdict, OutcomeVerdict, BetterAlternative } from '@/lib/photoIngredientCapture';
 
 interface Props {
   open: boolean;
@@ -191,6 +191,42 @@ function OutcomeCardsGrid({ cards }: { cards: IngredientScanResult['outcomeCards
   );
 }
 
+function BetterAlternativesSection({ alternatives }: { alternatives: BetterAlternative[] }) {
+  if (!alternatives || alternatives.length === 0) return null;
+  return (
+    <div className="mb-5">
+      <p className="text-xs font-bold uppercase tracking-wide text-white/40 mb-2">
+        🔄 Better Choices For Your Goals
+      </p>
+      <div className="space-y-2.5">
+        {alternatives.map((alt, i) => (
+          <div key={i} className="rounded-xl border border-orange-500/20 bg-orange-500/8 p-3.5">
+            <p className="text-xs font-semibold text-white/85 mb-2">{alt.category}</p>
+            {alt.whyBetter.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {alt.whyBetter.map((why, j) => (
+                  <span key={j} className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-300 bg-emerald-500/15 border border-emerald-500/25 rounded-full px-2 py-0.5">
+                    <span className="text-[9px] font-bold">✓</span>
+                    {why}
+                  </span>
+                ))}
+              </div>
+            )}
+            {alt.targetCriteria && (
+              <p className="text-[11px] text-white/45 leading-snug border-t border-white/8 pt-2">
+                🎯 {alt.targetCriteria}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+      <p className="text-[10px] text-white/20 mt-2 pl-1">
+        Generic category guidance only — not brand-specific recommendations.
+      </p>
+    </div>
+  );
+}
+
 function LegacyScoreCardsGrid({ scoreCards }: { scoreCards: IngredientScanResult['scoreCards'] }) {
   const SCORE_CARDS_META = [
     { key: 'kids' as const, label: 'Kids', icon: '🧒' },
@@ -369,6 +405,11 @@ export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
                 ? <OutcomeCardsGrid cards={result.outcomeCards} />
                 : result.scoreCards && <LegacyScoreCardsGrid scoreCards={result.scoreCards} />
               }
+
+              {/* Phase 3 — Better Choices (only on caution/skip) */}
+              {result.verdictLevel !== 'buy' && (
+                <BetterAlternativesSection alternatives={result.betterAlternatives ?? []} />
+              )}
 
               {/* Plain English Decoder */}
               <IngredientDecoder items={result.ingredientDecoder ?? []} />

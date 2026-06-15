@@ -25,6 +25,12 @@ export interface ProtocolOutcomeCard {
   reason: string;
 }
 
+export interface BetterAlternative {
+  category: string;
+  whyBetter: string[];
+  targetCriteria: string;
+}
+
 export interface IngredientScanResult {
   alignmentGrade: 'A' | 'B' | 'C' | 'D';
   overallSummary: string;
@@ -33,6 +39,7 @@ export interface IngredientScanResult {
   scoreCards: ScanScoreCards;
   outcomeCards: ProtocolOutcomeCard[];
   analysisProfile: string[];
+  betterAlternatives: BetterAlternative[];
   ingredientDecoder: Array<{ name: string; plain: string; flag: 'ok' | 'watch' | 'avoid' }>;
   ingredientConsiderations: string[];
   mayNotAlignWith: string[];
