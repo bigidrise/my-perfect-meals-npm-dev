@@ -2234,6 +2234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         oncologySupportIntent: user.oncologySupportIntent ?? null,
         specialtyCondition: user.specialtyCondition ?? null,
         specialtyConditions: ((user as any).specialtyConditions as string[]) ?? [],
+        thyroidType: (user as any).thyroidType ?? null,
         thyroidMedication: user.thyroidMedication ?? null,
         // Protocol Ownership Model: expose context to user so UI can show source/lock state
         oncologySupportContext: user.oncologySupportContext ?? null,

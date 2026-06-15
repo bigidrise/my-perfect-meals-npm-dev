@@ -72,7 +72,9 @@ function getActiveProtocols(user: any): ProtocolEntry[] {
   };
 
   if (user?.specialtyCondition) checkSlug(user.specialtyCondition);
+  if (Array.isArray(user?.specialtyConditions)) user.specialtyConditions.forEach(checkSlug);
   if (Array.isArray(user?.medicalConditions)) user.medicalConditions.forEach(checkSlug);
+  if (user?.thyroidType) checkSlug(user.thyroidType);
   if (user?.oncologySupportContext && !seenLabel.has("Oncology Protocol")) {
     seenLabel.add("Oncology Protocol");
     results.push({ outcomeLabel: "Oncology Protocol", displayLabel: "Oncology Protocol", level: "high" });
