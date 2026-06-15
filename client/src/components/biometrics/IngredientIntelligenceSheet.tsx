@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { X, ChevronDown, ChevronUp } from 'lucide-react';
-import type { IngredientScanResult, ScoreVerdict } from '@/lib/photoIngredientCapture';
+import type { IngredientScanResult, ScoreVerdict, OutcomeVerdict } from '@/lib/photoIngredientCapture';
 
 interface Props {
   open: boolean;
@@ -22,7 +22,37 @@ const VERDICT_CONFIG = {
   skip: { bg: 'bg-rose-500/15 border-rose-500/30', color: 'text-rose-400', label: 'Chef says: Maybe think twice' },
 };
 
-const SCORE_BG: Record<ScoreVerdict, string> = {
+const OUTCOME_CONFIG: Record<OutcomeVerdict, { bg: string; border: string; badgeBg: string; badgeText: string; label: string }> = {
+  supports:  { bg: 'bg-emerald-500/10', border: 'border-emerald-500/25', badgeBg: 'bg-emerald-500/20', badgeText: 'text-emerald-300', label: '✓' },
+  caution:   { bg: 'bg-amber-500/10',   border: 'border-amber-500/25',   badgeBg: 'bg-amber-500/20',   badgeText: 'text-amber-300',   label: '⚠' },
+  conflicts: { bg: 'bg-rose-500/10',    border: 'border-rose-500/25',    badgeBg: 'bg-rose-500/20',    badgeText: 'text-rose-300',    label: '✕' },
+  neutral:   { bg: 'bg-white/5',        border: 'border-white/10',       badgeBg: 'bg-white/10',       badgeText: 'text-white/40',    label: '—' },
+};
+
+const PROTOCOL_ICONS: Record<string, string> = {
+  'blood-glucose':      '🩸',
+  'fiber':              '🌾',
+  'protein':            '💪',
+  'satiety':            '⚖️',
+  'digestive':          '🫁',
+  'sodium':             '🧂',
+  'heart':              '❤️',
+  'kidney':             '🫘',
+  'inflammation':       '🔥',
+  'ingredient-quality': '✨',
+  'thyroid':            '🦋',
+  'iodine':             '⚗️',
+  'hormone':            '⚡',
+  'immune':             '🛡️',
+  'overall-nutrition':  '🥗',
+  'diet-compat':        '🥗',
+  'goal-alignment':     '🎯',
+  'caloric-balance':    '⚖️',
+  'caloric-support':    '🔋',
+  'recovery':           '🔄',
+};
+
+const LEGACY_SCORE_BG: Record<ScoreVerdict, string> = {
   thumbsUp: 'bg-emerald-500/15 border-emerald-500/25',
   thumbsDown: 'bg-rose-500/15 border-rose-500/25',
   neutral: 'bg-white/5 border-white/10',
@@ -30,14 +60,7 @@ const SCORE_BG: Record<ScoreVerdict, string> = {
 
 const FLAG_DOT = { ok: 'bg-emerald-400', watch: 'bg-amber-400', avoid: 'bg-rose-400' };
 
-const SCORE_CARDS_META = [
-  { key: 'kids' as const, label: 'Kids', icon: '🧒' },
-  { key: 'adults' as const, label: 'Adults', icon: '🧑' },
-  { key: 'diet' as const, label: 'Your Diet', icon: '🥗' },
-  { key: 'fitnessGoal' as const, label: 'Your Goal', icon: '🎯' },
-];
-
-function ScoreIcon({ verdict }: { verdict: ScoreVerdict }) {
+function LegacyScoreIcon({ verdict }: { verdict: ScoreVerdict }) {
   if (verdict === 'thumbsUp') return <span className="text-2xl">👍</span>;
   if (verdict === 'thumbsDown') return <span className="text-2xl">👎</span>;
   return <span className="text-2xl">🤔</span>;
@@ -97,10 +120,111 @@ function IngredientDecoder({ items }: { items: IngredientScanResult['ingredientD
   );
 }
 
+function ProtocolImpactSummary({ cards }: { cards: IngredientScanResult['outcomeCards'] }) {
+  if (!cards || cards.length === 0) return null;
+  const alignsWith = cards.filter(c => c.verdict === 'supports');
+  const watchFor   = cards.filter(c => c.verdict === 'conflicts' || c.verdict === 'caution');
+  if (alignsWith.length === 0 && watchFor.length === 0) return null;
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/5 p-4 mb-4 space-y-3">
+      {alignsWith.length > 0 && (
+        <div>
+          <p className="text-xs font-bold text-emerald-400/80 uppercase tracking-wide mb-2">Aligns with your goals</p>
+          <ul className="space-y-1">
+            {alignsWith.map(c => (
+              <li key={c.protocolKey} className="flex items-center gap-2 text-sm text-white/75">
+                <span className="text-emerald-400 text-xs font-bold shrink-0">✓</span>
+                <span>{c.label}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {watchFor.length > 0 && (
+        <div>
+          <p className="text-xs font-bold text-amber-400/80 uppercase tracking-wide mb-2">Watch for</p>
+          <ul className="space-y-2">
+            {watchFor.map(c => (
+              <li key={c.protocolKey} className="flex items-start gap-2 text-sm">
+                <span className={`text-xs font-bold shrink-0 mt-0.5 ${c.verdict === 'conflicts' ? 'text-rose-400' : 'text-amber-400'}`}>
+                  {c.verdict === 'conflicts' ? '✕' : '⚠'}
+                </span>
+                <span>
+                  <span className="text-white/80">{c.label}</span>
+                  {c.reason && <span className="text-white/45"> — {c.reason}</span>}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OutcomeCardsGrid({ cards }: { cards: IngredientScanResult['outcomeCards'] }) {
+  if (!cards || cards.length === 0) return null;
+  return (
+    <div className="mb-5">
+      <p className="text-xs font-bold uppercase tracking-wide text-white/40 mb-2">How it scores for your protocols</p>
+      <div className="grid grid-cols-2 gap-2">
+        {cards.map((card) => {
+          const cfg = OUTCOME_CONFIG[card.verdict];
+          const icon = PROTOCOL_ICONS[card.protocolKey] ?? '📊';
+          return (
+            <div key={card.protocolKey} className={`rounded-xl border p-3 ${cfg.bg} ${cfg.border}`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-semibold text-white/65 leading-tight">{icon} {card.label}</span>
+                <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full shrink-0 ml-1 ${cfg.badgeBg} ${cfg.badgeText}`}>
+                  {cfg.label}
+                </span>
+              </div>
+              {card.reason && (
+                <p className="text-[11px] text-white/50 leading-snug">{card.reason}</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function LegacyScoreCardsGrid({ scoreCards }: { scoreCards: IngredientScanResult['scoreCards'] }) {
+  const SCORE_CARDS_META = [
+    { key: 'kids' as const, label: 'Kids', icon: '🧒' },
+    { key: 'adults' as const, label: 'Adults', icon: '🧑' },
+    { key: 'diet' as const, label: 'Your Diet', icon: '🥗' },
+    { key: 'fitnessGoal' as const, label: 'Your Goal', icon: '🎯' },
+  ];
+  return (
+    <div className="mb-5">
+      <p className="text-xs font-bold uppercase tracking-wide text-white/40 mb-2">How it scores for you</p>
+      <div className="grid grid-cols-2 gap-2">
+        {SCORE_CARDS_META.map(({ key, label, icon }) => {
+          const card = scoreCards[key];
+          return (
+            <div key={key} className={`rounded-xl border p-3 ${LEGACY_SCORE_BG[card.verdict]}`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-semibold text-white/60">{icon} {label}</span>
+                <LegacyScoreIcon verdict={card.verdict} />
+              </div>
+              {card.reason && (
+                <p className="text-[11px] text-white/55 leading-snug">{card.reason}</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
   const grade = result ? GRADE_CONFIG[result.alignmentGrade] ?? GRADE_CONFIG.B : null;
   const verdictCfg = result ? VERDICT_CONFIG[result.verdictLevel ?? 'caution'] : null;
-  const scoreCards = result?.scoreCards;
+  const hasOutcomeCards = !!(result?.outcomeCards && result.outcomeCards.length > 0);
 
   return (
     <AnimatePresence>
@@ -170,28 +294,14 @@ export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
                 <p className="text-sm text-white/85 leading-relaxed">{result.overallSummary}</p>
               </div>
 
-              {/* 2×2 Score Cards */}
-              {scoreCards && (
-                <div className="mb-5">
-                  <p className="text-xs font-bold uppercase tracking-wide text-white/40 mb-2">How it scores for you</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {SCORE_CARDS_META.map(({ key, label, icon }) => {
-                      const card = scoreCards[key];
-                      return (
-                        <div key={key} className={`rounded-xl border p-3 ${SCORE_BG[card.verdict]}`}>
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-xs font-semibold text-white/60">{icon} {label}</span>
-                            <ScoreIcon verdict={card.verdict} />
-                          </div>
-                          {card.reason && (
-                            <p className="text-[11px] text-white/55 leading-snug">{card.reason}</p>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+              {/* Phase 2 — Protocol Impact summary (aligns with / watch for) */}
+              {hasOutcomeCards && <ProtocolImpactSummary cards={result.outcomeCards} />}
+
+              {/* Phase 1 — Protocol Outcome Cards grid (or legacy fallback) */}
+              {hasOutcomeCards
+                ? <OutcomeCardsGrid cards={result.outcomeCards} />
+                : result.scoreCards && <LegacyScoreCardsGrid scoreCards={result.scoreCards} />
+              }
 
               {/* Plain English Decoder */}
               <IngredientDecoder items={result.ingredientDecoder ?? []} />
