@@ -67,6 +67,7 @@ import { generateFridgeRescueMeals } from "./services/fridgeRescueGenerator";
 import { getBuilderSwitchStatus, attemptBuilderSwitch } from "./services/builderSwitchService";
 import { fridgeRescueRouter } from "./routes/fridgeRescue";
 import inspirationRouter from "./routes/inspiration";
+import groceryCoachRouter from "./routes/groceryCoach";
 import alcoholLogRouter from './routes/alcohol-log';
 import vitalsBpRouter from './routes/vitals-bp';
 import proteinTargetsRouter from './routes/proteinTargets';
@@ -594,6 +595,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User confirmed this new system works perfectly - keep it locked!
   app.use("/api", fridgeRescueRouter);
   app.use("/api", inspirationRouter);
+  app.use("/api/grocery-coach", requireAuth, groceryCoachRouter);
 
   // REMOVED: Duplicate route moved to top priority position
 
