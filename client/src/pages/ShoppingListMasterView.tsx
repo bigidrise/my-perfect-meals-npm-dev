@@ -140,12 +140,27 @@ export default function ShoppingListMasterView() {
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [barcodeModalOpen, setBarcodeModalOpen] = useState(false);
   const [shoppingSheetOpen, setShoppingSheetOpen] = useState(false);
-  const [shoppingSheetResult, setShoppingSheetResult] = useState<IngredientScanResult | null>(null);
+  const [shoppingSheetResult, setShoppingSheetResult] = useState<IngredientScanResult | null>(() => {
+    try {
+      const saved = localStorage.getItem('mpm.shopping.activeScan');
+      return saved ? (JSON.parse(saved) as IngredientScanResult) : null;
+    } catch { return null; }
+  });
   const [addOtherPrefill, setAddOtherPrefill] = useState<string | undefined>(undefined);
   const [scanModalOpen, setScanModalOpen] = useState(false);
   const [scanRefreshKey, setScanRefreshKey] = useState(0);
   const [bulkText, setBulkText] = useState("");
   const [barcodeText, setBarcodeText] = useState("");
+
+  const persistScan = useCallback((result: IngredientScanResult) => {
+    try { localStorage.setItem('mpm.shopping.activeScan', JSON.stringify(result)); } catch {}
+    setShoppingSheetResult(result);
+  }, []);
+
+  const clearScan = useCallback(() => {
+    try { localStorage.removeItem('mpm.shopping.activeScan'); } catch {}
+    setShoppingSheetResult(null);
+  }, []);
 
   type ShoppingOpts = typeof opts;
   
@@ -515,6 +530,55 @@ export default function ShoppingListMasterView() {
                 </span>
               </Button>
             </div>
+
+          {/* Last Analysis — persists across navigation until cleared or replaced */}
+          {shoppingSheetResult && !shoppingSheetOpen && (
+            <div className="mt-2 rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+              <button
+                onClick={() => setShoppingSheetOpen(true)}
+                className="w-full flex items-center gap-3 px-3 pt-3 pb-2 text-left active:bg-white/5"
+              >
+                <div className={`text-2xl font-black leading-none shrink-0 ${
+                  shoppingSheetResult.alignmentGrade === 'A' ? 'text-emerald-400'
+                  : shoppingSheetResult.alignmentGrade === 'B' ? 'text-lime-400'
+                  : shoppingSheetResult.alignmentGrade === 'C' ? 'text-amber-400'
+                  : 'text-rose-400'
+                }`}>
+                  {shoppingSheetResult.alignmentGrade}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] text-white/40 font-bold uppercase tracking-wide leading-none mb-0.5">Last Analysis</p>
+                  <p className="text-sm text-white font-semibold truncate leading-snug">
+                    {shoppingSheetResult.productName || 'Scanned Product'}
+                  </p>
+                  <p className={`text-xs font-medium truncate leading-snug ${
+                    shoppingSheetResult.verdictLevel === 'buy' ? 'text-emerald-400'
+                    : shoppingSheetResult.verdictLevel === 'skip' ? 'text-rose-400'
+                    : 'text-amber-400'
+                  }`}>
+                    {shoppingSheetResult.verdictLevel === 'buy' ? 'Chef says: Go for it!'
+                      : shoppingSheetResult.verdictLevel === 'skip' ? 'Chef says: Maybe think twice'
+                      : 'Chef says: Just a heads up…'}
+                  </p>
+                </div>
+                <span className="text-[10px] text-cyan-300/60 font-semibold uppercase tracking-wide shrink-0">Tap to view →</span>
+              </button>
+              <div className="px-3 pb-3 flex gap-2">
+                <button
+                  onClick={clearScan}
+                  className="flex-1 text-xs text-white/40 bg-white/5 border border-white/10 rounded-xl py-2 active:bg-white/10"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={() => { clearScan(); setScanModalOpen(true); }}
+                  className="flex-[2] text-xs text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 rounded-xl py-2 font-semibold active:bg-cyan-500/20"
+                >
+                  New Scan
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Recent Scans */}
           <RecentScans
@@ -889,7 +953,7 @@ export default function ShoppingListMasterView() {
           destination="smart-scan"
           profileType="human"
           onScanResult={(result) => {
-            setShoppingSheetResult(result);
+            persistScan(result);
             setShoppingSheetOpen(true);
             setScanRefreshKey((k) => k + 1);
           }}
@@ -901,6 +965,7 @@ export default function ShoppingListMasterView() {
           result={shoppingSheetResult}
           onClose={() => setShoppingSheetOpen(false)}
           onAddAnyway={() => {
+            clearScan();
             setShoppingSheetOpen(false);
             setAddOtherPrefill("Scanned Item");
             setTimeout(() => {
