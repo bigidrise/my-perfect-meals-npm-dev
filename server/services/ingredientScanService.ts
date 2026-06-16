@@ -59,7 +59,10 @@ export interface IngredientScanResult {
   fallbackUsed: boolean;
   productName: string;
   isFrontLabel: boolean;
-  analysisMethod: 'by_name' | 'by_label';
+  productNameMissing: boolean;
+  analysisMethod: 'by_name' | 'by_label' | 'full_product_advisor';
+  profileFactorsUsed: string[];
+  whatMattersMost: string[];
 }
 
 // ─── Analysis profile ────────────────────────────────────────────────────────
@@ -1004,6 +1007,100 @@ Do NOT give generic advice. Do NOT say "check the label." You are an expert — 
       productName,
       productNameMissing: false,
       analysisMethod: 'by_name',
+      fallbackUsed: true,
+    };
+  }
+}
+
+// ─── FULL PRODUCT ADVISOR ──────────────────────────────────────────────────────
+// Called when the user has BOTH a verified label scan AND the product name.
+// Cross-references product knowledge with actual verified ingredient data for
+// the highest-confidence analysis. Returns analysisMethod: 'full_product_advisor'.
+
+export async function analyzeFullProduct(
+  productName: string,
+  ingredients: string,
+  userId: string,
+): Promise<IngredientScanResult> {
+  const envelope = await loadUserProtocolEnvelope(userId);
+  const protocolContext = envelope
+    ? buildCompactProtocolContext(envelope)
+    : 'No specific dietary or medical constraints on file.';
+  const analysisProfile: string[] = envelope ? buildAnalysisProfile(envelope) : [];
+
+  const userMessage = `USER HEALTH PROFILE:
+${protocolContext}
+
+PRODUCT: ${productName}
+
+VERIFIED INGREDIENTS FROM LABEL (scanned directly — trust this over general knowledge):
+${ingredients}
+
+You have TWO sources of information: your product knowledge AND verified label data above. Where the label confirms your knowledge, state values with full confidence. Where they differ, trust the label. This is the highest-confidence analysis mode — cite specific ingredient names from the label and specific values you can derive or know. Name 3–4 competing products with numerical advantages tied to this user's specific conditions. Do NOT give generic advice.`;
+
+  try {
+    const alignment = await chatJson({
+      system: BY_NAME_SYSTEM_PROMPT,
+      user: userMessage,
+      model: 'gpt-4o',
+      temperature: 0.3,
+    });
+
+    const rawDecoder = Array.isArray(alignment.ingredientDecoder) ? alignment.ingredientDecoder : [];
+    const ingredientDecoder = rawDecoder
+      .filter((d: any) => d && typeof d.name === 'string' && typeof d.plain === 'string')
+      .map((d: any) => ({
+        name: d.name as string,
+        plain: d.plain as string,
+        flag: (['ok', 'watch', 'avoid'] as const).includes(d.flag) ? d.flag : 'watch' as const,
+      }));
+
+    const rawAlts = Array.isArray(alignment.betterAlternatives) ? alignment.betterAlternatives : [];
+    const betterAlternatives: BetterAlternative[] = rawAlts.map((a: any) => ({
+      category: typeof a.category === 'string' ? a.category : '',
+      whyBetter: Array.isArray(a.whyBetter) ? a.whyBetter.filter((w: any) => typeof w === 'string') : [],
+      targetCriteria: typeof a.targetCriteria === 'string' ? a.targetCriteria : '',
+    })).filter((a: BetterAlternative) => a.category);
+
+    return {
+      alignmentGrade: (['A', 'B', 'C', 'D'] as const).includes(alignment.alignmentGrade) ? alignment.alignmentGrade : 'B',
+      overallSummary: typeof alignment.overallSummary === 'string' ? alignment.overallSummary : 'Analysis complete.',
+      verdict: typeof alignment.verdict === 'string' ? alignment.verdict : '',
+      verdictLevel: (['buy', 'caution', 'skip'] as const).includes(alignment.verdictLevel) ? alignment.verdictLevel : 'caution',
+      scoreCards: parseScoreCards(alignment.scoreCards),
+      outcomeCards: [],
+      analysisProfile,
+      betterAlternatives,
+      ingredientDecoder,
+      ingredientConsiderations: Array.isArray(alignment.ingredientConsiderations) ? alignment.ingredientConsiderations.filter((s: any) => typeof s === 'string') : [],
+      mayNotAlignWith: Array.isArray(alignment.mayNotAlignWith) ? alignment.mayNotAlignWith.filter((s: any) => typeof s === 'string') : [],
+      betterFor: Array.isArray(alignment.betterFor) ? alignment.betterFor.filter((s: any) => typeof s === 'string') : [],
+      householdNotes: Array.isArray(alignment.householdNotes) ? alignment.householdNotes.filter((s: any) => typeof s === 'string') : [],
+      educationalFooter: typeof alignment.educationalFooter === 'string'
+        ? alignment.educationalFooter
+        : 'Full Product Advisor — verified label + product knowledge + your health profile.',
+      extractedIngredients: ingredients.split(',').map((s: string) => s.trim()).filter(Boolean),
+      highRiskFindings: [],
+      ocrConfidenceLow: false,
+      fallbackUsed: false,
+      productName,
+      isFrontLabel: false,
+      productNameMissing: false,
+      analysisMethod: 'full_product_advisor',
+      profileFactorsUsed: Array.isArray(alignment.profileFactorsUsed)
+        ? alignment.profileFactorsUsed.filter((s: any) => typeof s === 'string')
+        : [],
+      whatMattersMost: Array.isArray(alignment.whatMattersMost)
+        ? alignment.whatMattersMost.filter((s: any) => typeof s === 'string').slice(0, 3)
+        : [],
+    };
+  } catch {
+    return {
+      ...LOW_CONFIDENCE_RESULT,
+      overallSummary: 'We encountered an issue running the Full Product Advisor. Please try again.',
+      productName,
+      productNameMissing: false,
+      analysisMethod: 'full_product_advisor',
       fallbackUsed: true,
     };
   }

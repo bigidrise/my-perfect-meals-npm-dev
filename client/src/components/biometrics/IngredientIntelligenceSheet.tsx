@@ -198,7 +198,7 @@ function BetterAlternativesSection({ alternatives, branded, verdictLevel }: { al
 
   const headingText = verdictLevel === 'buy'
     ? (branded ? '🏆 Also Worth Knowing' : '🏆 Even Better Options')
-    : (branded ? '🛒 Better Choices For You' : '🛒 Better Choices For You');
+    : '🛒 Better Product Options For You';
 
   return (
     <div className="mb-5">
@@ -301,6 +301,67 @@ const LAB_CONDITION_KEYWORDS = [
 function hasLabRelevantCondition(items: string[]): boolean {
   const joined = items.join(' ').toLowerCase();
   return LAB_CONDITION_KEYWORDS.some((kw) => joined.includes(kw));
+}
+
+// ── Confidence Tier Badge ──────────────────────────────────────────────────────
+type AnalysisMethod = 'by_name' | 'by_label' | 'full_product_advisor';
+const TIER_CONFIG: Record<AnalysisMethod, { label: string; dot: string; border: string; bg: string; text: string }> = {
+  by_name:             { label: 'Quick Analysis',          dot: 'bg-amber-400',   border: 'border-amber-500/25',   bg: 'bg-amber-500/8',   text: 'text-amber-300' },
+  by_label:            { label: 'Verified Label Analysis', dot: 'bg-sky-400',     border: 'border-sky-500/25',     bg: 'bg-sky-500/8',     text: 'text-sky-300' },
+  full_product_advisor:{ label: 'Full Product Advisor',    dot: 'bg-emerald-400', border: 'border-emerald-500/25', bg: 'bg-emerald-500/8', text: 'text-emerald-300' },
+};
+
+function ConfidenceTierBadge({ method, productName, productNameMissing, onScanLabel }: {
+  method: AnalysisMethod;
+  productName?: string;
+  productNameMissing?: boolean;
+  onScanLabel?: () => void;
+}) {
+  const cfg = TIER_CONFIG[method] ?? TIER_CONFIG.by_label;
+  let sublabel = '';
+  if (method === 'by_name') sublabel = 'Knowledge-based · No label scan';
+  else if (method === 'by_label' && productName) sublabel = `Label scanned · ${productName}`;
+  else if (method === 'by_label' && productNameMissing) sublabel = 'Label scanned · Product unknown';
+  else if (method === 'by_label') sublabel = 'Label scanned';
+  else sublabel = 'Product + Label + Profile';
+
+  return (
+    <div className={`rounded-xl border ${cfg.border} ${cfg.bg} px-3.5 py-2.5 mb-4 flex items-center justify-between gap-2`}>
+      <div className="flex items-center gap-2.5">
+        <span className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`} />
+        <div>
+          <p className={`text-xs font-bold ${cfg.text}`}>{cfg.label}</p>
+          <p className="text-[11px] text-white/40 leading-tight">{sublabel}</p>
+        </div>
+      </div>
+      {method === 'by_name' && onScanLabel && (
+        <button onClick={onScanLabel} className="text-[11px] text-orange-400 font-semibold shrink-0 active:opacity-70 transition-opacity">
+          Scan label ↑
+        </button>
+      )}
+      {method === 'full_product_advisor' && (
+        <span className="text-[11px] text-emerald-400 font-semibold shrink-0">Highest confidence</span>
+      )}
+    </div>
+  );
+}
+
+// ── What Matters Most For You ─────────────────────────────────────────────────
+function WhatMattersMostSection({ items }: { items: string[] }) {
+  if (!items || items.length === 0) return null;
+  return (
+    <div className="rounded-2xl border border-orange-500/25 bg-orange-500/6 p-4 mb-4">
+      <p className="text-xs font-bold uppercase tracking-wide text-orange-400 mb-3">⚡ What Matters Most For You</p>
+      <ul className="space-y-2.5">
+        {items.slice(0, 3).map((item, i) => (
+          <li key={i} className="flex items-start gap-2.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0 mt-1.5" />
+            <p className="text-sm text-white/85 leading-snug">{item}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 function AnalysisProfileSection({ items }: { items: string[] }) {
@@ -485,12 +546,20 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan }:
               {/* ── PATH 3: Full result (back-label scan or completed by-name analysis) ── */}
               {!showFrontLabelChoice && !byNameLoading && activeResult && (
                 <>
+                  {/* Confidence tier badge */}
+                  <ConfidenceTierBadge
+                    method={activeResult.analysisMethod}
+                    productName={activeResult.productName || undefined}
+                    productNameMissing={activeResult.productNameMissing}
+                    onScanLabel={onRescan}
+                  />
+
                   {/* By-name accuracy banner */}
                   {isByName && (
                     <div className="rounded-xl border border-amber-500/25 bg-amber-500/8 p-3.5 mb-4 flex items-start gap-2.5">
                       <span className="text-base shrink-0 mt-0.5">⚠️</span>
                       <div className="flex-1">
-                        <p className="text-xs font-semibold text-amber-300 mb-0.5">Likely Analysis — Not a Verified Label Scan</p>
+                        <p className="text-xs font-semibold text-amber-300 mb-0.5">Quick Analysis — Not a Verified Label Scan</p>
                         <p className="text-[11px] text-white/50 leading-snug">
                           Based on product knowledge as of training data. Product formulas can change.{' '}
                           {onRescan && (
@@ -506,10 +575,25 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan }:
                     </div>
                   )}
 
-                  {/* Scan quality warnings (back-label path only) */}
+                  {/* Scan quality warning */}
                   {!isByName && !activeResult.isFrontLabel && activeResult.ocrConfidenceLow && (
-                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 mb-4">
-                      <p className="text-sm text-amber-300">⚠️ Photo wasn't fully clear — try retaking in better lighting with the full ingredients panel visible and in focus.</p>
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 mb-4 flex items-start gap-2.5">
+                      <span className="text-base shrink-0 mt-0.5">⚠️</span>
+                      <div>
+                        <p className="text-xs font-semibold text-amber-300 mb-0.5">Image quality was low</p>
+                        <p className="text-[11px] text-white/50 leading-snug">Retake with the full ingredients panel visible, in focus, and well-lit for a more accurate analysis.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Product name missing — scan completeness prompt */}
+                  {!isByName && activeResult.productNameMissing && (
+                    <div className="rounded-xl border border-sky-500/25 bg-sky-500/8 p-3.5 mb-4 flex items-start gap-2.5">
+                      <span className="text-base shrink-0 mt-0.5">💡</span>
+                      <div>
+                        <p className="text-xs font-semibold text-sky-300 mb-0.5">Nutrition label found</p>
+                        <p className="text-[11px] text-white/50 leading-snug">Say or type the product name to receive branded alternatives personalized to your profile.</p>
+                      </div>
                     </div>
                   )}
 
@@ -519,9 +603,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan }:
                       <div className={`text-6xl font-black leading-none ${grade.color}`}>{activeResult.alignmentGrade}</div>
                       <div>
                         <p className={`font-bold text-base ${grade.color}`}>{grade.desc}</p>
-                        <p className="text-xs text-white/45 mt-0.5">
-                          {isByName ? 'Based on product knowledge' : 'Personalized to your health profile'}
-                        </p>
+                        <p className="text-xs text-white/45 mt-0.5">Personalized to your health profile</p>
                       </div>
                     </div>
                   )}
@@ -537,6 +619,16 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan }:
                     </div>
                   )}
 
+                  {/* What Matters Most For You — condition-tied, 3 bullets max */}
+                  <WhatMattersMostSection items={activeResult.whatMattersMost ?? []} />
+
+                  {/* Better Product Options — always shown immediately after verdict */}
+                  <BetterAlternativesSection
+                    alternatives={activeResult.betterAlternatives ?? []}
+                    branded={isByName || activeResult.analysisMethod === 'full_product_advisor'}
+                    verdictLevel={activeResult.verdictLevel}
+                  />
+
                   {/* Profile factors driving this analysis */}
                   <ProfileFactorsSection factors={activeResult.profileFactorsUsed ?? []} />
 
@@ -544,13 +636,6 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan }:
                   <div className="rounded-xl border border-white/10 bg-white/5 p-4 mb-4">
                     <p className="text-sm text-white/85 leading-relaxed">{activeResult.overallSummary}</p>
                   </div>
-
-                  {/* Better Choices — always shown, not gated by verdictLevel */}
-                  <BetterAlternativesSection
-                    alternatives={activeResult.betterAlternatives ?? []}
-                    branded={isByName}
-                    verdictLevel={activeResult.verdictLevel}
-                  />
 
                   {/* Protocol Impact summary */}
                   {hasOutcomeCards && <ProtocolImpactSummary cards={activeResult.outcomeCards} />}
@@ -585,14 +670,14 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan }:
                     </div>
                   )}
 
-                  {/* By-name: scan label CTA at bottom */}
+                  {/* Quick Analysis: scan label upgrade CTA */}
                   {isByName && onRescan && (
                     <button
                       onClick={onRescan}
-                      className="w-full mt-2 mb-4 p-3.5 rounded-2xl bg-white/8 border border-white/15 text-white/60 font-medium text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                      className="w-full mt-2 mb-4 p-3.5 rounded-2xl bg-orange-600/15 border border-orange-500/30 text-orange-300 font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
                     >
                       <ScanLine className="w-4 h-4" />
-                      Scan the Ingredients Panel for a Verified Result
+                      Scan Label for Verified Label Analysis
                     </button>
                   )}
 
