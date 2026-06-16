@@ -72,7 +72,7 @@ export const KEYWORD_FEATURE_MAP: FeatureMapping[] = [
   {
     path: "/shopping-list-v2",
     walkthroughId: "shopping-master",
-    keywords: ["shopping list", "groceries", "master list", "shopping planner", "grocery", "shopping", "master shopping", "master shopping list", "grocery list", "list master", "grocery planner", "shop list", "food list"],
+    keywords: ["shopping list", "groceries", "master list", "shopping planner", "grocery", "shopping", "master shopping", "master shopping list", "grocery list", "list master", "grocery planner", "shop list", "food list", "grocery store coach", "grocery coach", "what to make for dinner", "what to eat", "dinner ideas", "meal ideas", "coach what to buy", "smart scan", "ingredient scan", "product scan", "scan label", "check ingredients", "analyze product", "ingredient analysis", "scan product"],
   },
   
   // Macro Calculator
