@@ -148,8 +148,10 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
     id: "shopping-master",
     title: "Master Shopping List",
     description:
-      "All groceries in one place. Add by voice or barcode.",
+      "Your full grocery hub — Grocery Store Coach decides what to make, Smart Scan checks any product, and a smart list that syncs with all your meals.",
     howTo: [
+      "Tap Grocery Store Coach when you don't know what to make — type or tap a quick chip and get a full personalized meal recommendation with shopping list.",
+      "Tap Smart Scan to photograph any ingredient label and get an instant grade + verdict based on your health profile.",
       "Use the voice button to quickly add items without typing.",
       "Use the barcode scanner to instantly add packaged foods.",
       "All ingredients from your meal cards automatically appear here.",
@@ -158,17 +160,75 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
       "Use Bulk Add to rapidly enter multiple items at once using text or voice.",
     ],
     tips: [
+      "Grocery Store Coach scales the shopping list automatically for your household size.",
+      "After a Smart Scan your last analysis stays on the page — no need to rescan the same product.",
       "Use voice add when you're moving around the kitchen.",
       "Use Bulk Add when restocking pantry items.",
-      "Scan barcodes for fast shopping trips.",
     ],
     relatedCommands: [
+      "shopping.groceryCoach",
+      "shopping.smartScan",
       "shopping.addItem",
       "shopping.bulkAdd",
       "shopping.scanBarcode",
       "shopping.markPurchased",
       "shopping.removeItem",
       "shopping.orderDelivery",
+    ],
+  },
+
+  // ============================
+  // 🧑‍🍳 GROCERY STORE COACH
+  // ============================
+  "grocery-coach": {
+    id: "grocery-coach",
+    title: "Grocery Store Coach",
+    description:
+      "AI decision coach that turns 'I don't know what to eat' into a specific meal recommendation, personalized reasoning, and a complete grocery list.",
+    howTo: [
+      "Tap Grocery Store Coach on the Shopping page.",
+      "Choose who you are feeding: Just Me, My Household, or Meal Prep.",
+      "Tap a quick chip (e.g. 'What's for dinner tonight?') or type your own request.",
+      "Review the recommendation: meal name, why it fits your health profile, macros, prep time, and shopping list.",
+      "Tap Add to Shopping List to add all ingredients in one tap.",
+      "Use follow-up chips or type to refine: 'Make it cheaper', 'More protein', 'Something faster', 'Vegetarian version'.",
+      "Tap Another for a completely different recommendation.",
+    ],
+    tips: [
+      "The coach reads your full health profile — allergies, medical conditions, dietary restrictions, and macro targets.",
+      "Household mode automatically scales ingredient quantities for the right number of people.",
+      "You can have a back-and-forth conversation — the coach remembers the current session.",
+      "This is a decision-making assistant, not a recipe builder. Use it when you are stuck.",
+    ],
+    relatedCommands: [
+      "shopping.groceryCoach",
+      "shopping.addItem",
+    ],
+  },
+
+  // ============================
+  // 🧾 SMART SCAN (INGREDIENT INTELLIGENCE)
+  // ============================
+  "smart-scan": {
+    id: "smart-scan",
+    title: "Smart Scan",
+    description:
+      "Photograph any product label and instantly see how it fits your health profile — letter grade, buy/skip verdict, and specific ingredient flags.",
+    howTo: [
+      "Tap Smart Scan on the Shopping page.",
+      "Take a photo of any product's ingredient label or nutrition panel.",
+      "Review your letter grade (A–D) and verdict: Go for it, Maybe think twice, or Just a heads up.",
+      "Scroll down to see exactly which ingredients triggered flags and why.",
+      "Your last scan stays saved on the shopping page — tap 'Tap to view' to reopen it without rescanning.",
+      "Tap Clear to remove the saved scan, or New Scan to analyze a different product.",
+    ],
+    tips: [
+      "Smart Scan checks against your full profile: allergies, dietary identity, medical conditions, and avoidances.",
+      "Use it while standing in the grocery store before adding anything to your cart.",
+      "The grade reflects your profile specifically — the same product may grade differently for another user.",
+    ],
+    relatedCommands: [
+      "shopping.smartScan",
     ],
   },
 

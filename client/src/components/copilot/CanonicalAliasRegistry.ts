@@ -201,7 +201,7 @@ export const DIRECT_PAGES: Record<string, FeatureDefinition> = {
     primaryRoute: "/shopping-list-v2",
     walkthroughId: "shopping-list-walkthrough",
     isHub: false,
-    keywords: ["shopping list", "groceries", "master list", "shopping planner", "grocery", "shopping", "master shopping", "master shopping list", "grocery list", "list master", "grocery planner", "shop list", "food list"]
+    keywords: ["shopping list", "groceries", "master list", "shopping planner", "grocery", "shopping", "master shopping", "master shopping list", "grocery list", "list master", "grocery planner", "shop list", "food list", "grocery store coach", "grocery coach", "dinner ideas", "what to make", "smart scan", "ingredient scan", "scan product", "check ingredients"]
   },
 
   WEEKLY_MEAL_BUILDER: {
