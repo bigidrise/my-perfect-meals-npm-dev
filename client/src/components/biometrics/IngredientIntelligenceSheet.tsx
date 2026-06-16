@@ -354,7 +354,12 @@ export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
                 />
                 <div className="flex-1">
                   <p className="text-xs text-orange-400 font-bold uppercase tracking-wide">Ingredient Intelligence</p>
-                  <h2 className="text-white font-bold text-base leading-tight">Full Analysis</h2>
+                  <h2 className="text-white font-bold text-base leading-tight">
+                    {result.productName || 'Full Analysis'}
+                  </h2>
+                  {result.productName && (
+                    <p className="text-[11px] text-white/35 mt-0.5">Full Analysis</p>
+                  )}
                 </div>
                 <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60">
                   <X className="w-4 h-4" />
@@ -386,9 +391,23 @@ export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
                 </div>
               )}
 
-              {result.ocrConfidenceLow && (
+              {result.isFrontLabel && (
+                <div className="rounded-xl border border-orange-500/40 bg-orange-500/12 p-4 mb-4 flex items-start gap-3">
+                  <span className="text-2xl shrink-0 mt-0.5">📦</span>
+                  <div>
+                    <p className="text-sm font-semibold text-orange-300 mb-1">
+                      That's the front of the package
+                    </p>
+                    <p className="text-sm text-white/75 leading-snug">
+                      The ingredients panel is on the <span className="text-white font-medium">back or side</span> of the package. Flip it over and scan that panel to get your full personalized analysis.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {!result.isFrontLabel && result.ocrConfidenceLow && (
                 <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 mb-4">
-                  <p className="text-sm text-amber-300">⚠️ Photo wasn't fully clear — try retaking in better lighting for the most complete reading.</p>
+                  <p className="text-sm text-amber-300">⚠️ Photo wasn't fully clear — try retaking in better lighting with the full ingredients panel visible and in focus.</p>
                 </div>
               )}
 
