@@ -193,17 +193,27 @@ function OutcomeCardsGrid({ cards }: { cards: IngredientScanResult['outcomeCards
   );
 }
 
-function BetterAlternativesSection({ alternatives, branded }: { alternatives: BetterAlternative[]; branded?: boolean }) {
+function BetterAlternativesSection({ alternatives, branded, verdictLevel }: { alternatives: BetterAlternative[]; branded?: boolean; verdictLevel?: string }) {
   if (!alternatives || alternatives.length === 0) return null;
+
+  const headingText = verdictLevel === 'buy'
+    ? (branded ? '🏆 Also Worth Knowing' : '🏆 Even Better Options')
+    : (branded ? '🛒 Better Choices For You' : '🛒 Better Choices For You');
+
   return (
     <div className="mb-5">
-      <p className="text-xs font-bold uppercase tracking-wide text-white/40 mb-2">
-        {branded ? '🔄 Better Options for Your Goals' : '🔄 Better Choices For Your Goals'}
-      </p>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm font-bold text-white/80">{headingText}</p>
+        {verdictLevel !== 'buy' && (
+          <span className="text-[10px] font-semibold text-orange-400 bg-orange-500/15 border border-orange-500/25 rounded-full px-2 py-0.5 uppercase tracking-wide">
+            Profile-matched
+          </span>
+        )}
+      </div>
       <div className="space-y-2.5">
         {alternatives.map((alt, i) => (
-          <div key={i} className="rounded-xl border border-orange-500/20 bg-orange-500/8 p-3.5">
-            <p className="text-xs font-semibold text-white/85 mb-2">{alt.category}</p>
+          <div key={i} className="rounded-xl border border-orange-500/25 bg-orange-500/8 p-3.5">
+            <p className="text-sm font-semibold text-white mb-2">{alt.category}</p>
             {alt.whyBetter.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {alt.whyBetter.map((why, j) => (
@@ -215,8 +225,8 @@ function BetterAlternativesSection({ alternatives, branded }: { alternatives: Be
               </div>
             )}
             {alt.targetCriteria && (
-              <p className="text-[11px] text-white/45 leading-snug border-t border-white/8 pt-2">
-                🎯 {alt.targetCriteria}
+              <p className="text-[11px] text-white/50 leading-snug border-t border-white/8 pt-2">
+                📍 {alt.targetCriteria}
               </p>
             )}
           </div>
@@ -225,8 +235,30 @@ function BetterAlternativesSection({ alternatives, branded }: { alternatives: Be
       <p className="text-[10px] text-white/20 mt-2 pl-1">
         {branded
           ? 'Based on product knowledge — formulas and availability can change.'
-          : 'Generic category guidance only — not brand-specific recommendations.'}
+          : 'Category guidance based on your health profile — look for these characteristics on labels.'}
       </p>
+    </div>
+  );
+}
+
+function ProfileFactorsSection({ factors }: { factors: string[] }) {
+  if (!factors || factors.length === 0) return null;
+  return (
+    <div className="rounded-xl border border-orange-500/20 bg-orange-500/6 p-3.5 mb-4">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-orange-400/70 mb-2">
+        Profile Factors Driving This Analysis
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {factors.map((factor, i) => (
+          <span
+            key={i}
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-white/80 bg-white/8 border border-white/15 rounded-full px-2.5 py-1"
+          >
+            <span className="text-orange-400 text-[10px]">✓</span>
+            {factor}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -494,9 +526,6 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan }:
                     </div>
                   )}
 
-                  {/* Analysis profile */}
-                  <AnalysisProfileSection items={activeResult.analysisProfile ?? []} />
-
                   {/* Chef verdict */}
                   {verdictCfg && activeResult.verdict && (
                     <div className={`rounded-xl border p-3.5 mb-4 flex items-start gap-3 ${verdictCfg.bg}`}>
@@ -508,10 +537,20 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan }:
                     </div>
                   )}
 
+                  {/* Profile factors driving this analysis */}
+                  <ProfileFactorsSection factors={activeResult.profileFactorsUsed ?? []} />
+
                   {/* Overall coach summary */}
                   <div className="rounded-xl border border-white/10 bg-white/5 p-4 mb-4">
                     <p className="text-sm text-white/85 leading-relaxed">{activeResult.overallSummary}</p>
                   </div>
+
+                  {/* Better Choices — always shown, not gated by verdictLevel */}
+                  <BetterAlternativesSection
+                    alternatives={activeResult.betterAlternatives ?? []}
+                    branded={isByName}
+                    verdictLevel={activeResult.verdictLevel}
+                  />
 
                   {/* Protocol Impact summary */}
                   {hasOutcomeCards && <ProtocolImpactSummary cards={activeResult.outcomeCards} />}
@@ -522,13 +561,8 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan }:
                   {/* Legacy scoreCards */}
                   {activeResult.scoreCards && <LegacyScoreCardsGrid scoreCards={activeResult.scoreCards} />}
 
-                  {/* Better Choices */}
-                  {activeResult.verdictLevel !== 'buy' && (
-                    <BetterAlternativesSection
-                      alternatives={activeResult.betterAlternatives ?? []}
-                      branded={isByName}
-                    />
-                  )}
+                  {/* Analysis profile — moved to bottom as reference info */}
+                  <AnalysisProfileSection items={activeResult.analysisProfile ?? []} />
 
                   {/* Plain English Decoder */}
                   <IngredientDecoder items={activeResult.ingredientDecoder ?? []} />

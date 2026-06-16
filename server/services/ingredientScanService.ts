@@ -252,13 +252,32 @@ function buildCompactProtocolContext(envelope: UserProtocolEnvelope): string {
     lines.push(`Medical optimization goals: ${envelope.medicalOptimization.join(', ')}`);
   if (envelope.conditionGuidanceBlocks.length)
     lines.push(`Active health conditions: ${envelope.conditionGuidanceBlocks.join(' | ')}`);
+
+  // Explicit cardiac label so AI targets it by name regardless of how it appears in blocks
+  const _allConditionText = [
+    ...envelope.medicalHardLimits,
+    ...envelope.medicalOptimization,
+    ...envelope.conditionGuidanceBlocks,
+  ].join(' ').toLowerCase();
+  if (/cardiac|hypertension|blood pressure|heart disease/.test(_allConditionText)) {
+    lines.push('Cardiac protocol: active (target <1500mg sodium/day; minimize saturated fat; avoid trans fats and inflammatory oils)');
+  }
+
   if (envelope.hasDiabetes) {
     lines.push('Has diabetes: yes');
     if (envelope.diabeticGuidance)
       lines.push(`Glucose guidance context: ${envelope.diabeticGuidance}`);
   }
-  if (envelope.thyroidSupport)
-    lines.push('Thyroid support protocol: active');
+  if (envelope.thyroidSupport) {
+    if (envelope.thyroidType === 'hashimotos')
+      lines.push("Thyroid condition: Hashimoto's thyroiditis (autoimmune — inflammatory triggers, goitrogens, and iodine-rich foods require extra care)");
+    else if (envelope.thyroidType === 'hypothyroid')
+      lines.push('Thyroid condition: Hypothyroidism (avoid excess goitrogens; support selenium and iodine)');
+    else if (envelope.thyroidType === 'hyperthyroid')
+      lines.push('Thyroid condition: Hyperthyroidism (limit iodine-rich foods, moderate stimulants)');
+    else
+      lines.push('Thyroid support protocol: active');
+  }
   if (envelope.avoidances.length)
     lines.push(`Avoidances/preferences: ${envelope.avoidances.join(', ')}`);
 
@@ -377,16 +396,24 @@ RESPONSE FORMAT (strict JSON only):
     }
   ],
   "householdNotes": ["Any additional household member notes — or empty array"],
-  "educationalFooter": "Brief friendly non-diagnostic note"
+  "educationalFooter": "Brief friendly non-diagnostic note",
+  "profileFactorsUsed": ["Short label for each profile factor that drove this analysis — e.g. 'Cardiac Protocol', 'Hashimoto\\'s Thyroiditis', 'Anti-Inflammatory Diet', 'Blood Glucose Control', 'Weight Loss Goal'"]
 }
 
 betterAlternatives rules:
-- Only populate when verdictLevel is "caution" or "skip" — return empty array when "buy"
-- Return 1–3 generic product category alternatives ONLY — NEVER name specific brands, products, or retailers
+- ALWAYS populate 2–3 alternatives regardless of verdictLevel. Never return an empty array.
+- Return generic product category alternatives ONLY — NEVER name specific brands, products, or retailers (this is a label scan — we don't know the exact product)
 - Frame each as what type of product to look for (e.g. "Look for a chickpea or legume-based pasta") not what to buy
-- whyBetter: 2–4 short phrases citing specific nutritional advantages vs. this product; reference the user's active protocols directly (e.g. "Lower glycemic load supports blood glucose goals")
+- For "buy" verdict: frame as "worth knowing" alternatives (e.g. "Even better options exist if you want to optimize further")
+- For "caution" or "skip": frame as stronger "instead consider" language
+- whyBetter: 2–4 short phrases citing specific nutritional advantages; reference the user's active protocols directly (e.g. "Lower glycemic load supports blood glucose goals")
 - targetCriteria: one actionable sentence with concrete thresholds the user can use while reading labels (e.g. "Aim for 10g+ protein, 5g+ fiber, under 35g net carbs per serving")
-- Tie alternatives directly to the specific protocol conflicts identified — not generic "healthier" advice
+- Tie alternatives directly to the user's specific protocol — not generic "healthier" advice
+
+profileFactorsUsed rules:
+- List the specific user health factors that actually drove this analysis (2–5 short labels)
+- Examples: "Cardiac Protocol", "Hashimoto's Thyroiditis", "Anti-Inflammatory Diet", "Blood Glucose Control", "Weight Loss Goal", "Low Sodium Priority"
+- Only include factors that genuinely influenced the assessment — not every profile field
 
 outcomeCards rules:
 - A PROTOCOL CARDS TO ASSESS list is provided in the user message
@@ -541,6 +568,7 @@ const LOW_CONFIDENCE_RESULT: IngredientScanResult = {
   productName: '',
   isFrontLabel: false,
   analysisMethod: 'by_label',
+  profileFactorsUsed: [],
 };
 
 function makeFrontLabelResult(productName: string): IngredientScanResult {
@@ -568,6 +596,7 @@ function makeFrontLabelResult(productName: string): IngredientScanResult {
     productName,
     isFrontLabel: true,
     analysisMethod: 'by_label',
+    profileFactorsUsed: [],
   };
 }
 
@@ -634,14 +663,18 @@ The disclaimer about product formulas possibly changing belongs ONLY in the educ
     }
   ],
   "householdNotes": [],
-  "educationalFooter": "Analysis based on known product profile. Formulas can change — scan the nutrition facts panel for the most current data."
+  "educationalFooter": "Analysis based on known product profile. Formulas can change — scan the nutrition facts panel for the most current data.",
+  "profileFactorsUsed": ["Cardiac Protocol", "Hashimoto's Thyroiditis", "Anti-Inflammatory Diet"]
 }
 
 ═══ RULES FOR EACH SECTION ═══
 
 betterAlternatives:
 - NAME 3–4 SPECIFIC REAL BRAND+PRODUCT NAMES. Never generic categories.
-- Only for verdictLevel "caution" or "skip". Empty array for "buy."
+- ALWAYS provide 3–4 alternatives for EVERY verdict, including "buy".
+  - For "caution" or "skip": frame as "Choose one of these instead."
+  - For "buy": frame as "Other strong options worth knowing — comparable or better."
+- Never return an empty betterAlternatives array.
 - Every whyBetter[0] must include a specific number: sodium comparison, sugar reduction, protein increase, etc.
 - Products must be findable at major US retailers (not specialty/obscure).
 
@@ -668,6 +701,17 @@ A = aligns well with this user's specific profile
 B = minor considerations, mostly fine for this user  
 C = notable concerns that matter for this user's specific protocols
 D = significant conflicts with this user's active health protocols`;
+
+/**
+ * Returns true when text looks like a branded product name rather than an ingredient list.
+ * Ingredient lists have many commas and/or are long; product names are short and comma-sparse.
+ */
+function looksLikeProductName(text: string): boolean {
+  const trimmed = text.trim();
+  if (trimmed.length > 120) return false;
+  const commaCount = (trimmed.match(/,/g) || []).length;
+  return commaCount <= 2;
+}
 
 export async function analyzeIngredientContent(
   userId: string,
@@ -698,7 +742,13 @@ export async function analyzeIngredientContent(
   let detectedProductName = '';
 
   if (input.rawText?.trim()) {
-    extractedText = input.rawText.trim();
+    const trimmed = input.rawText.trim();
+    // If the text looks like a product name (not an ingredient list), route to the
+    // product intelligence engine which can name real brands and cite specific values.
+    if (!isCompanionScan && looksLikeProductName(trimmed)) {
+      return analyzeProductByName(trimmed, userId);
+    }
+    extractedText = trimmed;
   } else if (input.imageDataUrl) {
     try {
       const ocr = await extractIngredients(input.imageDataUrl);
@@ -803,6 +853,9 @@ Analyze how this product aligns with this specific user's health profile.`;
       productName: detectedProductName,
       isFrontLabel: false,
       analysisMethod: 'by_label',
+      profileFactorsUsed: Array.isArray(alignment.profileFactorsUsed)
+        ? alignment.profileFactorsUsed.filter((s: any) => typeof s === 'string')
+        : [],
     };
   } catch {
     return {
@@ -828,6 +881,7 @@ Analyze how this product aligns with this specific user's health profile.`;
       productName: detectedProductName,
       isFrontLabel: false,
       analysisMethod: 'by_label',
+      profileFactorsUsed: [],
     };
   }
 }
@@ -907,6 +961,9 @@ Do NOT give generic advice. Do NOT say "check the label." You are an expert — 
       productName,
       isFrontLabel: false,
       analysisMethod: 'by_name',
+      profileFactorsUsed: Array.isArray(alignment.profileFactorsUsed)
+        ? alignment.profileFactorsUsed.filter((s: any) => typeof s === 'string')
+        : [],
     };
   } catch {
     return {
