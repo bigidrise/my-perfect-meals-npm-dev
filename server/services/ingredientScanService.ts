@@ -57,6 +57,8 @@ export interface IngredientScanResult {
   highRiskFindings: HighRiskFlag[];
   ocrConfidenceLow: boolean;
   fallbackUsed: boolean;
+  productName: string;
+  isFrontLabel: boolean;
 }
 
 // ─── Analysis profile ────────────────────────────────────────────────────────
@@ -416,31 +418,42 @@ async function extractIngredients(imageDataUrl: string): Promise<{
   text: string;
   confidence: 'high' | 'medium' | 'low';
   found: boolean;
+  productName: string;
+  isFrontLabel: boolean;
 }> {
   const response = await openai.chat.completions.create({
     model: 'gpt-4o',
     messages: [
       {
         role: 'system',
-        content: `You are a precise food label reader. Extract the ingredients list exactly as printed on the product label.
+        content: `You are a precise food label reader. Your job is to:
+1. Extract the ingredients list if it is visible on this image
+2. Identify the product name and brand if visible anywhere on the label
+3. Detect whether this is the front/decorative label vs the back/side panel that contains the ingredients list
+
 Return ONLY valid JSON:
 {
-  "ingredients_text": "exact ingredients panel text as printed",
+  "ingredients_text": "exact ingredients panel text as printed, or empty string if not visible",
   "confidence": "high" | "medium" | "low",
-  "found_ingredients_panel": true | false
+  "found_ingredients_panel": true | false,
+  "product_name": "Brand + Product name as printed, e.g. 'Ragú Old World Style Traditional Sauce' — empty string if not readable",
+  "is_front_label": true | false
 }
-If no ingredients panel is visible, return found_ingredients_panel: false with empty ingredients_text.
-Do NOT invent or guess ingredients. If text is partially obscured, set confidence to "low".`,
+
+is_front_label: true when this is clearly the front/decorative face of the product (large logo, product photo, marketing text) and the ingredients panel is NOT visible.
+is_front_label: false when this IS the ingredients/nutrition panel or when it genuinely cannot be determined.
+
+Do NOT invent or guess ingredients. If the ingredients text is partially obscured, set confidence to "low".`,
       },
       {
         role: 'user',
         content: [
-          { type: 'text', text: 'Extract the ingredients list from this food product label.' },
+          { type: 'text', text: 'Read this food product label image.' },
           { type: 'image_url', image_url: { url: imageDataUrl, detail: 'high' } },
         ],
       },
     ],
-    max_tokens: 600,
+    max_tokens: 700,
     temperature: 0.1,
   });
 
@@ -452,6 +465,8 @@ Do NOT invent or guess ingredients. If text is partially obscured, set confidenc
     text: typeof parsed.ingredients_text === 'string' ? parsed.ingredients_text : '',
     confidence: ['high', 'medium', 'low'].includes(parsed.confidence) ? parsed.confidence : 'low',
     found: parsed.found_ingredients_panel !== false,
+    productName: typeof parsed.product_name === 'string' ? parsed.product_name.trim() : '',
+    isFrontLabel: parsed.is_front_label === true,
   };
 }
 
@@ -522,7 +537,36 @@ const LOW_CONFIDENCE_RESULT: IngredientScanResult = {
   highRiskFindings: [],
   ocrConfidenceLow: true,
   fallbackUsed: false,
+  productName: '',
+  isFrontLabel: false,
 };
+
+function makeFrontLabelResult(productName: string): IngredientScanResult {
+  const name = productName || 'this product';
+  return {
+    alignmentGrade: 'B',
+    overallSummary: `That's the front label of ${name}. The ingredients panel is on the back or side of the package — flip it over and scan that panel for a full personalized analysis.`,
+    verdict: `Flip to the back or side of the package to scan the ingredients list.`,
+    verdictLevel: 'caution',
+    scoreCards: DEFAULT_SCORE_CARDS,
+    outcomeCards: [],
+    analysisProfile: [],
+    betterAlternatives: [],
+    ingredientDecoder: [],
+    ingredientConsiderations: [],
+    mayNotAlignWith: [],
+    betterFor: [],
+    householdNotes: [],
+    educationalFooter:
+      'Ingredient Intelligence provides general wellness education and is not a substitute for medical advice.',
+    extractedIngredients: [],
+    highRiskFindings: [],
+    ocrConfidenceLow: false,
+    fallbackUsed: false,
+    productName,
+    isFrontLabel: true,
+  };
+}
 
 export async function analyzeIngredientContent(
   userId: string,
@@ -550,13 +594,19 @@ export async function analyzeIngredientContent(
 
   let extractedText = '';
   let ocrConfidenceLow = false;
+  let detectedProductName = '';
 
   if (input.rawText?.trim()) {
     extractedText = input.rawText.trim();
   } else if (input.imageDataUrl) {
     try {
       const ocr = await extractIngredients(input.imageDataUrl);
+      detectedProductName = ocr.productName;
       if (!ocr.found || !ocr.text.trim()) {
+        // Front label detected — give actionable "flip to back" message
+        if (ocr.isFrontLabel) {
+          return makeFrontLabelResult(ocr.productName);
+        }
         return { ...LOW_CONFIDENCE_RESULT };
       }
       extractedText = ocr.text;
@@ -591,11 +641,15 @@ export async function analyzeIngredientContent(
     ? `\nPROTOCOL CARDS TO ASSESS:\n${cardRequests.map(c => `${c.protocolKey}: ${c.label}`).join('\n')}\n\nReturn one outcomeCard entry for each card above using the exact protocolKey and label.`
     : '\nPROTOCOL CARDS TO ASSESS: none (return empty outcomeCards array)';
 
+  const productNameLine = detectedProductName
+    ? `PRODUCT NAME: ${detectedProductName}\n`
+    : '';
+
   const userMessage = `USER HEALTH PROFILE:
 ${protocolContext}
 ${cardListText}
 
-PRODUCT INGREDIENT LIST:
+${productNameLine}PRODUCT INGREDIENT LIST:
 ${extractedText}
 ${highRiskContext}
 
@@ -645,6 +699,8 @@ Analyze how this product aligns with this specific user's health profile.`;
       highRiskFindings,
       ocrConfidenceLow,
       fallbackUsed: false,
+      productName: detectedProductName,
+      isFrontLabel: false,
     };
   } catch {
     return {
@@ -667,6 +723,8 @@ Analyze how this product aligns with this specific user's health profile.`;
       highRiskFindings,
       ocrConfidenceLow,
       fallbackUsed: true,
+      productName: detectedProductName,
+      isFrontLabel: false,
     };
   }
 }

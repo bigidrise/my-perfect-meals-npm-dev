@@ -55,6 +55,8 @@ export interface IngredientScanResult {
   }>;
   ocrConfidenceLow: boolean;
   fallbackUsed: boolean;
+  productName: string;
+  isFrontLabel: boolean;
 }
 
 export interface IngredientCaptureCallbacks {
