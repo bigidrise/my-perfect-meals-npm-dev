@@ -41,7 +41,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 import InspirationCaptureModal from "@/components/InspirationCaptureModal";
-import { ShoppingIngredientSheet } from "@/components/shopping/ShoppingIngredientSheet";
+import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
 import VoiceShoppingModal from "@/components/shopping/VoiceShoppingModal";
 
 import { saveProductScan, clearExpiredShoppingScans } from "@/lib/shoppingScanStorage";
@@ -896,7 +896,7 @@ export default function ShoppingListMasterView() {
         />
 
         {/* Shopping Ingredient Intelligence Sheet */}
-        <ShoppingIngredientSheet
+        <IngredientIntelligenceSheet
           open={shoppingSheetOpen}
           result={shoppingSheetResult}
           onClose={() => setShoppingSheetOpen(false)}

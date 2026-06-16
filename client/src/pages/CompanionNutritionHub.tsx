@@ -14,7 +14,7 @@ import { UpgradeLockModal } from "@/components/upgrade/UpgradeLockModal";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import InspirationCaptureModal from "@/components/InspirationCaptureModal";
-import { ShoppingIngredientSheet } from "@/components/shopping/ShoppingIngredientSheet";
+import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
 import { saveProductScan } from "@/lib/shoppingScanStorage";
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 
@@ -653,7 +653,7 @@ export default function CompanionNutritionHub() {
         }}
       />
 
-      <ShoppingIngredientSheet
+      <IngredientIntelligenceSheet
         open={companionScanSheet.open}
         result={companionScanSheet.result}
         companionName={companionScanModal.profileName}

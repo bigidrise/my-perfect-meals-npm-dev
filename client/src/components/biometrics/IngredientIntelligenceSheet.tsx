@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { X, ChevronDown, ChevronUp, ScanLine } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, ScanLine, ShoppingBag, Bookmark } from 'lucide-react';
 import type { IngredientScanResult, ScoreVerdict, OutcomeVerdict, BetterAlternative } from '@/lib/photoIngredientCapture';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -9,6 +9,12 @@ interface Props {
   result: IngredientScanResult | null;
   onClose: () => void;
   onRescan?: () => void;
+  /** Shopping List context: show "Add to List" action button */
+  onAddAnyway?: () => void;
+  /** Shopping List context: show "Save Scan" action button */
+  onSaveForReview?: () => void;
+  /** Companion context: show companion header badge instead of default header */
+  companionName?: string | null;
 }
 
 const GRADE_CONFIG = {
@@ -418,7 +424,7 @@ function AnalysisProfileSection({ items }: { items: string[] }) {
   );
 }
 
-export function IngredientIntelligenceSheet({ open, result, onClose, onRescan }: Props) {
+export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, onAddAnyway, onSaveForReview, companionName }: Props) {
   const [byNameLoading, setByNameLoading] = useState(false);
   const [byNameResult, setByNameResult] = useState<IngredientScanResult | null>(null);
 
@@ -478,15 +484,22 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan }:
                   className="w-24 h-24 rounded-full object-cover border-2 border-orange-500/40"
                 />
                 <div className="flex-1">
-                  <p className="text-xs text-orange-400 font-bold uppercase tracking-wide">Ingredient Intelligence</p>
+                  <p className="text-xs text-orange-400 font-bold uppercase tracking-wide">
+                    {companionName ? 'Companion Smart Scan' : 'Ingredient Intelligence'}
+                  </p>
                   <h2 className="text-white font-bold text-base leading-tight">
                     {result.productName || 'Full Analysis'}
                   </h2>
-                  {result.productName && (
+                  {companionName ? (
+                    <div className="mt-1 inline-flex items-center gap-1 bg-orange-600/20 border border-orange-500/30 rounded-full px-2 py-0.5">
+                      <span className="text-[10px]">🐾</span>
+                      <span className="text-orange-300 text-[10px] font-semibold">Scanning for {companionName}</span>
+                    </div>
+                  ) : result.productName ? (
                     <p className="text-[11px] text-white/35 mt-0.5">
                       {showFrontLabelChoice ? 'Front Label Detected' : isByName ? 'By-Name Analysis' : 'Full Analysis'}
                     </p>
-                  )}
+                  ) : null}
                 </div>
                 <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60">
                   <X className="w-4 h-4" />
@@ -679,6 +692,33 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan }:
                       <ScanLine className="w-4 h-4" />
                       Scan Label for Verified Label Analysis
                     </button>
+                  )}
+
+                  {/* Shopping context action buttons */}
+                  {(onAddAnyway || onSaveForReview) && (
+                    <div className="space-y-2 mt-2 mb-4">
+                      {onAddAnyway && (
+                        <>
+                          <button
+                            onClick={onAddAnyway}
+                            className="w-full flex items-center justify-center gap-2 bg-orange-600 rounded-2xl py-3.5 text-white font-semibold text-sm active:scale-[.98] transition-transform"
+                          >
+                            <ShoppingBag className="w-4 h-4" />
+                            Add to List — Name It Below
+                          </button>
+                          <p className="text-xs text-white/30 text-center -mt-1">You'll type the product name in the form below.</p>
+                        </>
+                      )}
+                      {onSaveForReview && (
+                        <button
+                          onClick={onSaveForReview}
+                          className="w-full flex items-center justify-center gap-1.5 bg-white/8 border border-white/10 rounded-xl py-3 text-white/70 text-sm"
+                        >
+                          <Bookmark className="w-3.5 h-3.5" />
+                          Save Scan
+                        </button>
+                      )}
+                    </div>
                   )}
 
                   {/* Footer */}
