@@ -59,6 +59,7 @@ export interface IngredientScanResult {
   fallbackUsed: boolean;
   productName: string;
   isFrontLabel: boolean;
+  analysisMethod: 'by_name' | 'by_label';
 }
 
 // ─── Analysis profile ────────────────────────────────────────────────────────
@@ -539,6 +540,7 @@ const LOW_CONFIDENCE_RESULT: IngredientScanResult = {
   fallbackUsed: false,
   productName: '',
   isFrontLabel: false,
+  analysisMethod: 'by_label',
 };
 
 function makeFrontLabelResult(productName: string): IngredientScanResult {
@@ -565,8 +567,71 @@ function makeFrontLabelResult(productName: string): IngredientScanResult {
     fallbackUsed: false,
     productName,
     isFrontLabel: true,
+    analysisMethod: 'by_label',
   };
 }
+
+// ─── BY-NAME ANALYSIS SYSTEM PROMPT ──────────────────────────────────────────
+// Used when the user scans the front label and taps "Analyze This Product."
+// Explicitly allows named brand alternatives. Always includes an accuracy note.
+
+const BY_NAME_SYSTEM_PROMPT = `You are a personalized nutrition coach integrated into the MyPerfectMeals app. A user has photographed the front label of a packaged food product and identified the product name. You will analyze this product using your training knowledge and give a personalized recommendation based on the user's health profile.
+
+CRITICAL GUARDRAILS:
+- You are using trained knowledge of this product, NOT a verified live nutrition database.
+- Product formulas and nutrition facts change over time. Never state that you have confirmed the exact current nutritional content.
+- Your analysis is a likely assessment — not a verified label scan.
+- You MUST name specific real branded alternatives (Rao's, Amy's, etc.) — that is the core value of this analysis path.
+
+RESPONSE FORMAT (strict JSON only):
+{
+  "alignmentGrade": "A" | "B" | "C" | "D",
+  "overallSummary": "1–2 sentence summary analyzing this product for this specific user. Acknowledge you're working from product knowledge. Friendly coach tone, e.g. 'Based on what I know about [product], here's how it looks for your [condition/goal]...'",
+  "verdict": "One clear actionable sentence — should this user keep buying it, use it in moderation, or find something better?",
+  "verdictLevel": "buy" | "caution" | "skip",
+  "scoreCards": {
+    "kids":        { "verdict": "thumbsUp" | "thumbsDown" | "neutral", "reason": "one short plain-English sentence" },
+    "adults":      { "verdict": "thumbsUp" | "thumbsDown" | "neutral", "reason": "one short plain-English sentence" },
+    "diet":        { "verdict": "thumbsUp" | "thumbsDown" | "neutral", "reason": "one short plain-English sentence" },
+    "fitnessGoal": { "verdict": "thumbsUp" | "thumbsDown" | "neutral", "reason": "one short plain-English sentence" }
+  },
+  "outcomeCards": [],
+  "ingredientDecoder": [],
+  "ingredientConsiderations": ["Key nutrients or ingredients in this product relevant to this user's health profile — cite specific values if you know them, e.g. '480mg sodium per serving'"],
+  "mayNotAlignWith": ["Specific concerns for this user's active protocols — only if genuinely relevant. Empty if the product fits well."],
+  "betterFor": ["Contextual positives or good-fit use cases for this product"],
+  "betterAlternatives": [
+    {
+      "category": "Specific real product name, e.g. 'Rao\\'s Homemade Marinara' or 'Amy\\'s Light in Sodium Lentil Soup'",
+      "whyBetter": ["One specific advantage vs. the scanned product tied to user protocol — e.g. '60% less sodium, better for cardiac care'", "Second specific advantage"],
+      "targetCriteria": "Where to find it — major grocery chains, Walmart, Target, Costco, etc."
+    }
+  ],
+  "householdNotes": [],
+  "educationalFooter": "Based on product knowledge, not a verified label scan. Product formulas can change — scan the ingredients or nutrition facts panel for the most accurate analysis."
+}
+
+betterAlternatives rules:
+- NAME 3–4 SPECIFIC REAL BRANDS AND PRODUCTS — this is the core value of this feature path.
+- Only products widely available at major US grocery retailers.
+- Only populate when verdictLevel is "caution" or "skip" — return empty array for "buy".
+- Each alternative must be tied directly to what the user's health protocol actually needs.
+- Do not return generic categories here — use actual product names (e.g. "Barilla Protein+ Spaghetti" not "high-protein pasta").
+
+scoreCards: give real assessments based on your knowledge of this product's typical ingredients and nutrition. Do not return all-neutral stubs.
+
+ingredientConsiderations: use this to flag the most relevant known nutritional facts (sodium, sugar, saturated fat, fiber, protein, additives) as they relate to this specific user's profile.
+
+verdictLevel:
+- "buy" = overall aligns with this user's profile
+- "caution" = some concerns but not a dealbreaker for this user
+- "skip" = notable conflicts with this user's active health protocols
+
+Grade rubric:
+A = aligns well with this user's profile
+B = minor considerations, mostly fine for this user
+C = notable considerations for this user's specific protocols
+D = significant conflicts with this user's active health protocols`;
 
 export async function analyzeIngredientContent(
   userId: string,
@@ -701,6 +766,7 @@ Analyze how this product aligns with this specific user's health profile.`;
       fallbackUsed: false,
       productName: detectedProductName,
       isFrontLabel: false,
+      analysisMethod: 'by_label',
     };
   } catch {
     return {
@@ -725,6 +791,87 @@ Analyze how this product aligns with this specific user's health profile.`;
       fallbackUsed: true,
       productName: detectedProductName,
       isFrontLabel: false,
+      analysisMethod: 'by_label',
+    };
+  }
+}
+
+// ─── ANALYZE BY PRODUCT NAME ──────────────────────────────────────────────────
+// Called when user taps "Analyze This Product" after front-label detection.
+// Uses AI's training knowledge of the product — not a live label scan.
+
+export async function analyzeProductByName(
+  productName: string,
+  userId: string,
+): Promise<IngredientScanResult> {
+  const envelope = await loadUserProtocolEnvelope(userId);
+  const protocolContext = envelope
+    ? buildCompactProtocolContext(envelope)
+    : 'No specific dietary or medical constraints on file.';
+  const analysisProfile: string[] = envelope ? buildAnalysisProfile(envelope) : [];
+
+  const userMessage = `USER HEALTH PROFILE:
+${protocolContext}
+
+PRODUCT TO ANALYZE: ${productName}
+
+Using your knowledge of this specific product, analyze how well it aligns with this user's health profile. Name specific real branded alternatives if the product has notable concerns for this user.`;
+
+  try {
+    const alignment = await chatJson({
+      system: BY_NAME_SYSTEM_PROMPT,
+      user: userMessage,
+      temperature: 0.3,
+    });
+
+    const rawDecoder = Array.isArray(alignment.ingredientDecoder) ? alignment.ingredientDecoder : [];
+    const ingredientDecoder = rawDecoder
+      .filter((d: any) => d && typeof d.name === 'string' && typeof d.plain === 'string')
+      .map((d: any) => ({
+        name: d.name as string,
+        plain: d.plain as string,
+        flag: (['ok', 'watch', 'avoid'] as const).includes(d.flag) ? d.flag : 'watch' as const,
+      }));
+
+    const rawAlts = Array.isArray(alignment.betterAlternatives) ? alignment.betterAlternatives : [];
+    const betterAlternatives: BetterAlternative[] = rawAlts.map((a: any) => ({
+      category: typeof a.category === 'string' ? a.category : '',
+      whyBetter: Array.isArray(a.whyBetter) ? a.whyBetter.filter((w: any) => typeof w === 'string') : [],
+      targetCriteria: typeof a.targetCriteria === 'string' ? a.targetCriteria : '',
+    })).filter((a: BetterAlternative) => a.category);
+
+    return {
+      alignmentGrade: (['A', 'B', 'C', 'D'] as const).includes(alignment.alignmentGrade) ? alignment.alignmentGrade : 'B',
+      overallSummary: typeof alignment.overallSummary === 'string' ? alignment.overallSummary : 'Analysis complete.',
+      verdict: typeof alignment.verdict === 'string' ? alignment.verdict : '',
+      verdictLevel: (['buy', 'caution', 'skip'] as const).includes(alignment.verdictLevel) ? alignment.verdictLevel : 'caution',
+      scoreCards: parseScoreCards(alignment.scoreCards),
+      outcomeCards: [],
+      analysisProfile,
+      betterAlternatives,
+      ingredientDecoder,
+      ingredientConsiderations: Array.isArray(alignment.ingredientConsiderations) ? alignment.ingredientConsiderations.filter((s: any) => typeof s === 'string') : [],
+      mayNotAlignWith: Array.isArray(alignment.mayNotAlignWith) ? alignment.mayNotAlignWith.filter((s: any) => typeof s === 'string') : [],
+      betterFor: Array.isArray(alignment.betterFor) ? alignment.betterFor.filter((s: any) => typeof s === 'string') : [],
+      householdNotes: Array.isArray(alignment.householdNotes) ? alignment.householdNotes.filter((s: any) => typeof s === 'string') : [],
+      educationalFooter: typeof alignment.educationalFooter === 'string'
+        ? alignment.educationalFooter
+        : 'Based on product knowledge, not a verified label scan. Product formulas can change.',
+      extractedIngredients: [],
+      highRiskFindings: [],
+      ocrConfidenceLow: false,
+      fallbackUsed: false,
+      productName,
+      isFrontLabel: false,
+      analysisMethod: 'by_name',
+    };
+  } catch {
+    return {
+      ...LOW_CONFIDENCE_RESULT,
+      overallSummary: 'We encountered an issue analyzing this product by name. Please try again or scan the ingredients panel.',
+      productName,
+      analysisMethod: 'by_name',
+      fallbackUsed: true,
     };
   }
 }
