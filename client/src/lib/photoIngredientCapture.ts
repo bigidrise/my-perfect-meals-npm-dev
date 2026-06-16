@@ -57,6 +57,7 @@ export interface IngredientScanResult {
   fallbackUsed: boolean;
   productName: string;
   isFrontLabel: boolean;
+  analysisMethod: 'by_name' | 'by_label';
 }
 
 export interface IngredientCaptureCallbacks {

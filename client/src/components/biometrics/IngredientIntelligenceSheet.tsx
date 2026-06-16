@@ -1,12 +1,14 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
-import { X, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, ChevronDown, ChevronUp, ScanLine } from 'lucide-react';
 import type { IngredientScanResult, ScoreVerdict, OutcomeVerdict, BetterAlternative } from '@/lib/photoIngredientCapture';
+import { apiRequest } from '@/lib/queryClient';
 
 interface Props {
   open: boolean;
   result: IngredientScanResult | null;
   onClose: () => void;
+  onRescan?: () => void;
 }
 
 const GRADE_CONFIG = {
@@ -191,12 +193,12 @@ function OutcomeCardsGrid({ cards }: { cards: IngredientScanResult['outcomeCards
   );
 }
 
-function BetterAlternativesSection({ alternatives }: { alternatives: BetterAlternative[] }) {
+function BetterAlternativesSection({ alternatives, branded }: { alternatives: BetterAlternative[]; branded?: boolean }) {
   if (!alternatives || alternatives.length === 0) return null;
   return (
     <div className="mb-5">
       <p className="text-xs font-bold uppercase tracking-wide text-white/40 mb-2">
-        🔄 Better Choices For Your Goals
+        {branded ? '🔄 Better Options for Your Goals' : '🔄 Better Choices For Your Goals'}
       </p>
       <div className="space-y-2.5">
         {alternatives.map((alt, i) => (
@@ -221,7 +223,9 @@ function BetterAlternativesSection({ alternatives }: { alternatives: BetterAlter
         ))}
       </div>
       <p className="text-[10px] text-white/20 mt-2 pl-1">
-        Generic category guidance only — not brand-specific recommendations.
+        {branded
+          ? 'Based on product knowledge — formulas and availability can change.'
+          : 'Generic category guidance only — not brand-specific recommendations.'}
       </p>
     </div>
   );
@@ -321,10 +325,38 @@ function AnalysisProfileSection({ items }: { items: string[] }) {
   );
 }
 
-export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
-  const grade = result ? GRADE_CONFIG[result.alignmentGrade] ?? GRADE_CONFIG.B : null;
-  const verdictCfg = result ? VERDICT_CONFIG[result.verdictLevel ?? 'caution'] : null;
-  const hasOutcomeCards = !!(result?.outcomeCards && result.outcomeCards.length > 0);
+export function IngredientIntelligenceSheet({ open, result, onClose, onRescan }: Props) {
+  const [byNameLoading, setByNameLoading] = useState(false);
+  const [byNameResult, setByNameResult] = useState<IngredientScanResult | null>(null);
+
+  useEffect(() => {
+    setByNameResult(null);
+    setByNameLoading(false);
+  }, [result]);
+
+  const activeResult = byNameResult ?? result;
+  const grade = activeResult ? GRADE_CONFIG[activeResult.alignmentGrade] ?? GRADE_CONFIG.B : null;
+  const verdictCfg = activeResult ? VERDICT_CONFIG[activeResult.verdictLevel ?? 'caution'] : null;
+  const hasOutcomeCards = !!(activeResult?.outcomeCards && activeResult.outcomeCards.length > 0);
+  const isByName = activeResult?.analysisMethod === 'by_name';
+  const showFrontLabelChoice = !!(result?.isFrontLabel && !byNameResult && !byNameLoading);
+
+  const handleAnalyzeByName = async () => {
+    if (!result?.productName) return;
+    setByNameLoading(true);
+    try {
+      const data = await apiRequest('/api/biometrics/ingredient-scan-by-name', {
+        method: 'POST',
+        body: JSON.stringify({ productName: result.productName }),
+        headers: { 'Content-Type': 'application/json' },
+      }) as { ok: boolean; result: IngredientScanResult };
+      if (data.ok && data.result) setByNameResult(data.result);
+    } catch {
+      // silently fail — user can retry
+    } finally {
+      setByNameLoading(false);
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -345,7 +377,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
             <div className="px-4 pt-10 pb-8 max-w-lg mx-auto">
               <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-5" />
 
-              {/* Header with chef mascot */}
+              {/* Header */}
               <div className="flex items-center gap-3 mb-4">
                 <img
                   src="/icons/ChefMascotLogo.png"
@@ -358,7 +390,9 @@ export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
                     {result.productName || 'Full Analysis'}
                   </h2>
                   {result.productName && (
-                    <p className="text-[11px] text-white/35 mt-0.5">Full Analysis</p>
+                    <p className="text-[11px] text-white/35 mt-0.5">
+                      {showFrontLabelChoice ? 'Front Label Detected' : isByName ? 'By-Name Analysis' : 'Full Analysis'}
+                    </p>
                   )}
                 </div>
                 <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60">
@@ -366,101 +400,177 @@ export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
                 </button>
               </div>
 
-              {/* Grade banner */}
-              {grade && (
-                <div className={`rounded-2xl border p-4 mb-3 flex items-center gap-4 ${grade.bg} shadow-lg ${grade.glow}`}>
-                  <div className={`text-6xl font-black leading-none ${grade.color}`}>{result.alignmentGrade}</div>
-                  <div>
-                    <p className={`font-bold text-base ${grade.color}`}>{grade.desc}</p>
-                    <p className="text-xs text-white/45 mt-0.5">Personalized to your health profile</p>
+              {/* ── PATH 1: Front label detected — show two-path choice ── */}
+              {showFrontLabelChoice && (
+                <motion.div className="space-y-3" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                  {/* Product detected card */}
+                  <div className="rounded-2xl border border-orange-500/30 bg-orange-500/8 p-5 text-center">
+                    <div className="text-3xl mb-2">📦</div>
+                    <p className="text-[11px] text-orange-400 font-bold uppercase tracking-wide mb-1">Front Label Detected</p>
+                    <p className="text-base font-bold text-white leading-snug">{result.productName}</p>
                   </div>
-                </div>
+
+                  {/* Primary CTA */}
+                  <button
+                    onClick={handleAnalyzeByName}
+                    className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-base active:scale-[0.98] transition-transform"
+                  >
+                    Analyze This Product
+                  </button>
+
+                  {/* Secondary CTA */}
+                  {onRescan && (
+                    <button
+                      onClick={onRescan}
+                      className="w-full p-3.5 rounded-2xl bg-white/8 border border-white/15 text-white/65 font-medium text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                    >
+                      <ScanLine className="w-4 h-4" />
+                      Scan Ingredients / Nutrition Label
+                    </button>
+                  )}
+
+                  {/* Disclaimer */}
+                  <p className="text-[11px] text-white/30 text-center leading-relaxed px-2 pt-1">
+                    "Analyze This Product" uses AI knowledge of this product — not a live label scan. Product formulas can change. Scan the ingredients panel for a verified result.
+                  </p>
+                </motion.div>
               )}
 
-              {/* Analysis Profile — what data powered this result */}
-              <AnalysisProfileSection items={result.analysisProfile ?? []} />
-
-              {/* Chef verdict */}
-              {verdictCfg && result.verdict && (
-                <div className={`rounded-xl border p-3.5 mb-4 flex items-start gap-3 ${verdictCfg.bg}`}>
-                  <img src="/icons/ChefMascotLogo.png" alt="" className="w-7 h-7 rounded-full shrink-0 mt-0.5 border border-orange-500/30" />
-                  <div>
-                    <p className={`text-xs font-bold uppercase tracking-wide mb-0.5 ${verdictCfg.color}`}>{verdictCfg.label}</p>
-                    <p className="text-sm text-white/85 leading-snug">{result.verdict}</p>
+              {/* ── PATH 2: Loading by-name analysis ── */}
+              {byNameLoading && (
+                <motion.div
+                  className="flex flex-col items-center justify-center gap-4 py-16"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                >
+                  <div className="w-10 h-10 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin" />
+                  <div className="text-center">
+                    <p className="text-sm font-semibold text-white">Analyzing {result.productName}…</p>
+                    <p className="text-xs text-white/40 mt-1">Checking against your health profile</p>
                   </div>
-                </div>
+                </motion.div>
               )}
 
-              {result.isFrontLabel && (
-                <div className="rounded-xl border border-orange-500/40 bg-orange-500/12 p-4 mb-4 flex items-start gap-3">
-                  <span className="text-2xl shrink-0 mt-0.5">📦</span>
-                  <div>
-                    <p className="text-sm font-semibold text-orange-300 mb-1">
-                      That's the front of the package
+              {/* ── PATH 3: Full result (back-label scan or completed by-name analysis) ── */}
+              {!showFrontLabelChoice && !byNameLoading && activeResult && (
+                <>
+                  {/* By-name accuracy banner */}
+                  {isByName && (
+                    <div className="rounded-xl border border-amber-500/25 bg-amber-500/8 p-3.5 mb-4 flex items-start gap-2.5">
+                      <span className="text-base shrink-0 mt-0.5">⚠️</span>
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold text-amber-300 mb-0.5">Likely Analysis — Not a Verified Label Scan</p>
+                        <p className="text-[11px] text-white/50 leading-snug">
+                          Based on product knowledge as of training data. Product formulas can change.{' '}
+                          {onRescan && (
+                            <button
+                              onClick={onRescan}
+                              className="text-orange-400 font-semibold underline"
+                            >
+                              Scan the label for a verified result.
+                            </button>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Scan quality warnings (back-label path only) */}
+                  {!isByName && !activeResult.isFrontLabel && activeResult.ocrConfidenceLow && (
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 mb-4">
+                      <p className="text-sm text-amber-300">⚠️ Photo wasn't fully clear — try retaking in better lighting with the full ingredients panel visible and in focus.</p>
+                    </div>
+                  )}
+
+                  {/* Grade banner */}
+                  {grade && (
+                    <div className={`rounded-2xl border p-4 mb-3 flex items-center gap-4 ${grade.bg} shadow-lg ${grade.glow}`}>
+                      <div className={`text-6xl font-black leading-none ${grade.color}`}>{activeResult.alignmentGrade}</div>
+                      <div>
+                        <p className={`font-bold text-base ${grade.color}`}>{grade.desc}</p>
+                        <p className="text-xs text-white/45 mt-0.5">
+                          {isByName ? 'Based on product knowledge' : 'Personalized to your health profile'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Analysis profile */}
+                  <AnalysisProfileSection items={activeResult.analysisProfile ?? []} />
+
+                  {/* Chef verdict */}
+                  {verdictCfg && activeResult.verdict && (
+                    <div className={`rounded-xl border p-3.5 mb-4 flex items-start gap-3 ${verdictCfg.bg}`}>
+                      <img src="/icons/ChefMascotLogo.png" alt="" className="w-7 h-7 rounded-full shrink-0 mt-0.5 border border-orange-500/30" />
+                      <div>
+                        <p className={`text-xs font-bold uppercase tracking-wide mb-0.5 ${verdictCfg.color}`}>{verdictCfg.label}</p>
+                        <p className="text-sm text-white/85 leading-snug">{activeResult.verdict}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Overall coach summary */}
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-4 mb-4">
+                    <p className="text-sm text-white/85 leading-relaxed">{activeResult.overallSummary}</p>
+                  </div>
+
+                  {/* Protocol Impact summary */}
+                  {hasOutcomeCards && <ProtocolImpactSummary cards={activeResult.outcomeCards} />}
+
+                  {/* Protocol Outcome Cards grid */}
+                  {hasOutcomeCards && <OutcomeCardsGrid cards={activeResult.outcomeCards} />}
+
+                  {/* Legacy scoreCards */}
+                  {activeResult.scoreCards && <LegacyScoreCardsGrid scoreCards={activeResult.scoreCards} />}
+
+                  {/* Better Choices */}
+                  {activeResult.verdictLevel !== 'buy' && (
+                    <BetterAlternativesSection
+                      alternatives={activeResult.betterAlternatives ?? []}
+                      branded={isByName}
+                    />
+                  )}
+
+                  {/* Plain English Decoder */}
+                  <IngredientDecoder items={activeResult.ingredientDecoder ?? []} />
+
+                  {/* Ingredient sections */}
+                  <Section title="Ingredient Considerations" items={activeResult.ingredientConsiderations} icon="🔍" />
+                  <Section title="May Not Align With Your Goals" items={activeResult.mayNotAlignWith} icon="⚠️" />
+                  <Section title="Works Well For" items={activeResult.betterFor} icon="✓" />
+                  <Section title="Family Notes" items={activeResult.householdNotes} icon="🏠" />
+
+                  {/* Detected ingredients (collapsed) — back-label path only */}
+                  {!isByName && activeResult.extractedIngredients.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-xs font-bold uppercase tracking-wide text-white/40 mb-2">📋 Detected Ingredients</p>
+                      <div className="rounded-xl border border-white/10 bg-black/30 p-3 max-h-24 overflow-y-auto">
+                        <p className="text-xs text-white/40 leading-relaxed">
+                          {activeResult.extractedIngredients.join(', ')}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* By-name: scan label CTA at bottom */}
+                  {isByName && onRescan && (
+                    <button
+                      onClick={onRescan}
+                      className="w-full mt-2 mb-4 p-3.5 rounded-2xl bg-white/8 border border-white/15 text-white/60 font-medium text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                    >
+                      <ScanLine className="w-4 h-4" />
+                      Scan the Ingredients Panel for a Verified Result
+                    </button>
+                  )}
+
+                  {/* Footer */}
+                  <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-2 justify-center">
+                    <img src="/icons/ChefMascotLogo.png" alt="" className="w-5 h-5 rounded-full opacity-50" />
+                    <p className="text-[10px] text-white/25 leading-relaxed text-center">
+                      {activeResult.educationalFooter}
                     </p>
-                    <p className="text-sm text-white/75 leading-snug">
-                      The ingredients panel is on the <span className="text-white font-medium">back or side</span> of the package. Flip it over and scan that panel to get your full personalized analysis.
-                    </p>
                   </div>
-                </div>
+                </>
               )}
-
-              {!result.isFrontLabel && result.ocrConfidenceLow && (
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 mb-4">
-                  <p className="text-sm text-amber-300">⚠️ Photo wasn't fully clear — try retaking in better lighting with the full ingredients panel visible and in focus.</p>
-                </div>
-              )}
-
-              {/* Overall coach summary */}
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4 mb-4">
-                <p className="text-sm text-white/85 leading-relaxed">{result.overallSummary}</p>
-              </div>
-
-              {/* Phase 2 — Protocol Impact summary (aligns with / watch for) */}
-              {hasOutcomeCards && <ProtocolImpactSummary cards={result.outcomeCards} />}
-
-              {/* Phase 1 — Protocol Outcome Cards grid */}
-              {hasOutcomeCards
-                ? <OutcomeCardsGrid cards={result.outcomeCards} />
-                : null
-              }
-
-              {/* Legacy scoreCards — Kids / Adults / Diet / Goal explanation cards */}
-              {result.scoreCards && <LegacyScoreCardsGrid scoreCards={result.scoreCards} />}
-
-              {/* Phase 3 — Better Choices (only on caution/skip) */}
-              {result.verdictLevel !== 'buy' && (
-                <BetterAlternativesSection alternatives={result.betterAlternatives ?? []} />
-              )}
-
-              {/* Plain English Decoder */}
-              <IngredientDecoder items={result.ingredientDecoder ?? []} />
-
-              {/* Ingredient sections */}
-              <Section title="Ingredient Considerations" items={result.ingredientConsiderations} icon="🔍" />
-              <Section title="May Not Align With Your Goals" items={result.mayNotAlignWith} icon="⚠️" />
-              <Section title="Works Well For" items={result.betterFor} icon="✓" />
-              <Section title="Family Notes" items={result.householdNotes} icon="🏠" />
-
-              {/* Detected ingredients (collapsed) */}
-              {result.extractedIngredients.length > 0 && (
-                <div className="mb-4">
-                  <p className="text-xs font-bold uppercase tracking-wide text-white/40 mb-2">📋 Detected Ingredients</p>
-                  <div className="rounded-xl border border-white/10 bg-black/30 p-3 max-h-24 overflow-y-auto">
-                    <p className="text-xs text-white/40 leading-relaxed">
-                      {result.extractedIngredients.join(', ')}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Footer */}
-              <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-2 justify-center">
-                <img src="/icons/ChefMascotLogo.png" alt="" className="w-5 h-5 rounded-full opacity-50" />
-                <p className="text-[10px] text-white/30 leading-relaxed text-center">
-                  {result.educationalFooter}
-                </p>
-              </div>
             </div>
           </motion.div>
         </>
@@ -468,5 +578,3 @@ export function IngredientIntelligenceSheet({ open, result, onClose }: Props) {
     </AnimatePresence>
   );
 }
-
-export default IngredientIntelligenceSheet;
