@@ -397,8 +397,21 @@ RESPONSE FORMAT (strict JSON only):
   ],
   "householdNotes": ["Any additional household member notes — or empty array"],
   "educationalFooter": "Brief friendly non-diagnostic note",
-  "profileFactorsUsed": ["Short label for each profile factor that drove this analysis — e.g. 'Cardiac Protocol', 'Hashimoto\\'s Thyroiditis', 'Anti-Inflammatory Diet', 'Blood Glucose Control', 'Weight Loss Goal'"]
+  "profileFactorsUsed": ["Short label for each profile factor that drove this analysis — e.g. 'Cardiac Protocol', 'Hashimoto\\'s Thyroiditis', 'Anti-Inflammatory Diet', 'Blood Glucose Control', 'Weight Loss Goal'"],
+  "whatMattersMost": [
+    "Single sentence. Name the user's specific condition AND the concrete concern. Example: 'Sodium is higher than ideal for your cardiac protocol — this serving uses ~35% of a cardiac-targeted daily sodium budget.'",
+    "Second condition-tied concern, if genuine. Omit if fewer than 2 real issues exist.",
+    "Third concern, if genuine. Maximum 3 items total."
+  ]
 }
+
+whatMattersMost rules:
+- Maximum 3 items. Fewer is better if fewer than 3 genuine concerns exist.
+- Every item MUST explicitly name the user's condition by name (e.g. "your cardiac protocol", "your Hashimoto's", "your blood glucose goals", "your anti-inflammatory goals").
+- Lead with the most clinically significant concern for THIS specific user.
+- Use concrete values where possible: "adds ~480mg sodium" not "is high in sodium."
+- This is the section a user reads first to understand WHY the verdict is what it is.
+- If the product is a genuine good fit, describe the top 3 reasons it fits — still condition-named.
 
 betterAlternatives rules:
 - ALWAYS populate 2–3 alternatives regardless of verdictLevel. Never return an empty array.
@@ -547,8 +560,8 @@ function parseOutcomeCards(raw: any, _expected: CardSpec[]): ProtocolOutcomeCard
 const LOW_CONFIDENCE_RESULT: IngredientScanResult = {
   alignmentGrade: 'B',
   overallSummary:
-    "We couldn't clearly read the ingredients from this image. Try retaking the photo in better lighting with the full ingredients panel visible and in focus.",
-  verdict: "Try retaking the photo so we can give you a personalized assessment.",
+    "We couldn't clearly read this image. Make sure the full ingredients panel is visible, in focus, and well-lit — then try again. You can also type or speak the product name for a Quick Analysis.",
+  verdict: "Scan not readable — retake the photo or type the product name to continue.",
   verdictLevel: 'caution',
   scoreCards: DEFAULT_SCORE_CARDS,
   outcomeCards: [],
@@ -567,8 +580,10 @@ const LOW_CONFIDENCE_RESULT: IngredientScanResult = {
   fallbackUsed: false,
   productName: '',
   isFrontLabel: false,
+  productNameMissing: false,
   analysisMethod: 'by_label',
   profileFactorsUsed: [],
+  whatMattersMost: [],
 };
 
 function makeFrontLabelResult(productName: string): IngredientScanResult {
@@ -595,8 +610,10 @@ function makeFrontLabelResult(productName: string): IngredientScanResult {
     fallbackUsed: false,
     productName,
     isFrontLabel: true,
+    productNameMissing: false,
     analysisMethod: 'by_label',
     profileFactorsUsed: [],
+    whatMattersMost: [],
   };
 }
 
@@ -664,7 +681,12 @@ The disclaimer about product formulas possibly changing belongs ONLY in the educ
   ],
   "householdNotes": [],
   "educationalFooter": "Analysis based on known product profile. Formulas can change — scan the nutrition facts panel for the most current data.",
-  "profileFactorsUsed": ["Cardiac Protocol", "Hashimoto's Thyroiditis", "Anti-Inflammatory Diet"]
+  "profileFactorsUsed": ["Cardiac Protocol", "Hashimoto's Thyroiditis", "Anti-Inflammatory Diet"],
+  "whatMattersMost": [
+    "Single sentence. Name the user's SPECIFIC CONDITION and the concrete concern with a real value. Example: 'At ~480mg sodium per serving, this sauce uses nearly 40% of a cardiac-targeted daily sodium budget before any other food is added.'",
+    "Second condition-named concern — or omit if fewer than 2 genuine issues.",
+    "Third concern — maximum 3 items."
+  ]
 }
 
 ═══ RULES FOR EACH SECTION ═══
@@ -852,9 +874,13 @@ Analyze how this product aligns with this specific user's health profile.`;
       fallbackUsed: false,
       productName: detectedProductName,
       isFrontLabel: false,
+      productNameMissing: !detectedProductName,
       analysisMethod: 'by_label',
       profileFactorsUsed: Array.isArray(alignment.profileFactorsUsed)
         ? alignment.profileFactorsUsed.filter((s: any) => typeof s === 'string')
+        : [],
+      whatMattersMost: Array.isArray(alignment.whatMattersMost)
+        ? alignment.whatMattersMost.filter((s: any) => typeof s === 'string').slice(0, 3)
         : [],
     };
   } catch {
@@ -880,8 +906,10 @@ Analyze how this product aligns with this specific user's health profile.`;
       fallbackUsed: true,
       productName: detectedProductName,
       isFrontLabel: false,
+      productNameMissing: !detectedProductName,
       analysisMethod: 'by_label',
       profileFactorsUsed: [],
+      whatMattersMost: [],
     };
   }
 }
@@ -960,9 +988,13 @@ Do NOT give generic advice. Do NOT say "check the label." You are an expert — 
       fallbackUsed: false,
       productName,
       isFrontLabel: false,
+      productNameMissing: false,
       analysisMethod: 'by_name',
       profileFactorsUsed: Array.isArray(alignment.profileFactorsUsed)
         ? alignment.profileFactorsUsed.filter((s: any) => typeof s === 'string')
+        : [],
+      whatMattersMost: Array.isArray(alignment.whatMattersMost)
+        ? alignment.whatMattersMost.filter((s: any) => typeof s === 'string').slice(0, 3)
         : [],
     };
   } catch {
@@ -970,6 +1002,7 @@ Do NOT give generic advice. Do NOT say "check the label." You are an expert — 
       ...LOW_CONFIDENCE_RESULT,
       overallSummary: 'We encountered an issue analyzing this product by name. Please try again or scan the ingredients panel.',
       productName,
+      productNameMissing: false,
       analysisMethod: 'by_name',
       fallbackUsed: true,
     };
