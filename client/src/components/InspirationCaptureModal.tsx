@@ -86,6 +86,19 @@ export default function InspirationCaptureModal({
   const { open: openCopilot, setLastResponse } = useCopilot();
   const hasTriggeredExplanation = useRef(false);
 
+  // Restore last recipe scan when modal opens (recipe destination only)
+  useEffect(() => {
+    if (!open || destination !== "recipe") return;
+    try {
+      const saved = localStorage.getItem("mpm.recipe.lastScan");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setResult(parsed);
+        setPhase("preview");
+      }
+    } catch {}
+  }, [open, destination]);
+
   useEffect(() => {
     if (!open || isSmartScan) {
       hasTriggeredExplanation.current = false;
@@ -352,6 +365,9 @@ export default function InspirationCaptureModal({
 
       setResult(data);
       setPhase("preview");
+      if (destination === "recipe") {
+        try { localStorage.setItem("mpm.recipe.lastScan", JSON.stringify(data)); } catch {}
+      }
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to create your personalized meal.");
       setPhase("error");
@@ -859,6 +875,7 @@ export default function InspirationCaptureModal({
                   </button>
                   <button
                     onClick={() => {
+                      try { localStorage.removeItem("mpm.recipe.lastScan"); } catch {}
                       setResult(null);
                       setPhase("options");
                     }}
@@ -884,7 +901,10 @@ export default function InspirationCaptureModal({
                       View in Favorites
                     </button>
                     <button
-                      onClick={reset}
+                      onClick={() => {
+                        try { localStorage.removeItem("mpm.recipe.lastScan"); } catch {}
+                        reset();
+                      }}
                       className="flex-1 py-2.5 rounded-xl bg-white/8 hover:bg-white/12 border border-white/10 text-white font-semibold text-sm transition-all active:scale-95"
                     >
                       Scan Another
