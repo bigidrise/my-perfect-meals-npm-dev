@@ -63,6 +63,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useProUnreadCount } from "@/hooks/useProUnreadCount";
 import { PatternAlertBanner } from "@/components/PatternAlertBanner";
+import { TipsBanner } from "@/components/TipsBanner";
 import InspirationCaptureModal from "@/components/InspirationCaptureModal";
 
 interface FeatureCard {
@@ -85,6 +86,9 @@ export default function DashboardNew() {
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showInspirationModal, setShowInspirationModal] = useState(false);
+  const [lastRecipeScan, setLastRecipeScan] = useState<any>(() => {
+    try { return JSON.parse(localStorage.getItem("mpm.recipe.lastScan") ?? "null"); } catch { return null; }
+  });
   const { open: openCopilot } = useCopilot();
   const isDesktop = useIsDesktop();
   const handlePhotoLog = () => {
@@ -732,6 +736,7 @@ export default function DashboardNew() {
         }}
       >
         <PatternAlertBanner />
+        <TipsBanner />
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -1380,6 +1385,61 @@ export default function DashboardNew() {
           </Card>
         </motion.div>
 
+        {/* Last Recipe Scan card */}
+        {lastRecipeScan && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+            className="mb-4"
+          >
+            <div className="rounded-xl bg-black/30 backdrop-blur-lg border border-orange-500/30 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="p-2 rounded-lg bg-orange-500/15 border border-orange-500/25 shrink-0">
+                    <Camera className="h-4 w-4 text-orange-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-orange-400 font-medium uppercase tracking-wide mb-0.5">Last Recipe Scan</p>
+                    <p className="text-white font-semibold text-sm truncate">
+                      {lastRecipeScan.mealData?.title || lastRecipeScan.mealData?.name || "Scanned Recipe"}
+                    </p>
+                    {(lastRecipeScan.mealData?.nutrition?.calories != null) && (
+                      <p className="text-white/50 text-xs mt-0.5">
+                        {lastRecipeScan.mealData.nutrition.calories} cal
+                        {lastRecipeScan.mealData.nutrition?.protein != null && ` · ${lastRecipeScan.mealData.nutrition.protein}g protein`}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    onClick={() => {
+                      if (!hasActivePaidSubscription(user)) {
+                        requestUpgrade({ requiredTier: "essential", featureName: "Recipe Scan" });
+                        return;
+                      }
+                      setShowInspirationModal(true);
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-orange-600 text-white text-xs font-semibold active:scale-95 transition-all"
+                  >
+                    View
+                  </button>
+                  <button
+                    onClick={() => {
+                      try { localStorage.removeItem("mpm.recipe.lastScan"); } catch {}
+                      setLastRecipeScan(null);
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-white/8 border border-white/10 text-white/60 text-xs font-semibold active:scale-95 transition-all"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {features.map((feature, index) => {
             const Icon = feature.icon;
@@ -1446,7 +1506,12 @@ export default function DashboardNew() {
 
       <InspirationCaptureModal
         open={showInspirationModal}
-        onOpenChange={setShowInspirationModal}
+        onOpenChange={(v) => {
+          setShowInspirationModal(v);
+          if (!v) {
+            try { setLastRecipeScan(JSON.parse(localStorage.getItem("mpm.recipe.lastScan") ?? "null")); } catch {}
+          }
+        }}
       />
 
       <Dialog

@@ -41,7 +41,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 import InspirationCaptureModal from "@/components/InspirationCaptureModal";
-import { ShoppingIngredientSheet } from "@/components/shopping/ShoppingIngredientSheet";
+import GroceryStoreCoachModal from "@/components/shopping/GroceryStoreCoachModal";
+import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
 import VoiceShoppingModal from "@/components/shopping/VoiceShoppingModal";
 
 import { saveProductScan, clearExpiredShoppingScans } from "@/lib/shoppingScanStorage";
@@ -140,12 +141,28 @@ export default function ShoppingListMasterView() {
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [barcodeModalOpen, setBarcodeModalOpen] = useState(false);
   const [shoppingSheetOpen, setShoppingSheetOpen] = useState(false);
-  const [shoppingSheetResult, setShoppingSheetResult] = useState<IngredientScanResult | null>(null);
+  const [shoppingSheetResult, setShoppingSheetResult] = useState<IngredientScanResult | null>(() => {
+    try {
+      const saved = localStorage.getItem('mpm.shopping.activeScan');
+      return saved ? (JSON.parse(saved) as IngredientScanResult) : null;
+    } catch { return null; }
+  });
   const [addOtherPrefill, setAddOtherPrefill] = useState<string | undefined>(undefined);
   const [scanModalOpen, setScanModalOpen] = useState(false);
+  const [groceryCoachOpen, setGroceryCoachOpen] = useState(false);
   const [scanRefreshKey, setScanRefreshKey] = useState(0);
   const [bulkText, setBulkText] = useState("");
   const [barcodeText, setBarcodeText] = useState("");
+
+  const persistScan = useCallback((result: IngredientScanResult) => {
+    try { localStorage.setItem('mpm.shopping.activeScan', JSON.stringify(result)); } catch {}
+    setShoppingSheetResult(result);
+  }, []);
+
+  const clearScan = useCallback(() => {
+    try { localStorage.removeItem('mpm.shopping.activeScan'); } catch {}
+    setShoppingSheetResult(null);
+  }, []);
 
   type ShoppingOpts = typeof opts;
   
@@ -497,6 +514,25 @@ export default function ShoppingListMasterView() {
             </Button>
           </div>
 
+          {/* Grocery Store Coach */}
+          <div className="relative mt-2">
+            <div className="absolute inset-0 rounded-2xl bg-orange-500/10 blur-md scale-105" />
+            <Button
+              onClick={() => setGroceryCoachOpen(true)}
+              className="relative w-full flex items-center gap-3 bg-gradient-to-r from-orange-950/80 to-black/80 rounded-2xl py-3 h-auto border border-orange-500/40 text-left"
+              data-testid="button-grocery-store-coach"
+            >
+              <span className="text-xl">🧑‍🍳</span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-white font-semibold text-sm leading-tight">Grocery Store Coach</span>
+                <span className="block text-orange-300/60 text-xs mt-0.5">Not sure what to make tonight? Ask your Coach.</span>
+              </span>
+              <span className="bg-orange-500/20 border border-orange-400/20 rounded-lg px-2 py-0.5 text-[10px] text-orange-300 font-semibold uppercase tracking-wide flex-shrink-0">
+                New
+              </span>
+            </Button>
+          </div>
+
           {/* Smart Scan — Ingredient Intelligence */}
           <div className="relative mt-2">
               <div className="absolute inset-0 rounded-2xl bg-cyan-500/10 blur-md scale-105" />
@@ -515,6 +551,55 @@ export default function ShoppingListMasterView() {
                 </span>
               </Button>
             </div>
+
+          {/* Last Analysis — persists across navigation until cleared or replaced */}
+          {shoppingSheetResult && !shoppingSheetOpen && (
+            <div className="mt-2 rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+              <button
+                onClick={() => setShoppingSheetOpen(true)}
+                className="w-full flex items-center gap-3 px-3 pt-3 pb-2 text-left active:bg-white/5"
+              >
+                <div className={`text-2xl font-black leading-none shrink-0 ${
+                  shoppingSheetResult.alignmentGrade === 'A' ? 'text-emerald-400'
+                  : shoppingSheetResult.alignmentGrade === 'B' ? 'text-lime-400'
+                  : shoppingSheetResult.alignmentGrade === 'C' ? 'text-amber-400'
+                  : 'text-rose-400'
+                }`}>
+                  {shoppingSheetResult.alignmentGrade}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] text-white/40 font-bold uppercase tracking-wide leading-none mb-0.5">Last Analysis</p>
+                  <p className="text-sm text-white font-semibold truncate leading-snug">
+                    {shoppingSheetResult.productName || 'Scanned Product'}
+                  </p>
+                  <p className={`text-xs font-medium truncate leading-snug ${
+                    shoppingSheetResult.verdictLevel === 'buy' ? 'text-emerald-400'
+                    : shoppingSheetResult.verdictLevel === 'skip' ? 'text-rose-400'
+                    : 'text-amber-400'
+                  }`}>
+                    {shoppingSheetResult.verdictLevel === 'buy' ? 'Chef says: Go for it!'
+                      : shoppingSheetResult.verdictLevel === 'skip' ? 'Chef says: Maybe think twice'
+                      : 'Chef says: Just a heads up…'}
+                  </p>
+                </div>
+                <span className="text-[10px] text-cyan-300/60 font-semibold uppercase tracking-wide shrink-0">Tap to view →</span>
+              </button>
+              <div className="px-3 pb-3 flex gap-2">
+                <button
+                  onClick={clearScan}
+                  className="flex-1 text-xs text-white/40 bg-white/5 border border-white/10 rounded-xl py-2 active:bg-white/10"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={() => { clearScan(); setScanModalOpen(true); }}
+                  className="flex-[2] text-xs text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 rounded-xl py-2 font-semibold active:bg-cyan-500/20"
+                >
+                  New Scan
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Recent Scans */}
           <RecentScans
@@ -882,6 +967,12 @@ export default function ShoppingListMasterView() {
             )}
           </div>
         )}
+        {/* Grocery Store Coach */}
+        <GroceryStoreCoachModal
+          open={groceryCoachOpen}
+          onOpenChange={setGroceryCoachOpen}
+        />
+
         {/* Smart Scan — Ingredient Intake Modal */}
         <InspirationCaptureModal
           open={scanModalOpen}
@@ -889,18 +980,19 @@ export default function ShoppingListMasterView() {
           destination="smart-scan"
           profileType="human"
           onScanResult={(result) => {
-            setShoppingSheetResult(result);
+            persistScan(result);
             setShoppingSheetOpen(true);
             setScanRefreshKey((k) => k + 1);
           }}
         />
 
         {/* Shopping Ingredient Intelligence Sheet */}
-        <ShoppingIngredientSheet
+        <IngredientIntelligenceSheet
           open={shoppingSheetOpen}
           result={shoppingSheetResult}
           onClose={() => setShoppingSheetOpen(false)}
           onAddAnyway={() => {
+            clearScan();
             setShoppingSheetOpen(false);
             setAddOtherPrefill("Scanned Item");
             setTimeout(() => {

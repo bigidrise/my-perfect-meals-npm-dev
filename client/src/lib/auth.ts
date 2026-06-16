@@ -84,6 +84,7 @@ export interface User {
   dietaryRestrictions?: string[];
   // Onboarding V2 fields
   medicalConditions?: string[];
+  healthConditions?: string[];
   preferredBuilder?: string | null;
   flavorPreference?: string | null;
   heatPreference?: string | null;
@@ -131,6 +132,9 @@ export interface User {
   oncologySupportIntent?: "own_provider" | "request_support" | "self_directed" | null;
   // Self-selected specialty health protocol (edit profile page)
   specialtyCondition?: string | null;
+  specialtyConditions?: string[];
+  // Thyroid subtype — "hypothyroid" | "hyperthyroid" | "hashimotos"
+  thyroidType?: "hypothyroid" | "hyperthyroid" | "hashimotos" | null;
   // Thyroid Support — medication name if disclosed (e.g. "Levothyroxine")
   thyroidMedication?: string | null;
   // Physician-set oncology context (Protocol Ownership Model)

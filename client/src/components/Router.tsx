@@ -207,6 +207,7 @@ import PhysicianCareTeam from "@/pages/care-team/PhysicianCareTeam";
 import TrainerCareTeam from "@/pages/care-team/TrainerCareTeam";
 import PhysicianPortal from "@/pages/pro/PhysicianPortal";
 import MorePage from "@/pages/More";
+import TipsStrategiesPage from "@/pages/TipsStrategiesPage";
 import ProPortal from "@/pages/ProPortal";
 import ProClients from "@/pages/pro/ProClients";
 import ProClientsPhysician from "@/pages/pro/ProClientsPhysician";
@@ -332,6 +333,7 @@ const SafeWeeklyMealBoard = withPageErrorBoundary(WeeklyMealBoard, "Weekly Meal 
 const SafeBuilders = withPageErrorBoundary(Builders, "Builders");
 const SafeShoppingList = withPageErrorBoundary(ShoppingListMasterView, "Shopping List");
 const SafeMore = withPageErrorBoundary(MorePage, "More");
+const SafeTips = withPageErrorBoundary(TipsStrategiesPage, "Tips");
 const SafeCareTeam = withPageErrorBoundary(CareTeam, "Care Team");
 const SafePhysicianCareTeam = withPageErrorBoundary(PhysicianCareTeam, "Physician Care Team");
 const SafeTrainerCareTeam = withPageErrorBoundary(TrainerCareTeam, "Trainer Care Team");
@@ -678,6 +680,7 @@ export default function Router() {
         <Route path="/shopping-list" component={GuardedShoppingList} />
         {/* ProCare Feature Routes (ProCare Cover → Care Team → Pro Portal → Client Dashboard → Performance & Competition Builder) */}
         <Route path="/more" component={SafeMore} />
+        <Route path="/tips" component={SafeTips} />
         <Route path="/pro/physician" component={PhysicianPortal} />
         <Route path="/care-team" component={SafeCareTeam} />
         <Route path="/care-team/physician" component={SafePhysicianCareTeam} />

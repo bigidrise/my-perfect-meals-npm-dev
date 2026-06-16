@@ -67,6 +67,7 @@ import { generateFridgeRescueMeals } from "./services/fridgeRescueGenerator";
 import { getBuilderSwitchStatus, attemptBuilderSwitch } from "./services/builderSwitchService";
 import { fridgeRescueRouter } from "./routes/fridgeRescue";
 import inspirationRouter from "./routes/inspiration";
+import groceryCoachRouter from "./routes/groceryCoach";
 import alcoholLogRouter from './routes/alcohol-log';
 import vitalsBpRouter from './routes/vitals-bp';
 import proteinTargetsRouter from './routes/proteinTargets';
@@ -594,6 +595,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User confirmed this new system works perfectly - keep it locked!
   app.use("/api", fridgeRescueRouter);
   app.use("/api", inspirationRouter);
+  app.use("/api/grocery-coach", requireAuth, groceryCoachRouter);
 
   // REMOVED: Duplicate route moved to top priority position
 
@@ -1715,15 +1717,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         checked: false,
       }));
 
-      // Insert items
+      // Insert items — return the inserted rows so the client can assign serverIds
+      let insertedItems: any[] = [];
       if (itemsToInsert.length > 0) {
-        await db.insert(shoppingListItems).values(itemsToInsert);
+        insertedItems = await db.insert(shoppingListItems).values(itemsToInsert).returning();
       }
 
       res.status(201).json({ 
         ok: true,
         success: true, 
         itemsAdded: itemsToInsert.length,
+        items: insertedItems,
         scope,
         strategy 
       });
@@ -2232,6 +2236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         oncologySupportIntent: user.oncologySupportIntent ?? null,
         specialtyCondition: user.specialtyCondition ?? null,
         specialtyConditions: ((user as any).specialtyConditions as string[]) ?? [],
+        thyroidType: (user as any).thyroidType ?? null,
         thyroidMedication: user.thyroidMedication ?? null,
         // Protocol Ownership Model: expose context to user so UI can show source/lock state
         oncologySupportContext: user.oncologySupportContext ?? null,

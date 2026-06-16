@@ -509,6 +509,46 @@ router.post('/ingredient-intelligence', requireAuth, requireActiveAccess, async 
   }
 });
 
+// Ingredient Intelligence — analyze by product name (front-label path)
+// Uses AI knowledge of the named product to generate a personalized verdict + branded alternatives.
+// NOT a verified label scan — accuracy disclaimer is included in the response.
+router.post('/ingredient-scan-by-name', requireAuth, requireActiveAccess, async (req, res) => {
+  try {
+    const { productName } = req.body;
+    if (!productName || typeof productName !== 'string' || !productName.trim()) {
+      return res.status(400).json({ ok: false, error: 'productName is required' });
+    }
+    const userId = getAuthUserId(req);
+    const { analyzeProductByName } = await import('../services/ingredientScanService');
+    const result = await analyzeProductByName(productName.trim(), String(userId));
+    return res.json({ ok: true, result });
+  } catch (error: any) {
+    console.error('Ingredient by-name scan error:', error);
+    return res.status(500).json({ ok: false, error: 'Failed to analyze product by name', detail: error?.message });
+  }
+});
+
+// Full Product Advisor — highest-confidence analysis using BOTH product name AND verified label
+// Called when the user has scanned the label AND identified the product name.
+router.post('/ingredient-scan-full', requireAuth, requireActiveAccess, async (req, res) => {
+  try {
+    const { productName, ingredients } = req.body;
+    if (!productName || typeof productName !== 'string' || !productName.trim()) {
+      return res.status(400).json({ ok: false, error: 'productName is required' });
+    }
+    if (!ingredients || typeof ingredients !== 'string' || !ingredients.trim()) {
+      return res.status(400).json({ ok: false, error: 'ingredients is required' });
+    }
+    const userId = getAuthUserId(req);
+    const { analyzeFullProduct } = await import('../services/ingredientScanService');
+    const result = await analyzeFullProduct(productName.trim(), ingredients.trim(), String(userId));
+    return res.json({ ok: true, result });
+  } catch (error: any) {
+    console.error('Full Product Advisor error:', error);
+    return res.status(500).json({ ok: false, error: 'Full Product Advisor failed', detail: error?.message });
+  }
+});
+
 // Estimate macros from natural language description
 router.post('/estimate-macros', requireAuth, async (req, res) => {
   try {

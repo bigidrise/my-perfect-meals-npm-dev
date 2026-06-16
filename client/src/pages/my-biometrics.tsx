@@ -2587,6 +2587,10 @@ export default function MyBiometrics() {
         open={ingredientSheetOpen}
         result={ingredientResult}
         onClose={() => setIngredientSheetOpen(false)}
+        onRescan={() => {
+          setIngredientSheetOpen(false);
+          handleIngredientScan();
+        }}
       />
 
       <JustDescribeItModal

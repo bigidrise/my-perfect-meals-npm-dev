@@ -75,6 +75,7 @@ import {
 import { ChefHat } from "lucide-react";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import ProtocolVisibilityPanel from "@/components/ProtocolVisibilityPanel";
 
 // Guided flow step type - step-by-step wizard
 // entry → step1 (craving) → step2 (restaurant) → step3 (location) → generating → results
@@ -1273,6 +1274,15 @@ export default function RestaurantGuidePage() {
                                 </p>
                               </div>
                             )}
+
+                            {/* Protocol Visibility */}
+                            <div className="mb-3">
+                              <ProtocolVisibilityPanel
+                                user={user}
+                                reasoning={meal.reason || meal.reasoning}
+                                context="restaurant"
+                              />
+                            </div>
 
                             {/* Action Buttons */}
                             <div className="flex flex-col gap-2">
