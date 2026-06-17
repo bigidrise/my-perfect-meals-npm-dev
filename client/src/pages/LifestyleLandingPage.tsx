@@ -297,6 +297,40 @@ export default function LifestyleLandingPage() {
             )}
           </div>}
 
+          {/* ── My Perfect Pregnancy card ── */}
+          <div className="relative">
+            <div
+              className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-60"
+              style={{
+                background:
+                  "radial-gradient(120% 120% at 50% 0%, rgba(236,72,153,0.5), rgba(251,146,60,0.25), rgba(0,0,0,0))",
+              }}
+            />
+            <Card
+              className="relative rounded-xl shadow-md overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 hover:scale-[1.02] bg-gradient-to-r from-black via-pink-950/40 to-black backdrop-blur-lg border border-pink-500/30 hover:shadow-[0_0_30px_rgba(236,72,153,0.4)] hover:border-pink-400/50"
+              onClick={() => setLocation("/lifestyle/my-perfect-pregnancy")}
+              data-testid="card-my-perfect-pregnancy"
+            >
+              <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-pink-800/70 to-black rounded-full border border-pink-400/30 shadow-lg z-10">
+                <div className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-pulse" />
+                <span className="text-pink-200 font-semibold text-[8px] tracking-wide">
+                  My Perfect Pregnancy
+                </span>
+              </div>
+              <CardContent className="p-3">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🩷</span>
+                    <h3 className="text-sm font-semibold text-white">My Perfect Pregnancy</h3>
+                  </div>
+                  <p className="text-xs ml-6 text-white/80">
+                    Nutrition, food safety &amp; support through every stage of your journey
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* ── My Perfect Getaway premium card ── */}
           <div className="relative">
             <div

@@ -68,6 +68,7 @@ import { getBuilderSwitchStatus, attemptBuilderSwitch } from "./services/builder
 import { fridgeRescueRouter } from "./routes/fridgeRescue";
 import inspirationRouter from "./routes/inspiration";
 import groceryCoachRouter from "./routes/groceryCoach";
+import pregnancyCoachRouter from "./routes/pregnancyCoach";
 import alcoholLogRouter from './routes/alcohol-log';
 import vitalsBpRouter from './routes/vitals-bp';
 import proteinTargetsRouter from './routes/proteinTargets';
@@ -596,6 +597,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", fridgeRescueRouter);
   app.use("/api", inspirationRouter);
   app.use("/api/grocery-coach", requireAuth, groceryCoachRouter);
+  app.use("/api/pregnancy", requireAuth, pregnancyCoachRouter);
 
   // REMOVED: Duplicate route moved to top priority position
 
