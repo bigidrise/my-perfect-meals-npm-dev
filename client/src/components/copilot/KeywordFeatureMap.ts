@@ -110,6 +110,13 @@ export const KEYWORD_FEATURE_MAP: FeatureMapping[] = [
     keywords: ["supplements", "supplement hub", "vitamins", "nutrition supplements"],
   },
   
+  // My Perfect Getaway
+  {
+    path: "/lifestyle/my-perfect-getaway",
+    walkthroughId: "my-perfect-getaway",
+    keywords: ["getaway", "my perfect getaway", "travel coach", "vacation eating", "theme park food", "disney food", "universal studios food", "airport food", "cruise food", "resort food", "eating at disney", "eating on vacation", "vacation food", "theme park", "airport eating", "cruise eating", "coach in your pocket", "travel eating", "travel nutrition", "vacation nutrition"],
+  },
+
   // Lifestyle Page
   {
     path: "/lifestyle",
