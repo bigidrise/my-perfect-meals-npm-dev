@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, MapPin, Send, Plane, Palmtree, Ship, Star, ChevronRight } from "lucide-react";
 import { useLocation } from "wouter";
@@ -39,6 +39,15 @@ interface GetawayResult {
   coachNote: string;
 }
 
+interface PersistedState {
+  result: GetawayResult;
+  message: string;
+}
+
+function getStorageKey(userId?: number | string) {
+  return `mpm.getaway.lastResult${userId ? `.${userId}` : ""}`;
+}
+
 export default function MyPerfectGetaway() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -50,6 +59,23 @@ export default function MyPerfectGetaway() {
   const [progress, setProgress] = useState(0);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  // ── Restore persisted result on mount ──────────────────────────────────
+  useEffect(() => {
+    try {
+      const key = getStorageKey(user?.id);
+      const raw = sessionStorage.getItem(key);
+      if (raw) {
+        const saved: PersistedState = JSON.parse(raw);
+        if (saved?.result) {
+          setResult(saved.result);
+          setMessage(saved.message || "");
+        }
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     document.title = "My Perfect Getaway | My Perfect Meals";
@@ -64,13 +90,9 @@ export default function MyPerfectGetaway() {
     }
   }, [result]);
 
-  const handleQuickVenue = (venue: string) => {
-    setMessage(`I'm at ${venue}. What should I eat?`);
-    inputRef.current?.focus();
-  };
-
-  const handleSubmit = async () => {
-    const trimmed = message.trim();
+  // ── Core submit — accepts the message string directly ──────────────────
+  const submitMessage = useCallback(async (msg: string) => {
+    const trimmed = msg.trim();
     if (!trimmed || loading) return;
 
     setLoading(true);
@@ -100,17 +122,34 @@ export default function MyPerfectGetaway() {
         throw new Error(body.error || "Something went wrong");
       }
 
-      const data = await res.json();
+      const data: GetawayResult = await res.json();
       setTimeout(() => {
         setResult(data);
         setLoading(false);
+        // Persist so navigating away and back restores the result
+        try {
+          const key = getStorageKey(user?.id);
+          sessionStorage.setItem(key, JSON.stringify({ result: data, message: trimmed }));
+        } catch {
+          // storage full or unavailable — not critical
+        }
       }, 300);
     } catch (err: any) {
       clearInterval(progressInterval);
       setLoading(false);
       setError(err.message || "Could not reach the Getaway Coach. Try again.");
     }
+  }, [loading, user?.id]);
+
+  // ── Quick venue tap → auto-submit immediately ──────────────────────────
+  const handleQuickVenue = (venue: string) => {
+    const msg = `I'm at ${venue}. What should I eat?`;
+    setMessage(msg);
+    submitMessage(msg);
   };
+
+  // ── Manual send button / Enter key ────────────────────────────────────
+  const handleSubmit = () => submitMessage(message);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -124,6 +163,11 @@ export default function MyPerfectGetaway() {
     setMessage("");
     setError(null);
     setProgress(0);
+    try {
+      sessionStorage.removeItem(getStorageKey(user?.id));
+    } catch {
+      // ignore
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -230,16 +274,16 @@ export default function MyPerfectGetaway() {
               </p>
             </div>
 
-            {/* Quick venue pills */}
+            {/* Quick venue pills — tap to auto-submit */}
             <div className="mb-6">
-              <p className="text-xs text-white/50 mb-2 ml-1">QUICK START</p>
+              <p className="text-xs text-white/50 mb-2 ml-1">QUICK START — TAP TO GO</p>
               <div className="flex flex-wrap gap-2">
                 {QUICK_VENUES.map(v => (
                   <button
                     key={v.label}
                     onClick={() => handleQuickVenue(v.label)}
                     disabled={loading}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/8 border border-white/15 rounded-full text-xs text-white/80 transition-colors active:scale-95 disabled:opacity-40"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/8 border border-white/15 rounded-full text-xs text-white/80 transition-all active:scale-95 active:bg-orange-600/20 active:border-orange-500/30 active:text-orange-300 disabled:opacity-40"
                   >
                     <span>{v.emoji}</span>
                     <span>{v.label}</span>
@@ -248,12 +292,12 @@ export default function MyPerfectGetaway() {
               </div>
             </div>
 
-            {/* What it does */}
+            {/* How it works */}
             <div className="rounded-xl bg-black/30 border border-white/8 p-4">
               <p className="text-xs font-semibold text-white/50 mb-3">HOW IT WORKS</p>
               <div className="space-y-2.5">
                 {[
-                  { icon: MapPin, text: "Tell the coach where you are" },
+                  { icon: MapPin, text: "Tell the coach where you are — or tap a quick start above" },
                   { icon: Star, text: "Get picks matched to your health profile, goals, and any medical protocols" },
                   { icon: Plane, text: "Works at theme parks, airports, cruises, resorts — anywhere" },
                 ].map(({ icon: Icon, text }) => (
@@ -408,11 +452,11 @@ export default function MyPerfectGetaway() {
                 </div>
               )}
 
-              {/* Ask again */}
+              {/* Ask about another venue */}
               <div className="pt-2 pb-4 flex flex-col gap-2">
                 <button
                   onClick={handleReset}
-                  className="w-full py-3 rounded-xl bg-orange-600 text-white text-sm font-semibold"
+                  className="w-full py-3 rounded-xl bg-orange-600 text-white text-sm font-semibold active:scale-95 transition-transform"
                 >
                   Ask About Another Venue
                 </button>
