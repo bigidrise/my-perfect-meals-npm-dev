@@ -89,12 +89,19 @@ interface ShoppingListStore {
   items: ShoppingListItem[];
   /** True while the initial server fetch is in progress */
   isHydrating: boolean;
+  /**
+   * Monotonically-increasing counter bumped every time clearAll fires.
+   * hydrate() captures it at start and bails before its final set() if it changed,
+   * preventing a concurrent hydrate from overwriting a clear.
+   * Not persisted.
+   */
+  _clearGen: number;
   addItem: (item: Omit<ShoppingListItem, 'id' | 'isChecked' | 'normalizedName' | 'category' | 'isPantryStaple'> & { category?: IngredientCategory }) => void;
   addItems: (items: UniversalIngredient[]) => void;
   toggleItem: (id: string) => void;
   removeItem: (id: string) => void;
   clearChecked: () => void;
-  clearAll: () => void;
+  clearAll: () => Promise<void>;
   updateItem: (id: string, updates: Partial<ShoppingListItem>) => void;
   replaceItems: (items: ShoppingListItem[]) => void;
   /**
@@ -240,16 +247,22 @@ export const useShoppingListStore = create<ShoppingListStore>()(
     (set, get) => ({
       items: [],
       isHydrating: false,
+      _clearGen: 0,
 
       // ── HYDRATE ────────────────────────────────────────────────────────────
       /**
        * Fetch from server on every shopping list page open.
        * Server is source of truth. Local cache is merged in for items not yet on server.
        * Only blocked if a hydration is already in progress.
+       *
+       * Bug-fix: captures _clearGen at entry and bails before any final set() if
+       * clearAll() fired while we were awaiting — prevents a concurrent hydrate from
+       * overwriting a freshly-cleared list.
        */
       hydrate: async () => {
         if (get().isHydrating) return;
         set({ isHydrating: true });
+        const genAtStart = get()._clearGen;
 
         try {
           const res = await fetch('/api/shopping-list-v2/', { credentials: 'include', headers: getAuthHeaders() });
@@ -257,6 +270,9 @@ export const useShoppingListStore = create<ShoppingListStore>()(
             set({ isHydrating: false });
             return;
           }
+
+          // Bail if clearAll() fired while we were waiting for the network
+          if (get()._clearGen !== genAtStart) { set({ isHydrating: false }); return; }
 
           const { items: serverItems } = await res.json() as { items: any[] };
 
@@ -291,6 +307,8 @@ export const useShoppingListStore = create<ShoppingListStore>()(
 
           // Push local-only items to server so other devices can see them
           if (localOnly.length > 0) {
+            // Bail if clearAll fired while we were checking local items
+            if (get()._clearGen !== genAtStart) { set({ isHydrating: false }); return; }
             try {
               await fetch('/api/shopping-list', {
                 method: 'POST',
@@ -303,9 +321,13 @@ export const useShoppingListStore = create<ShoppingListStore>()(
                 }),
               });
 
+              // Bail if clearAll fired while we were posting
+              if (get()._clearGen !== genAtStart) { set({ isHydrating: false }); return; }
+
               // Re-fetch to get server UUIDs for all items (including just-pushed ones)
               const res2 = await fetch('/api/shopping-list-v2/', { credentials: 'include', headers: getAuthHeaders() });
               if (res2.ok) {
+                if (get()._clearGen !== genAtStart) { set({ isHydrating: false }); return; }
                 const { items: refreshed } = await res2.json() as { items: any[] };
                 const all = deduplicateServerItems(refreshed.map(mapServerItem));
                 set({ items: all, isHydrating: false });
@@ -314,10 +336,12 @@ export const useShoppingListStore = create<ShoppingListStore>()(
             } catch {
               // Push failed — show merged with local items (no serverIds for those)
             }
+            if (get()._clearGen !== genAtStart) { set({ isHydrating: false }); return; }
             set({ items: [...merged, ...localOnly], isHydrating: false });
             return;
           }
 
+          if (get()._clearGen !== genAtStart) { set({ isHydrating: false }); return; }
           set({ items: dedupedServer, isHydrating: false });
         } catch {
           // Fail open — keep local state so the user can still use the list offline
@@ -402,15 +426,24 @@ export const useShoppingListStore = create<ShoppingListStore>()(
         // Server sync — assign serverId back so future deletes work
         if (created) {
           const localId = created.id;
+          const genAtPost = get()._clearGen;
           serverPost([created]).then((serverItems) => {
             const serverRow = serverItems[0];
-            if (serverRow?.id) {
-              set((state) => ({
-                items: state.items.map((i) =>
-                  i.id === localId ? { ...i, serverId: serverRow.id } : i
-                ),
-              }));
+            if (!serverRow?.id) return;
+            // If clearAll() fired while we were posting, delete what just landed on the server
+            if (get()._clearGen !== genAtPost) {
+              fetch(`/api/shopping-list-v2/${serverRow.id}`, {
+                method: 'DELETE',
+                credentials: 'include',
+                headers: { ...getAuthHeaders() },
+              }).catch(() => {});
+              return;
             }
+            set((state) => ({
+              items: state.items.map((i) =>
+                i.id === localId ? { ...i, serverId: serverRow.id } : i
+              ),
+            }));
           });
         } else if (mergedServerId) {
           serverPatch(mergedServerId, mergedQty, mergedUnit);
@@ -477,8 +510,22 @@ export const useShoppingListStore = create<ShoppingListStore>()(
         // Server sync — assign serverIds back so future deletes work
         if (toPost.length > 0) {
           const localIds = toPost.map((i) => i.id);
+          const genAtPost = get()._clearGen;
           serverPost(toPost).then((serverItems) => {
             if (!serverItems.length) return;
+            // If clearAll() fired while we were posting, delete everything that just landed on the server
+            if (get()._clearGen !== genAtPost) {
+              serverItems.forEach((si) => {
+                if (si.id) {
+                  fetch(`/api/shopping-list-v2/${si.id}`, {
+                    method: 'DELETE',
+                    credentials: 'include',
+                    headers: { ...getAuthHeaders() },
+                  }).catch(() => {});
+                }
+              });
+              return;
+            }
             set((state) => ({
               items: state.items.map((i) => {
                 const localIdx = localIds.indexOf(i.id);
@@ -569,20 +616,32 @@ export const useShoppingListStore = create<ShoppingListStore>()(
 
       /**
        * Optimistic clear-all + server DELETE all. Full list restore on failure.
+       *
+       * Bug-fixes applied:
+       * 1. Always fires server DELETE — previously gated on `hadServerItems` which is
+       *    false when items were just added and serverPost hasn't resolved yet, so the
+       *    server kept items and hydrate brought them back.
+       * 2. Bumps _clearGen so any concurrent hydrate() bails before its final set().
+       * 3. Adds getAuthHeaders() — the DELETE was the only fetch in this store missing it.
+       * 4. Checks res.ok — fetch() only rejects on network error, not 4xx/5xx, so a
+       *    silent 401/500 previously left the server list intact while wiping the local
+       *    state; now we restore on any non-OK response.
        */
-      clearAll: () => {
+      clearAll: async () => {
         const prevItems = get().items;
-        const hadServerItems = prevItems.some(i => i.serverId);
+        set({ items: [], _clearGen: get()._clearGen + 1 });
 
-        set({ items: [] });
-
-        if (hadServerItems) {
-          fetch('/api/shopping-list-v2/', {
+        try {
+          const res = await fetch('/api/shopping-list-v2/', {
             method: 'DELETE',
             credentials: 'include',
-          }).catch(() => {
-            set({ items: prevItems });
+            headers: { ...getAuthHeaders() },
           });
+          if (!res.ok) {
+            set({ items: prevItems });
+          }
+        } catch {
+          set({ items: prevItems });
         }
       },
 
@@ -634,7 +693,7 @@ export const useShoppingListStore = create<ShoppingListStore>()(
       name: 'shopping-list-storage',
       version: 4,
       // Only persist items — isHydrating is ephemeral session state
-      partialize: (state) => ({ items: state.items }),
+      partialize: (state) => ({ items: state.items }), // _clearGen is intentionally excluded — it's a session-only counter
       migrate: (persistedState: any, version: number) => {
         if (version < 2) {
           const oldItems = persistedState?.items || [];
