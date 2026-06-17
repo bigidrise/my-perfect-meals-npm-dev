@@ -433,6 +433,24 @@ export const users = pgTable("users", {
   // 'hashimotos' = autoimmune thyroid, strengthened anti-inflammatory/gluten-minimal overlay.
   // null = not specified (generic thyroid support applies).
   thyroidType: text("thyroid_type").$type<"hypothyroid" | "hyperthyroid" | "hashimotos">(),
+  // ── My Perfect Pregnancy — Pregnancy Support Protocol ───────────────────────
+  // Stage: manually set by user in setup modal or onboarding (used when no due date given).
+  // Values: 'trying-to-conceive' | 'trimester-1' | 'trimester-2' | 'trimester-3' | 'breastfeeding' | 'postpartum'
+  pregnancyStage: text("pregnancy_stage"),
+  // Due date: ISO date string (YYYY-MM-DD). Source of truth for auto-derived trimester/week.
+  // When set, the protocol envelope derives weekOfPregnancy and currentTrimester server-side.
+  // When null, pregnancyStage is used as the manual override.
+  pregnancyDueDate: text("pregnancy_due_date"),
+  // Pregnancy support context: JSONB storing symptoms, tracking mode, and user-set preferences.
+  // Active symptoms drive meal adaptations (nausea, heartburn, swelling, etc.).
+  // Null = pregnancy support not yet configured.
+  pregnancySupportContext: jsonb("pregnancy_support_context").$type<{
+    symptoms: Array<"nausea" | "heartburn" | "constipation" | "fatigue" | "food_aversions" | "swelling" | "shortness_of_breath" | "low_appetite">;
+    trackingMode: "due-date" | "manual";
+    isBreastfeeding: boolean;
+    activatedAt: string | null;
+    updatedAt: string | null;
+  }>(),
   // Flags 'request_support' intent for future professional follow-up surfacing
   needsProfessionalFollowup: boolean("needs_professional_followup").default(false),
   // Client Goals — set during onboarding, displayed on dashboard + coach folder

@@ -15,6 +15,7 @@ import {
   ArrowRight,
   Plus,
   PawPrint,
+  Palmtree,
 } from "lucide-react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useAuth } from "@/contexts/AuthContext";
@@ -154,6 +155,7 @@ export default function LifestyleLandingPage() {
   };
 
   const gatheringsLocked = !isProOrAbove(user);
+  const getawayLocked = !isProOrAbove(user);
 
   const handleCardClick = (feature: AIFeature) => {
     if (feature.freeAccess) {
@@ -294,6 +296,98 @@ export default function LifestyleLandingPage() {
               </Card>
             )}
           </div>}
+
+          {/* ── My Perfect Pregnancy card ── */}
+          <div className="relative">
+            <div
+              className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-60"
+              style={{
+                background:
+                  "radial-gradient(120% 120% at 50% 0%, rgba(236,72,153,0.5), rgba(251,146,60,0.25), rgba(0,0,0,0))",
+              }}
+            />
+            <Card
+              className="relative rounded-xl shadow-md overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 hover:scale-[1.02] bg-gradient-to-r from-black via-pink-950/40 to-black backdrop-blur-lg border border-pink-500/30 hover:shadow-[0_0_30px_rgba(236,72,153,0.4)] hover:border-pink-400/50"
+              onClick={() => setLocation("/lifestyle/my-perfect-pregnancy")}
+              data-testid="card-my-perfect-pregnancy"
+            >
+              <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-violet-700/80 to-black rounded-full border border-violet-400/30 shadow-lg z-10">
+                <div className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse" />
+                <span className="text-violet-200 font-semibold text-[8px] tracking-wide">
+                  Emotion AI™
+                </span>
+              </div>
+              <CardContent className="p-3">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🩷</span>
+                    <h3 className="text-sm font-semibold text-white">My Perfect Pregnancy</h3>
+                  </div>
+                  <p className="text-xs ml-6 text-white/80">
+                    Nutrition, food safety &amp; support through every stage of your journey
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* ── My Perfect Getaway premium card ── */}
+          <div className="relative">
+            <div
+              className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70"
+              style={{
+                background:
+                  "radial-gradient(120% 120% at 50% 0%, rgba(251,146,60,0.7), rgba(217,119,6,0.35), rgba(0,0,0,0))",
+              }}
+            />
+            <Card
+              className="relative rounded-xl shadow-md overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 hover:scale-[1.02] bg-gradient-to-r from-black via-orange-950/50 to-black backdrop-blur-lg border border-orange-500/40 hover:shadow-[0_0_30px_rgba(251,146,60,0.5)] hover:border-orange-400/60"
+              onClick={() => {
+                if (getawayLocked) {
+                  requestUpgrade({ requiredTier: "pro", featureName: "My Perfect Getaway" });
+                  return;
+                }
+                setLocation("/lifestyle/my-perfect-getaway");
+              }}
+              data-testid="card-my-perfect-getaway"
+            >
+              <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-cyan-700/80 to-black rounded-full border border-cyan-400/30 shadow-lg z-10">
+                <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
+                <span className="text-cyan-200 font-semibold text-[8px] tracking-wide">
+                  Behavioral AI™
+                </span>
+              </div>
+              <div className="absolute inset-0 opacity-10 pointer-events-none overflow-hidden rounded-xl">
+                <svg viewBox="0 0 320 80" className="w-full h-full" preserveAspectRatio="xMidYMid slice">
+                  <circle cx="280" cy="20" r="28" fill="rgba(251,146,60,0.5)" />
+                  <path d="M260 80 Q275 40 285 28 Q278 55 270 80Z" fill="rgba(251,191,36,0.4)" />
+                  <path d="M240 80 Q258 42 268 30 Q260 55 252 80Z" fill="rgba(251,146,60,0.3)" />
+                </svg>
+              </div>
+              <CardContent className="p-3">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <Palmtree
+                      className={`h-4 w-4 flex-shrink-0 ${getawayLocked ? "text-orange-500/50" : "text-orange-400"}`}
+                    />
+                    <h3
+                      className={`text-sm font-semibold ${getawayLocked ? "text-white/50" : "text-white"}`}
+                    >
+                      My Perfect Getaway
+                    </h3>
+                    {getawayLocked && (
+                      <Lock className="h-3 w-3 text-orange-400/70 ml-auto" />
+                    )}
+                  </div>
+                  <p
+                    className={`text-xs ml-6 ${getawayLocked ? "text-white/40" : "text-white/80"}`}
+                  >
+                    Disney, airports, cruises &amp; theme parks — your coach travels with you
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* ── My Perfect Gatherings premium card ── */}
           <div className="relative">
