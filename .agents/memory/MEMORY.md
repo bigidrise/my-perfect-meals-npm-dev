@@ -6,3 +6,4 @@
 - [Diabetic Meal Memory System](diabetic-meal-memory.md) — Phase 0+1 shipped; Phase 2+3 held; BGL-bucket hash differentiates favorites; ProCare stamp deferred.
 - [LMS Boot Migrations — Dev vs Prod](lms-boot-migrations.md) — Boot migrations must go in BOTH server/index.ts (dev) and server/prod.ts (prod); dev server never runs prod.ts.
 - [Affiliate Activation System](affiliate-activation-system.md) — tracks, eligibility gate, Rewardful API, webhook endpoint, and smart UX modal for non-eligible users.
+- [My Perfect Pregnancy — Architecture](my-perfect-pregnancy.md) — Additive Modifier pattern; "pregnancy-support" in specialtyConditions; 3 DB columns; dueDate = source of truth for trimester derivation.

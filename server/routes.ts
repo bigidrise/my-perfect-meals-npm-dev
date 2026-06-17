@@ -68,6 +68,7 @@ import { getBuilderSwitchStatus, attemptBuilderSwitch } from "./services/builder
 import { fridgeRescueRouter } from "./routes/fridgeRescue";
 import inspirationRouter from "./routes/inspiration";
 import groceryCoachRouter from "./routes/groceryCoach";
+import pregnancyCoachRouter from "./routes/pregnancyCoach";
 import alcoholLogRouter from './routes/alcohol-log';
 import vitalsBpRouter from './routes/vitals-bp';
 import proteinTargetsRouter from './routes/proteinTargets';
@@ -596,6 +597,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", fridgeRescueRouter);
   app.use("/api", inspirationRouter);
   app.use("/api/grocery-coach", requireAuth, groceryCoachRouter);
+  app.use("/api/pregnancy", requireAuth, pregnancyCoachRouter);
 
   // REMOVED: Duplicate route moved to top priority position
 
@@ -7000,6 +7002,9 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   // ─────────────────────────────────────────────────────────────────────────
   const { default: mealsRouterShared } = await import("./routes/meals");
   app.use("/api/meals", mealsRouterShared);
+
+  const { default: getawayRouterShared } = await import("./routes/getaway");
+  app.use("/api/getaway", requireAuth, requireActiveAccess, getawayRouterShared);
 
   const { default: gatheringsRouterShared } = await import("./routes/gatherings");
   app.use("/api/gatherings", requireAuth, requireActiveAccess, gatheringsRouterShared);

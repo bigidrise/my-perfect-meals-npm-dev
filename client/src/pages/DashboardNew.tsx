@@ -1284,7 +1284,7 @@ export default function DashboardNew() {
                         Sources & Medical Information
                       </CardTitle>
                       <CardDescription className="text-white/70 text-sm mt-1">
-                        NIH · USDA · WHO · ADA
+                        NIH · USDA · WHO · ADA · AHA · NCI · ACOG · ATA · AND · FDA · NKF · AAP
                       </CardDescription>
                     </div>
                   </div>

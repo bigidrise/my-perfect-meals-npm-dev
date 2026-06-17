@@ -468,6 +468,78 @@ export function MedicalSourcesInfo({
             </p>
           </section>
 
+          <section>
+            <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+              🩷 Pregnancy Support nutrition &amp; food safety references
+            </h3>
+            <p className="text-white/60 text-xs mb-3">
+              Pregnancy Support nutrition guidance — including trimester-specific nutrient priorities, food safety
+              screening (mercury, listeria, raw food risk), and breastfeeding/postpartum nutrition — is informed
+              by the following professional and institutional sources. This guidance is used for general nutrition
+              education and food-structure support only, not obstetric diagnosis, treatment, or individualized
+              prenatal medical care. Always follow your OB/GYN or midwife's recommendations first.
+            </p>
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2 mt-4">Nutrition &amp; Pregnancy</p>
+            <ul className="space-y-3 mb-4">
+              <SourceItem
+                title="American College of Obstetricians and Gynecologists (ACOG)"
+                description="Clinical guidance for prenatal nutrition, gestational weight gain, nutrient requirements by trimester, and postpartum dietary recommendations"
+                url="https://www.acog.org/womens-health/faqs/nutrition-during-pregnancy"
+              />
+              <SourceItem
+                title="Society for Maternal-Fetal Medicine (SMFM)"
+                description="Evidence-based guidelines for high-risk pregnancy nutrition, gestational diabetes management, and fetal growth nutrition considerations"
+                url="https://www.smfm.org/"
+              />
+              <SourceItem
+                title="Academy of Nutrition and Dietetics (AND)"
+                description="Evidence-based nutrition practice guidelines for pregnancy and lactation, including macronutrient targets, iron, calcium, DHA, and folate recommendations"
+                url="https://www.eatright.org/health/pregnancy/prenatal-wellness/eating-right-during-pregnancy"
+              />
+              <SourceItem
+                title="NIH Office of Dietary Supplements — Folate, Iron, Calcium &amp; DHA"
+                description="Dietary reference intakes and evidence-based guidance for key pregnancy nutrients including folate, iron, calcium, iodine, and omega-3 DHA for fetal development"
+                url="https://ods.od.nih.gov/factsheets/list-all/"
+              />
+              <SourceItem
+                title="Centers for Disease Control and Prevention (CDC) — Pregnancy Nutrition"
+                description="Public health nutrition recommendations for pregnancy, including folic acid guidance, gestational weight gain targets, and prenatal nutrition education"
+                url="https://www.cdc.gov/nutrition/pregnancy-breastfeeding/index.html"
+              />
+            </ul>
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Food Safety During Pregnancy</p>
+            <ul className="space-y-3 mb-4">
+              <SourceItem
+                title="U.S. Food &amp; Drug Administration (FDA) — Pregnancy Food Safety"
+                description="Evidence-based guidance on fish consumption during pregnancy, mercury content by species, safe mercury limits, and foods to avoid including unpasteurized products, raw seafood, and deli meats"
+                url="https://www.fda.gov/food/consumers/advice-about-eating-fish"
+              />
+              <SourceItem
+                title="Centers for Disease Control and Prevention (CDC) — Listeria &amp; Pregnancy"
+                description="Listeria risk identification, high-risk foods during pregnancy (deli meats, soft cheeses, sprouts, ready-to-eat foods), and safe food handling guidance"
+                url="https://www.cdc.gov/listeria/risk-groups/pregnant-women.html"
+              />
+              <SourceItem
+                title="U.S. Environmental Protection Agency (EPA) — Mercury in Fish"
+                description="Mercury exposure guidelines, species-specific mercury content classification (high / moderate / low), and safe fish consumption limits for pregnant and breastfeeding women"
+                url="https://www.epa.gov/fish-tech/advice-about-eating-fish-those-who-might-become-or-are-pregnant-breastfeeding-mothers-young"
+              />
+            </ul>
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Breastfeeding &amp; Postpartum</p>
+            <ul className="space-y-3">
+              <SourceItem
+                title="American Academy of Pediatrics (AAP)"
+                description="Breastfeeding nutrition guidelines, DHA and iodine requirements during lactation, caloric needs for breastfeeding mothers, and postpartum recovery nutrition"
+                url="https://www.healthychildren.org/English/ages-stages/baby/breastfeeding/Pages/default.aspx"
+              />
+              <SourceItem
+                title="World Health Organization (WHO) — Infant &amp; Young Child Feeding"
+                description="International breastfeeding and complementary feeding guidelines, maternal nutrition during lactation, and postpartum nutritional recovery recommendations"
+                url="https://www.who.int/health-topics/breastfeeding"
+              />
+            </ul>
+          </section>
+
           <section className="bg-amber-900/20 border border-amber-500/30 rounded-xl p-4">
             <h3 className="text-amber-400 font-semibold mb-2 flex items-center gap-2">
               <Info className="w-4 h-4" />
@@ -480,10 +552,12 @@ export function MedicalSourcesInfo({
               cannot guarantee complete allergen avoidance. Cancer-support and
               oncology-related meal suggestions are intended for general
               supportive wellness use only and are not a substitute for
-              oncology, physician, or registered dietitian guidance. Always
-              verify ingredients and consult a qualified healthcare professional
-              for medical advice, especially for severe allergies or medically
-              complex conditions.
+              oncology, physician, or registered dietitian guidance. Pregnancy
+              Support guidance is for general nutrition education only and is
+              not a substitute for your OB/GYN, midwife, or registered
+              dietitian's prenatal care. Always verify ingredients and consult
+              a qualified healthcare professional for medical advice, especially
+              for severe allergies or medically complex conditions.
             </p>
           </section>
         </div>

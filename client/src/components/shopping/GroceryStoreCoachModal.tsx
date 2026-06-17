@@ -222,7 +222,7 @@ export default function GroceryStoreCoachModal({ open, onOpenChange }: Props) {
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto pb-20 sm:pb-0">
           <AnimatePresence mode="wait">
 
             {/* ── IDLE STATE ── */}

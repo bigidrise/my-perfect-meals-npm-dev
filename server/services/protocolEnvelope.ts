@@ -536,6 +536,28 @@ export interface UserProtocolEnvelope {
    * Null when not set.
    */
   goalTarget: string | null;
+
+  /**
+   * Pregnancy Support protocol active flag.
+   * True when "pregnancy-support" is in the user's specialtyConditions array.
+   * Injects pregnancy-aware nutrient guidance, food safety blocks, and symptom
+   * adaptations into all generators via conditionGuidanceBlocks[].
+   */
+  pregnancySupport: boolean;
+
+  /**
+   * Pregnancy Support context — stage, derived week, symptoms, tracking mode.
+   * Null when pregnancy support is not active.
+   * weekOfPregnancy is derived server-side from dueDate when trackingMode = "due-date".
+   */
+  pregnancySupportContext: {
+    active: boolean;
+    stage: "trying-to-conceive" | "trimester-1" | "trimester-2" | "trimester-3" | "breastfeeding" | "postpartum";
+    weekOfPregnancy: number | null;
+    dueDate: string | null;
+    symptoms: Array<"nausea" | "heartburn" | "constipation" | "fatigue" | "food_aversions" | "swelling" | "shortness_of_breath" | "low_appetite">;
+    isBreastfeeding: boolean;
+  } | null;
 }
 
 /**
@@ -808,6 +830,59 @@ export async function loadUserProtocolEnvelope(
     const perimenopause: boolean = specialtyConditionsArr.includes("perimenopause");
     const metabolicRecovery: boolean = specialtyConditionsArr.includes("metabolic-recovery");
 
+    // ── PREGNANCY SUPPORT — additive modifier ────────────────────────────────
+    const pregnancySupport: boolean = specialtyConditionsArr.includes("pregnancy-support");
+
+    // Build pregnancy context — derive trimester + week from dueDate server-side
+    let pregnancySupportCtx: {
+      active: boolean;
+      stage: "trying-to-conceive" | "trimester-1" | "trimester-2" | "trimester-3" | "breastfeeding" | "postpartum";
+      weekOfPregnancy: number | null;
+      dueDate: string | null;
+      symptoms: Array<"nausea" | "heartburn" | "constipation" | "fatigue" | "food_aversions" | "swelling" | "shortness_of_breath" | "low_appetite">;
+      isBreastfeeding: boolean;
+    } | null = null;
+
+    if (pregnancySupport) {
+      const rawDueDate = ((user as any).pregnancyDueDate as string | null) ?? null;
+      const rawStage = ((user as any).pregnancyStage as string | null) ?? null;
+      const rawCtx = ((user as any).pregnancySupportContext as {
+        symptoms?: string[];
+        trackingMode?: string;
+        isBreastfeeding?: boolean;
+      } | null) ?? null;
+
+      let derivedStage: "trying-to-conceive" | "trimester-1" | "trimester-2" | "trimester-3" | "breastfeeding" | "postpartum" =
+        (rawStage as any) ?? "trimester-2";
+      let derivedWeek: number | null = null;
+
+      // Auto-derive trimester + week from due date when trackingMode = "due-date"
+      if (rawDueDate && rawCtx?.trackingMode !== "manual") {
+        try {
+          const due = new Date(rawDueDate);
+          const now = new Date();
+          const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+          const weeksUntilDue = (due.getTime() - now.getTime()) / msPerWeek;
+          const currentWeek = Math.max(1, Math.min(42, Math.round(40 - weeksUntilDue)));
+          derivedWeek = currentWeek;
+          if (currentWeek <= 13) derivedStage = "trimester-1";
+          else if (currentWeek <= 27) derivedStage = "trimester-2";
+          else derivedStage = "trimester-3";
+        } catch {
+          // Due date parse failed — fall back to manual stage
+        }
+      }
+
+      pregnancySupportCtx = {
+        active: true,
+        stage: derivedStage,
+        weekOfPregnancy: derivedWeek,
+        dueDate: rawDueDate,
+        symptoms: (rawCtx?.symptoms as any[] ?? []),
+        isBreastfeeding: rawCtx?.isBreastfeeding ?? false,
+      };
+    }
+
     const conditionGuidanceBlocks = await buildUniversalConditionGuidance({
       userId,
       healthConditions: mergedHealthConditions,
@@ -832,6 +907,7 @@ export async function loadUserProtocolEnvelope(
       menopause,
       perimenopause,
       metabolicRecovery,
+      pregnancySupportContext: pregnancySupportCtx,
     });
 
     return {
@@ -859,6 +935,8 @@ export async function loadUserProtocolEnvelope(
       goalTarget: ((user as any).goalTarget as string | null) ?? null,
       performanceOverlay: (((user as any).performanceOverlay as string | null) ?? "standard") as "standard"|"performance"|"competition_prep"|"recovery"|"recomp",
       performanceControlMode: (((user as any).performanceControlMode as string | null) ?? "self_guided") as "self_guided"|"coach_controlled",
+      pregnancySupport,
+      pregnancySupportContext: pregnancySupportCtx,
     };
   } catch (error) {
     console.error("[ProtocolEnvelope] Failed to load envelope:", error);
@@ -896,6 +974,8 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     goalTarget: null,
     performanceOverlay: "standard",
     performanceControlMode: "self_guided",
+    pregnancySupport: false,
+    pregnancySupportContext: null,
   };
 }
 
