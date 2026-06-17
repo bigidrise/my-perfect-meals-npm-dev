@@ -3,18 +3,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
   ChefHat,
-  Mic,
-  MicOff,
   Send,
   ShoppingCart,
   RefreshCw,
   CheckCircle2,
   Clock,
   Users,
-  User,
-  Package,
   ChevronDown,
   ChevronUp,
+  Minus,
+  Plus,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { post } from "@/lib/api";
@@ -22,7 +20,6 @@ import { useShoppingListStore } from "@/stores/shoppingListStore";
 import type { UniversalIngredient } from "@/stores/shoppingListStore";
 import PillButton from "@/components/ui/pill-button";
 
-type ServingMode = "solo" | "household" | "mealprep";
 type Phase = "idle" | "loading" | "result";
 
 interface ShoppingListItem {
@@ -63,7 +60,7 @@ const QUICK_STARTS = [
 const LOADING_MESSAGES = [
   "Checking your health profile…",
   "Finding the right meal for you…",
-  "Scaling for your household…",
+  "Scaling ingredient quantities…",
   "Building your shopping list…",
   "Personalizing your recommendation…",
 ];
@@ -88,7 +85,7 @@ export default function GroceryStoreCoachModal({ open, onOpenChange }: Props) {
   const addItems = useShoppingListStore((s) => s.addItems);
 
   const [phase, setPhase] = useState<Phase>("idle");
-  const [servingMode, setServingMode] = useState<ServingMode>("solo");
+  const [servingCount, setServingCount] = useState(1);
   const [input, setInput] = useState("");
   const [result, setResult] = useState<CoachResult | null>(null);
   const [conversation, setConversation] = useState<ConversationMessage[]>([]);
@@ -140,7 +137,7 @@ export default function GroceryStoreCoachModal({ open, onOpenChange }: Props) {
       const data = await post("/api/grocery-coach/recommend", {
         message: userMsg,
         conversationHistory: conversation,
-        servingMode,
+        servingCount,
       });
 
       if (data?.error) throw new Error(data.error);
@@ -159,7 +156,7 @@ export default function GroceryStoreCoachModal({ open, onOpenChange }: Props) {
       });
       setConversation(newConvo.slice(0, -1));
     }
-  }, [conversation, servingMode, toast]);
+  }, [conversation, servingCount, toast]);
 
   const handleAddToList = useCallback(() => {
     if (!result?.shoppingList?.length) return;
@@ -234,26 +231,46 @@ export default function GroceryStoreCoachModal({ open, onOpenChange }: Props) {
                 exit={{ opacity: 0 }}
                 className="p-4 space-y-4"
               >
-                {/* Serving mode */}
+                {/* Serving count */}
                 <div>
                   <p className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-2">
-                    Who are you feeding?
+                    How many people?
                   </p>
-                  <div className="flex gap-2">
-                    {(["solo", "household", "mealprep"] as ServingMode[]).map((mode) => (
-                      <PillButton
-                        key={mode}
-                        onClick={() => setServingMode(mode)}
-                        className={`flex-1 py-2 text-xs font-semibold transition-all ${
-                          servingMode === mode
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setServingCount((n) => Math.max(1, n - 1))}
+                      disabled={servingCount <= 1}
+                      className="w-9 h-9 rounded-full bg-white/8 border border-white/10 text-white/70 disabled:opacity-30 flex items-center justify-center active:scale-90 transition-all"
+                    >
+                      <Minus className="h-3.5 w-3.5" />
+                    </button>
+                    <div className="flex-1 text-center">
+                      <span className="text-2xl font-bold text-white">{servingCount}</span>
+                      <p className="text-white/40 text-[10px] mt-0.5">
+                        {servingCount === 1 ? "Just me" : servingCount === 2 ? "2 people" : `${servingCount} people`}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setServingCount((n) => Math.min(12, n + 1))}
+                      disabled={servingCount >= 12}
+                      className="w-9 h-9 rounded-full bg-white/8 border border-white/10 text-white/70 disabled:opacity-30 flex items-center justify-center active:scale-90 transition-all"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <div className="flex gap-1.5 mt-2.5">
+                    {[1, 2, 3, 4, 5, 6].map((n) => (
+                      <button
+                        key={n}
+                        onClick={() => setServingCount(n)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                          servingCount === n
                             ? "bg-orange-600 text-white border-orange-500"
-                            : "bg-white/5 text-white/60 border-white/10"
+                            : "bg-white/5 text-white/50 border-white/10 active:bg-white/10"
                         }`}
                       >
-                        {mode === "solo" && <><User className="h-3 w-3 mr-1.5 inline" />Just Me</>}
-                        {mode === "household" && <><Users className="h-3 w-3 mr-1.5 inline" />My Household</>}
-                        {mode === "mealprep" && <><Package className="h-3 w-3 mr-1.5 inline" />Meal Prep</>}
-                      </PillButton>
+                        {n === 1 ? "Me" : n}
+                      </button>
                     ))}
                   </div>
                 </div>

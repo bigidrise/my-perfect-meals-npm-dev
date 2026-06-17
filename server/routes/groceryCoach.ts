@@ -1,7 +1,7 @@
 import express from "express";
 import OpenAI from "openai";
 import { db } from "../db";
-import { users, householdProfiles } from "@shared/schema";
+import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
 
@@ -20,15 +20,15 @@ function resolveUserId(req: any): string | undefined {
 router.post("/recommend", async (req, res) => {
   try {
     const userId = resolveUserId(req);
-    const { message, conversationHistory = [], servingMode = "solo", servingCount } = req.body;
+    const { message, conversationHistory = [], servingCount } = req.body;
 
     if (!message || typeof message !== "string") {
       return res.status(400).json({ error: "Message is required." });
     }
 
+    const finalServingCount = Math.max(1, Math.min(12, Number(servingCount) || 1));
     let userContext = "";
     let macroContext = "";
-    let householdCount = 1;
 
     if (userId) {
       const envelope = await loadUserProtocolEnvelope(userId);
@@ -66,24 +66,7 @@ router.post("/recommend", async (req, res) => {
         if (userRow.dailyFatTarget) parts.push(`${userRow.dailyFatTarget}g fat`);
         macroContext = `Daily macro targets: ${parts.join(", ")}`;
       }
-
-      if (servingMode === "household") {
-        const hProfiles = await db
-          .select({ id: householdProfiles.id })
-          .from(householdProfiles)
-          .where(eq(householdProfiles.ownerUserId, userId));
-        householdCount = Math.max(hProfiles.length, 1);
-      }
     }
-
-    const finalServingCount =
-      servingCount != null
-        ? Number(servingCount)
-        : servingMode === "household"
-        ? householdCount
-        : servingMode === "mealprep"
-        ? 4
-        : 1;
 
     const systemPrompt = `You are a Grocery Store Coach — a real, confident nutrition coach who helps users decide exactly what to make for dinner and what to buy at the grocery store. You are NOT a recipe generator or meal builder. You are a decision-making assistant.
 
