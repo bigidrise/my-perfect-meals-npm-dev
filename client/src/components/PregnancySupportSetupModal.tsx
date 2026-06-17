@@ -93,7 +93,7 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="bg-black/95 border-t border-pink-500/30 text-white max-h-[90vh] overflow-y-auto rounded-t-3xl"
+        className="bg-black/95 border-t border-pink-500/30 text-white max-h-[90vh] overflow-y-auto rounded-t-3xl md:left-60"
       >
         <SheetHeader className="text-left pb-4 border-b border-white/10">
           <SheetTitle className="text-white text-xl flex items-center gap-2">
