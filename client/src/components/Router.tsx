@@ -236,6 +236,7 @@ import CreatorStudioLanding from "@/pages/creator/CreatorStudioLanding";
 import ChefsKitchenPage from "@/pages/lifestyle/ChefsKitchenPage";
 import CreateDishPage from "@/pages/lifestyle/CreateDishPage";
 import GatheringsPage from "@/pages/lifestyle/GatheringsPage";
+import MyPerfectGetaway from "@/pages/lifestyle/MyPerfectGetaway";
 import CravingCreatorLanding from "@/pages/CravingCreatorLanding";
 import SushiCreator from "@/pages/SushiCreator";
 import BeverageCreatorHub from "@/pages/BeverageCreatorHub";
@@ -368,6 +369,7 @@ const GuardedBeverageCreator = () => <ProGuard component={BeverageCreator} />;
 const GuardedBeverageCreatorHub = () => <ProGuard component={BeverageCreatorHub} />;
 const GuardedSushiCreator = () => <ProGuard component={SushiCreator} />;
 const GuardedGatheringsPage = () => <ProGuard component={GatheringsPage} />;
+const GuardedGetaway = () => <ProGuard component={MyPerfectGetaway} />;
 const GuardedChefPairings = () => <ProGuard component={ChefPairings} />;
 const GuardedPairingsHub = () => <ProGuard component={PairingsHub} />;
 const GuardedPairingsAI = () => <ProGuard component={PairingsAI} />;
@@ -583,6 +585,7 @@ export default function Router() {
         <Route path="/creator/studio" component={CreatorStudioPage} />
         {/* DELETED: /healthy-kids-meals, /kids-meals, /toddler-meals routes (Phase 1 cleanup) */}
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
+        <Route path="/lifestyle/my-perfect-getaway" component={GuardedGetaway} />
         <Route path="/lifestyle/my-perfect-gatherings" component={GuardedGatheringsPage} />
         <Route path="/lifestyle/ultimate-experiences" component={GuardedGatheringsPage} />
         <Route path="/lifestyle/chefs-kitchen" component={withGate(ChefsKitchenPage, 'chefsKitchen')} />

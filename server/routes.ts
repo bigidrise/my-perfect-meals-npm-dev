@@ -7001,6 +7001,9 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   const { default: mealsRouterShared } = await import("./routes/meals");
   app.use("/api/meals", mealsRouterShared);
 
+  const { default: getawayRouterShared } = await import("./routes/getaway");
+  app.use("/api/getaway", requireAuth, requireActiveAccess, getawayRouterShared);
+
   const { default: gatheringsRouterShared } = await import("./routes/gatherings");
   app.use("/api/gatherings", requireAuth, requireActiveAccess, gatheringsRouterShared);
 
