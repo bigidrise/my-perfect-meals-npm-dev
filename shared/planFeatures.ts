@@ -16,7 +16,9 @@ export type Entitlement =
   | "learn_cook"
   | "lab_metrics"
   | "care_team"
-  | "procare";
+  | "procare"
+  | "pregnancy"
+  | "getaway";
 
 export interface PlanDefinition {
   tier: PlanTier;
@@ -114,6 +116,8 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "Beach Body / Hard Body Meal Builder",
       "Competition Prep Builder",
       "Clinical Advisory System",
+      "My Perfect Pregnancy™ — trimester-aware nutrition, Pregnancy Coach, food safety guidance (mercury, listeria, raw foods), and pregnancy-support meal generation",
+      "My Perfect Getaway™ — stay on track anywhere: theme parks, airports, resorts, and cruises with venue-specific, protocol-aware dining recommendations",
     ],
     entitlements: [
       "smart_menu_builder",
@@ -131,6 +135,8 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "learn_cook",
       "lab_metrics",
       "care_team",
+      "pregnancy",
+      "getaway",
     ],
   },
 };
@@ -178,6 +184,8 @@ export const IOS_DISPLAY_FEATURES: Record<string, string[]> = {
     "Beach Body Meal Builder",
     "Competition Prep Builder",
     "Clinical Advisory System",
+    "My Perfect Pregnancy™ (trimester nutrition + Pregnancy Coach)",
+    "My Perfect Getaway™ (stay on track at theme parks, airports & resorts)",
     "Priority Support",
   ],
 };
