@@ -519,6 +519,14 @@ async function initializeApp() {
     app.use("/api/meal-plan", mealPlanRouter);
     app.use("/api/meal-plans", mealPlanRouter);
 
+    // My Perfect Getaway — venue-aware dining coach
+    const getawayRouter = (await import("./routes/getaway")).default;
+    app.use("/api/getaway", requireAuth, getawayRouter);
+
+    // My Perfect Pregnancy — trimester-aware nutrition coach
+    const pregnancyCoachRouter = (await import("./routes/pregnancyCoach")).default;
+    app.use("/api/pregnancy", requireAuth, pregnancyCoachRouter);
+
     console.log("✅ [INIT] Parity routes mounted");
 
     // ── Sandbox password reset — registered BEFORE registerRoutes() so it

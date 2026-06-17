@@ -311,10 +311,10 @@ export default function LifestyleLandingPage() {
               onClick={() => setLocation("/lifestyle/my-perfect-pregnancy")}
               data-testid="card-my-perfect-pregnancy"
             >
-              <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-pink-800/70 to-black rounded-full border border-pink-400/30 shadow-lg z-10">
-                <div className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-pulse" />
-                <span className="text-pink-200 font-semibold text-[8px] tracking-wide">
-                  My Perfect Pregnancy
+              <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-violet-700/80 to-black rounded-full border border-violet-400/30 shadow-lg z-10">
+                <div className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse" />
+                <span className="text-violet-200 font-semibold text-[8px] tracking-wide">
+                  Emotion AI™
                 </span>
               </div>
               <CardContent className="p-3">
@@ -354,7 +354,7 @@ export default function LifestyleLandingPage() {
               <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-cyan-700/80 to-black rounded-full border border-cyan-400/30 shadow-lg z-10">
                 <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
                 <span className="text-cyan-200 font-semibold text-[8px] tracking-wide">
-                  Coach In Your Pocket™
+                  Behavioral AI™
                 </span>
               </div>
               <div className="absolute inset-0 opacity-10 pointer-events-none overflow-hidden rounded-xl">
