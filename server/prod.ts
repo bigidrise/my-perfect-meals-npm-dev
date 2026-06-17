@@ -203,6 +203,10 @@ async function initializeApp() {
           await database.execute(
             sql`ALTER TABLE companion_profiles ADD COLUMN IF NOT EXISTS pet_type text DEFAULT 'dog'`,
           );
+          // My Perfect Pregnancy — boot migrations
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pregnancy_stage text`);
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pregnancy_due_date text`);
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pregnancy_support_context jsonb`);
           // LMS content tables
           await database.execute(sql`
             CREATE TABLE IF NOT EXISTS cert_modules (

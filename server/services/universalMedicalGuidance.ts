@@ -47,6 +47,15 @@ export interface UniversalGuidanceInput {
   perimenopause?: boolean;
   /** Metabolic Recovery protocol — active when "metabolic-recovery" is in specialtyConditions. */
   metabolicRecovery?: boolean;
+  /** Pregnancy Support context — active when "pregnancy-support" is in specialtyConditions. */
+  pregnancySupportContext?: {
+    active: boolean;
+    stage: "trying-to-conceive" | "trimester-1" | "trimester-2" | "trimester-3" | "breastfeeding" | "postpartum";
+    weekOfPregnancy: number | null;
+    dueDate: string | null;
+    symptoms: Array<"nausea" | "heartburn" | "constipation" | "fatigue" | "food_aversions" | "swelling" | "shortness_of_breath" | "low_appetite">;
+    isBreastfeeding: boolean;
+  } | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -347,6 +356,20 @@ PRIORITY NUTRIENTS: phytoestrogens (flaxseed, edamame, tempeh — moderate amoun
 HARD BLOCKS: NO refined sugars or blood-sugar-spiking foods; NO alcohol; NO excess caffeine; NO processed foods with endocrine-disrupting additives.
 MEAL STRUCTURE: Every meal should include lean protein + healthy fat + complex carb + vegetables. Prioritize blood sugar stability — no single-macronutrient meals. Include fiber-rich foods to support estrogen clearance.
 TONE: Frame as "hormone-supportive," "energy-stabilizing," or "transition-friendly." No medical claims.`.trim());
+  }
+
+  // Pregnancy Support — fires when pregnancySupportContext.active is true
+  if (input.pregnancySupportContext?.active) {
+    const { buildPregnancySupportPrompt } = await import('./guardrails/prompt/pregnancySupportPromptBuilder');
+    const pregnancyBlock = buildPregnancySupportPrompt({
+      active: true,
+      stage: input.pregnancySupportContext.stage,
+      weekOfPregnancy: input.pregnancySupportContext.weekOfPregnancy,
+      dueDate: input.pregnancySupportContext.dueDate,
+      symptoms: input.pregnancySupportContext.symptoms as any,
+      isBreastfeeding: input.pregnancySupportContext.isBreastfeeding,
+    });
+    if (pregnancyBlock.trim()) blocks.push(pregnancyBlock);
   }
 
   if (input.metabolicRecovery) {

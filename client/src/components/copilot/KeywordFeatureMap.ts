@@ -110,6 +110,33 @@ export const KEYWORD_FEATURE_MAP: FeatureMapping[] = [
     keywords: ["supplements", "supplement hub", "vitamins", "nutrition supplements"],
   },
   
+  // My Perfect Getaway
+  {
+    path: "/lifestyle/my-perfect-getaway",
+    walkthroughId: "my-perfect-getaway",
+    keywords: ["getaway", "my perfect getaway", "travel coach", "vacation eating", "theme park food", "disney food", "universal studios food", "airport food", "cruise food", "resort food", "eating at disney", "eating on vacation", "vacation food", "theme park", "airport eating", "cruise eating", "coach in your pocket", "travel eating", "travel nutrition", "vacation nutrition"],
+  },
+
+  // Pregnancy Support Protocol
+  // Points to Edit Profile (where specialty conditions are toggled) until the Pregnancy Hub page is built.
+  // Update path to "/lifestyle/pregnancy-support" once the hub page exists.
+  {
+    path: "/profile",
+    walkthroughId: "pregnancy-support",
+    keywords: [
+      "pregnancy support", "pregnancy", "pregnant", "i'm pregnant", "i am pregnant",
+      "trying to conceive", "ttc", "fertility nutrition", "preconception",
+      "first trimester", "second trimester", "third trimester", "trimester",
+      "breastfeeding", "postpartum", "nursing", "after baby", "postnatal",
+      "pregnancy nutrition", "pregnancy diet", "pregnancy protocol", "pregnancy eating",
+      "pregnancy food safety", "what can i eat pregnant", "safe foods pregnancy",
+      "mercury fish pregnancy", "listeria pregnancy", "prenatal nutrition", "prenatal diet",
+      "food safety pregnancy", "pregnancy safe foods", "what to avoid pregnancy",
+      "pregnancy coach", "pregnancy wellness", "life stage nutrition",
+      "eating for two", "pregnancy meal plan"
+    ],
+  },
+
   // Lifestyle Page
   {
     path: "/lifestyle",

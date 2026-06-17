@@ -768,6 +768,7 @@ export default function OnboardingV3() {
                   { label: "Menopause", value: "menopause" },
                   { label: "Perimenopause", value: "perimenopause" },
                   { label: "Metabolic Recovery", value: "metabolic-recovery" },
+                  { label: "🩷 My Perfect Pregnancy", value: "pregnancy-support" },
                 ].map((opt) => (
                   <PillButton
                     key={opt.value}
@@ -784,6 +785,19 @@ export default function OnboardingV3() {
                   </PillButton>
                 ))}
               </div>
+              {specialtyConditions.includes("pregnancy-support") && (
+                <div className="mt-3 rounded-xl border border-pink-500/40 bg-pink-950/20 p-3">
+                  <div className="flex items-start gap-2">
+                    <span className="text-pink-400 text-base mt-0.5">🩷</span>
+                    <div>
+                      <p className="text-pink-300 text-xs font-semibold mb-1">My Perfect Pregnancy — Nutritional Guidance Only</p>
+                      <p className="text-white/70 text-xs leading-relaxed">
+                        Activates pregnancy-aware meal generation with trimester-specific nutrients, food safety guidance (mercury, listeria), and symptom support (nausea, heartburn, swelling). This is <span className="text-white font-medium">not a medical protocol</span>, not a substitute for your OB/GYN or midwife, and <span className="text-white font-medium">not individualized prenatal care</span>. Always follow your healthcare provider's recommendations first. Set up your stage and due date in My Perfect Pregnancy.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
               {specialtyConditions.includes("thyroid-support") && (
                 <div className="mt-3 rounded-xl border border-teal-500/40 bg-teal-950/30 p-3 space-y-2">
                   <div className="flex items-start gap-2">
