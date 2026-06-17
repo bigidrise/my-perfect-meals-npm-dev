@@ -102,10 +102,11 @@ RESPONSE FORMAT — return valid JSON only, no markdown, no code fences:
   "avoid": [
     { "item": "Item or category name", "reason": "Brief reason related to their profile" }
   ],
+  "familyNote": ["One practical tip about eating here with kids or family", "Another tip if applicable — e.g. which location has kid-friendly choices, what the kids menu typically includes, or how the family can eat together without splitting up"],
   "coachNote": "1-2 sentences. Warm and practical. Remind them vacation is about living, just smarter."
 }
 
-Keep bestChoices to 2-3 items. The avoid array should be [] if nothing is specifically problematic for this user.`;
+Keep bestChoices to 2-3 items. The avoid array should be [] if nothing is specifically problematic for this user. The familyNote array should have 1-2 practical tips about eating at this venue with family or children. For venues like theme parks, cruises, and resorts this is almost always relevant. For a solo business airport context it can be [].`;
 
     const userPrompt = `${profileBlock}
 

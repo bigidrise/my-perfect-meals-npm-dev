@@ -36,6 +36,7 @@ interface GetawayResult {
   bestChoices: BestChoice[];
   whyTheyFit: string[];
   avoid: AvoidItem[];
+  familyNote?: string[];
   coachNote: string;
 }
 
@@ -45,7 +46,7 @@ interface PersistedState {
 }
 
 function getStorageKey(userId?: number | string) {
-  return `mpm.getaway.lastResult${userId ? `.${userId}` : ""}`;
+  return `mpm.getaway.lastResult.v2${userId ? `.${userId}` : ""}`;
 }
 
 export default function MyPerfectGetaway() {
@@ -431,6 +432,24 @@ export default function MyPerfectGetaway() {
                             <span className="text-white/40 text-xs"> — {item.reason}</span>
                           )}
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Family Note */}
+              {result.familyNote && result.familyNote.length > 0 && (
+                <div className="rounded-2xl bg-amber-950/20 border border-amber-500/20 px-4 py-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg leading-none">👨‍👩‍👧‍👦</span>
+                    <h3 className="text-xs font-bold text-amber-300/80 uppercase tracking-wide">Family Note</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {result.familyNote.map((tip, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <ChevronRight className="h-3.5 w-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-white/75 text-xs leading-relaxed">{tip}</p>
                       </div>
                     ))}
                   </div>
