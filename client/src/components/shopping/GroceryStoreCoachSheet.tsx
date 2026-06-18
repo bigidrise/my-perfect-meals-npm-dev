@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import * as SheetPrimitive from "@radix-ui/react-dialog";
 import {
   X,
   ChefHat,
@@ -14,7 +15,6 @@ import {
   Minus,
   Plus,
 } from "lucide-react";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { post } from "@/lib/api";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
@@ -184,15 +184,23 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const otherCategories = Object.keys(groupedList).filter((c) => !MACRO_CATEGORY_ORDER.includes(c));
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="bottom"
-        className="p-0 border-0 bg-transparent max-h-[92dvh] flex flex-col rounded-t-2xl overflow-hidden"
-      >
-        {/* Dark background */}
-        <div className="flex flex-col h-full bg-gradient-to-b from-black/95 to-black/98 border border-orange-500/30 rounded-t-2xl overflow-hidden">
+    <SheetPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <SheetPrimitive.Portal>
+        {/* Backdrop */}
+        <SheetPrimitive.Overlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
 
-          {/* Header — never scrolls */}
+        {/* Sheet panel — full control, no shadcn defaults */}
+        <SheetPrimitive.Content
+          aria-describedby={undefined}
+          className="fixed inset-x-0 bottom-0 z-50 flex flex-col bg-gradient-to-b from-[#0d0d0d] to-[#111111] border border-orange-500/30 rounded-t-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom data-[state=closed]:duration-300 data-[state=open]:duration-500"
+          style={{ maxHeight: "92dvh" }}
+        >
+          {/* Accessibility title (visually hidden) */}
+          <SheetPrimitive.Title className="sr-only">
+            Grocery Store Coach
+          </SheetPrimitive.Title>
+
+          {/* ── Header — never scrolls ── */}
           <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-white/10 shrink-0">
             <div className="p-2 rounded-xl bg-orange-600/20 border border-orange-500/30">
               <ChefHat className="h-5 w-5 text-orange-400" />
@@ -201,19 +209,16 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
               <h2 className="text-white font-bold text-base leading-tight">Grocery Store Coach</h2>
               <p className="text-white/50 text-xs">Decide what to make. Know what to buy.</p>
             </div>
-            <button
-              onClick={() => onOpenChange(false)}
-              className="p-2 rounded-xl bg-white/5 text-white/50 active:bg-white/10 transition-all"
-            >
+            <SheetPrimitive.Close className="p-2 rounded-xl bg-white/5 text-white/50 active:bg-white/10 transition-all">
               <X className="h-4 w-4" />
-            </button>
+            </SheetPrimitive.Close>
           </div>
 
-          {/* Scrollable body */}
-          <div className="flex-1 overflow-y-auto overscroll-contain">
+          {/* ── Scrollable body — fills remaining height ── */}
+          <div className="flex-1 overflow-y-auto overscroll-contain min-h-0">
             <AnimatePresence mode="wait">
 
-              {/* ── IDLE ── */}
+              {/* IDLE */}
               {phase === "idle" && (
                 <motion.div
                   key="idle"
@@ -316,7 +321,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                 </motion.div>
               )}
 
-              {/* ── LOADING ── */}
+              {/* LOADING */}
               {phase === "loading" && (
                 <motion.div
                   key="loading"
@@ -347,7 +352,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                 </motion.div>
               )}
 
-              {/* ── RESULT ── */}
+              {/* RESULT */}
               {phase === "result" && result && (
                 <motion.div
                   key="result"
@@ -356,8 +361,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                   exit={{ opacity: 0 }}
                   className="p-4 space-y-4 pb-10"
                 >
-                  {/* Meal recommendation card */}
-                  <div className="rounded-xl bg-gradient-to-br from-orange-600/20 to-orange-900/20 border border-orange-500/30 p-4">
+                  {/* Meal card */}
+                  <div className="rounded-xl bg-orange-600/15 border border-orange-500/30 p-4">
                     <p className="text-orange-400 text-xs font-bold uppercase tracking-wider mb-1">
                       Tonight's Recommendation
                     </p>
@@ -369,25 +374,25 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                     </p>
                     <div className="flex items-center gap-4 mt-3">
                       <span className="flex items-center gap-1.5 text-sm text-white/50">
-                        <Clock className="h-4 w-4" />
+                        <Clock className="h-4 w-4 shrink-0" />
                         {result.meal?.prepTime || "~30 min"}
                       </span>
                       <span className="flex items-center gap-1.5 text-sm text-white/50">
-                        <Users className="h-4 w-4" />
+                        <Users className="h-4 w-4 shrink-0" />
                         {result.servingCount || result.meal?.servings || 1}{" "}
                         {(result.servingCount || result.meal?.servings || 1) === 1 ? "serving" : "servings"}
                       </span>
                     </div>
                   </div>
 
-                  {/* Macros — 2×2 grid, works on smallest iPhone */}
+                  {/* Macros — 2×2, works on any phone */}
                   {result.macros && (
                     <div className="grid grid-cols-2 gap-2">
                       {[
                         { label: "Calories", value: result.macros.calories, unit: "" },
-                        { label: "Protein", value: result.macros.protein, unit: "g" },
-                        { label: "Carbs", value: result.macros.carbs, unit: "g" },
-                        { label: "Fat", value: result.macros.fat, unit: "g" },
+                        { label: "Protein",  value: result.macros.protein,  unit: "g" },
+                        { label: "Carbs",    value: result.macros.carbs,    unit: "g" },
+                        { label: "Fat",      value: result.macros.fat,      unit: "g" },
                       ].map(({ label, value, unit }) => (
                         <div
                           key={label}
@@ -419,7 +424,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                     </div>
                   )}
 
-                  {/* Shopping List */}
+                  {/* Shopping list */}
                   {result.shoppingList?.length > 0 && (
                     <div className="rounded-xl bg-white/5 border border-white/10 overflow-hidden">
                       <button
@@ -428,9 +433,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                       >
                         <div className="flex items-center gap-2">
                           <ShoppingCart className="h-4 w-4 text-orange-400" />
-                          <span className="text-white font-semibold text-sm">
-                            Shopping List
-                          </span>
+                          <span className="text-white font-semibold text-sm">Shopping List</span>
                           <span className="text-white/40 text-xs">
                             ({result.shoppingList.length} items)
                           </span>
@@ -456,11 +459,11 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                                   <p className="text-orange-400/70 text-[11px] font-bold uppercase tracking-wider mb-2">
                                     {cat}
                                   </p>
-                                  <ul className="space-y-2">
+                                  <ul className="space-y-2.5">
                                     {groupedList[cat].map((s, i) => (
-                                      <li key={i} className="flex items-start justify-between gap-3 text-sm">
+                                      <li key={i} className="flex items-baseline justify-between gap-3 text-sm">
                                         <span className="text-white/85 leading-snug">{s.item}</span>
-                                        <span className="text-white/45 text-xs shrink-0 pt-0.5">
+                                        <span className="text-white/45 text-xs shrink-0">
                                           {s.quantity} {s.unit}
                                         </span>
                                       </li>
@@ -548,8 +551,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
             </AnimatePresence>
           </div>
-        </div>
-      </SheetContent>
-    </Sheet>
+        </SheetPrimitive.Content>
+      </SheetPrimitive.Portal>
+    </SheetPrimitive.Root>
   );
 }
