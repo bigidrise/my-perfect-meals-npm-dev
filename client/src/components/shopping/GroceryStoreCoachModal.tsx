@@ -219,7 +219,7 @@ export default function GroceryStoreCoachModal({ open, onOpenChange }: Props) {
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto pb-20 sm:pb-0">
+        <div className="flex-1 overflow-y-auto overscroll-contain pb-[calc(7rem+env(safe-area-inset-bottom))] sm:pb-6">
           <AnimatePresence mode="wait">
 
             {/* ── IDLE STATE ── */}
@@ -391,7 +391,7 @@ export default function GroceryStoreCoachModal({ open, onOpenChange }: Props) {
 
                 {/* Macros */}
                 {result.macros && (
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {[
                       { label: "Cal", value: result.macros.calories, unit: "" },
                       { label: "Protein", value: result.macros.protein, unit: "g" },
@@ -465,11 +465,11 @@ export default function GroceryStoreCoachModal({ open, onOpenChange }: Props) {
                                 <p className="text-orange-400/70 text-[10px] font-bold uppercase tracking-wider mb-1.5">
                                   {cat}
                                 </p>
-                                <ul className="space-y-1">
+                                <ul className="space-y-1.5">
                                   {groupedList[cat].map((s, i) => (
-                                    <li key={i} className="flex items-center justify-between text-sm">
-                                      <span className="text-white/80">{s.item}</span>
-                                      <span className="text-white/40 text-xs shrink-0 ml-2">
+                                    <li key={i} className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm">
+                                      <span className="text-white/80 leading-snug">{s.item}</span>
+                                      <span className="text-white/40 text-xs sm:shrink-0 sm:ml-2 mt-0.5 sm:mt-0">
                                         {s.quantity} {s.unit}
                                       </span>
                                     </li>
@@ -552,6 +552,9 @@ export default function GroceryStoreCoachModal({ open, onOpenChange }: Props) {
                     </button>
                   </div>
                 </div>
+
+                {/* Bottom spacer — clears iPhone home indicator inside the scroll container */}
+                <div className="h-4 sm:h-0" aria-hidden />
 
               </motion.div>
             )}
