@@ -41,7 +41,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 import InspirationCaptureModal from "@/components/InspirationCaptureModal";
-import GroceryStoreCoachModal from "@/components/shopping/GroceryStoreCoachModal";
+import GroceryStoreCoachSheet from "@/components/shopping/GroceryStoreCoachSheet";
 import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
 import VoiceShoppingModal from "@/components/shopping/VoiceShoppingModal";
 
@@ -968,7 +968,7 @@ export default function ShoppingListMasterView() {
           </div>
         )}
         {/* Grocery Store Coach */}
-        <GroceryStoreCoachModal
+        <GroceryStoreCoachSheet
           open={groceryCoachOpen}
           onOpenChange={setGroceryCoachOpen}
         />
