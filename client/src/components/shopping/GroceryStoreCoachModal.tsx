@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -185,7 +186,7 @@ export default function GroceryStoreCoachModal({ open, onOpenChange }: Props) {
   const sortedCategories = MACRO_CATEGORY_ORDER.filter((c) => groupedList[c]);
   const otherCategories = Object.keys(groupedList).filter((c) => !MACRO_CATEGORY_ORDER.includes(c));
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
@@ -561,6 +562,7 @@ export default function GroceryStoreCoachModal({ open, onOpenChange }: Props) {
           </AnimatePresence>
         </div>
       </motion.div>
-    </div>
+    </div>,
+    document.body
   );
 }
