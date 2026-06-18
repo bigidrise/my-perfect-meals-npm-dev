@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import * as SheetPrimitive from "@radix-ui/react-dialog";
 import {
   X,
   ChefHat,
@@ -183,376 +183,356 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const sortedCategories = MACRO_CATEGORY_ORDER.filter((c) => groupedList[c]);
   const otherCategories = Object.keys(groupedList).filter((c) => !MACRO_CATEGORY_ORDER.includes(c));
 
-  return (
-    <SheetPrimitive.Root open={open} onOpenChange={onOpenChange}>
-      <SheetPrimitive.Portal>
-        {/* Backdrop */}
-        <SheetPrimitive.Overlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+  if (!open) return null;
 
-        {/* Sheet panel — full control, no shadcn defaults */}
-        <SheetPrimitive.Content
-          aria-describedby={undefined}
-          className="fixed inset-x-0 bottom-0 z-50 flex flex-col bg-gradient-to-b from-[#0d0d0d] to-[#111111] border border-orange-500/30 rounded-t-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom data-[state=closed]:duration-300 data-[state=open]:duration-500"
-          style={{ maxHeight: "92dvh" }}
-        >
-          {/* Accessibility title (visually hidden) */}
-          <SheetPrimitive.Title className="sr-only">
-            Grocery Store Coach
-          </SheetPrimitive.Title>
+  return createPortal(
+    <>
+      {/* Backdrop — separate from panel so it doesn't affect panel sizing */}
+      <div
+        style={{ position: "fixed", inset: 0, zIndex: 9998, background: "rgba(0,0,0,0.7)" }}
+        onClick={() => onOpenChange(false)}
+      />
 
-          {/* ── Header — never scrolls ── */}
-          <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-white/10 shrink-0">
-            <div className="p-2 rounded-xl bg-orange-600/20 border border-orange-500/30">
-              <ChefHat className="h-5 w-5 text-orange-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-white font-bold text-base leading-tight">Grocery Store Coach</h2>
-              <p className="text-white/50 text-xs">Decide what to make. Know what to buy.</p>
-            </div>
-            <SheetPrimitive.Close className="p-2 rounded-xl bg-white/5 text-white/50 active:bg-white/10 transition-all">
-              <X className="h-4 w-4" />
-            </SheetPrimitive.Close>
+      {/* Panel — pinned to bottom, full width, limited height, flex column */}
+      <div
+        style={{
+          position: "fixed",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 9999,
+          maxHeight: "92dvh",
+          display: "flex",
+          flexDirection: "column",
+          background: "linear-gradient(to bottom, #0d0d0d, #111111)",
+          borderTop: "1px solid rgba(249,115,22,0.3)",
+          borderLeft: "1px solid rgba(249,115,22,0.3)",
+          borderRight: "1px solid rgba(249,115,22,0.3)",
+          borderRadius: "16px 16px 0 0",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header — never scrolls */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
+          <div style={{ padding: 8, borderRadius: 12, background: "rgba(234,88,12,0.2)", border: "1px solid rgba(249,115,22,0.3)" }}>
+            <ChefHat style={{ width: 20, height: 20, color: "#fb923c" }} />
           </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: "white", fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>Grocery Store Coach</div>
+            <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>Decide what to make. Know what to buy.</div>
+          </div>
+          <button
+            onClick={() => onOpenChange(false)}
+            style={{ padding: 8, borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "none", color: "rgba(255,255,255,0.5)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            <X style={{ width: 16, height: 16 }} />
+          </button>
+        </div>
 
-          {/* ── Scrollable body — fills remaining height ── */}
-          <div className="flex-1 overflow-y-auto overscroll-contain min-h-0">
-            <AnimatePresence mode="wait">
+        {/* Scrollable body — takes all remaining height */}
+        <div style={{ flex: 1, overflowY: "auto", overscrollBehavior: "contain", minHeight: 0 }}>
+          <AnimatePresence mode="wait">
 
-              {/* IDLE */}
-              {phase === "idle" && (
-                <motion.div
-                  key="idle"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="p-4 space-y-5 pb-10"
-                >
-                  {/* Serving count */}
-                  <div>
-                    <p className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-2">
-                      How many people?
-                    </p>
-                    <div className="flex items-center gap-3 mb-2.5">
-                      <button
-                        onClick={() => setServingCount((n) => Math.max(1, n - 1))}
-                        disabled={servingCount <= 1}
-                        className="w-10 h-10 rounded-full bg-white/8 border border-white/10 text-white/70 disabled:opacity-30 flex items-center justify-center active:scale-90 transition-all"
-                      >
-                        <Minus className="h-4 w-4" />
-                      </button>
-                      <div className="flex-1 text-center">
-                        <span className="text-3xl font-bold text-white">{servingCount}</span>
-                        <p className="text-white/40 text-xs mt-0.5">
-                          {servingCount === 1 ? "Just me" : servingCount === 2 ? "2 people" : `${servingCount} people`}
-                        </p>
+            {/* ── IDLE ── */}
+            {phase === "idle" && (
+              <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                style={{ padding: 16, display: "flex", flexDirection: "column", gap: 20, paddingBottom: 40 }}
+              >
+                {/* Serving count */}
+                <div>
+                  <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                    How many people?
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+                    <button
+                      onClick={() => setServingCount((n) => Math.max(1, n - 1))}
+                      disabled={servingCount <= 1}
+                      style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)", display: "flex", alignItems: "center", justifyContent: "center", opacity: servingCount <= 1 ? 0.3 : 1, cursor: servingCount <= 1 ? "not-allowed" : "pointer" }}
+                    >
+                      <Minus style={{ width: 14, height: 14 }} />
+                    </button>
+                    <div style={{ flex: 1, textAlign: "center" }}>
+                      <div style={{ color: "white", fontWeight: 700, fontSize: 28 }}>{servingCount}</div>
+                      <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, marginTop: 2 }}>
+                        {servingCount === 1 ? "Just me" : servingCount === 2 ? "2 people" : `${servingCount} people`}
                       </div>
-                      <button
-                        onClick={() => setServingCount((n) => Math.min(12, n + 1))}
-                        disabled={servingCount >= 12}
-                        className="w-10 h-10 rounded-full bg-white/8 border border-white/10 text-white/70 disabled:opacity-30 flex items-center justify-center active:scale-90 transition-all"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
                     </div>
-                    <div className="flex gap-1.5">
-                      {[1, 2, 3, 4, 5, 6].map((n) => (
-                        <button
-                          key={n}
-                          onClick={() => setServingCount(n)}
-                          className={`flex-1 py-2 rounded-lg text-xs font-semibold border transition-all ${
-                            servingCount === n
-                              ? "bg-orange-600 text-white border-orange-500"
-                              : "bg-white/5 text-white/50 border-white/10 active:bg-white/10"
-                          }`}
-                        >
-                          {n === 1 ? "Me" : n}
-                        </button>
+                    <button
+                      onClick={() => setServingCount((n) => Math.min(12, n + 1))}
+                      disabled={servingCount >= 12}
+                      style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)", display: "flex", alignItems: "center", justifyContent: "center", opacity: servingCount >= 12 ? 0.3 : 1, cursor: servingCount >= 12 ? "not-allowed" : "pointer" }}
+                    >
+                      <Plus style={{ width: 14, height: 14 }} />
+                    </button>
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {[1, 2, 3, 4, 5, 6].map((n) => (
+                      <button
+                        key={n}
+                        onClick={() => setServingCount(n)}
+                        style={{
+                          flex: 1, padding: "8px 0", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                          background: servingCount === n ? "#ea580c" : "rgba(255,255,255,0.05)",
+                          color: servingCount === n ? "white" : "rgba(255,255,255,0.5)",
+                          border: servingCount === n ? "1px solid #f97316" : "1px solid rgba(255,255,255,0.1)",
+                        }}
+                      >
+                        {n === 1 ? "Me" : n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Quick starts */}
+                <div>
+                  <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                    Quick start
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {QUICK_STARTS.map((chip) => (
+                      <button
+                        key={chip}
+                        onClick={() => sendMessage(chip)}
+                        style={{ padding: "8px 12px", borderRadius: 999, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)", fontSize: 13, cursor: "pointer" }}
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Text input */}
+                <div>
+                  <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                    Or describe what you're feeling
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <textarea
+                      ref={inputRef}
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }}
+                      placeholder="e.g. I have no idea what I want for dinner…"
+                      rows={2}
+                      style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "10px 12px", color: "white", fontSize: 14, resize: "none", outline: "none" }}
+                    />
+                    <button
+                      onClick={handleSubmit}
+                      disabled={!input.trim()}
+                      style={{ padding: "0 16px", borderRadius: 12, background: input.trim() ? "#ea580c" : "rgba(255,255,255,0.1)", border: "none", color: input.trim() ? "white" : "rgba(255,255,255,0.3)", cursor: input.trim() ? "pointer" : "not-allowed", display: "flex", alignItems: "center" }}
+                    >
+                      <Send style={{ width: 16, height: 16 }} />
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── LOADING ── */}
+            {phase === "loading" && (
+              <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 16px", gap: 20 }}
+              >
+                <div style={{ position: "relative" }}>
+                  <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(234,88,12,0.2)", border: "2px solid rgba(249,115,22,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <ChefHat style={{ width: 28, height: 28, color: "#fb923c" }} />
+                  </div>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                    style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "2px solid transparent", borderTopColor: "#f97316" }}
+                  />
+                </div>
+                <motion.div key={loadingMsg} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
+                  style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, textAlign: "center", fontWeight: 500 }}
+                >
+                  {loadingMsg}
+                </motion.div>
+              </motion.div>
+            )}
+
+            {/* ── RESULT ── */}
+            {phase === "result" && result && (
+              <motion.div key="result" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16, paddingBottom: 40 }}
+              >
+                {/* Meal card */}
+                <div style={{ borderRadius: 12, background: "rgba(234,88,12,0.12)", border: "1px solid rgba(249,115,22,0.3)", padding: 16 }}>
+                  <div style={{ color: "#fb923c", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
+                    Tonight's Recommendation
+                  </div>
+                  <div style={{ color: "white", fontWeight: 700, fontSize: 20, lineHeight: 1.2, marginBottom: 8 }}>
+                    {result.meal?.name || "Your Personalized Meal"}
+                  </div>
+                  <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>
+                    {result.meal?.description}
+                  </div>
+                  <div style={{ display: "flex", gap: 16 }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,0.5)", fontSize: 13 }}>
+                      <Clock style={{ width: 14, height: 14, flexShrink: 0 }} />
+                      {result.meal?.prepTime || "~30 min"}
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,0.5)", fontSize: 13 }}>
+                      <Users style={{ width: 14, height: 14, flexShrink: 0 }} />
+                      {result.servingCount || result.meal?.servings || 1}{" "}
+                      {(result.servingCount || result.meal?.servings || 1) === 1 ? "serving" : "servings"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Macros — 2 columns × 2 rows */}
+                {result.macros && (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    {[
+                      { label: "Calories", value: result.macros.calories, unit: "" },
+                      { label: "Protein",  value: result.macros.protein,  unit: "g" },
+                      { label: "Carbs",    value: result.macros.carbs,    unit: "g" },
+                      { label: "Fat",      value: result.macros.fat,      unit: "g" },
+                    ].map(({ label, value, unit }) => (
+                      <div key={label} style={{ borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", padding: 12, textAlign: "center" }}>
+                        <div style={{ color: "white", fontWeight: 700, fontSize: 18, lineHeight: 1 }}>{value ?? "—"}{unit}</div>
+                        <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginTop: 4, fontWeight: 500 }}>{label}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Why This Fits You */}
+                {result.reasoning?.length > 0 && (
+                  <div style={{ borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", padding: 16 }}>
+                    <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
+                      Why This Fits You
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {result.reasoning.map((r, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 14, color: "rgba(255,255,255,0.8)" }}>
+                          <CheckCircle2 style={{ width: 16, height: 16, color: "#fb923c", flexShrink: 0, marginTop: 1 }} />
+                          <span style={{ lineHeight: 1.4 }}>{r}</span>
+                        </div>
                       ))}
                     </div>
                   </div>
+                )}
 
-                  {/* Quick starts */}
-                  <div>
-                    <p className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-2">
-                      Quick start
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {QUICK_STARTS.map((chip) => (
+                {/* Shopping list */}
+                {result.shoppingList?.length > 0 && (
+                  <div style={{ borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", overflow: "hidden" }}>
+                    <button
+                      onClick={() => setListExpanded((v) => !v)}
+                      style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <ShoppingCart style={{ width: 16, height: 16, color: "#fb923c" }} />
+                        <span style={{ color: "white", fontWeight: 600, fontSize: 14 }}>Shopping List</span>
+                        <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>({result.shoppingList.length} items)</span>
+                      </div>
+                      {listExpanded
+                        ? <ChevronUp style={{ width: 16, height: 16, color: "rgba(255,255,255,0.4)" }} />
+                        : <ChevronDown style={{ width: 16, height: 16, color: "rgba(255,255,255,0.4)" }} />
+                      }
+                    </button>
+
+                    <AnimatePresence initial={false}>
+                      {listExpanded && (
+                        <motion.div
+                          initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }}
+                          transition={{ duration: 0.2 }}
+                          style={{ overflow: "hidden" }}
+                        >
+                          <div style={{ padding: "0 16px 16px", display: "flex", flexDirection: "column", gap: 16 }}>
+                            {[...sortedCategories, ...otherCategories].map((cat) => (
+                              <div key={cat}>
+                                <div style={{ color: "rgba(251,146,60,0.7)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                                  {cat}
+                                </div>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                                  {groupedList[cat].map((s, i) => (
+                                    <div key={i} style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, fontSize: 14 }}>
+                                      <span style={{ color: "rgba(255,255,255,0.85)", lineHeight: 1.3 }}>{s.item}</span>
+                                      <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, flexShrink: 0 }}>{s.quantity} {s.unit}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <button
+                    onClick={handleAddToList}
+                    disabled={addedToList}
+                    style={{
+                      width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                      padding: "16px 0", borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: addedToList ? "default" : "pointer", border: "none",
+                      background: addedToList ? "rgba(5,150,105,0.2)" : "#ea580c",
+                      color: addedToList ? "#34d399" : "white",
+                    }}
+                  >
+                    {addedToList ? (
+                      <><CheckCircle2 style={{ width: 20, height: 20 }} /> Added to List!</>
+                    ) : (
+                      <><ShoppingCart style={{ width: 20, height: 20 }} /> Add All to Shopping List</>
+                    )}
+                  </button>
+                  <button
+                    onClick={handleGenerateAnother}
+                    style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px 0", borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+                  >
+                    <RefreshCw style={{ width: 16, height: 16 }} />
+                    Try a Different Meal
+                  </button>
+                </div>
+
+                {/* Refine */}
+                <div>
+                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                    Refine this recommendation
+                  </div>
+                  {result.followUpSuggestions?.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+                      {result.followUpSuggestions.map((chip) => (
                         <button
                           key={chip}
                           onClick={() => sendMessage(chip)}
-                          className="px-3 py-2 rounded-full bg-white/5 border border-white/10 text-white/70 text-sm font-medium active:bg-orange-600/20 active:border-orange-500/30 active:text-orange-300 transition-all"
+                          style={{ padding: "8px 12px", borderRadius: 999, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)", fontSize: 13, cursor: "pointer" }}
                         >
                           {chip}
                         </button>
                       ))}
                     </div>
-                  </div>
-
-                  {/* Text input */}
-                  <div>
-                    <p className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-2">
-                      Or describe what you're feeling
-                    </p>
-                    <div className="flex gap-2">
-                      <textarea
-                        ref={inputRef}
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            handleSubmit();
-                          }
-                        }}
-                        placeholder="e.g. I have no idea what I want for dinner…"
-                        rows={2}
-                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/30 resize-none focus:outline-none focus:border-orange-500/50"
-                      />
-                      <button
-                        onClick={handleSubmit}
-                        disabled={!input.trim()}
-                        className="px-4 rounded-xl bg-orange-600 disabled:bg-white/10 disabled:text-white/30 text-white transition-all active:scale-95"
-                      >
-                        <Send className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* LOADING */}
-              {phase === "loading" && (
-                <motion.div
-                  key="loading"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex flex-col items-center justify-center py-20 px-4 gap-5"
-                >
-                  <div className="relative">
-                    <div className="w-16 h-16 rounded-full bg-orange-600/20 border-2 border-orange-500/30 flex items-center justify-center">
-                      <ChefHat className="h-7 w-7 text-orange-400" />
-                    </div>
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                      className="absolute inset-0 rounded-full border-2 border-transparent border-t-orange-500"
+                  )}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <textarea
+                      ref={inputRef}
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }}
+                      placeholder="Make it cheaper… faster… vegetarian…"
+                      rows={2}
+                      style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "10px 12px", color: "white", fontSize: 14, resize: "none", outline: "none" }}
                     />
-                  </div>
-                  <motion.p
-                    key={loadingMsg}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -5 }}
-                    className="text-white/70 text-sm text-center font-medium"
-                  >
-                    {loadingMsg}
-                  </motion.p>
-                </motion.div>
-              )}
-
-              {/* RESULT */}
-              {phase === "result" && result && (
-                <motion.div
-                  key="result"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="p-4 space-y-4 pb-10"
-                >
-                  {/* Meal card */}
-                  <div className="rounded-xl bg-orange-600/15 border border-orange-500/30 p-4">
-                    <p className="text-orange-400 text-xs font-bold uppercase tracking-wider mb-1">
-                      Tonight's Recommendation
-                    </p>
-                    <h3 className="text-white font-bold text-xl leading-tight">
-                      {result.meal?.name || "Your Personalized Meal"}
-                    </h3>
-                    <p className="text-white/70 text-sm mt-2 leading-relaxed">
-                      {result.meal?.description}
-                    </p>
-                    <div className="flex items-center gap-4 mt-3">
-                      <span className="flex items-center gap-1.5 text-sm text-white/50">
-                        <Clock className="h-4 w-4 shrink-0" />
-                        {result.meal?.prepTime || "~30 min"}
-                      </span>
-                      <span className="flex items-center gap-1.5 text-sm text-white/50">
-                        <Users className="h-4 w-4 shrink-0" />
-                        {result.servingCount || result.meal?.servings || 1}{" "}
-                        {(result.servingCount || result.meal?.servings || 1) === 1 ? "serving" : "servings"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Macros — 2×2, works on any phone */}
-                  {result.macros && (
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { label: "Calories", value: result.macros.calories, unit: "" },
-                        { label: "Protein",  value: result.macros.protein,  unit: "g" },
-                        { label: "Carbs",    value: result.macros.carbs,    unit: "g" },
-                        { label: "Fat",      value: result.macros.fat,      unit: "g" },
-                      ].map(({ label, value, unit }) => (
-                        <div
-                          key={label}
-                          className="rounded-xl bg-white/5 border border-white/10 p-3 text-center"
-                        >
-                          <p className="text-white font-bold text-lg leading-none">
-                            {value ?? "—"}{unit}
-                          </p>
-                          <p className="text-white/50 text-xs mt-1 font-medium">{label}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Why This Fits You */}
-                  {result.reasoning?.length > 0 && (
-                    <div className="rounded-xl bg-white/5 border border-white/10 p-4">
-                      <p className="text-white/50 text-xs font-bold uppercase tracking-wider mb-3">
-                        Why This Fits You
-                      </p>
-                      <ul className="space-y-2.5">
-                        {result.reasoning.map((r, i) => (
-                          <li key={i} className="flex items-start gap-2.5 text-sm text-white/80">
-                            <CheckCircle2 className="h-4 w-4 text-orange-400 shrink-0 mt-0.5" />
-                            <span className="leading-snug">{r}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Shopping list */}
-                  {result.shoppingList?.length > 0 && (
-                    <div className="rounded-xl bg-white/5 border border-white/10 overflow-hidden">
-                      <button
-                        onClick={() => setListExpanded((v) => !v)}
-                        className="w-full flex items-center justify-between px-4 py-3.5 text-left active:bg-white/5"
-                      >
-                        <div className="flex items-center gap-2">
-                          <ShoppingCart className="h-4 w-4 text-orange-400" />
-                          <span className="text-white font-semibold text-sm">Shopping List</span>
-                          <span className="text-white/40 text-xs">
-                            ({result.shoppingList.length} items)
-                          </span>
-                        </div>
-                        {listExpanded
-                          ? <ChevronUp className="h-4 w-4 text-white/40" />
-                          : <ChevronDown className="h-4 w-4 text-white/40" />
-                        }
-                      </button>
-
-                      <AnimatePresence initial={false}>
-                        {listExpanded && (
-                          <motion.div
-                            initial={{ height: 0 }}
-                            animate={{ height: "auto" }}
-                            exit={{ height: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="px-4 pb-4 space-y-4">
-                              {[...sortedCategories, ...otherCategories].map((cat) => (
-                                <div key={cat}>
-                                  <p className="text-orange-400/70 text-[11px] font-bold uppercase tracking-wider mb-2">
-                                    {cat}
-                                  </p>
-                                  <ul className="space-y-2.5">
-                                    {groupedList[cat].map((s, i) => (
-                                      <li key={i} className="flex items-baseline justify-between gap-3 text-sm">
-                                        <span className="text-white/85 leading-snug">{s.item}</span>
-                                        <span className="text-white/45 text-xs shrink-0">
-                                          {s.quantity} {s.unit}
-                                        </span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              ))}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  <div className="flex flex-col gap-2">
                     <button
-                      onClick={handleAddToList}
-                      disabled={addedToList}
-                      className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-semibold text-base transition-all active:scale-95 ${
-                        addedToList
-                          ? "bg-emerald-600/20 border border-emerald-500/30 text-emerald-400"
-                          : "bg-orange-600 text-white"
-                      }`}
+                      onClick={handleSubmit}
+                      disabled={!input.trim()}
+                      style={{ padding: "0 16px", borderRadius: 12, background: input.trim() ? "#ea580c" : "rgba(255,255,255,0.1)", border: "none", color: input.trim() ? "white" : "rgba(255,255,255,0.3)", cursor: input.trim() ? "pointer" : "not-allowed", display: "flex", alignItems: "center" }}
                     >
-                      {addedToList ? (
-                        <><CheckCircle2 className="h-5 w-5" /> Added to List!</>
-                      ) : (
-                        <><ShoppingCart className="h-5 w-5" /> Add All to Shopping List</>
-                      )}
-                    </button>
-                    <button
-                      onClick={handleGenerateAnother}
-                      className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white/70 text-sm font-semibold active:scale-95 transition-all"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                      Try a Different Meal
+                      <Send style={{ width: 16, height: 16 }} />
                     </button>
                   </div>
+                </div>
+              </motion.div>
+            )}
 
-                  {/* Refine */}
-                  <div>
-                    <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">
-                      Refine this recommendation
-                    </p>
-                    {result.followUpSuggestions?.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {result.followUpSuggestions.map((chip) => (
-                          <button
-                            key={chip}
-                            onClick={() => sendMessage(chip)}
-                            className="px-3 py-2 rounded-full bg-white/5 border border-white/10 text-white/60 text-sm font-medium active:bg-orange-600/20 active:border-orange-500/30 active:text-orange-300 transition-all"
-                          >
-                            {chip}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    <div className="flex gap-2">
-                      <textarea
-                        ref={inputRef}
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            handleSubmit();
-                          }
-                        }}
-                        placeholder="Make it cheaper… faster… vegetarian…"
-                        rows={2}
-                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/30 resize-none focus:outline-none focus:border-orange-500/50"
-                      />
-                      <button
-                        onClick={handleSubmit}
-                        disabled={!input.trim()}
-                        className="px-4 rounded-xl bg-orange-600 disabled:bg-white/10 disabled:text-white/30 text-white transition-all active:scale-95"
-                      >
-                        <Send className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-            </AnimatePresence>
-          </div>
-        </SheetPrimitive.Content>
-      </SheetPrimitive.Portal>
-    </SheetPrimitive.Root>
+          </AnimatePresence>
+        </div>
+      </div>
+    </>,
+    document.body
   );
 }
