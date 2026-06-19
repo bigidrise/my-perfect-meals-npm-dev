@@ -73,6 +73,7 @@ import ReadOnlyNote from "@/components/ReadOnlyNote";
 import { launchMacroPhotoCapture } from "@/lib/photoMacroCapture";
 import { launchIngredientPhotoCapture, type IngredientScanResult } from "@/lib/photoIngredientCapture";
 import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
+import { addOtherItem } from "@/stores/otherItemsStore";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -2590,6 +2591,9 @@ export default function MyBiometrics() {
         onRescan={() => {
           setIngredientSheetOpen(false);
           handleIngredientScan();
+        }}
+        onAddProduct={(name) => {
+          addOtherItem({ name, qty: 1, unit: "unit", category: "Misc", source: "scanned" });
         }}
       />
 
