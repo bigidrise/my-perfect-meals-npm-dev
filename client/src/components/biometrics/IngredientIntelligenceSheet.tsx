@@ -1,15 +1,18 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { X, ChevronDown, ChevronUp, ScanLine, ShoppingBag, Bookmark } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, ScanLine, ShoppingBag, Bookmark, ShoppingCart, Check } from 'lucide-react';
 import type { IngredientScanResult, ScoreVerdict, OutcomeVerdict, BetterAlternative } from '@/lib/photoIngredientCapture';
 import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 interface Props {
   open: boolean;
   result: IngredientScanResult | null;
   onClose: () => void;
   onRescan?: () => void;
-  /** Shopping List context: show "Add to List" action button */
+  /** Shopping List context: add a specific named product directly to the list */
+  onAddProduct?: (name: string) => void;
+  /** Shopping List context: legacy fallback — show "Add to List" action button */
   onAddAnyway?: () => void;
   /** Shopping List context: show "Save Scan" action button */
   onSaveForReview?: () => void;
@@ -199,12 +202,30 @@ function OutcomeCardsGrid({ cards }: { cards: IngredientScanResult['outcomeCards
   );
 }
 
-function BetterAlternativesSection({ alternatives, branded, verdictLevel }: { alternatives: BetterAlternative[]; branded?: boolean; verdictLevel?: string }) {
+function BetterAlternativesSection({
+  alternatives,
+  branded,
+  verdictLevel,
+  onAddToList,
+}: {
+  alternatives: BetterAlternative[];
+  branded?: boolean;
+  verdictLevel?: string;
+  onAddToList?: (name: string) => void;
+}) {
+  const [addedIndex, setAddedIndex] = useState<number | null>(null);
   if (!alternatives || alternatives.length === 0) return null;
 
   const headingText = verdictLevel === 'buy'
     ? (branded ? '🏆 Also Worth Knowing' : '🏆 Even Better Options')
     : '🛒 Better Product Options For You';
+
+  function handleAdd(name: string, i: number) {
+    if (!onAddToList) return;
+    onAddToList(name);
+    setAddedIndex(i);
+    setTimeout(() => setAddedIndex(null), 2000);
+  }
 
   return (
     <div className="mb-5">
@@ -219,7 +240,24 @@ function BetterAlternativesSection({ alternatives, branded, verdictLevel }: { al
       <div className="space-y-2.5">
         {alternatives.map((alt, i) => (
           <div key={i} className="rounded-xl border border-orange-500/25 bg-orange-500/8 p-3.5">
-            <p className="text-sm font-semibold text-white mb-2">{alt.category}</p>
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <p className="text-sm font-semibold text-white flex-1">{alt.category}</p>
+              {onAddToList && (
+                <button
+                  onClick={() => handleAdd(alt.category, i)}
+                  className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all active:scale-95 ${
+                    addedIndex === i
+                      ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300'
+                      : 'bg-orange-600/80 border border-orange-500/50 text-white'
+                  }`}
+                >
+                  {addedIndex === i
+                    ? <><Check className="w-3 h-3" /> Added</>
+                    : <><ShoppingCart className="w-3 h-3" /> Add</>
+                  }
+                </button>
+              )}
+            </div>
             {alt.whyBetter.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {alt.whyBetter.map((why, j) => (
@@ -424,7 +462,8 @@ function AnalysisProfileSection({ items }: { items: string[] }) {
   );
 }
 
-export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, onAddAnyway, onSaveForReview, companionName }: Props) {
+export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, onAddProduct, onAddAnyway, onSaveForReview, companionName }: Props) {
+  const { toast } = useToast();
   const [byNameLoading, setByNameLoading] = useState(false);
   const [byNameResult, setByNameResult] = useState<IngredientScanResult | null>(null);
 
@@ -432,6 +471,12 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
     setByNameResult(null);
     setByNameLoading(false);
   }, [result]);
+
+  function handleAddProduct(name: string) {
+    if (!onAddProduct) return;
+    onAddProduct(name);
+    toast({ title: `Added to your grocery list`, description: name });
+  }
 
   const activeResult = byNameResult ?? result;
   const grade = activeResult ? GRADE_CONFIG[activeResult.alignmentGrade] ?? GRADE_CONFIG.B : null;
@@ -640,6 +685,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                     alternatives={activeResult.betterAlternatives ?? []}
                     branded={isByName || activeResult.analysisMethod === 'full_product_advisor'}
                     verdictLevel={activeResult.verdictLevel}
+                    onAddToList={onAddProduct ? handleAddProduct : undefined}
                   />
 
                   {/* Profile factors driving this analysis */}
@@ -695,18 +741,28 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                   )}
 
                   {/* Shopping context action buttons */}
-                  {(onAddAnyway || onSaveForReview) && (
+                  {(onAddProduct || onAddAnyway || onSaveForReview) && (
                     <div className="space-y-2 mt-2 mb-4">
-                      {onAddAnyway && (
+                      {/* Direct add — uses productName, no typing required */}
+                      {onAddProduct && activeResult.productName && (
+                        <button
+                          onClick={() => handleAddProduct(activeResult.productName)}
+                          className="w-full flex items-center justify-center gap-2 bg-orange-600 rounded-2xl py-3.5 text-white font-semibold text-sm active:scale-[.98] transition-transform"
+                        >
+                          <ShoppingCart className="w-4 h-4" />
+                          Add {activeResult.productName} to List
+                        </button>
+                      )}
+                      {/* Legacy fallback: no productName but onAddAnyway exists */}
+                      {!onAddProduct && onAddAnyway && (
                         <>
                           <button
                             onClick={onAddAnyway}
                             className="w-full flex items-center justify-center gap-2 bg-orange-600 rounded-2xl py-3.5 text-white font-semibold text-sm active:scale-[.98] transition-transform"
                           >
                             <ShoppingBag className="w-4 h-4" />
-                            Add to List — Name It Below
+                            Add to List
                           </button>
-                          <p className="text-xs text-white/30 text-center -mt-1">You'll type the product name in the form below.</p>
                         </>
                       )}
                       {onSaveForReview && (
