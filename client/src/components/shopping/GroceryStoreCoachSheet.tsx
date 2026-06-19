@@ -527,7 +527,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                   borderRadius: 12,
                   padding: "10px 12px",
                   color: "white",
-                  fontSize: 14,
+                  fontSize: 16,
                   resize: "none",
                   outline: "none",
                   fontFamily: "inherit",
