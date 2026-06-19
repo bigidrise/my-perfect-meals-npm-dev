@@ -577,7 +577,7 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
         },
         {
           heading: "Smart Scan Items",
-          text: "When you use Smart Scan to photograph a product's ingredient label and tap Add to Shopping List, that item lands in My List — not in the AI grocery categories. This is intentional. Scanned products are things you personally chose, not AI-recommended ingredients, so they belong in your own section. They appear with a Scanned badge so you can see at a glance where they came from.",
+          text: "When you scan a product using Ingredient Intelligence — whether you photographed the label or searched a product by name — the analysis results sheet shows an 'Add [Product Name] to List' button. Tap it and the item lands in My List instantly. You can also add any of the Better Alternatives shown in the results by tapping the individual Add button on each alternative card. All of these items are scanned products, so they belong in your own section rather than the AI grocery categories.",
         },
         {
           heading: "Checking Off Items",
@@ -590,6 +590,65 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
         {
           heading: "How My List Fits Into the Full Shopping List",
           text: "The full shopping list is organized in layers. The AI-generated sections — Produce, Protein, Dairy, Pantry, and others — are built from your meal plan and live at the top. My List sits below those AI sections, above the Add to My List form. This keeps your AI-planned groceries and your personal items clearly separated so nothing gets confused.",
+        },
+      ],
+    },
+  },
+  {
+    id: "grocery-store-coach",
+    title: "Grocery Store Coach",
+    subtitle: "AI meal planning help while you're standing in the store",
+    icon: ShoppingCart,
+    content: {
+      sections: [
+        {
+          heading: "What It Is",
+          text: "Grocery Store Coach is a real-time AI assistant that helps you plan a meal right from the grocery store aisle. Describe what you want — tonight's dinner, a high-protein meal, something heart-healthy, a family dish — and the Coach builds a complete, personalized meal recommendation along with a ready-to-add shopping list, all in seconds.",
+        },
+        {
+          heading: "The Moment",
+          text: "You're standing in the store with no plan. You know you need to grab food for dinner but you're not sure what to make. That's exactly what this is built for.",
+        },
+        {
+          heading: "How It Works",
+          list: [
+            "Tap the Coach button on the shopping list page",
+            "Choose a quick-start option — or type your own request in plain language",
+            "Set how many people you're cooking for using the serving size control",
+            "The Coach builds a full meal recommendation with name, description, macros, and a categorized shopping list",
+            "Review the shopping list broken down by Produce, Meat, Dairy, Pantry, and more",
+            "Tap Add to Shopping List to send any or all items directly to your list in one tap",
+          ],
+        },
+        {
+          heading: "Quick-Start Options",
+          list: [
+            "What's for dinner tonight?",
+            "Give me something high-protein",
+            "I need something quick",
+            "Family-friendly meal",
+            "Something diabetic-friendly",
+            "Heart-healthy option",
+          ],
+        },
+        {
+          heading: "Your Health Profile Is Always Active",
+          text: "The Coach knows your dietary identity, allergies, health conditions, food avoidances, macro targets, and fitness goal. Every recommendation it builds is automatically shaped by your full health protocol — the same protocol that runs every other meal generator in the app. A diabetic-friendly request means your carb ceiling and blocked ingredients are enforced. A heart-healthy request applies your cardiac support settings. You do not have to remind it of your restrictions.",
+        },
+        {
+          heading: "Conversational Follow-Ups",
+          text: "After a recommendation, the Coach shows follow-up suggestions so you can refine the plan without starting over. Ask for something lighter, higher in protein, or based on a different cuisine — the Coach builds a new result that still respects your full health profile.",
+        },
+        {
+          heading: "Serving Size Control",
+          text: "Use the plus and minus buttons to tell the Coach how many people you're cooking for. Ingredient quantities in the shopping list adjust automatically — whether you're cooking for one or for a group of eight.",
+        },
+        {
+          heading: "Where to Find It",
+          list: [
+            "Shopping List page — look for the Coach button in the top action bar",
+            "Available on Pro and Clinical plans",
+          ],
         },
       ],
     },
@@ -720,8 +779,20 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
           text: "Ingredient Intelligence was designed to make packaged food more understandable for everyday people — not to create fear or replace professional guidance. Results are always framed around your personal goals and context, never as warnings that apply universally. When in doubt about a specific ingredient and your health, talk to your care team.",
         },
         {
-          heading: "Adding a Scanned Product to Your Shopping List",
-          text: "After a scan, tap Add to Shopping List to send the product directly to your My List section. My List is the personal, user-controlled part of the shopping list — kept entirely separate from the AI-generated grocery categories like Produce, Protein, and Pantry. Scanned items appear in My List with an orange Scanned badge so you can always tell them apart from manually added items. If you are not ready to commit, tap Save for Review instead to hold the item without adding it to the list right away.",
+          heading: "One-Tap Add to Your Shopping List",
+          text: "After a scan, the main button shows the exact product name — for example 'Add Ragu Pasta Sauce to List'. Tap it once and the item goes directly into your My List section. The sheet stays open so you can keep reading the analysis. A confirmation toast appears so you know it landed. No typing required.",
+        },
+        {
+          heading: "Adding Better Alternatives Directly",
+          text: "Every scan may include a Better Alternatives section — products that may fit your health profile more closely than the one you scanned. Each alternative card has its own orange Add button. Tap any alternative to add it to your shopping list in one tap. The button briefly confirms 'Added' then resets, so you can add multiple alternatives without leaving the sheet.",
+        },
+        {
+          heading: "Save for Review",
+          text: "Not ready to commit? Tap Save for Review instead to hold the item for later without adding it to the list right away. You can come back to it anytime from your saved items.",
+        },
+        {
+          heading: "Where Items Land",
+          text: "All items added through Smart Scan — whether the scanned product itself or an alternative — land in My List with an orange Scanned badge and camera icon. My List is the personal, user-controlled part of the shopping list, kept entirely separate from the AI-generated grocery categories like Produce, Protein, and Pantry.",
         },
       ],
     },
