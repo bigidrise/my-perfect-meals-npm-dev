@@ -32,7 +32,7 @@ import {
 import { MACRO_SOURCES, getMacroSourceBySlug } from "@/lib/macroSourcesConfig";
 import { getRetailQuantity } from "@/lib/retailIntelligence";
 import AddOtherItems from "@/components/AddOtherItems";
-import { readOtherItems } from "@/stores/otherItemsStore";
+import { readOtherItems, addOtherItem } from "@/stores/otherItemsStore";
 import { GROCERY_RETAILERS, type GroceryRetailerId } from "@/lib/groceryRetailers";
 import GroceryExportModal from "@/components/shopping/GroceryExportModal";
 import { formatQuantity } from "@/lib/formatQuantity";
@@ -991,13 +991,14 @@ export default function ShoppingListMasterView() {
           open={shoppingSheetOpen}
           result={shoppingSheetResult}
           onClose={() => setShoppingSheetOpen(false)}
-          onAddAnyway={() => {
-            clearScan();
-            setShoppingSheetOpen(false);
-            setAddOtherPrefill("Scanned Item");
-            setTimeout(() => {
-              document.getElementById("add-other-items")?.scrollIntoView({ behavior: "smooth", block: "center" });
-            }, 200);
+          onAddProduct={(name) => {
+            addOtherItem({
+              name,
+              qty: 1,
+              unit: "unit",
+              category: "Misc",
+              source: "scanned",
+            });
           }}
           onSaveForReview={() => {
             if (shoppingSheetResult) {
