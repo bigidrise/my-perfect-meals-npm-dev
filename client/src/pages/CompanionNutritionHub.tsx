@@ -15,6 +15,7 @@ import { useCopilot } from "@/components/copilot/CopilotContext";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import InspirationCaptureModal from "@/components/InspirationCaptureModal";
 import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
+import { addOtherItem } from "@/stores/otherItemsStore";
 import { saveProductScan } from "@/lib/shoppingScanStorage";
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 
@@ -658,6 +659,9 @@ export default function CompanionNutritionHub() {
         result={companionScanSheet.result}
         companionName={companionScanModal.profileName}
         onClose={() => setCompanionScanSheet({ open: false, result: null })}
+        onAddProduct={(name) => {
+          addOtherItem({ name, qty: 1, unit: "unit", category: "Misc", source: "scanned" });
+        }}
       />
     </motion.div>
   );
