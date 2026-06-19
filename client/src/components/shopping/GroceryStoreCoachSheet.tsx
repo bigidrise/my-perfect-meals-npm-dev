@@ -187,13 +187,13 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
   return createPortal(
     <>
-      {/* Backdrop — separate from panel so it doesn't affect panel sizing */}
+      {/* Backdrop */}
       <div
         style={{ position: "fixed", inset: 0, zIndex: 9998, background: "rgba(0,0,0,0.7)" }}
         onClick={() => onOpenChange(false)}
       />
 
-      {/* Panel — pinned to bottom, full width, limited height, flex column */}
+      {/* Panel — flex column: header | scroll body | sticky input footer */}
       <div
         style={{
           position: "fixed",
@@ -212,7 +212,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header — never scrolls */}
+        {/* ── Header (never scrolls) ── */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
           <div style={{ padding: 8, borderRadius: 12, background: "rgba(234,88,12,0.2)", border: "1px solid rgba(249,115,22,0.3)" }}>
             <ChefHat style={{ width: 20, height: 20, color: "#fb923c" }} />
@@ -229,14 +229,14 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
           </button>
         </div>
 
-        {/* Scrollable body — takes all remaining height */}
+        {/* ── Scrollable body (shrinks when keyboard opens) ── */}
         <div style={{ flex: 1, overflowY: "auto", overscrollBehavior: "contain", minHeight: 0 }}>
           <AnimatePresence mode="wait">
 
             {/* ── IDLE ── */}
             {phase === "idle" && (
               <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                style={{ padding: 16, display: "flex", flexDirection: "column", gap: 20, paddingBottom: 40 }}
+                style={{ padding: 16, display: "flex", flexDirection: "column", gap: 20, paddingBottom: 16 }}
               >
                 {/* Serving count */}
                 <div>
@@ -300,31 +300,6 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                     ))}
                   </div>
                 </div>
-
-                {/* Text input */}
-                <div>
-                  <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
-                    Or describe what you're feeling
-                  </div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <textarea
-                      ref={inputRef}
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }}
-                      placeholder="e.g. I have no idea what I want for dinner…"
-                      rows={2}
-                      style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "10px 12px", color: "white", fontSize: 14, resize: "none", outline: "none" }}
-                    />
-                    <button
-                      onClick={handleSubmit}
-                      disabled={!input.trim()}
-                      style={{ padding: "0 16px", borderRadius: 12, background: input.trim() ? "#ea580c" : "rgba(255,255,255,0.1)", border: "none", color: input.trim() ? "white" : "rgba(255,255,255,0.3)", cursor: input.trim() ? "pointer" : "not-allowed", display: "flex", alignItems: "center" }}
-                    >
-                      <Send style={{ width: 16, height: 16 }} />
-                    </button>
-                  </div>
-                </div>
               </motion.div>
             )}
 
@@ -354,7 +329,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
             {/* ── RESULT ── */}
             {phase === "result" && result && (
               <motion.div key="result" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16, paddingBottom: 40 }}
+                style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16, paddingBottom: 16 }}
               >
                 {/* Meal card */}
                 <div style={{ borderRadius: 12, background: "rgba(234,88,12,0.12)", border: "1px solid rgba(249,115,22,0.3)", padding: 16 }}>
@@ -380,7 +355,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                   </div>
                 </div>
 
-                {/* Macros — 2 columns × 2 rows */}
+                {/* Macros */}
                 {result.macros && (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     {[
@@ -462,7 +437,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                   </div>
                 )}
 
-                {/* Actions */}
+                {/* Action buttons */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   <button
                     onClick={handleAddToList}
@@ -489,13 +464,13 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                   </button>
                 </div>
 
-                {/* Refine */}
-                <div>
-                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
-                    Refine this recommendation
-                  </div>
-                  {result.followUpSuggestions?.length > 0 && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+                {/* Refine chips — inside scroll body, above sticky input */}
+                {result.followUpSuggestions?.length > 0 && (
+                  <div>
+                    <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                      Refine this recommendation
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                       {result.followUpSuggestions.map((chip) => (
                         <button
                           key={chip}
@@ -506,31 +481,79 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                         </button>
                       ))}
                     </div>
-                  )}
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <textarea
-                      ref={inputRef}
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }}
-                      placeholder="Make it cheaper… faster… vegetarian…"
-                      rows={2}
-                      style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "10px 12px", color: "white", fontSize: 14, resize: "none", outline: "none" }}
-                    />
-                    <button
-                      onClick={handleSubmit}
-                      disabled={!input.trim()}
-                      style={{ padding: "0 16px", borderRadius: 12, background: input.trim() ? "#ea580c" : "rgba(255,255,255,0.1)", border: "none", color: input.trim() ? "white" : "rgba(255,255,255,0.3)", cursor: input.trim() ? "pointer" : "not-allowed", display: "flex", alignItems: "center" }}
-                    >
-                      <Send style={{ width: 16, height: 16 }} />
-                    </button>
                   </div>
-                </div>
+                )}
               </motion.div>
             )}
 
           </AnimatePresence>
         </div>
+
+        {/* ── Sticky input footer — always visible above keyboard ── */}
+        {phase !== "loading" && (
+          <div style={{
+            flexShrink: 0,
+            borderTop: "1px solid rgba(255,255,255,0.08)",
+            padding: "12px 16px",
+            paddingBottom: "max(12px, env(safe-area-inset-bottom))",
+            background: "#0d0d0d",
+          }}>
+            {phase === "idle" && (
+              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                Or describe what you're feeling
+              </div>
+            )}
+            {phase === "result" && (
+              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                Refine this recommendation
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8 }}>
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }}
+                placeholder={
+                  phase === "idle"
+                    ? "e.g. I have no idea what I want for dinner…"
+                    : "Make it cheaper… faster… vegetarian…"
+                }
+                rows={2}
+                style={{
+                  flex: 1,
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 12,
+                  padding: "10px 12px",
+                  color: "white",
+                  fontSize: 14,
+                  resize: "none",
+                  outline: "none",
+                  fontFamily: "inherit",
+                }}
+              />
+              <button
+                onClick={handleSubmit}
+                disabled={!input.trim()}
+                style={{
+                  padding: "0 16px",
+                  borderRadius: 12,
+                  background: input.trim() ? "#ea580c" : "rgba(255,255,255,0.1)",
+                  border: "none",
+                  color: input.trim() ? "white" : "rgba(255,255,255,0.3)",
+                  cursor: input.trim() ? "pointer" : "not-allowed",
+                  display: "flex",
+                  alignItems: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <Send style={{ width: 16, height: 16 }} />
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
     </>,
     document.body
