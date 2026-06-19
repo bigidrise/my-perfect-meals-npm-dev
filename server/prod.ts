@@ -452,6 +452,12 @@ async function initializeApp() {
       .default;
     app.use("/api/check-in-schedules", checkInSchedulesRouter);
 
+    // Shopping list v2 — must be mounted explicitly in prod; registerRoutes()
+    // mounts it in dev but prod.ts has its own route registration path.
+    const { shoppingPreviewRouter, shoppingRouter } = await import("./routes/shoppingListV2");
+    app.use("/api/shopping-list-v2", shoppingPreviewRouter);
+    app.use("/api/shopping-list-v2", shoppingRouter);
+
     // Kitchen routes — must be mounted before registerRoutes() and the /api 404 catch
     const kitchensRouter = (await import("./routes/kitchens")).default;
     const kitchenLibraryRouter = (await import("./routes/kitchenLibrary"))
