@@ -4,8 +4,9 @@ import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Copy, Check, ExternalLink, Award, BarChart2,
-  DollarSign, Link2, Shield, Package, Users, X, Send, ChevronRight,
-  UserPlus, Clock
+  DollarSign, Link2, Shield, Package, Users, X, Send,
+  UserPlus, Clock, RefreshCw, QrCode, Download, ChevronDown, ChevronUp,
+  Smartphone, Mail, Youtube, Instagram, Presentation, Megaphone, AlertTriangle
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +21,13 @@ interface AffiliateAccount {
   rewardfulReferralToken: string | null;
   activatedAt: string | null;
   isActive: boolean;
+}
+
+interface RewardfulStatus {
+  emailConfirmed: boolean;
+  signedIn: boolean;
+  state: string;
+  portalUrl: string;
 }
 
 function Card({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
@@ -50,10 +58,14 @@ export default function AffiliateDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [account, setAccount] = useState<AffiliateAccount | null>(null);
+  const [rewardfulStatus, setRewardfulStatus] = useState<RewardfulStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
+  const [showQR, setShowQR] = useState(false);
+  const [showHowTo, setShowHowTo] = useState(false);
   const [inviteName, setInviteName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteSending, setInviteSending] = useState(false);
@@ -76,6 +88,11 @@ export default function AffiliateDashboard() {
           return;
         }
         setAccount(acct);
+
+        // Fetch live Rewardful status in the background
+        apiRequest("/api/affiliate/rewardful-status")
+          .then((s) => setRewardfulStatus(s as RewardfulStatus))
+          .catch(() => {});
       } catch {
         setLocation("/business-center/affiliate");
       } finally {
@@ -99,6 +116,12 @@ export default function AffiliateDashboard() {
       const data = await apiRequest("/api/affiliate/dashboard-link") as { url?: string };
       if (data.url) {
         window.open(data.url, "_blank", "noopener,noreferrer");
+        // Refresh status after portal visit
+        setTimeout(() => {
+          apiRequest("/api/affiliate/rewardful-status")
+            .then((s) => setRewardfulStatus(s as RewardfulStatus))
+            .catch(() => {});
+        }, 3000);
       } else {
         toast({ title: "Unavailable", description: "Could not generate portal link.", variant: "destructive" });
       }
@@ -106,6 +129,23 @@ export default function AffiliateDashboard() {
       toast({ title: "Error", description: "Failed to open portal. Try again.", variant: "destructive" });
     } finally {
       setPortalLoading(false);
+    }
+  }, [toast]);
+
+  const syncLink = useCallback(async () => {
+    setSyncLoading(true);
+    try {
+      const data = await apiRequest("/api/affiliate/sync-link", { method: "POST" }) as { referralUrl?: string; referralToken?: string };
+      if (data.referralUrl) {
+        setAccount((prev) => prev ? { ...prev, rewardfulReferralUrl: data.referralUrl!, rewardfulReferralToken: data.referralToken ?? null } : prev);
+        toast({ title: "Link Synced!", description: "Your referral link has been updated." });
+      } else {
+        toast({ title: "Not Available Yet", description: "Rewardful hasn't generated your link yet. Check back in a few minutes.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Sync Failed", description: "Could not fetch your referral link. Try again shortly.", variant: "destructive" });
+    } finally {
+      setSyncLoading(false);
     }
   }, [toast]);
 
@@ -132,9 +172,24 @@ export default function AffiliateDashboard() {
     }
   }, [inviteName, inviteEmail, toast]);
 
+  const downloadQR = useCallback(() => {
+    if (!account?.rewardfulReferralUrl) return;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=600x600&margin=20&data=${encodeURIComponent(account.rewardfulReferralUrl)}`;
+    const a = document.createElement("a");
+    a.href = qrUrl;
+    a.download = `mpm-referral-qr-${account.rewardfulReferralToken ?? "code"}.png`;
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast({ title: "Downloading QR Code", description: "Your QR code is downloading." });
+  }, [account, toast]);
+
   const trackLabel = account?.affiliateTrack === "business_affiliate"
     ? "Business & Coaching Affiliate"
     : "Social & Referral Affiliate";
+
+  const needsRewardfulSetup = rewardfulStatus && (!rewardfulStatus.emailConfirmed || !rewardfulStatus.signedIn);
 
   if (loading) {
     return (
@@ -145,6 +200,10 @@ export default function AffiliateDashboard() {
   }
 
   if (!account) return null;
+
+  const qrSrc = account.rewardfulReferralUrl
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=16&color=000000&bgcolor=ffffff&data=${encodeURIComponent(account.rewardfulReferralUrl)}`
+    : null;
 
   return (
     <>
@@ -164,7 +223,7 @@ export default function AffiliateDashboard() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back
+              Business Suite
             </button>
             <div className="flex-1 min-w-0">
               <h1 className="text-base font-bold text-white">Affiliate Dashboard</h1>
@@ -175,7 +234,7 @@ export default function AffiliateDashboard() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600 text-white text-xs font-bold active:scale-[0.95] transition-transform"
             >
               <UserPlus className="h-3.5 w-3.5" />
-              Invite Someone
+              Invite
             </button>
           </div>
         </div>
@@ -184,6 +243,76 @@ export default function AffiliateDashboard() {
           className="px-4 max-w-2xl mx-auto space-y-4"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
         >
+
+          {/* ── REWARDFUL ACCOUNT SETUP CARD (shown until they've signed into Rewardful) ── */}
+          {needsRewardfulSetup && (
+            <motion.div
+              className="rounded-2xl border border-orange-500/40 bg-orange-500/10 backdrop-blur-md p-5"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <div className="flex items-start gap-3 mb-4">
+                <div className="h-9 w-9 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="h-4 w-4 text-orange-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-white">Finish setting up your Rewardful account</p>
+                  <p className="text-xs text-white/50 mt-0.5 leading-relaxed">
+                    You need to complete Rewardful account setup before you can add your bank account and receive payouts.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2.5 mb-4">
+                {[
+                  {
+                    step: "1",
+                    done: rewardfulStatus?.emailConfirmed,
+                    label: "Confirm your Rewardful email",
+                    detail: "Check bigidrise@gmail.com — including your spam folder — for an invitation from Rewardful (getrewardful.com).",
+                  },
+                  {
+                    step: "2",
+                    done: rewardfulStatus?.signedIn,
+                    label: "Sign into your Rewardful account",
+                    detail: "Click the link in that email to set your password and access your payout dashboard.",
+                  },
+                  {
+                    step: "3",
+                    done: false,
+                    label: "Add your bank account inside Rewardful",
+                    detail: "Once signed in, go to Payout Settings in Rewardful to connect your bank account or PayPal.",
+                  },
+                ].map(({ step, done, label, detail }) => (
+                  <div key={step} className={`flex items-start gap-3 p-3 rounded-xl border ${done ? "bg-green-500/10 border-green-500/20" : "bg-black/30 border-white/10"}`}>
+                    <div className={`h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-black ${done ? "bg-green-500/20 text-green-400 border border-green-500/30" : "bg-white/10 text-white/60 border border-white/10"}`}>
+                      {done ? "✓" : step}
+                    </div>
+                    <div>
+                      <p className={`text-xs font-semibold ${done ? "text-green-400 line-through" : "text-white"}`}>{label}</p>
+                      <p className="text-[11px] text-white/40 mt-0.5 leading-relaxed">{detail}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={openPortal}
+                disabled={portalLoading}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-orange-600 text-white font-bold text-sm active:scale-[0.98] transition-all disabled:opacity-60"
+              >
+                {portalLoading
+                  ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  : <ExternalLink className="h-4 w-4" />
+                }
+                {portalLoading ? "Opening..." : "Open Rewardful Setup →"}
+              </button>
+              <p className="text-[10px] text-white/30 text-center mt-2">
+                Can't find the email? Open the portal anyway — Rewardful will walk you through setup.
+              </p>
+            </motion.div>
+          )}
+
           {/* Card 1 — Account Status */}
           <Card delay={0.04}>
             <div className="flex items-start gap-4">
@@ -228,29 +357,180 @@ export default function AffiliateDashboard() {
               </div>
               <CardLabel>Your Referral Link</CardLabel>
             </div>
-            <div className="rounded-xl bg-black/40 border border-white/10 p-3 mb-3">
-              <p className="font-mono text-xs text-white/80 break-all leading-relaxed">
-                {account.rewardfulReferralUrl ?? "Link not available"}
-              </p>
-              {account.rewardfulReferralToken && (
-                <p className="text-[10px] text-white/30 mt-1.5">
-                  Token: <span className="text-orange-400 font-bold">{account.rewardfulReferralToken}</span>
-                </p>
-              )}
-            </div>
-            <button
-              onClick={copyLink}
-              disabled={!account.rewardfulReferralUrl}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-[0.97] disabled:opacity-40"
-              style={{ backgroundColor: copied ? "rgb(34,197,94,0.15)" : "rgb(234,88,12)", color: copied ? "rgb(134,239,172)" : "white", border: copied ? "1px solid rgb(34,197,94,0.3)" : "none" }}
-            >
-              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              {copied ? "Copied!" : "Copy Link"}
-            </button>
+
+            {account.rewardfulReferralUrl ? (
+              <>
+                <div className="rounded-xl bg-black/40 border border-white/10 p-3 mb-3">
+                  <p className="font-mono text-xs text-white/80 break-all leading-relaxed">
+                    {account.rewardfulReferralUrl}
+                  </p>
+                  {account.rewardfulReferralToken && (
+                    <p className="text-[10px] text-white/30 mt-1.5">
+                      Your token: <span className="text-orange-400 font-bold">{account.rewardfulReferralToken}</span>
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={copyLink}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-[0.97]"
+                    style={{ backgroundColor: copied ? "rgb(34,197,94,0.15)" : "rgb(234,88,12)", color: copied ? "rgb(134,239,172)" : "white", border: copied ? "1px solid rgb(34,197,94,0.3)" : "none" }}
+                  >
+                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {copied ? "Copied!" : "Copy Link"}
+                  </button>
+                  <button
+                    onClick={() => setShowQR((v) => !v)}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 text-white font-semibold text-sm active:scale-[0.97] transition-all"
+                  >
+                    <QrCode className="h-4 w-4" />
+                    {showQR ? "Hide QR" : "QR Code"}
+                  </button>
+                </div>
+
+                {/* QR Code Panel */}
+                <AnimatePresence>
+                  {showQR && qrSrc && (
+                    <motion.div
+                      className="mt-4 flex flex-col items-center gap-3"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                    >
+                      <div className="rounded-2xl bg-white p-3 inline-block shadow-xl">
+                        <img
+                          src={qrSrc}
+                          alt="Referral QR Code"
+                          className="w-48 h-48 block"
+                          loading="lazy"
+                        />
+                      </div>
+                      <p className="text-[11px] text-white/40 text-center">
+                        Anyone who scans this goes to your referral link.
+                        <br />Use on flyers, business cards, presentations, or in-person.
+                      </p>
+                      <button
+                        onClick={downloadQR}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 text-white font-semibold text-sm active:scale-[0.97] transition-all"
+                      >
+                        <Download className="h-4 w-4" />
+                        Download QR Code
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </>
+            ) : (
+              <div className="space-y-3">
+                <div className="rounded-xl bg-orange-500/10 border border-orange-500/20 p-4 text-center">
+                  <Clock className="h-5 w-5 text-orange-400 mx-auto mb-2" />
+                  <p className="text-xs font-semibold text-white mb-1">Your referral link is being generated</p>
+                  <p className="text-[11px] text-white/50 leading-relaxed">
+                    Rewardful creates your personalized link after account setup. This usually takes a few minutes.
+                  </p>
+                </div>
+                <button
+                  onClick={syncLink}
+                  disabled={syncLoading}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 text-white font-semibold text-sm active:scale-[0.97] transition-all disabled:opacity-60"
+                >
+                  <RefreshCw className={`h-4 w-4 ${syncLoading ? "animate-spin" : ""}`} />
+                  {syncLoading ? "Checking..." : "Check for Link"}
+                </button>
+              </div>
+            )}
           </Card>
 
-          {/* Card 3 — Certifications */}
+          {/* Card 3 — How to Use Your Link */}
           <Card delay={0.10}>
+            <button
+              className="w-full flex items-center gap-3 text-left"
+              onClick={() => setShowHowTo((v) => !v)}
+            >
+              <div className="h-8 w-8 rounded-lg bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
+                <Megaphone className="h-4 w-4 text-orange-400" />
+              </div>
+              <div className="flex-1">
+                <CardLabel>How to Use Your Link</CardLabel>
+              </div>
+              {showHowTo
+                ? <ChevronUp className="h-4 w-4 text-white/30 flex-shrink-0" />
+                : <ChevronDown className="h-4 w-4 text-white/30 flex-shrink-0" />
+              }
+            </button>
+
+            <AnimatePresence>
+              {showHowTo && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-4 space-y-3">
+                    <p className="text-xs text-white/60 leading-relaxed">
+                      When someone clicks your link, they land on the normal MyPerfectMeals website. They have no idea they came from you — it looks totally natural. Rewardful tracks them silently. If they subscribe, you earn 30% for up to 24 months.
+                    </p>
+
+                    <div className="space-y-2">
+                      {[
+                        {
+                          icon: Instagram,
+                          label: "Instagram & social bio",
+                          detail: "Put your link in your Instagram bio, TikTok bio, Facebook page, or LinkedIn About section. One placement, permanent traffic.",
+                        },
+                        {
+                          icon: Youtube,
+                          label: "YouTube & podcast descriptions",
+                          detail: "Add it to every video description or episode show notes. Say: \"Start your free trial at [your link].\" Every video works for you forever.",
+                        },
+                        {
+                          icon: Mail,
+                          label: "Email and text messages",
+                          detail: "Drop it into your email signature, newsletter, or a personal text to someone you know could benefit. Personal referrals convert highest.",
+                        },
+                        {
+                          icon: QrCode,
+                          label: "QR code for physical use",
+                          detail: "Print the QR code on business cards, gym flyers, rack cards, or clinic handouts. Great for in-person conversations, events, and waiting rooms.",
+                        },
+                        {
+                          icon: Presentation,
+                          label: "Presentations and live demos",
+                          detail: "If you speak, teach, or do webinars, put the QR code on your final slide. While you're talking, people can scan and sign up right then.",
+                        },
+                        {
+                          icon: Smartphone,
+                          label: "Link in bio tools (Linktree, etc.)",
+                          detail: "If you use a link-in-bio page, add your referral link as one of the buttons. Label it: \"My Meal Planning Tool\" or \"Nutrition App I Recommend.\"",
+                        },
+                      ].map(({ icon: Icon, label, detail }) => (
+                        <div key={label} className="flex items-start gap-3 p-3 rounded-xl bg-black/30 border border-white/8">
+                          <div className="h-7 w-7 rounded-lg bg-orange-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Icon className="h-3.5 w-3.5 text-orange-400" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-white">{label}</p>
+                            <p className="text-[11px] text-white/40 mt-0.5 leading-relaxed">{detail}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="rounded-xl bg-orange-500/10 border border-orange-500/20 p-3 mt-2">
+                      <p className="text-[11px] text-orange-300 leading-relaxed font-medium">
+                        💡 What counts as a conversion: Someone clicks your link, signs up for MPM, and starts a paid subscription. You earn 30% of their subscription payments for up to 24 months — automatically tracked and paid through Rewardful.
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </Card>
+
+          {/* Card 4 — Certifications */}
+          <Card delay={0.13}>
             <div className="flex items-center gap-3 mb-3">
               <div className="h-8 w-8 rounded-lg bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
                 <Award className="h-4 w-4 text-orange-400" />
@@ -293,8 +573,8 @@ export default function AffiliateDashboard() {
             </div>
           </Card>
 
-          {/* Card 4 — Commission Terms */}
-          <Card delay={0.13}>
+          {/* Card 5 — Commission Terms */}
+          <Card delay={0.16}>
             <div className="flex items-center gap-3 mb-3">
               <div className="h-8 w-8 rounded-lg bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
                 <DollarSign className="h-4 w-4 text-orange-400" />
@@ -316,8 +596,8 @@ export default function AffiliateDashboard() {
             </div>
           </Card>
 
-          {/* Card 5 — Affiliate Performance */}
-          <Card delay={0.16}>
+          {/* Card 6 — Affiliate Performance */}
+          <Card delay={0.19}>
             <div className="flex items-center gap-3 mb-4">
               <div className="h-8 w-8 rounded-lg bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
                 <BarChart2 className="h-4 w-4 text-orange-400" />
@@ -343,17 +623,22 @@ export default function AffiliateDashboard() {
             </p>
           </Card>
 
-          {/* Card 6 — Open Rewardful Portal */}
-          <Card delay={0.19}>
+          {/* Card 7 — Open Rewardful Portal */}
+          <Card delay={0.22}>
             <div className="flex items-center gap-3 mb-3">
               <div className="h-8 w-8 rounded-lg bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
                 <ExternalLink className="h-4 w-4 text-orange-400" />
               </div>
               <CardLabel>Affiliate Portal</CardLabel>
             </div>
-            <p className="text-xs text-white/50 mb-4 leading-relaxed">
-              Your Rewardful portal has real-time referral tracking, payout history, commission reports, and account management.
+            <p className="text-xs text-white/50 mb-2 leading-relaxed">
+              Your Rewardful portal has real-time referral tracking, payout history, commission reports, and bank account setup.
             </p>
+            {needsRewardfulSetup && (
+              <p className="text-[11px] text-orange-400/80 mb-3 leading-relaxed font-medium">
+                ↑ Complete the account setup above first so you can add your bank account once the portal opens.
+              </p>
+            )}
             <button
               onClick={openPortal}
               disabled={portalLoading}
@@ -368,8 +653,8 @@ export default function AffiliateDashboard() {
             </button>
           </Card>
 
-          {/* Card 7 — Marketing Resources */}
-          <Card delay={0.22}>
+          {/* Card 8 — Marketing Resources */}
+          <Card delay={0.25}>
             <div className="flex items-center gap-3 mb-3">
               <div className="h-8 w-8 rounded-lg bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
                 <Package className="h-4 w-4 text-orange-400" />
