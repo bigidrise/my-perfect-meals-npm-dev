@@ -5,7 +5,7 @@ import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { userAffiliateAccounts } from "../db/schema/affiliateAccounts";
 import { users } from "../../shared/schema";
 import { checkBusinessAffiliateEligibility } from "../services/affiliateEligibility";
-import { getRewardfulMagicLink, getRewardfulAffiliate } from "../services/rewardfulApi";
+import { getRewardfulMagicLink, getRewardfulAffiliate, getRewardfulAffiliateStatus } from "../services/rewardfulApi";
 import { sendAffiliateReferralInvite } from "../services/emailService";
 
 const router = Router();
@@ -197,6 +197,34 @@ router.get("/dashboard-link", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("[Affiliate] dashboard-link error:", err);
     return res.status(500).json({ error: "Failed to generate dashboard link" });
+  }
+});
+
+// ─── GET /api/affiliate/rewardful-status ─────────────────────────────────────
+// Returns live Rewardful account status: email confirmed, signed in, SSO portal URL.
+// Called once by the dashboard on mount to show the account-setup card when needed.
+router.get("/rewardful-status", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser.id;
+    const [account] = await db
+      .select({ rewardfulAffiliateId: userAffiliateAccounts.rewardfulAffiliateId })
+      .from(userAffiliateAccounts)
+      .where(eq(userAffiliateAccounts.userId, userId))
+      .limit(1);
+
+    if (!account?.rewardfulAffiliateId) {
+      return res.status(404).json({ error: "No Rewardful affiliate account" });
+    }
+
+    const status = await getRewardfulAffiliateStatus(account.rewardfulAffiliateId);
+    if (!status) {
+      return res.status(502).json({ error: "Could not reach Rewardful" });
+    }
+
+    return res.json(status);
+  } catch (err) {
+    console.error("[Affiliate] rewardful-status error:", err);
+    return res.status(500).json({ error: "Failed to fetch Rewardful status" });
   }
 });
 

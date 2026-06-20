@@ -76,6 +76,41 @@ export async function getRewardfulMagicLink(affiliateId: string): Promise<string
     headers: { Authorization: basicAuth() },
   });
   if (!res.ok) return null;
-  const data = await res.json() as { url?: string };
-  return data.url ?? null;
+  // Rewardful returns { sso: { url, expires }, affiliate: { id, email } }
+  const data = await res.json() as { sso?: { url?: string }; url?: string };
+  return data.sso?.url ?? data.url ?? null;
+}
+
+export interface RewardfulAffiliateStatus {
+  emailConfirmed: boolean;
+  signedIn: boolean;
+  state: string;
+  portalUrl: string;
+}
+
+export async function getRewardfulAffiliateStatus(affiliateId: string): Promise<RewardfulAffiliateStatus | null> {
+  const [affiliateRes, ssoRes] = await Promise.all([
+    fetch(`${REWARDFUL_API_BASE}/affiliates/${affiliateId}`, { headers: { Authorization: basicAuth() } }),
+    fetch(`${REWARDFUL_API_BASE}/affiliates/${affiliateId}/sso`, { headers: { Authorization: basicAuth() } }),
+  ]);
+
+  if (!affiliateRes.ok) return null;
+  const affiliate = await affiliateRes.json() as {
+    state: string;
+    email_confirmed_at?: string | null;
+    signed_in_at?: string | null;
+  };
+
+  let portalUrl = "";
+  if (ssoRes.ok) {
+    const ssoData = await ssoRes.json() as { sso?: { url?: string }; url?: string };
+    portalUrl = ssoData.sso?.url ?? ssoData.url ?? "";
+  }
+
+  return {
+    emailConfirmed: !!affiliate.email_confirmed_at,
+    signedIn: !!affiliate.signed_in_at,
+    state: affiliate.state,
+    portalUrl,
+  };
 }
