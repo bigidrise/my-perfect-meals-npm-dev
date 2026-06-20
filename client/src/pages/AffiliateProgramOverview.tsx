@@ -195,7 +195,7 @@ export default function AffiliateProgramOverview() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            Business Suite
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-base font-bold text-white">Affiliate Program</h1>
