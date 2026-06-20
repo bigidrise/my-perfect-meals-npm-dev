@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Copy, Check, ExternalLink, Award, BarChart2,
   DollarSign, Link2, Shield, Package, Users, X, Send, ChevronRight,
-  UserPlus, Clock
+  UserPlus, Clock, RefreshCw
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -53,6 +53,7 @@ export default function AffiliateDashboard() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [inviteName, setInviteName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
@@ -106,6 +107,23 @@ export default function AffiliateDashboard() {
       toast({ title: "Error", description: "Failed to open portal. Try again.", variant: "destructive" });
     } finally {
       setPortalLoading(false);
+    }
+  }, [toast]);
+
+  const syncLink = useCallback(async () => {
+    setSyncLoading(true);
+    try {
+      const data = await apiRequest("/api/affiliate/sync-link", { method: "POST" }) as { referralUrl?: string; referralToken?: string };
+      if (data.referralUrl) {
+        setAccount((prev) => prev ? { ...prev, rewardfulReferralUrl: data.referralUrl!, rewardfulReferralToken: data.referralToken ?? null } : prev);
+        toast({ title: "Link Synced!", description: "Your referral link has been updated." });
+      } else {
+        toast({ title: "Not Available Yet", description: "Rewardful hasn't generated your link yet. Check back in a few minutes.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Sync Failed", description: "Could not fetch your referral link. Try again shortly.", variant: "destructive" });
+    } finally {
+      setSyncLoading(false);
     }
   }, [toast]);
 
@@ -164,7 +182,7 @@ export default function AffiliateDashboard() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back
+              Business Suite
             </button>
             <div className="flex-1 min-w-0">
               <h1 className="text-base font-bold text-white">Affiliate Dashboard</h1>
@@ -228,25 +246,47 @@ export default function AffiliateDashboard() {
               </div>
               <CardLabel>Your Referral Link</CardLabel>
             </div>
-            <div className="rounded-xl bg-black/40 border border-white/10 p-3 mb-3">
-              <p className="font-mono text-xs text-white/80 break-all leading-relaxed">
-                {account.rewardfulReferralUrl ?? "Link not available"}
-              </p>
-              {account.rewardfulReferralToken && (
-                <p className="text-[10px] text-white/30 mt-1.5">
-                  Token: <span className="text-orange-400 font-bold">{account.rewardfulReferralToken}</span>
-                </p>
-              )}
-            </div>
-            <button
-              onClick={copyLink}
-              disabled={!account.rewardfulReferralUrl}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-[0.97] disabled:opacity-40"
-              style={{ backgroundColor: copied ? "rgb(34,197,94,0.15)" : "rgb(234,88,12)", color: copied ? "rgb(134,239,172)" : "white", border: copied ? "1px solid rgb(34,197,94,0.3)" : "none" }}
-            >
-              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              {copied ? "Copied!" : "Copy Link"}
-            </button>
+
+            {account.rewardfulReferralUrl ? (
+              <>
+                <div className="rounded-xl bg-black/40 border border-white/10 p-3 mb-3">
+                  <p className="font-mono text-xs text-white/80 break-all leading-relaxed">
+                    {account.rewardfulReferralUrl}
+                  </p>
+                  {account.rewardfulReferralToken && (
+                    <p className="text-[10px] text-white/30 mt-1.5">
+                      Token: <span className="text-orange-400 font-bold">{account.rewardfulReferralToken}</span>
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={copyLink}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-[0.97]"
+                  style={{ backgroundColor: copied ? "rgb(34,197,94,0.15)" : "rgb(234,88,12)", color: copied ? "rgb(134,239,172)" : "white", border: copied ? "1px solid rgb(34,197,94,0.3)" : "none" }}
+                >
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  {copied ? "Copied!" : "Copy Link"}
+                </button>
+              </>
+            ) : (
+              <div className="space-y-3">
+                <div className="rounded-xl bg-orange-500/10 border border-orange-500/20 p-4 text-center">
+                  <Clock className="h-5 w-5 text-orange-400 mx-auto mb-2" />
+                  <p className="text-xs font-semibold text-white mb-1">Your referral link is being generated</p>
+                  <p className="text-[11px] text-white/50 leading-relaxed">
+                    Rewardful creates your personalized link after account setup. This usually takes a few minutes.
+                  </p>
+                </div>
+                <button
+                  onClick={syncLink}
+                  disabled={syncLoading}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 text-white font-semibold text-sm active:scale-[0.97] transition-all disabled:opacity-60"
+                >
+                  <RefreshCw className={`h-4 w-4 ${syncLoading ? "animate-spin" : ""}`} />
+                  {syncLoading ? "Checking..." : "Check for Link"}
+                </button>
+              </div>
+            )}
           </Card>
 
           {/* Card 3 — Certifications */}

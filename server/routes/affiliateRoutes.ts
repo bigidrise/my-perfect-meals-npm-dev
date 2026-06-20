@@ -129,6 +129,28 @@ router.get("/account", requireAuth, async (req, res) => {
       }
     }
 
+    // Auto-refresh referral URL from Rewardful if affiliate exists but URL is missing
+    let referralUrl = account.rewardfulReferralUrl;
+    let referralToken = account.rewardfulReferralToken;
+    if (account.rewardfulAffiliateId && !referralUrl) {
+      try {
+        const rewardfulAffiliate = await getRewardfulAffiliate(account.rewardfulAffiliateId);
+        const fetchedUrl = rewardfulAffiliate?.links?.[0]?.url ?? "";
+        const fetchedToken = rewardfulAffiliate?.links?.[0]?.token ?? "";
+        if (fetchedUrl) {
+          referralUrl = fetchedUrl;
+          referralToken = fetchedToken;
+          db.update(userAffiliateAccounts)
+            .set({ rewardfulReferralUrl: fetchedUrl, rewardfulReferralToken: fetchedToken, updatedAt: new Date() })
+            .where(eq(userAffiliateAccounts.userId, userId))
+            .catch(() => {});
+          console.log(`[Affiliate] Auto-synced referral URL for userId=${userId}`);
+        }
+      } catch (e) {
+        console.warn("[Affiliate] Auto-sync referral URL failed:", e);
+      }
+    }
+
     return res.json({
       account: {
         affiliateTrack: account.affiliateTrack,
@@ -136,8 +158,8 @@ router.get("/account", requireAuth, async (req, res) => {
         phase1CompletedAt,
         phase2CompletedAt,
         rewardfulState: account.rewardfulState,
-        rewardfulReferralUrl: account.rewardfulReferralUrl,
-        rewardfulReferralToken: account.rewardfulReferralToken,
+        rewardfulReferralUrl: referralUrl,
+        rewardfulReferralToken: referralToken,
         activatedAt: account.activatedAt,
         isActive: account.rewardfulState === "active",
       },
@@ -175,6 +197,42 @@ router.get("/dashboard-link", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("[Affiliate] dashboard-link error:", err);
     return res.status(500).json({ error: "Failed to generate dashboard link" });
+  }
+});
+
+// ─── POST /api/affiliate/sync-link ────────────────────────────────────────────
+// Manually fetches the latest referral URL/token from Rewardful for accounts
+// where the URL is missing (e.g., link wasn't available at creation time).
+router.post("/sync-link", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser.id;
+    const [account] = await db
+      .select()
+      .from(userAffiliateAccounts)
+      .where(eq(userAffiliateAccounts.userId, userId))
+      .limit(1);
+
+    if (!account?.rewardfulAffiliateId) {
+      return res.status(404).json({ error: "No Rewardful affiliate account found" });
+    }
+
+    const rewardfulAffiliate = await getRewardfulAffiliate(account.rewardfulAffiliateId);
+    const fetchedUrl = rewardfulAffiliate?.links?.[0]?.url ?? "";
+    const fetchedToken = rewardfulAffiliate?.links?.[0]?.token ?? "";
+
+    if (!fetchedUrl) {
+      return res.status(404).json({ error: "Rewardful has not generated a referral link yet" });
+    }
+
+    await db.update(userAffiliateAccounts)
+      .set({ rewardfulReferralUrl: fetchedUrl, rewardfulReferralToken: fetchedToken, updatedAt: new Date() })
+      .where(eq(userAffiliateAccounts.userId, userId));
+
+    console.log(`[Affiliate] sync-link: updated referral URL for userId=${userId}`);
+    return res.json({ ok: true, referralUrl: fetchedUrl, referralToken: fetchedToken });
+  } catch (err) {
+    console.error("[Affiliate] sync-link error:", err);
+    return res.status(500).json({ error: "Failed to sync referral link" });
   }
 });
 
@@ -297,10 +355,17 @@ export async function handleRewardfulWebhook(req: any, res: any) {
         console.log(`[Rewardful Webhook] affiliate.created for userId=${account.userId}`);
         break;
 
-      case "affiliate.updated":
-        if (newState) {
+      case "affiliate.updated": {
+        const updatedFields: Record<string, unknown> = { updatedAt: new Date() };
+        if (newState) updatedFields.rewardfulState = newState;
+        const webhookUrl = (object as any).links?.[0]?.url as string | undefined;
+        const webhookToken = (object as any).links?.[0]?.token as string | undefined;
+        if (webhookUrl && !account.rewardfulReferralUrl) updatedFields.rewardfulReferralUrl = webhookUrl;
+        if (webhookToken && !account.rewardfulReferralToken) updatedFields.rewardfulReferralToken = webhookToken;
+
+        if (Object.keys(updatedFields).length > 1) {
           await db.update(userAffiliateAccounts)
-            .set({ rewardfulState: newState, updatedAt: new Date() })
+            .set(updatedFields as any)
             .where(eq(userAffiliateAccounts.userId, account.userId));
           console.log(`[Rewardful Webhook] affiliate.updated userId=${account.userId} state→${newState}`);
 
@@ -314,11 +379,14 @@ export async function handleRewardfulWebhook(req: any, res: any) {
 
             if (affiliateUser?.email) {
               const name = [affiliateUser.firstName, affiliateUser.lastName].filter(Boolean).join(" ") || "Affiliate";
+              // Prefer the URL from the webhook payload (just saved to DB) over the stale account snapshot
+              const emailReferralUrl = webhookUrl ?? account.rewardfulReferralUrl ?? "";
+              const emailReferralToken = webhookToken ?? account.rewardfulReferralToken ?? "";
               sendAffiliateWelcomeEmail({
                 to: affiliateUser.email,
                 name,
-                referralUrl: account.rewardfulReferralUrl ?? "",
-                referralToken: account.rewardfulReferralToken ?? "",
+                referralUrl: emailReferralUrl,
+                referralToken: emailReferralToken,
                 track: account.affiliateTrack ?? "social_affiliate",
               }).then((sent) => {
                 if (sent) {
@@ -332,6 +400,7 @@ export async function handleRewardfulWebhook(req: any, res: any) {
           }
         }
         break;
+      }
 
       case "affiliate.deleted":
         await db.update(userAffiliateAccounts)
