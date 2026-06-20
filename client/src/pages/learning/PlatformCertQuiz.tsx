@@ -56,6 +56,7 @@ export default function PlatformCertQuiz() {
   const [result, setResult] = useState<{ score: number; passed: boolean; correct: number; total: number; correctAnswers: Record<string, string> } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [hasNextModule, setHasNextModule] = useState(false);
 
   const isFinal = slug === "final";
   const passingScore = module?.passingScorePct ?? 80;
@@ -73,6 +74,8 @@ export default function PlatformCertQuiz() {
           const qs = mod.questions ?? [];
           setRawQuestions(qs);
           setQuestions(shuffleQuestions(qs));
+          const idx = mods.findIndex((m) => m.slug === slug);
+          setHasNextModule(idx !== -1 && idx < mods.length - 1);
         }
       })
       .catch(() => {})
@@ -255,7 +258,9 @@ export default function PlatformCertQuiz() {
                   onClick={handleContinue}
                   className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm active:scale-[0.98] transition-transform"
                 >
-                  {moduleNum ? `Continue to Module ${parseInt(moduleNum) + 1} →` : isFinal ? "View Certificate →" : "Continue →"}
+                  {moduleNum
+                    ? (hasNextModule ? `Continue to Module ${parseInt(moduleNum) + 1} →` : "Complete Certification →")
+                    : isFinal ? "View Certificate →" : "Continue →"}
                 </button>
               ) : (
                 <div className="flex gap-3">
