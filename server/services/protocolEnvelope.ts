@@ -51,6 +51,7 @@ import {
   type GlucoseState,
 } from "./diabeticContextService";
 import { buildUniversalConditionGuidance } from "./universalMedicalGuidance";
+import { deriveCompPrepStatus } from "./protocol/competitionPrepDateEngine";
 import { sanitizeIdentifiers } from "./promptSanitizer";
 import { logAudit } from "../lib/auditLog";
 
@@ -918,6 +919,69 @@ export async function loadUserProtocolEnvelope(
       }
     }
 
+    // ── COMPETITION PREP — date-driven additive modifier ─────────────────────
+    const competitionPrep: boolean = specialtyConditionsArr.includes("competition-prep");
+    let competitionPrepCtx: {
+      active: boolean;
+      competitionType: string;
+      competitionTypeLabel: string;
+      division?: string;
+      eventDate: string;
+      weeksOut: number;
+      currentPhase: string;
+      currentPhaseLabel: string;
+      isPeakWeek: boolean;
+      isEventDay: boolean;
+      isPostEvent: boolean;
+      category: "physique" | "strength" | "combat" | "wrestling" | "functional" | "endurance";
+      currentWeight?: string;
+      targetWeight?: string;
+    } | null = null;
+
+    if (competitionPrep) {
+      const rawComp = ((user as any).competitionPrepContext as {
+        competitionType?: string;
+        division?: string;
+        eventDate?: string;
+        currentWeight?: string;
+        targetWeight?: string;
+      } | null) ?? null;
+
+      if (rawComp?.competitionType && rawComp?.eventDate) {
+        const compTypeLabels: Record<string, string> = {
+          bodybuilding_show: "Bodybuilding Show", mens_physique: "Men's Physique",
+          classic_physique: "Classic Physique", figure: "Figure", bikini: "Bikini",
+          wellness: "Wellness", powerlifting_meet: "Powerlifting Meet",
+          strongman_competition: "Strongman Competition",
+          olympic_weightlifting_meet: "Olympic Weightlifting Meet",
+          fight_camp: "Fight Camp", wrestling_season: "Wrestling Season",
+          crossfit_competition: "CrossFit Competition", hyrox: "Hyrox",
+          marathon: "Marathon", triathlon_race: "Triathlon Race", spartan_race: "Spartan Race",
+        };
+        try {
+          const status = deriveCompPrepStatus(rawComp.eventDate, rawComp.competitionType as any);
+          competitionPrepCtx = {
+            active: true,
+            competitionType: rawComp.competitionType,
+            competitionTypeLabel: compTypeLabels[rawComp.competitionType] ?? rawComp.competitionType,
+            division: rawComp.division,
+            eventDate: rawComp.eventDate,
+            weeksOut: status.weeksOut,
+            currentPhase: status.currentPhase,
+            currentPhaseLabel: status.currentPhaseLabel,
+            isPeakWeek: status.isPeakWeek,
+            isEventDay: status.isEventDay,
+            isPostEvent: status.isPostEvent,
+            category: status.category,
+            currentWeight: rawComp.currentWeight,
+            targetWeight: rawComp.targetWeight,
+          };
+        } catch {
+          // Date engine failed — don't crash the envelope
+        }
+      }
+    }
+
     const conditionGuidanceBlocks = await buildUniversalConditionGuidance({
       userId,
       healthConditions: mergedHealthConditions,
@@ -944,6 +1008,7 @@ export async function loadUserProtocolEnvelope(
       metabolicRecovery,
       pregnancySupportContext: pregnancySupportCtx,
       performanceNutritionContext: performanceNutritionCtx,
+      competitionPrepContext: competitionPrepCtx,
     });
 
     return {

@@ -69,7 +69,7 @@ export default function Planner() {
       description:
         "Sport-specific fueling for athletes, fighters, and coaches — energy systems, carb timing, and recovery",
       icon: Trophy,
-      route: "/beach-body-meal-board",
+      route: "/performance",
       testId: "card-competition-beachbody",
       builderId: "beach_body",
     },

@@ -36,10 +36,13 @@ const COMP_TYPE_LABELS: Record<string, string> = {
   bodybuilding_show: "Bodybuilding", mens_physique: "Men's Physique",
   classic_physique: "Classic Physique", figure: "Figure", bikini: "Bikini",
   wellness: "Wellness", powerlifting_meet: "Powerlifting Meet",
+  strongman_competition: "Strongman", olympic_weightlifting_meet: "Olympic Weightlifting",
   fight_camp: "Fight Camp", wrestling_season: "Wrestling Season",
+  crossfit_competition: "CrossFit Competition", hyrox: "Hyrox",
+  marathon: "Marathon", triathlon_race: "Triathlon", spartan_race: "Spartan Race",
 };
 
-// ── Competition phase engine (Phase 1 — simplified math) ─────────────────────
+// ── Competition phase engine (mirrors server/services/protocol/competitionPrepDateEngine.ts) ──
 function deriveCompPrepPhase(eventDate: string, competitionType: string): {
   weeksOut: number;
   phase: string;
@@ -47,18 +50,70 @@ function deriveCompPrepPhase(eventDate: string, competitionType: string): {
   phaseColor: string;
 } {
   const event = new Date(eventDate);
+  event.setHours(0, 0, 0, 0);
   const today = new Date();
-  const msOut = event.getTime() - today.getTime();
-  const weeksOut = Math.round(msOut / (7 * 24 * 60 * 60 * 1000));
+  today.setHours(0, 0, 0, 0);
+  const days = Math.round((event.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+  const weeksOut = Math.floor(days / 7);
 
-  if (weeksOut < 0) return { weeksOut, phase: "post_competition", phaseLabel: "Post-Competition Recovery", phaseColor: "blue" };
-  if (weeksOut === 0) return { weeksOut, phase: "show_day", phaseLabel: "Show Day", phaseColor: "orange" };
-  if (weeksOut <= 1) return { weeksOut, phase: "peak_week", phaseLabel: "Peak Week", phaseColor: "orange" };
+  // Post-event
+  if (days < 0) return { weeksOut, phase: "post_competition", phaseLabel: "Post-Event Recovery", phaseColor: "blue" };
+  // Event day
+  if (days === 0) return { weeksOut, phase: "event_day", phaseLabel: "Event Day", phaseColor: "orange" };
 
-  const isCombat = ["fight_camp", "wrestling_season"].includes(competitionType);
-  if (weeksOut <= (isCombat ? 3 : 2)) return { weeksOut, phase: "peak_week", phaseLabel: "Peak Week", phaseColor: "orange" };
-  if (weeksOut <= 8) return { weeksOut, phase: "conditioning", phaseLabel: isCombat ? "Weight Cut" : "Conditioning Phase", phaseColor: "yellow" };
-  return { weeksOut, phase: "fat_loss", phaseLabel: "Fat Loss Phase", phaseColor: "green" };
+  // Physique sports
+  const isPhysique = ["bodybuilding_show", "mens_physique", "classic_physique", "figure", "bikini", "wellness"].includes(competitionType);
+  if (isPhysique) {
+    if (weeksOut <= 2) return { weeksOut, phase: "peak_week",   phaseLabel: "Peak Week",          phaseColor: "orange" };
+    if (weeksOut <= 7) return { weeksOut, phase: "peak_prep",   phaseLabel: "Peak Prep",           phaseColor: "yellow" };
+    if (weeksOut <= 15) return { weeksOut, phase: "conditioning", phaseLabel: "Conditioning Phase", phaseColor: "yellow" };
+    return { weeksOut, phase: "fat_loss", phaseLabel: "Fat Loss Phase", phaseColor: "green" };
+  }
+
+  // Strength sports
+  const isStrength = ["powerlifting_meet", "strongman_competition", "olympic_weightlifting_meet"].includes(competitionType);
+  if (isStrength) {
+    if (weeksOut <= 1) return { weeksOut, phase: "meet_week",        phaseLabel: "Meet Week",        phaseColor: "orange" };
+    if (weeksOut <= 3) return { weeksOut, phase: "taper",            phaseLabel: "Taper Phase",       phaseColor: "yellow" };
+    if (weeksOut <= 9) return { weeksOut, phase: "intensity_phase",  phaseLabel: "Intensity Phase",   phaseColor: "yellow" };
+    return { weeksOut, phase: "strength_building", phaseLabel: "Strength Building", phaseColor: "green" };
+  }
+
+  // Fight camp
+  if (competitionType === "fight_camp") {
+    if (weeksOut <= 1) return { weeksOut, phase: "fight_week",   phaseLabel: "Fight Week",       phaseColor: "red" };
+    if (weeksOut <= 3) return { weeksOut, phase: "weight_cut",   phaseLabel: "Weight Cut",        phaseColor: "red" };
+    if (weeksOut <= 11) return { weeksOut, phase: "fight_prep",  phaseLabel: "Fight Prep",        phaseColor: "yellow" };
+    return { weeksOut, phase: "conditioning_combat", phaseLabel: "Conditioning Camp", phaseColor: "green" };
+  }
+
+  // Wrestling season
+  if (competitionType === "wrestling_season") {
+    if (weeksOut <= 1) return { weeksOut, phase: "championship_week", phaseLabel: "Championship Week", phaseColor: "orange" };
+    if (weeksOut <= 7) return { weeksOut, phase: "in_season",         phaseLabel: "In-Season",          phaseColor: "yellow" };
+    return { weeksOut, phase: "pre_season", phaseLabel: "Pre-Season", phaseColor: "green" };
+  }
+
+  // Functional / Mixed (CrossFit, Hyrox)
+  const isFunctional = ["crossfit_competition", "hyrox"].includes(competitionType);
+  if (isFunctional) {
+    if (weeksOut <= 1) return { weeksOut, phase: "competition_week", phaseLabel: "Competition Week", phaseColor: "orange" };
+    if (weeksOut <= 3) return { weeksOut, phase: "peak_prep",        phaseLabel: "Peak Prep",         phaseColor: "yellow" };
+    if (weeksOut <= 7) return { weeksOut, phase: "event_prep",       phaseLabel: "Event Prep",         phaseColor: "yellow" };
+    return { weeksOut, phase: "base_conditioning", phaseLabel: "Base Conditioning", phaseColor: "green" };
+  }
+
+  // Endurance (marathon, triathlon, spartan)
+  const isEndurance = ["marathon", "triathlon_race", "spartan_race"].includes(competitionType);
+  if (isEndurance) {
+    if (weeksOut <= 3) return { weeksOut, phase: "taper",       phaseLabel: "Taper Phase",            phaseColor: "orange" };
+    if (weeksOut <= 7) return { weeksOut, phase: "race_prep",   phaseLabel: "Race Prep (Peak Training)", phaseColor: "yellow" };
+    if (weeksOut <= 15) return { weeksOut, phase: "build_phase", phaseLabel: "Build Phase",            phaseColor: "yellow" };
+    return { weeksOut, phase: "base_building", phaseLabel: "Base Building", phaseColor: "green" };
+  }
+
+  // Fallback
+  return { weeksOut, phase: "prep", phaseLabel: "Prep Phase", phaseColor: "green" };
 }
 
 // ── Nutrient priorities per sport ────────────────────────────────────────────

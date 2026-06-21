@@ -21,7 +21,7 @@ type TrainingType = "strength" | "hypertrophy" | "powerlifting" | "olympic_lifti
 type TrainingFrequency = "1-2" | "3-4" | "5-6" | "7+";
 type CardioFocus = "none" | "recovery" | "zone_2" | "tempo" | "threshold" | "hiit" | "mixed";
 type AthleticPhase = "off_season" | "pre_season" | "in_season" | "weight_cut" | "recovery";
-type CompType = "bodybuilding_show" | "mens_physique" | "classic_physique" | "figure" | "bikini" | "wellness" | "powerlifting_meet" | "fight_camp" | "wrestling_season";
+type CompType = "bodybuilding_show" | "mens_physique" | "classic_physique" | "figure" | "bikini" | "wellness" | "powerlifting_meet" | "strongman_competition" | "olympic_weightlifting_meet" | "fight_camp" | "wrestling_season" | "crossfit_competition" | "hyrox" | "marathon" | "triathlon_race" | "spartan_race";
 
 const ATHLETIC_GOALS: { value: AthleticGoal; label: string; desc: string }[] = [
   { value: "fat_loss",    label: "Fat Loss",        desc: "Lean out while preserving performance" },
@@ -73,15 +73,22 @@ const ATHLETIC_PHASES: { value: AthleticPhase; label: string; desc: string }[] =
 ];
 
 const COMP_TYPES: { value: CompType; label: string; group: string }[] = [
-  { value: "bodybuilding_show", label: "Bodybuilding",      group: "Physique" },
-  { value: "mens_physique",     label: "Men's Physique",    group: "Physique" },
-  { value: "classic_physique",  label: "Classic Physique",  group: "Physique" },
-  { value: "figure",            label: "Figure",            group: "Physique" },
-  { value: "bikini",            label: "Bikini",            group: "Physique" },
-  { value: "wellness",          label: "Wellness",          group: "Physique" },
-  { value: "powerlifting_meet", label: "Powerlifting Meet", group: "Strength Sports" },
-  { value: "fight_camp",        label: "Fight Camp",        group: "Combat Sports" },
-  { value: "wrestling_season",  label: "Wrestling Season",  group: "Combat Sports" },
+  { value: "bodybuilding_show",         label: "Bodybuilding",            group: "Physique" },
+  { value: "mens_physique",             label: "Men's Physique",          group: "Physique" },
+  { value: "classic_physique",          label: "Classic Physique",        group: "Physique" },
+  { value: "figure",                    label: "Figure",                  group: "Physique" },
+  { value: "bikini",                    label: "Bikini",                  group: "Physique" },
+  { value: "wellness",                  label: "Wellness",                group: "Physique" },
+  { value: "powerlifting_meet",         label: "Powerlifting Meet",       group: "Strength Sports" },
+  { value: "strongman_competition",     label: "Strongman",               group: "Strength Sports" },
+  { value: "olympic_weightlifting_meet",label: "Olympic Weightlifting",   group: "Strength Sports" },
+  { value: "fight_camp",                label: "Fight Camp",              group: "Combat Sports" },
+  { value: "wrestling_season",          label: "Wrestling Season",        group: "Combat Sports" },
+  { value: "crossfit_competition",      label: "CrossFit Competition",    group: "Functional / Mixed" },
+  { value: "hyrox",                     label: "Hyrox",                   group: "Functional / Mixed" },
+  { value: "marathon",                  label: "Marathon",                group: "Endurance" },
+  { value: "triathlon_race",            label: "Triathlon",               group: "Endurance" },
+  { value: "spartan_race",              label: "Spartan Race",            group: "Endurance" },
 ];
 
 // Steps per track (excluding step 0 = track selector)
