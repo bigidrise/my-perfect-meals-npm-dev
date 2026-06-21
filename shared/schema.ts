@@ -481,6 +481,20 @@ export const users = pgTable("users", {
   // Null = neither track has been configured.
   activeProtocolTrack: text("active_protocol_track")
     .$type<"athletic" | "competition">(),
+  // Carb Cycle State — number-driven carb cycling engine for Performance Nutrition users.
+  // Tracks phase, carb/fat targets, refeed bookmarks, and a rolling 90-day weight log.
+  // Null = engine not yet activated (user hasn't enabled carb cycling).
+  carbCycleState: jsonb("carb_cycle_state").$type<{
+    phase: "low_carb" | "refeed" | "inactive";
+    carbTargetG: number;
+    fatTargetAdjustG: number;
+    refeedStartDate: string | null;
+    refeedStartWeightLb: number | null;
+    refeedStopCapLb: number;
+    weightLog: Array<{ date: string; weight: number; carbsG: number }>;
+    lastUpdated: string;
+    manualOverride?: boolean;
+  }>(),
   // Flags 'request_support' intent for future professional follow-up surfacing
   needsProfessionalFollowup: boolean("needs_professional_followup").default(false),
   // Client Goals — set during onboarding, displayed on dashboard + coach folder
