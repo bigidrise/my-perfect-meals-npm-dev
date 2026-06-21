@@ -154,13 +154,35 @@ export default function MyPerfectPregnancyPage() {
       const u = data.user ?? data;
       if (u?.pregnancySupportContext || u?.pregnancyStage) {
         const ctx = u.pregnancySupportContext ?? {};
+        const rawDueDate: string | null = u.pregnancyDueDate ?? null;
+        const trackingMode: string = ctx.trackingMode ?? "manual";
+
+        let weekOfPregnancy: number | null = null;
+        let derivedStage: Stage = (u.pregnancyStage ?? "trimester-2") as Stage;
+
+        if (rawDueDate && trackingMode !== "manual") {
+          try {
+            const due = new Date(rawDueDate);
+            const now = new Date();
+            const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+            const weeksUntilDue = (due.getTime() - now.getTime()) / msPerWeek;
+            const currentWeek = Math.max(1, Math.min(42, Math.round(40 - weeksUntilDue)));
+            weekOfPregnancy = currentWeek;
+            if (currentWeek <= 13) derivedStage = "trimester-1";
+            else if (currentWeek <= 27) derivedStage = "trimester-2";
+            else derivedStage = "trimester-3";
+          } catch {
+            // Due date parse failed — fall back to manual stage
+          }
+        }
+
         setPregnancyData({
-          stage: (u.pregnancyStage ?? "trimester-2") as Stage,
-          weekOfPregnancy: null,
+          stage: derivedStage,
+          weekOfPregnancy,
           symptoms: ctx.symptoms ?? [],
           isBreastfeeding: ctx.isBreastfeeding ?? false,
-          dueDate: u.pregnancyDueDate ?? null,
-          trackingMode: ctx.trackingMode ?? "manual",
+          dueDate: rawDueDate,
+          trackingMode,
         });
       }
     } catch {
@@ -229,54 +251,79 @@ export default function MyPerfectPregnancyPage() {
 
       <div className="px-4 pt-4 space-y-4 max-w-lg mx-auto">
 
-        {/* Stage card */}
+        {/* Hero card */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-pink-950/60 via-black to-orange-950/30 border border-pink-500/30 p-4"
         >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              {stageInfo ? (
-                <>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-2xl">{stageInfo.emoji}</span>
-                    <p className="text-white font-bold text-lg">{stageInfo.label}</p>
-                  </div>
-                  <p className="text-pink-300/80 text-xs mb-1">{stageInfo.focus}</p>
-                  {pregnancyData?.weekOfPregnancy && (
-                    <p className="text-white/60 text-xs">Week {pregnancyData.weekOfPregnancy}</p>
+          {stageInfo ? (
+            <>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  {/* Week + trimester — the primary status */}
+                  {pregnancyData?.weekOfPregnancy ? (
+                    <>
+                      <p className="text-white font-bold text-3xl leading-none">
+                        Week {pregnancyData.weekOfPregnancy}
+                      </p>
+                      <p className="text-pink-300 text-sm font-medium mt-1">
+                        {stageInfo.emoji} {stageInfo.label}
+                      </p>
+                    </>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{stageInfo.emoji}</span>
+                      <p className="text-white font-bold text-xl">{stageInfo.label}</p>
+                    </div>
                   )}
-                  <p className="text-orange-300/70 text-xs mt-1">{stageInfo.calorieNote}</p>
-                </>
-              ) : (
-                <>
-                  <p className="text-white font-bold text-lg">Set Up My Perfect Pregnancy</p>
-                  <p className="text-white/60 text-xs mt-1 leading-relaxed">
-                    Tell us your stage and symptoms so every meal, food scan, and coach response understands your journey.
-                  </p>
-                </>
-              )}
-            </div>
-            <button
-              onClick={() => setSetupOpen(true)}
-              className="shrink-0 text-xs px-3 py-1.5 rounded-full bg-pink-600/40 border border-pink-400/40 text-pink-200 active:scale-95 transition-all"
-            >
-              {stageInfo ? "Edit" : "Set Up"}
-            </button>
-          </div>
 
-          {/* Active symptoms */}
-          {pregnancyData?.symptoms && pregnancyData.symptoms.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-white/10">
-              <p className="text-white/50 text-xs mb-1.5">Active symptoms — meals adapt to these:</p>
-              <div className="flex flex-wrap gap-1.5">
-                {pregnancyData.symptoms.map(s => (
-                  <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-pink-900/40 border border-pink-500/30 text-pink-200">
-                    {s.replace(/_/g, " ")}
-                  </span>
-                ))}
+                  {/* Protocol active badge */}
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
+                    <p className="text-green-300 text-xs font-semibold">Pregnancy Nutrition Protocol Active</p>
+                  </div>
+
+                  {/* Focus note */}
+                  <p className="text-white/40 text-xs mt-1.5 leading-relaxed">{stageInfo.focus}</p>
+                </div>
+
+                <button
+                  onClick={() => setSetupOpen(true)}
+                  className="shrink-0 text-xs px-3 py-1.5 rounded-full bg-pink-600/40 border border-pink-400/40 text-pink-200 active:scale-95 transition-all"
+                >
+                  Edit
+                </button>
               </div>
+
+              {/* Active symptoms */}
+              {pregnancyData?.symptoms && pregnancyData.symptoms.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-white/10">
+                  <p className="text-white/50 text-xs mb-1.5">Active symptoms — meals adapt to these:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {pregnancyData.symptoms.map(s => (
+                      <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-pink-900/40 border border-pink-500/30 text-pink-200">
+                        {s.replace(/_/g, " ")}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-white font-bold text-lg">Set Up My Perfect Pregnancy</p>
+                <p className="text-white/60 text-xs mt-1 leading-relaxed">
+                  Tell us your stage and symptoms so every meal, food scan, and coach response understands your journey.
+                </p>
+              </div>
+              <button
+                onClick={() => setSetupOpen(true)}
+                className="shrink-0 text-xs px-3 py-1.5 rounded-full bg-pink-600/40 border border-pink-400/40 text-pink-200 active:scale-95 transition-all"
+              >
+                Set Up
+              </button>
             </div>
           )}
         </motion.div>
