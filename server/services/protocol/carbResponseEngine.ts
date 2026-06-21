@@ -95,6 +95,15 @@ export function computeFatOffset(carbBumpG: number): number {
 export function detectStall(weightLog: WeightLogEntry[]): boolean {
   if (weightLog.length < STALL_WINDOW) return false;
   const last7 = weightLog.slice(-STALL_WINDOW);
+
+  // Require strictly 7 consecutive calendar days (no gaps, no duplicates)
+  for (let i = 1; i < last7.length; i++) {
+    const prev = new Date(last7[i - 1].date + "T00:00:00Z");
+    const curr = new Date(last7[i].date + "T00:00:00Z");
+    const diffDays = (curr.getTime() - prev.getTime()) / 86_400_000;
+    if (diffDays !== 1) return false;
+  }
+
   const allLowCarb = last7.every((e) => e.carbsG <= STALL_CARB_MAX_G);
   if (!allLowCarb) return false;
   const weights = last7.map((e) => e.weight);

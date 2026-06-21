@@ -17,7 +17,7 @@ import {
 const router = Router();
 
 const KG_TO_LB = 2.20462;
-const MAX_LOG_ENTRIES = 90;
+const MAX_LOG_ENTRIES = 30;
 
 function kgToLb(kg: number): number {
   return Math.round(kg * KG_TO_LB * 10) / 10;
@@ -92,9 +92,14 @@ router.post("/carb-cycle/log", requireAuth, async (req, res) => {
     const { state, bodyWeightLb, baseCarbTargetG } = await loadState(userId);
     const entry: WeightLogEntry = parsed.data;
 
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0];
+
     const deduped = state.weightLog.filter((e) => e.date !== entry.date);
     const updatedLog = [...deduped, entry]
       .sort((a, b) => a.date.localeCompare(b.date))
+      .filter((e) => e.date >= thirtyDaysAgo)
       .slice(-MAX_LOG_ENTRIES);
 
     let updatedState: CarbCycleState = { ...state, weightLog: updatedLog };
@@ -129,7 +134,7 @@ router.post("/carb-cycle/log", requireAuth, async (req, res) => {
 });
 
 const overrideSchema = z.object({
-  phase: z.enum(["low_carb", "refeed", "inactive"]),
+  action: z.enum(["start_refeed", "end_refeed"]),
 });
 
 router.post("/carb-cycle/override", requireAuth, async (req, res) => {
@@ -140,24 +145,14 @@ router.post("/carb-cycle/override", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Invalid override", details: parsed.error.flatten() });
     }
 
-    const { phase } = parsed.data;
+    const { action } = parsed.data;
     const { state, bodyWeightLb, baseCarbTargetG } = await loadState(userId);
 
     let updatedState: CarbCycleState;
-    if (phase === "refeed") {
+    if (action === "start_refeed") {
       updatedState = { ...applyRefeedTransition(state, bodyWeightLb, baseCarbTargetG), manualOverride: true };
-    } else if (phase === "low_carb") {
-      updatedState = { ...applyLowCarbTransition(state, baseCarbTargetG), manualOverride: true };
     } else {
-      updatedState = {
-        ...state,
-        phase: "inactive",
-        fatTargetAdjustG: 0,
-        refeedStartDate: null,
-        refeedStartWeightLb: null,
-        lastUpdated: new Date().toISOString(),
-        manualOverride: true,
-      };
+      updatedState = { ...applyLowCarbTransition(state, baseCarbTargetG), manualOverride: true };
     }
 
     await persistState(userId, updatedState);
