@@ -211,6 +211,8 @@ async function initializeApp() {
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_context jsonb`);
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS competition_prep_context jsonb`);
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS active_protocol_track text`);
+          // Carb Response Engine — boot migration
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS carb_cycle_state jsonb`);
           // LMS content tables
           await database.execute(sql`
             CREATE TABLE IF NOT EXISTS cert_modules (
@@ -540,6 +542,10 @@ async function initializeApp() {
     // Performance Nutrition — sport-specific fueling protocol
     const performanceNutritionRouter = (await import("./routes/performanceNutrition")).default;
     app.use("/api/performance", requireAuth, performanceNutritionRouter);
+
+    // Carb Response Engine — carb cycle state, log, and override
+    const carbCycleRouter = (await import("./routes/carbCycle")).default;
+    app.use("/api/performance", requireAuth, carbCycleRouter);
 
     console.log("✅ [INIT] Parity routes mounted");
 
