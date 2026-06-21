@@ -559,6 +559,17 @@ export interface UserProtocolEnvelope {
     symptoms: Array<"nausea" | "heartburn" | "constipation" | "fatigue" | "food_aversions" | "swelling" | "shortness_of_breath" | "low_appetite">;
     isBreastfeeding: boolean;
   } | null;
+
+  /**
+   * Active carb-cycle protocol — populated when carbCycleState.phase is "low_carb"
+   * or "refeed". Injected as a hard constraint in the performanceIntent prompt layer
+   * of every meal generator. Null when no active carb cycle.
+   */
+  carbCycleContext: {
+    phase: "low_carb" | "refeed";
+    carbBudgetG: number;
+    isRefeedDay: boolean;
+  } | null;
 }
 
 /**
@@ -692,6 +703,7 @@ export async function loadUserProtocolEnvelope(
         goalTarget: (users as any).goalTarget,
         performanceOverlay: (users as any).performanceOverlay,
         performanceControlMode: (users as any).performanceControlMode,
+        carbCycleState: users.carbCycleState,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -1011,6 +1023,12 @@ export async function loadUserProtocolEnvelope(
       competitionPrepContext: competitionPrepCtx,
     });
 
+    const rawCarbCycle = ((user as any).carbCycleState as any);
+    const carbCycleContext: UserProtocolEnvelope["carbCycleContext"] =
+      rawCarbCycle && (rawCarbCycle.phase === "low_carb" || rawCarbCycle.phase === "refeed") && rawCarbCycle.carbTargetG > 0
+        ? { phase: rawCarbCycle.phase as "low_carb" | "refeed", carbBudgetG: rawCarbCycle.carbTargetG, isRefeedDay: rawCarbCycle.phase === "refeed" }
+        : null;
+
     return {
       userId,
       dietaryIdentity: dietaryRestrictions,
@@ -1038,6 +1056,7 @@ export async function loadUserProtocolEnvelope(
       performanceControlMode: (((user as any).performanceControlMode as string | null) ?? "self_guided") as "self_guided"|"coach_controlled",
       pregnancySupport,
       pregnancySupportContext: pregnancySupportCtx,
+      carbCycleContext,
       performanceNutrition,
       performanceContext: performanceNutritionCtx,
     };
@@ -1079,6 +1098,7 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     performanceControlMode: "self_guided",
     pregnancySupport: false,
     pregnancySupportContext: null,
+    carbCycleContext: null,
   };
 }
 
@@ -1263,6 +1283,16 @@ ${proceduralParts.join("\n")}`;
     if (directive) {
       layers.performanceIntent = `\n🏋️ PERFORMANCE INTENT — ${overlayLabel.toUpperCase()} (applies within all safety and medical rules above):\n${directive}`;
     }
+  }
+
+  // ── CARB CYCLE HARD CONSTRAINT (appended to performanceIntent layer) ──────
+  if (envelope.carbCycleContext) {
+    const cc = envelope.carbCycleContext;
+    const phaseLabel = cc.isRefeedDay ? "REFEED DAY" : "LOW-CARB DAY";
+    const ccDirective = cc.isRefeedDay
+      ? `Carb budget: ${cc.carbBudgetG}g total. Prioritize complex carbohydrates (sweet potato, rice, oats, fruit) to fill the budget. This is a metabolic reset day — carbs are expected and required.`
+      : `Carb budget: ${cc.carbBudgetG}g total. Keep all carb sources at or below this budget. Prioritize protein and healthy fats. Minimize starchy carbohydrates.`;
+    layers.performanceIntent += `\n\n⚡ CARB CYCLE PROTOCOL — HARD CONSTRAINT (${phaseLabel}):\n${ccDirective}\nThis sport-nutrition hard limit operates alongside existing macro constraints and overrides general carbohydrate preferences.`;
   }
 
   // ── TIER 6: Avoidances ────────────────────────────────────────────────────

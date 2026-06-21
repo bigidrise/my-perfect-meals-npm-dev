@@ -88,12 +88,14 @@ export function AthleteMealPickerDrawer({
   onClose,
   onPick,
   carbCycleState,
+  carbsUsed,
 }: {
   open: boolean;
   list: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6" | null;
   onClose: () => void;
   onPick: (meal: Meal) => void;
   carbCycleState?: { phase: string; carbTargetG: number } | null;
+  carbsUsed?: number;
 }) {
   const [category, setCategory] =
     React.useState<AthleteMeal["category"]>(DEFAULT_CATEGORY);
@@ -102,6 +104,9 @@ export function AthleteMealPickerDrawer({
   const isCycleActive = carbCycleState?.phase === "low_carb" || carbCycleState?.phase === "refeed";
   const carbCap = isCycleActive ? (carbCycleState?.carbTargetG ?? 0) : 0;
   const carbCapSoft = Math.round(carbCap * 1.2);
+  const budgetPct = isCycleActive && carbCap > 0 && typeof carbsUsed === "number"
+    ? Math.min(100, Math.round((carbsUsed / carbCap) * 100))
+    : null;
 
   // Auto-expand first category when drawer opens
   React.useEffect(() => {
@@ -110,10 +115,23 @@ export function AthleteMealPickerDrawer({
     }
   }, [open]);
 
-  // Filter meals by selected category
+  // Filter meals by selected category, excluding any that exceed the carb cap by >20%
   const filteredMeals = React.useMemo(() => {
-    return getAthleteMealsByCategory(category);
-  }, [category]);
+    const all = getAthleteMealsByCategory(category);
+    if (!isCycleActive || carbCapSoft <= 0) return all;
+    return all.filter((am: AthleteMeal) => {
+      const totalCarbs = am.macros.starchyCarbs + am.macros.fibrousCarbs;
+      return totalCarbs <= carbCapSoft;
+    });
+  }, [category, isCycleActive, carbCapSoft]);
+
+  const excludedCount = React.useMemo(() => {
+    if (!isCycleActive || carbCapSoft <= 0) return 0;
+    return getAthleteMealsByCategory(category).filter((am: AthleteMeal) => {
+      const totalCarbs = am.macros.starchyCarbs + am.macros.fibrousCarbs;
+      return totalCarbs > carbCapSoft;
+    }).length;
+  }, [category, isCycleActive, carbCapSoft]);
 
   // State for the info modal, assuming it's defined elsewhere or not needed for this specific change
   // const [showInfoModal, setShowInfoModal] = React.useState(false);
@@ -146,16 +164,18 @@ export function AthleteMealPickerDrawer({
                 <span className={`text-xs font-semibold ${carbCycleState?.phase === "refeed" ? "text-green-300" : "text-orange-300"}`}>
                   {carbCycleState?.phase === "refeed" ? "⚡ Refeed Day" : "🔄 Low-Carb Day"} — Carb Budget
                 </span>
-                <span className="text-white/60 text-xs font-semibold">{carbCap}g cap</span>
+                <span className="text-white/60 text-xs font-semibold">
+                  {budgetPct !== null ? `${carbsUsed}g / ${carbCap}g` : `${carbCap}g cap`}
+                </span>
               </div>
               <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full ${carbCycleState?.phase === "refeed" ? "bg-green-400" : "bg-orange-400"}`}
-                  style={{ width: "100%" }}
+                  className={`h-full rounded-full transition-all ${carbCycleState?.phase === "refeed" ? "bg-green-400" : "bg-orange-400"}`}
+                  style={{ width: budgetPct !== null ? `${budgetPct}%` : "0%" }}
                 />
               </div>
               <p className="text-white/40 text-xs mt-1.5">
-                Meals exceeding {carbCapSoft}g carbs are dimmed
+                Meals over {carbCapSoft}g carbs are hidden for this phase
               </p>
             </div>
           )}
@@ -192,8 +212,6 @@ export function AthleteMealPickerDrawer({
           {/* Meal Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {filteredMeals.map((am: AthleteMeal) => {
-              const mealTotalCarbs = am.macros.starchyCarbs + am.macros.fibrousCarbs;
-              const overBudget = isCycleActive && carbCapSoft > 0 && mealTotalCarbs > carbCapSoft;
               return (
                 <button
                   key={am.id}
@@ -201,11 +219,7 @@ export function AthleteMealPickerDrawer({
                     const mealToAdd = convertAthleteMealToMeal(am);
                     onPick(mealToAdd);
                   }}
-                  className={`w-full text-left rounded-xl border p-4 transition-all ${
-                    overBudget
-                      ? "border-white/10 bg-black/30 opacity-50"
-                      : "border-white/20 bg-black/50 active:bg-white/10"
-                  }`}
+                  className="w-full text-left rounded-xl border border-white/20 bg-black/50 active:bg-white/10 p-4 transition-all"
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="text-white/90 font-medium text-sm flex-1 leading-tight">
@@ -227,11 +241,6 @@ export function AthleteMealPickerDrawer({
                       ) : (
                         <Badge className="bg-orange-600/80 text-white text-[10px] px-2 py-0.5">
                           P+V
-                        </Badge>
-                      )}
-                      {overBudget && (
-                        <Badge className="bg-red-900/60 text-red-300 text-[9px] px-2 py-0.5 border border-red-500/30">
-                          Over cap
                         </Badge>
                       )}
                     </div>
@@ -262,6 +271,11 @@ export function AthleteMealPickerDrawer({
                 </button>
               );
             })}
+            {excludedCount > 0 && (
+              <p className="text-white/30 text-xs text-center col-span-full py-1">
+                {excludedCount} meal{excludedCount === 1 ? "" : "s"} hidden — over {carbCapSoft}g carb cap
+              </p>
+            )}
           </div>
 
           {/* Info Note */}
