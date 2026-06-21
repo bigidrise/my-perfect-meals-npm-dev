@@ -160,6 +160,8 @@ export interface User {
   // Performance Nutrition Protocol
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   performanceContext?: any | null;
+  competitionPrepContext?: any | null;
+  activeProtocolTrack?: "athletic" | "competition" | null;
 }
 
 export function getAuthToken(): string | null {

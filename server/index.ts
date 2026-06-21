@@ -609,8 +609,10 @@ setTimeout(async () => {
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pregnancy_stage text`);
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pregnancy_due_date text`);
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pregnancy_support_context jsonb`);
-    // Performance Nutrition Protocol — boot migration
+    // Performance Nutrition Protocol — boot migrations
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_context jsonb`);
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS competition_prep_context jsonb`);
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS active_protocol_track text`);
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS cert_modules (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
