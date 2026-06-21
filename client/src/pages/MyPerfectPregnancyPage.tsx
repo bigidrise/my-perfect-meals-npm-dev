@@ -114,7 +114,7 @@ const MERCURY_AVOID = ["Shark", "Swordfish", "King mackerel", "Tilefish", "Bigey
 
 export default function MyPerfectPregnancyPage() {
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   // Pregnancy context — loaded from API
   const [pregnancyData, setPregnancyData] = useState<{
@@ -146,47 +146,49 @@ export default function MyPerfectPregnancyPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  function applyUserToPregnancyData(u: any) {
+    if (!u) return;
+    if (u.pregnancySupportContext || u.pregnancyStage) {
+      const ctx = u.pregnancySupportContext ?? {};
+      const rawDueDate: string | null = u.pregnancyDueDate ?? null;
+      const trackingMode: string = ctx.trackingMode ?? "manual";
+
+      let weekOfPregnancy: number | null = null;
+      let derivedStage: Stage = (u.pregnancyStage ?? "trimester-2") as Stage;
+
+      if (rawDueDate && trackingMode !== "manual") {
+        try {
+          const due = new Date(rawDueDate);
+          const now = new Date();
+          const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+          const weeksUntilDue = (due.getTime() - now.getTime()) / msPerWeek;
+          const currentWeek = Math.max(1, Math.min(42, Math.round(40 - weeksUntilDue)));
+          weekOfPregnancy = currentWeek;
+          if (currentWeek <= 13) derivedStage = "trimester-1";
+          else if (currentWeek <= 27) derivedStage = "trimester-2";
+          else derivedStage = "trimester-3";
+        } catch {
+          // Due date parse failed — fall back to manual stage
+        }
+      }
+
+      setPregnancyData({
+        stage: derivedStage,
+        weekOfPregnancy,
+        symptoms: ctx.symptoms ?? [],
+        isBreastfeeding: ctx.isBreastfeeding ?? false,
+        dueDate: rawDueDate,
+        trackingMode,
+      });
+    }
+  }
+
   async function loadPregnancyContext() {
     try {
-      const res = await fetch(apiUrl("/api/me"), { credentials: "include" });
-      if (!res.ok) return;
-      const data = await res.json();
-      const u = data.user ?? data;
-      if (u?.pregnancySupportContext || u?.pregnancyStage) {
-        const ctx = u.pregnancySupportContext ?? {};
-        const rawDueDate: string | null = u.pregnancyDueDate ?? null;
-        const trackingMode: string = ctx.trackingMode ?? "manual";
-
-        let weekOfPregnancy: number | null = null;
-        let derivedStage: Stage = (u.pregnancyStage ?? "trimester-2") as Stage;
-
-        if (rawDueDate && trackingMode !== "manual") {
-          try {
-            const due = new Date(rawDueDate);
-            const now = new Date();
-            const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-            const weeksUntilDue = (due.getTime() - now.getTime()) / msPerWeek;
-            const currentWeek = Math.max(1, Math.min(42, Math.round(40 - weeksUntilDue)));
-            weekOfPregnancy = currentWeek;
-            if (currentWeek <= 13) derivedStage = "trimester-1";
-            else if (currentWeek <= 27) derivedStage = "trimester-2";
-            else derivedStage = "trimester-3";
-          } catch {
-            // Due date parse failed — fall back to manual stage
-          }
-        }
-
-        setPregnancyData({
-          stage: derivedStage,
-          weekOfPregnancy,
-          symptoms: ctx.symptoms ?? [],
-          isBreastfeeding: ctx.isBreastfeeding ?? false,
-          dueDate: rawDueDate,
-          trackingMode,
-        });
-      }
+      const freshUser = await refreshUser();
+      applyUserToPregnancyData(freshUser);
     } catch {
-      // ignore
+      // ignore — user not logged in or network error
     }
   }
 
