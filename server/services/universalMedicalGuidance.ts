@@ -66,6 +66,23 @@ export interface UniversalGuidanceInput {
     trainingPhase: string;
     twoADays: boolean;
   } | null;
+  /** Competition Prep context — active when "competition-prep" is in specialtyConditions. */
+  competitionPrepContext?: {
+    active: boolean;
+    competitionType: string;
+    competitionTypeLabel: string;
+    division?: string;
+    eventDate: string;
+    weeksOut: number;
+    currentPhase: string;
+    currentPhaseLabel: string;
+    isPeakWeek: boolean;
+    isEventDay: boolean;
+    isPostEvent: boolean;
+    category: "physique" | "strength" | "combat" | "wrestling" | "functional" | "endurance";
+    currentWeight?: string;
+    targetWeight?: string;
+  } | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -382,6 +399,91 @@ TONE: Frame as "hormone-supportive," "energy-stabilizing," or "transition-friend
     if (pregnancyBlock.trim()) blocks.push(pregnancyBlock);
   }
 
+  // Competition Prep — fires when competitionPrepContext.active is true
+  if (input.competitionPrepContext?.active) {
+    const cCtx = input.competitionPrepContext;
+
+    const phaseDirectives: Record<string, string> = {
+      fat_loss: `FAT LOSS PHASE (${cCtx.weeksOut} weeks out):
+Moderate caloric deficit (300–500 kcal/day below TDEE). Very high protein — minimum 2g/kg body weight, every meal must anchor on lean protein (≥30g). Complex carbohydrates timed around training sessions only. High fiber and volume foods for satiety. Avoid calorie-dense processed foods. All meals should be whole-food, precision-tracked.`,
+      conditioning: `CONDITIONING PHASE (${cCtx.weeksOut} weeks out):
+Caloric control tightening — precision matters now. Continue very high protein (≥2g/kg). Reduce simple and refined carbohydrates; concentrate complex carbs in the pre/post-training window. Anti-inflammatory ingredients prioritized to support elevated training volume. Avoid alcohol, fried foods, and high-sodium processed items. Every meal should support recovery as much as fuel.`,
+      peak_prep: `PEAK PREP PHASE (${cCtx.weeksOut} weeks out):
+Calorie and macro precision is critical. Begin sodium reduction — avoid high-sodium ingredients (canned foods, sauces, deli meats). Carb timing is strict: carbs pre/post training only, lower on rest days. Lean easily digestible proteins prioritized (chicken breast, white fish, egg whites). Minimize gut irritants (cruciferous veg reduced).`,
+      peak_week: `⚡ PEAK WEEK — MANDATORY OVERRIDES:
+LOW FIBER: Avoid high-fiber foods (no cruciferous vegetables, no beans/legumes, no whole grains with husks). Digestibility is paramount — gut distention affects stage appearance.
+LOW SODIUM: Zero added sodium. No canned goods, no sauces, no deli meats. Potassium-rich foods acceptable (banana, sweet potato — moderate).
+PROTEIN: Easily digestible lean proteins ONLY — chicken breast, white fish (tilapia, cod), egg whites. No red meat, no high-fat proteins.
+CARBS: White rice, white potato, banana, rice cakes — fast-digesting, gut-safe. No complex whole grains.
+FATS: Minimal — avoid oils, butter, full-fat dairy. Small amounts of avocado acceptable.`,
+      show_day: `🏆 SHOW DAY — STRICT PROTOCOL:
+All meals must be rapidly digestible. Pre-show: white rice or rice cakes + lean protein for pump. Low sodium. Minimal fiber. Avoid anything that causes bloating or water retention.`,
+      meet_day: `🏋️ MEET DAY:
+Pre-meet: easily digestible carbs for energy (white rice, bagel, banana). High-quality lean protein. Avoid high-fiber foods, cruciferous vegetables, beans. Hydration is critical. Between attempts: quick carbs (fruit, sports drink — no supplements mentioned).`,
+      fight_day: `🥊 FIGHT DAY:
+Easily digestible meals only — no fiber, no heavy fat, no complex carbs. Pre-fight: easily digestible carbs + lean protein (4–5 hours out). Hydration and electrolyte balance critical (sodium, potassium, magnesium).`,
+      competition_day: `🏅 COMPETITION DAY:
+Easily digestible carbs for energy. Avoid high-fiber, high-fat foods. Lean protein. Gut comfort is priority. Hydration optimized for performance.`,
+      race_day: `🏃 RACE DAY:
+Pre-race: high-carb, easily digestible meal 3–4 hours before start (oatmeal, banana, white rice, toast). Minimal fiber and fat. During: carb-dense easily digestible options. Post-race: carb + protein recovery meal within 45 minutes.`,
+      taper: `TAPER PHASE (${cCtx.weeksOut} weeks out — endurance):
+Carb loading begins now — increase carbohydrate intake to 8–10g/kg. Reduce training volume, increase calorie intake. In the final 2–3 days: reduce fiber (no raw cruciferous, no legumes, no whole grains with husks). Day-before: high-carb, gut-safe meal (white pasta, white rice, banana). Lean protein maintained throughout.`,
+      weight_cut: `⚠️ WEIGHT CUT — MANDATORY OVERRIDES:
+VERY LOW SODIUM: Zero added sodium. No canned foods, no sauces, no processed meats. Fresh ingredients only.
+LOW CARB: Glycogen depletion strategy — minimal starchy carbs. Non-starchy vegetables only (greens, zucchini, cucumber).
+MINIMAL FIBER: Easy-digesting foods only. Avoid cruciferous vegetables, legumes, beans.
+LEAN PROTEIN: Chicken breast, white fish, egg whites. Minimize fats.
+REHYDRATION: After weigh-in, rapidly digestible carbs + electrolytes (sodium, potassium, magnesium). This is critical — rehydration meals must be included.`,
+      fight_week: `⚠️ FIGHT WEEK:
+Water and sodium manipulation protocol. Low sodium, low fiber, easily digestible. Controlled carbs. Rehydration and electrolyte recovery meals are critical between weigh-in and fight.`,
+      championship_week: `CHAMPIONSHIP WEEK (wrestling):
+Weight management precision. Low sodium, controlled carbs, lean protein. Easily digestible foods for weigh-in management. Recovery nutrition after weigh-in critical.`,
+      in_season: `IN-SEASON MAINTENANCE (wrestling):
+Performance nutrition — maintain weight class while fueling training. High protein, moderate carbs timed around training, anti-inflammatory recovery foods. Weight management awareness throughout.`,
+      intensity_phase: `INTENSITY PHASE (${cCtx.weeksOut} weeks out — strength):
+High caloric intake to support maximal strength training. Very high protein (≥1.8g/kg). High carbohydrate intake — carb load around heavy training sessions. CNS recovery foods: magnesium-rich (leafy greens, dark chocolate), zinc-rich (lean beef, pumpkin seeds), omega-3 rich (salmon, sardines).`,
+      meet_week: `MEET WEEK (strength):
+Carb loading — increase total carbohydrates significantly (target 8–10g/kg body weight). Maintain high protein. Reduce fiber 24h before meet (no beans, legumes, cruciferous veg). Day of: easily digestible high-carb meals (white rice, white potato, banana, bagel). Between attempts: quick carbs only.`,
+      strength_building: `STRENGTH BUILDING PHASE (${cCtx.weeksOut} weeks out):
+High caloric surplus — support maximum strength and hypertrophy. Very high protein (≥1.8g/kg). High carbohydrates for fuel and glycogen. Calorie-dense whole foods. CNS-supportive nutrients: iron, zinc, magnesium. No caloric restriction.`,
+      conditioning_combat: `CONDITIONING CAMP (${cCtx.weeksOut} weeks out):
+High energy demand — multiple daily sessions. High carbohydrate intake to fuel aerobic and anaerobic systems. High protein for recovery. Electrolyte-rich foods. Anti-inflammatory ingredients. No caloric restriction — fuel the work.`,
+      fight_prep: `FIGHT PREP PHASE (${cCtx.weeksOut} weeks out):
+Performance + weight management balance. Moderate calorie deficit if weight cut is needed later. High protein. Carbs timed around training. Anti-inflammatory recovery focus. Electrolyte awareness begins.`,
+      event_prep: `EVENT PREP (${cCtx.weeksOut} weeks out — functional fitness):
+High carbohydrate intake for mixed-modality demands. High protein recovery. Gut-friendly foods — avoid gut irritants before training. Zone 2–5 fuel coverage: carb timing around sessions. Anti-inflammatory support.`,
+      base_conditioning: `BASE CONDITIONING (${cCtx.weeksOut} weeks out — functional fitness):
+Build aerobic base and strength simultaneously. Balanced macros. High protein for recovery. Moderate-high carbohydrates. Whole food priority. No caloric restriction.`,
+      build_phase: `BUILD PHASE (${cCtx.weeksOut} weeks out — endurance):
+Volume is increasing. High carbohydrate intake (6–8g/kg). High protein for tissue repair. Electrolytes and sodium important for long sessions. Anti-inflammatory post-workout foods. No caloric restriction.`,
+      base_building: `BASE BUILDING (${cCtx.weeksOut} weeks out — endurance):
+Aerobic foundation. Moderate-high carbohydrates for long slow distance work. High protein for adaptation. Emphasis on whole foods, anti-inflammatory ingredients. Fat adaptation foods acceptable (nuts, olive oil, fatty fish).`,
+      race_prep: `RACE PREP / PEAK TRAINING (${cCtx.weeksOut} weeks out — endurance):
+Highest volume phase — maximum carbohydrate needs (7–10g/kg). Very high caloric intake. Lean protein for tissue repair. Electrolytes critical. Gut training — practicing race-day foods in training.`,
+      post_competition: `POST-COMPETITION RECOVERY:
+INCREASE calories — do NOT restrict. Reverse diet or refeed as appropriate. Anti-inflammatory foods prioritized: omega-3 rich fish, colorful vegetables, tart cherries, turmeric, ginger. Nutritional diversity — eat a wide variety of whole foods after weeks of restriction. Sleep and recovery supporting foods. No caloric limitation.`,
+      post_race: `POST-RACE RECOVERY:
+INCREASE calories. Immediate post-race: carb + protein meal (within 45 minutes). Next 48h: anti-inflammatory foods, lean protein, complex carbs. Rehydration with electrolytes. Nutritional diversity encouraged. No restrictions.`,
+      off_season: `OFF-SEASON (wrestling):
+Recovery and rebuilding. Increase calories to healthy maintenance. Diverse whole foods. High protein for muscle recovery and maintenance. No weight class restrictions. Anti-inflammatory focus.`,
+      pre_season: `PRE-SEASON (wrestling):
+Begin conditioning nutrition. Moderate caloric intake. High protein. Carbs timed around increasing training load. Weight management awareness as season approaches.`,
+    };
+
+    const directive = phaseDirectives[cCtx.currentPhase] ?? `COMPETITION PREP — ${cCtx.currentPhaseLabel} (${cCtx.weeksOut} weeks out): High protein, precision macros, whole foods only.`;
+
+    blocks.push(`🏆 COMPETITION PREP PROTOCOL — MANDATORY:
+This athlete is in active competition preparation. All meal generation MUST align with their competition timeline and current phase. This overrides general nutrition defaults.
+COMPETITION PROFILE:
+- Event: ${cCtx.competitionTypeLabel}${cCtx.division ? ` — ${cCtx.division}` : ""}
+- Event Date: ${cCtx.eventDate}
+- Weeks Out: ${cCtx.weeksOut < 0 ? "Event complete" : `${cCtx.weeksOut} weeks`}
+- Current Phase: ${cCtx.currentPhaseLabel}${cCtx.currentWeight ? `\n- Current Weight: ${cCtx.currentWeight}` : ""}${cCtx.targetWeight ? `\n- Target: ${cCtx.targetWeight}` : ""}
+${directive}
+HARD BLOCKS: NO alcohol. NO processed fast food. NO deep-fried foods. NO high-sodium processed meats (especially during weight management phases). NO meal that contradicts the phase protocol above.
+TONE: Frame meals as "competition prep," "fueling your prep," "phase-specific," or "event-ready." Science-informed. No supplement recommendations. No medical claims.`.trim());
+  }
+
   // Performance Nutrition — fires when performanceNutritionContext.active is true
   if (input.performanceNutritionContext?.active) {
     const pCtx = input.performanceNutritionContext;
@@ -390,13 +492,11 @@ TONE: Frame as "hormone-supportive," "energy-stabilizing," or "transition-friend
       muscle_gain: "muscle hypertrophy and anabolism",
       maintenance: "performance maintenance and body composition stability",
       performance: "peak athletic output and energy system efficiency",
-      competition_prep: "competition preparation with precise macro and weight management",
     };
     const phaseMap: Record<string, string> = {
       off_season: "off-season (volume focus, caloric surplus acceptable)",
       pre_season: "pre-season (conditioning ramp, moderate deficit allowed)",
       in_season: "in-season (performance maintenance, recovery priority)",
-      competition_prep: "competition prep (precise macro control, weight management)",
       weight_cut: "active weight cut (short-term aggressive deficit, rehydration focus)",
       recovery: "recovery phase (anti-inflammatory foods, repair priority)",
     };
