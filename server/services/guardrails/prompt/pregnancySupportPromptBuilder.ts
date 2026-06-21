@@ -237,6 +237,120 @@ trout, tilapia, cod, shrimp, canned light tuna).
 ALCOHOL: Still zero tolerance — alcohol passes into breast milk.
 `.trim();
 
+// ─────────────────────────────────────────────────────────────────────────────
+// POSTPARTUM RECOVERY GUIDANCE — separate from breastfeeding
+// For women who are postpartum but NOT breastfeeding.
+// Focus: body recomposition, recovery, inflammation, hormone support.
+// NOT a weight-loss protocol. Language must reflect recovery and nourishment.
+// Sources: Academy of Nutrition and Dietetics, ACOG, NIH, Harvard T.H. Chan.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const POSTPARTUM_RECOVERY_GUIDANCE = `
+=== POSTPARTUM RECOVERY — BODY RECOMPOSITION & HEALING NUTRITION ===
+FOCUS: Recovery after birth, inflammation reduction, hormone support, gut restoration,
+skin elasticity, strength, and sustainable body recomposition.
+
+LANGUAGE RULES — MANDATORY:
+This is NOT a weight-loss protocol. Do NOT use: "lose weight," "fat burning," "belly slim,"
+"shed baby weight," "get your body back," or any transformation-oriented framing.
+USE INSTEAD: "recovery-supporting," "anti-inflammatory," "hormone-nourishing,"
+"digestion-supportive," "collagen-building," "fiber-rich," "strength-building,"
+"postpartum nourishment," "restorative."
+
+CALORIE APPROACH — CRITICAL:
+Do NOT restrict below maintenance calories. Return to pre-pregnancy maintenance baseline.
+Crash dieting and extreme elimination diets (carnivore, ketogenic, very low carb)
+are contraindicated in postpartum recovery because they:
+- Disrupt cortisol regulation and worsen postpartum hormone imbalance
+- Suppress thyroid T3 conversion, slowing metabolic recovery
+- Deprive the gut microbiome of the fiber required to restore itself after birth
+- Increase systemic inflammation rather than reducing it
+- Impair skin elasticity and collagen rebuilding
+Meals must be satisfying, nutrient-dense, and built around whole foods — not elimination.
+
+PRIORITY NUTRIENTS — emphasize in every meal:
+
+FIBER — FOUNDATIONAL FOR POSTPARTUM RECOVERY (25–35g/day):
+Fiber supports gut restoration, estrogen clearance through the bowel, microbiome
+recovery, and stable blood sugar. It is non-negotiable in this protocol.
+Rich sources: oats, lentils, black beans, chickpeas, split peas, chia seeds, flaxseed,
+broccoli, carrots, berries, apples with skin, whole grain bread, brown rice, quinoa,
+sweet potato, avocado.
+Every meal generated for a postpartum user must include a meaningful fiber source.
+
+COMPLEX CARBOHYDRATES — KEEP THEM IN:
+Complex carbs regulate cortisol, support thyroid T3 conversion, and sustain mood,
+energy, and digestion. Eliminating them is the single most common postpartum mistake.
+Whole grains: oats, brown rice, quinoa, farro, whole grain bread, barley.
+Legumes: lentils, chickpeas, black beans, edamame — dual role as fiber and protein.
+Starchy vegetables: sweet potato, squash, plantain — anti-inflammatory, nutrient-dense.
+Do NOT generate low-carbohydrate, grain-free, or carnivore-style meals for postpartum.
+
+PROTEIN (80–100g/day): Tissue repair, muscle recovery, skin collagen synthesis.
+Rich sources: lean meats, poultry, fish (preferred mercury tier), eggs, Greek yogurt,
+cottage cheese, legumes, tofu, edamame.
+Always pair protein with fiber and complex carbs — never protein alone.
+
+ANTI-INFLAMMATORY FATS:
+Omega-3: salmon, sardines, walnuts, chia seeds, flaxseed, hemp seeds.
+Monounsaturated: olive oil, avocado, avocado oil.
+Avoid: excess refined seed oils, heavily processed dressings, fried foods.
+
+SKIN ELASTICITY SUPPORT — COLLAGEN PRECURSORS:
+- Vitamin C (required for collagen synthesis): bell peppers, citrus, kiwi,
+  strawberries, broccoli, tomatoes.
+- Zinc: pumpkin seeds, beef, chickpeas, cashews, oats, yogurt.
+- Glycine-rich proteins: bone broth, quality poultry, collagen-containing cuts.
+
+IRON REPLENISHMENT (27mg/day — recovery from birth blood loss):
+Lean red meat, chicken, turkey, lentils, fortified cereals, spinach.
+Always pair iron-rich foods with vitamin C to maximize absorption.
+
+GUT HEALTH RESTORATION:
+Prebiotic foods (feed beneficial bacteria): garlic, onion, leeks, asparagus,
+bananas, oats, apples.
+Fermented foods (rebuild microbiome): yogurt with live cultures, kefir, kimchi, miso.
+Avoid heavily processed, high-sodium, low-fiber meals — they suppress microbiome recovery.
+
+TARGETED ELIMINATIONS — WHAT ACTUALLY CAUSES PROBLEMS (not whole food groups):
+- Refined sugar and ultra-processed snack foods — drive inflammation, crash energy, impair recovery.
+- Ultra-processed foods: packaged snacks, fast food, refined grain products.
+- Excess sodium — contributes to lingering postpartum swelling.
+- Excess alcohol — disrupts hormone recovery and postpartum sleep.
+NOT eliminated: whole grains, legumes, fruit, starchy vegetables, dairy, or carbohydrates.
+These are recovery foods — not the problem.
+
+MEAL STRUCTURE:
+Regular balanced meals — do not skip. Skipping worsens cortisol dysregulation.
+Every meal: protein + fiber source + complex carb + healthy fat. Balanced plates always.
+Warm, satisfying formats: grain bowls, soups, stews, stir-fries, egg dishes.
+Mood and energy support: complex carbs, omega-3s, B vitamins, iron, magnesium.
+`.trim();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POSTPARTUM + BREASTFEEDING SUPPLEMENT
+// Used when a user is postpartum AND breastfeeding simultaneously.
+// Breastfeeding calorie and nutrient needs take priority; this block adds
+// the recovery/fiber/anti-inflammatory layer on top.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const POSTPARTUM_BREASTFEEDING_SUPPLEMENT = `
+=== POSTPARTUM BODY RECOVERY (STACKED — BREASTFEEDING TAKES CALORIE PRIORITY) ===
+This user is both breastfeeding and in postpartum recovery. The +500 calorie adjustment
+and milk-production nutrients above take priority. Within that framework, also apply:
+- Include fiber-rich foods in every meal (legumes, whole grains, vegetables, fruit).
+  Fiber supports gut recovery, estrogen clearance, and microbiome restoration.
+- Include anti-inflammatory fats: salmon, sardines, walnuts, chia seeds, olive oil.
+- Include collagen precursors for skin elasticity: vitamin C-rich vegetables (bell
+  peppers, citrus, broccoli), zinc from seeds and legumes, quality protein with glycine.
+- Do NOT restrict complex carbohydrates. They support milk supply, hormone balance,
+  and postpartum recovery simultaneously.
+- Include iron-rich foods paired with vitamin C to replenish birth blood loss.
+- Avoid ultra-processed foods, refined sugar, and excess sodium.
+- Language: use "recovery-supporting," "nourishing," "restorative" framing only.
+  Do NOT use weight-loss or transformation language.
+`.trim();
+
 const TRYING_TO_CONCEIVE_GUIDANCE = `
 === PRECONCEPTION NUTRITION PRIORITIES ===
 KEY FOCUS: Optimizing nutrient stores before conception; folate loading.
@@ -361,8 +475,18 @@ export function buildPregnancySupportPrompt(context: PregnancySupportContext): s
       parts.push(TRIMESTER_3_GUIDANCE);
       break;
     case "breastfeeding":
-    case "postpartum":
       parts.push(BREASTFEEDING_GUIDANCE);
+      break;
+    case "postpartum":
+      if (context.isBreastfeeding) {
+        // Stacked: breastfeeding calorie needs win, recovery layer added on top
+        parts.push(BREASTFEEDING_GUIDANCE);
+        parts.push("");
+        parts.push(POSTPARTUM_BREASTFEEDING_SUPPLEMENT);
+      } else {
+        // Dedicated postpartum recovery protocol — body recomposition, not milk production
+        parts.push(POSTPARTUM_RECOVERY_GUIDANCE);
+      }
       break;
   }
 

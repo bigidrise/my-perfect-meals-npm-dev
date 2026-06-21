@@ -84,12 +84,24 @@ const STAGE_DATA: Record<Stage, {
     symptoms: [],
   },
   "postpartum": {
-    label: "Postpartum",
+    label: "Postpartum Recovery",
     emoji: "🩷",
-    focus: "Maternal recovery · Replenishment",
-    calorieNote: "Adjust based on whether you are breastfeeding (+500 cal) or not (pre-pregnancy baseline).",
-    nutrients: ["Iron (replenish postpartum losses)", "Protein (tissue repair)", "Calcium", "DHA", "Vitamin C (wound healing)"],
-    avoidFoods: ["Alcohol", "Highly processed foods", "High-mercury fish if breastfeeding"],
+    focus: "Recovery · Body recomposition · Hormone support · Strength",
+    calorieNote: "Return to pre-pregnancy maintenance. Do not restrict — crash dieting disrupts hormones and recovery. If breastfeeding, add +500 calories.",
+    nutrients: [
+      "Fiber (25–35g/day — gut restoration, estrogen clearance)",
+      "Complex carbs — whole grains, legumes, starchy veg (keep them in)",
+      "Protein (80–100g/day — tissue repair, collagen rebuilding)",
+      "Omega-3 fats — salmon, walnuts, chia (anti-inflammatory)",
+      "Vitamin C + Zinc (collagen & skin elasticity)",
+      "Iron (replenish birth blood loss)",
+    ],
+    avoidFoods: [
+      "Refined sugar & ultra-processed foods (drive inflammation)",
+      "Excess sodium (prolongs swelling)",
+      "Alcohol (disrupts hormone recovery)",
+      "Extreme diets — carnivore, keto, very low carb (contraindicated postpartum)",
+    ],
     symptoms: [],
   },
 };
@@ -193,7 +205,7 @@ export default function MyPerfectPregnancyPage() {
     "trimester-2": ["How do I get enough calcium?", "What fish is safe to eat?", "How much protein do I need?"],
     "trimester-3": ["What foods are high in DHA?", "How do I reduce swelling?", "What should I eat before delivery?"],
     "breastfeeding": ["Do I need more calories?", "Is coffee safe while breastfeeding?", "What helps milk production?"],
-    "postpartum": ["How do I replenish iron?", "What helps with energy postpartum?", "When can I return to normal eating?"],
+    "postpartum": ["Why do I need fiber postpartum?", "What foods help with skin recovery?", "Why should I avoid keto postpartum?"],
   };
 
   const suggestions = pregnancyData ? SUGGESTED_QUESTIONS[pregnancyData.stage] : SUGGESTED_QUESTIONS["trimester-2"];

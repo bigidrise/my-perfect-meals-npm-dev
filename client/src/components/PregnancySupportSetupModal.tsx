@@ -33,7 +33,7 @@ const STAGE_OPTIONS: { label: string; value: Stage; emoji: string; description: 
   { label: "Second Trimester", value: "trimester-2", emoji: "🌿", description: "Weeks 14–27 · Protein, calcium, DHA" },
   { label: "Third Trimester", value: "trimester-3", emoji: "🌺", description: "Weeks 28–40 · Iron, DHA, prep for birth" },
   { label: "Breastfeeding", value: "breastfeeding", emoji: "🤱", description: "Milk production, DHA, iodine, calcium" },
-  { label: "Postpartum", value: "postpartum", emoji: "🩷", description: "Recovery, replenishment, energy" },
+  { label: "Postpartum", value: "postpartum", emoji: "🩷", description: "Recovery, body recomposition, hormone support, strength" },
 ];
 
 const SYMPTOM_OPTIONS: { label: string; value: Symptom; emoji: string }[] = [
@@ -135,6 +135,40 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
               ))}
             </div>
           </div>
+
+          {/* Breastfeeding question — only for postpartum stage */}
+          {stage === "postpartum" && (
+            <div>
+              <p className="text-pink-300 text-sm font-semibold mb-1">Are you currently breastfeeding?</p>
+              <p className="text-white/50 text-xs mb-3">
+                This shapes your nutrition track. Breastfeeding and postpartum recovery have different priorities — we handle them separately.
+              </p>
+              <div className="flex gap-2">
+                <PillButton
+                  active={isBreastfeeding === true}
+                  onClick={() => setIsBreastfeeding(true)}
+                >
+                  Yes, breastfeeding
+                </PillButton>
+                <PillButton
+                  active={isBreastfeeding === false}
+                  onClick={() => setIsBreastfeeding(false)}
+                >
+                  No, not breastfeeding
+                </PillButton>
+              </div>
+              {isBreastfeeding && (
+                <p className="text-white/40 text-xs mt-2 leading-relaxed">
+                  You'll get milk-production nutrition plus a recovery layer for healing and rebuilding.
+                </p>
+              )}
+              {!isBreastfeeding && (
+                <p className="text-white/40 text-xs mt-2 leading-relaxed">
+                  You'll get a dedicated postpartum recovery protocol — fiber, anti-inflammatory eating, hormone support, and body recomposition. No crash dieting.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Due date — only for trimester stages */}
           {stage && ["trimester-1", "trimester-2", "trimester-3"].includes(stage) && (
