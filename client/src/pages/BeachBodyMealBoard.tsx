@@ -658,6 +658,7 @@ export default function BeachBodyMealBoard() {
         starchyCarbs: generatedMeal.starchyCarbs || 0,
         fibrousCarbs: generatedMeal.fibrousCarbs || 0,
         dietClassification: generatedMeal.dietClassification || null,
+        appliedProtocol: generatedMeal.appliedProtocol ?? null,
       };
 
       const newMeals = [transformedMeal];
@@ -965,6 +966,87 @@ export default function BeachBodyMealBoard() {
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${proClientId ? '9rem' : '6rem'})` }}
       >
         <NutritionBudgetBanner className="mb-2" userId={effectiveUserId} />
+
+        {/* ── Protocol Active Banner ── */}
+        {(() => {
+          const activeTrack = (user as any)?.activeProtocolTrack as string | null;
+          const perfCtx = (user as any)?.performanceContext as any;
+          const compCtx = (user as any)?.competitionPrepContext as any;
+
+          if (activeTrack === "competition" && compCtx?.competitionType && compCtx?.eventDate) {
+            const now = new Date();
+            const event = new Date(compCtx.eventDate);
+            const weeksOut = Math.max(0, Math.round((event.getTime() - now.getTime()) / (7 * 24 * 60 * 60 * 1000)));
+            const phaseLabel =
+              weeksOut <= 0 ? "Post-Competition" :
+              weeksOut === 1 ? "Show / Meet Day" :
+              weeksOut <= 2 ? "Peak Week" :
+              weeksOut <= 4 ? "Peak Prep" :
+              weeksOut <= 12 ? "Conditioning" : "Base Building";
+            const compTypeLabels: Record<string, string> = {
+              bodybuilding_show: "Bodybuilding Show", mens_physique: "Men's Physique",
+              classic_physique: "Classic Physique", figure: "Figure", bikini: "Bikini",
+              wellness: "Wellness", powerlifting_meet: "Powerlifting Meet",
+              strongman_competition: "Strongman", olympic_weightlifting_meet: "Olympic Weightlifting",
+              fight_camp: "Fight Camp", wrestling_season: "Wrestling Season",
+              crossfit_competition: "CrossFit Competition", hyrox: "Hyrox",
+              marathon: "Marathon", triathlon_race: "Triathlon Race", spartan_race: "Spartan Race",
+            };
+            return (
+              <div className="mx-4 mb-2 rounded-xl bg-orange-950/40 border border-orange-500/40 px-4 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <div className="text-orange-400 font-bold text-sm">🏆 Competition Prep Active</div>
+                    <div className="text-white/80 text-sm">
+                      {compTypeLabels[compCtx.competitionType] ?? compCtx.competitionType}
+                      {weeksOut > 0 ? ` · ${weeksOut} Weeks Out` : " · Event Week"}
+                    </div>
+                    <div className="text-white/50 text-xs">Current Phase: {phaseLabel}</div>
+                  </div>
+                  <div className="shrink-0 text-[11px] bg-orange-600/20 border border-orange-500/30 rounded-lg px-2 py-1 text-orange-300 font-semibold">
+                    Protocol Active
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (activeTrack === "athletic" && perfCtx?.trainingType) {
+            const typeLabels: Record<string, string> = {
+              strength: "Strength Training", hypertrophy: "Hypertrophy", powerlifting: "Powerlifting",
+              olympic_lifting: "Olympic Lifting", mma: "MMA", boxing: "Boxing", wrestling: "Wrestling",
+              bjj: "BJJ", crossfit: "CrossFit", endurance_running: "Running",
+              cycling: "Cycling", triathlon: "Triathlon", tactical: "Tactical / Military",
+              general_fitness: "General Fitness",
+            };
+            const phaseLabels: Record<string, string> = {
+              off_season: "Off Season", pre_season: "Pre-Season", in_season: "In Season",
+              weight_cut: "Weight Cut", recovery: "Recovery Phase",
+            };
+            const freq = perfCtx.trainingFrequency ?? "3-4";
+            const phase = phaseLabels[perfCtx.trainingPhase ?? "in_season"] ?? "In Season";
+            return (
+              <div className="mx-4 mb-2 rounded-xl bg-zinc-900/60 border border-orange-500/30 px-4 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <div className="text-orange-400 font-bold text-sm">⚡ Athletic Performance Active</div>
+                    <div className="text-white/80 text-sm">
+                      {typeLabels[perfCtx.trainingType] ?? (perfCtx.trainingType ?? "").replace(/_/g, " ")}
+                      {` · ${freq} Sessions/Week`}
+                    </div>
+                    <div className="text-white/50 text-xs">Current Phase: {phase}</div>
+                  </div>
+                  <div className="shrink-0 text-[11px] bg-orange-600/20 border border-orange-500/30 rounded-lg px-2 py-1 text-orange-300 font-semibold">
+                    Protocol Active
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          return null;
+        })()}
+
         <div className="mb-2 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl mx-4">
           <div className="px-4 py-4 flex flex-col gap-3">
             {/* ROW 1: Week Dates (centered) */}
