@@ -40,6 +40,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log("📡 [AuthContext] Refreshing user...");
       const response = await fetch(apiUrl(`/api/user/profile`), {
         headers: { ...getAuthHeaders() },
+        credentials: "include",
+        cache: "no-store",
       });
 
       if (response.ok) {
