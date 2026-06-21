@@ -115,23 +115,26 @@ export function AthleteMealPickerDrawer({
     }
   }, [open]);
 
-  // Filter meals by selected category, excluding any that exceed the carb cap by >20%
+  // Filter meals by selected category, excluding any where adding the meal would push
+  // cumulative carbs more than 20% over the carb cap.
   const filteredMeals = React.useMemo(() => {
     const all = getAthleteMealsByCategory(category);
-    if (!isCycleActive || carbCapSoft <= 0) return all;
+    if (!isCycleActive || carbCap <= 0) return all;
+    const used = carbsUsed ?? 0;
     return all.filter((am: AthleteMeal) => {
-      const totalCarbs = am.macros.starchyCarbs + am.macros.fibrousCarbs;
-      return totalCarbs <= carbCapSoft;
+      const mealCarbs = am.macros.starchyCarbs + am.macros.fibrousCarbs;
+      return used + mealCarbs <= carbCapSoft;
     });
-  }, [category, isCycleActive, carbCapSoft]);
+  }, [category, isCycleActive, carbCap, carbCapSoft, carbsUsed]);
 
   const excludedCount = React.useMemo(() => {
-    if (!isCycleActive || carbCapSoft <= 0) return 0;
+    if (!isCycleActive || carbCap <= 0) return 0;
+    const used = carbsUsed ?? 0;
     return getAthleteMealsByCategory(category).filter((am: AthleteMeal) => {
-      const totalCarbs = am.macros.starchyCarbs + am.macros.fibrousCarbs;
-      return totalCarbs > carbCapSoft;
+      const mealCarbs = am.macros.starchyCarbs + am.macros.fibrousCarbs;
+      return used + mealCarbs > carbCapSoft;
     }).length;
-  }, [category, isCycleActive, carbCapSoft]);
+  }, [category, isCycleActive, carbCap, carbCapSoft, carbsUsed]);
 
   // State for the info modal, assuming it's defined elsewhere or not needed for this specific change
   // const [showInfoModal, setShowInfoModal] = React.useState(false);
@@ -212,6 +215,7 @@ export function AthleteMealPickerDrawer({
           {/* Meal Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {filteredMeals.map((am: AthleteMeal) => {
+              const mealTotalCarbs = am.macros.starchyCarbs + am.macros.fibrousCarbs;
               return (
                 <button
                   key={am.id}

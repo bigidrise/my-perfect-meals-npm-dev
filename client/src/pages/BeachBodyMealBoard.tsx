@@ -363,6 +363,19 @@ export default function BeachBodyMealBoard() {
   const [showDuplicateDayModal, setShowDuplicateDayModal] =
     React.useState(false);
 
+  // Carb cycle state — fetched once on mount to power AthleteMealPickerDrawer filtering
+  const [carbCyclePickerState, setCarbCyclePickerState] = useState<{ phase: string; carbTargetG: number } | null>(null);
+  useEffect(() => {
+    fetch("/api/performance/carb-cycle", { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.state?.phase && (data.state.phase === "low_carb" || data.state.phase === "refeed") && data.state.carbTargetG > 0) {
+          setCarbCyclePickerState({ phase: data.state.phase, carbTargetG: data.state.carbTargetG });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // Shopping list modal state
   const [shoppingListModal, setShoppingListModal] = useState<{
     isOpen: boolean;
@@ -1702,6 +1715,8 @@ export default function BeachBodyMealBoard() {
             setPickerOpen(false);
             setPickerList(null);
           }}
+          carbCycleState={carbCyclePickerState}
+          carbsUsed={totals.carbs}
         />
 
         <WeeklyOverviewModal
