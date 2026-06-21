@@ -6,6 +6,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { useAuth } from "@/contexts/AuthContext";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import { PregnancySupportSetupModal } from "@/components/PregnancySupportSetupModal";
+import { derivePregnancyStatus } from "@/lib/pregnancyUtils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -151,40 +152,16 @@ export default function MyPerfectPregnancyPage() {
   }, [messages]);
 
   function applyUserToPregnancyData(u: any) {
-    if (!u) return;
-    if (u.pregnancySupportContext || u.pregnancyStage) {
-      const ctx = u.pregnancySupportContext ?? {};
-      const rawDueDate: string | null = u.pregnancyDueDate ?? null;
-      const trackingMode: string = ctx.trackingMode ?? "manual";
-
-      let weekOfPregnancy: number | null = null;
-      let derivedStage: Stage = (u.pregnancyStage ?? "trimester-2") as Stage;
-
-      if (rawDueDate && trackingMode !== "manual") {
-        try {
-          const due = new Date(rawDueDate);
-          const now = new Date();
-          const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-          const weeksUntilDue = (due.getTime() - now.getTime()) / msPerWeek;
-          const currentWeek = Math.max(1, Math.min(42, Math.round(40 - weeksUntilDue)));
-          weekOfPregnancy = currentWeek;
-          if (currentWeek <= 13) derivedStage = "trimester-1";
-          else if (currentWeek <= 27) derivedStage = "trimester-2";
-          else derivedStage = "trimester-3";
-        } catch {
-          // Due date parse failed — fall back to manual stage
-        }
-      }
-
-      setPregnancyData({
-        stage: derivedStage,
-        weekOfPregnancy,
-        symptoms: ctx.symptoms ?? [],
-        isBreastfeeding: ctx.isBreastfeeding ?? false,
-        dueDate: rawDueDate,
-        trackingMode,
-      });
-    }
+    const status = derivePregnancyStatus(u);
+    if (!status) return;
+    setPregnancyData({
+      stage: status.stage as Stage,
+      weekOfPregnancy: status.weekOfPregnancy,
+      symptoms: status.symptoms,
+      isBreastfeeding: status.isBreastfeeding,
+      dueDate: status.dueDate,
+      trackingMode: status.trackingMode,
+    });
   }
 
   async function loadPregnancyContext() {
@@ -297,6 +274,17 @@ export default function MyPerfectPregnancyPage() {
                   </span>
                 </p>
               )}
+
+              {/* Next milestone */}
+              {(() => {
+                const ps = derivePregnancyStatus(user);
+                if (!ps?.nextMilestone) return null;
+                return (
+                  <p className="text-pink-300/70 text-xs mt-1 font-medium">
+                    Next: {ps.nextMilestone}
+                  </p>
+                );
+              })()}
 
               {/* Active symptoms */}
               {pregnancyData?.symptoms && pregnancyData.symptoms.length > 0 && (
