@@ -693,27 +693,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // When user chose "Continue Anyway" on the diet guard, inject a soft coaching override
       // so the AI includes the requested ingredient while keeping everything else diet-aligned
-      let effectiveInput = userDietOverride === true && input && typeof input === 'string'
+      const effectiveInput = userDietOverride === true && input && typeof input === 'string'
         ? `${input} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`
         : input;
-
-      // ── Carb Cycle Context — inject active carb budget as a hard constraint ──
-      // When a user has an active carb cycle state (low_carb or refeed phase),
-      // append the carb budget as a hard constraint so the AI respects the protocol.
-      if (userId && typeof effectiveInput === 'string') {
-        try {
-          const [ccRow] = await db
-            .select({ carbCycleState: users.carbCycleState })
-            .from(users).where(eq(users.id, userId)).limit(1);
-          const ccState = ccRow?.carbCycleState as any;
-          if (ccState && (ccState.phase === 'low_carb' || ccState.phase === 'refeed') && ccState.carbTargetG > 0) {
-            const isRefeed = ccState.phase === 'refeed';
-            const phaseLabel = isRefeed ? 'Refeed Day' : 'Low-Carb Day';
-            effectiveInput = `${effectiveInput} [CARB CYCLE PROTOCOL — HARD CONSTRAINT: ${phaseLabel}. Today's carb budget: ${ccState.carbTargetG}g total. ${isRefeed ? 'This is an intentional refeed: prioritize complex carbohydrates (sweet potato, rice, oats, fruit) to fill the carb budget. This is a metabolic reset day — carbs are expected and required.' : 'Low-carb day: keep all carb sources at or below this budget. Prioritize protein and healthy fats. Minimize starchy carbs.'} This is a sport-nutrition protocol hard limit — it overrides general preferences and must be respected exactly.]`;
-            console.log(`🔄 [CarbCycle] Injected ${phaseLabel} constraint (${ccState.carbTargetG}g) into meal generation`);
-          }
-        } catch { /* non-blocking */ }
-      }
+      // Note: Carb cycle hard constraints are injected via the UserProtocolEnvelope
+      // (loadUserProtocolEnvelope → carbCycleContext → enforceBeforeGenerate) — no
+      // direct input-string mutation needed here.
 
       // 🚨 ENFORCEMENT GATEWAY: Pre-generation — Tier 1 (allergy) + Tier 2 (religious)
       if (userId && input) {
