@@ -49,7 +49,10 @@ router.post("/setup", async (req, res) => {
       const validCompTypes = [
         "bodybuilding_show", "mens_physique", "classic_physique",
         "figure", "bikini", "wellness",
-        "powerlifting_meet", "fight_camp", "wrestling_season",
+        "powerlifting_meet", "strongman_competition", "olympic_weightlifting_meet",
+        "fight_camp", "wrestling_season",
+        "crossfit_competition", "hyrox",
+        "marathon", "triathlon_race", "spartan_race",
       ];
 
       if (!competitionType || !validCompTypes.includes(competitionType)) {
@@ -226,10 +229,14 @@ router.post("/ask", async (req, res) => {
       const today = new Date();
       const weeksOut = Math.max(0, Math.round((eventDate.getTime() - today.getTime()) / (7 * 24 * 60 * 60 * 1000)));
       const compTypeMap: Record<string, string> = {
-        bodybuilding_show: "bodybuilding show", mens_physique: "Men's Physique",
+        bodybuilding_show: "Bodybuilding Show", mens_physique: "Men's Physique",
         classic_physique: "Classic Physique", figure: "Figure", bikini: "Bikini",
-        wellness: "Wellness", powerlifting_meet: "powerlifting meet",
-        fight_camp: "fight camp", wrestling_season: "wrestling season",
+        wellness: "Wellness", powerlifting_meet: "Powerlifting Meet",
+        strongman_competition: "Strongman Competition",
+        olympic_weightlifting_meet: "Olympic Weightlifting Meet",
+        fight_camp: "Fight Camp", wrestling_season: "Wrestling Season",
+        crossfit_competition: "CrossFit Competition", hyrox: "Hyrox",
+        marathon: "Marathon", triathlon_race: "Triathlon Race", spartan_race: "Spartan Race",
       };
       systemPrompt += `COMPETITION PREP PROTOCOL:
 - Event: ${compTypeMap[compCtx.competitionType] ?? compCtx.competitionType}${compCtx.division ? ` — ${compCtx.division}` : ""}

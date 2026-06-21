@@ -469,7 +469,7 @@ export const users = pgTable("users", {
   // Active when "competition-prep" is in specialtyConditions.
   // Event date is the safeguard — protocol ends automatically at event date.
   competitionPrepContext: jsonb("competition_prep_context").$type<{
-    competitionType: "bodybuilding_show" | "mens_physique" | "classic_physique" | "figure" | "bikini" | "wellness" | "powerlifting_meet" | "fight_camp" | "wrestling_season";
+    competitionType: "bodybuilding_show" | "mens_physique" | "classic_physique" | "figure" | "bikini" | "wellness" | "powerlifting_meet" | "strongman_competition" | "olympic_weightlifting_meet" | "fight_camp" | "wrestling_season" | "crossfit_competition" | "hyrox" | "marathon" | "triathlon_race" | "spartan_race";
     division?: string;
     eventDate: string;
     currentWeight?: string;
