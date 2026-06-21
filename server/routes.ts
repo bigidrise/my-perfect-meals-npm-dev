@@ -35,6 +35,7 @@ import { scanForHiddenDietaryViolations, AVOIDANCE_EXPANSION, getPrimaryDiet } f
 import { sanitizeMealName } from "./utils/mealNameSanitizer";
 import { buildChefAdaptationBlock } from "./utils/chefAdaptationBlock";
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol, buildGuestEnvelope, scanGeneratedOutput, buildComplianceSection, buildMealComplianceBundle } from "./services/protocolEnvelope";
+import { deriveCompPrepStatus } from "./services/protocol/competitionPrepDateEngine";
 import { getActiveNutritionContext } from "./services/nutritionContext/getActiveNutritionContext";
 import { getLabDrivenConditions, getPhysicianLockStatus } from "./services/labProtocolOwnership";
 import { 
@@ -876,6 +877,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }
                 return m;
               });
+            }
+          }
+        } catch { }
+      }
+
+      // ── Protocol Stamp — attach appliedProtocol so clients can verify protocol was applied ──
+      if (result.success && userId) {
+        try {
+          const [stampRow] = await db
+            .select({
+              activeProtocolTrack: users.activeProtocolTrack,
+              performanceContext: users.performanceContext,
+              competitionPrepContext: users.competitionPrepContext,
+            })
+            .from(users).where(eq(users.id, userId)).limit(1);
+
+          if (stampRow) {
+            const track = stampRow.activeProtocolTrack as string | null;
+            const compCtx = stampRow.competitionPrepContext as any;
+            const perfCtx = stampRow.performanceContext as any;
+            const compTypeLabels: Record<string, string> = {
+              bodybuilding_show: "Bodybuilding Show", mens_physique: "Men's Physique",
+              classic_physique: "Classic Physique", figure: "Figure", bikini: "Bikini",
+              wellness: "Wellness", powerlifting_meet: "Powerlifting Meet",
+              strongman_competition: "Strongman", olympic_weightlifting_meet: "Olympic Weightlifting",
+              fight_camp: "Fight Camp", wrestling_season: "Wrestling Season",
+              crossfit_competition: "CrossFit Competition", hyrox: "Hyrox",
+              marathon: "Marathon", triathlon_race: "Triathlon Race", spartan_race: "Spartan Race",
+            };
+
+            let appliedProtocol: Record<string, any> | null = null;
+
+            if (track === "competition" && compCtx?.competitionType && compCtx?.eventDate) {
+              const status = deriveCompPrepStatus(compCtx.eventDate, compCtx.competitionType);
+              appliedProtocol = {
+                track: "competition",
+                competitionType: compCtx.competitionType,
+                competitionTypeLabel: compTypeLabels[compCtx.competitionType] ?? compCtx.competitionType,
+                currentPhase: status.currentPhase,
+                currentPhaseLabel: status.currentPhaseLabel,
+                weeksOut: status.weeksOut,
+                category: status.category,
+              };
+            } else if (track === "athletic" && perfCtx?.trainingType) {
+              appliedProtocol = {
+                track: "athletic",
+                trainingType: perfCtx.trainingType,
+                trainingFrequency: perfCtx.trainingFrequency ?? "3-4",
+                primaryGoal: perfCtx.primaryGoal ?? "performance",
+                trainingPhase: perfCtx.trainingPhase ?? "in_season",
+              };
+            }
+
+            if (appliedProtocol) {
+              if (result.meal) result.meal = { ...result.meal, appliedProtocol };
+              if (result.meals?.length) {
+                result.meals = result.meals.map((m: any) => ({ ...m, appliedProtocol }));
+              }
             }
           }
         } catch { }
