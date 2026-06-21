@@ -75,10 +75,10 @@ const BUILDER_OPTIONS: BuilderOption[] = [
   },
   {
     id: "beach_body",
-    title: "Beach Body Meal Builder",
-    description: "Contest prep and leaning out. Designed for rapid, visible change.",
+    title: "Performance Nutrition Builder",
+    description: "Sport-specific fueling for athletes — energy systems, carb timing, and recovery.",
     icon: <Trophy className="w-6 h-6" />,
-    bestFor: ["Competition prep", "Rapid fat loss", "Physique goals"],
+    bestFor: ["Athletes & fighters", "Competition prep", "Sport-specific fueling"],
     goalCategories: ["performance"],
     planBadge: "Ultimate Plan",
   },
@@ -107,7 +107,7 @@ const GOAL_OPTIONS = [
   { id: "diabetes", label: "Diabetes / Blood Sugar", description: "Manage blood sugar with carb-conscious meals" },
   { id: "glp1", label: "Metabolic Med / Appetite Support", description: "Optimize meals for medication users" },
   { id: "anti_inflammatory", label: "Anti-Inflammatory", description: "Reduce inflammation through food choices" },
-  { id: "performance", label: "Beach Body", description: "Contest prep and leaning out for visible change" },
+  { id: "performance", label: "Performance & Athletics", description: "Sport-specific fueling, energy systems, and recovery" },
   { id: "weight_loss", label: "Weight Loss", description: "Simple, effective fat loss approach" },
 ];
 

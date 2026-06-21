@@ -406,7 +406,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
 
   "/beach-body-meal-board": {
     pageId: "beach-body-meal-board",
-    title: "Beach Body Meal Builder",
+    title: "Performance Nutrition Builder",
     description:
       "Create structured meals designed for performance and body composition. Each meal slot has a My Favorites button — tap the red star to instantly reuse any saved meal with macros updated automatically. Taste Memory is active — the more you save, the more the app learns your preferences. Use the 'How builders work' button on this page to watch a quick video tutorial on how to use this builder.",
     spokenText:

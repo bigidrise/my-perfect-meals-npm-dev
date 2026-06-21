@@ -883,6 +883,41 @@ export async function loadUserProtocolEnvelope(
       };
     }
 
+    // ── PERFORMANCE NUTRITION — additive modifier ─────────────────────────────
+    const performanceNutrition: boolean = specialtyConditionsArr.includes("performance-nutrition");
+    let performanceNutritionCtx: {
+      active: boolean;
+      primaryGoal: string;
+      trainingType: string;
+      trainingFrequency: string;
+      cardioFocus: string;
+      trainingPhase: string;
+      twoADays: boolean;
+    } | null = null;
+
+    if (performanceNutrition) {
+      const rawPerf = ((user as any).performanceContext as {
+        primaryGoal?: string;
+        trainingType?: string;
+        trainingFrequency?: string;
+        cardioFocus?: string;
+        trainingPhase?: string;
+        twoADays?: boolean;
+      } | null) ?? null;
+
+      if (rawPerf?.primaryGoal && rawPerf?.trainingType) {
+        performanceNutritionCtx = {
+          active: true,
+          primaryGoal: rawPerf.primaryGoal,
+          trainingType: rawPerf.trainingType,
+          trainingFrequency: rawPerf.trainingFrequency ?? "3-4",
+          cardioFocus: rawPerf.cardioFocus ?? "mixed",
+          trainingPhase: rawPerf.trainingPhase ?? "in_season",
+          twoADays: rawPerf.twoADays ?? false,
+        };
+      }
+    }
+
     const conditionGuidanceBlocks = await buildUniversalConditionGuidance({
       userId,
       healthConditions: mergedHealthConditions,
@@ -908,6 +943,7 @@ export async function loadUserProtocolEnvelope(
       perimenopause,
       metabolicRecovery,
       pregnancySupportContext: pregnancySupportCtx,
+      performanceNutritionContext: performanceNutritionCtx,
     });
 
     return {
@@ -937,6 +973,8 @@ export async function loadUserProtocolEnvelope(
       performanceControlMode: (((user as any).performanceControlMode as string | null) ?? "self_guided") as "self_guided"|"coach_controlled",
       pregnancySupport,
       pregnancySupportContext: pregnancySupportCtx,
+      performanceNutrition,
+      performanceContext: performanceNutritionCtx,
     };
   } catch (error) {
     console.error("[ProtocolEnvelope] Failed to load envelope:", error);

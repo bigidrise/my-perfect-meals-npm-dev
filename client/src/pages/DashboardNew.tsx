@@ -856,6 +856,66 @@ export default function DashboardNew() {
           );
         })()}
 
+        {/* ── Performance Nutrition Card ──────────────────────────────── */}
+        {(() => {
+          const pCtx = (user as any)?.performanceContext;
+          if (!pCtx?.primaryGoal) return null;
+          const goalLabels: Record<string, string> = {
+            fat_loss: "Fat Loss",
+            muscle_gain: "Muscle Gain",
+            maintenance: "Maintenance",
+            performance: "Peak Performance",
+            competition_prep: "Competition Prep",
+          };
+          const typeLabels: Record<string, string> = {
+            strength: "Strength", hypertrophy: "Hypertrophy",
+            powerlifting: "Powerlifting", olympic_lifting: "Olympic Lifting",
+            mma: "MMA", boxing: "Boxing", wrestling: "Wrestling", bjj: "BJJ",
+            crossfit: "CrossFit", endurance_running: "Running",
+            cycling: "Cycling", triathlon: "Triathlon",
+            tactical: "Tactical", general_fitness: "General Fitness",
+          };
+          const phaseLabels: Record<string, string> = {
+            off_season: "Off Season", pre_season: "Pre-Season",
+            in_season: "In Season", competition_prep: "Competition Prep",
+            weight_cut: "Weight Cut", recovery: "Recovery",
+          };
+          return (
+            <motion.div
+              key="performance-card"
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.3 }}
+              className="rounded-2xl bg-gradient-to-br from-orange-950/70 via-black/80 to-zinc-950/60 border border-orange-500/30 p-4 mb-1"
+            >
+              <div className="flex items-center gap-1.5 mb-3">
+                <span className="w-2 h-2 rounded-full bg-orange-400 flex-shrink-0" />
+                <p className="text-xs text-orange-300 font-semibold">Performance Nutrition Protocol Active</p>
+              </div>
+
+              <p className="text-white font-bold text-xl leading-none">
+                {typeLabels[pCtx.trainingType] ?? pCtx.trainingType}
+                <span className="text-orange-300 font-medium text-sm ml-2">— {goalLabels[pCtx.primaryGoal] ?? pCtx.primaryGoal}</span>
+              </p>
+
+              <p className="text-white/50 text-xs mt-1.5">
+                Phase:{" "}
+                <span className="text-white/70">{phaseLabels[pCtx.trainingPhase] ?? pCtx.trainingPhase}</span>
+                <span className="mx-1.5 text-white/30">·</span>
+                <span className="text-white/70">{pCtx.trainingFrequency} sessions/wk</span>
+                {pCtx.twoADays && <span className="ml-1.5 text-orange-400 font-semibold">2-a-days</span>}
+              </p>
+
+              <button
+                onClick={() => setLocation("/performance")}
+                className="mt-4 w-full py-2.5 rounded-xl text-xs font-semibold bg-orange-700/40 border border-orange-400/30 text-white active:scale-[0.98] transition-transform"
+              >
+                Open Performance Hub
+              </button>
+            </motion.div>
+          );
+        })()}
+
         {user?.goalType && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}

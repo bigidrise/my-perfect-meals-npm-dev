@@ -65,9 +65,9 @@ export default function Planner() {
       builderId: "anti_inflammatory",
     },
     {
-      title: "Beach Body Meal Builder",
+      title: "Performance Nutrition Builder",
       description:
-        "Contest prep and leaning out AI created meal plans designed for rapid change",
+        "Sport-specific fueling for athletes, fighters, and coaches — energy systems, carb timing, and recovery",
       icon: Trophy,
       route: "/beach-body-meal-board",
       testId: "card-competition-beachbody",

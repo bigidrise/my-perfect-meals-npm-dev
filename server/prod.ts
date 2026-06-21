@@ -207,6 +207,8 @@ async function initializeApp() {
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pregnancy_stage text`);
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pregnancy_due_date text`);
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pregnancy_support_context jsonb`);
+          // Performance Nutrition Protocol — boot migration
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_context jsonb`);
           // LMS content tables
           await database.execute(sql`
             CREATE TABLE IF NOT EXISTS cert_modules (
@@ -532,6 +534,10 @@ async function initializeApp() {
     // My Perfect Pregnancy — trimester-aware nutrition coach
     const pregnancyCoachRouter = (await import("./routes/pregnancyCoach")).default;
     app.use("/api/pregnancy", requireAuth, pregnancyCoachRouter);
+
+    // Performance Nutrition — sport-specific fueling protocol
+    const performanceNutritionRouter = (await import("./routes/performanceNutrition")).default;
+    app.use("/api/performance", requireAuth, performanceNutritionRouter);
 
     console.log("✅ [INIT] Parity routes mounted");
 

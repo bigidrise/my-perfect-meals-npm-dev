@@ -12,7 +12,7 @@ export type BiometricsFrom =
 
 export const BIOMETRICS_SOURCES: Record<BiometricsFrom, { label: string; path: string }> = {
   "weekly-meal-board":    { label: "Weekly Meal Board",       path: "/weekly-meal-board" },
-  "beachbody-meal-board": { label: "Beach Body Meal Board",   path: "/beachbody-meal-board" },
+  "beachbody-meal-board": { label: "Performance Nutrition Builder",   path: "/beachbody-meal-board" },
   "saved-meals":          { label: "Saved Meals",             path: "/saved-meals" },
   "quick-log":            { label: "Quick Log",               path: "/" },
   "craving-studio":       { label: "Craving Creator",         path: "/craving-creator" },

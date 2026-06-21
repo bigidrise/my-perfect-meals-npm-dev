@@ -238,6 +238,7 @@ import CreateDishPage from "@/pages/lifestyle/CreateDishPage";
 import GatheringsPage from "@/pages/lifestyle/GatheringsPage";
 import MyPerfectGetaway from "@/pages/lifestyle/MyPerfectGetaway";
 import MyPerfectPregnancyPage from "@/pages/MyPerfectPregnancyPage";
+import PerformanceNutritionHub from "@/pages/PerformanceNutritionHub";
 import CravingCreatorLanding from "@/pages/CravingCreatorLanding";
 import SushiCreator from "@/pages/SushiCreator";
 import BeverageCreatorHub from "@/pages/BeverageCreatorHub";
@@ -587,6 +588,7 @@ export default function Router() {
         {/* DELETED: /healthy-kids-meals, /kids-meals, /toddler-meals routes (Phase 1 cleanup) */}
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
         <Route path="/lifestyle/my-perfect-pregnancy" component={MyPerfectPregnancyPage} />
+        <Route path="/performance" component={PerformanceNutritionHub} />
         <Route path="/lifestyle/my-perfect-getaway" component={GuardedGetaway} />
         <Route path="/lifestyle/my-perfect-gatherings" component={GuardedGatheringsPage} />
         <Route path="/lifestyle/ultimate-experiences" component={GuardedGatheringsPage} />
