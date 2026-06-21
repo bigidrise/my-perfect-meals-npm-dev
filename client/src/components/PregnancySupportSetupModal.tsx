@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { PillButton } from "@/components/ui/pill-button";
-import { apiUrl } from "@/lib/resolveApiBase";
+import { apiRequest } from "@/lib/apiRequest";
 
 interface PregnancySupportSetupModalProps {
   open: boolean;
@@ -64,10 +64,8 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
     if (!stage) return;
     setSaving(true);
     try {
-      await fetch(apiUrl("/api/pregnancy/setup"), {
+      await apiRequest("/api/pregnancy/setup", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({
           stage,
           dueDate: trackingMode === "due-date" && dueDate ? dueDate : null,
@@ -82,8 +80,8 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
         onOpenChange(false);
         setSaved(false);
       }, 1200);
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error("[PregnancySetup] save failed:", err);
     } finally {
       setSaving(false);
     }
