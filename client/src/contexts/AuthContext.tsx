@@ -124,6 +124,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           pregnancyStage: userData.pregnancyStage ?? null,
           pregnancyDueDate: userData.pregnancyDueDate ?? null,
           pregnancySupportContext: userData.pregnancySupportContext ?? null,
+          performanceContext: userData.performanceContext ?? null,
         };
         if (userData.oncologySupportIntent) {
           localStorage.setItem("mpm:oncologySupportIntent", userData.oncologySupportIntent);

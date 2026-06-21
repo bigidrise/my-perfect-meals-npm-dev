@@ -157,6 +157,9 @@ export interface User {
   pregnancyDueDate?: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   pregnancySupportContext?: any | null;
+  // Performance Nutrition Protocol
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  performanceContext?: any | null;
 }
 
 export function getAuthToken(): string | null {

@@ -56,6 +56,16 @@ export interface UniversalGuidanceInput {
     symptoms: Array<"nausea" | "heartburn" | "constipation" | "fatigue" | "food_aversions" | "swelling" | "shortness_of_breath" | "low_appetite">;
     isBreastfeeding: boolean;
   } | null;
+  /** Performance Nutrition context — active when "performance-nutrition" is in specialtyConditions. */
+  performanceNutritionContext?: {
+    active: boolean;
+    primaryGoal: string;
+    trainingType: string;
+    trainingFrequency: string;
+    cardioFocus: string;
+    trainingPhase: string;
+    twoADays: boolean;
+  } | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -370,6 +380,91 @@ TONE: Frame as "hormone-supportive," "energy-stabilizing," or "transition-friend
       isBreastfeeding: input.pregnancySupportContext.isBreastfeeding,
     });
     if (pregnancyBlock.trim()) blocks.push(pregnancyBlock);
+  }
+
+  // Performance Nutrition — fires when performanceNutritionContext.active is true
+  if (input.performanceNutritionContext?.active) {
+    const pCtx = input.performanceNutritionContext;
+    const goalMap: Record<string, string> = {
+      fat_loss: "fat loss while preserving lean mass",
+      muscle_gain: "muscle hypertrophy and anabolism",
+      maintenance: "performance maintenance and body composition stability",
+      performance: "peak athletic output and energy system efficiency",
+      competition_prep: "competition preparation with precise macro and weight management",
+    };
+    const phaseMap: Record<string, string> = {
+      off_season: "off-season (volume focus, caloric surplus acceptable)",
+      pre_season: "pre-season (conditioning ramp, moderate deficit allowed)",
+      in_season: "in-season (performance maintenance, recovery priority)",
+      competition_prep: "competition prep (precise macro control, weight management)",
+      weight_cut: "active weight cut (short-term aggressive deficit, rehydration focus)",
+      recovery: "recovery phase (anti-inflammatory foods, repair priority)",
+    };
+    const trainingMap: Record<string, string> = {
+      strength: "strength training (compound lifts, neural adaptation)",
+      hypertrophy: "hypertrophy training (high volume, muscle damage/repair cycle)",
+      powerlifting: "powerlifting (maximal force, CNS intensive)",
+      olympic_lifting: "Olympic lifting (explosive power, skill-based)",
+      mma: "mixed martial arts (multiple energy systems, weight class management)",
+      boxing: "boxing (glycolytic/aerobic mix, hand speed and endurance)",
+      wrestling: "wrestling (explosive strength, lactate tolerance)",
+      bjj: "Brazilian jiu-jitsu (endurance-dominant, positional strength)",
+      crossfit: "CrossFit (mixed modality, aerobic + anaerobic)",
+      endurance_running: "endurance running (aerobic base, carbohydrate dependency)",
+      cycling: "cycling (aerobic power, glycogen management)",
+      triathlon: "triathlon (three-discipline aerobic endurance)",
+      tactical: "tactical/military fitness (occupational readiness, load-bearing endurance)",
+      general_fitness: "general fitness (balanced energy systems)",
+    };
+    const cardioMap: Record<string, string> = {
+      none: "no dedicated cardio",
+      recovery: "active recovery cardio only (Zone 1)",
+      zone_2: "Zone 2 aerobic base building (fat oxidation priority)",
+      tempo: "tempo/aerobic threshold work (Zone 3)",
+      threshold: "lactate threshold training (Zone 4)",
+      hiit: "HIIT/sprint intervals (Zone 5, high glycolytic demand)",
+      mixed: "mixed cardio modalities across zones",
+    };
+
+    const goalLabel = goalMap[pCtx.primaryGoal] ?? pCtx.primaryGoal;
+    const phaseLabel = phaseMap[pCtx.trainingPhase] ?? pCtx.trainingPhase;
+    const trainingLabel = trainingMap[pCtx.trainingType] ?? pCtx.trainingType;
+    const cardioLabel = cardioMap[pCtx.cardioFocus] ?? pCtx.cardioFocus;
+
+    // Carb strategy based on training type + cardio focus
+    const isHighGlycolytic = ["mma", "boxing", "wrestling", "bjj", "crossfit", "hiit", "threshold"].includes(pCtx.trainingType + " " + pCtx.cardioFocus) ||
+      ["hiit", "threshold"].includes(pCtx.cardioFocus) ||
+      ["mma", "boxing", "wrestling", "bjj", "crossfit"].includes(pCtx.trainingType);
+    const isStrengthDominant = ["strength", "powerlifting", "olympic_lifting", "hypertrophy"].includes(pCtx.trainingType);
+    const isEnduranceDominant = ["endurance_running", "cycling", "triathlon"].includes(pCtx.trainingType) || pCtx.cardioFocus === "zone_2";
+
+    let carbDirective = "";
+    if (isEnduranceDominant) {
+      carbDirective = "CARBOHYDRATE PRIORITY: High — glycogen is the primary limiting fuel. Prioritize complex carbohydrates at every meal. Pre-workout: fast-digesting carbs (banana, white rice, oats). Post-workout: carb+protein combination for glycogen resynthesis.";
+    } else if (isHighGlycolytic) {
+      carbDirective = "CARBOHYDRATE PRIORITY: Moderate-High — glycolytic system demands rapid glucose availability. Include starchy carbs around training windows. Pre-training: moderate carb load. Post-training: fast carb + protein for recovery.";
+    } else if (isStrengthDominant) {
+      carbDirective = "CARBOHYDRATE PRIORITY: Moderate — creatine phosphate and glycolytic systems; carb timing around sessions matters more than total volume. Pre-workout: moderate carbs. Post-workout: protein-forward with supporting carbs.";
+    } else {
+      carbDirective = "CARBOHYDRATE PRIORITY: Balanced — match carb intake to training demand. Concentrate starchy carbs in the pre/post-training window.";
+    }
+
+    blocks.push(`🏋️ PERFORMANCE NUTRITION PROTOCOL — MANDATORY:
+This athlete is on a sport-specific fueling protocol. All meal generation must align with their training demands and phase.
+ATHLETE PROFILE:
+- Sport/Training: ${trainingLabel}
+- Training Frequency: ${pCtx.trainingFrequency} sessions/week${pCtx.twoADays ? " (2-a-days active)" : ""}
+- Primary Goal: ${goalLabel}
+- Current Phase: ${phaseLabel}
+- Cardio Focus: ${cardioLabel}
+${carbDirective}
+PROTEIN REQUIREMENT: Minimum 1.6–2.2g/kg body weight daily. Every meal must be protein-anchored (≥30g). Protein sources should match training type — ${isStrengthDominant ? "lean meats, eggs, dairy, whey-compatible foods" : "lean meats, fish, legumes, whole food sources"}.
+MEAL TIMING AWARENESS: Pre-workout meals should be easily digestible (lower fiber, moderate fat). Post-workout meals prioritize protein + carbs within 45-60 minutes of training. Rest day meals can be slightly lower in total calories and carbs.
+${pCtx.trainingPhase === "weight_cut" ? "WEIGHT CUT ALERT: This athlete is in an active weight cut. Prioritize low-sodium, easily digestible, calorie-controlled meals. Support rehydration with electrolyte-conscious ingredients (potassium-rich vegetables, low-sodium options)." : ""}
+${pCtx.trainingPhase === "recovery" ? "RECOVERY PHASE: Prioritize anti-inflammatory ingredients (omega-3 rich fish, colorful vegetables, tart cherries, turmeric, ginger). Moderate calorie intake. Sleep and gut health supporting foods." : ""}
+${pCtx.twoADays ? "2-A-DAYS: This athlete trains twice per day. Intermediate recovery meals between sessions are critical — suggest quick-digesting carb + protein options (rice cakes + turkey, banana + Greek yogurt, etc.)." : ""}
+HARD BLOCKS: NO processed fast food, deep-fried foods, or sugar-dense meals as primary output unless user explicitly describes a treat meal. NO alcohol in any performance-focused meal.
+TONE: Frame meals as "fueling," "recovery," "pre-training," or "post-training" where relevant. Science-informed, practical, no supplements mentioned.`.trim());
   }
 
   if (input.metabolicRecovery) {

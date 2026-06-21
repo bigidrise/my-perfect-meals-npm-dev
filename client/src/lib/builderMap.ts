@@ -41,7 +41,7 @@ export const BUILDER_MAP: Record<BuilderKey, BuilderEntry> = {
   },
   beach_body: {
     key: "beach_body",
-    label: "Beach Body",
+    label: "Performance Nutrition",
     clientRoute: "/beach-body-meal-board",
     proRoute: "beach-body-builder",
   },

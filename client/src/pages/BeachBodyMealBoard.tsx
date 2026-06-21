@@ -190,7 +190,7 @@ const lists: Array<["breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal
 ];
 
 export default function BeachBodyMealBoard() {
-  usePageTitle("Beach Body Builder");
+  usePageTitle("Performance Nutrition Builder");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const quickTour = useQuickTour("beach-body-meal-board");
@@ -956,7 +956,7 @@ export default function BeachBodyMealBoard() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-36 overflow-x-hidden"
     >
-      <BuilderHeader title="Beach Body Builder" onOpenTour={quickTour.openTour} clientId={proClientId} />
+      <BuilderHeader title="Performance Nutrition Builder" onOpenTour={quickTour.openTour} clientId={proClientId} />
       <TrialBanner />
 
       {/* Main Content */}
@@ -1707,7 +1707,7 @@ export default function BeachBodyMealBoard() {
         <QuickTourModal
           isOpen={quickTour.shouldShow}
           onClose={quickTour.closeTour}
-          title="How to Build Your Beach Body Meals"
+          title="How to Build Your Performance Nutrition Meals"
           steps={BEACHBODY_TOUR_STEPS}
           onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />

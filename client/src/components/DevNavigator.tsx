@@ -54,7 +54,7 @@ const NAV_SECTIONS: NavSection[] = [
     routes: [
       { path: "/select-builder", label: "Builder Selection" },
       { path: "/weekly-meal-board", label: "Weekly Meal Board" },
-      { path: "/beach-body-meal-board", label: "Beach Body Builder" },
+      { path: "/beach-body-meal-board", label: "Performance Nutrition Builder" },
       { path: "/diabetic-menu-builder", label: "Diabetic Builder" },
       { path: "/glp1-meal-builder", label: "Metabolic Med Builder" },
       { path: "/anti-inflammatory-menu-builder", label: "Anti-Inflammatory Builder" },

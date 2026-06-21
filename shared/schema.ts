@@ -451,6 +451,20 @@ export const users = pgTable("users", {
     activatedAt: string | null;
     updatedAt: string | null;
   }>(),
+  // Performance Nutrition Protocol — sport-specific fueling context (JSONB).
+  // Active when "performance-nutrition" is in specialtyConditions.
+  // Stacks on top of medical safety layers — never overrides them.
+  // Null = performance nutrition not yet configured.
+  performanceContext: jsonb("performance_context").$type<{
+    primaryGoal: "fat_loss" | "muscle_gain" | "maintenance" | "performance" | "competition_prep";
+    trainingType: "strength" | "hypertrophy" | "powerlifting" | "olympic_lifting" | "mma" | "boxing" | "wrestling" | "bjj" | "crossfit" | "endurance_running" | "cycling" | "triathlon" | "tactical" | "general_fitness";
+    trainingFrequency: "1-2" | "3-4" | "5-6" | "7+";
+    cardioFocus: "none" | "recovery" | "zone_2" | "tempo" | "threshold" | "hiit" | "mixed";
+    trainingPhase: "off_season" | "pre_season" | "in_season" | "competition_prep" | "weight_cut" | "recovery";
+    twoADays: boolean;
+    activatedAt: string | null;
+    updatedAt: string | null;
+  }>(),
   // Flags 'request_support' intent for future professional follow-up surfacing
   needsProfessionalFollowup: boolean("needs_professional_followup").default(false),
   // Client Goals — set during onboarding, displayed on dashboard + coach folder

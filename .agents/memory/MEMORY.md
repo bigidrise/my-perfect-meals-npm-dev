@@ -9,3 +9,4 @@
 - [Affiliate Activation System](affiliate-activation-system.md) — tracks, eligibility gate, Rewardful API, webhook endpoint, and smart UX modal for non-eligible users.
 - [My Perfect Pregnancy — Architecture](my-perfect-pregnancy.md) — Additive Modifier pattern; "pregnancy-support" in specialtyConditions; 3 DB columns; dueDate = source of truth for trimester derivation.
 - [AuthContext refreshUser field mapping](authcontext-field-mapping.md) — refreshUser() builds User object field-by-field; any new DB field returned by /api/user/profile MUST be explicitly added to both the User interface (auth.ts) and the updatedUser mapping (AuthContext.tsx) or it is silently discarded.
+- [Performance Nutrition System](performance-nutrition.md) — sport-specific fueling protocol; performanceContext JSONB; "performance-nutrition" in specialtyConditions; /performance hub route; universalMedicalGuidance handles energy system carb strategy by trainingType.

@@ -475,7 +475,7 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
   // ============================
   "beach-body": {
     id: "beach-body",
-    title: "Beach Body Builder",
+    title: "Performance Nutrition Builder",
     description:
       "Competition-ready meals with strict macro guardrails.",
     howTo: [
