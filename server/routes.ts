@@ -2259,6 +2259,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pregnancyDueDate: (user as any).pregnancyDueDate ?? null,
         pregnancySupportContext: (user as any).pregnancySupportContext ?? null,
         performanceContext: (user as any).performanceContext ?? null,
+        competitionPrepContext: (user as any).competitionPrepContext ?? null,
+        activeProtocolTrack: (user as any).activeProtocolTrack ?? null,
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);

@@ -456,15 +456,31 @@ export const users = pgTable("users", {
   // Stacks on top of medical safety layers — never overrides them.
   // Null = performance nutrition not yet configured.
   performanceContext: jsonb("performance_context").$type<{
-    primaryGoal: "fat_loss" | "muscle_gain" | "maintenance" | "performance" | "competition_prep";
+    primaryGoal: "fat_loss" | "muscle_gain" | "maintenance" | "performance";
     trainingType: "strength" | "hypertrophy" | "powerlifting" | "olympic_lifting" | "mma" | "boxing" | "wrestling" | "bjj" | "crossfit" | "endurance_running" | "cycling" | "triathlon" | "tactical" | "general_fitness";
     trainingFrequency: "1-2" | "3-4" | "5-6" | "7+";
     cardioFocus: "none" | "recovery" | "zone_2" | "tempo" | "threshold" | "hiit" | "mixed";
-    trainingPhase: "off_season" | "pre_season" | "in_season" | "competition_prep" | "weight_cut" | "recovery";
+    trainingPhase: "off_season" | "pre_season" | "in_season" | "weight_cut" | "recovery";
     twoADays: boolean;
     activatedAt: string | null;
     updatedAt: string | null;
   }>(),
+  // Competition Prep Protocol — date-driven prep context (JSONB).
+  // Active when "competition-prep" is in specialtyConditions.
+  // Event date is the safeguard — protocol ends automatically at event date.
+  competitionPrepContext: jsonb("competition_prep_context").$type<{
+    competitionType: "bodybuilding_show" | "mens_physique" | "classic_physique" | "figure" | "bikini" | "wellness" | "powerlifting_meet" | "fight_camp" | "wrestling_season";
+    division?: string;
+    eventDate: string;
+    currentWeight?: string;
+    targetWeight?: string;
+    activatedAt: string | null;
+    updatedAt: string | null;
+  }>(),
+  // Active protocol track — which engine is running ("athletic" | "competition").
+  // Null = neither track has been configured.
+  activeProtocolTrack: text("active_protocol_track")
+    .$type<"athletic" | "competition">(),
   // Flags 'request_support' intent for future professional follow-up surfacing
   needsProfessionalFollowup: boolean("needs_professional_followup").default(false),
   // Client Goals — set during onboarding, displayed on dashboard + coach folder
