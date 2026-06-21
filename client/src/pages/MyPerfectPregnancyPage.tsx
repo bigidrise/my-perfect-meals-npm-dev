@@ -455,6 +455,37 @@ export default function MyPerfectPregnancyPage() {
               exit={{ opacity: 0 }}
               className="space-y-3"
             >
+              {/* How the System Adapts — shown at the top of the Learn tab */}
+              <div className="rounded-xl bg-pink-950/40 border border-pink-500/20 p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-pink-300 flex-shrink-0" />
+                  <p className="text-pink-200 text-sm font-semibold">How the System Adapts to You</p>
+                </div>
+                <p className="text-white/60 text-xs leading-relaxed">
+                  My Perfect Pregnancy is not just a reference guide. When you activate it and set your stage, these rules run automatically across every meal generator — you don't set them per builder.
+                </p>
+                <div className="space-y-2.5">
+                  <div>
+                    <p className="text-white/70 text-xs font-semibold mb-1">🛡️ Food safety — enforced everywhere</p>
+                    <p className="text-white/50 text-xs leading-relaxed">Raw fish, mercury-heavy fish, deli meats, unpasteurized cheeses, and alcohol are blocked in every builder simultaneously — Create a Dish, Grocery Coach, Restaurant Guide, Fridge Rescue, Meal Board, and more.</p>
+                  </div>
+                  <div>
+                    <p className="text-white/70 text-xs font-semibold mb-1">🌿 Nutrients — shift with your stage</p>
+                    <p className="text-white/50 text-xs leading-relaxed">The app prioritizes what your body needs right now. First trimester: folate and iron. Second: protein and calcium. Third: DHA and choline. Postpartum and breastfeeding have their own separate protocols.</p>
+                  </div>
+                  <div>
+                    <p className="text-white/70 text-xs font-semibold mb-1">💛 Symptoms — adapt in real time</p>
+                    <p className="text-white/50 text-xs leading-relaxed">The symptoms you set above change what the AI builds for you. Nausea: ginger, B6, bland foods, cool options. Heartburn: no acidic or fried ingredients. Swelling: low sodium, more potassium. Fatigue: iron-rich, complex carbs.</p>
+                  </div>
+                  <div>
+                    <p className="text-white/70 text-xs font-semibold mb-1">📋 Stacks with your other protocols</p>
+                    <p className="text-white/50 text-xs leading-relaxed">If you also have Thyroid Support, Cardiac Support, or any other condition active, both protocols run at once. The strictest rule from either always wins.</p>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-white/30 text-xs px-1 pt-1">Nutrition reference by stage</p>
+
               {Object.entries(STAGE_DATA).map(([stageKey, data]) => {
                 const isExpanded = expandedSection === stageKey;
                 const isCurrentStage = pregnancyData?.stage === stageKey;
