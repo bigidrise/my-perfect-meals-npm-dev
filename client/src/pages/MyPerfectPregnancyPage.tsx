@@ -259,47 +259,43 @@ export default function MyPerfectPregnancyPage() {
         >
           {stageInfo ? (
             <>
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  {/* Week + trimester — the primary status */}
-                  {pregnancyData?.weekOfPregnancy ? (
-                    <>
-                      <p className="text-white font-bold text-3xl leading-none">
-                        Week {pregnancyData.weekOfPregnancy}
-                      </p>
-                      <p className="text-pink-300 text-sm font-medium mt-1">
-                        {stageInfo.emoji} {stageInfo.label}
-                      </p>
-                    </>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">{stageInfo.emoji}</span>
-                      <p className="text-white font-bold text-xl">{stageInfo.label}</p>
-                    </div>
-                  )}
-
-                  {/* Protocol active badge */}
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
-                    <p className="text-green-300 text-xs font-semibold">Pregnancy Nutrition Protocol Active</p>
-                  </div>
-
-                  {/* Focus note */}
-                  <p className="text-white/40 text-xs mt-1.5 leading-relaxed">{stageInfo.focus}</p>
-                </div>
-
-                <button
-                  onClick={() => setSetupOpen(true)}
-                  className="shrink-0 text-xs px-3 py-1.5 rounded-full bg-pink-600/40 border border-pink-400/40 text-pink-200 active:scale-95 transition-all"
-                >
-                  Edit
-                </button>
+              {/* Protocol active indicator */}
+              <div className="flex items-center gap-1.5 mb-3">
+                <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
+                <p className="text-green-300 text-xs font-semibold">Pregnancy Nutrition Protocol Active</p>
               </div>
+
+              {/* Week + trimester — primary status */}
+              {pregnancyData?.weekOfPregnancy ? (
+                <p className="text-white font-bold text-3xl leading-none">
+                  Week {pregnancyData.weekOfPregnancy}
+                  <span className="text-pink-300 font-medium text-base ml-3">
+                    {stageInfo.emoji} {stageInfo.label}
+                  </span>
+                </p>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{stageInfo.emoji}</span>
+                  <p className="text-white font-bold text-xl">{stageInfo.label}</p>
+                </div>
+              )}
+
+              {/* Due date */}
+              {pregnancyData?.dueDate && (
+                <p className="text-white/50 text-xs mt-1.5">
+                  Due Date:{" "}
+                  <span className="text-white/70">
+                    {new Date(pregnancyData.dueDate + "T12:00:00").toLocaleDateString("en-US", {
+                      year: "numeric", month: "long", day: "numeric",
+                    })}
+                  </span>
+                </p>
+              )}
 
               {/* Active symptoms */}
               {pregnancyData?.symptoms && pregnancyData.symptoms.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-white/10">
-                  <p className="text-white/50 text-xs mb-1.5">Active symptoms — meals adapt to these:</p>
+                  <p className="text-white/50 text-xs mb-1.5">Symptoms being tracked:</p>
                   <div className="flex flex-wrap gap-1.5">
                     {pregnancyData.symptoms.map(s => (
                       <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-pink-900/40 border border-pink-500/30 text-pink-200">
@@ -309,6 +305,22 @@ export default function MyPerfectPregnancyPage() {
                   </div>
                 </div>
               )}
+
+              {/* Action buttons */}
+              <div className="flex gap-2 mt-4 pt-3 border-t border-white/10">
+                <button
+                  onClick={() => setActiveTab("coach")}
+                  className="flex-1 py-2 rounded-xl text-xs font-semibold bg-pink-700/50 border border-pink-400/40 text-white active:scale-95 transition-all"
+                >
+                  🩷 Ask Coach
+                </button>
+                <button
+                  onClick={() => setSetupOpen(true)}
+                  className="flex-1 py-2 rounded-xl text-xs font-semibold bg-white/8 border border-white/15 text-white/80 active:scale-95 transition-all"
+                >
+                  ✏️ Update Protocol
+                </button>
+              </div>
             </>
           ) : (
             <div className="flex items-start justify-between gap-3">

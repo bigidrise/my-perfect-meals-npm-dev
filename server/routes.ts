@@ -2253,6 +2253,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isAdmin: user.isAdmin || false,
         measurementSystem: (user as any).measurementSystem || "imperial",
         countryCode: (user as any).countryCode || "US",
+        pregnancyStage: (user as any).pregnancyStage ?? null,
+        pregnancyDueDate: (user as any).pregnancyDueDate ?? null,
+        pregnancySupportContext: (user as any).pregnancySupportContext ?? null,
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);
