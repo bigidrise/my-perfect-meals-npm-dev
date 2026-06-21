@@ -137,9 +137,13 @@ export default function MyPerfectPregnancyPage() {
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Seed from the already-loaded auth user immediately — no extra round-trip
+  useEffect(() => {
+    if (user) applyUserToPregnancyData(user);
+  }, [user]);
+
   useEffect(() => {
     document.title = "My Perfect Pregnancy | My Perfect Meals";
-    loadPregnancyContext();
   }, []);
 
   useEffect(() => {

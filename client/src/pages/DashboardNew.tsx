@@ -791,6 +791,61 @@ export default function DashboardNew() {
           </div>
         </motion.div>
 
+        {/* ── Pregnancy Protocol Banner ──────────────────────────────── */}
+        {(user as any)?.pregnancyStage && (() => {
+          const pStage: string = (user as any).pregnancyStage;
+          const pDueDate: string | null = (user as any).pregnancyDueDate ?? null;
+          const pCtx: any = (user as any).pregnancySupportContext ?? {};
+          const trackingMode: string = pCtx.trackingMode ?? "manual";
+
+          const STAGE_LABELS: Record<string, { label: string; emoji: string }> = {
+            "trying-to-conceive": { label: "Trying to Conceive", emoji: "🌸" },
+            "trimester-1":        { label: "First Trimester",    emoji: "🌱" },
+            "trimester-2":        { label: "Second Trimester",   emoji: "🌿" },
+            "trimester-3":        { label: "Third Trimester",    emoji: "🌺" },
+            "breastfeeding":      { label: "Breastfeeding",      emoji: "🤱" },
+            "postpartum":         { label: "Postpartum",         emoji: "🩷" },
+          };
+
+          let weekOfPregnancy: number | null = null;
+          let displayStage = pStage;
+
+          if (pDueDate && trackingMode !== "manual") {
+            try {
+              const due = new Date(pDueDate);
+              const now = new Date();
+              const weeksUntilDue = (due.getTime() - now.getTime()) / (7 * 24 * 60 * 60 * 1000);
+              const w = Math.max(1, Math.min(42, Math.round(40 - weeksUntilDue)));
+              weekOfPregnancy = w;
+              if (w <= 13) displayStage = "trimester-1";
+              else if (w <= 27) displayStage = "trimester-2";
+              else displayStage = "trimester-3";
+            } catch {}
+          }
+
+          const meta = STAGE_LABELS[displayStage] ?? STAGE_LABELS["trimester-2"];
+
+          return (
+            <motion.button
+              key="pregnancy-banner"
+              onClick={() => setLocation("/lifestyle/my-perfect-pregnancy")}
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.09, duration: 0.3 }}
+              className="w-full mb-1 px-4 py-3 rounded-xl bg-pink-950/60 border border-pink-500/30 flex items-center gap-3 active:scale-[0.98] transition-transform text-left"
+            >
+              <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-green-300 font-semibold leading-none mb-0.5">Pregnancy Protocol Active</p>
+                <p className="text-sm font-bold text-white leading-none">
+                  {weekOfPregnancy ? `Week ${weekOfPregnancy} · ` : ""}{meta.emoji} {meta.label}
+                </p>
+              </div>
+              <span className="text-xs text-pink-300/60 flex-shrink-0">Open Hub →</span>
+            </motion.button>
+          );
+        })()}
+
         {user?.goalType && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
