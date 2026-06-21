@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Dumbbell, Trophy, Zap, MessageSquare, Settings,
-  Send, Loader2, ChevronRight, Calendar, Target,
+  Send, Loader2, ChevronRight, Calendar, Target, RefreshCcw,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -148,7 +148,21 @@ const COMP_STARTERS = [
 ];
 
 interface ChatMessage { role: "user" | "assistant"; content: string; }
-type ActiveTab = "protocol" | "coach";
+type ActiveTab = "protocol" | "carb_cycle" | "coach";
+
+interface CarbCycleData {
+  state: {
+    phase: "inactive" | "low_carb" | "refeed";
+    carbTargetG: number;
+    fatTargetAdjustG: number;
+    weightLog: Array<{ date: string; weight: number; carbsG: number }>;
+    manualOverride?: boolean;
+  };
+  engine: {
+    stallDetected: boolean;
+    recommendation: string;
+  };
+}
 
 export default function PerformanceNutritionHub() {
   usePageTitle("Performance Hub");
@@ -163,6 +177,13 @@ export default function PerformanceNutritionHub() {
   const [chatLoading, setChatLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  const [carbCycleData, setCarbCycleData] = useState<CarbCycleData | null>(null);
+  const [carbCycleLoading, setCarbCycleLoading] = useState(false);
+  const [logWeight, setLogWeight] = useState("");
+  const [logCarbs, setLogCarbs] = useState("");
+  const [logSubmitting, setLogSubmitting] = useState(false);
+  const [overrideSubmitting, setOverrideSubmitting] = useState(false);
+
   const pCtx = (user as any)?.performanceContext;
   const compCtx = (user as any)?.competitionPrepContext;
   // Migration shim: existing users with performanceContext but no activeProtocolTrack
@@ -174,6 +195,85 @@ export default function PerformanceNutritionHub() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory]);
+
+  useEffect(() => {
+    if (!isActive) return;
+    async function fetchCarbCycle() {
+      setCarbCycleLoading(true);
+      try {
+        const res = await fetch(apiUrl("/api/performance/carb-cycle"), {
+          headers: getAuthHeaders(),
+          credentials: "include",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setCarbCycleData(data);
+        }
+      } catch { /* non-blocking */ } finally {
+        setCarbCycleLoading(false);
+      }
+    }
+    fetchCarbCycle();
+  }, [isActive]);
+
+  async function submitCarbLog() {
+    const w = parseFloat(logWeight);
+    const c = parseFloat(logCarbs);
+    if (!w || w <= 0 || isNaN(c) || c < 0) {
+      toast({ title: "Enter valid values", description: "Weight must be positive; carbs must be ≥ 0.", variant: "destructive" });
+      return;
+    }
+    setLogSubmitting(true);
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const res = await fetch(apiUrl("/api/performance/carb-cycle/log"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ date: today, weight: w, carbsG: c }),
+      });
+      if (!res.ok) throw new Error("Log failed");
+      const data = await res.json();
+      setCarbCycleData({ state: data.state, engine: data.engine });
+      setLogWeight("");
+      setLogCarbs("");
+      toast({
+        title: data.autoTransitioned ? "Carb cycle updated!" : "Log saved",
+        description: data.autoTransitioned
+          ? (data.transitionReason === "start_refeed" ? "Stall detected — refeed day activated." : "Refeed complete — returning to low-carb.")
+          : "Today's entry recorded.",
+      });
+    } catch {
+      toast({ title: "Could not save log", variant: "destructive" });
+    } finally {
+      setLogSubmitting(false);
+    }
+  }
+
+  async function handleRefeedToggle(action: "start_refeed" | "end_refeed") {
+    setOverrideSubmitting(true);
+    try {
+      const res = await fetch(apiUrl("/api/performance/carb-cycle/override"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ action }),
+      });
+      if (!res.ok) throw new Error("Override failed");
+      const data = await res.json();
+      setCarbCycleData({ state: data.state, engine: data.engine });
+      toast({
+        title: action === "start_refeed" ? "Refeed day started" : "Low-carb phase resumed",
+        description: action === "start_refeed"
+          ? `Carb target raised to ${data.state.carbTargetG}g today.`
+          : `Carb target reset to ${data.state.carbTargetG}g.`,
+      });
+    } catch {
+      toast({ title: "Could not update phase", variant: "destructive" });
+    } finally {
+      setOverrideSubmitting(false);
+    }
+  }
 
   async function sendMessage(msg?: string) {
     const text = (msg ?? chatInput).trim();
@@ -373,7 +473,7 @@ export default function PerformanceNutritionHub() {
 
           {/* Tabs */}
           <div className="flex bg-black/30 rounded-xl p-1 gap-1">
-            {(["protocol", "coach"] as ActiveTab[]).map(tab => (
+            {(["protocol", "carb_cycle", "coach"] as ActiveTab[]).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -381,10 +481,12 @@ export default function PerformanceNutritionHub() {
                   activeTab === tab ? "bg-orange-600 text-white" : "text-white/40"
                 }`}
               >
-                {tab === "protocol" ? "Prep Guide" : "AI Coach"}
+                {tab === "protocol" ? "Prep Guide" : tab === "carb_cycle" ? "Carb Cycle" : "AI Coach"}
               </button>
             ))}
           </div>
+
+          {activeTab === "carb_cycle" && renderCarbCycleTab()}
 
           {activeTab === "protocol" && (
             <div className="space-y-4">
@@ -492,7 +594,7 @@ export default function PerformanceNutritionHub() {
 
           {/* Tabs */}
           <div className="flex bg-black/30 rounded-xl p-1 gap-1">
-            {(["protocol", "coach"] as ActiveTab[]).map(tab => (
+            {(["protocol", "carb_cycle", "coach"] as ActiveTab[]).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -500,10 +602,12 @@ export default function PerformanceNutritionHub() {
                   activeTab === tab ? "bg-orange-600 text-white" : "text-white/40"
                 }`}
               >
-                {tab === "protocol" ? "Nutrient Plan" : "AI Coach"}
+                {tab === "protocol" ? "Nutrient Plan" : tab === "carb_cycle" ? "Carb Cycle" : "AI Coach"}
               </button>
             ))}
           </div>
+
+          {activeTab === "carb_cycle" && renderCarbCycleTab()}
 
           {activeTab === "protocol" && (
             <div className="space-y-4">
@@ -572,6 +676,153 @@ export default function PerformanceNutritionHub() {
       />
     </motion.div>
   );
+
+  function renderCarbCycleTab() {
+    const cycleState = carbCycleData?.state;
+    const engine = carbCycleData?.engine;
+    const phase = cycleState?.phase ?? "inactive";
+    const carbTargetG = cycleState?.carbTargetG ?? 0;
+    const isAtFloor = carbTargetG <= 50 && phase !== "inactive";
+    const logCount = cycleState?.weightLog?.length ?? 0;
+
+    const phaseBadge: Record<string, { label: string; cls: string }> = {
+      inactive: { label: "Inactive", cls: "bg-white/10 text-white/50" },
+      low_carb: { label: "Low Carb", cls: "bg-orange-600/30 text-orange-300 border border-orange-500/30" },
+      refeed:   { label: "Refeed Active", cls: "bg-green-600/30 text-green-300 border border-green-500/30" },
+    };
+    const badge = phaseBadge[phase] ?? phaseBadge.inactive;
+
+    if (carbCycleLoading && !carbCycleData) {
+      return (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-6 h-6 text-orange-400 animate-spin" />
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        <div className="rounded-2xl bg-black/50 border border-white/10 p-4 space-y-4">
+
+          {/* Header row */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <RefreshCcw className="w-4 h-4 text-orange-400" />
+              <p className="text-white font-bold text-sm">Carb Response Protocol</p>
+            </div>
+            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${badge.cls}`}>
+              {badge.label}
+            </span>
+          </div>
+
+          {/* Phase display */}
+          {phase === "inactive" ? (
+            <div className="bg-white/5 rounded-xl px-4 py-3">
+              <p className="text-white/50 text-xs leading-relaxed">
+                Log 7 consecutive days of weight + carbs data to activate automatic carb cycling. The engine detects weight stalls and manages refeed transitions.
+              </p>
+            </div>
+          ) : isAtFloor ? (
+            <div className="bg-amber-950/40 border border-amber-500/30 rounded-xl px-4 py-3">
+              <p className="text-amber-300 text-sm font-semibold mb-0.5">Safety Floor Reached</p>
+              <p className="text-amber-200/70 text-xs leading-relaxed">
+                You're in a very-low-carb range. MPM will cycle, not reduce further.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-white/5 rounded-xl px-3 py-2">
+                <p className="text-white/40 text-xs">Today's Carb Target</p>
+                <p className="text-white font-bold text-2xl mt-0.5">{carbTargetG}<span className="text-sm font-normal text-white/50 ml-0.5">g</span></p>
+              </div>
+              {(cycleState?.fatTargetAdjustG ?? 0) > 0 && (
+                <div className="bg-white/5 rounded-xl px-3 py-2">
+                  <p className="text-white/40 text-xs">Fat Offset</p>
+                  <p className={`font-bold text-2xl mt-0.5 ${phase === "refeed" ? "text-green-300" : "text-white"}`}>
+                    {phase === "refeed" ? "−" : "+"}{cycleState!.fatTargetAdjustG}<span className="text-sm font-normal text-white/50 ml-0.5">g</span>
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Stall indicator */}
+          {engine?.stallDetected && (
+            <div className="bg-amber-950/40 border border-amber-500/30 rounded-xl px-4 py-2.5">
+              <p className="text-amber-300 text-xs font-semibold">⚡ Weight Stall Detected</p>
+              <p className="text-amber-200/60 text-xs mt-0.5">7 consecutive days without movement. Refeed is recommended.</p>
+            </div>
+          )}
+
+          {/* Refeed toggle — disabled when inactive */}
+          {phase !== "inactive" && (
+            <div className="flex gap-2">
+              {phase !== "refeed" ? (
+                <button
+                  onClick={() => handleRefeedToggle("start_refeed")}
+                  disabled={overrideSubmitting}
+                  className="flex-1 py-2.5 rounded-xl bg-green-600/20 border border-green-500/30 text-green-300 text-sm font-semibold disabled:opacity-40"
+                >
+                  {overrideSubmitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Start Refeed"}
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleRefeedToggle("end_refeed")}
+                  disabled={overrideSubmitting}
+                  className="flex-1 py-2.5 rounded-xl bg-orange-600/20 border border-orange-500/30 text-orange-300 text-sm font-semibold disabled:opacity-40"
+                >
+                  {overrideSubmitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "End Refeed"}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Daily log entry */}
+          <div className="border-t border-white/10 pt-4 space-y-3">
+            <p className="text-white/60 text-xs font-semibold uppercase tracking-wide">Log Today</p>
+            <div className="flex gap-2 items-end">
+              <div className="flex-1">
+                <label className="text-white/40 text-xs mb-1 block">Weight (lbs)</label>
+                <input
+                  type="number"
+                  value={logWeight}
+                  onChange={e => setLogWeight(e.target.value)}
+                  placeholder="175"
+                  min={0}
+                  className="w-full bg-black/50 border border-white/20 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/20 outline-none focus:border-orange-500/60"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="text-white/40 text-xs mb-1 block">Carbs (g)</label>
+                <input
+                  type="number"
+                  value={logCarbs}
+                  onChange={e => setLogCarbs(e.target.value)}
+                  placeholder="80"
+                  min={0}
+                  className="w-full bg-black/50 border border-white/20 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/20 outline-none focus:border-orange-500/60"
+                />
+              </div>
+              <button
+                onClick={submitCarbLog}
+                disabled={logSubmitting || !logWeight || !logCarbs}
+                className="px-5 py-2.5 rounded-xl bg-orange-600 text-white text-sm font-semibold disabled:opacity-40 flex items-center justify-center min-w-[60px]"
+              >
+                {logSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Log"}
+              </button>
+            </div>
+            <p className="text-white/25 text-xs">
+              {logCount === 0
+                ? "No entries yet — log 7 consecutive days to enable stall detection"
+                : logCount < 7
+                  ? `${logCount} / 7 entries — ${7 - logCount} more consecutive days to enable stall detection`
+                  : `${logCount} entries logged`}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   function renderCoachTab() {
     return (
