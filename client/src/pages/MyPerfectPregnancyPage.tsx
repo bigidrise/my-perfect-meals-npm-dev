@@ -303,6 +303,40 @@ export default function MyPerfectPregnancyPage() {
           </motion.div>
         )}
 
+        {/* Protocol Active Banner — shows when setup is complete */}
+        {pregnancyData && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="rounded-xl bg-green-950/40 border border-green-500/25 p-3"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <ShieldCheck className="w-4 h-4 text-green-400 flex-shrink-0" />
+              <p className="text-green-300 text-sm font-semibold">Pregnancy Nutrition Protocol Active</p>
+            </div>
+            <p className="text-white/40 text-xs mb-2 leading-relaxed">
+              Your stage, symptoms, and food safety rules are being enforced across the platform.
+            </p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+              {[
+                "Meal Builders",
+                "Weekly Meal Board",
+                "Fridge Rescue",
+                "Grocery Coach",
+                "Restaurant Guide",
+                "Snack & Beverage Creator",
+                "Smart Scan",
+                "Meal Planner",
+              ].map(feature => (
+                <p key={feature} className="text-xs text-white/50 flex items-center gap-1">
+                  <span className="text-green-400 text-[10px]">✓</span> {feature}
+                </p>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
         {/* Tab nav */}
         <div className="flex gap-2">
           {(["coach", "learn", "safety"] as const).map(tab => (
