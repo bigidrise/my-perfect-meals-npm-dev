@@ -119,6 +119,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           backAt: userData.backAt ?? null,
           measurementSystem: userData.measurementSystem || "imperial",
           countryCode: userData.countryCode || "US",
+          pregnancyStage: userData.pregnancyStage ?? null,
+          pregnancyDueDate: userData.pregnancyDueDate ?? null,
+          pregnancySupportContext: userData.pregnancySupportContext ?? null,
         };
         if (userData.oncologySupportIntent) {
           localStorage.setItem("mpm:oncologySupportIntent", userData.oncologySupportIntent);

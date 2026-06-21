@@ -152,6 +152,11 @@ export interface User {
   // International / Metric Support
   measurementSystem?: "imperial" | "metric";
   countryCode?: "US" | "CA" | "AU" | "UK" | "NZ";
+  // Pregnancy Support
+  pregnancyStage?: string | null;
+  pregnancyDueDate?: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  pregnancySupportContext?: any | null;
 }
 
 export function getAuthToken(): string | null {
