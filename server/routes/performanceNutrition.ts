@@ -44,6 +44,8 @@ router.post("/setup", async (req, res) => {
         eventDate,
         currentWeight,
         targetWeight,
+        customSportName,
+        customSportGroup,
       } = req.body;
 
       const validCompTypes = [
@@ -53,10 +55,14 @@ router.post("/setup", async (req, res) => {
         "fight_camp", "wrestling_season",
         "crossfit_competition", "hyrox",
         "marathon", "triathlon_race", "spartan_race",
+        "other",
       ];
 
       if (!competitionType || !validCompTypes.includes(competitionType)) {
         return res.status(400).json({ error: "Invalid competitionType" });
+      }
+      if (competitionType === "other" && !customSportName?.trim()) {
+        return res.status(400).json({ error: "customSportName required when competitionType is other" });
       }
       if (!eventDate || isNaN(Date.parse(eventDate))) {
         return res.status(400).json({ error: "Invalid eventDate" });
@@ -69,6 +75,8 @@ router.post("/setup", async (req, res) => {
         eventDate,
         currentWeight: currentWeight ?? undefined,
         targetWeight: targetWeight ?? undefined,
+        customSportName: customSportName?.trim() ?? undefined,
+        customSportGroup: customSportGroup ?? undefined,
         activatedAt: now,
         updatedAt: now,
       };
@@ -112,6 +120,7 @@ router.post("/setup", async (req, res) => {
         "strength", "hypertrophy", "powerlifting", "olympic_lifting",
         "mma", "boxing", "wrestling", "bjj", "crossfit",
         "endurance_running", "cycling", "triathlon", "tactical", "general_fitness",
+        "other",
       ];
       const validFrequencies = ["1-2", "3-4", "5-6", "7+"];
       const validCardio = ["none", "recovery", "zone_2", "tempo", "threshold", "hiit", "mixed"];
@@ -123,6 +132,7 @@ router.post("/setup", async (req, res) => {
       if (!trainingType || !validTrainingTypes.includes(trainingType)) {
         return res.status(400).json({ error: "Invalid trainingType" });
       }
+      const { customSportName: athleteCustomSport } = req.body;
       if (!trainingFrequency || !validFrequencies.includes(trainingFrequency)) {
         return res.status(400).json({ error: "Invalid trainingFrequency" });
       }
@@ -154,6 +164,7 @@ router.post("/setup", async (req, res) => {
         cardioFocus,
         trainingPhase,
         twoADays: !!twoADays,
+        customSportName: athleteCustomSport?.trim() ?? undefined,
         activatedAt: now,
         updatedAt: now,
       };

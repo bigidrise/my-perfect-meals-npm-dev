@@ -1,11 +1,10 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft, Dumbbell, Trophy, Zap, MessageSquare, Settings,
-  Send, Loader2, ChevronRight, Calendar, Target, RefreshCcw,
+  ArrowLeft, Dumbbell, Trophy, Zap, Settings,
+  Loader2, ChevronRight, Target, RefreshCcw, CheckCircle2,
 } from "lucide-react";
-import { LineChart, Line, ReferenceLine, ResponsiveContainer } from "recharts";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/contexts/PageTitleContext";
@@ -43,12 +42,9 @@ const COMP_TYPE_LABELS: Record<string, string> = {
   marathon: "Marathon", triathlon_race: "Triathlon", spartan_race: "Spartan Race",
 };
 
-// ── Competition phase engine (mirrors server/services/protocol/competitionPrepDateEngine.ts) ──
+// ── Competition phase engine ─────────────────────────────────────────────────
 function deriveCompPrepPhase(eventDate: string, competitionType: string): {
-  weeksOut: number;
-  phase: string;
-  phaseLabel: string;
-  phaseColor: string;
+  weeksOut: number; phase: string; phaseLabel: string; phaseColor: string;
 } {
   const event = new Date(eventDate);
   event.setHours(0, 0, 0, 0);
@@ -57,45 +53,38 @@ function deriveCompPrepPhase(eventDate: string, competitionType: string): {
   const days = Math.round((event.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
   const weeksOut = Math.floor(days / 7);
 
-  // Post-event
   if (days < 0) return { weeksOut, phase: "post_competition", phaseLabel: "Post-Event Recovery", phaseColor: "blue" };
-  // Event day
   if (days === 0) return { weeksOut, phase: "event_day", phaseLabel: "Event Day", phaseColor: "orange" };
 
-  // Physique sports
   const isPhysique = ["bodybuilding_show", "mens_physique", "classic_physique", "figure", "bikini", "wellness"].includes(competitionType);
   if (isPhysique) {
-    if (weeksOut <= 2) return { weeksOut, phase: "peak_week",   phaseLabel: "Peak Week",          phaseColor: "orange" };
-    if (weeksOut <= 7) return { weeksOut, phase: "peak_prep",   phaseLabel: "Peak Prep",           phaseColor: "yellow" };
+    if (weeksOut <= 2) return { weeksOut, phase: "peak_week",    phaseLabel: "Peak Week",          phaseColor: "orange" };
+    if (weeksOut <= 7) return { weeksOut, phase: "peak_prep",    phaseLabel: "Peak Prep",           phaseColor: "yellow" };
     if (weeksOut <= 15) return { weeksOut, phase: "conditioning", phaseLabel: "Conditioning Phase", phaseColor: "yellow" };
     return { weeksOut, phase: "fat_loss", phaseLabel: "Fat Loss Phase", phaseColor: "green" };
   }
 
-  // Strength sports
   const isStrength = ["powerlifting_meet", "strongman_competition", "olympic_weightlifting_meet"].includes(competitionType);
   if (isStrength) {
-    if (weeksOut <= 1) return { weeksOut, phase: "meet_week",        phaseLabel: "Meet Week",        phaseColor: "orange" };
-    if (weeksOut <= 3) return { weeksOut, phase: "taper",            phaseLabel: "Taper Phase",       phaseColor: "yellow" };
-    if (weeksOut <= 9) return { weeksOut, phase: "intensity_phase",  phaseLabel: "Intensity Phase",   phaseColor: "yellow" };
+    if (weeksOut <= 1) return { weeksOut, phase: "meet_week",       phaseLabel: "Meet Week",        phaseColor: "orange" };
+    if (weeksOut <= 3) return { weeksOut, phase: "taper",           phaseLabel: "Taper Phase",       phaseColor: "yellow" };
+    if (weeksOut <= 9) return { weeksOut, phase: "intensity_phase", phaseLabel: "Intensity Phase",   phaseColor: "yellow" };
     return { weeksOut, phase: "strength_building", phaseLabel: "Strength Building", phaseColor: "green" };
   }
 
-  // Fight camp
   if (competitionType === "fight_camp") {
-    if (weeksOut <= 1) return { weeksOut, phase: "fight_week",   phaseLabel: "Fight Week",       phaseColor: "red" };
-    if (weeksOut <= 3) return { weeksOut, phase: "weight_cut",   phaseLabel: "Weight Cut",        phaseColor: "red" };
-    if (weeksOut <= 11) return { weeksOut, phase: "fight_prep",  phaseLabel: "Fight Prep",        phaseColor: "yellow" };
+    if (weeksOut <= 1) return { weeksOut, phase: "fight_week",  phaseLabel: "Fight Week",       phaseColor: "red" };
+    if (weeksOut <= 3) return { weeksOut, phase: "weight_cut",  phaseLabel: "Weight Cut",        phaseColor: "red" };
+    if (weeksOut <= 11) return { weeksOut, phase: "fight_prep", phaseLabel: "Fight Prep",        phaseColor: "yellow" };
     return { weeksOut, phase: "conditioning_combat", phaseLabel: "Conditioning Camp", phaseColor: "green" };
   }
 
-  // Wrestling season
   if (competitionType === "wrestling_season") {
     if (weeksOut <= 1) return { weeksOut, phase: "championship_week", phaseLabel: "Championship Week", phaseColor: "orange" };
     if (weeksOut <= 7) return { weeksOut, phase: "in_season",         phaseLabel: "In-Season",          phaseColor: "yellow" };
     return { weeksOut, phase: "pre_season", phaseLabel: "Pre-Season", phaseColor: "green" };
   }
 
-  // Functional / Mixed (CrossFit, Hyrox)
   const isFunctional = ["crossfit_competition", "hyrox"].includes(competitionType);
   if (isFunctional) {
     if (weeksOut <= 1) return { weeksOut, phase: "competition_week", phaseLabel: "Competition Week", phaseColor: "orange" };
@@ -104,20 +93,74 @@ function deriveCompPrepPhase(eventDate: string, competitionType: string): {
     return { weeksOut, phase: "base_conditioning", phaseLabel: "Base Conditioning", phaseColor: "green" };
   }
 
-  // Endurance (marathon, triathlon, spartan)
   const isEndurance = ["marathon", "triathlon_race", "spartan_race"].includes(competitionType);
   if (isEndurance) {
-    if (weeksOut <= 3) return { weeksOut, phase: "taper",       phaseLabel: "Taper Phase",            phaseColor: "orange" };
+    if (weeksOut <= 3) return { weeksOut, phase: "taper",       phaseLabel: "Taper Phase",              phaseColor: "orange" };
     if (weeksOut <= 7) return { weeksOut, phase: "race_prep",   phaseLabel: "Race Prep (Peak Training)", phaseColor: "yellow" };
-    if (weeksOut <= 15) return { weeksOut, phase: "build_phase", phaseLabel: "Build Phase",            phaseColor: "yellow" };
+    if (weeksOut <= 15) return { weeksOut, phase: "build_phase", phaseLabel: "Build Phase",              phaseColor: "yellow" };
     return { weeksOut, phase: "base_building", phaseLabel: "Base Building", phaseColor: "green" };
   }
 
-  // Fallback
   return { weeksOut, phase: "prep", phaseLabel: "Prep Phase", phaseColor: "green" };
 }
 
-// ── Nutrient priorities per sport ────────────────────────────────────────────
+// ── Sport-specific timeline phases ───────────────────────────────────────────
+function getCompTimeline(competitionType: string, customSportGroup?: string): { phase: string; label: string }[] {
+  const type = competitionType === "other" ? (customSportGroup ?? "") : competitionType;
+
+  const physique = ["bodybuilding_show", "mens_physique", "classic_physique", "figure", "bikini", "wellness", "physique"];
+  if (physique.some(p => type.includes(p))) return [
+    { phase: "fat_loss",    label: "Fat Loss" },
+    { phase: "conditioning", label: "Conditioning" },
+    { phase: "peak_prep",   label: "Peak Prep" },
+    { phase: "peak_week",   label: "Peak Week" },
+  ];
+
+  if (type.includes("fight_camp")) return [
+    { phase: "conditioning_combat", label: "Camp" },
+    { phase: "fight_prep",          label: "Fight Prep" },
+    { phase: "weight_cut",          label: "Weight Cut" },
+    { phase: "fight_week",          label: "Fight Week" },
+  ];
+
+  if (type.includes("wrestling_season")) return [
+    { phase: "pre_season",        label: "Pre-Season" },
+    { phase: "in_season",         label: "In-Season" },
+    { phase: "championship_week", label: "Championship" },
+  ];
+
+  const strength = ["powerlifting_meet", "strongman_competition", "olympic_weightlifting_meet", "strength"];
+  if (strength.some(s => type.includes(s))) return [
+    { phase: "strength_building", label: "Building" },
+    { phase: "intensity_phase",   label: "Intensity" },
+    { phase: "taper",             label: "Taper" },
+    { phase: "meet_week",         label: "Meet Week" },
+  ];
+
+  const functional = ["crossfit_competition", "hyrox", "functional", "mixed"];
+  if (functional.some(f => type.includes(f))) return [
+    { phase: "base_conditioning", label: "Base" },
+    { phase: "event_prep",        label: "Event Prep" },
+    { phase: "peak_prep",         label: "Peak Prep" },
+    { phase: "competition_week",  label: "Comp Week" },
+  ];
+
+  const endurance = ["marathon", "triathlon_race", "spartan_race", "endurance"];
+  if (endurance.some(e => type.includes(e))) return [
+    { phase: "base_building", label: "Base" },
+    { phase: "build_phase",   label: "Build" },
+    { phase: "race_prep",     label: "Race Prep" },
+    { phase: "taper",         label: "Taper" },
+  ];
+
+  return [
+    { phase: "prep",      label: "Prep" },
+    { phase: "peak_prep", label: "Peak Prep" },
+    { phase: "peak_week", label: "Peak Week" },
+  ];
+}
+
+// ── Nutrient priorities ──────────────────────────────────────────────────────
 const NUTRIENT_PRIORITIES: Record<string, { label: string; items: string[] }> = {
   strength:          { label: "Strength Focus",    items: ["High protein (≥1.8g/kg)", "Moderate carbs", "Peri-workout carb timing", "Creatine-compatible foods"] },
   hypertrophy:       { label: "Hypertrophy Focus", items: ["High protein (≥2g/kg)", "High training volume carbs", "Leucine-rich sources", "Caloric surplus"] },
@@ -133,23 +176,8 @@ const NUTRIENT_PRIORITIES: Record<string, { label: string; items: string[] }> = 
   triathlon:         { label: "Triathlon",          items: ["Three-sport carb needs", "Transition nutrition", "Gut-stable race fuel", "High protein recovery"] },
   tactical:          { label: "Tactical / Military",items: ["Load-bearing endurance fuel", "Stress-resilient nutrients", "Calorie-dense field-ready options", "Recovery protein"] },
   general_fitness:   { label: "General Fitness",   items: ["Balanced macros", "Whole food priority", "Consistent timing", "Anti-inflammatory baseline"] },
+  other:             { label: "Sport-Specific Fueling", items: ["High protein for recovery (≥1.6g/kg)", "Training-load matched carb intake", "Anti-inflammatory food base", "Consistent meal timing around sessions"] },
 };
-
-const ATHLETIC_STARTERS = [
-  "Scale is up 2 lbs, energy is good, strength is up — what do I do?",
-  "Scale hasn't moved in 4 days. Energy is fine. What's the move?",
-  "Energy dropped this week. Scale is still going down. Should I change anything?",
-  "Scale is down, strength is holding, energy is good — am I on track?",
-];
-const COMP_STARTERS = [
-  "Scale hasn't moved in 4 days. Energy is OK. What do I do?",
-  "Weight is going down but I feel flat and weak. What's the adjustment?",
-  "Scale is up 3 lbs after my refeed days. Is that normal?",
-  "Energy dropped this week but the scale is still moving. Do I change anything?",
-];
-
-interface ChatMessage { role: "user" | "assistant"; content: string; }
-type ActiveTab = "protocol" | "carb_cycle" | "coach";
 
 interface CarbCycleData {
   state: {
@@ -166,6 +194,8 @@ interface CarbCycleData {
   };
 }
 
+type ActiveTab = "protocol" | "starch" | "protocols";
+
 export default function PerformanceNutritionHub() {
   usePageTitle("Performance Hub");
   const [, setLocation] = useLocation();
@@ -174,33 +204,30 @@ export default function PerformanceNutritionHub() {
 
   const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
     const param = new URLSearchParams(window.location.search).get("tab");
-    if (param === "carb_cycle" || param === "coach" || param === "protocol") return param;
+    if (param === "starch" || param === "protocols" || param === "protocol") return param as ActiveTab;
     return "protocol";
   });
   const [setupOpen, setSetupOpen] = useState(false);
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-  const [chatInput, setChatInput] = useState("");
-  const [chatLoading, setChatLoading] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // Starch / carb cycle state
   const [carbCycleData, setCarbCycleData] = useState<CarbCycleData | null>(null);
   const [carbCycleLoading, setCarbCycleLoading] = useState(false);
-  const [logWeight, setLogWeight] = useState("");
-  const [logCarbs, setLogCarbs] = useState("");
-  const [logSubmitting, setLogSubmitting] = useState(false);
   const [overrideSubmitting, setOverrideSubmitting] = useState(false);
+
+  // Check-in state
+  const [checkInWeight, setCheckInWeight] = useState("");
+  const [checkInStarch, setCheckInStarch] = useState("");
+  const [checkInEnergy, setCheckInEnergy] = useState<"low" | "moderate" | "high" | "">("");
+  const [checkInStrength, setCheckInStrength] = useState<"declining" | "holding" | "increasing" | "">("");
+  const [checkInResult, setCheckInResult] = useState<string | null>(null);
+  const [checkInLoading, setCheckInLoading] = useState(false);
 
   const pCtx = (user as any)?.performanceContext;
   const compCtx = (user as any)?.competitionPrepContext;
-  // Migration shim: existing users with performanceContext but no activeProtocolTrack
   const activeTrack: "athletic" | "competition" | null =
     (user as any)?.activeProtocolTrack ?? (pCtx ? "athletic" : null);
 
   const isActive = !!activeTrack;
-
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatHistory]);
 
   useEffect(() => {
     if (!isActive) return;
@@ -222,41 +249,6 @@ export default function PerformanceNutritionHub() {
     fetchCarbCycle();
   }, [isActive]);
 
-  async function submitCarbLog() {
-    const w = parseFloat(logWeight);
-    const c = parseFloat(logCarbs);
-    if (!w || w <= 0 || isNaN(c) || c < 0) {
-      toast({ title: "Enter valid values", description: "Weight must be positive; carbs must be ≥ 0.", variant: "destructive" });
-      return;
-    }
-    setLogSubmitting(true);
-    try {
-      const today = new Date().toISOString().split("T")[0];
-      const res = await fetch(apiUrl("/api/performance/carb-cycle/log"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        credentials: "include",
-        body: JSON.stringify({ date: today, weight: w, carbsG: c }),
-      });
-      if (!res.ok) throw new Error("Log failed");
-      const data = await res.json();
-      setCarbCycleData({ state: data.state, engine: data.engine });
-      try { sessionStorage.removeItem("mpm.carbCyclePickerState"); } catch {}
-      setLogWeight("");
-      setLogCarbs("");
-      toast({
-        title: data.autoTransitioned ? "Carb cycle updated!" : "Log saved",
-        description: data.autoTransitioned
-          ? (data.transitionReason === "start_refeed" ? "Stall detected — refeed day activated." : "Refeed complete — returning to low-carb.")
-          : "Today's entry recorded.",
-      });
-    } catch {
-      toast({ title: "Could not save log", variant: "destructive" });
-    } finally {
-      setLogSubmitting(false);
-    }
-  }
-
   async function handleRefeedToggle(action: "start_refeed" | "end_refeed") {
     setOverrideSubmitting(true);
     try {
@@ -269,7 +261,7 @@ export default function PerformanceNutritionHub() {
       if (!res.ok) throw new Error("Override failed");
       const data = await res.json();
       setCarbCycleData({ state: data.state, engine: data.engine });
-      try { sessionStorage.removeItem("mpm.carbCyclePickerState"); } catch {}
+      sessionStorage.removeItem("mpm.carbCyclePickerState");
       toast({
         title: action === "start_refeed" ? "Refeed day started" : "Low-carb phase resumed",
         description: action === "start_refeed"
@@ -283,28 +275,56 @@ export default function PerformanceNutritionHub() {
     }
   }
 
-  async function sendMessage(msg?: string) {
-    const text = (msg ?? chatInput).trim();
-    if (!text || chatLoading) return;
-    setChatInput("");
-    const newHistory: ChatMessage[] = [...chatHistory, { role: "user", content: text }];
-    setChatHistory(newHistory);
-    setChatLoading(true);
+  async function evaluateProtocol() {
+    if (!checkInWeight || !checkInEnergy || !checkInStrength) {
+      toast({ title: "Enter all check-in values", description: "Weight, energy, and strength are required.", variant: "destructive" });
+      return;
+    }
+    setCheckInLoading(true);
     try {
+      const starchTarget = carbCycleData?.state.carbTargetG ?? 0;
+      const starchPhase = carbCycleData?.state.phase ?? "inactive";
+      const phaseName = activeTrack === "competition"
+        ? (compPhase?.phaseLabel ?? "unknown phase")
+        : (pCtx ? (PHASE_LABELS[pCtx.trainingPhase] ?? pCtx.trainingPhase) : "unknown phase");
+
+      // Log weight to stall detection engine
+      const weightVal = parseFloat(checkInWeight);
+      if (weightVal > 0) {
+        const today = new Date().toISOString().split("T")[0];
+        const starchVal = checkInStarch ? parseFloat(checkInStarch) : (starchTarget || 0);
+        fetch(apiUrl("/api/performance/carb-cycle/log"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          credentials: "include",
+          body: JSON.stringify({ date: today, weight: weightVal, carbsG: starchVal }),
+        }).then(r => r.ok ? r.json() : null).then(data => {
+          if (data?.state) {
+            setCarbCycleData({ state: data.state, engine: data.engine });
+            sessionStorage.removeItem("mpm.carbCyclePickerState");
+          }
+        }).catch(() => {});
+      }
+
+      const msg = `PROTOCOL CHECK-IN — give ONE directive only, 1–2 sentences maximum. No explanation, no preamble.
+Scale: ${checkInWeight}lbs. Energy: ${checkInEnergy}. Strength: ${checkInStrength}.
+Current competition/training phase: ${phaseName}.
+Starch phase: ${starchPhase}. Starch target: ${starchTarget > 0 ? `${starchTarget}g` : "not set"}.
+What is the protocol directive?`;
+
       const res = await fetch(apiUrl("/api/performance/ask"), {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
-        body: JSON.stringify({ message: text, history: chatHistory.slice(-10) }),
+        body: JSON.stringify({ message: msg, history: [] }),
       });
-      if (!res.ok) throw new Error("Coach unavailable");
+      if (!res.ok) throw new Error();
       const data = await res.json();
-      setChatHistory(prev => [...prev, { role: "assistant", content: data.reply }]);
+      setCheckInResult(data.reply);
     } catch {
-      toast({ title: "Coach unavailable", description: "Please try again.", variant: "destructive" });
-      setChatHistory(prev => prev.slice(0, -1));
+      toast({ title: "Evaluation failed", description: "Please try again.", variant: "destructive" });
     } finally {
-      setChatLoading(false);
+      setCheckInLoading(false);
     }
   }
 
@@ -312,13 +332,19 @@ export default function PerformanceNutritionHub() {
   const compPhase = compCtx?.eventDate ? deriveCompPrepPhase(compCtx.eventDate, compCtx.competitionType) : null;
 
   const phaseColorMap: Record<string, string> = {
-    green: "bg-green-950/40 border-green-500/30 text-green-300",
+    green:  "bg-green-950/40 border-green-500/30 text-green-300",
     yellow: "bg-yellow-950/40 border-yellow-500/30 text-yellow-300",
     orange: "bg-orange-950/40 border-orange-500/30 text-orange-300",
-    blue: "bg-blue-950/40 border-blue-500/30 text-blue-300",
+    blue:   "bg-blue-950/40 border-blue-500/30 text-blue-300",
+    red:    "bg-red-950/40 border-red-500/30 text-red-300",
   };
 
-  const chatStarters = activeTrack === "competition" ? COMP_STARTERS : ATHLETIC_STARTERS;
+  // Tab labels differ by track
+  const tabLabel = (tab: ActiveTab): string => {
+    if (tab === "protocol") return activeTrack === "competition" ? "Meal Builder" : "Nutrient Plan";
+    if (tab === "starch") return "Starch";
+    return "Protocols";
+  };
 
   return (
     <motion.div
@@ -408,7 +434,9 @@ export default function PerformanceNutritionHub() {
             <div className="flex items-start justify-between gap-3 mb-4">
               <div>
                 <p className="text-white font-bold text-2xl leading-none">
-                  {COMP_TYPE_LABELS[compCtx.competitionType] ?? compCtx.competitionType}
+                  {compCtx.competitionType === "other"
+                    ? (compCtx.customSportName ?? "Custom Sport")
+                    : (COMP_TYPE_LABELS[compCtx.competitionType] ?? compCtx.competitionType)}
                 </p>
                 {compCtx.division && (
                   <p className="text-orange-300 text-sm font-medium mt-0.5">{compCtx.division}</p>
@@ -455,33 +483,50 @@ export default function PerformanceNutritionHub() {
               )}
             </div>
 
-            {/* Phase timeline */}
+            {/* Sport-specific timeline */}
             {compPhase && compPhase.weeksOut > 0 && (
               <div className="mt-3 pt-3 border-t border-white/10">
-                <p className="text-white/40 text-xs mb-2">Protocol Timeline</p>
-                <div className="flex gap-1">
-                  {["Fat Loss", "Conditioning", "Peak Week", "Show Day"].map((label, i) => {
-                    const phases = ["fat_loss", "conditioning", "peak_week", "show_day"];
-                    const isCurrent = phases[i] === compPhase.phase;
-                    const isPast = phases.indexOf(compPhase.phase) > i;
-                    return (
-                      <div key={label} className="flex-1 text-center">
-                        <div className={`h-1.5 rounded-full mb-1 ${isCurrent ? "bg-orange-400" : isPast ? "bg-orange-400/40" : "bg-white/10"}`} />
-                        <p className={`text-xs leading-tight ${isCurrent ? "text-orange-300" : "text-white/30"}`}
-                           style={{ fontSize: "9px" }}>
-                          {label}
-                        </p>
+                {(() => {
+                  const tl = getCompTimeline(compCtx.competitionType, compCtx.customSportGroup);
+                  const currentIdx = tl.findIndex(t => t.phase === compPhase.phase);
+                  const nextPhase = currentIdx >= 0 && currentIdx < tl.length - 1 ? tl[currentIdx + 1] : null;
+                  return (
+                    <>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-white/40 text-xs">Protocol Timeline</p>
+                        {nextPhase && (
+                          <p className="text-white/30 text-xs">Next: <span className="text-white/50 font-medium">{nextPhase.label}</span></p>
+                        )}
                       </div>
-                    );
-                  })}
-                </div>
+                      <div className="flex gap-1 mb-2">
+                        {tl.map(({ phase: ph, label }, i) => {
+                          const isCurrent = ph === compPhase.phase;
+                          const isPast = currentIdx > i;
+                          return (
+                            <div key={ph} className="flex-1 text-center">
+                              <div className={`h-2 rounded-full mb-1.5 transition-all ${isCurrent ? "bg-orange-400" : isPast ? "bg-orange-400/40" : "bg-white/10"}`} />
+                              <p className={`leading-tight ${isCurrent ? "text-orange-300 font-semibold" : "text-white/30"}`} style={{ fontSize: "9px" }}>
+                                {label}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" />
+                        <p className="text-orange-300 text-xs font-semibold">{compPhase.phaseLabel}</p>
+                        <span className="text-white/30 text-xs">— {compPhase.weeksOut} wks out</span>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             )}
           </div>
 
           {/* Tabs */}
           <div className="flex bg-black/30 rounded-xl p-1 gap-1">
-            {(["protocol", "carb_cycle", "coach"] as ActiveTab[]).map(tab => (
+            {(["protocol", "starch", "protocols"] as ActiveTab[]).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -489,16 +534,16 @@ export default function PerformanceNutritionHub() {
                   activeTab === tab ? "bg-orange-600 text-white" : "text-white/40"
                 }`}
               >
-                {tab === "protocol" ? "Prep Guide" : tab === "carb_cycle" ? "Carb Cycle" : "AI Coach"}
+                {tabLabel(tab)}
               </button>
             ))}
           </div>
 
-          {activeTab === "carb_cycle" && renderCarbCycleTab()}
+          {activeTab === "starch"    && renderStarchTab()}
+          {activeTab === "protocols" && renderProtocolsTab()}
 
           {activeTab === "protocol" && (
             <div className="space-y-4">
-              {/* Phase-specific guidance */}
               {compPhase?.phase === "fat_loss" && (
                 <div className="rounded-2xl bg-black/50 border border-white/10 p-4">
                   <p className="text-white font-bold text-sm mb-2">Fat Loss Phase — Protocol</p>
@@ -564,8 +609,6 @@ export default function PerformanceNutritionHub() {
               </button>
             </div>
           )}
-
-          {activeTab === "coach" && renderCoachTab()}
         </div>
       )}
 
@@ -580,16 +623,18 @@ export default function PerformanceNutritionHub() {
               <p className="text-xs text-orange-300 font-semibold">Athletic Protocol Active</p>
             </div>
             <p className="text-white font-bold text-2xl leading-none mb-1">
-              {TYPE_LABELS[pCtx.trainingType] ?? pCtx.trainingType}
+              {pCtx.trainingType === "other"
+                ? (pCtx.customSportName ?? "Custom Sport")
+                : (TYPE_LABELS[pCtx.trainingType] ?? pCtx.trainingType)}
             </p>
             <p className="text-orange-300 text-sm font-medium mb-3">
               {GOAL_LABELS[pCtx.primaryGoal] ?? pCtx.primaryGoal}
             </p>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { label: "Phase", value: PHASE_LABELS[pCtx.trainingPhase] ?? pCtx.trainingPhase },
+                { label: "Phase",     value: PHASE_LABELS[pCtx.trainingPhase] ?? pCtx.trainingPhase },
                 { label: "Frequency", value: `${pCtx.trainingFrequency} sessions/wk` },
-                { label: "Cardio", value: CARDIO_LABELS[pCtx.cardioFocus] ?? pCtx.cardioFocus },
+                { label: "Cardio",    value: CARDIO_LABELS[pCtx.cardioFocus] ?? pCtx.cardioFocus },
                 pCtx.twoADays ? { label: "Mode", value: "2-a-days" } : null,
               ].filter(Boolean).map((item: any) => (
                 <div key={item.label} className="bg-white/5 rounded-xl px-3 py-2">
@@ -602,7 +647,7 @@ export default function PerformanceNutritionHub() {
 
           {/* Tabs */}
           <div className="flex bg-black/30 rounded-xl p-1 gap-1">
-            {(["protocol", "carb_cycle", "coach"] as ActiveTab[]).map(tab => (
+            {(["protocol", "starch", "protocols"] as ActiveTab[]).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -610,12 +655,13 @@ export default function PerformanceNutritionHub() {
                   activeTab === tab ? "bg-orange-600 text-white" : "text-white/40"
                 }`}
               >
-                {tab === "protocol" ? "Nutrient Plan" : tab === "carb_cycle" ? "Carb Cycle" : "AI Coach"}
+                {tabLabel(tab)}
               </button>
             ))}
           </div>
 
-          {activeTab === "carb_cycle" && renderCarbCycleTab()}
+          {activeTab === "starch"    && renderStarchTab()}
+          {activeTab === "protocols" && renderProtocolsTab()}
 
           {activeTab === "protocol" && (
             <div className="space-y-4">
@@ -668,8 +714,6 @@ export default function PerformanceNutritionHub() {
               </button>
             </div>
           )}
-
-          {activeTab === "coach" && renderCoachTab()}
         </div>
       )}
 
@@ -685,99 +729,111 @@ export default function PerformanceNutritionHub() {
     </motion.div>
   );
 
-  function renderCarbCycleTab() {
+  // ── Starch Protocol Tab ───────────────────────────────────────────────────
+  function renderStarchTab() {
     const cycleState = carbCycleData?.state;
     const engine = carbCycleData?.engine;
     const phase = cycleState?.phase ?? "inactive";
     const carbTargetG = cycleState?.carbTargetG ?? 0;
-    const isAtFloor = carbTargetG <= 50 && phase !== "inactive";
-    const logCount = cycleState?.weightLog?.length ?? 0;
 
     const phaseBadge: Record<string, { label: string; cls: string }> = {
-      inactive: { label: "Inactive", cls: "bg-white/10 text-white/50" },
-      low_carb: { label: "Low Carb", cls: "bg-orange-600/30 text-orange-300 border border-orange-500/30" },
-      refeed:   { label: "Refeed Active", cls: "bg-green-600/30 text-green-300 border border-green-500/30" },
+      inactive: { label: "Inactive",      cls: "bg-white/10 border-white/10 text-white/50" },
+      low_carb: { label: "Low-Carb Phase",cls: "bg-orange-600/20 border-orange-500/30 text-orange-300" },
+      refeed:   { label: "Refeed Phase",  cls: "bg-green-600/20 border-green-500/30 text-green-300" },
     };
     const badge = phaseBadge[phase] ?? phaseBadge.inactive;
 
-    if (carbCycleLoading && !carbCycleData) {
-      return (
-        <div className="flex justify-center py-12">
-          <Loader2 className="w-6 h-6 text-orange-400 animate-spin" />
-        </div>
-      );
-    }
+    if (carbCycleLoading && !carbCycleData) return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="w-6 h-6 text-orange-400 animate-spin" />
+      </div>
+    );
 
     return (
-      <div className="space-y-4">
-        <div className="rounded-2xl bg-black/50 border border-white/10 p-4 space-y-4">
+      <div className="space-y-3">
 
-          {/* Header row */}
+        {/* Current phase */}
+        <div className="rounded-2xl bg-black/50 border border-white/10 p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <RefreshCcw className="w-4 h-4 text-orange-400" />
-              <p className="text-white font-bold text-sm">Carb Response Protocol</p>
+              <p className="text-white font-bold text-sm">Starch Response Protocol</p>
             </div>
-            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${badge.cls}`}>
-              {badge.label}
-            </span>
+            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${badge.cls}`}>{badge.label}</span>
           </div>
 
-          {/* Phase display */}
-          {phase === "inactive" ? (
-            <div className="bg-white/5 rounded-xl px-4 py-3">
-              <p className="text-white/50 text-xs leading-relaxed">
-                Log 7 consecutive days of weight + carbs data to activate automatic carb cycling. The engine detects weight stalls and manages refeed transitions.
-              </p>
-            </div>
-          ) : isAtFloor ? (
-            <div className="bg-amber-950/40 border border-amber-500/30 rounded-xl px-4 py-3">
-              <p className="text-amber-300 text-sm font-semibold mb-0.5">Safety Floor Reached</p>
-              <p className="text-amber-200/70 text-xs leading-relaxed">
-                You're in a very-low-carb range. MPM will cycle, not reduce further.
-              </p>
-            </div>
-          ) : (
+          {phase !== "inactive" ? (
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-white/5 rounded-xl px-3 py-2">
                 <p className="text-white/40 text-xs">Starch Allocation</p>
                 <p className="text-white font-bold text-2xl mt-0.5">{carbTargetG}<span className="text-sm font-normal text-white/50 ml-0.5">g</span></p>
               </div>
-              {(cycleState?.fatTargetAdjustG ?? 0) > 0 && (
-                <div className="bg-white/5 rounded-xl px-3 py-2">
-                  <p className="text-white/40 text-xs">Fat Offset</p>
-                  <p className={`font-bold text-2xl mt-0.5 ${phase === "refeed" ? "text-green-300" : "text-white"}`}>
-                    {phase === "refeed" ? "−" : "+"}{cycleState!.fatTargetAdjustG}<span className="text-sm font-normal text-white/50 ml-0.5">g</span>
-                  </p>
-                </div>
-              )}
+              <div className="bg-white/5 rounded-xl px-3 py-2">
+                <p className="text-white/40 text-xs">Fibrous Carbs</p>
+                <p className="text-green-300 font-semibold text-sm mt-1">Unrestricted</p>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white/5 rounded-xl px-4 py-3">
+              <p className="text-white/50 text-xs leading-relaxed">
+                Log daily weight via the Protocols tab check-in to activate stall detection and automatic phase management.
+              </p>
             </div>
           )}
 
-          {/* Stall indicator */}
           {engine?.stallDetected && (
             <div className="bg-amber-950/40 border border-amber-500/30 rounded-xl px-4 py-2.5">
               <p className="text-amber-300 text-xs font-semibold">⚡ Weight Stall Detected</p>
-              <p className="text-amber-200/60 text-xs mt-0.5">7 consecutive days without movement. Refeed is recommended.</p>
+              <p className="text-amber-200/60 text-xs mt-0.5">7 consecutive days without scale movement. Check in via the Protocols tab to get a directive.</p>
             </div>
           )}
+        </div>
 
-          {/* Refeed eligibility status */}
-          {phase === "low_carb" && (
-            <div className={`rounded-xl px-4 py-2.5 border ${engine?.stallDetected ? "bg-green-950/30 border-green-500/30" : "bg-white/5 border-white/10"}`}>
-              <p className={`text-xs font-semibold ${engine?.stallDetected ? "text-green-300" : "text-white/40"}`}>
-                {engine?.stallDetected ? "✓ Refeed Eligible — Stall Confirmed" : "Refeed Not Yet Recommended"}
-              </p>
-              <p className={`text-xs mt-0.5 ${engine?.stallDetected ? "text-green-200/60" : "text-white/30"}`}>
-                {engine?.stallDetected
-                  ? "7-day stall confirmed. Starting a refeed now is recommended to reset your metabolism."
-                  : "Refeed eligibility activates automatically after a confirmed 7-day weight stall."}
-              </p>
+        {/* Protocol rules */}
+        <div className="rounded-2xl bg-black/50 border border-white/10 p-4 space-y-2.5">
+          <p className="text-white font-bold text-sm mb-1">Protocol Rules</p>
+          {[
+            { label: "Starch target",    value: carbTargetG > 0 ? `${carbTargetG}g/day` : "Not yet active" },
+            { label: "Refeed trigger",   value: "7 consecutive days of no scale movement" },
+            { label: "Refeed duration",  value: "1–2 days" },
+            { label: "Post-refeed",      value: "Automatic return to low-carb phase" },
+            { label: "Floor limit",      value: "50g minimum — protocol cycles, never drops below" },
+          ].map(({ label, value }) => (
+            <div key={label} className="flex items-start justify-between gap-3">
+              <p className="text-white/40 text-xs flex-shrink-0 w-28">{label}</p>
+              <p className="text-white/80 text-xs text-right">{value}</p>
             </div>
-          )}
+          ))}
+        </div>
 
-          {/* Refeed toggle — disabled when inactive */}
-          {phase !== "inactive" && (
+        {/* Scale response expectations */}
+        <div className="rounded-2xl bg-black/50 border border-white/10 p-4 space-y-2.5">
+          <p className="text-white font-bold text-sm mb-1">Expected Scale Response</p>
+          {[
+            { phase: "Low-carb phase",    response: "−0.5 to −1 lb/week after initial water drop" },
+            { phase: "Refeed days",       response: "+1 to +3 lbs (temporary water retention)" },
+            { phase: "Post-refeed",       response: "Accelerated loss resumes within 48–72h" },
+            { phase: "Stall (>7 days)",   response: "Refeed trigger activates → protocol adjusts" },
+          ].map(({ phase: ph, response }) => (
+            <div key={ph} className="flex items-start justify-between gap-3">
+              <p className="text-white/40 text-xs flex-shrink-0 w-28">{ph}</p>
+              <p className="text-white/80 text-xs text-right">{response}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Engine recommendation */}
+        {engine?.recommendation && (
+          <div className="rounded-2xl bg-orange-950/40 border border-orange-500/30 p-4">
+            <p className="text-orange-300 font-bold text-xs uppercase tracking-wide mb-1">Current Adjustment</p>
+            <p className="text-white/80 text-sm leading-relaxed">{engine.recommendation}</p>
+          </div>
+        )}
+
+        {/* Manual override controls */}
+        {phase !== "inactive" && (
+          <div className="rounded-2xl bg-black/50 border border-white/10 p-4">
+            <p className="text-white/40 text-xs font-semibold uppercase tracking-wide mb-3">Manual Override</p>
             <div className="flex gap-2">
               {phase !== "refeed" ? (
                 <button
@@ -797,161 +853,156 @@ export default function PerformanceNutritionHub() {
                 </button>
               )}
             </div>
-          )}
-
-          {/* Daily log entry */}
-          <div className="border-t border-white/10 pt-4 space-y-3">
-            <p className="text-white/60 text-xs font-semibold uppercase tracking-wide">Log Today</p>
-            <div className="flex gap-2 items-end">
-              <div className="flex-1">
-                <label className="text-white/40 text-xs mb-1 block">Weight (lbs)</label>
-                <input
-                  type="number"
-                  value={logWeight}
-                  onChange={e => setLogWeight(e.target.value)}
-                  placeholder="175"
-                  min={0}
-                  className="w-full bg-black/50 border border-white/20 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/20 outline-none focus:border-orange-500/60"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="text-white/40 text-xs mb-1 block">Carbs (g)</label>
-                <input
-                  type="number"
-                  value={logCarbs}
-                  onChange={e => setLogCarbs(e.target.value)}
-                  placeholder="80"
-                  min={0}
-                  className="w-full bg-black/50 border border-white/20 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/20 outline-none focus:border-orange-500/60"
-                />
-              </div>
-              <button
-                onClick={submitCarbLog}
-                disabled={logSubmitting || !logWeight || !logCarbs}
-                className="px-5 py-2.5 rounded-xl bg-orange-600 text-white text-sm font-semibold disabled:opacity-40 flex items-center justify-center min-w-[60px]"
-              >
-                {logSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Log"}
-              </button>
-            </div>
-            <p className="text-white/25 text-xs">
-              {logCount === 0
-                ? "No entries yet — log 7 consecutive days to enable stall detection"
-                : logCount < 7
-                  ? `${logCount} / 7 entries — ${7 - logCount} more consecutive days to enable stall detection`
-                  : `${logCount} entries logged`}
-            </p>
-
-            {/* Weight trend sparkline — renders when >= 3 entries exist */}
-            {(() => {
-              const weightLog = cycleState?.weightLog ?? [];
-              const chartData = weightLog.slice(-14);
-              if (chartData.length < 3) return null;
-              const latestWeight = chartData[chartData.length - 1].weight;
-              const refeedLine = phase === "refeed" ? (cycleState?.refeedStartWeightLb ?? null) : null;
-              return (
-                <div className="mt-3 rounded-xl bg-white/5 px-3 pt-3 pb-2">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <p className="text-white/40 text-xs font-semibold uppercase tracking-wide">Weight Trend</p>
-                    <p className="text-orange-300 text-sm font-bold">{latestWeight} lbs</p>
-                  </div>
-                  <ResponsiveContainer width="100%" height={64}>
-                    <LineChart data={chartData} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
-                      {refeedLine !== null && (
-                        <ReferenceLine
-                          y={refeedLine}
-                          stroke="#86efac"
-                          strokeDasharray="4 3"
-                          strokeWidth={1.5}
-                        />
-                      )}
-                      <Line
-                        type="monotone"
-                        dataKey="weight"
-                        stroke="#f97316"
-                        strokeWidth={2}
-                        dot={false}
-                        isAnimationActive={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                  {refeedLine !== null && (
-                    <p className="text-green-300/60 text-xs mt-1">
-                      — refeed start: {refeedLine} lbs
-                    </p>
-                  )}
-                </div>
-              );
-            })()}
           </div>
-        </div>
+        )}
       </div>
     );
   }
 
-  function renderCoachTab() {
+  // ── Protocols + Check-In Tab ──────────────────────────────────────────────
+  function renderProtocolsTab() {
+    const starchTarget = carbCycleData?.state?.carbTargetG ?? 0;
+    const starchPhase  = carbCycleData?.state?.phase ?? "inactive";
+    const trackLabel   = activeTrack === "competition" ? "Competition Prep" : "Athletic Performance";
+    const currentPhaseLabel = activeTrack === "competition"
+      ? (compPhase?.phaseLabel ?? "—")
+      : (pCtx ? (PHASE_LABELS[pCtx.trainingPhase] ?? pCtx.trainingPhase) : "—");
+    const canEvaluate = !!checkInWeight && !!checkInEnergy && !!checkInStrength;
+
     return (
       <div className="space-y-4">
-        <div className="rounded-2xl bg-black/50 border border-white/10 overflow-hidden flex flex-col" style={{ minHeight: "380px" }}>
-          <div className="px-4 py-3 border-b border-white/10">
-            <p className="text-white font-bold text-sm flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-orange-400" />
-              {activeTrack === "competition" ? "Competition Prep Coach" : "Performance Nutrition Coach"}
-            </p>
-            <p className="text-white/40 text-xs mt-0.5">
-              {activeTrack === "competition"
-                ? "Ask about peak week, reverse diet, carb loading, or your prep timeline."
-                : "Ask about fueling, timing, recovery, or your protocol."}
-            </p>
+
+        {/* Active Protocol Summary */}
+        <div className="rounded-2xl bg-black/50 border border-white/10 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Target className="w-4 h-4 text-orange-400" />
+            <p className="text-white font-bold text-sm">Active Protocol</p>
           </div>
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" style={{ maxHeight: "340px" }}>
-            {chatHistory.length === 0 && (
-              <div className="space-y-2">
-                <p className="text-white/30 text-xs mb-3">Try asking:</p>
-                {chatStarters.map(s => (
-                  <button
-                    key={s}
-                    onClick={() => sendMessage(s)}
-                    className="w-full text-left px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/60 text-xs"
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
-            {chatHistory.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[85%] px-3 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                  msg.role === "user" ? "bg-orange-600/30 text-white" : "bg-white/10 text-white/90"
-                }`}>
-                  {msg.content}
-                </div>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { label: "Track",            value: trackLabel },
+              { label: "Phase",            value: currentPhaseLabel },
+              { label: "Starch Allocation",value: starchTarget > 0 ? `${starchTarget}g` : "Not set" },
+              { label: "Starch Phase",     value: starchPhase === "low_carb" ? "Low-Carb" : starchPhase === "refeed" ? "Refeed" : "Inactive" },
+            ].map(({ label, value }) => (
+              <div key={label} className="bg-white/5 rounded-xl px-3 py-2">
+                <p className="text-white/40 text-xs">{label}</p>
+                <p className="text-white font-semibold text-sm mt-0.5">{value}</p>
               </div>
             ))}
-            {chatLoading && (
-              <div className="flex justify-start">
-                <div className="bg-white/10 px-3 py-2.5 rounded-2xl">
-                  <Loader2 className="w-4 h-4 text-orange-400 animate-spin" />
-                </div>
-              </div>
-            )}
-            <div ref={chatEndRef} />
           </div>
         </div>
-        <div className="flex gap-2">
-          <input
-            value={chatInput}
-            onChange={e => setChatInput(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()}
-            placeholder={activeTrack === "competition" ? "Ask about your prep..." : "Ask about fueling, timing, recovery..."}
-            className="flex-1 bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white text-sm placeholder:text-white/30 outline-none focus:border-orange-500/60"
-          />
+
+        {/* Check-In Panel */}
+        <div className="rounded-2xl bg-black/50 border border-white/10 p-4 space-y-4">
+          <p className="text-white font-bold text-sm">Check-In</p>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-white/40 text-xs mb-1.5 block">Scale (lbs)</label>
+              <input
+                type="number"
+                value={checkInWeight}
+                onChange={e => setCheckInWeight(e.target.value)}
+                placeholder="175"
+                min={0}
+                className="w-full bg-black/50 border border-white/20 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/20 outline-none focus:border-orange-500/60"
+              />
+            </div>
+            <div>
+              <label className="text-white/40 text-xs mb-1.5 block">Starch Today (g) <span className="text-white/20">opt.</span></label>
+              <input
+                type="number"
+                value={checkInStarch}
+                onChange={e => setCheckInStarch(e.target.value)}
+                placeholder="80"
+                min={0}
+                className="w-full bg-black/50 border border-white/20 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/20 outline-none focus:border-orange-500/60"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-white/40 text-xs mb-2 block">Energy Level</label>
+            <div className="flex gap-2">
+              {(["low", "moderate", "high"] as const).map(level => (
+                <button
+                  key={level}
+                  onClick={() => setCheckInEnergy(level)}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${
+                    checkInEnergy === level
+                      ? "bg-orange-600/30 border-orange-400/60 text-white"
+                      : "bg-white/5 border-white/10 text-white/50"
+                  }`}
+                >
+                  {level.charAt(0).toUpperCase() + level.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-white/40 text-xs mb-2 block">Strength</label>
+            <div className="flex gap-2">
+              {(["declining", "holding", "increasing"] as const).map(level => (
+                <button
+                  key={level}
+                  onClick={() => setCheckInStrength(level)}
+                  className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                    checkInStrength === level
+                      ? "bg-orange-600/30 border-orange-400/60 text-white"
+                      : "bg-white/5 border-white/10 text-white/50"
+                  }`}
+                >
+                  {level.charAt(0).toUpperCase() + level.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <button
-            onClick={() => sendMessage()}
-            disabled={!chatInput.trim() || chatLoading}
-            className="w-11 h-11 rounded-xl bg-orange-600 flex items-center justify-center flex-shrink-0 disabled:opacity-40"
+            onClick={evaluateProtocol}
+            disabled={!canEvaluate || checkInLoading}
+            className={`w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors ${
+              canEvaluate && !checkInLoading
+                ? "bg-orange-600 text-white active:scale-[0.98]"
+                : "bg-white/10 text-white/30 cursor-not-allowed"
+            }`}
           >
-            <Send className="w-4 h-4 text-white" />
+            {checkInLoading ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Evaluating...</>
+            ) : (
+              <><Zap className="w-4 h-4" /> Evaluate Protocol</>
+            )}
           </button>
+        </div>
+
+        {/* Directive Result */}
+        {checkInResult && (
+          <div className="rounded-2xl bg-orange-950/40 border border-orange-500/30 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle2 className="w-4 h-4 text-orange-400" />
+              <p className="text-orange-300 font-bold text-xs uppercase tracking-wide">Protocol Directive</p>
+            </div>
+            <p className="text-white font-semibold text-sm leading-relaxed">{checkInResult}</p>
+          </div>
+        )}
+
+        {/* Weight Response Reference */}
+        <div className="rounded-2xl bg-black/50 border border-white/10 p-4 space-y-0">
+          <p className="text-white/40 text-xs font-semibold uppercase tracking-wide mb-3">Weight Response Reference</p>
+          {[
+            { signals: "Scale ↓ · Energy good · Strength good",  directive: "On track — maintain protocol" },
+            { signals: "Scale flat >7 days · any signals",        directive: "Refeed trigger — starch allocation raised" },
+            { signals: "Scale ↑ · Energy ↓ · Strength ↓",        directive: "Deficit too aggressive — 50g protein swap" },
+            { signals: "Scale +1–3 lbs after refeed",             directive: "Normal water retention — return to low-carb" },
+            { signals: "Scale ↓ · Energy ↓",                     directive: "Hold 72h — monitor before adjusting" },
+          ].map(({ signals, directive }, i) => (
+            <div key={i} className={`py-2.5 ${i > 0 ? "border-t border-white/5" : ""}`}>
+              <p className="text-orange-300/70 text-xs">{signals}</p>
+              <p className="text-white/60 text-xs mt-0.5">→ {directive}</p>
+            </div>
+          ))}
         </div>
       </div>
     );
