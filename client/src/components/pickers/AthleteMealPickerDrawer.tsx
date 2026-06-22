@@ -115,6 +115,7 @@ export function AthleteMealPickerDrawer({
   const [showInfoModal, setShowInfoModal] = React.useState(false);
   const [lastAddedId, setLastAddedId] = React.useState<string | null>(null);
   const [sessionCount, setSessionCount] = React.useState(0);
+  const [sessionMacros, setSessionMacros] = React.useState({ cals: 0, protein: 0, carbs: 0, fat: 0 });
   const [activeList, setActiveList] = React.useState<SlotKey | null>(list);
 
   const isCycleActive = carbCycleState?.phase === "low_carb" || carbCycleState?.phase === "refeed";
@@ -124,13 +125,14 @@ export function AthleteMealPickerDrawer({
     ? Math.min(100, Math.round((carbsUsed / carbCap) * 100))
     : null;
 
-  // When drawer opens, sync activeList to the incoming list prop and reset category/flash/count
+  // When drawer opens, sync activeList to the incoming list prop and reset category/flash/count/macros
   React.useEffect(() => {
     if (open) {
       setActiveList(list);
       setCategory(DEFAULT_CATEGORY);
       setLastAddedId(null);
       setSessionCount(0);
+      setSessionMacros({ cals: 0, protein: 0, carbs: 0, fat: 0 });
     }
   }, [open, list]);
 
@@ -188,6 +190,23 @@ export function AthleteMealPickerDrawer({
               Done
             </button>
           </div>
+          {sessionCount > 0 && (
+            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+              <span className="text-white/40 text-xs font-medium">Session total:</span>
+              <span className="bg-white/10 text-white/90 text-xs font-semibold px-2 py-0.5 rounded-full">
+                {sessionMacros.cals.toLocaleString()} cal
+              </span>
+              <span className="bg-white/10 text-white/90 text-xs font-semibold px-2 py-0.5 rounded-full">
+                P {sessionMacros.protein}g
+              </span>
+              <span className="bg-white/10 text-white/90 text-xs font-semibold px-2 py-0.5 rounded-full">
+                C {sessionMacros.carbs}g
+              </span>
+              <span className="bg-white/10 text-white/90 text-xs font-semibold px-2 py-0.5 rounded-full">
+                F {sessionMacros.fat}g
+              </span>
+            </div>
+          )}
         </DialogHeader>
 
         <div className="space-y-4">
@@ -277,6 +296,12 @@ export function AthleteMealPickerDrawer({
                     const mealToAdd = convertAthleteMealToMeal(am);
                     onPick(mealToAdd, activeList);
                     setSessionCount((c) => c + 1);
+                    setSessionMacros((prev) => ({
+                      cals: prev.cals + (mealToAdd.nutrition?.calories ?? 0),
+                      protein: prev.protein + (mealToAdd.nutrition?.protein ?? 0),
+                      carbs: prev.carbs + (mealToAdd.nutrition?.carbs ?? 0),
+                      fat: prev.fat + (mealToAdd.nutrition?.fat ?? 0),
+                    }));
                     setLastAddedId(am.id);
                     setTimeout(() => setLastAddedId((prev) => prev === am.id ? null : prev), 1500);
                   }}
