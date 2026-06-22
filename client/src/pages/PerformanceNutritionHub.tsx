@@ -222,6 +222,11 @@ export default function PerformanceNutritionHub() {
   const [checkInResult, setCheckInResult] = useState<string | null>(null);
   const [checkInLoading, setCheckInLoading] = useState(false);
 
+  // ── Clinical paywall ─────────────────────────────────────────────────────
+  const entitlements: string[] = (user as any)?.entitlements || [];
+  const hasPerformanceAccess =
+    entitlements.includes("performance_nutrition") || entitlements.includes("FULL_ACCESS");
+
   const pCtx = (user as any)?.performanceContext;
   const compCtx = (user as any)?.competitionPrepContext;
   const activeTrack: "athletic" | "competition" | null =
@@ -427,6 +432,50 @@ export default function PerformanceNutritionHub() {
     if (tab === "starch") return "Starch";
     return "Protocols";
   };
+
+  // ── Clinical paywall gate ─────────────────────────────────────────────────
+  if (!hasPerformanceAccess) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white pb-20">
+        <div className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center gap-3">
+          <button
+            onClick={() => setLocation("/")}
+            className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"
+          >
+            <ArrowLeft className="w-4 h-4 text-white" />
+          </button>
+          <p className="text-white font-bold text-base leading-none">Performance Hub</p>
+        </div>
+        <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 text-center gap-6">
+          <div className="w-20 h-20 rounded-full bg-orange-600/20 border border-orange-500/30 flex items-center justify-center">
+            <span className="text-4xl">⚡</span>
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-white">Performance Nutrition Hub</h2>
+            <p className="text-white/60 text-sm max-w-xs leading-relaxed">
+              Sport-specific fueling protocols, starch cycling, competition prep, and performance check-ins.
+            </p>
+          </div>
+          <div className="bg-orange-950/40 border border-orange-500/30 rounded-2xl px-5 py-4 max-w-xs w-full space-y-3">
+            <p className="text-orange-300 font-semibold text-sm">Clinical Plan Required</p>
+            <ul className="text-white/70 text-xs text-left space-y-1.5">
+              <li>✓ Athletic &amp; competition prep protocols</li>
+              <li>✓ Starch cycling with protocol tracking</li>
+              <li>✓ Weekly check-in with protocol directives</li>
+              <li>✓ Sport-specific nutrient priorities</li>
+              <li>✓ Performance Nutrition Builder</li>
+            </ul>
+          </div>
+          <button
+            onClick={() => setLocation("/pricing")}
+            className="bg-orange-600 text-white font-semibold rounded-xl px-8 py-3 text-sm w-full max-w-xs"
+          >
+            View Clinical Plan
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
