@@ -1,5 +1,7 @@
-import { useState, useRef } from "react";
-import { X, Dumbbell, Trophy, ChevronRight, ChevronLeft, Zap, Calendar, Check } from "lucide-react";
+import { useState } from "react";
+import { X, Dumbbell, Trophy, ChevronRight, ChevronLeft, Zap, Calendar as CalendarIcon, Check } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PillButton } from "@/components/ui/pill-button";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -120,10 +122,9 @@ export default function PerformanceSetupModal({
 }: PerformanceSetupModalProps) {
   const { toast } = useToast();
   const { refreshUser } = useAuth();
-  const dateInputRef = useRef<HTMLInputElement>(null);
-
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   const [track, setTrack] = useState<ProtocolTrack | "">(existingTrack ?? "");
 
@@ -521,27 +522,48 @@ export default function PerformanceSetupModal({
               <div className="space-y-4">
                 <div>
                   <p className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-2">Event Date <span className="text-orange-400">*</span></p>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (dateInputRef.current) {
-                          try { dateInputRef.current.showPicker(); } catch { dateInputRef.current.focus(); }
-                        }
-                      }}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 z-10 p-0.5"
-                    >
-                      <Calendar className="w-4 h-4 text-orange-400" />
-                    </button>
-                    <input
-                      ref={dateInputRef}
-                      type="date"
-                      value={eventDate}
-                      min={new Date().toISOString().split("T")[0]}
-                      onChange={e => setEventDate(e.target.value)}
-                      className="w-full bg-white/5 border border-white/20 rounded-xl pl-10 pr-4 py-3 text-white text-sm outline-none focus:border-orange-500/60 [color-scheme:dark]"
-                    />
-                  </div>
+                  <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-sm flex items-center gap-3 text-left focus:outline-none focus:border-orange-500/60"
+                      >
+                        <CalendarIcon className="w-4 h-4 text-orange-400 flex-shrink-0" />
+                        <span className={eventDate ? "text-white" : "text-white/30"}>
+                          {eventDate
+                            ? new Date(eventDate + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+                            : "Pick event date"}
+                        </span>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-zinc-900 border-white/20" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={eventDate ? new Date(eventDate + "T00:00:00") : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            const y = date.getFullYear();
+                            const m = String(date.getMonth() + 1).padStart(2, "0");
+                            const d = String(date.getDate()).padStart(2, "0");
+                            setEventDate(`${y}-${m}-${d}`);
+                          }
+                          setDatePickerOpen(false);
+                        }}
+                        disabled={{ before: new Date() }}
+                        initialFocus
+                        classNames={{
+                          day_selected: "bg-orange-600 text-white hover:bg-orange-600 hover:text-white focus:bg-orange-600",
+                          day_today: "bg-white/10 text-white",
+                          nav_button: "border border-white/20 bg-white/5 text-white",
+                          caption_label: "text-white font-semibold",
+                          head_cell: "text-white/40",
+                          day: "text-white",
+                          day_outside: "text-white/20",
+                          day_disabled: "text-white/20 opacity-40",
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
                   {eventDate && (
                     <p className="text-orange-300 text-xs mt-2">
                       {Math.max(0, Math.round((new Date(eventDate).getTime() - Date.now()) / (7 * 24 * 60 * 60 * 1000)))} weeks out

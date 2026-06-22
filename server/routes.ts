@@ -601,6 +601,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", inspirationRouter);
   app.use("/api/grocery-coach", requireAuth, groceryCoachRouter);
   app.use("/api/pregnancy", requireAuth, pregnancyCoachRouter);
+  // DEBUG trace — remove after diagnosing 404 on /api/performance/setup
+  app.use("/api/performance", (req, _res, next) => {
+    console.log(`[PERF-TRACE] reached /api/performance routing layer — ${req.method} ${req.path}`);
+    next();
+  });
   app.use("/api/performance", requireAuth, performanceNutritionRouter);
   app.use("/api/performance", requireAuth, carbCycleRouter);
 
