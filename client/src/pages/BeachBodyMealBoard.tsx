@@ -81,6 +81,7 @@ import {
   Save,
 } from "lucide-react";
 import { FEATURES } from "@/utils/features";
+import { apiRequest } from "@/lib/queryClient";
 import { DayChips } from "@/components/DayChips";
 import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
 
@@ -363,14 +364,17 @@ export default function BeachBodyMealBoard() {
   const [showDuplicateDayModal, setShowDuplicateDayModal] =
     React.useState(false);
 
-  // Carb cycle state — fetched once on mount to power AthleteMealPickerDrawer filtering
+  // Carb cycle state — fetched on mount and passed to AthleteMealPickerDrawer so the
+  // carb budget bar and meal-dimming filter activate whenever a low_carb or refeed
+  // phase is active.
   const [carbCyclePickerState, setCarbCyclePickerState] = useState<{ phase: string; carbTargetG: number } | null>(null);
   useEffect(() => {
-    fetch("/api/performance/carb-cycle", { credentials: "include" })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data?.state?.phase && (data.state.phase === "low_carb" || data.state.phase === "refeed") && data.state.carbTargetG > 0) {
-          setCarbCyclePickerState({ phase: data.state.phase, carbTargetG: data.state.carbTargetG });
+    apiRequest("/api/performance/carb-cycle")
+      .then((data: any) => {
+        const phase = data?.state?.phase;
+        const carbTargetG = data?.state?.carbTargetG;
+        if ((phase === "low_carb" || phase === "refeed") && carbTargetG > 0) {
+          setCarbCyclePickerState({ phase, carbTargetG });
         }
       })
       .catch(() => {});
@@ -900,6 +904,9 @@ export default function BeachBodyMealBoard() {
         ...dayLists.lunch,
         ...dayLists.dinner,
         ...dayLists.snacks,
+        ...(dayLists.meal4 ?? []),
+        ...(dayLists.meal5 ?? []),
+        ...(dayLists.meal6 ?? []),
       ];
     } else {
       allMeals = [
@@ -907,6 +914,9 @@ export default function BeachBodyMealBoard() {
         ...board.lists.lunch,
         ...board.lists.dinner,
         ...board.lists.snacks,
+        ...(board.lists.meal4 ?? []),
+        ...(board.lists.meal5 ?? []),
+        ...(board.lists.meal6 ?? []),
       ];
     }
 
