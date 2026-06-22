@@ -543,6 +543,13 @@ export default function DashboardNew() {
   }, [isProCareClient, tabletOpen, fetchClientTablet]);
 
   useEffect(() => {
+    if (isProCareClient && sessionStorage.getItem("mpm.openClientChat") === "1") {
+      sessionStorage.removeItem("mpm.openClientChat");
+      setTabletOpen(true);
+    }
+  }, [isProCareClient]);
+
+  useEffect(() => {
     if (tabletOpen && isProCareClient) {
       tabletInitialLoad.current = true;
       fetchClientTablet();
