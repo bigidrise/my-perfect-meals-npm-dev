@@ -172,7 +172,11 @@ export default function PerformanceNutritionHub() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>("protocol");
+  const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
+    const param = new URLSearchParams(window.location.search).get("tab");
+    if (param === "carb_cycle" || param === "coach" || param === "protocol") return param;
+    return "protocol";
+  });
   const [setupOpen, setSetupOpen] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");

@@ -625,6 +625,29 @@ export default function DashboardNew() {
     }
   }, [user]);
 
+  const hasPerfCtx = !!(user as any)?.performanceContext?.primaryGoal;
+  const { data: carbCycleData } = useQuery<{
+    state: {
+      phase: "inactive" | "low_carb" | "refeed";
+      carbTargetG: number;
+      fatTargetAdjustG: number;
+      manualOverride?: boolean;
+    };
+    engine: { stallDetected: boolean; recommendation: string };
+  }>({
+    queryKey: ["carbCycleDashboard"],
+    queryFn: async () => {
+      const res = await fetch(apiUrl("/api/performance/carb-cycle"), {
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to load carb cycle");
+      return res.json();
+    },
+    enabled: hasPerfCtx,
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Greeting priority: nickname > firstName > username-derived name > fallback
   const firstName =
     user?.nickname || user?.firstName || user?.name?.split(" ")[0] || "there";
@@ -912,6 +935,54 @@ export default function DashboardNew() {
               >
                 Open Performance Hub
               </button>
+            </motion.div>
+          );
+        })()}
+
+        {/* ── Carb Cycle Status Card ──────────────────────────────────── */}
+        {hasPerfCtx && carbCycleData && carbCycleData.state.phase !== "inactive" && (() => {
+          const { phase, carbTargetG, manualOverride } = carbCycleData.state;
+          const isRefeed = phase === "refeed";
+          return (
+            <motion.div
+              key="carb-cycle-card"
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.12, duration: 0.3 }}
+              className="rounded-2xl bg-gradient-to-br from-black/60 via-orange-600/20 to-black/80 border border-orange-500/30 p-4 mb-1 cursor-pointer active:scale-[0.98] transition-transform"
+              onClick={() => setLocation("/performance?tab=carb_cycle")}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-orange-400 flex-shrink-0 animate-pulse" />
+                  <p className="text-xs text-orange-300 font-semibold uppercase tracking-wide">Carb Cycle Active</p>
+                </div>
+                {manualOverride && (
+                  <span className="text-[10px] text-white/40 font-medium">Manual</span>
+                )}
+              </div>
+
+              <div className="flex items-end gap-3">
+                <div>
+                  <p className="text-white font-bold text-2xl leading-none">
+                    {carbTargetG}
+                    <span className="text-white/50 text-sm font-normal ml-1">g carbs today</span>
+                  </p>
+                  <p className="text-white/50 text-xs mt-1">
+                    Phase:{" "}
+                    <span className={`font-semibold ${isRefeed ? "text-green-400" : "text-orange-300"}`}>
+                      {isRefeed ? "Refeed Day" : "Low Carb Day"}
+                    </span>
+                  </p>
+                </div>
+                <div className="ml-auto">
+                  <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${isRefeed ? "bg-green-500/20 text-green-300 border border-green-500/30" : "bg-orange-500/20 text-orange-300 border border-orange-500/30"}`}>
+                    {isRefeed ? "🔄 Refeed" : "⬇ Low Carb"}
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-orange-400/70 mt-3 font-medium">Tap to log today →</p>
             </motion.div>
           );
         })()}
