@@ -15,6 +15,7 @@ import {
   type AthleteMeal,
 } from "@/data/athleteMeals";
 import { Target, Copy, Check } from "lucide-react";
+import { getResolvedTargets } from "@/lib/macroResolver";
 
 function simpleHash(str: string): number {
   let hash = 0;
@@ -103,6 +104,7 @@ export function AthleteMealPickerDrawer({
   carbCycleState,
   carbsUsed,
   macroTargets,
+  userId,
 }: {
   open: boolean;
   list: SlotKey | null;
@@ -111,6 +113,7 @@ export function AthleteMealPickerDrawer({
   carbCycleState?: { phase: string; carbTargetG: number } | null;
   carbsUsed?: number;
   macroTargets?: { calories: number; protein_g: number; carbs_g: number; fat_g: number } | null;
+  userId?: string;
 }) {
   const [category, setCategory] =
     React.useState<AthleteMeal["category"]>(DEFAULT_CATEGORY);
@@ -120,6 +123,31 @@ export function AthleteMealPickerDrawer({
   const [sessionMacros, setSessionMacros] = React.useState({ cals: 0, protein: 0, carbs: 0, fat: 0 });
   const [activeList, setActiveList] = React.useState<SlotKey | null>(list);
   const [copied, setCopied] = React.useState(false);
+  const [liveTargets, setLiveTargets] = React.useState<
+    { calories: number; protein_g: number; carbs_g: number; fat_g: number } | null | undefined
+  >(macroTargets);
+
+  // Sync liveTargets when the prop changes (e.g. drawer reopens with fresh data)
+  React.useEffect(() => {
+    setLiveTargets(macroTargets);
+  }, [macroTargets]);
+
+  // Re-read resolved targets whenever a coach pushes an update mid-session
+  React.useEffect(() => {
+    function handleTargetsUpdated() {
+      const resolved = getResolvedTargets(userId);
+      if (resolved.source !== "none") {
+        setLiveTargets({
+          calories: resolved.calories,
+          protein_g: resolved.protein_g,
+          carbs_g: resolved.carbs_g,
+          fat_g: resolved.fat_g,
+        });
+      }
+    }
+    window.addEventListener("mpm:targetsUpdated", handleTargetsUpdated);
+    return () => window.removeEventListener("mpm:targetsUpdated", handleTargetsUpdated);
+  }, [userId]);
 
   const isCycleActive = carbCycleState?.phase === "low_carb" || carbCycleState?.phase === "refeed";
   const carbCap = isCycleActive ? (carbCycleState?.carbTargetG ?? 0) : 0;
@@ -206,9 +234,9 @@ export function AthleteMealPickerDrawer({
             <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
               <span className="text-white/40 text-xs font-medium">Session total:</span>
               {(() => {
-                const hasTargets = macroTargets && (
-                  macroTargets.calories > 0 || macroTargets.protein_g > 0 ||
-                  macroTargets.carbs_g > 0 || macroTargets.fat_g > 0
+                const hasTargets = liveTargets && (
+                  liveTargets.calories > 0 || liveTargets.protein_g > 0 ||
+                  liveTargets.carbs_g > 0 || liveTargets.fat_g > 0
                 );
 
                 function pillColor(value: number, target: number): string {
@@ -222,17 +250,17 @@ export function AthleteMealPickerDrawer({
                 if (hasTargets) {
                   return (
                     <>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pillColor(sessionMacros.cals, macroTargets!.calories)}`}>
-                        {sessionMacros.cals.toLocaleString()} / {macroTargets!.calories.toLocaleString()} cal
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pillColor(sessionMacros.cals, liveTargets!.calories)}`}>
+                        {sessionMacros.cals.toLocaleString()} / {liveTargets!.calories.toLocaleString()} cal
                       </span>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pillColor(sessionMacros.protein, macroTargets!.protein_g)}`}>
-                        P {sessionMacros.protein} / {macroTargets!.protein_g}g
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pillColor(sessionMacros.protein, liveTargets!.protein_g)}`}>
+                        P {sessionMacros.protein} / {liveTargets!.protein_g}g
                       </span>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pillColor(sessionMacros.carbs, macroTargets!.carbs_g)}`}>
-                        C {sessionMacros.carbs} / {macroTargets!.carbs_g}g
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pillColor(sessionMacros.carbs, liveTargets!.carbs_g)}`}>
+                        C {sessionMacros.carbs} / {liveTargets!.carbs_g}g
                       </span>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pillColor(sessionMacros.fat, macroTargets!.fat_g)}`}>
-                        F {sessionMacros.fat} / {macroTargets!.fat_g}g
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pillColor(sessionMacros.fat, liveTargets!.fat_g)}`}>
+                        F {sessionMacros.fat} / {liveTargets!.fat_g}g
                       </span>
                     </>
                   );

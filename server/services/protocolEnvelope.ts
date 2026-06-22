@@ -54,6 +54,7 @@ import { buildUniversalConditionGuidance } from "./universalMedicalGuidance";
 import { deriveCompPrepStatus } from "./protocol/competitionPrepDateEngine";
 import { sanitizeIdentifiers } from "./promptSanitizer";
 import { logAudit } from "../lib/auditLog";
+import { computeDemandProfile, type DemandProfile } from "../../shared/performanceDemandEngine";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PROCEDURAL RULES — The third enforcement dimension
@@ -570,6 +571,39 @@ export interface UserProtocolEnvelope {
     carbBudgetG: number;
     isRefeedDay: boolean;
   } | null;
+
+  /**
+   * Performance Nutrition protocol active flag.
+   * True when "performance-nutrition" is in specialtyConditions.
+   */
+  performanceNutrition: boolean;
+
+  /**
+   * Processed performance context — structured fields from the user's athletic profile.
+   * Null when performance-nutrition is not active or context is incomplete.
+   */
+  performanceContext: {
+    active: boolean;
+    primaryGoal: string;
+    trainingType: string;
+    trainingFrequency: string;
+    cardioFocus: string;
+    trainingPhase: string;
+    twoADays: boolean;
+    sessionDuration?: string;
+    recoveryStatus?: string;
+    adaptationTarget?: string;
+  } | null;
+
+  /**
+   * Performance Demand Profile — computed by computeDemandProfile() from the user's
+   * performanceContext. Encodes fuel demand, recovery demand, adaptation focus,
+   * training load, and ordered nutrition priorities.
+   * Null when performance-nutrition is not active.
+   * Sits between Tier 4 (medical optimization) and Tier 6 (avoidances) — additive only.
+   * NEVER overrides Tiers 1–4. Medical safety always wins.
+   */
+  performanceLayer: DemandProfile | null;
 }
 
 /**
@@ -704,6 +738,7 @@ export async function loadUserProtocolEnvelope(
         performanceOverlay: (users as any).performanceOverlay,
         performanceControlMode: (users as any).performanceControlMode,
         carbCycleState: users.carbCycleState,
+        performanceContext: users.performanceContext,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -908,6 +943,8 @@ export async function loadUserProtocolEnvelope(
       twoADays: boolean;
     } | null = null;
 
+    let performanceDemandProfile: DemandProfile | null = null;
+
     if (performanceNutrition) {
       const rawPerf = ((user as any).performanceContext as {
         primaryGoal?: string;
@@ -916,6 +953,9 @@ export async function loadUserProtocolEnvelope(
         cardioFocus?: string;
         trainingPhase?: string;
         twoADays?: boolean;
+        sessionDuration?: string;
+        recoveryStatus?: string;
+        adaptationTarget?: string;
       } | null) ?? null;
 
       if (rawPerf?.primaryGoal && rawPerf?.trainingType) {
@@ -927,7 +967,11 @@ export async function loadUserProtocolEnvelope(
           cardioFocus: rawPerf.cardioFocus ?? "mixed",
           trainingPhase: rawPerf.trainingPhase ?? "in_season",
           twoADays: rawPerf.twoADays ?? false,
+          sessionDuration: rawPerf.sessionDuration,
+          recoveryStatus: rawPerf.recoveryStatus,
+          adaptationTarget: rawPerf.adaptationTarget,
         };
+        performanceDemandProfile = computeDemandProfile(rawPerf as any);
       }
     }
 
@@ -1020,6 +1064,7 @@ export async function loadUserProtocolEnvelope(
       metabolicRecovery,
       pregnancySupportContext: pregnancySupportCtx,
       performanceNutritionContext: performanceNutritionCtx,
+      performanceDemandProfile,
       competitionPrepContext: competitionPrepCtx,
     });
 
@@ -1059,6 +1104,7 @@ export async function loadUserProtocolEnvelope(
       carbCycleContext,
       performanceNutrition,
       performanceContext: performanceNutritionCtx,
+      performanceLayer: performanceDemandProfile,
     };
   } catch (error) {
     console.error("[ProtocolEnvelope] Failed to load envelope:", error);
@@ -1099,6 +1145,9 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     pregnancySupport: false,
     pregnancySupportContext: null,
     carbCycleContext: null,
+    performanceNutrition: false,
+    performanceContext: null,
+    performanceLayer: null,
   };
 }
 
