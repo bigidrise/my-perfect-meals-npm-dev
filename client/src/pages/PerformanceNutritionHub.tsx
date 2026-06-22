@@ -52,6 +52,28 @@ const COMP_TYPE_LABELS: Record<string, string> = {
   marathon: "Marathon", triathlon_race: "Triathlon", spartan_race: "Spartan Race",
 };
 
+const SESSION_DURATION_LABELS: Record<string, string> = {
+  under_30: "<30 min sessions",
+  "30_60":  "30–60 min sessions",
+  "60_90":  "60–90 min sessions",
+  "90_plus":"90+ min sessions",
+};
+const RECOVERY_STATUS_LABELS: Record<string, string> = {
+  good:    "Good Recovery",
+  average: "Average Recovery",
+  poor:    "Poor Recovery",
+};
+const ADAPTATION_TARGET_LABELS: Record<string, string> = {
+  endurance:      "Endurance Adaptation",
+  recovery:       "Recovery Adaptation",
+  conditioning:   "Conditioning",
+  work_capacity:  "Work Capacity",
+  speed:          "Speed",
+  power:          "Power",
+  fat_loss:       "Fat Loss Adaptation",
+  muscle_gain:    "Muscle Gain Adaptation",
+};
+
 // ── Competition phase engine ─────────────────────────────────────────────────
 function deriveCompPrepPhase(eventDate: string, competitionType: string): {
   weeksOut: number; phase: string; phaseLabel: string; phaseColor: string;
@@ -188,6 +210,43 @@ const NUTRIENT_PRIORITIES: Record<string, { label: string; items: string[] }> = 
   general_fitness:   { label: "General Fitness",   items: ["Balanced macros", "Whole food priority", "Consistent timing", "Anti-inflammatory baseline"] },
   other:             { label: "Sport-Specific Fueling", items: ["High protein for recovery (≥1.6g/kg)", "Training-load matched carb intake", "Anti-inflammatory food base", "Consistent meal timing around sessions"] },
 };
+
+// ── Deterministic meal influence text ────────────────────────────────────────
+// Generates 2-4 plain-language sentences describing how the demand matrix
+// translates into meal composition. No LLM involved — pure template logic.
+function buildMealInfluenceText(demand: ReturnType<typeof computeDemandProfile>): string[] {
+  const sentences: string[] = [];
+
+  const fuelSentences: Record<string, string> = {
+    low:         "Your low fuel demand means meals focus on lean protein and fibrous vegetables, with minimal starchy carbohydrates — this is a deficit or low-volume training phase.",
+    moderate:    "Your moderate fuel demand means each meal includes a balanced complex carbohydrate source to sustain training energy without over-fueling.",
+    glycogen:    "Your glycogen fuel demand means every meal is built around a meaningful complex carbohydrate source — high training volume requires substantial carbohydrate availability, with fast carbs prioritized after sessions.",
+    competition: "Your competition-level fuel demand means maximum carbohydrate support across all meals — every dish is carb-anchored for peak glycolytic output and rapid glycogen replenishment.",
+  };
+  if (fuelSentences[demand.fuelDemand]) sentences.push(fuelSentences[demand.fuelDemand]);
+
+  const recoverySentences: Record<string, string> = {
+    moderate: "Anti-inflammatory ingredients are incorporated where possible — omega-3 sources, colorful vegetables, turmeric, and ginger — to support your training recovery.",
+    high:     "Your high recovery demand means omega-3-rich proteins, antioxidant-dense vegetables, turmeric, ginger, and magnesium-rich foods are actively prioritized in every meal to support tissue repair.",
+  };
+  if (recoverySentences[demand.recoveryDemand]) sentences.push(recoverySentences[demand.recoveryDemand]);
+
+  const adaptSentences: Record<string, string> = {
+    endurance_focused:        "Aerobic fuels — oats, sweet potato, whole grains, healthy fats — are emphasized to support your endurance adaptation.",
+    power_focused:            "Explosive output nutrients — lean red meat, zinc-rich foods, magnesium-rich leafy greens, and fast-digesting post-workout carbs — are emphasized for your power and speed adaptation.",
+    recovery_focused:         "Repair-priority foods — omega-3s, antioxidants, magnesium-rich ingredients — are the backbone of meals designed for your recovery adaptation target.",
+    body_composition_focused: "High protein per meal and strategic carbohydrate timing around training are the core levers for your body composition adaptation.",
+  };
+  if (adaptSentences[demand.adaptationDemand]) sentences.push(adaptSentences[demand.adaptationDemand]);
+
+  const loadSentences: Record<string, string> = {
+    elite: "Your elite training load means between-session nutrition is critical — easily digestible carb and protein options are suggested for rapid recovery between sessions.",
+    high:  "Your high training load means adequate caloric density is maintained across meals so you can sustain output without relying on large, hard-to-digest portions.",
+  };
+  if (loadSentences[demand.trainingLoad]) sentences.push(loadSentences[demand.trainingLoad]);
+
+  return sentences;
+}
 
 interface CarbCycleData {
   state: {
@@ -425,7 +484,6 @@ export default function PerformanceNutritionHub() {
     }
   }
 
-  const nutrients = pCtx?.trainingType ? NUTRIENT_PRIORITIES[pCtx.trainingType] : null;
   const compPhase = compCtx?.eventDate ? deriveCompPrepPhase(compCtx.eventDate, compCtx.competitionType) : null;
   const demandProfile = computeDemandProfile(pCtx ?? undefined);
 
@@ -758,13 +816,13 @@ export default function PerformanceNutritionHub() {
       {isActive && activeTrack === "athletic" && pCtx && (
         <div className="px-4 pt-4 max-w-xl mx-auto space-y-4">
 
-          {/* Protocol summary card */}
+          {/* ── Section 1: Performance Profile ── */}
           <div className="rounded-2xl bg-black/50 border border-orange-500/30 p-4">
             <div className="flex items-center gap-2 mb-3">
               <span className="w-2 h-2 rounded-full bg-orange-400" />
               <p className="text-xs text-orange-300 font-semibold">Athletic Protocol Active</p>
             </div>
-            <p className="text-white font-bold text-2xl leading-none mb-1">
+            <p className="text-white font-bold text-2xl leading-none mb-0.5">
               {pCtx.trainingType === "other"
                 ? (pCtx.customSportName ?? "Custom Sport")
                 : (TYPE_LABELS[pCtx.trainingType] ?? pCtx.trainingType)}
@@ -772,17 +830,19 @@ export default function PerformanceNutritionHub() {
             <p className="text-orange-300 text-sm font-medium mb-3">
               {GOAL_LABELS[pCtx.primaryGoal] ?? pCtx.primaryGoal}
             </p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {[
-                { label: "Phase",     value: PHASE_LABELS[pCtx.trainingPhase] ?? pCtx.trainingPhase },
-                { label: "Frequency", value: `${pCtx.trainingFrequency} sessions/wk` },
-                { label: "Cardio",    value: CARDIO_LABELS[pCtx.cardioFocus] ?? pCtx.cardioFocus },
-                pCtx.twoADays ? { label: "Mode", value: "2-a-days" } : null,
-              ].filter(Boolean).map((item: any) => (
-                <div key={item.label} className="bg-white/5 rounded-xl px-3 py-2">
-                  <p className="text-white/40 text-xs">{item.label}</p>
-                  <p className="text-white font-semibold text-sm mt-0.5">{item.value}</p>
-                </div>
+                PHASE_LABELS[pCtx.trainingPhase] ?? pCtx.trainingPhase,
+                `${pCtx.trainingFrequency} sessions/wk`,
+                CARDIO_LABELS[pCtx.cardioFocus] ?? pCtx.cardioFocus,
+                pCtx.twoADays ? "2-a-Days" : null,
+                pCtx.sessionDuration ? (SESSION_DURATION_LABELS[pCtx.sessionDuration] ?? pCtx.sessionDuration) : null,
+                pCtx.recoveryStatus ? (RECOVERY_STATUS_LABELS[pCtx.recoveryStatus] ?? pCtx.recoveryStatus) : null,
+                pCtx.adaptationTarget ? (ADAPTATION_TARGET_LABELS[pCtx.adaptationTarget] ?? pCtx.adaptationTarget) : null,
+              ].filter(Boolean).map((label, i) => (
+                <span key={i} className="px-2.5 py-1 rounded-full bg-white/10 border border-white/10 text-white/80 text-xs font-medium">
+                  {label}
+                </span>
               ))}
             </div>
           </div>
@@ -807,61 +867,67 @@ export default function PerformanceNutritionHub() {
 
           {activeTab === "protocol" && (
             <div className="space-y-4">
-              {nutrients && (
+
+              {/* ── Section 2: Active Performance Factors ── */}
+              <div className="rounded-2xl bg-black/50 border border-orange-500/20 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Zap className="w-3.5 h-3.5 text-orange-400" />
+                  <p className="text-white font-bold text-sm">Active Performance Factors</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className={`rounded-xl border px-3 py-2.5 ${FUEL_DEMAND_COLORS[demandProfile.fuelDemand]}`}>
+                    <p className="text-xs opacity-60 mb-0.5">Fuel Demand</p>
+                    <p className="font-bold text-xs">{FUEL_DEMAND_LABELS[demandProfile.fuelDemand]}</p>
+                  </div>
+                  <div className={`rounded-xl border px-3 py-2.5 ${RECOVERY_DEMAND_COLORS[demandProfile.recoveryDemand]}`}>
+                    <p className="text-xs opacity-60 mb-0.5">Recovery Demand</p>
+                    <p className="font-bold text-xs">{RECOVERY_DEMAND_LABELS[demandProfile.recoveryDemand]}</p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
+                    <p className="text-white/40 text-xs mb-0.5">Adaptation Focus</p>
+                    <p className="text-white font-bold text-xs">{ADAPTATION_DEMAND_LABELS[demandProfile.adaptationDemand]}</p>
+                  </div>
+                  <div className={`rounded-xl border px-3 py-2.5 ${TRAINING_LOAD_COLORS[demandProfile.trainingLoad]}`}>
+                    <p className="text-xs opacity-60 mb-0.5">Training Load</p>
+                    <p className="font-bold text-xs">{TRAINING_LOAD_LABELS[demandProfile.trainingLoad]}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Section 3: Nutrition Priorities ── */}
+              {demandProfile.nutritionPriorities.length > 0 && (
                 <div className="rounded-2xl bg-black/50 border border-white/10 p-4">
-                  <p className="text-white font-bold text-sm mb-3">{nutrients.label} — Priority Nutrients</p>
+                  <p className="text-white font-bold text-sm mb-3">Nutrition Priorities</p>
                   <div className="space-y-2">
-                    {nutrients.items.map((item, i) => (
-                      <div key={i} className="flex items-start gap-2.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-orange-400 mt-1.5 flex-shrink-0" />
-                        <p className="text-white/70 text-sm">{item}</p>
+                    {demandProfile.nutritionPriorities.map((priority, i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        <span className="w-6 h-6 rounded-full bg-orange-600/30 border border-orange-500/40 flex items-center justify-center flex-shrink-0">
+                          <span className="text-orange-300 font-bold text-xs">{i + 1}</span>
+                        </span>
+                        <p className="text-white/80 text-sm">{priority}</p>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* ── Demand Intelligence Matrix ── */}
-              {pCtx.sessionDuration && pCtx.recoveryStatus && pCtx.adaptationTarget && (
-                <div className="rounded-2xl bg-black/50 border border-orange-500/20 p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Zap className="w-3.5 h-3.5 text-orange-400" />
-                    <p className="text-white font-bold text-sm">Demand Intelligence</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    <div className={`rounded-xl border px-3 py-2.5 ${FUEL_DEMAND_COLORS[demandProfile.fuelDemand]}`}>
-                      <p className="text-xs opacity-60 mb-0.5">Fuel Demand</p>
-                      <p className="font-bold text-xs">{FUEL_DEMAND_LABELS[demandProfile.fuelDemand]}</p>
-                    </div>
-                    <div className={`rounded-xl border px-3 py-2.5 ${RECOVERY_DEMAND_COLORS[demandProfile.recoveryDemand]}`}>
-                      <p className="text-xs opacity-60 mb-0.5">Recovery Demand</p>
-                      <p className="font-bold text-xs">{RECOVERY_DEMAND_LABELS[demandProfile.recoveryDemand]}</p>
-                    </div>
-                    <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
-                      <p className="text-white/40 text-xs mb-0.5">Adaptation</p>
-                      <p className="text-white font-bold text-xs">{ADAPTATION_DEMAND_LABELS[demandProfile.adaptationDemand]}</p>
-                    </div>
-                    <div className={`rounded-xl border px-3 py-2.5 ${TRAINING_LOAD_COLORS[demandProfile.trainingLoad]}`}>
-                      <p className="text-xs opacity-60 mb-0.5">Training Load</p>
-                      <p className="font-bold text-xs">{TRAINING_LOAD_LABELS[demandProfile.trainingLoad]}</p>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">Nutrition Priorities</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {demandProfile.nutritionPriorities.map((p, i) => (
-                        <span
-                          key={i}
-                          className="px-2.5 py-1 rounded-full bg-orange-950/40 border border-orange-500/20 text-orange-300 text-xs font-medium"
-                        >
-                          {p}
-                        </span>
+              {/* ── Section 4: How This Influences Your Meals ── */}
+              {(() => {
+                const influenceLines = buildMealInfluenceText(demandProfile);
+                if (influenceLines.length === 0) return null;
+                return (
+                  <div className="rounded-2xl bg-black/50 border border-white/10 p-4">
+                    <p className="text-white font-bold text-sm mb-3">How This Influences Your Meals</p>
+                    <div className="space-y-2">
+                      {influenceLines.map((line, i) => (
+                        <p key={i} className="text-white/70 text-sm leading-relaxed">{line}</p>
                       ))}
                     </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
+              {/* Phase-specific notes */}
               {pCtx.trainingPhase === "weight_cut" && (
                 <div className="rounded-2xl bg-red-950/40 border border-red-500/30 p-4">
                   <p className="text-red-300 font-bold text-sm mb-1">⚠️ Weight Cut Mode Active</p>
@@ -886,6 +952,8 @@ export default function PerformanceNutritionHub() {
                   </p>
                 </div>
               )}
+
+              {/* Builder access */}
               <button
                 onClick={() => setLocation("/beach-body-meal-board")}
                 className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
