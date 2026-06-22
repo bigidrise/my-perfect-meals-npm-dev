@@ -35,6 +35,7 @@ import { scanForHiddenDietaryViolations, AVOIDANCE_EXPANSION, getPrimaryDiet } f
 import { sanitizeMealName } from "./utils/mealNameSanitizer";
 import { buildChefAdaptationBlock } from "./utils/chefAdaptationBlock";
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol, buildGuestEnvelope, scanGeneratedOutput, buildComplianceSection, buildMealComplianceBundle } from "./services/protocolEnvelope";
+import { deriveCompPrepStatus } from "./services/protocol/competitionPrepDateEngine";
 import { getActiveNutritionContext } from "./services/nutritionContext/getActiveNutritionContext";
 import { getLabDrivenConditions, getPhysicianLockStatus } from "./services/labProtocolOwnership";
 import { 
@@ -69,6 +70,8 @@ import { fridgeRescueRouter } from "./routes/fridgeRescue";
 import inspirationRouter from "./routes/inspiration";
 import groceryCoachRouter from "./routes/groceryCoach";
 import pregnancyCoachRouter from "./routes/pregnancyCoach";
+import performanceNutritionRouter from "./routes/performanceNutrition";
+import carbCycleRouter from "./routes/carbCycle";
 import alcoholLogRouter from './routes/alcohol-log';
 import vitalsBpRouter from './routes/vitals-bp';
 import proteinTargetsRouter from './routes/proteinTargets';
@@ -598,6 +601,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", inspirationRouter);
   app.use("/api/grocery-coach", requireAuth, groceryCoachRouter);
   app.use("/api/pregnancy", requireAuth, pregnancyCoachRouter);
+  app.use("/api/performance", requireAuth, performanceNutritionRouter);
+  app.use("/api/performance", requireAuth, carbCycleRouter);
 
   // REMOVED: Duplicate route moved to top priority position
 
@@ -691,6 +696,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const effectiveInput = userDietOverride === true && input && typeof input === 'string'
         ? `${input} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`
         : input;
+      // Note: Carb cycle hard constraints are injected via the UserProtocolEnvelope
+      // (loadUserProtocolEnvelope → carbCycleContext → enforceBeforeGenerate) — no
+      // direct input-string mutation needed here.
 
       // 🚨 ENFORCEMENT GATEWAY: Pre-generation — Tier 1 (allergy) + Tier 2 (religious)
       if (userId && input) {
@@ -769,9 +777,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             macroCycleMode: users.macroCycleMode,
             macroCycleDayType: users.macroCycleDayType,
             macroMealsPerDay: users.macroMealsPerDay,
+            carbCycleState: users.carbCycleState,
           }).from(users).where(eq(users.id, userId)).limit(1);
           if (macroUser) {
-            const starchyG = macroUser.dailyStarchyCarbsTarget ?? null;
+            // If a starch response protocol is active, override the user's saved starch target
+            // with the protocol's allocation. This feeds the carb cycle directly into
+            // buildVegetableStrategy() so meal generation enforces the starch limit structurally.
+            const rawCcs = macroUser.carbCycleState as any;
+            const ccsActive = rawCcs?.phase === "low_carb" || rawCcs?.phase === "refeed";
+            const starchyG = ccsActive
+              ? (rawCcs.carbTargetG ?? macroUser.dailyStarchyCarbsTarget ?? null)
+              : (macroUser.dailyStarchyCarbsTarget ?? null);
             const fibrousG = macroUser.dailyFibrousCarbsTarget ?? null;
             const mpdVal = macroUser.macroMealsPerDay ?? 4;
             // Only inject strategy if the user has saved macro targets
@@ -874,6 +890,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }
                 return m;
               });
+            }
+          }
+        } catch { }
+      }
+
+      // ── Protocol Stamp — attach appliedProtocol so clients can verify protocol was applied ──
+      if (result.success && userId) {
+        try {
+          const [stampRow] = await db
+            .select({
+              activeProtocolTrack: users.activeProtocolTrack,
+              performanceContext: users.performanceContext,
+              competitionPrepContext: users.competitionPrepContext,
+            })
+            .from(users).where(eq(users.id, userId)).limit(1);
+
+          if (stampRow) {
+            const track = stampRow.activeProtocolTrack as string | null;
+            const compCtx = stampRow.competitionPrepContext as any;
+            const perfCtx = stampRow.performanceContext as any;
+            const compTypeLabels: Record<string, string> = {
+              bodybuilding_show: "Bodybuilding Show", mens_physique: "Men's Physique",
+              classic_physique: "Classic Physique", figure: "Figure", bikini: "Bikini",
+              wellness: "Wellness", powerlifting_meet: "Powerlifting Meet",
+              strongman_competition: "Strongman", olympic_weightlifting_meet: "Olympic Weightlifting",
+              fight_camp: "Fight Camp", wrestling_season: "Wrestling Season",
+              crossfit_competition: "CrossFit Competition", hyrox: "Hyrox",
+              marathon: "Marathon", triathlon_race: "Triathlon Race", spartan_race: "Spartan Race",
+            };
+
+            let appliedProtocol: Record<string, any> | null = null;
+
+            if (track === "competition" && compCtx?.competitionType && compCtx?.eventDate) {
+              const status = deriveCompPrepStatus(compCtx.eventDate, compCtx.competitionType);
+              appliedProtocol = {
+                track: "competition",
+                competitionType: compCtx.competitionType,
+                competitionTypeLabel: compTypeLabels[compCtx.competitionType] ?? compCtx.competitionType,
+                currentPhase: status.currentPhase,
+                currentPhaseLabel: status.currentPhaseLabel,
+                weeksOut: status.weeksOut,
+                category: status.category,
+              };
+            } else if (track === "athletic" && perfCtx?.trainingType) {
+              appliedProtocol = {
+                track: "athletic",
+                trainingType: perfCtx.trainingType,
+                trainingFrequency: perfCtx.trainingFrequency ?? "3-4",
+                primaryGoal: perfCtx.primaryGoal ?? "performance",
+                trainingPhase: perfCtx.trainingPhase ?? "in_season",
+              };
+            }
+
+            if (appliedProtocol) {
+              if (result.meal) result.meal = { ...result.meal, appliedProtocol };
+              if (result.meals?.length) {
+                result.meals = result.meals.map((m: any) => ({ ...m, appliedProtocol }));
+              }
             }
           }
         } catch { }
@@ -2253,6 +2327,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isAdmin: user.isAdmin || false,
         measurementSystem: (user as any).measurementSystem || "imperial",
         countryCode: (user as any).countryCode || "US",
+        pregnancyStage: (user as any).pregnancyStage ?? null,
+        pregnancyDueDate: (user as any).pregnancyDueDate ?? null,
+        pregnancySupportContext: (user as any).pregnancySupportContext ?? null,
+        performanceContext: (user as any).performanceContext ?? null,
+        competitionPrepContext: (user as any).competitionPrepContext ?? null,
+        activeProtocolTrack: (user as any).activeProtocolTrack ?? null,
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);

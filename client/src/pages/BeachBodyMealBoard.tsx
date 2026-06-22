@@ -81,6 +81,7 @@ import {
   Save,
 } from "lucide-react";
 import { FEATURES } from "@/utils/features";
+import { apiRequest } from "@/lib/queryClient";
 import { DayChips } from "@/components/DayChips";
 import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
 
@@ -190,7 +191,7 @@ const lists: Array<["breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal
 ];
 
 export default function BeachBodyMealBoard() {
-  usePageTitle("Beach Body Builder");
+  usePageTitle("Performance Nutrition Builder");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const quickTour = useQuickTour("beach-body-meal-board");
@@ -362,6 +363,57 @@ export default function BeachBodyMealBoard() {
 
   const [showDuplicateDayModal, setShowDuplicateDayModal] =
     React.useState(false);
+
+  // Carb cycle state — fetched on mount and passed to AthleteMealPickerDrawer so the
+  // carb budget bar and meal-dimming filter activate whenever a low_carb or refeed
+  // phase is active.
+  // Cached in sessionStorage so the bar appears instantly on reload with no extra
+  // network call. The cache is invalidated whenever a carb-cycle write succeeds
+  // (see PerformanceNutritionHub.tsx submitCarbLog / handleRefeedToggle).
+  const CARB_CYCLE_CACHE_KEY = "mpm.carbCyclePickerState";
+
+  function readCarbCycleCache(): { phase: string; carbTargetG: number } | null {
+    try {
+      const raw = sessionStorage.getItem(CARB_CYCLE_CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (
+        (parsed.phase === "low_carb" || parsed.phase === "refeed") &&
+        typeof parsed.carbTargetG === "number" &&
+        parsed.carbTargetG > 0
+      ) {
+        return parsed;
+      }
+    } catch {}
+    return null;
+  }
+
+  const [carbCyclePickerState, setCarbCyclePickerState] = useState<{ phase: string; carbTargetG: number } | null>(
+    () => readCarbCycleCache()
+  );
+
+  useEffect(() => {
+    // Skip the network call when valid cached state is already available —
+    // the cache is cleared by write paths so stale data won't linger.
+    if (readCarbCycleCache()) return;
+
+    apiRequest("/api/performance/carb-cycle")
+      .then((data: any) => {
+        const phase = data?.state?.phase;
+        const carbTargetG = data?.state?.carbTargetG;
+        if ((phase === "low_carb" || phase === "refeed") && carbTargetG > 0) {
+          const next = { phase, carbTargetG };
+          setCarbCyclePickerState(next);
+          try { sessionStorage.setItem(CARB_CYCLE_CACHE_KEY, JSON.stringify(next)); } catch {}
+        } else {
+          setCarbCyclePickerState(null);
+          try { sessionStorage.removeItem(CARB_CYCLE_CACHE_KEY); } catch {}
+        }
+      })
+      .catch((err: unknown) => {
+        console.warn("[BeachBodyMealBoard] Failed to fetch carb cycle state:", err);
+      });
+  }, []);
 
   // Shopping list modal state
   const [shoppingListModal, setShoppingListModal] = useState<{
@@ -658,6 +710,7 @@ export default function BeachBodyMealBoard() {
         starchyCarbs: generatedMeal.starchyCarbs || 0,
         fibrousCarbs: generatedMeal.fibrousCarbs || 0,
         dietClassification: generatedMeal.dietClassification || null,
+        appliedProtocol: generatedMeal.appliedProtocol ?? null,
       };
 
       const newMeals = [transformedMeal];
@@ -801,6 +854,7 @@ export default function BeachBodyMealBoard() {
           [list]: [...dayLists[list as keyof typeof dayLists], meal],
         };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+        setBoard(updatedBoard);
         await saveBoard(updatedBoard);
       } else {
         const updatedBoard = {
@@ -886,6 +940,9 @@ export default function BeachBodyMealBoard() {
         ...dayLists.lunch,
         ...dayLists.dinner,
         ...dayLists.snacks,
+        ...(dayLists.meal4 ?? []),
+        ...(dayLists.meal5 ?? []),
+        ...(dayLists.meal6 ?? []),
       ];
     } else {
       allMeals = [
@@ -893,6 +950,9 @@ export default function BeachBodyMealBoard() {
         ...board.lists.lunch,
         ...board.lists.dinner,
         ...board.lists.snacks,
+        ...(board.lists.meal4 ?? []),
+        ...(board.lists.meal5 ?? []),
+        ...(board.lists.meal6 ?? []),
       ];
     }
 
@@ -912,6 +972,14 @@ export default function BeachBodyMealBoard() {
       fat: Math.round(
         allMeals.reduce((sum, meal) => sum + (meal.nutrition?.fat ?? 0), 0),
       ),
+      // starchyCarbs tracks only the starchy carb allocation (rice, oats, potatoes, etc.)
+      // Fibrous carbs (vegetables) are NOT counted here — they are unrestricted.
+      starchyCarbs: Math.round(
+        allMeals.reduce(
+          (sum, meal) => sum + ((meal as any).starchyCarbs ?? (meal.nutrition as any)?.starchyCarbs ?? 0),
+          0,
+        ),
+      ),
     };
   }, [board, planningMode, activeDayISO]);
 
@@ -927,7 +995,7 @@ export default function BeachBodyMealBoard() {
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 flex items-center justify-center">
         <div className="text-white text-center">
           <div className="animate-spin rounded-2xl h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Loading Beach Body Meal Board...</p>
+          <p>Loading Performance Nutrition Builder...</p>
         </div>
       </div>
     );
@@ -956,7 +1024,7 @@ export default function BeachBodyMealBoard() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-36 overflow-x-hidden"
     >
-      <BuilderHeader title="Beach Body Builder" onOpenTour={quickTour.openTour} clientId={proClientId} />
+      <BuilderHeader title="Performance Nutrition Builder" onOpenTour={quickTour.openTour} clientId={proClientId} />
       <TrialBanner />
 
       {/* Main Content */}
@@ -965,6 +1033,91 @@ export default function BeachBodyMealBoard() {
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${proClientId ? '9rem' : '6rem'})` }}
       >
         <NutritionBudgetBanner className="mb-2" userId={effectiveUserId} />
+
+        {/* ── Protocol Active Banner ── */}
+        {(() => {
+          const activeTrack = (user as any)?.activeProtocolTrack as string | null;
+          const perfCtx = (user as any)?.performanceContext as any;
+          const compCtx = (user as any)?.competitionPrepContext as any;
+
+          if (activeTrack === "competition" && compCtx?.competitionType && compCtx?.eventDate) {
+            const now = new Date();
+            const event = new Date(compCtx.eventDate);
+            const weeksOut = Math.max(0, Math.round((event.getTime() - now.getTime()) / (7 * 24 * 60 * 60 * 1000)));
+            const phaseLabel =
+              weeksOut <= 0 ? "Post-Competition" :
+              weeksOut === 1 ? "Show / Meet Day" :
+              weeksOut <= 2 ? "Peak Week" :
+              weeksOut <= 4 ? "Peak Prep" :
+              weeksOut <= 12 ? "Conditioning" : "Base Building";
+            const compTypeLabels: Record<string, string> = {
+              bodybuilding_show: "Bodybuilding Show", mens_physique: "Men's Physique",
+              classic_physique: "Classic Physique", figure: "Figure", bikini: "Bikini",
+              wellness: "Wellness", powerlifting_meet: "Powerlifting Meet",
+              strongman_competition: "Strongman", olympic_weightlifting_meet: "Olympic Weightlifting",
+              fight_camp: "Fight Camp", wrestling_season: "Wrestling Season",
+              crossfit_competition: "CrossFit Competition", hyrox: "Hyrox",
+              marathon: "Marathon", triathlon_race: "Triathlon Race", spartan_race: "Spartan Race",
+            };
+            return (
+              <div className="mx-4 mb-2 rounded-xl bg-orange-950/40 border border-orange-500/40 px-4 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <div className="text-orange-400 font-bold text-sm">🏆 Competition Prep Active</div>
+                    <div className="text-white/80 text-sm">
+                      {compCtx.competitionType === "other"
+                        ? (compCtx.customSportName ?? "Custom Sport")
+                        : (compTypeLabels[compCtx.competitionType] ?? compCtx.competitionType)}
+                      {weeksOut > 0 ? ` · ${weeksOut} Weeks Out` : " · Event Week"}
+                    </div>
+                    <div className="text-white/50 text-xs">Current Phase: {phaseLabel}</div>
+                  </div>
+                  <div className="shrink-0 text-[11px] bg-orange-600/20 border border-orange-500/30 rounded-lg px-2 py-1 text-orange-300 font-semibold">
+                    Protocol Active
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (activeTrack === "athletic" && perfCtx?.trainingType) {
+            const typeLabels: Record<string, string> = {
+              strength: "Strength Training", hypertrophy: "Hypertrophy", powerlifting: "Powerlifting",
+              olympic_lifting: "Olympic Lifting", mma: "MMA", boxing: "Boxing", wrestling: "Wrestling",
+              bjj: "BJJ", crossfit: "CrossFit", endurance_running: "Running",
+              cycling: "Cycling", triathlon: "Triathlon", tactical: "Tactical / Military",
+              general_fitness: "General Fitness",
+            };
+            const phaseLabels: Record<string, string> = {
+              off_season: "Off Season", pre_season: "Pre-Season", in_season: "In Season",
+              weight_cut: "Weight Cut", recovery: "Recovery Phase",
+            };
+            const freq = perfCtx.trainingFrequency ?? "3-4";
+            const phase = phaseLabels[perfCtx.trainingPhase ?? "in_season"] ?? "In Season";
+            return (
+              <div className="mx-4 mb-2 rounded-xl bg-zinc-900/60 border border-orange-500/30 px-4 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <div className="text-orange-400 font-bold text-sm">⚡ Athletic Performance Active</div>
+                    <div className="text-white/80 text-sm">
+                      {perfCtx.trainingType === "other"
+                        ? (perfCtx.customSportName ?? "Custom Sport")
+                        : (typeLabels[perfCtx.trainingType] ?? (perfCtx.trainingType ?? "").replace(/_/g, " "))}
+                      {` · ${freq} Sessions/Week`}
+                    </div>
+                    <div className="text-white/50 text-xs">Current Phase: {phase}</div>
+                  </div>
+                  <div className="shrink-0 text-[11px] bg-orange-600/20 border border-orange-500/30 rounded-lg px-2 py-1 text-orange-300 font-semibold">
+                    Protocol Active
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          return null;
+        })()}
+
         <div className="mb-2 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl mx-4">
           <div className="px-4 py-4 flex flex-col gap-3">
             {/* ROW 1: Week Dates (centered) */}
@@ -1617,9 +1770,12 @@ export default function BeachBodyMealBoard() {
             if (pickerList) {
               quickAdd(pickerList, meal);
             }
-            setPickerOpen(false);
-            setPickerList(null);
+            // Keep the drawer open so the carb budget bar updates in real-time
+            // as the user adds multiple meals in a single session.
+            // The user closes the drawer manually via the X or backdrop dismiss.
           }}
+          carbCycleState={carbCyclePickerState}
+          carbsUsed={totals.starchyCarbs}
         />
 
         <WeeklyOverviewModal
@@ -1707,7 +1863,7 @@ export default function BeachBodyMealBoard() {
         <QuickTourModal
           isOpen={quickTour.shouldShow}
           onClose={quickTour.closeTour}
-          title="How to Build Your Beach Body Meals"
+          title="How to Build Your Performance Nutrition Meals"
           steps={BEACHBODY_TOUR_STEPS}
           onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />

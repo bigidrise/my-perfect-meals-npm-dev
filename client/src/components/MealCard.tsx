@@ -48,9 +48,70 @@ export type Meal = {
   dietClassification?: DietClassification | null;
   builderType?: string;
   diabeticMemory?: { generatedBglMgdl: number; glucoseContext: string; protocolTypeLabel: string; bglBucket: string; recommendedBglRange: string; generatedAt: string; source: string; };
+  appliedProtocol?: {
+    track: "competition" | "athletic";
+    competitionType?: string;
+    competitionTypeLabel?: string;
+    currentPhase?: string;
+    currentPhaseLabel?: string;
+    weeksOut?: number;
+    category?: string;
+    trainingType?: string;
+    trainingFrequency?: string;
+    primaryGoal?: string;
+    trainingPhase?: string;
+  } | null;
 };
 
 type Slot = "breakfast" | "lunch" | "dinner" | "snacks";
+
+function getProtocolBullets(ap: NonNullable<Meal["appliedProtocol"]>): string[] {
+  if (ap.track === "competition") {
+    const phaseBullets: Record<string, string[]> = {
+      fat_loss: ["High Protein Target (≥2g/kg)", "Caloric Deficit Strategy"],
+      conditioning: ["Carb Timing — Pre/Post Training", "Anti-Inflammatory Recovery"],
+      peak_prep: ["Sodium Reduction Active", "Digestibility Priority"],
+      peak_week: ["Low Fiber Protocol Active", "Low Sodium — Water Control"],
+      show_day: ["Rapid Digestibility Protocol", "Carb Timing for Performance"],
+      meet_week: ["Carb Loading Protocol Active", "CNS Recovery Nutrients"],
+      meet_day: ["Pre-Meet Carb Protocol", "Digestibility First"],
+      weight_cut: ["Sodium Restriction Active", "Electrolyte Management"],
+      fight_week: ["Water Management Protocol", "Rehydration-Ready Meals"],
+      taper: ["Carb Loading (8–10g/kg)", "Fiber Reduction Active"],
+      race_day: ["Race-Day Carb Protocol", "Gut-Safe Nutrition"],
+      post_competition: ["Recovery Refeed Active", "Anti-Inflammatory Priority"],
+      post_race: ["Post-Race Recovery Nutrition", "Caloric Increase"],
+    };
+    const base = [
+      `Competition Prep — ${ap.competitionTypeLabel ?? ap.competitionType ?? ""}`,
+      `${ap.currentPhaseLabel ?? ""}${ap.weeksOut != null && ap.weeksOut > 0 ? ` · ${ap.weeksOut} Weeks Out` : ""}`,
+    ];
+    const extra = phaseBullets[ap.currentPhase ?? ""] ?? [];
+    return [...base, ...extra];
+  }
+  const typeLabels: Record<string, string> = {
+    strength: "Strength Training", hypertrophy: "Hypertrophy", powerlifting: "Powerlifting",
+    olympic_lifting: "Olympic Lifting", mma: "MMA", boxing: "Boxing", wrestling: "Wrestling",
+    bjj: "BJJ / Grappling", crossfit: "CrossFit", endurance_running: "Running",
+    cycling: "Cycling", triathlon: "Triathlon", tactical: "Tactical / Military",
+    general_fitness: "General Fitness",
+  };
+  const phaseLabels: Record<string, string> = {
+    off_season: "Off Season", pre_season: "Pre-Season", in_season: "In Season",
+    weight_cut: "Weight Cut Phase", recovery: "Recovery Phase",
+  };
+  const goalLabel =
+    ap.primaryGoal === "fat_loss" ? "Fat Loss Priority" :
+    ap.primaryGoal === "muscle_gain" ? "Muscle Growth Priority" :
+    ap.primaryGoal === "strength" ? "Strength Priority" :
+    "Peak Performance Priority";
+  return [
+    `Athletic Performance — ${typeLabels[ap.trainingType ?? ""] ?? (ap.trainingType ?? "Sport")}`,
+    phaseLabels[ap.trainingPhase ?? ""] ?? "Performance Phase",
+    goalLabel,
+    "Recovery Support Active",
+  ];
+}
 
 function MacroPill({ label, value, suffix = "" }: { label: string; value: number; suffix?: string }) {
   return (
@@ -233,6 +294,31 @@ export function MealCard({
               <div className="text-white/80">Generated for BGL: <span className="text-white font-medium">{diabeticMemoryContext.generatedBglMgdl} mg/dL</span></div>
               <div className="text-white/60">{diabeticMemoryContext.protocolTypeLabel}</div>
               <div className="text-white/50 text-[10px]">Relevant range: {diabeticMemoryContext.recommendedBglRange}</div>
+            </div>
+          )}
+
+          {meal.appliedProtocol && (
+            <div className="mt-2 rounded-lg bg-orange-950/40 border border-orange-500/30 px-3 py-2 text-xs space-y-1.5">
+              <div className="text-orange-400 font-semibold tracking-wide uppercase text-[10px]">
+                {meal.appliedProtocol.track === "competition" ? "🏆 Competition Prep Protocol Applied" : "⚡ Athletic Performance Protocol Applied"}
+              </div>
+              <div className="text-white/80 font-medium text-[11px]">
+                {meal.appliedProtocol.track === "competition"
+                  ? `${meal.appliedProtocol.competitionTypeLabel ?? meal.appliedProtocol.competitionType} · ${meal.appliedProtocol.currentPhaseLabel}${meal.appliedProtocol.weeksOut != null && meal.appliedProtocol.weeksOut > 0 ? ` · ${meal.appliedProtocol.weeksOut} Weeks Out` : ""}`
+                  : `${(meal.appliedProtocol.trainingType ?? "").replace(/_/g, " ")} · ${meal.appliedProtocol.trainingFrequency} sessions/week`
+                }
+              </div>
+              <div className="pt-1 border-t border-orange-500/20">
+                <div className="text-orange-300 font-semibold text-[10px] uppercase tracking-wide mb-1">Why This Meal Was Built</div>
+                <ul className="space-y-0.5">
+                  {getProtocolBullets(meal.appliedProtocol).map((bullet, i) => (
+                    <li key={i} className="text-white/70 text-[11px] flex items-start gap-1">
+                      <span className="text-orange-400 leading-none mt-0.5">•</span>
+                      <span>{bullet}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           )}
 

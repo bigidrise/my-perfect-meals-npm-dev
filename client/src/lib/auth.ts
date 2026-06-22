@@ -152,6 +152,16 @@ export interface User {
   // International / Metric Support
   measurementSystem?: "imperial" | "metric";
   countryCode?: "US" | "CA" | "AU" | "UK" | "NZ";
+  // Pregnancy Support
+  pregnancyStage?: string | null;
+  pregnancyDueDate?: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  pregnancySupportContext?: any | null;
+  // Performance Nutrition Protocol
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  performanceContext?: any | null;
+  competitionPrepContext?: any | null;
+  activeProtocolTrack?: "athletic" | "competition" | null;
 }
 
 export function getAuthToken(): string | null {

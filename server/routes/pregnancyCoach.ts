@@ -242,6 +242,19 @@ router.post("/setup", async (req, res) => {
 
     const now = new Date().toISOString();
 
+    // Read current specialty conditions so we can upsert "pregnancy-support"
+    // without clobbering other active conditions (thyroid, cardiac, etc.).
+    const [currentUser] = await db
+      .select({ specialtyConditions: users.specialtyConditions })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const currentConditions: string[] = (currentUser?.specialtyConditions as string[] | null) ?? [];
+    const updatedConditions: string[] = currentConditions.includes("pregnancy-support")
+      ? currentConditions
+      : [...currentConditions, "pregnancy-support"];
+
     await db
       .update(users)
       .set({
@@ -254,6 +267,7 @@ router.post("/setup", async (req, res) => {
           activatedAt: now,
           updatedAt: now,
         } as any,
+        specialtyConditions: updatedConditions as any,
       })
       .where(eq(users.id, userId));
 

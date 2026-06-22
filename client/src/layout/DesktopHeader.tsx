@@ -49,7 +49,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/weekly-meal-board": "Weekly Meal Builder",
   "/plan-builder/classic": "Weekly Meal Builder",
   "/builder/classic": "Weekly Meal Builder",
-  "/beach-body-meal-board": "Beach Body Builder",
+  "/beach-body-meal-board": "Performance Nutrition Builder",
   "/diabetic-hub": "Diabetic Hub",
   "/diabetes-support": "Diabetes Support",
   "/diabetic-menu-builder": "Diabetic Builder",

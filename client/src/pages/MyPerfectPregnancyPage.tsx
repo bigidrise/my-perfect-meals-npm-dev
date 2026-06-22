@@ -6,6 +6,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { useAuth } from "@/contexts/AuthContext";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import { PregnancySupportSetupModal } from "@/components/PregnancySupportSetupModal";
+import { derivePregnancyStatus } from "@/lib/pregnancyUtils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -84,12 +85,24 @@ const STAGE_DATA: Record<Stage, {
     symptoms: [],
   },
   "postpartum": {
-    label: "Postpartum",
+    label: "Postpartum Recovery",
     emoji: "🩷",
-    focus: "Maternal recovery · Replenishment",
-    calorieNote: "Adjust based on whether you are breastfeeding (+500 cal) or not (pre-pregnancy baseline).",
-    nutrients: ["Iron (replenish postpartum losses)", "Protein (tissue repair)", "Calcium", "DHA", "Vitamin C (wound healing)"],
-    avoidFoods: ["Alcohol", "Highly processed foods", "High-mercury fish if breastfeeding"],
+    focus: "Recovery · Body recomposition · Hormone support · Strength",
+    calorieNote: "Return to pre-pregnancy maintenance. Do not restrict — crash dieting disrupts hormones and recovery. If breastfeeding, add +500 calories.",
+    nutrients: [
+      "Fiber (25–35g/day — gut restoration, estrogen clearance)",
+      "Complex carbs — whole grains, legumes, starchy veg (keep them in)",
+      "Protein (80–100g/day — tissue repair, collagen rebuilding)",
+      "Omega-3 fats — salmon, walnuts, chia (anti-inflammatory)",
+      "Vitamin C + Zinc (collagen & skin elasticity)",
+      "Iron (replenish birth blood loss)",
+    ],
+    avoidFoods: [
+      "Refined sugar & ultra-processed foods (drive inflammation)",
+      "Excess sodium (prolongs swelling)",
+      "Alcohol (disrupts hormone recovery)",
+      "Extreme diets — carnivore, keto, very low carb (contraindicated postpartum)",
+    ],
     symptoms: [],
   },
 };
@@ -102,7 +115,7 @@ const MERCURY_AVOID = ["Shark", "Swordfish", "King mackerel", "Tilefish", "Bigey
 
 export default function MyPerfectPregnancyPage() {
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   // Pregnancy context — loaded from API
   const [pregnancyData, setPregnancyData] = useState<{
@@ -125,34 +138,38 @@ export default function MyPerfectPregnancyPage() {
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Seed from the already-loaded auth user immediately — no extra round-trip
+  useEffect(() => {
+    if (user) applyUserToPregnancyData(user);
+  }, [user]);
+
   useEffect(() => {
     document.title = "My Perfect Pregnancy | My Perfect Meals";
-    loadPregnancyContext();
   }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  function applyUserToPregnancyData(u: any) {
+    const status = derivePregnancyStatus(u);
+    if (!status) return;
+    setPregnancyData({
+      stage: status.stage as Stage,
+      weekOfPregnancy: status.weekOfPregnancy,
+      symptoms: status.symptoms,
+      isBreastfeeding: status.isBreastfeeding,
+      dueDate: status.dueDate,
+      trackingMode: status.trackingMode,
+    });
+  }
+
   async function loadPregnancyContext() {
     try {
-      const res = await fetch(apiUrl("/api/me"), { credentials: "include" });
-      if (!res.ok) return;
-      const data = await res.json();
-      const u = data.user ?? data;
-      if (u?.pregnancySupportContext || u?.pregnancyStage) {
-        const ctx = u.pregnancySupportContext ?? {};
-        setPregnancyData({
-          stage: (u.pregnancyStage ?? "trimester-2") as Stage,
-          weekOfPregnancy: null,
-          symptoms: ctx.symptoms ?? [],
-          isBreastfeeding: ctx.isBreastfeeding ?? false,
-          dueDate: u.pregnancyDueDate ?? null,
-          trackingMode: ctx.trackingMode ?? "manual",
-        });
-      }
+      const freshUser = await refreshUser();
+      applyUserToPregnancyData(freshUser);
     } catch {
-      // ignore
+      // ignore — user not logged in or network error
     }
   }
 
@@ -193,7 +210,7 @@ export default function MyPerfectPregnancyPage() {
     "trimester-2": ["How do I get enough calcium?", "What fish is safe to eat?", "How much protein do I need?"],
     "trimester-3": ["What foods are high in DHA?", "How do I reduce swelling?", "What should I eat before delivery?"],
     "breastfeeding": ["Do I need more calories?", "Is coffee safe while breastfeeding?", "What helps milk production?"],
-    "postpartum": ["How do I replenish iron?", "What helps with energy postpartum?", "When can I return to normal eating?"],
+    "postpartum": ["Why do I need fiber postpartum?", "What foods help with skin recovery?", "Why should I avoid keto postpartum?"],
   };
 
   const suggestions = pregnancyData ? SUGGESTED_QUESTIONS[pregnancyData.stage] : SUGGESTED_QUESTIONS["trimester-2"];
@@ -217,54 +234,102 @@ export default function MyPerfectPregnancyPage() {
 
       <div className="px-4 pt-4 space-y-4 max-w-lg mx-auto">
 
-        {/* Stage card */}
+        {/* Hero card */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-pink-950/60 via-black to-orange-950/30 border border-pink-500/30 p-4"
         >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              {stageInfo ? (
-                <>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-2xl">{stageInfo.emoji}</span>
-                    <p className="text-white font-bold text-lg">{stageInfo.label}</p>
-                  </div>
-                  <p className="text-pink-300/80 text-xs mb-1">{stageInfo.focus}</p>
-                  {pregnancyData?.weekOfPregnancy && (
-                    <p className="text-white/60 text-xs">Week {pregnancyData.weekOfPregnancy}</p>
-                  )}
-                  <p className="text-orange-300/70 text-xs mt-1">{stageInfo.calorieNote}</p>
-                </>
-              ) : (
-                <>
-                  <p className="text-white font-bold text-lg">Set Up My Perfect Pregnancy</p>
-                  <p className="text-white/60 text-xs mt-1 leading-relaxed">
-                    Tell us your stage and symptoms so every meal, food scan, and coach response understands your journey.
-                  </p>
-                </>
-              )}
-            </div>
-            <button
-              onClick={() => setSetupOpen(true)}
-              className="shrink-0 text-xs px-3 py-1.5 rounded-full bg-pink-600/40 border border-pink-400/40 text-pink-200 active:scale-95 transition-all"
-            >
-              {stageInfo ? "Edit" : "Set Up"}
-            </button>
-          </div>
-
-          {/* Active symptoms */}
-          {pregnancyData?.symptoms && pregnancyData.symptoms.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-white/10">
-              <p className="text-white/50 text-xs mb-1.5">Active symptoms — meals adapt to these:</p>
-              <div className="flex flex-wrap gap-1.5">
-                {pregnancyData.symptoms.map(s => (
-                  <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-pink-900/40 border border-pink-500/30 text-pink-200">
-                    {s.replace(/_/g, " ")}
-                  </span>
-                ))}
+          {stageInfo ? (
+            <>
+              {/* Protocol active indicator */}
+              <div className="flex items-center gap-1.5 mb-3">
+                <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
+                <p className="text-green-300 text-xs font-semibold">Pregnancy Nutrition Protocol Active</p>
               </div>
+
+              {/* Week + trimester — primary status */}
+              {pregnancyData?.weekOfPregnancy ? (
+                <p className="text-white font-bold text-3xl leading-none">
+                  Week {pregnancyData.weekOfPregnancy}
+                  <span className="text-pink-300 font-medium text-base ml-3">
+                    {stageInfo.emoji} {stageInfo.label}
+                  </span>
+                </p>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{stageInfo.emoji}</span>
+                  <p className="text-white font-bold text-xl">{stageInfo.label}</p>
+                </div>
+              )}
+
+              {/* Due date */}
+              {pregnancyData?.dueDate && (
+                <p className="text-white/50 text-xs mt-1.5">
+                  Due Date:{" "}
+                  <span className="text-white/70">
+                    {new Date(pregnancyData.dueDate + "T12:00:00").toLocaleDateString("en-US", {
+                      year: "numeric", month: "long", day: "numeric",
+                    })}
+                  </span>
+                </p>
+              )}
+
+              {/* Next milestone */}
+              {(() => {
+                const ps = derivePregnancyStatus(user);
+                if (!ps?.nextMilestone) return null;
+                return (
+                  <p className="text-pink-300/70 text-xs mt-1 font-medium">
+                    Next: {ps.nextMilestone}
+                  </p>
+                );
+              })()}
+
+              {/* Active symptoms */}
+              {pregnancyData?.symptoms && pregnancyData.symptoms.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-white/10">
+                  <p className="text-white/50 text-xs mb-1.5">Symptoms being tracked:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {pregnancyData.symptoms.map(s => (
+                      <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-pink-900/40 border border-pink-500/30 text-pink-200">
+                        {s.replace(/_/g, " ")}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="flex gap-2 mt-4 pt-3 border-t border-white/10">
+                <button
+                  onClick={() => setActiveTab("coach")}
+                  className="flex-1 py-2 rounded-xl text-xs font-semibold bg-pink-700/50 border border-pink-400/40 text-white active:scale-95 transition-all"
+                >
+                  🩷 Ask Coach
+                </button>
+                <button
+                  onClick={() => setSetupOpen(true)}
+                  className="flex-1 py-2 rounded-xl text-xs font-semibold bg-white/8 border border-white/15 text-white/80 active:scale-95 transition-all"
+                >
+                  ✏️ Update Protocol
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-white font-bold text-lg">Set Up My Perfect Pregnancy</p>
+                <p className="text-white/60 text-xs mt-1 leading-relaxed">
+                  Tell us your stage and symptoms so every meal, food scan, and coach response understands your journey.
+                </p>
+              </div>
+              <button
+                onClick={() => setSetupOpen(true)}
+                className="shrink-0 text-xs px-3 py-1.5 rounded-full bg-pink-600/40 border border-pink-400/40 text-pink-200 active:scale-95 transition-all"
+              >
+                Set Up
+              </button>
             </div>
           )}
         </motion.div>
@@ -288,6 +353,40 @@ export default function MyPerfectPregnancyPage() {
                 </li>
               ))}
             </ul>
+          </motion.div>
+        )}
+
+        {/* Protocol Active Banner — shows when setup is complete */}
+        {pregnancyData && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="rounded-xl bg-green-950/40 border border-green-500/25 p-3"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <ShieldCheck className="w-4 h-4 text-green-400 flex-shrink-0" />
+              <p className="text-green-300 text-sm font-semibold">Pregnancy Nutrition Protocol Active</p>
+            </div>
+            <p className="text-white/40 text-xs mb-2 leading-relaxed">
+              Your stage, symptoms, and food safety rules are being enforced across the platform.
+            </p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+              {[
+                "Meal Builders",
+                "Weekly Meal Board",
+                "Fridge Rescue",
+                "Grocery Coach",
+                "Restaurant Guide",
+                "Snack & Beverage Creator",
+                "Smart Scan",
+                "Meal Planner",
+              ].map(feature => (
+                <p key={feature} className="text-xs text-white/50 flex items-center gap-1">
+                  <span className="text-green-400 text-[10px]">✓</span> {feature}
+                </p>
+              ))}
+            </div>
           </motion.div>
         )}
 
@@ -409,6 +508,37 @@ export default function MyPerfectPregnancyPage() {
               exit={{ opacity: 0 }}
               className="space-y-3"
             >
+              {/* How the System Adapts — shown at the top of the Learn tab */}
+              <div className="rounded-xl bg-pink-950/40 border border-pink-500/20 p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-pink-300 flex-shrink-0" />
+                  <p className="text-pink-200 text-sm font-semibold">How the System Adapts to You</p>
+                </div>
+                <p className="text-white/60 text-xs leading-relaxed">
+                  My Perfect Pregnancy is not just a reference guide. When you activate it and set your stage, these rules run automatically across every meal generator — you don't set them per builder.
+                </p>
+                <div className="space-y-2.5">
+                  <div>
+                    <p className="text-white/70 text-xs font-semibold mb-1">🛡️ Food safety — enforced everywhere</p>
+                    <p className="text-white/50 text-xs leading-relaxed">Raw fish, mercury-heavy fish, deli meats, unpasteurized cheeses, and alcohol are blocked in every builder simultaneously — Create a Dish, Grocery Coach, Restaurant Guide, Fridge Rescue, Meal Board, and more.</p>
+                  </div>
+                  <div>
+                    <p className="text-white/70 text-xs font-semibold mb-1">🌿 Nutrients — shift with your stage</p>
+                    <p className="text-white/50 text-xs leading-relaxed">The app prioritizes what your body needs right now. First trimester: folate and iron. Second: protein and calcium. Third: DHA and choline. Postpartum and breastfeeding have their own separate protocols.</p>
+                  </div>
+                  <div>
+                    <p className="text-white/70 text-xs font-semibold mb-1">💛 Symptoms — adapt in real time</p>
+                    <p className="text-white/50 text-xs leading-relaxed">The symptoms you set above change what the AI builds for you. Nausea: ginger, B6, bland foods, cool options. Heartburn: no acidic or fried ingredients. Swelling: low sodium, more potassium. Fatigue: iron-rich, complex carbs.</p>
+                  </div>
+                  <div>
+                    <p className="text-white/70 text-xs font-semibold mb-1">📋 Stacks with your other protocols</p>
+                    <p className="text-white/50 text-xs leading-relaxed">If you also have Thyroid Support, Cardiac Support, or any other condition active, both protocols run at once. The strictest rule from either always wins.</p>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-white/30 text-xs px-1 pt-1">Nutrition reference by stage</p>
+
               {Object.entries(STAGE_DATA).map(([stageKey, data]) => {
                 const isExpanded = expandedSection === stageKey;
                 const isCurrentStage = pregnancyData?.stage === stageKey;

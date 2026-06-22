@@ -51,6 +51,7 @@ import {
   type GlucoseState,
 } from "./diabeticContextService";
 import { buildUniversalConditionGuidance } from "./universalMedicalGuidance";
+import { deriveCompPrepStatus } from "./protocol/competitionPrepDateEngine";
 import { sanitizeIdentifiers } from "./promptSanitizer";
 import { logAudit } from "../lib/auditLog";
 
@@ -558,6 +559,17 @@ export interface UserProtocolEnvelope {
     symptoms: Array<"nausea" | "heartburn" | "constipation" | "fatigue" | "food_aversions" | "swelling" | "shortness_of_breath" | "low_appetite">;
     isBreastfeeding: boolean;
   } | null;
+
+  /**
+   * Active carb-cycle protocol — populated when carbCycleState.phase is "low_carb"
+   * or "refeed". Injected as a hard constraint in the performanceIntent prompt layer
+   * of every meal generator. Null when no active carb cycle.
+   */
+  carbCycleContext: {
+    phase: "low_carb" | "refeed";
+    carbBudgetG: number;
+    isRefeedDay: boolean;
+  } | null;
 }
 
 /**
@@ -691,6 +703,7 @@ export async function loadUserProtocolEnvelope(
         goalTarget: (users as any).goalTarget,
         performanceOverlay: (users as any).performanceOverlay,
         performanceControlMode: (users as any).performanceControlMode,
+        carbCycleState: users.carbCycleState,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -883,6 +896,104 @@ export async function loadUserProtocolEnvelope(
       };
     }
 
+    // ── PERFORMANCE NUTRITION — additive modifier ─────────────────────────────
+    const performanceNutrition: boolean = specialtyConditionsArr.includes("performance-nutrition");
+    let performanceNutritionCtx: {
+      active: boolean;
+      primaryGoal: string;
+      trainingType: string;
+      trainingFrequency: string;
+      cardioFocus: string;
+      trainingPhase: string;
+      twoADays: boolean;
+    } | null = null;
+
+    if (performanceNutrition) {
+      const rawPerf = ((user as any).performanceContext as {
+        primaryGoal?: string;
+        trainingType?: string;
+        trainingFrequency?: string;
+        cardioFocus?: string;
+        trainingPhase?: string;
+        twoADays?: boolean;
+      } | null) ?? null;
+
+      if (rawPerf?.primaryGoal && rawPerf?.trainingType) {
+        performanceNutritionCtx = {
+          active: true,
+          primaryGoal: rawPerf.primaryGoal,
+          trainingType: rawPerf.trainingType,
+          trainingFrequency: rawPerf.trainingFrequency ?? "3-4",
+          cardioFocus: rawPerf.cardioFocus ?? "mixed",
+          trainingPhase: rawPerf.trainingPhase ?? "in_season",
+          twoADays: rawPerf.twoADays ?? false,
+        };
+      }
+    }
+
+    // ── COMPETITION PREP — date-driven additive modifier ─────────────────────
+    const competitionPrep: boolean = specialtyConditionsArr.includes("competition-prep");
+    let competitionPrepCtx: {
+      active: boolean;
+      competitionType: string;
+      competitionTypeLabel: string;
+      division?: string;
+      eventDate: string;
+      weeksOut: number;
+      currentPhase: string;
+      currentPhaseLabel: string;
+      isPeakWeek: boolean;
+      isEventDay: boolean;
+      isPostEvent: boolean;
+      category: "physique" | "strength" | "combat" | "wrestling" | "functional" | "endurance";
+      currentWeight?: string;
+      targetWeight?: string;
+    } | null = null;
+
+    if (competitionPrep) {
+      const rawComp = ((user as any).competitionPrepContext as {
+        competitionType?: string;
+        division?: string;
+        eventDate?: string;
+        currentWeight?: string;
+        targetWeight?: string;
+      } | null) ?? null;
+
+      if (rawComp?.competitionType && rawComp?.eventDate) {
+        const compTypeLabels: Record<string, string> = {
+          bodybuilding_show: "Bodybuilding Show", mens_physique: "Men's Physique",
+          classic_physique: "Classic Physique", figure: "Figure", bikini: "Bikini",
+          wellness: "Wellness", powerlifting_meet: "Powerlifting Meet",
+          strongman_competition: "Strongman Competition",
+          olympic_weightlifting_meet: "Olympic Weightlifting Meet",
+          fight_camp: "Fight Camp", wrestling_season: "Wrestling Season",
+          crossfit_competition: "CrossFit Competition", hyrox: "Hyrox",
+          marathon: "Marathon", triathlon_race: "Triathlon Race", spartan_race: "Spartan Race",
+        };
+        try {
+          const status = deriveCompPrepStatus(rawComp.eventDate, rawComp.competitionType as any);
+          competitionPrepCtx = {
+            active: true,
+            competitionType: rawComp.competitionType,
+            competitionTypeLabel: compTypeLabels[rawComp.competitionType] ?? rawComp.competitionType,
+            division: rawComp.division,
+            eventDate: rawComp.eventDate,
+            weeksOut: status.weeksOut,
+            currentPhase: status.currentPhase,
+            currentPhaseLabel: status.currentPhaseLabel,
+            isPeakWeek: status.isPeakWeek,
+            isEventDay: status.isEventDay,
+            isPostEvent: status.isPostEvent,
+            category: status.category,
+            currentWeight: rawComp.currentWeight,
+            targetWeight: rawComp.targetWeight,
+          };
+        } catch {
+          // Date engine failed — don't crash the envelope
+        }
+      }
+    }
+
     const conditionGuidanceBlocks = await buildUniversalConditionGuidance({
       userId,
       healthConditions: mergedHealthConditions,
@@ -908,7 +1019,15 @@ export async function loadUserProtocolEnvelope(
       perimenopause,
       metabolicRecovery,
       pregnancySupportContext: pregnancySupportCtx,
+      performanceNutritionContext: performanceNutritionCtx,
+      competitionPrepContext: competitionPrepCtx,
     });
+
+    const rawCarbCycle = ((user as any).carbCycleState as any);
+    const carbCycleContext: UserProtocolEnvelope["carbCycleContext"] =
+      rawCarbCycle && (rawCarbCycle.phase === "low_carb" || rawCarbCycle.phase === "refeed") && rawCarbCycle.carbTargetG > 0
+        ? { phase: rawCarbCycle.phase as "low_carb" | "refeed", carbBudgetG: rawCarbCycle.carbTargetG, isRefeedDay: rawCarbCycle.phase === "refeed" }
+        : null;
 
     return {
       userId,
@@ -937,6 +1056,9 @@ export async function loadUserProtocolEnvelope(
       performanceControlMode: (((user as any).performanceControlMode as string | null) ?? "self_guided") as "self_guided"|"coach_controlled",
       pregnancySupport,
       pregnancySupportContext: pregnancySupportCtx,
+      carbCycleContext,
+      performanceNutrition,
+      performanceContext: performanceNutritionCtx,
     };
   } catch (error) {
     console.error("[ProtocolEnvelope] Failed to load envelope:", error);
@@ -976,6 +1098,7 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     performanceControlMode: "self_guided",
     pregnancySupport: false,
     pregnancySupportContext: null,
+    carbCycleContext: null,
   };
 }
 
@@ -1160,6 +1283,16 @@ ${proceduralParts.join("\n")}`;
     if (directive) {
       layers.performanceIntent = `\n🏋️ PERFORMANCE INTENT — ${overlayLabel.toUpperCase()} (applies within all safety and medical rules above):\n${directive}`;
     }
+  }
+
+  // ── CARB CYCLE HARD CONSTRAINT (appended to performanceIntent layer) ──────
+  if (envelope.carbCycleContext) {
+    const cc = envelope.carbCycleContext;
+    const phaseLabel = cc.isRefeedDay ? "REFEED DAY — STARCH LOAD" : "LOW-STARCH DAY";
+    const ccDirective = cc.isRefeedDay
+      ? `STARCH ALLOCATION: ${cc.carbBudgetG}g. This is a metabolic refeed. Increase starchy carbohydrates (rice, oats, potatoes, sweet potato, cream of rice) to meet the allocation. Fibrous vegetables (broccoli, spinach, zucchini, asparagus, greens) are UNRESTRICTED — do NOT reduce them. Protein target is unchanged.`
+      : `STARCH ALLOCATION: ${cc.carbBudgetG}g. This is a starch-restriction day. Keep all starchy carb sources (rice, oats, bread, pasta, potatoes, corn, beans) at or below ${cc.carbBudgetG}g total. Fibrous vegetables (broccoli, spinach, zucchini, asparagus, greens) are UNRESTRICTED and should fill volume. Protein and healthy fats are the priority.`;
+    layers.performanceIntent += `\n\n⚡ STARCH RESPONSE PROTOCOL — HARD CONSTRAINT (${phaseLabel}):\n${ccDirective}\nThis limit applies to STARCH ONLY. It does not restrict fibrous vegetables. It operates alongside existing macro constraints.`;
   }
 
   // ── TIER 6: Avoidances ────────────────────────────────────────────────────

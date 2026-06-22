@@ -73,7 +73,7 @@ import ReadOnlyNote from "@/components/ReadOnlyNote";
 import { launchMacroPhotoCapture } from "@/lib/photoMacroCapture";
 import { launchIngredientPhotoCapture, type IngredientScanResult } from "@/lib/photoIngredientCapture";
 import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
-import { addOtherItem } from "@/stores/otherItemsStore";
+import { sendToShoppingList } from "@/lib/shoppingListApi";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -2593,7 +2593,7 @@ export default function MyBiometrics() {
           handleIngredientScan();
         }}
         onAddProduct={(name) => {
-          addOtherItem({ name, qty: 1, unit: "unit", category: "Misc", source: "scanned" });
+          sendToShoppingList([{ name, quantity: 1, unit: "" }], { sourceBuilder: "smart-scan" });
         }}
       />
 

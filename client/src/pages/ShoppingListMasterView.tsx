@@ -992,13 +992,13 @@ export default function ShoppingListMasterView() {
           result={shoppingSheetResult}
           onClose={() => setShoppingSheetOpen(false)}
           onAddProduct={(name) => {
-            addOtherItem({
+            addItem({
               name,
-              qty: 1,
-              unit: "unit",
-              category: "Misc",
-              source: "scanned",
+              quantity: 1,
+              unit: "",
+              category: "Other",
             });
+            toast({ title: "Added to shopping list", description: name });
           }}
           onSaveForReview={() => {
             if (shoppingSheetResult) {

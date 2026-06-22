@@ -40,6 +40,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log("📡 [AuthContext] Refreshing user...");
       const response = await fetch(apiUrl(`/api/user/profile`), {
         headers: { ...getAuthHeaders() },
+        credentials: "include",
+        cache: "no-store",
       });
 
       if (response.ok) {
@@ -119,6 +121,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
           backAt: userData.backAt ?? null,
           measurementSystem: userData.measurementSystem || "imperial",
           countryCode: userData.countryCode || "US",
+          pregnancyStage: userData.pregnancyStage ?? null,
+          pregnancyDueDate: userData.pregnancyDueDate ?? null,
+          pregnancySupportContext: userData.pregnancySupportContext ?? null,
+          performanceContext: userData.performanceContext ?? null,
+          competitionPrepContext: userData.competitionPrepContext ?? null,
+          activeProtocolTrack: userData.activeProtocolTrack ?? null,
         };
         if (userData.oncologySupportIntent) {
           localStorage.setItem("mpm:oncologySupportIntent", userData.oncologySupportIntent);

@@ -72,9 +72,9 @@ const BUILDER_OPTIONS: BuilderOption[] = [
   },
   {
     id: "beach_body",
-    title: "Beach Body Builder",
+    title: "Performance Nutrition Builder",
     description:
-      "Contest prep and leaning out. Designed for rapid, visible change.",
+      "Sport-specific fueling — energy systems, carb timing, and recovery for athletes.",
     icon: <Trophy className="w-8 h-8" />,
     color: "from-black via-zinc-950 to-black",
   },

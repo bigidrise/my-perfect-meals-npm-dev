@@ -451,6 +451,50 @@ export const users = pgTable("users", {
     activatedAt: string | null;
     updatedAt: string | null;
   }>(),
+  // Performance Nutrition Protocol — sport-specific fueling context (JSONB).
+  // Active when "performance-nutrition" is in specialtyConditions.
+  // Stacks on top of medical safety layers — never overrides them.
+  // Null = performance nutrition not yet configured.
+  performanceContext: jsonb("performance_context").$type<{
+    primaryGoal: "fat_loss" | "muscle_gain" | "maintenance" | "performance";
+    trainingType: "strength" | "hypertrophy" | "powerlifting" | "olympic_lifting" | "mma" | "boxing" | "wrestling" | "bjj" | "crossfit" | "endurance_running" | "cycling" | "triathlon" | "tactical" | "general_fitness";
+    trainingFrequency: "1-2" | "3-4" | "5-6" | "7+";
+    cardioFocus: "none" | "recovery" | "zone_2" | "tempo" | "threshold" | "hiit" | "mixed";
+    trainingPhase: "off_season" | "pre_season" | "in_season" | "weight_cut" | "recovery";
+    twoADays: boolean;
+    activatedAt: string | null;
+    updatedAt: string | null;
+  }>(),
+  // Competition Prep Protocol — date-driven prep context (JSONB).
+  // Active when "competition-prep" is in specialtyConditions.
+  // Event date is the safeguard — protocol ends automatically at event date.
+  competitionPrepContext: jsonb("competition_prep_context").$type<{
+    competitionType: "bodybuilding_show" | "mens_physique" | "classic_physique" | "figure" | "bikini" | "wellness" | "powerlifting_meet" | "strongman_competition" | "olympic_weightlifting_meet" | "fight_camp" | "wrestling_season" | "crossfit_competition" | "hyrox" | "marathon" | "triathlon_race" | "spartan_race";
+    division?: string;
+    eventDate: string;
+    currentWeight?: string;
+    targetWeight?: string;
+    activatedAt: string | null;
+    updatedAt: string | null;
+  }>(),
+  // Active protocol track — which engine is running ("athletic" | "competition").
+  // Null = neither track has been configured.
+  activeProtocolTrack: text("active_protocol_track")
+    .$type<"athletic" | "competition">(),
+  // Carb Cycle State — number-driven carb cycling engine for Performance Nutrition users.
+  // Tracks phase, carb/fat targets, refeed bookmarks, and a rolling 90-day weight log.
+  // Null = engine not yet activated (user hasn't enabled carb cycling).
+  carbCycleState: jsonb("carb_cycle_state").$type<{
+    phase: "low_carb" | "refeed" | "inactive";
+    carbTargetG: number;
+    fatTargetAdjustG: number;
+    refeedStartDate: string | null;
+    refeedStartWeightLb: number | null;
+    refeedStopCapLb: number;
+    weightLog: Array<{ date: string; weight: number; carbsG: number }>;
+    lastUpdated: string;
+    manualOverride?: boolean;
+  }>(),
   // Flags 'request_support' intent for future professional follow-up surfacing
   needsProfessionalFollowup: boolean("needs_professional_followup").default(false),
   // Client Goals — set during onboarding, displayed on dashboard + coach folder

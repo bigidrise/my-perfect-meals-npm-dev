@@ -214,6 +214,10 @@ const SECTION_START_HERE: LibraryTopic[] = [
           text: "Designed for the hormonal transition before menopause. Emphasizes blood sugar stability to manage energy fluctuations and mood variability. Iron-rich foods including lean beef, lentils, and spinach are prioritized. Can activate automatically when FSH and Estradiol lab values indicate the perimenopause transition.",
         },
         {
+          heading: "My Perfect Pregnancy",
+          text: "A full trimester-aware nutrition protocol that activates across every meal generator when selected. It enforces pregnancy food safety rules — blocking raw fish, mercury-heavy fish, deli meats, and unpasteurized cheeses — in every builder simultaneously. Nutrient priorities shift by stage: folate and iron in the first trimester, calcium and protein in the second, DHA and choline in the third. Postpartum and breastfeeding stages have their own distinct protocols. Symptom selections (nausea, heartburn, swelling, fatigue) adjust ingredient choices in real time. Found in the Lifestyle section.",
+        },
+        {
           heading: "Metabolic Recovery",
           text: "Designed for metabolic repair and restoration. Emphasizes nutrient density, gut health support, and glycemic stability. High-glycemic spikes are actively limited. Works best alongside Anti-Inflammatory or General Nutrition as the primary meal builder.",
         },
@@ -1314,6 +1318,61 @@ const SECTION_HEALTH_SAFETY: LibraryTopic[] = [
 ];
 
 const SECTION_SPECIALIZED: LibraryTopic[] = [
+  {
+    id: "my-perfect-pregnancy",
+    title: "My Perfect Pregnancy — How the System Adapts",
+    subtitle: "Trimester-aware · Food safety enforcement · Symptom-responsive",
+    icon: Heart,
+    content: {
+      sections: [
+        {
+          heading: "What It Is",
+          text: "My Perfect Pregnancy is a full nutrition protocol layer — not just a reference guide. When you activate it and set your stage, the system begins enforcing pregnancy-specific rules across every meal generator in the app simultaneously. You do not have to remember what to avoid. You do not have to adjust settings in each builder. It runs everywhere at once.",
+        },
+        {
+          heading: "What It Enforces Automatically",
+          list: [
+            "Raw fish and sushi — blocked in every meal generator",
+            "Mercury-heavy fish (shark, swordfish, king mackerel, tilefish, bigeye tuna) — blocked",
+            "Deli meats and cold cuts — blocked",
+            "Soft unpasteurized cheeses — blocked",
+            "Raw or undercooked eggs — blocked",
+            "Alcohol — blocked in all contexts",
+          ],
+        },
+        {
+          heading: "How It Shifts by Stage",
+          text: "The protocol does not stay fixed. As your stage changes — from trying to conceive through each trimester, into postpartum and breastfeeding — the nutrient priorities, calorie guidance, and ingredient focus all update automatically. First trimester emphasizes folate and iron. Second trimester adds protein and calcium. Third trimester prioritizes DHA and choline. Postpartum and breastfeeding are treated as separate protocols with their own distinct rules.",
+        },
+        {
+          heading: "Symptom-Responsive Ingredient Choices",
+          text: "When you report active symptoms — nausea, heartburn, constipation, swelling, fatigue, or food aversions — the AI adjusts in real time. Nausea activates ginger, B6-rich foods, bland grains, and cool or room-temperature options. Heartburn avoids acidic, spicy, and fried ingredients. Swelling reduces sodium and increases potassium-rich foods. Fatigue prioritizes iron and complex carbs. You report once. Every builder responds.",
+        },
+        {
+          heading: "Where It Runs",
+          list: [
+            "Meal Builders — Create a Dish, Fridge Rescue, Snack Creator, Beverage Creator, Dessert Creator",
+            "Grocery Coach — meal suggestions and shopping lists",
+            "Weekly Meal Board and Meal Planner",
+            "Restaurant Guide and Fast Food Guide",
+            "Smart Scan — ingredient and food safety screening",
+          ],
+        },
+        {
+          heading: "Stacks With Other Active Protocols",
+          text: "If you also have Thyroid Support, Cardiac Support, or any other clinical protocol active, both run at the same time. The strictest rule from either protocol always wins. My Perfect Pregnancy does not replace your other settings — it adds its layer on top.",
+        },
+        {
+          heading: "Postpartum vs. Breastfeeding",
+          text: "These are not the same stage. Postpartum Recovery focuses on hormone restoration, gut recovery, tissue repair, and protein rebuilding — with a specific block on extreme diets like keto or very low-carb that are contraindicated postpartum. Breastfeeding activates a separate protocol: +500 calorie guidance, iodine and DHA priorities, and stricter avoidance of alcohol and high-mercury fish because they pass directly into breast milk.",
+        },
+        {
+          heading: "How to Activate",
+          text: "Go to your Profile or Onboarding and select My Perfect Pregnancy under Lifestyle. Then open the Lifestyle section and tap My Perfect Pregnancy to complete the setup — enter your stage, due date if applicable, symptoms, and breastfeeding status. The protocol activates immediately and stays active until you remove it.",
+        },
+      ],
+    },
+  },
   {
     id: "specialty-diets",
     title: "Specialty Diets & Protocol System",

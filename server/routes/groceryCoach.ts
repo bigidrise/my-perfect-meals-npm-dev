@@ -48,6 +48,17 @@ router.post("/recommend", async (req, res) => {
         const fitnessGoal = (envelope as any).preferences?.fitnessGoal;
         if (fitnessGoal) parts.push(`Fitness goal: ${fitnessGoal}`);
         userContext = parts.join(". ");
+
+        // Inject full clinical protocol blocks (pregnancy, thyroid, cardiac, oncology, etc.)
+        // These are the same guidance blocks enforced by every other meal generator.
+        const guidanceBlocks: string[] = (envelope as any).conditionGuidanceBlocks ?? [];
+        if (guidanceBlocks.length) {
+          userContext += (userContext ? "\n\n" : "") +
+            "=== CLINICAL NUTRITION PROTOCOLS — ENFORCE IN ALL RECOMMENDATIONS ===\n" +
+            "The following directives override general coaching principles. " +
+            "They must be respected in every meal suggestion, ingredient choice, and shopping list item.\n\n" +
+            guidanceBlocks.join("\n\n");
+        }
       }
 
       const [userRow] = await db
