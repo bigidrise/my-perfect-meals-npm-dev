@@ -4,6 +4,7 @@ import { UnitPrefs } from "./validators";
 import { getMeasurementPromptBlock, MeasurementSystem } from "../../shared/units";
 import { getBaselineMacroPrompt } from "./guardrails/promptPolicyGate";
 import { AVOIDANCE_EXPANSION } from "./allergyGuardrails";
+import type { DemandProfile } from "../../shared/performanceDemandEngine";
 
 /** Expand avoidIngredients category labels into full ingredient lists for AI prompts. */
 function expandAvoidIngredients(raw: string[] | undefined): string[] {
@@ -354,6 +355,56 @@ Generate ONE ${req.mealType || "meal"} obeying all rules. ${req.source === "crav
   `.trim();
 
   return { system: sys, user };
+}
+
+/**
+ * Performance Timing Block — injected into prompts when a user has an active demand profile.
+ * Translates the demand engine's fuel/recovery/adaptation matrix into concrete AI directives.
+ * Additive only — never overrides medical or dietary tiers above it.
+ */
+export function buildPerformanceTimingBlock(demandProfile: DemandProfile): string {
+  const { fuelDemand, recoveryDemand, adaptationDemand, trainingLoad, nutritionPriorities } = demandProfile;
+
+  const fuelDirective: Record<string, string> = {
+    low:         "FUEL DEMAND — LOW: This user is in a low-volume or weight-cut phase. Carbohydrate intake should be minimal. Prioritize lean protein and fibrous vegetables. Avoid calorie-dense carb sources.",
+    moderate:    "FUEL DEMAND — MODERATE: Balance macros normally. Include a moderate carbohydrate component timed around training. No carb restriction.",
+    glycogen:    "FUEL DEMAND — GLYCOGEN SUPPORT: High training volume demands substantial carbohydrate support. Include a meaningful complex carbohydrate source at every meal. Post-workout: fast carb + protein combination required. Pre-workout: moderate digestible carbs.",
+    competition: "FUEL DEMAND — COMPETITION LEVEL: Maximum glycolytic demand. Carbohydrates are the primary fuel — every meal must include a substantial complex carbohydrate source. Post-training recovery windows are critical: carb + protein within 45 minutes.",
+  };
+
+  const recoveryDirective: Record<string, string> = {
+    low:      "",
+    moderate: "RECOVERY: Include anti-inflammatory ingredients where possible (omega-3 sources, colorful vegetables, turmeric, ginger).",
+    high:     "RECOVERY PRIORITY — HIGH: This athlete is under heavy training load or reporting poor recovery. Every meal must support tissue repair. Prioritize: omega-3 rich fish (salmon, sardines), colorful antioxidant vegetables, tart cherry, turmeric, ginger, magnesium-rich foods (leafy greens, pumpkin seeds). Protein must be adequate at every meal (≥30g).",
+  };
+
+  const adaptationDirective: Record<string, string> = {
+    endurance_focused:        "ADAPTATION FOCUS — ENDURANCE: Aerobic fuel efficiency is the priority. Carbohydrate density and fat oxidation foods (oats, sweet potato, banana, whole grains, healthy fats) should be emphasized.",
+    power_focused:            "ADAPTATION FOCUS — POWER/SPEED: Explosive output nutrition. Include creatine-compatible foods (lean red meat, fish), zinc (pumpkin seeds, lean beef), magnesium (leafy greens), and fast-digesting post-workout carbs.",
+    recovery_focused:         "ADAPTATION FOCUS — RECOVERY: Anti-inflammatory and repair nutrition. Omega-3s, antioxidants, adequate protein, and quality sleep-supporting foods (magnesium, tryptophan sources) are priorities.",
+    body_composition_focused: "ADAPTATION FOCUS — BODY COMPOSITION: Balance protein retention with energy management. High protein floor (≥30g/meal), controlled carbohydrate timing, healthy fats.",
+  };
+
+  const loadNote = trainingLoad === "elite"
+    ? "TRAINING LOAD — ELITE: Two-a-days or 7+ sessions/week. Intermediate recovery meals between sessions are critical. Include easily digestible carb + protein options (rice + turkey, banana + Greek yogurt, oatmeal + egg whites)."
+    : trainingLoad === "high"
+    ? "TRAINING LOAD — HIGH: 5–6 sessions/week or 90+ min sessions. Recovery meals matter. Ensure adequate total caloric density across the day."
+    : "";
+
+  const priorityBlock = nutritionPriorities.length > 0
+    ? `NUTRITION PRIORITIES (in order): ${nutritionPriorities.join(" → ")}.`
+    : "";
+
+  const lines = [
+    `⚡ PERFORMANCE DEMAND LAYER — ACTIVE:`,
+    fuelDirective[fuelDemand] ?? "",
+    recoveryDirective[recoveryDemand] ?? "",
+    adaptationDirective[adaptationDemand] ?? "",
+    loadNote,
+    priorityBlock,
+  ].filter(Boolean).join("\n");
+
+  return lines;
 }
 
 /**

@@ -15,6 +15,8 @@
  * Guidance is directive, not role-play. No system-prompt framing here.
  */
 
+import type { DemandProfile } from "../../shared/performanceDemandEngine";
+
 export type OncologySymptom =
   | "low_appetite"
   | "nausea"
@@ -65,7 +67,12 @@ export interface UniversalGuidanceInput {
     cardioFocus: string;
     trainingPhase: string;
     twoADays: boolean;
+    sessionDuration?: string;
+    recoveryStatus?: string;
+    adaptationTarget?: string;
   } | null;
+  /** Demand profile computed from the user's performanceContext — encodes fuel/recovery/adaptation. */
+  performanceDemandProfile?: DemandProfile | null;
   /** Competition Prep context — active when "competition-prep" is in specialtyConditions. */
   competitionPrepContext?: {
     active: boolean;
@@ -487,6 +494,7 @@ TONE: Frame meals as "competition prep," "fueling your prep," "phase-specific," 
   // Performance Nutrition — fires when performanceNutritionContext.active is true
   if (input.performanceNutritionContext?.active) {
     const pCtx = input.performanceNutritionContext;
+    const demand = input.performanceDemandProfile ?? null;
     const goalMap: Record<string, string> = {
       fat_loss: "fat loss while preserving lean mass",
       muscle_gain: "muscle hypertrophy and anabolism",
@@ -549,6 +557,40 @@ TONE: Frame meals as "competition prep," "fueling your prep," "phase-specific," 
       carbDirective = "CARBOHYDRATE PRIORITY: Balanced — match carb intake to training demand. Concentrate starchy carbs in the pre/post-training window.";
     }
 
+    const demandBlock = demand ? (() => {
+      const fuelMap: Record<string, string> = {
+        low:         "FUEL DEMAND — LOW: Minimal carbohydrate support needed. Lean protein + fibrous vegetables. Avoid calorie-dense carb sources.",
+        moderate:    "FUEL DEMAND — MODERATE: Include a moderate complex carbohydrate source. No restriction, but carb timing around training is preferred.",
+        glycogen:    "FUEL DEMAND — GLYCOGEN SUPPORT: High volume demands substantial carbohydrate support. Include a meaningful complex carbohydrate source at every meal. Post-workout: fast carb + protein combination.",
+        competition: "FUEL DEMAND — COMPETITION LEVEL: Maximum glycolytic demand. Every meal must include a substantial complex carbohydrate source. Post-training carb + protein within 45 minutes is critical.",
+      };
+      const recoveryMap: Record<string, string> = {
+        low:      "",
+        moderate: "RECOVERY: Include anti-inflammatory ingredients where possible (omega-3 sources, colorful vegetables, turmeric, ginger).",
+        high:     "RECOVERY PRIORITY — HIGH: Heavy training load detected. Every meal must support tissue repair: omega-3 rich fish (salmon, sardines), antioxidant vegetables, turmeric, ginger, magnesium-rich foods (leafy greens, pumpkin seeds).",
+      };
+      const adaptMap: Record<string, string> = {
+        endurance_focused:        "ADAPTATION — ENDURANCE: Prioritize aerobic fuels: oats, sweet potato, banana, whole grains, healthy fats.",
+        power_focused:            "ADAPTATION — POWER/SPEED: Support explosive output: lean red meat or fish, zinc-rich foods, magnesium-rich greens, fast-digesting post-workout carbs.",
+        recovery_focused:         "ADAPTATION — RECOVERY: Anti-inflammatory and repair nutrition. Omega-3s, antioxidants, adequate protein, sleep-supporting magnesium sources.",
+        body_composition_focused: "ADAPTATION — BODY COMPOSITION: High protein floor (≥30g/meal), controlled carbohydrate timing, quality fats.",
+      };
+      const loadMap: Record<string, string> = {
+        elite:    "TRAINING LOAD — ELITE: Two-a-days or 7+ sessions/week. Intermediate recovery meals between sessions are critical: easily digestible carb + protein options.",
+        high:     "TRAINING LOAD — HIGH: 5–6 sessions/week or 90+ min sessions. Ensure adequate total caloric density.",
+        moderate: "",
+        light:    "",
+      };
+      const lines = [
+        fuelMap[demand.fuelDemand] ?? "",
+        recoveryMap[demand.recoveryDemand] ?? "",
+        adaptMap[demand.adaptationDemand] ?? "",
+        loadMap[demand.trainingLoad] ?? "",
+        demand.nutritionPriorities.length > 0 ? `NUTRITION PRIORITIES (in order): ${demand.nutritionPriorities.join(" → ")}.` : "",
+      ].filter(Boolean).join("\n");
+      return lines ? `\nDEMAND INTELLIGENCE LAYER:\n${lines}` : "";
+    })() : "";
+
     blocks.push(`🏋️ PERFORMANCE NUTRITION PROTOCOL — MANDATORY:
 This athlete is on a sport-specific fueling protocol. All meal generation must align with their training demands and phase.
 ATHLETE PROFILE:
@@ -557,7 +599,7 @@ ATHLETE PROFILE:
 - Primary Goal: ${goalLabel}
 - Current Phase: ${phaseLabel}
 - Cardio Focus: ${cardioLabel}
-${carbDirective}
+${carbDirective}${demandBlock}
 PROTEIN REQUIREMENT: Minimum 1.6–2.2g/kg body weight daily. Every meal must be protein-anchored (≥30g). Protein sources should match training type — ${isStrengthDominant ? "lean meats, eggs, dairy, whey-compatible foods" : "lean meats, fish, legumes, whole food sources"}.
 MEAL TIMING AWARENESS: Pre-workout meals should be easily digestible (lower fiber, moderate fat). Post-workout meals prioritize protein + carbs within 45-60 minutes of training. Rest day meals can be slightly lower in total calories and carbs.
 ${pCtx.trainingPhase === "weight_cut" ? "WEIGHT CUT ALERT: This athlete is in an active weight cut. Prioritize low-sodium, easily digestible, calorie-controlled meals. Support rehydration with electrolyte-conscious ingredients (potassium-rich vegetables, low-sodium options)." : ""}

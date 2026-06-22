@@ -249,9 +249,21 @@ router.post("/ask", async (req, res) => {
     if (!message?.trim()) return res.status(400).json({ error: "Message required" });
 
     const envelope = await loadUserProtocolEnvelope(userId);
-    const pCtx = (envelope.user as any)?.performanceContext;
-    const compCtx = (envelope.user as any)?.competitionPrepContext;
-    const activeTrack = (envelope.user as any)?.activeProtocolTrack ??
+    const pCtx = (envelope as any)?.performanceContext;
+    const demand = (envelope as any)?.performanceLayer;
+
+    // Fetch competition prep context and active track directly — not in protocol envelope
+    const [perfRow] = await db
+      .select({
+        competitionPrepContext: (users as any).competitionPrepContext,
+        activeProtocolTrack: (users as any).activeProtocolTrack,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const compCtx = (perfRow as any)?.competitionPrepContext ?? null;
+    const activeTrack = (perfRow as any)?.activeProtocolTrack ??
       (pCtx ? "athletic" : null);
 
     // ── LANGUAGE RULES — enforced on every single response ───────────────────
@@ -321,12 +333,38 @@ ${weeksOut <= 8 && weeksOut > 4 ? "4–8 weeks out: Active cut. Scale must move 
 ${weeksOut <= 4 && weeksOut > 1 ? "Final 4 weeks: Peak prep. Every decision is about show-day condition. Water manipulation, sodium loading/depletion, and carb loading happen in the final 7 days only. Do not rush peak week protocol." : ""}
 ${weeksOut <= 1 ? "PEAK WEEK: Sodium depletion days 1–3. Distilled water only. Carb load starts day 4 — 200–300g complex carbs. Cut water day 6. Show day fueling is rice cakes + peanut butter backstage for pump." : ""}`;
     } else if (activeTrack === "athletic" && pCtx) {
+      const demandLines = demand ? (() => {
+        const fuelLabel: Record<string, string> = {
+          low: "LOW — deficit/weight-cut phase",
+          moderate: "MODERATE — balanced training",
+          glycogen: "GLYCOGEN SUPPORT — high volume/intensity",
+          competition: "COMPETITION — maximum glycolytic demand",
+        };
+        const recoveryLabel: Record<string, string> = {
+          low: "LOW", moderate: "MODERATE", high: "HIGH — recovery is a priority right now",
+        };
+        const adaptLabel: Record<string, string> = {
+          endurance_focused: "Endurance",
+          power_focused: "Power/Speed",
+          recovery_focused: "Recovery",
+          body_composition_focused: "Body Composition",
+        };
+        return `
+DEMAND INTELLIGENCE (computed from athlete profile):
+- Fuel Demand: ${fuelLabel[demand.fuelDemand] ?? demand.fuelDemand}
+- Recovery Demand: ${recoveryLabel[demand.recoveryDemand] ?? demand.recoveryDemand}
+- Adaptation Focus: ${adaptLabel[demand.adaptationDemand] ?? demand.adaptationDemand}
+- Training Load: ${demand.trainingLoad.toUpperCase()}
+- Current Nutrition Priorities: ${demand.nutritionPriorities.join(" → ")}
+Use these signals to inform the specificity and urgency of your coaching response.`;
+      })() : "";
+
       systemPrompt += `THIS ATHLETE'S PERFORMANCE PROFILE:
 - Sport/Training: ${pCtx.trainingType}
 - Frequency: ${pCtx.trainingFrequency} sessions/week${pCtx.twoADays ? " (2-a-days)" : ""}
 - Primary Goal: ${pCtx.primaryGoal}
 - Training Phase: ${pCtx.trainingPhase}
-- Cardio Focus: ${pCtx.cardioFocus}
+- Cardio Focus: ${pCtx.cardioFocus}${pCtx.sessionDuration ? `\n- Session Duration: ${pCtx.sessionDuration}` : ""}${pCtx.recoveryStatus ? `\n- Self-Reported Recovery: ${pCtx.recoveryStatus}` : ""}${pCtx.adaptationTarget ? `\n- Adaptation Target: ${pCtx.adaptationTarget}` : ""}${demandLines}
 
 ATHLETIC COACHING RULES:
 - Fueling is about performance output — strength and endurance, not appearance.
