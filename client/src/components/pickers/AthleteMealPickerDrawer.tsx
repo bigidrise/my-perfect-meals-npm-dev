@@ -1,4 +1,5 @@
 import React from "react";
+import { useLocation } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +15,7 @@ import {
   getAthleteMealsByCategory,
   type AthleteMeal,
 } from "@/data/athleteMeals";
-import { Target, Copy, Check, Send, Loader2 } from "lucide-react";
+import { Target, Copy, Check, Send, Loader2, MessageSquare } from "lucide-react";
 import { getResolvedTargets } from "@/lib/macroResolver";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -118,6 +119,7 @@ export function AthleteMealPickerDrawer({
   userId?: string;
   hasCoachLink?: boolean;
 }) {
+  const [, navigate] = useLocation();
   const [category, setCategory] =
     React.useState<AthleteMeal["category"]>(DEFAULT_CATEGORY);
   const [showInfoModal, setShowInfoModal] = React.useState(false);
@@ -209,13 +211,19 @@ export function AthleteMealPickerDrawer({
         headers: { "Content-Type": "application/json" },
       });
       setSendState("sent");
-      setTimeout(() => setSendState("idle"), 2500);
+      setTimeout(() => setSendState("idle"), 6000);
     } catch (err: any) {
       const msg = err?.message || "Failed to send";
       setSendError(msg.includes("No active") ? "No active coach connection" : "Failed to send — try again");
       setSendState("error");
       setTimeout(() => { setSendState("idle"); setSendError(null); }, 3000);
     }
+  }
+
+  function handleViewInChat() {
+    sessionStorage.setItem("mpm.openClientChat", "1");
+    onClose();
+    navigate("/");
   }
 
   // Filter meals by selected category, excluding any where adding the meal's STARCH
@@ -347,42 +355,54 @@ export function AthleteMealPickerDrawer({
                 )}
               </button>
               {hasCoachLink && (
-                <button
-                  onClick={handleSendToCoach}
-                  disabled={sendState === "sending" || sendState === "sent"}
-                  className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full transition-all ${
-                    sendState === "sent"
-                      ? "bg-lime-700/80 text-white"
-                      : sendState === "error"
-                      ? "bg-red-700/70 text-red-100"
-                      : sendState === "sending"
-                      ? "bg-orange-700/60 text-orange-100"
-                      : "bg-orange-600/70 text-white active:bg-orange-600"
-                  }`}
-                  aria-label="Send session summary to coach"
-                >
-                  {sendState === "sending" ? (
-                    <>
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      Sending…
-                    </>
-                  ) : sendState === "sent" ? (
-                    <>
-                      <Check className="h-3 w-3" />
-                      Sent!
-                    </>
-                  ) : sendState === "error" ? (
-                    <>
-                      <Send className="h-3 w-3" />
-                      {sendError ?? "Error"}
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-3 w-3" />
-                      Send to Coach
-                    </>
+                <>
+                  <button
+                    onClick={handleSendToCoach}
+                    disabled={sendState === "sending" || sendState === "sent"}
+                    className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full transition-all ${
+                      sendState === "sent"
+                        ? "bg-lime-700/80 text-white"
+                        : sendState === "error"
+                        ? "bg-red-700/70 text-red-100"
+                        : sendState === "sending"
+                        ? "bg-orange-700/60 text-orange-100"
+                        : "bg-orange-600/70 text-white active:bg-orange-600"
+                    }`}
+                    aria-label="Send session summary to coach"
+                  >
+                    {sendState === "sending" ? (
+                      <>
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Sending…
+                      </>
+                    ) : sendState === "sent" ? (
+                      <>
+                        <Check className="h-3 w-3" />
+                        Sent!
+                      </>
+                    ) : sendState === "error" ? (
+                      <>
+                        <Send className="h-3 w-3" />
+                        {sendError ?? "Error"}
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-3 w-3" />
+                        Send to Coach
+                      </>
+                    )}
+                  </button>
+                  {sendState === "sent" && (
+                    <button
+                      onClick={handleViewInChat}
+                      className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-white/15 text-white active:bg-white/25 transition-all"
+                      aria-label="View message in coach chat"
+                    >
+                      <MessageSquare className="h-3 w-3" />
+                      View in Chat
+                    </button>
                   )}
-                </button>
+                </>
               )}
             </div>
           )}
