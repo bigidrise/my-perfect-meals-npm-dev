@@ -367,17 +367,52 @@ export default function BeachBodyMealBoard() {
   // Carb cycle state — fetched on mount and passed to AthleteMealPickerDrawer so the
   // carb budget bar and meal-dimming filter activate whenever a low_carb or refeed
   // phase is active.
-  const [carbCyclePickerState, setCarbCyclePickerState] = useState<{ phase: string; carbTargetG: number } | null>(null);
+  // Cached in sessionStorage so the bar appears instantly on reload with no extra
+  // network call. The cache is invalidated whenever a carb-cycle write succeeds
+  // (see PerformanceNutritionHub.tsx submitCarbLog / handleRefeedToggle).
+  const CARB_CYCLE_CACHE_KEY = "mpm.carbCyclePickerState";
+
+  function readCarbCycleCache(): { phase: string; carbTargetG: number } | null {
+    try {
+      const raw = sessionStorage.getItem(CARB_CYCLE_CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (
+        (parsed.phase === "low_carb" || parsed.phase === "refeed") &&
+        typeof parsed.carbTargetG === "number" &&
+        parsed.carbTargetG > 0
+      ) {
+        return parsed;
+      }
+    } catch {}
+    return null;
+  }
+
+  const [carbCyclePickerState, setCarbCyclePickerState] = useState<{ phase: string; carbTargetG: number } | null>(
+    () => readCarbCycleCache()
+  );
+
   useEffect(() => {
+    // Skip the network call when valid cached state is already available —
+    // the cache is cleared by write paths so stale data won't linger.
+    if (readCarbCycleCache()) return;
+
     apiRequest("/api/performance/carb-cycle")
       .then((data: any) => {
         const phase = data?.state?.phase;
         const carbTargetG = data?.state?.carbTargetG;
         if ((phase === "low_carb" || phase === "refeed") && carbTargetG > 0) {
-          setCarbCyclePickerState({ phase, carbTargetG });
+          const next = { phase, carbTargetG };
+          setCarbCyclePickerState(next);
+          try { sessionStorage.setItem(CARB_CYCLE_CACHE_KEY, JSON.stringify(next)); } catch {}
+        } else {
+          setCarbCyclePickerState(null);
+          try { sessionStorage.removeItem(CARB_CYCLE_CACHE_KEY); } catch {}
         }
       })
-      .catch(() => {});
+      .catch((err: unknown) => {
+        console.warn("[BeachBodyMealBoard] Failed to fetch carb cycle state:", err);
+      });
   }, []);
 
   // Shopping list modal state
