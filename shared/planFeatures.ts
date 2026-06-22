@@ -18,7 +18,9 @@ export type Entitlement =
   | "care_team"
   | "procare"
   | "pregnancy"
-  | "getaway";
+  | "getaway"
+  | "grocery_coach"
+  | "performance_nutrition";
 
 export interface PlanDefinition {
   tier: PlanTier;
@@ -88,6 +90,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "Find Meals Near Me",
       "My Perfect Gatherings (AI-designed multi-course meals for holidays, camping, Great Outdoors, date nights, and more)",
       "My Perfect Pets — AI-generated nutrition and meal plans for your pets",
+      "Grocery Store Coach — AI grocery advisor personalized to your full nutrition protocol",
     ],
     entitlements: [
       "smart_menu_builder",
@@ -103,6 +106,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "potluck_planner",
       "holiday_feast",
       "learn_cook",
+      "grocery_coach",
     ],
   },
   ultimate: {
@@ -113,6 +117,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "Care Team Access — connect to a physician for clinical nutrition oversight within the app",
       "Care Team Access — connect to a trainer for performance coaching within the app",
       "Athlete Beverage Creator (performance drinks calibrated to training phases)",
+      "Performance Nutrition Hub — sport-specific fueling protocols, starch cycling, and competition prep meal builder",
       "Beach Body / Hard Body Meal Builder",
       "Competition Prep Builder",
       "Clinical Advisory System",
@@ -137,6 +142,8 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "care_team",
       "pregnancy",
       "getaway",
+      "grocery_coach",
+      "performance_nutrition",
     ],
   },
 };
@@ -175,14 +182,15 @@ export const IOS_DISPLAY_FEATURES: Record<string, string[]> = {
     "My Perfect Gatherings (incl. Great Outdoors)",
     "Kids & Toddler Meals",
     "My Perfect Pets",
+    "Grocery Store Coach (AI grocery advisor, protocol-aware)",
   ],
   ultimate: [
     "Everything in Pro, plus:",
     "Clinical Lab Results Integration (biomarker-aware meal protocols)",
     "Athlete Beverage Creator",
     "Physicians & Trainers Care Team Access",
-    "Beach Body Meal Builder",
-    "Competition Prep Builder",
+    "Performance Nutrition Hub (sport fueling protocols + starch cycling)",
+    "Beach Body / Competition Prep Meal Builder",
     "Clinical Advisory System",
     "My Perfect Pregnancy™ (trimester nutrition + Pregnancy Coach)",
     "My Perfect Getaway™ (stay on track at theme parks, airports & resorts)",
