@@ -941,6 +941,9 @@ export async function loadUserProtocolEnvelope(
       cardioFocus: string;
       trainingPhase: string;
       twoADays: boolean;
+      sessionDuration?: string;
+      recoveryStatus?: string;
+      adaptationTarget?: string;
     } | null = null;
 
     let performanceDemandProfile: DemandProfile | null = null;
@@ -1241,16 +1244,10 @@ This is a hard stop — not a preference.`;
       ? `\n\n🩸 REAL-TIME BLOOD GLUCOSE GUIDANCE (current reading — HIGHEST PRIORITY within diabetic constraints):\n${envelope.diabeticGuidance}\nThis guidance is based on the user's actual current glucose reading and overrides generic diabetic defaults. Adjust carb targets, meal composition, and food choices accordingly.`
       : "";
 
-    // Universal condition guidance — GLP-1, Anti-Inflammatory, Renal, Cardiac, Liver, Oncology.
-    // Each block is a self-contained directive string assembled at envelope load time.
-    const conditionBlocks = (envelope.conditionGuidanceBlocks ?? [])
-      .map(block => `\n\n${block}`)
-      .join("");
-
     layers.medicalHardLimits = `\n⚕️ MEDICAL HARD LIMITS (apply inside the dietary identity container):
 This user has: ${limitList}.
 Respect the medical constraints for these conditions while staying inside the dietary identity.
-Example: if diabetic + vegan, optimize carbs WITHIN vegan-safe foods only — never add animal products.${glucoseBlock}${conditionBlocks}
+Example: if diabetic + vegan, optimize carbs WITHIN vegan-safe foods only — never add animal products.${glucoseBlock}
 
 MULTI-CONSTRAINT ADAPTATION RULE (REQUIRED — enforces the exact priority hierarchy):
 When multiple constraints are present (medical condition + diet identity + cultural cuisine), resolve them in this exact order:
@@ -1278,6 +1275,27 @@ CULTURAL STAPLE CARB RULE: For staple carbohydrates tied to a cuisine (rice, inj
   - A smaller injera portion with extra lentils and greens is CORRECT. A "low-carb bowl" replacing the entire cultural base is NOT.
 
 For vegan users: all adaptations must remain fully plant-based — no exceptions even when adapting for medical constraints.`;
+  }
+
+  // ── CONDITION GUIDANCE BLOCKS (unconditional — fires for all active specialty conditions) ───
+  // GLP-1, Anti-Inflammatory, Renal, Cardiac, Liver, Oncology, Pregnancy, Thyroid,
+  // Hormone Optimization, Menopause, Performance Nutrition, Competition Prep, etc.
+  // Previously this block was only injected when medicalHardLimits was non-empty,
+  // which meant athletes with ONLY performance-nutrition (no medical hard limits)
+  // never received their condition guidance. This is fixed: condition blocks now fire
+  // unconditionally so every specialty condition's directives reach the AI prompt.
+  const conditionGuidanceBlocks = envelope.conditionGuidanceBlocks ?? [];
+  if (conditionGuidanceBlocks.length > 0) {
+    const conditionBlockText = conditionGuidanceBlocks
+      .map(block => `\n\n${block}`)
+      .join("");
+    if (layers.medicalHardLimits) {
+      // Append after existing medical hard limits text
+      layers.medicalHardLimits += conditionBlockText;
+    } else {
+      // No medical hard limits but specialty conditions are active
+      layers.medicalHardLimits = conditionBlockText.trimStart();
+    }
   }
 
   // ── PROCEDURAL LAYER ──────────────────────────────────────────────────────
@@ -1342,6 +1360,52 @@ ${proceduralParts.join("\n")}`;
       ? `STARCH ALLOCATION: ${cc.carbBudgetG}g. This is a metabolic refeed. Increase starchy carbohydrates (rice, oats, potatoes, sweet potato, cream of rice) to meet the allocation. Fibrous vegetables (broccoli, spinach, zucchini, asparagus, greens) are UNRESTRICTED — do NOT reduce them. Protein target is unchanged.`
       : `STARCH ALLOCATION: ${cc.carbBudgetG}g. This is a starch-restriction day. Keep all starchy carb sources (rice, oats, bread, pasta, potatoes, corn, beans) at or below ${cc.carbBudgetG}g total. Fibrous vegetables (broccoli, spinach, zucchini, asparagus, greens) are UNRESTRICTED and should fill volume. Protein and healthy fats are the priority.`;
     layers.performanceIntent += `\n\n⚡ STARCH RESPONSE PROTOCOL — HARD CONSTRAINT (${phaseLabel}):\n${ccDirective}\nThis limit applies to STARCH ONLY. It does not restrict fibrous vegetables. It operates alongside existing macro constraints.`;
+  }
+
+  // ── PERFORMANCE DEMAND LAYER (Tier 5b — fires unconditionally for all performance-nutrition users) ──
+  // Uses the computed DemandProfile from shared/performanceDemandEngine.ts to inject
+  // precise, session-specific fuel/recovery/adaptation directives into the AI prompt.
+  // Additive only — positioned below all medical/dietary Tiers 1–4 and never overrides them.
+  // This calls the same logic as buildPerformanceTimingBlock() in promptBuilder.ts,
+  // inlined here to avoid circular imports (promptBuilder.ts → mealEngineService.ts → protocolEnvelope.ts).
+  if (envelope.performanceLayer && envelope.performanceNutrition) {
+    const d = envelope.performanceLayer;
+    const fuelDirectiveMap: Record<string, string> = {
+      low:         "FUEL DEMAND — LOW: Low-volume or deficit phase. Minimal carbohydrate support. Lean protein and fibrous vegetables are the priority. Avoid calorie-dense starchy carb sources.",
+      moderate:    "FUEL DEMAND — MODERATE: Include a moderate complex carbohydrate component. No restriction, but carb timing around training is preferred.",
+      glycogen:    "FUEL DEMAND — GLYCOGEN SUPPORT: High training volume demands substantial carbohydrate support. Include a meaningful complex carbohydrate source at every meal. Post-workout: fast carb + protein combination required.",
+      competition: "FUEL DEMAND — COMPETITION LEVEL: Maximum glycolytic demand. Every meal must include a substantial complex carbohydrate source. Post-training carb + protein within 45 minutes is critical.",
+    };
+    const recoveryDirectiveMap: Record<string, string> = {
+      low:      "",
+      moderate: "RECOVERY: Include anti-inflammatory ingredients where possible (omega-3 sources, colorful vegetables, turmeric, ginger).",
+      high:     "RECOVERY PRIORITY — HIGH: Heavy training load detected. Every meal must support tissue repair. Prioritize omega-3 rich fish (salmon, sardines), antioxidant vegetables, turmeric, ginger, magnesium-rich foods (leafy greens, pumpkin seeds). Protein ≥30g per meal.",
+    };
+    const adaptDirectiveMap: Record<string, string> = {
+      endurance_focused:        "ADAPTATION — ENDURANCE: Prioritize aerobic fuels: oats, sweet potato, banana, whole grains, healthy fats.",
+      power_focused:            "ADAPTATION — POWER/SPEED: Explosive output nutrition. Lean red meat or fish, zinc-rich foods, magnesium-rich greens, fast-digesting post-workout carbs.",
+      recovery_focused:         "ADAPTATION — RECOVERY: Anti-inflammatory and repair nutrition. Omega-3s, antioxidants, adequate protein, magnesium sources.",
+      body_composition_focused: "ADAPTATION — BODY COMPOSITION: High protein floor (≥30g/meal), controlled carbohydrate timing, quality fats.",
+    };
+    const loadNoteMap: Record<string, string> = {
+      elite:    "TRAINING LOAD — ELITE: Two-a-days or 7+ sessions/week. Intermediate recovery meals are critical: easily digestible carb + protein options between sessions.",
+      high:     "TRAINING LOAD — HIGH: 5–6 sessions/week or 90+ min sessions. Ensure adequate total caloric density.",
+      moderate: "",
+      light:    "",
+    };
+    const priorityLine = d.nutritionPriorities.length > 0
+      ? `NUTRITION PRIORITIES (ordered): ${d.nutritionPriorities.join(" → ")}.`
+      : "";
+    const demandLines = [
+      fuelDirectiveMap[d.fuelDemand] ?? "",
+      recoveryDirectiveMap[d.recoveryDemand] ?? "",
+      adaptDirectiveMap[d.adaptationDemand] ?? "",
+      loadNoteMap[d.trainingLoad] ?? "",
+      priorityLine,
+    ].filter(Boolean).join("\n");
+    if (demandLines) {
+      layers.performanceIntent += `\n\n⚡ PERFORMANCE DEMAND LAYER — ACTIVE (computed from athlete training profile):\n${demandLines}\nThis demand profile is derived from the user's training type, frequency, duration, recovery status, and adaptation target. It operates as an additive shaping layer — it tightens or shifts meal composition within all active medical and dietary constraints above. It never overrides Tiers 1–4.`;
+    }
   }
 
   // ── TIER 6: Avoidances ────────────────────────────────────────────────────
