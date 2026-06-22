@@ -83,6 +83,18 @@ const CATEGORY_OPTIONS = [
   { value: "eggs_shakes", label: "🥚 Eggs & Shakes" },
 ] as const;
 
+type SlotKey = "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6";
+
+const SLOT_OPTIONS: { value: SlotKey; label: string }[] = [
+  { value: "breakfast", label: "Breakfast" },
+  { value: "lunch", label: "Lunch" },
+  { value: "dinner", label: "Dinner" },
+  { value: "snacks", label: "Snacks" },
+  { value: "meal4", label: "Meal 4" },
+  { value: "meal5", label: "Meal 5" },
+  { value: "meal6", label: "Meal 6" },
+];
+
 export function AthleteMealPickerDrawer({
   open,
   list,
@@ -92,9 +104,9 @@ export function AthleteMealPickerDrawer({
   carbsUsed,
 }: {
   open: boolean;
-  list: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6" | null;
+  list: SlotKey | null;
   onClose: () => void;
-  onPick: (meal: Meal) => void;
+  onPick: (meal: Meal, slot: SlotKey) => void;
   carbCycleState?: { phase: string; carbTargetG: number } | null;
   carbsUsed?: number;
 }) {
@@ -103,6 +115,7 @@ export function AthleteMealPickerDrawer({
   const [showInfoModal, setShowInfoModal] = React.useState(false);
   const [lastAddedId, setLastAddedId] = React.useState<string | null>(null);
   const [sessionCount, setSessionCount] = React.useState(0);
+  const [activeList, setActiveList] = React.useState<SlotKey | null>(list);
 
   const isCycleActive = carbCycleState?.phase === "low_carb" || carbCycleState?.phase === "refeed";
   const carbCap = isCycleActive ? (carbCycleState?.carbTargetG ?? 0) : 0;
@@ -111,14 +124,15 @@ export function AthleteMealPickerDrawer({
     ? Math.min(100, Math.round((carbsUsed / carbCap) * 100))
     : null;
 
-  // Auto-expand first category when drawer opens; reset last-added flash and session count
+  // When drawer opens, sync activeList to the incoming list prop and reset category/flash/count
   React.useEffect(() => {
     if (open) {
+      setActiveList(list);
       setCategory(DEFAULT_CATEGORY);
       setLastAddedId(null);
       setSessionCount(0);
     }
-  }, [open]);
+  }, [open, list]);
 
   // Filter meals by selected category, excluding any where adding the meal's STARCH
   // would push cumulative starch more than 20% over the starch cap.
@@ -144,6 +158,8 @@ export function AthleteMealPickerDrawer({
 
   if (!open || !list) return null;
 
+  const slotLabel = SLOT_OPTIONS.find((s) => s.value === activeList)?.label ?? activeList;
+
   return (
     <>
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -151,7 +167,7 @@ export function AthleteMealPickerDrawer({
         <DialogHeader>
           <div className="flex items-center justify-between gap-2">
             <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
-              🏆 Premade Athlete Meals - Add to {list}
+              🏆 Premade Athlete Meals — {slotLabel}
               <button
                 onClick={() => setShowInfoModal(true)}
                 className="bg-lime-700 hover:bg-lime-800 border-2 border-lime-600 text-white rounded-xl w-5 h-5 flex items-center justify-center text-sm font-bold flash-border"
@@ -175,6 +191,26 @@ export function AthleteMealPickerDrawer({
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Slot Switcher */}
+          <div className="bg-black/30 p-3 rounded-lg border border-white/10">
+            <p className="text-white/60 text-xs mb-2 font-medium">Adding to:</p>
+            <div className="flex flex-wrap gap-2">
+              {SLOT_OPTIONS.map((slot) => (
+                <button
+                  key={slot.value}
+                  onClick={() => setActiveList(slot.value)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-all ${
+                    activeList === slot.value
+                      ? "bg-orange-600 text-white"
+                      : "bg-white/10 text-white/70"
+                  }`}
+                >
+                  {slot.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Starch Allocation Bar — shown when starch cycle is active */}
           {isCycleActive && carbCap > 0 && (
             <div className={`p-3 rounded-xl border ${carbCycleState?.phase === "refeed" ? "bg-green-950/30 border-green-500/30" : "bg-orange-950/30 border-orange-500/30"}`}>
@@ -237,8 +273,9 @@ export function AthleteMealPickerDrawer({
                 <button
                   key={am.id}
                   onClick={() => {
+                    if (!activeList) return;
                     const mealToAdd = convertAthleteMealToMeal(am);
-                    onPick(mealToAdd);
+                    onPick(mealToAdd, activeList);
                     setSessionCount((c) => c + 1);
                     setLastAddedId(am.id);
                     setTimeout(() => setLastAddedId((prev) => prev === am.id ? null : prev), 1500);

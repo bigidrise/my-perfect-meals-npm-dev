@@ -1806,10 +1806,8 @@ export default function BeachBodyMealBoard() {
             setPickerOpen(false);
             setPickerList(null);
           }}
-          onPick={(meal) => {
-            if (pickerList) {
-              quickAdd(pickerList, meal);
-            }
+          onPick={(meal, slot) => {
+            quickAdd(slot, meal);
             // Keep the drawer open so the carb budget bar updates in real-time
             // as the user adds multiple meals in a single session.
             // The user closes the drawer manually via the X or backdrop dismiss.
