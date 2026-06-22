@@ -14,7 +14,7 @@ import {
   getAthleteMealsByCategory,
   type AthleteMeal,
 } from "@/data/athleteMeals";
-import { Target } from "lucide-react";
+import { Target, Copy, Check } from "lucide-react";
 
 function simpleHash(str: string): number {
   let hash = 0;
@@ -119,6 +119,7 @@ export function AthleteMealPickerDrawer({
   const [sessionCount, setSessionCount] = React.useState(0);
   const [sessionMacros, setSessionMacros] = React.useState({ cals: 0, protein: 0, carbs: 0, fat: 0 });
   const [activeList, setActiveList] = React.useState<SlotKey | null>(list);
+  const [copied, setCopied] = React.useState(false);
 
   const isCycleActive = carbCycleState?.phase === "low_carb" || carbCycleState?.phase === "refeed";
   const carbCap = isCycleActive ? (carbCycleState?.carbTargetG ?? 0) : 0;
@@ -135,8 +136,17 @@ export function AthleteMealPickerDrawer({
       setLastAddedId(null);
       setSessionCount(0);
       setSessionMacros({ cals: 0, protein: 0, carbs: 0, fat: 0 });
+      setCopied(false);
     }
   }, [open, list]);
+
+  function handleCopySession() {
+    const text = `${sessionCount} meal${sessionCount === 1 ? "" : "s"} added — ${sessionMacros.cals.toLocaleString()} cal · P ${sessionMacros.protein}g · C ${sessionMacros.carbs}g · F ${sessionMacros.fat}g`;
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
 
   // Filter meals by selected category, excluding any where adding the meal's STARCH
   // would push cumulative starch more than 20% over the starch cap.
@@ -245,6 +255,27 @@ export function AthleteMealPickerDrawer({
                   </>
                 );
               })()}
+              <button
+                onClick={handleCopySession}
+                className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full transition-all ${
+                  copied
+                    ? "bg-lime-700/80 text-white"
+                    : "bg-white/10 text-white/70 active:bg-white/20"
+                }`}
+                aria-label="Copy session summary to clipboard"
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-3 w-3" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3 w-3" />
+                    Copy
+                  </>
+                )}
+              </button>
             </div>
           )}
         </DialogHeader>
