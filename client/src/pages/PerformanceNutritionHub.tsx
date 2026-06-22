@@ -248,6 +248,90 @@ function buildMealInfluenceText(demand: ReturnType<typeof computeDemandProfile>)
   return sentences;
 }
 
+// ── Pro View: Medical protocol labels ────────────────────────────────────────
+const CONDITION_PROTOCOL_LABELS: Record<string, { name: string; category: string; note: string }> = {
+  "performance-nutrition": { name: "Performance Nutrition Layer", category: "Athletic", note: "Sport-specific fueling protocol, starch cycling, and demand matrix are active for this user." },
+  "anti_inflammatory":     { name: "Anti-Inflammatory Protocol",  category: "Clinical", note: "Pro-inflammatory ingredients are reduced; omega-3s and polyphenols are actively prioritized." },
+  "diabetic":              { name: "Diabetic Nutrition Protocol", category: "Clinical", note: "Glycemic index management active; starchy carb sources are controlled and distributed across meals." },
+  "glp1":                  { name: "GLP-1 / Metabolic Protocol",  category: "Clinical", note: "Protein-first meal structure enforced; satiety-optimized portions; low glycemic anchoring." },
+  "oncology_support":      { name: "Oncology Support Protocol",   category: "Clinical", note: "Hard-blocked ingredients enforced at prompt and post-generation. Physician-assigned; no treatment claims made." },
+  "pregnancy-support":     { name: "Pregnancy Nutrition Protocol",category: "Clinical", note: "Trimester-aware nutrient targets; mercury, listeria, and raw food safety blocks active." },
+  "hypothyroid":           { name: "Thyroid Support — Hypo",      category: "Clinical", note: "Iodine-supportive food base; goitrogen awareness; selenium and zinc prioritized." },
+  "hyperthyroid":          { name: "Thyroid Support — Hyper",     category: "Clinical", note: "Iodine-limited food base; elevated caloric support for increased metabolic rate." },
+  "hashimotos":            { name: "Hashimoto's Protocol",         category: "Clinical", note: "Autoimmune nutrition framework; gluten and dairy awareness; anti-inflammatory food base." },
+  "heart_health":          { name: "Cardiovascular Protocol",     category: "Clinical", note: "Saturated fat management; fiber and omega-3 prioritization." },
+};
+
+// ── Pro View: Nutrition priority educational rationales ───────────────────────
+const PRIORITY_RATIONALES: Record<string, string> = {
+  "Recovery support":          "Tissue repair requires rapid amino acid availability post-session. Anti-inflammatory cofactors (omega-3s, antioxidants) blunt systemic inflammation and accelerate repair.",
+  "Carbohydrate availability": "High-intensity glycolytic work depletes muscle glycogen. Carbohydrate availability is the rate-limiting variable for sustained output at high training frequencies.",
+  "Protein distribution":      "Muscle protein synthesis is maximized when the leucine threshold (~2.5g/meal) is reached at each sitting — distribution across meals matters as much as daily total.",
+  "Aerobic fuel utilization":  "Endurance adaptation requires fat-and-carbohydrate co-oxidation. Meal composition drives mitochondrial fuel substrate selection and fat-oxidation efficiency.",
+  "Explosive power nutrients": "Creatine-compatible foods, zinc, magnesium, and fast-digesting post-workout carbs support neuromuscular output and phosphocreatine resynthesis.",
+  "Fat oxidation priority":    "Caloric deficit combined with low-starch meals shifts primary fuel toward fat. Dietary fat sources are calibrated to support hormonal function in a sustained deficit.",
+  "Lean muscle support":       "Anabolic signaling requires consistent leucine stimulus above threshold at each meal. Dense protein sources are prioritized to sustain a positive nitrogen balance.",
+  "Anti-inflammatory nutrition":"Chronic training stress elevates IL-6 and CRP. Omega-3s, polyphenols, and antioxidant-dense vegetables blunt systemic inflammation and accelerate tissue repair.",
+  "Carbohydrate timing":       "Peri-workout carbohydrate delivery (30–60 min pre and within 30 min post) maximizes glycogen resynthesis and blunts cortisol-driven catabolism.",
+  "Hydration emphasis":        "High training load increases sweat sodium losses. Electrolyte-rich foods and hydration cues are embedded to preserve plasma volume and sustain aerobic power.",
+};
+
+// ── Pro View: Signal trace — which inputs drove each demand value ─────────────
+function buildDemandSignalTrace(pCtx: any): {
+  fuel: string[]; recovery: string[]; adaptation: string[]; load: string[];
+} {
+  const freqLabel: Record<string, string> = {
+    "1-2": "1–2 sessions/wk", "3-4": "3–4 sessions/wk",
+    "5-6": "5–6 sessions/wk", "7+":  "Daily training",
+  };
+  const durShort: Record<string, string> = {
+    under_30: "<30 min", "30_60": "30–60 min", "60_90": "60–90 min", "90_plus": "90+ min",
+  };
+
+  const fuel: string[] = [];
+  if (pCtx?.trainingFrequency) fuel.push(freqLabel[pCtx.trainingFrequency] ?? pCtx.trainingFrequency);
+  if (pCtx?.cardioFocus && pCtx.cardioFocus !== "none") fuel.push(CARDIO_LABELS[pCtx.cardioFocus] ?? pCtx.cardioFocus);
+  if (pCtx?.sessionDuration) fuel.push(durShort[pCtx.sessionDuration] ?? pCtx.sessionDuration);
+  if (pCtx?.twoADays) fuel.push("2-a-Days");
+
+  const recovery: string[] = [];
+  if (pCtx?.trainingFrequency) recovery.push(freqLabel[pCtx.trainingFrequency] ?? pCtx.trainingFrequency);
+  if (pCtx?.recoveryStatus) recovery.push(RECOVERY_STATUS_LABELS[pCtx.recoveryStatus] ?? pCtx.recoveryStatus);
+  if (pCtx?.trainingPhase === "recovery") recovery.push("Recovery phase selected");
+  if (pCtx?.twoADays) recovery.push("2-a-Days");
+  if (pCtx?.sessionDuration) recovery.push(durShort[pCtx.sessionDuration] ?? pCtx.sessionDuration);
+
+  const adaptation: string[] = [];
+  if (pCtx?.adaptationTarget) adaptation.push(ADAPTATION_TARGET_LABELS[pCtx.adaptationTarget]?.replace(" Adaptation","") ?? pCtx.adaptationTarget);
+  if (pCtx?.trainingType) adaptation.push(TYPE_LABELS[pCtx.trainingType] ?? pCtx.trainingType);
+  if (pCtx?.primaryGoal) adaptation.push(GOAL_LABELS[pCtx.primaryGoal] ?? pCtx.primaryGoal);
+
+  const load: string[] = [];
+  if (pCtx?.trainingFrequency) load.push(freqLabel[pCtx.trainingFrequency] ?? pCtx.trainingFrequency);
+  if (pCtx?.twoADays) load.push("2-a-Days");
+  if (pCtx?.cardioFocus && pCtx.cardioFocus !== "none") load.push(CARDIO_LABELS[pCtx.cardioFocus] ?? pCtx.cardioFocus);
+  if (pCtx?.sessionDuration) load.push(durShort[pCtx.sessionDuration] ?? pCtx.sessionDuration);
+
+  return { fuel, recovery, adaptation, load };
+}
+
+// ── Pro View: AI meal logic categories activated by demand profile ─────────────
+function buildMealLogicCategories(demand: ReturnType<typeof computeDemandProfile>): string[] {
+  const cats: string[] = [];
+  if (demand.fuelDemand === "glycogen" || demand.fuelDemand === "competition") cats.push("Carbohydrate timing emphasis");
+  if (demand.fuelDemand === "low")      cats.push("Lean protein and vegetable anchoring");
+  if (demand.fuelDemand === "moderate") cats.push("Balanced substrate distribution");
+  if (demand.recoveryDemand === "high")     cats.push("Anti-inflammatory recovery ingredient activation");
+  if (demand.recoveryDemand === "moderate") cats.push("Omega-3 and antioxidant incorporation");
+  if (demand.adaptationDemand === "endurance_focused")        cats.push("Aerobic substrate optimization");
+  if (demand.adaptationDemand === "power_focused")            cats.push("Explosive output nutrient activation");
+  if (demand.adaptationDemand === "body_composition_focused") cats.push("High protein density per meal");
+  if (demand.adaptationDemand === "recovery_focused")         cats.push("Repair-priority food selection");
+  if (demand.trainingLoad === "elite") cats.push("Between-session rapid-recovery nutrition");
+  if (demand.trainingLoad === "high" || demand.trainingLoad === "elite") cats.push("Caloric density management");
+  return cats;
+}
+
 interface CarbCycleData {
   state: {
     phase: "inactive" | "low_carb" | "refeed";
@@ -278,6 +362,11 @@ export default function PerformanceNutritionHub() {
   });
   const [setupOpen, setSetupOpen] = useState(false);
 
+  // Pro View toggle — gated to procare / care_team / isAdmin
+  const [viewMode, setViewMode] = useState<"user" | "pro">(() =>
+    (localStorage.getItem("mpm.perfHub.viewMode") as "user" | "pro") ?? "user"
+  );
+
   // Starch / carb cycle state
   const [carbCycleData, setCarbCycleData] = useState<CarbCycleData | null>(null);
   const [carbCycleLoading, setCarbCycleLoading] = useState(false);
@@ -295,6 +384,12 @@ export default function PerformanceNutritionHub() {
   const entitlements: string[] = (user as any)?.entitlements || [];
   const hasPerformanceAccess =
     entitlements.includes("performance_nutrition") || entitlements.includes("FULL_ACCESS");
+
+  // Pro View eligibility: procare professionals, care team members, or admins
+  const canSeeProView =
+    entitlements.includes("procare") ||
+    entitlements.includes("care_team") ||
+    !!(user as any)?.isAdmin;
 
   const pCtx = (user as any)?.performanceContext;
   const compCtx = (user as any)?.competitionPrepContext;
@@ -868,30 +963,103 @@ export default function PerformanceNutritionHub() {
           {activeTab === "protocol" && (
             <div className="space-y-4">
 
+              {/* ── Pro View toggle (procare / care_team / admin only) ── */}
+              {canSeeProView && (
+                <div className="flex bg-black/30 rounded-xl p-1 gap-1">
+                  {(["user", "pro"] as const).map(mode => (
+                    <button
+                      key={mode}
+                      onClick={() => {
+                        setViewMode(mode);
+                        localStorage.setItem("mpm.perfHub.viewMode", mode);
+                      }}
+                      className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                        viewMode === mode ? "bg-orange-600 text-white" : "text-white/40"
+                      }`}
+                    >
+                      {mode === "user" ? "My View" : "Pro View"}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* ── PRO VIEW: Medical Protocols Active ── */}
+              {viewMode === "pro" && (() => {
+                const conditions: string[] = (user as any)?.specialtyConditions ?? [];
+                const protos = conditions
+                  .map(c => ({ key: c, ...CONDITION_PROTOCOL_LABELS[c] }))
+                  .filter(p => p.name);
+                if (protos.length === 0) return null;
+                return (
+                  <div className="rounded-2xl bg-black/50 border border-orange-500/20 p-4">
+                    <p className="text-xs text-orange-300 font-semibold uppercase tracking-wider mb-3">Medical &amp; Protocol Stack Active</p>
+                    <div className="space-y-2.5">
+                      {protos.map((proto) => (
+                        <div key={proto.key} className="bg-white/5 rounded-xl px-3 py-2.5">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${proto.category === "Athletic" ? "bg-orange-600/30 text-orange-300" : "bg-blue-600/20 text-blue-300"}`}>
+                              {proto.category}
+                            </span>
+                            <p className="text-white font-semibold text-xs">{proto.name}</p>
+                          </div>
+                          <p className="text-white/50 text-xs leading-relaxed">{proto.note}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* ── Section 2: Active Performance Factors ── */}
               <div className="rounded-2xl bg-black/50 border border-orange-500/20 p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Zap className="w-3.5 h-3.5 text-orange-400" />
                   <p className="text-white font-bold text-sm">Active Performance Factors</p>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className={`rounded-xl border px-3 py-2.5 ${FUEL_DEMAND_COLORS[demandProfile.fuelDemand]}`}>
-                    <p className="text-xs opacity-60 mb-0.5">Fuel Demand</p>
-                    <p className="font-bold text-xs">{FUEL_DEMAND_LABELS[demandProfile.fuelDemand]}</p>
+                {viewMode === "pro" ? (() => {
+                  const trace = buildDemandSignalTrace(pCtx);
+                  return (
+                    <div className="space-y-2">
+                      {[
+                        { label: "Fuel Demand",       value: FUEL_DEMAND_LABELS[demandProfile.fuelDemand],         cls: FUEL_DEMAND_COLORS[demandProfile.fuelDemand],         signals: trace.fuel },
+                        { label: "Recovery Demand",   value: RECOVERY_DEMAND_LABELS[demandProfile.recoveryDemand], cls: RECOVERY_DEMAND_COLORS[demandProfile.recoveryDemand], signals: trace.recovery },
+                        { label: "Adaptation Focus",  value: ADAPTATION_DEMAND_LABELS[demandProfile.adaptationDemand], cls: "bg-white/5 border-white/10 text-white",           signals: trace.adaptation },
+                        { label: "Training Load",     value: TRAINING_LOAD_LABELS[demandProfile.trainingLoad],     cls: TRAINING_LOAD_COLORS[demandProfile.trainingLoad],     signals: trace.load },
+                      ].map(({ label, value, cls, signals }) => (
+                        <div key={label} className={`rounded-xl border px-3 py-2.5 ${cls}`}>
+                          <div className="flex items-center justify-between gap-2">
+                            <div>
+                              <p className="text-xs opacity-60 mb-0.5">{label}</p>
+                              <p className="font-bold text-xs">{value}</p>
+                            </div>
+                          </div>
+                          {signals.length > 0 && (
+                            <p className="text-xs opacity-50 mt-1.5">← {signals.join(" · ")}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })() : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className={`rounded-xl border px-3 py-2.5 ${FUEL_DEMAND_COLORS[demandProfile.fuelDemand]}`}>
+                      <p className="text-xs opacity-60 mb-0.5">Fuel Demand</p>
+                      <p className="font-bold text-xs">{FUEL_DEMAND_LABELS[demandProfile.fuelDemand]}</p>
+                    </div>
+                    <div className={`rounded-xl border px-3 py-2.5 ${RECOVERY_DEMAND_COLORS[demandProfile.recoveryDemand]}`}>
+                      <p className="text-xs opacity-60 mb-0.5">Recovery Demand</p>
+                      <p className="font-bold text-xs">{RECOVERY_DEMAND_LABELS[demandProfile.recoveryDemand]}</p>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
+                      <p className="text-white/40 text-xs mb-0.5">Adaptation Focus</p>
+                      <p className="text-white font-bold text-xs">{ADAPTATION_DEMAND_LABELS[demandProfile.adaptationDemand]}</p>
+                    </div>
+                    <div className={`rounded-xl border px-3 py-2.5 ${TRAINING_LOAD_COLORS[demandProfile.trainingLoad]}`}>
+                      <p className="text-xs opacity-60 mb-0.5">Training Load</p>
+                      <p className="font-bold text-xs">{TRAINING_LOAD_LABELS[demandProfile.trainingLoad]}</p>
+                    </div>
                   </div>
-                  <div className={`rounded-xl border px-3 py-2.5 ${RECOVERY_DEMAND_COLORS[demandProfile.recoveryDemand]}`}>
-                    <p className="text-xs opacity-60 mb-0.5">Recovery Demand</p>
-                    <p className="font-bold text-xs">{RECOVERY_DEMAND_LABELS[demandProfile.recoveryDemand]}</p>
-                  </div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
-                    <p className="text-white/40 text-xs mb-0.5">Adaptation Focus</p>
-                    <p className="text-white font-bold text-xs">{ADAPTATION_DEMAND_LABELS[demandProfile.adaptationDemand]}</p>
-                  </div>
-                  <div className={`rounded-xl border px-3 py-2.5 ${TRAINING_LOAD_COLORS[demandProfile.trainingLoad]}`}>
-                    <p className="text-xs opacity-60 mb-0.5">Training Load</p>
-                    <p className="font-bold text-xs">{TRAINING_LOAD_LABELS[demandProfile.trainingLoad]}</p>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* ── Section 3: Nutrition Priorities ── */}
@@ -900,16 +1068,52 @@ export default function PerformanceNutritionHub() {
                   <p className="text-white font-bold text-sm mb-3">Nutrition Priorities</p>
                   <div className="space-y-2">
                     {demandProfile.nutritionPriorities.map((priority, i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-full bg-orange-600/30 border border-orange-500/40 flex items-center justify-center flex-shrink-0">
-                          <span className="text-orange-300 font-bold text-xs">{i + 1}</span>
-                        </span>
-                        <p className="text-white/80 text-sm">{priority}</p>
+                      <div key={i} className={viewMode === "pro" ? "pb-2.5 border-b border-white/5 last:border-0" : "flex items-center gap-3"}>
+                        {viewMode === "pro" ? (
+                          <>
+                            <div className="flex items-center gap-2.5 mb-1">
+                              <span className="w-5 h-5 rounded-full bg-orange-600/30 border border-orange-500/40 flex items-center justify-center flex-shrink-0">
+                                <span className="text-orange-300 font-bold" style={{ fontSize: "10px" }}>{i + 1}</span>
+                              </span>
+                              <p className="text-white font-semibold text-sm">{priority}</p>
+                            </div>
+                            {PRIORITY_RATIONALES[priority] && (
+                              <p className="text-white/40 text-xs leading-relaxed pl-7">{PRIORITY_RATIONALES[priority]}</p>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <span className="w-6 h-6 rounded-full bg-orange-600/30 border border-orange-500/40 flex items-center justify-center flex-shrink-0">
+                              <span className="text-orange-300 font-bold text-xs">{i + 1}</span>
+                            </span>
+                            <p className="text-white/80 text-sm">{priority}</p>
+                          </>
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
               )}
+
+              {/* ── PRO VIEW: Meal Logic Summary ── */}
+              {viewMode === "pro" && (() => {
+                const cats = buildMealLogicCategories(demandProfile);
+                if (cats.length === 0) return null;
+                return (
+                  <div className="rounded-2xl bg-black/50 border border-white/10 p-4">
+                    <p className="text-white font-bold text-sm mb-1">AI Instruction Categories</p>
+                    <p className="text-white/40 text-xs mb-3">What the system instructs the AI to prioritize for this profile</p>
+                    <div className="space-y-1.5">
+                      {cats.map((cat, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <span className="w-1 h-1 rounded-full bg-orange-400 flex-shrink-0" />
+                          <p className="text-white/70 text-sm">{cat}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* ── Section 4: How This Influences Your Meals ── */}
               {(() => {
