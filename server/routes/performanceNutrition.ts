@@ -113,6 +113,9 @@ router.post("/setup", async (req, res) => {
         cardioFocus,
         trainingPhase,
         twoADays = false,
+        sessionDuration,
+        recoveryStatus,
+        adaptationTarget,
       } = req.body;
 
       const validGoals = ["fat_loss", "muscle_gain", "maintenance", "performance"];
@@ -125,6 +128,12 @@ router.post("/setup", async (req, res) => {
       const validFrequencies = ["1-2", "3-4", "5-6", "7+"];
       const validCardio = ["none", "recovery", "zone_2", "tempo", "threshold", "hiit", "mixed"];
       const validPhases = ["off_season", "pre_season", "in_season", "weight_cut", "recovery"];
+      const validSessionDurations = ["under_30", "30_60", "60_90", "90_plus"];
+      const validRecoveryStatuses = ["good", "average", "poor"];
+      const validAdaptationTargets = [
+        "endurance", "recovery", "conditioning", "work_capacity",
+        "speed", "power", "fat_loss", "muscle_gain",
+      ];
 
       if (!primaryGoal || !validGoals.includes(primaryGoal)) {
         return res.status(400).json({ error: "Invalid primaryGoal" });
@@ -141,6 +150,15 @@ router.post("/setup", async (req, res) => {
       }
       if (!trainingPhase || !validPhases.includes(trainingPhase)) {
         return res.status(400).json({ error: "Invalid trainingPhase" });
+      }
+      if (sessionDuration && !validSessionDurations.includes(sessionDuration)) {
+        return res.status(400).json({ error: "Invalid sessionDuration" });
+      }
+      if (recoveryStatus && !validRecoveryStatuses.includes(recoveryStatus)) {
+        return res.status(400).json({ error: "Invalid recoveryStatus" });
+      }
+      if (adaptationTarget && !validAdaptationTargets.includes(adaptationTarget)) {
+        return res.status(400).json({ error: "Invalid adaptationTarget" });
       }
 
       const now = new Date().toISOString();
@@ -164,6 +182,9 @@ router.post("/setup", async (req, res) => {
         cardioFocus,
         trainingPhase,
         twoADays: !!twoADays,
+        sessionDuration:   sessionDuration   ?? undefined,
+        recoveryStatus:    recoveryStatus    ?? undefined,
+        adaptationTarget:  adaptationTarget  ?? undefined,
         customSportName: athleteCustomSport?.trim() ?? undefined,
         activatedAt: now,
         updatedAt: now,
