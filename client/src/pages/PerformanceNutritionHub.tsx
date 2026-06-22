@@ -241,6 +241,7 @@ export default function PerformanceNutritionHub() {
       if (!res.ok) throw new Error("Log failed");
       const data = await res.json();
       setCarbCycleData({ state: data.state, engine: data.engine });
+      try { sessionStorage.removeItem("mpm.carbCyclePickerState"); } catch {}
       setLogWeight("");
       setLogCarbs("");
       toast({
@@ -268,6 +269,7 @@ export default function PerformanceNutritionHub() {
       if (!res.ok) throw new Error("Override failed");
       const data = await res.json();
       setCarbCycleData({ state: data.state, engine: data.engine });
+      try { sessionStorage.removeItem("mpm.carbCyclePickerState"); } catch {}
       toast({
         title: action === "start_refeed" ? "Refeed day started" : "Low-carb phase resumed",
         description: action === "start_refeed"
