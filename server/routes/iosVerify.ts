@@ -54,6 +54,8 @@ const PLAN_ENTITLEMENTS: Record<string, string[]> = {
     "learn_cook",
     "lab_metrics",
     "care_team",
+    "pregnancy",
+    "getaway",
   ],
 };
 
