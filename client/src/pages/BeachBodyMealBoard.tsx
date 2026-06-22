@@ -1814,6 +1814,16 @@ export default function BeachBodyMealBoard() {
           }}
           carbCycleState={carbCyclePickerState}
           carbsUsed={totals.starchyCarbs}
+          macroTargets={(() => {
+            const resolved = effectiveUserId ? getResolvedTargets(effectiveUserId) : null;
+            if (!resolved || resolved.source === "none") return null;
+            return {
+              calories: Math.round(resolved.calories ?? 0),
+              protein_g: Math.round(resolved.protein_g ?? 0),
+              carbs_g: Math.round(resolved.carbs_g ?? 0),
+              fat_g: Math.round(resolved.fat_g ?? 0),
+            };
+          })()}
         />
 
         <WeeklyOverviewModal

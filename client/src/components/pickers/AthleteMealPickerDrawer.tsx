@@ -102,6 +102,7 @@ export function AthleteMealPickerDrawer({
   onPick,
   carbCycleState,
   carbsUsed,
+  macroTargets,
 }: {
   open: boolean;
   list: SlotKey | null;
@@ -109,6 +110,7 @@ export function AthleteMealPickerDrawer({
   onPick: (meal: Meal, slot: SlotKey) => void;
   carbCycleState?: { phase: string; carbTargetG: number } | null;
   carbsUsed?: number;
+  macroTargets?: { calories: number; protein_g: number; carbs_g: number; fat_g: number } | null;
 }) {
   const [category, setCategory] =
     React.useState<AthleteMeal["category"]>(DEFAULT_CATEGORY);
@@ -193,18 +195,56 @@ export function AthleteMealPickerDrawer({
           {sessionCount > 0 && (
             <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
               <span className="text-white/40 text-xs font-medium">Session total:</span>
-              <span className="bg-white/10 text-white/90 text-xs font-semibold px-2 py-0.5 rounded-full">
-                {sessionMacros.cals.toLocaleString()} cal
-              </span>
-              <span className="bg-white/10 text-white/90 text-xs font-semibold px-2 py-0.5 rounded-full">
-                P {sessionMacros.protein}g
-              </span>
-              <span className="bg-white/10 text-white/90 text-xs font-semibold px-2 py-0.5 rounded-full">
-                C {sessionMacros.carbs}g
-              </span>
-              <span className="bg-white/10 text-white/90 text-xs font-semibold px-2 py-0.5 rounded-full">
-                F {sessionMacros.fat}g
-              </span>
+              {(() => {
+                const hasTargets = macroTargets && (
+                  macroTargets.calories > 0 || macroTargets.protein_g > 0 ||
+                  macroTargets.carbs_g > 0 || macroTargets.fat_g > 0
+                );
+
+                function pillColor(value: number, target: number): string {
+                  if (!target) return "bg-white/10 text-white/90";
+                  const pct = value / target;
+                  if (pct > 1) return "bg-red-700/70 text-red-100";
+                  if (pct >= 0.9) return "bg-amber-600/70 text-amber-100";
+                  return "bg-lime-800/60 text-lime-100";
+                }
+
+                if (hasTargets) {
+                  return (
+                    <>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pillColor(sessionMacros.cals, macroTargets!.calories)}`}>
+                        {sessionMacros.cals.toLocaleString()} / {macroTargets!.calories.toLocaleString()} cal
+                      </span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pillColor(sessionMacros.protein, macroTargets!.protein_g)}`}>
+                        P {sessionMacros.protein} / {macroTargets!.protein_g}g
+                      </span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pillColor(sessionMacros.carbs, macroTargets!.carbs_g)}`}>
+                        C {sessionMacros.carbs} / {macroTargets!.carbs_g}g
+                      </span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pillColor(sessionMacros.fat, macroTargets!.fat_g)}`}>
+                        F {sessionMacros.fat} / {macroTargets!.fat_g}g
+                      </span>
+                    </>
+                  );
+                }
+
+                return (
+                  <>
+                    <span className="bg-white/10 text-white/90 text-xs font-semibold px-2 py-0.5 rounded-full">
+                      {sessionMacros.cals.toLocaleString()} cal
+                    </span>
+                    <span className="bg-white/10 text-white/90 text-xs font-semibold px-2 py-0.5 rounded-full">
+                      P {sessionMacros.protein}g
+                    </span>
+                    <span className="bg-white/10 text-white/90 text-xs font-semibold px-2 py-0.5 rounded-full">
+                      C {sessionMacros.carbs}g
+                    </span>
+                    <span className="bg-white/10 text-white/90 text-xs font-semibold px-2 py-0.5 rounded-full">
+                      F {sessionMacros.fat}g
+                    </span>
+                  </>
+                );
+              })()}
             </div>
           )}
         </DialogHeader>
