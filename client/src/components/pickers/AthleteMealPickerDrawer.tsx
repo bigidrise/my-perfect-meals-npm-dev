@@ -14,7 +14,7 @@ import {
   getAthleteMealsByCategory,
   type AthleteMeal,
 } from "@/data/athleteMeals";
-import { Target } from "lucide-react";
+import { Target, Copy, Check } from "lucide-react";
 
 function simpleHash(str: string): number {
   let hash = 0;
@@ -102,6 +102,7 @@ export function AthleteMealPickerDrawer({
   onPick,
   carbCycleState,
   carbsUsed,
+  macroTargets,
 }: {
   open: boolean;
   list: SlotKey | null;
@@ -109,13 +110,16 @@ export function AthleteMealPickerDrawer({
   onPick: (meal: Meal, slot: SlotKey) => void;
   carbCycleState?: { phase: string; carbTargetG: number } | null;
   carbsUsed?: number;
+  macroTargets?: { calories: number; protein_g: number; carbs_g: number; fat_g: number } | null;
 }) {
   const [category, setCategory] =
     React.useState<AthleteMeal["category"]>(DEFAULT_CATEGORY);
   const [showInfoModal, setShowInfoModal] = React.useState(false);
   const [lastAddedId, setLastAddedId] = React.useState<string | null>(null);
   const [sessionCount, setSessionCount] = React.useState(0);
+  const [sessionMacros, setSessionMacros] = React.useState({ cals: 0, protein: 0, carbs: 0, fat: 0 });
   const [activeList, setActiveList] = React.useState<SlotKey | null>(list);
+  const [copied, setCopied] = React.useState(false);
 
   const isCycleActive = carbCycleState?.phase === "low_carb" || carbCycleState?.phase === "refeed";
   const carbCap = isCycleActive ? (carbCycleState?.carbTargetG ?? 0) : 0;
@@ -124,15 +128,25 @@ export function AthleteMealPickerDrawer({
     ? Math.min(100, Math.round((carbsUsed / carbCap) * 100))
     : null;
 
-  // When drawer opens, sync activeList to the incoming list prop and reset category/flash/count
+  // When drawer opens, sync activeList to the incoming list prop and reset category/flash/count/macros
   React.useEffect(() => {
     if (open) {
       setActiveList(list);
       setCategory(DEFAULT_CATEGORY);
       setLastAddedId(null);
       setSessionCount(0);
+      setSessionMacros({ cals: 0, protein: 0, carbs: 0, fat: 0 });
+      setCopied(false);
     }
   }, [open, list]);
+
+  function handleCopySession() {
+    const text = `${sessionCount} meal${sessionCount === 1 ? "" : "s"} added — ${sessionMacros.cals.toLocaleString()} cal · P ${sessionMacros.protein}g · C ${sessionMacros.carbs}g · F ${sessionMacros.fat}g`;
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
 
   // Filter meals by selected category, excluding any where adding the meal's STARCH
   // would push cumulative starch more than 20% over the starch cap.
@@ -188,6 +202,82 @@ export function AthleteMealPickerDrawer({
               Done
             </button>
           </div>
+          {sessionCount > 0 && (
+            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+              <span className="text-white/40 text-xs font-medium">Session total:</span>
+              {(() => {
+                const hasTargets = macroTargets && (
+                  macroTargets.calories > 0 || macroTargets.protein_g > 0 ||
+                  macroTargets.carbs_g > 0 || macroTargets.fat_g > 0
+                );
+
+                function pillColor(value: number, target: number): string {
+                  if (!target) return "bg-white/10 text-white/90";
+                  const pct = value / target;
+                  if (pct > 1) return "bg-red-700/70 text-red-100";
+                  if (pct >= 0.9) return "bg-amber-600/70 text-amber-100";
+                  return "bg-lime-800/60 text-lime-100";
+                }
+
+                if (hasTargets) {
+                  return (
+                    <>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pillColor(sessionMacros.cals, macroTargets!.calories)}`}>
+                        {sessionMacros.cals.toLocaleString()} / {macroTargets!.calories.toLocaleString()} cal
+                      </span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pillColor(sessionMacros.protein, macroTargets!.protein_g)}`}>
+                        P {sessionMacros.protein} / {macroTargets!.protein_g}g
+                      </span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pillColor(sessionMacros.carbs, macroTargets!.carbs_g)}`}>
+                        C {sessionMacros.carbs} / {macroTargets!.carbs_g}g
+                      </span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pillColor(sessionMacros.fat, macroTargets!.fat_g)}`}>
+                        F {sessionMacros.fat} / {macroTargets!.fat_g}g
+                      </span>
+                    </>
+                  );
+                }
+
+                return (
+                  <>
+                    <span className="bg-white/10 text-white/90 text-xs font-semibold px-2 py-0.5 rounded-full">
+                      {sessionMacros.cals.toLocaleString()} cal
+                    </span>
+                    <span className="bg-white/10 text-white/90 text-xs font-semibold px-2 py-0.5 rounded-full">
+                      P {sessionMacros.protein}g
+                    </span>
+                    <span className="bg-white/10 text-white/90 text-xs font-semibold px-2 py-0.5 rounded-full">
+                      C {sessionMacros.carbs}g
+                    </span>
+                    <span className="bg-white/10 text-white/90 text-xs font-semibold px-2 py-0.5 rounded-full">
+                      F {sessionMacros.fat}g
+                    </span>
+                  </>
+                );
+              })()}
+              <button
+                onClick={handleCopySession}
+                className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full transition-all ${
+                  copied
+                    ? "bg-lime-700/80 text-white"
+                    : "bg-white/10 text-white/70 active:bg-white/20"
+                }`}
+                aria-label="Copy session summary to clipboard"
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-3 w-3" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3 w-3" />
+                    Copy
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </DialogHeader>
 
         <div className="space-y-4">
@@ -277,6 +367,12 @@ export function AthleteMealPickerDrawer({
                     const mealToAdd = convertAthleteMealToMeal(am);
                     onPick(mealToAdd, activeList);
                     setSessionCount((c) => c + 1);
+                    setSessionMacros((prev) => ({
+                      cals: prev.cals + (mealToAdd.nutrition?.calories ?? 0),
+                      protein: prev.protein + (mealToAdd.nutrition?.protein ?? 0),
+                      carbs: prev.carbs + (mealToAdd.nutrition?.carbs ?? 0),
+                      fat: prev.fat + (mealToAdd.nutrition?.fat ?? 0),
+                    }));
                     setLastAddedId(am.id);
                     setTimeout(() => setLastAddedId((prev) => prev === am.id ? null : prev), 1500);
                   }}

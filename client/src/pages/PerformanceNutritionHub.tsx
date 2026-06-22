@@ -11,6 +11,16 @@ import { usePageTitle } from "@/contexts/PageTitleContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import PerformanceSetupModal from "@/components/PerformanceSetupModal";
+import {
+  computeDemandProfile,
+  FUEL_DEMAND_LABELS,
+  FUEL_DEMAND_COLORS,
+  RECOVERY_DEMAND_LABELS,
+  RECOVERY_DEMAND_COLORS,
+  ADAPTATION_DEMAND_LABELS,
+  TRAINING_LOAD_LABELS,
+  TRAINING_LOAD_COLORS,
+} from "@shared/performanceDemandEngine";
 
 // ── Label maps ───────────────────────────────────────────────────────────────
 const GOAL_LABELS: Record<string, string> = {
@@ -417,6 +427,7 @@ export default function PerformanceNutritionHub() {
 
   const nutrients = pCtx?.trainingType ? NUTRIENT_PRIORITIES[pCtx.trainingType] : null;
   const compPhase = compCtx?.eventDate ? deriveCompPrepPhase(compCtx.eventDate, compCtx.competitionType) : null;
+  const demandProfile = computeDemandProfile(pCtx ?? undefined);
 
   const phaseColorMap: Record<string, string> = {
     green:  "bg-green-950/40 border-green-500/30 text-green-300",
@@ -809,6 +820,48 @@ export default function PerformanceNutritionHub() {
                   </div>
                 </div>
               )}
+
+              {/* ── Demand Intelligence Matrix ── */}
+              {pCtx.sessionDuration && pCtx.recoveryStatus && pCtx.adaptationTarget && (
+                <div className="rounded-2xl bg-black/50 border border-orange-500/20 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Zap className="w-3.5 h-3.5 text-orange-400" />
+                    <p className="text-white font-bold text-sm">Demand Intelligence</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div className={`rounded-xl border px-3 py-2.5 ${FUEL_DEMAND_COLORS[demandProfile.fuelDemand]}`}>
+                      <p className="text-xs opacity-60 mb-0.5">Fuel Demand</p>
+                      <p className="font-bold text-xs">{FUEL_DEMAND_LABELS[demandProfile.fuelDemand]}</p>
+                    </div>
+                    <div className={`rounded-xl border px-3 py-2.5 ${RECOVERY_DEMAND_COLORS[demandProfile.recoveryDemand]}`}>
+                      <p className="text-xs opacity-60 mb-0.5">Recovery Demand</p>
+                      <p className="font-bold text-xs">{RECOVERY_DEMAND_LABELS[demandProfile.recoveryDemand]}</p>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
+                      <p className="text-white/40 text-xs mb-0.5">Adaptation</p>
+                      <p className="text-white font-bold text-xs">{ADAPTATION_DEMAND_LABELS[demandProfile.adaptationDemand]}</p>
+                    </div>
+                    <div className={`rounded-xl border px-3 py-2.5 ${TRAINING_LOAD_COLORS[demandProfile.trainingLoad]}`}>
+                      <p className="text-xs opacity-60 mb-0.5">Training Load</p>
+                      <p className="font-bold text-xs">{TRAINING_LOAD_LABELS[demandProfile.trainingLoad]}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">Nutrition Priorities</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {demandProfile.nutritionPriorities.map((p, i) => (
+                        <span
+                          key={i}
+                          className="px-2.5 py-1 rounded-full bg-orange-950/40 border border-orange-500/20 text-orange-300 text-xs font-medium"
+                        >
+                          {p}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {pCtx.trainingPhase === "weight_cut" && (
                 <div className="rounded-2xl bg-red-950/40 border border-red-500/30 p-4">
                   <p className="text-red-300 font-bold text-sm mb-1">⚠️ Weight Cut Mode Active</p>
