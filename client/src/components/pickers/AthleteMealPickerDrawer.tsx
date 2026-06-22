@@ -101,6 +101,7 @@ export function AthleteMealPickerDrawer({
   const [category, setCategory] =
     React.useState<AthleteMeal["category"]>(DEFAULT_CATEGORY);
   const [showInfoModal, setShowInfoModal] = React.useState(false);
+  const [lastAddedId, setLastAddedId] = React.useState<string | null>(null);
 
   const isCycleActive = carbCycleState?.phase === "low_carb" || carbCycleState?.phase === "refeed";
   const carbCap = isCycleActive ? (carbCycleState?.carbTargetG ?? 0) : 0;
@@ -109,10 +110,11 @@ export function AthleteMealPickerDrawer({
     ? Math.min(100, Math.round((carbsUsed / carbCap) * 100))
     : null;
 
-  // Auto-expand first category when drawer opens
+  // Auto-expand first category when drawer opens; reset last-added flash
   React.useEffect(() => {
     if (open) {
       setCategory(DEFAULT_CATEGORY);
+      setLastAddedId(null);
     }
   }, [open]);
 
@@ -138,10 +140,6 @@ export function AthleteMealPickerDrawer({
     }).length;
   }, [category, isCycleActive, carbCap, carbCapSoft, carbsUsed]);
 
-  // State for the info modal, assuming it's defined elsewhere or not needed for this specific change
-  // const [showInfoModal, setShowInfoModal] = React.useState(false);
-
-
   if (!open || !list) return null;
 
   return (
@@ -149,16 +147,24 @@ export function AthleteMealPickerDrawer({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="bg-black/90 border border-white/20 text-white max-w-4xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
-            🏆 Premade Athlete Meals - Add to {list}
+          <div className="flex items-center justify-between gap-2">
+            <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
+              🏆 Premade Athlete Meals - Add to {list}
+              <button
+                onClick={() => setShowInfoModal(true)}
+                className="bg-lime-700 hover:bg-lime-800 border-2 border-lime-600 text-white rounded-xl w-5 h-5 flex items-center justify-center text-sm font-bold flash-border"
+                aria-label="How to use Athlete Meal Builder"
+              >
+                ?
+              </button>
+            </DialogTitle>
             <button
-              onClick={() => setShowInfoModal(true)}
-              className="bg-lime-700 hover:bg-lime-800 border-2 border-lime-600 text-white rounded-xl w-5 h-5 flex items-center justify-center text-sm font-bold flash-border"
-              aria-label="How to use Athlete Meal Builder"
+              onClick={onClose}
+              className="shrink-0 bg-orange-600 text-white text-sm font-semibold px-4 py-1.5 rounded-xl"
             >
-              ?
+              Done
             </button>
-          </DialogTitle>
+          </div>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -219,14 +225,21 @@ export function AthleteMealPickerDrawer({
             {filteredMeals.map((am: AthleteMeal) => {
               const mealStarch = am.macros.starchyCarbs;
               const mealFibrous = am.macros.fibrousCarbs;
+              const justAdded = lastAddedId === am.id;
               return (
                 <button
                   key={am.id}
                   onClick={() => {
                     const mealToAdd = convertAthleteMealToMeal(am);
                     onPick(mealToAdd);
+                    setLastAddedId(am.id);
+                    setTimeout(() => setLastAddedId((prev) => prev === am.id ? null : prev), 1500);
                   }}
-                  className="w-full text-left rounded-xl border border-white/20 bg-black/50 active:bg-white/10 p-4 transition-all"
+                  className={`w-full text-left rounded-xl border p-4 transition-all ${
+                    justAdded
+                      ? "border-lime-500/60 bg-lime-900/30"
+                      : "border-white/20 bg-black/50 active:bg-white/10"
+                  }`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="text-white/90 font-medium text-sm flex-1 leading-tight">
@@ -241,7 +254,11 @@ export function AthleteMealPickerDrawer({
                       )}
                     </div>
                     <div className="flex flex-col items-end gap-1 ml-2 shrink-0">
-                      {am.includeCarbs ? (
+                      {justAdded ? (
+                        <Badge className="bg-lime-600/90 text-white text-[10px] px-2 py-0.5">
+                          Added!
+                        </Badge>
+                      ) : am.includeCarbs ? (
                         <Badge className="bg-green-600/80 text-white text-[10px] px-2 py-0.5">
                           Starch
                         </Badge>

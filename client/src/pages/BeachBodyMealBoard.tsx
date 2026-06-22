@@ -854,6 +854,7 @@ export default function BeachBodyMealBoard() {
           [list]: [...dayLists[list as keyof typeof dayLists], meal],
         };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
+        setBoard(updatedBoard);
         await saveBoard(updatedBoard);
       } else {
         const updatedBoard = {
@@ -1765,8 +1766,9 @@ export default function BeachBodyMealBoard() {
             if (pickerList) {
               quickAdd(pickerList, meal);
             }
-            setPickerOpen(false);
-            setPickerList(null);
+            // Keep the drawer open so the carb budget bar updates in real-time
+            // as the user adds multiple meals in a single session.
+            // The user closes the drawer manually via the X or backdrop dismiss.
           }}
           carbCycleState={carbCyclePickerState}
           carbsUsed={totals.starchyCarbs}
