@@ -135,16 +135,16 @@ const NUTRIENT_PRIORITIES: Record<string, { label: string; items: string[] }> = 
 };
 
 const ATHLETIC_STARTERS = [
-  "What should I eat before a morning training session?",
-  "How should I adjust my carbs on rest days?",
-  "What foods support recovery after HIIT?",
-  "How much protein do I actually need per day?",
+  "Scale is up 2 lbs, energy is good, strength is up — what do I do?",
+  "Scale hasn't moved in 4 days. Energy is fine. What's the move?",
+  "Energy dropped this week. Scale is still going down. Should I change anything?",
+  "Scale is down, strength is holding, energy is good — am I on track?",
 ];
 const COMP_STARTERS = [
-  "How should my calories change as I get closer to the show?",
-  "What does peak week nutrition look like?",
-  "How do I carb load the day before a powerlifting meet?",
-  "What should I eat right after the competition?",
+  "Scale hasn't moved in 4 days. Energy is OK. What do I do?",
+  "Weight is going down but I feel flat and weak. What's the adjustment?",
+  "Scale is up 3 lbs after my refeed days. Is that normal?",
+  "Energy dropped this week but the scale is still moving. Do I change anything?",
 ];
 
 interface ChatMessage { role: "user" | "assistant"; content: string; }
