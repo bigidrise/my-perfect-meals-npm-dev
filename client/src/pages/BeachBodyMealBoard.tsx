@@ -941,7 +941,7 @@ export default function BeachBodyMealBoard() {
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 flex items-center justify-center">
         <div className="text-white text-center">
           <div className="animate-spin rounded-2xl h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Loading Beach Body Meal Board...</p>
+          <p>Loading Performance Nutrition Builder...</p>
         </div>
       </div>
     );
