@@ -17,15 +17,18 @@ function formatDate(ts: string): string {
 interface UpdateState {
   hasUpdate: boolean;
   currentVersionLabel: string;
+  releaseNotes: string[];
 }
 
 const UpdateContext = createContext<UpdateState>({
   hasUpdate: false,
   currentVersionLabel: formatDate(BUILD_VERSION),
+  releaseNotes: [],
 });
 
 export function UpdateProvider({ children }: { children: ReactNode }) {
   const [latest, setLatest] = useState<string | null>(null);
+  const [releaseNotes, setReleaseNotes] = useState<string[]>([]);
 
   useEffect(() => {
     const check = async () => {
@@ -34,6 +37,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
         if (!res.ok) return;
         const data = await res.json();
         if (data.version) setLatest(data.version);
+        if (Array.isArray(data.notes)) setReleaseNotes(data.notes);
       } catch {}
     };
 
@@ -47,7 +51,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
 
   return (
     <UpdateContext.Provider
-      value={{ hasUpdate, currentVersionLabel: formatDate(BUILD_VERSION) }}
+      value={{ hasUpdate, currentVersionLabel: formatDate(BUILD_VERSION), releaseNotes }}
     >
       {children}
     </UpdateContext.Provider>
