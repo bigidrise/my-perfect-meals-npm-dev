@@ -363,9 +363,9 @@ export default function PerformanceNutritionHub() {
   const [setupOpen, setSetupOpen] = useState(false);
 
   // Pro View toggle — gated to procare / care_team / isAdmin
-  const [viewMode, setViewMode] = useState<"user" | "pro">(() =>
-    (localStorage.getItem("mpm.perfHub.viewMode") as "user" | "pro") ?? "user"
-  );
+  // Only restore persisted "pro" from localStorage if user is still entitled;
+  // otherwise force "user" and clear the stale key.
+  const [viewMode, setViewMode] = useState<"user" | "pro">("user");
 
   // Starch / carb cycle state
   const [carbCycleData, setCarbCycleData] = useState<CarbCycleData | null>(null);
@@ -390,6 +390,23 @@ export default function PerformanceNutritionHub() {
     entitlements.includes("procare") ||
     entitlements.includes("care_team") ||
     !!(user as any)?.isAdmin;
+
+  // Restore persisted viewMode from localStorage only when the user is entitled.
+  // If they are not (or have lost) the entitlement, force "user" and clear the key
+  // so a manual localStorage edit cannot bypass the Pro View gate.
+  useEffect(() => {
+    if (canSeeProView) {
+      const stored = localStorage.getItem("mpm.perfHub.viewMode") as "user" | "pro" | null;
+      if (stored === "pro") setViewMode("pro");
+    } else {
+      setViewMode("user");
+      localStorage.removeItem("mpm.perfHub.viewMode");
+    }
+  }, [canSeeProView]);
+
+  // Derived: only show Pro content when the user is actively entitled AND has selected Pro.
+  // This is the single source of truth for gating all Pro-only sections.
+  const isProView = canSeeProView && viewMode === "pro";
 
   const pCtx = (user as any)?.performanceContext;
   const compCtx = (user as any)?.competitionPrepContext;
@@ -984,7 +1001,7 @@ export default function PerformanceNutritionHub() {
               )}
 
               {/* ── PRO VIEW: Medical Protocols Active ── */}
-              {viewMode === "pro" && (() => {
+              {isProView && (() => {
                 const conditions: string[] = (user as any)?.specialtyConditions ?? [];
                 const protos = conditions
                   .map(c => ({ key: c, ...CONDITION_PROTOCOL_LABELS[c] }))
@@ -1016,7 +1033,7 @@ export default function PerformanceNutritionHub() {
                   <Zap className="w-3.5 h-3.5 text-orange-400" />
                   <p className="text-white font-bold text-sm">Active Performance Factors</p>
                 </div>
-                {viewMode === "pro" ? (() => {
+                {isProView ? (() => {
                   const trace = buildDemandSignalTrace(pCtx);
                   return (
                     <div className="space-y-2">
@@ -1068,8 +1085,8 @@ export default function PerformanceNutritionHub() {
                   <p className="text-white font-bold text-sm mb-3">Nutrition Priorities</p>
                   <div className="space-y-2">
                     {demandProfile.nutritionPriorities.map((priority, i) => (
-                      <div key={i} className={viewMode === "pro" ? "pb-2.5 border-b border-white/5 last:border-0" : "flex items-center gap-3"}>
-                        {viewMode === "pro" ? (
+                      <div key={i} className={isProView ? "pb-2.5 border-b border-white/5 last:border-0" : "flex items-center gap-3"}>
+                        {isProView ? (
                           <>
                             <div className="flex items-center gap-2.5 mb-1">
                               <span className="w-5 h-5 rounded-full bg-orange-600/30 border border-orange-500/40 flex items-center justify-center flex-shrink-0">
@@ -1096,7 +1113,7 @@ export default function PerformanceNutritionHub() {
               )}
 
               {/* ── PRO VIEW: Meal Logic Summary ── */}
-              {viewMode === "pro" && (() => {
+              {isProView && (() => {
                 const cats = buildMealLogicCategories(demandProfile);
                 if (cats.length === 0) return null;
                 return (
