@@ -102,6 +102,7 @@ export function AthleteMealPickerDrawer({
     React.useState<AthleteMeal["category"]>(DEFAULT_CATEGORY);
   const [showInfoModal, setShowInfoModal] = React.useState(false);
   const [lastAddedId, setLastAddedId] = React.useState<string | null>(null);
+  const [sessionCount, setSessionCount] = React.useState(0);
 
   const isCycleActive = carbCycleState?.phase === "low_carb" || carbCycleState?.phase === "refeed";
   const carbCap = isCycleActive ? (carbCycleState?.carbTargetG ?? 0) : 0;
@@ -110,11 +111,12 @@ export function AthleteMealPickerDrawer({
     ? Math.min(100, Math.round((carbsUsed / carbCap) * 100))
     : null;
 
-  // Auto-expand first category when drawer opens; reset last-added flash
+  // Auto-expand first category when drawer opens; reset last-added flash and session count
   React.useEffect(() => {
     if (open) {
       setCategory(DEFAULT_CATEGORY);
       setLastAddedId(null);
+      setSessionCount(0);
     }
   }, [open]);
 
@@ -157,6 +159,11 @@ export function AthleteMealPickerDrawer({
               >
                 ?
               </button>
+              {sessionCount > 0 && (
+                <span className="bg-lime-700/80 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                  {sessionCount} added
+                </span>
+              )}
             </DialogTitle>
             <button
               onClick={onClose}
@@ -232,6 +239,7 @@ export function AthleteMealPickerDrawer({
                   onClick={() => {
                     const mealToAdd = convertAthleteMealToMeal(am);
                     onPick(mealToAdd);
+                    setSessionCount((c) => c + 1);
                     setLastAddedId(am.id);
                     setTimeout(() => setLastAddedId((prev) => prev === am.id ? null : prev), 1500);
                   }}
