@@ -65,7 +65,7 @@ export default function Builders() {
       builderId: "anti_inflammatory",
     },
     {
-      title: "Performance Nutrition Builder",
+      title: "Performance Nutrition Hub",
       description:
         "Sport-specific fueling for athletes, fighters, and coaches — energy systems, carb timing, and recovery",
       icon: Trophy,

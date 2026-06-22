@@ -297,34 +297,6 @@ export default function LifestyleLandingPage() {
             )}
           </div>}
 
-          {/* ── Performance Nutrition card ── */}
-          <div className="relative">
-            <div
-              className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-60"
-              style={{
-                background:
-                  "radial-gradient(120% 120% at 50% 0%, rgba(251,146,60,0.5), rgba(234,88,12,0.25), rgba(0,0,0,0))",
-              }}
-            />
-            <Card
-              className="relative rounded-xl shadow-md overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 hover:scale-[1.02] bg-gradient-to-r from-black via-orange-950/40 to-black backdrop-blur-lg border border-orange-500/30 hover:shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:border-orange-400/50"
-              onClick={() => setLocation("/performance")}
-              data-testid="card-performance-nutrition"
-            >
-              <CardContent className="p-3">
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">🏋️</span>
-                    <h3 className="text-sm font-semibold text-white">Performance Nutrition</h3>
-                  </div>
-                  <p className="text-xs ml-6 text-white/80">
-                    Sport-specific fueling, energy systems, carb timing &amp; recovery for athletes
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
           {/* ── My Perfect Pregnancy card ── */}
           <div className="relative">
             <div
