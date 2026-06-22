@@ -123,6 +123,7 @@ export function AthleteMealPickerDrawer({
   const [sessionMacros, setSessionMacros] = React.useState({ cals: 0, protein: 0, carbs: 0, fat: 0 });
   const [activeList, setActiveList] = React.useState<SlotKey | null>(list);
   const [copied, setCopied] = React.useState(false);
+  const [copiedMealId, setCopiedMealId] = React.useState<string | null>(null);
   const [liveTargets, setLiveTargets] = React.useState<
     { calories: number; protein_g: number; carbs_g: number; fat_g: number } | null | undefined
   >(macroTargets);
@@ -165,6 +166,7 @@ export function AthleteMealPickerDrawer({
       setSessionCount(0);
       setSessionMacros({ cals: 0, protein: 0, carbs: 0, fat: 0 });
       setCopied(false);
+      setCopiedMealId(null);
     }
   }, [open, list]);
 
@@ -173,6 +175,16 @@ export function AthleteMealPickerDrawer({
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
+    });
+  }
+
+  function handleCopyMeal(e: React.MouseEvent, am: AthleteMeal) {
+    e.stopPropagation();
+    const starch = am.macros.starchyCarbs;
+    const text = `${am.title} — ${am.macros.kcal} cal · P ${am.macros.protein}g · S ${starch}g · F ${am.macros.fat}g`;
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedMealId(am.id);
+      setTimeout(() => setCopiedMealId((prev) => prev === am.id ? null : prev), 1500);
     });
   }
 
@@ -436,6 +448,18 @@ export function AthleteMealPickerDrawer({
                           P+V
                         </Badge>
                       )}
+                      <button
+                        onClick={(e) => handleCopyMeal(e, am)}
+                        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-white/10 text-white/50 hover:bg-white/20 hover:text-white/80 transition-all text-[9px] font-medium"
+                        aria-label="Copy meal details"
+                      >
+                        {copiedMealId === am.id ? (
+                          <Check className="h-2.5 w-2.5 text-lime-400" />
+                        ) : (
+                          <Copy className="h-2.5 w-2.5" />
+                        )}
+                        <span>{copiedMealId === am.id ? "Copied!" : "Copy"}</span>
+                      </button>
                     </div>
                   </div>
 
