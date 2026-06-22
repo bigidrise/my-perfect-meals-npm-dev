@@ -275,6 +275,83 @@ export default function PerformanceNutritionHub() {
     }
   }
 
+  // ── Deterministic protocol table (no LLM) ───────────────────────────────
+  function computeProtocolDirective(
+    todayWeight: number,
+    updatedLog: Array<{ date: string; weight: number; carbsG: number }>,
+    energy: "low" | "moderate" | "high",
+    strength: "declining" | "holding" | "increasing",
+    carbTargetG: number,
+    phase: string,
+    refeedStartWeightLb?: number | null,
+  ): string {
+    // Sort descending — most recent first
+    const sorted = [...updatedLog].sort((a, b) => b.date.localeCompare(a.date));
+    const prevWeight = sorted.length > 1 ? sorted[1].weight : null;
+
+    // Scale direction (0.4 lb threshold to filter noise)
+    const diff = prevWeight !== null ? todayWeight - prevWeight : 0;
+    const scaleDir: "down" | "flat" | "up" =
+      prevWeight === null ? "flat" :
+      diff <= -0.4 ? "down" :
+      diff >=  0.4 ? "up"   : "flat";
+
+    // Consecutive stall days from the log
+    let stallDays = 0;
+    for (let i = 0; i < sorted.length - 1; i++) {
+      if (Math.abs(sorted[i].weight - sorted[i + 1].weight) < 0.4) stallDays++;
+      else break;
+    }
+
+    const refeedTarget = carbTargetG > 0 ? Math.round(carbTargetG * 1.8) : 0;
+    const starchLine   = carbTargetG > 0 ? `${carbTargetG}g starch` : "current starch allocation";
+
+    // ── Priority 1: Post-refeed water retention ──────────────────────────
+    if (phase === "low_carb" && refeedStartWeightLb != null && scaleDir === "up" && diff <= 3.5) {
+      return `Action: Return to low-carb phase.\nExpected: +1–3 lbs from refeed is normal water retention — resolves in 48–72h. Maintain ${starchLine}.`;
+    }
+
+    // ── Priority 2: Stall confirmed (7+ days) ───────────────────────────
+    if (stallDays >= 7) {
+      const rft = refeedTarget > 0 ? `${refeedTarget}g` : "1.8× baseline";
+      return `Action: Increase starch to ${rft} for 1–2 days, then return to ${starchLine} baseline.\nExpected: +1–3 lbs (water) — resolves in 48–72h, followed by accelerated loss.`;
+    }
+
+    // ── Priority 3: Approaching stall (4–6 days) ────────────────────────
+    if (stallDays >= 4) {
+      return `Action: Maintain current protocol — day ${stallDays + 1} of flat scale.\nNote: Refeed triggers at day 7 if stall continues. Hold ${starchLine}.`;
+    }
+
+    // ── Scale DOWN ───────────────────────────────────────────────────────
+    if (scaleDir === "down") {
+      if (energy === "low" && strength === "declining") {
+        return `Action: Reduce deficit — cut cardio by one session this week or add 50–75 kcal via protein.\nNote: Scale moving correctly but recovery signals are under stress. Maintain ${starchLine}.`;
+      }
+      // All other combinations: on track
+      return `Action: Maintain current protocol.\nExpected: Scale responding correctly. Continue ${starchLine}.`;
+    }
+
+    // ── Scale FLAT (< 4 days) ────────────────────────────────────────────
+    if (scaleDir === "flat") {
+      if (energy === "low" && strength === "declining") {
+        return `Action: Increase protein intake today — target one additional lean protein source.\nNote: Hold ${starchLine} and reassess in 72h before any starch adjustment.`;
+      }
+      if (energy === "high" && strength === "increasing") {
+        return `Action: Maintain current protocol.\nNote: Performance adapting well. Scale holding is normal in early phases — ${starchLine} is appropriate.`;
+      }
+      return `Action: Maintain current protocol.\nNote: Day ${stallDays + 1} of flat scale. Continue logging daily. ${starchLine}.`;
+    }
+
+    // ── Scale UP ────────────────────────────────────────────────────────
+    if (energy === "high" && strength === "increasing") {
+      return `Action: Hold protocol — do not adjust starch.\nNote: Scale up +${diff.toFixed(1)} lbs but all performance indicators are positive. Likely glycogen or muscle. Reassess over 2 weeks. ${starchLine}.`;
+    }
+    if (energy === "low" && strength === "declining") {
+      return `Action: Audit food sources and total daily intake — recalculate baseline.\nNote: Scale up +${diff.toFixed(1)} lbs with declining performance signals. Compliance or intake tracking issue. Hold ${starchLine} until root cause is identified.`;
+    }
+    return `Action: Hold protocol and log daily this week.\nNote: Scale up +${diff.toFixed(1)} lbs — investigate adherence. Maintain ${starchLine}.`;
+  }
+
   async function evaluateProtocol() {
     if (!checkInWeight || !checkInEnergy || !checkInStrength) {
       toast({ title: "Enter all check-in values", description: "Weight, energy, and strength are required.", variant: "destructive" });
@@ -282,45 +359,50 @@ export default function PerformanceNutritionHub() {
     }
     setCheckInLoading(true);
     try {
-      const starchTarget = carbCycleData?.state.carbTargetG ?? 0;
-      const starchPhase = carbCycleData?.state.phase ?? "inactive";
-      const phaseName = activeTrack === "competition"
-        ? (compPhase?.phaseLabel ?? "unknown phase")
-        : (pCtx ? (PHASE_LABELS[pCtx.trainingPhase] ?? pCtx.trainingPhase) : "unknown phase");
-
-      // Log weight to stall detection engine
       const weightVal = parseFloat(checkInWeight);
-      if (weightVal > 0) {
-        const today = new Date().toISOString().split("T")[0];
-        const starchVal = checkInStarch ? parseFloat(checkInStarch) : (starchTarget || 0);
-        fetch(apiUrl("/api/performance/carb-cycle/log"), {
+      if (isNaN(weightVal) || weightVal <= 0) {
+        toast({ title: "Invalid weight", variant: "destructive" });
+        return;
+      }
+
+      const today = new Date().toISOString().split("T")[0];
+      const carbTargetG = carbCycleData?.state.carbTargetG ?? 0;
+      const starchVal = checkInStarch ? parseFloat(checkInStarch) : (carbTargetG || 0);
+
+      // 1. Log weight → get updated state with refreshed weightLog
+      let updatedState = carbCycleData?.state;
+      let updatedEngine = carbCycleData?.engine;
+      try {
+        const logRes = await fetch(apiUrl("/api/performance/carb-cycle/log"), {
           method: "POST",
           headers: { "Content-Type": "application/json", ...getAuthHeaders() },
           credentials: "include",
           body: JSON.stringify({ date: today, weight: weightVal, carbsG: starchVal }),
-        }).then(r => r.ok ? r.json() : null).then(data => {
-          if (data?.state) {
-            setCarbCycleData({ state: data.state, engine: data.engine });
+        });
+        if (logRes.ok) {
+          const logData = await logRes.json();
+          if (logData?.state) {
+            updatedState = logData.state;
+            updatedEngine = logData.engine;
+            setCarbCycleData({ state: logData.state, engine: logData.engine });
             sessionStorage.removeItem("mpm.carbCyclePickerState");
           }
-        }).catch(() => {});
-      }
+        }
+      } catch { /* non-blocking — still run protocol table */ }
 
-      const msg = `PROTOCOL CHECK-IN — give ONE directive only, 1–2 sentences maximum. No explanation, no preamble.
-Scale: ${checkInWeight}lbs. Energy: ${checkInEnergy}. Strength: ${checkInStrength}.
-Current competition/training phase: ${phaseName}.
-Starch phase: ${starchPhase}. Starch target: ${starchTarget > 0 ? `${starchTarget}g` : "not set"}.
-What is the protocol directive?`;
+      // 2. Deterministic protocol table — zero LLM involvement
+      const weightLog = updatedState?.weightLog ?? [];
+      const directive = computeProtocolDirective(
+        weightVal,
+        weightLog,
+        checkInEnergy as "low" | "moderate" | "high",
+        checkInStrength as "declining" | "holding" | "increasing",
+        updatedState?.carbTargetG ?? 0,
+        updatedState?.phase ?? "inactive",
+        updatedState?.refeedStartWeightLb,
+      );
 
-      const res = await fetch(apiUrl("/api/performance/ask"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        credentials: "include",
-        body: JSON.stringify({ message: msg, history: [] }),
-      });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      setCheckInResult(data.reply);
+      setCheckInResult(directive);
     } catch {
       toast({ title: "Evaluation failed", description: "Please try again.", variant: "destructive" });
     } finally {

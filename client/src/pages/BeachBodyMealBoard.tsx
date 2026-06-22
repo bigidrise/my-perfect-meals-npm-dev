@@ -1065,7 +1065,9 @@ export default function BeachBodyMealBoard() {
                   <div className="space-y-0.5">
                     <div className="text-orange-400 font-bold text-sm">🏆 Competition Prep Active</div>
                     <div className="text-white/80 text-sm">
-                      {compTypeLabels[compCtx.competitionType] ?? compCtx.competitionType}
+                      {compCtx.competitionType === "other"
+                        ? (compCtx.customSportName ?? "Custom Sport")
+                        : (compTypeLabels[compCtx.competitionType] ?? compCtx.competitionType)}
                       {weeksOut > 0 ? ` · ${weeksOut} Weeks Out` : " · Event Week"}
                     </div>
                     <div className="text-white/50 text-xs">Current Phase: {phaseLabel}</div>
@@ -1098,7 +1100,9 @@ export default function BeachBodyMealBoard() {
                   <div className="space-y-0.5">
                     <div className="text-orange-400 font-bold text-sm">⚡ Athletic Performance Active</div>
                     <div className="text-white/80 text-sm">
-                      {typeLabels[perfCtx.trainingType] ?? (perfCtx.trainingType ?? "").replace(/_/g, " ")}
+                      {perfCtx.trainingType === "other"
+                        ? (perfCtx.customSportName ?? "Custom Sport")
+                        : (typeLabels[perfCtx.trainingType] ?? (perfCtx.trainingType ?? "").replace(/_/g, " "))}
                       {` · ${freq} Sessions/Week`}
                     </div>
                     <div className="text-white/50 text-xs">Current Phase: {phase}</div>
