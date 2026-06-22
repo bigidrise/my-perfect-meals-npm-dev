@@ -117,6 +117,11 @@ export default function MyPerfectPregnancyPage() {
   const [, setLocation] = useLocation();
   const { user, refreshUser } = useAuth();
 
+  // ── Clinical paywall ─────────────────────────────────────────────────────
+  const entitlements: string[] = (user as any)?.entitlements || [];
+  const hasPregnancyAccess =
+    entitlements.includes("pregnancy") || entitlements.includes("FULL_ACCESS");
+
   // Pregnancy context — loaded from API
   const [pregnancyData, setPregnancyData] = useState<{
     stage: Stage;
@@ -214,6 +219,52 @@ export default function MyPerfectPregnancyPage() {
   };
 
   const suggestions = pregnancyData ? SUGGESTED_QUESTIONS[pregnancyData.stage] : SUGGESTED_QUESTIONS["trimester-2"];
+
+  if (!hasPregnancyAccess) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-black via-orange-950/20 to-black text-white pb-20">
+        <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl border-b border-orange-500/20">
+          <div className="flex items-center justify-between px-4 py-3">
+            <button onClick={() => setLocation("/lifestyle")} className="p-1">
+              <ArrowLeft className="w-5 h-5 text-white/70" />
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="text-base">🩷</span>
+              <span className="text-white font-semibold text-sm">My Perfect Pregnancy</span>
+            </div>
+            <div className="w-8" />
+          </div>
+        </div>
+        <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 text-center gap-6">
+          <div className="w-20 h-20 rounded-full bg-orange-600/20 border border-orange-500/30 flex items-center justify-center">
+            <Baby className="w-10 h-10 text-orange-400" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-white">My Perfect Pregnancy™</h2>
+            <p className="text-white/60 text-sm max-w-xs leading-relaxed">
+              Trimester-aware nutrition, Pregnancy Coach, food safety guidance, and pregnancy-support meal generation.
+            </p>
+          </div>
+          <div className="bg-orange-950/40 border border-orange-500/30 rounded-2xl px-5 py-4 max-w-xs w-full space-y-3">
+            <p className="text-orange-300 font-semibold text-sm">Clinical Plan Required</p>
+            <ul className="text-white/70 text-xs text-left space-y-1.5">
+              <li>✓ Trimester-specific meal protocols</li>
+              <li>✓ Pregnancy Coach (AI nutrition companion)</li>
+              <li>✓ Food safety — mercury, listeria, raw foods</li>
+              <li>✓ Symptom support: nausea, heartburn, fatigue</li>
+              <li>✓ Postpartum & breastfeeding nutrition</li>
+            </ul>
+          </div>
+          <button
+            onClick={() => setLocation("/pricing")}
+            className="bg-orange-600 hover:bg-orange-500 text-white font-semibold rounded-xl px-8 py-3 text-sm w-full max-w-xs"
+          >
+            View Clinical Plan
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-pink-950/20 to-black text-white pb-20">
