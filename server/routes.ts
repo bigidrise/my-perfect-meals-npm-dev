@@ -777,9 +777,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             macroCycleMode: users.macroCycleMode,
             macroCycleDayType: users.macroCycleDayType,
             macroMealsPerDay: users.macroMealsPerDay,
+            carbCycleState: users.carbCycleState,
           }).from(users).where(eq(users.id, userId)).limit(1);
           if (macroUser) {
-            const starchyG = macroUser.dailyStarchyCarbsTarget ?? null;
+            // If a starch response protocol is active, override the user's saved starch target
+            // with the protocol's allocation. This feeds the carb cycle directly into
+            // buildVegetableStrategy() so meal generation enforces the starch limit structurally.
+            const rawCcs = macroUser.carbCycleState as any;
+            const ccsActive = rawCcs?.phase === "low_carb" || rawCcs?.phase === "refeed";
+            const starchyG = ccsActive
+              ? (rawCcs.carbTargetG ?? macroUser.dailyStarchyCarbsTarget ?? null)
+              : (macroUser.dailyStarchyCarbsTarget ?? null);
             const fibrousG = macroUser.dailyFibrousCarbsTarget ?? null;
             const mpdVal = macroUser.macroMealsPerDay ?? 4;
             // Only inject strategy if the user has saved macro targets

@@ -69,6 +69,7 @@ function convertAthleteMealToMeal(athleteMeal: AthleteMeal): Meal {
       carbs: totalCarbs,
       fat: athleteMeal.macros.fat,
     },
+    starchyCarbs: athleteMeal.macros.starchyCarbs,
     badges: athleteMeal.tags,
   };
 }
@@ -115,15 +116,16 @@ export function AthleteMealPickerDrawer({
     }
   }, [open]);
 
-  // Filter meals by selected category, excluding any where adding the meal would push
-  // cumulative carbs more than 20% over the carb cap.
+  // Filter meals by selected category, excluding any where adding the meal's STARCH
+  // would push cumulative starch more than 20% over the starch cap.
+  // Fibrous carbs (vegetables) are never counted against the starch allocation.
   const filteredMeals = React.useMemo(() => {
     const all = getAthleteMealsByCategory(category);
     if (!isCycleActive || carbCap <= 0) return all;
     const used = carbsUsed ?? 0;
     return all.filter((am: AthleteMeal) => {
-      const mealCarbs = am.macros.starchyCarbs + am.macros.fibrousCarbs;
-      return used + mealCarbs <= carbCapSoft;
+      const mealStarch = am.macros.starchyCarbs;
+      return used + mealStarch <= carbCapSoft;
     });
   }, [category, isCycleActive, carbCap, carbCapSoft, carbsUsed]);
 
@@ -131,8 +133,8 @@ export function AthleteMealPickerDrawer({
     if (!isCycleActive || carbCap <= 0) return 0;
     const used = carbsUsed ?? 0;
     return getAthleteMealsByCategory(category).filter((am: AthleteMeal) => {
-      const mealCarbs = am.macros.starchyCarbs + am.macros.fibrousCarbs;
-      return used + mealCarbs > carbCapSoft;
+      const mealStarch = am.macros.starchyCarbs;
+      return used + mealStarch > carbCapSoft;
     }).length;
   }, [category, isCycleActive, carbCap, carbCapSoft, carbsUsed]);
 
@@ -160,15 +162,15 @@ export function AthleteMealPickerDrawer({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Carb Budget Bar — shown when carb cycle is active */}
+          {/* Starch Allocation Bar — shown when starch cycle is active */}
           {isCycleActive && carbCap > 0 && (
             <div className={`p-3 rounded-xl border ${carbCycleState?.phase === "refeed" ? "bg-green-950/30 border-green-500/30" : "bg-orange-950/30 border-orange-500/30"}`}>
               <div className="flex items-center justify-between mb-1.5">
                 <span className={`text-xs font-semibold ${carbCycleState?.phase === "refeed" ? "text-green-300" : "text-orange-300"}`}>
-                  {carbCycleState?.phase === "refeed" ? "⚡ Refeed Day" : "🔄 Low-Carb Day"} — Carb Budget
+                  {carbCycleState?.phase === "refeed" ? "⚡ Refeed Day" : "🔄 Low-Starch Day"} — Starch Allocation
                 </span>
                 <span className="text-white/60 text-xs font-semibold">
-                  {budgetPct !== null ? `${carbsUsed}g / ${carbCap}g` : `${carbCap}g cap`}
+                  {budgetPct !== null ? `${carbsUsed}g / ${carbCap}g starch` : `${carbCap}g starch cap`}
                 </span>
               </div>
               <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -178,7 +180,7 @@ export function AthleteMealPickerDrawer({
                 />
               </div>
               <p className="text-white/40 text-xs mt-1.5">
-                Meals over {carbCapSoft}g carbs are hidden for this phase
+                Fibrous vegetables are unrestricted — starch only (rice, oats, potatoes)
               </p>
             </div>
           )}
@@ -215,7 +217,8 @@ export function AthleteMealPickerDrawer({
           {/* Meal Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {filteredMeals.map((am: AthleteMeal) => {
-              const mealTotalCarbs = am.macros.starchyCarbs + am.macros.fibrousCarbs;
+              const mealStarch = am.macros.starchyCarbs;
+              const mealFibrous = am.macros.fibrousCarbs;
               return (
                 <button
                   key={am.id}
@@ -240,7 +243,7 @@ export function AthleteMealPickerDrawer({
                     <div className="flex flex-col items-end gap-1 ml-2 shrink-0">
                       {am.includeCarbs ? (
                         <Badge className="bg-green-600/80 text-white text-[10px] px-2 py-0.5">
-                          Carbs
+                          Starch
                         </Badge>
                       ) : (
                         <Badge className="bg-orange-600/80 text-white text-[10px] px-2 py-0.5">
@@ -256,8 +259,8 @@ export function AthleteMealPickerDrawer({
                   </div>
 
                   <div className="text-white/90 text-xs font-semibold leading-tight">
-                    {am.macros.kcal} kcal · P{am.macros.protein} · C
-                    {mealTotalCarbs} · F{am.macros.fat}
+                    {am.macros.kcal} kcal · P{am.macros.protein} · S{mealStarch}
+                    {mealFibrous > 0 ? ` · V${mealFibrous}` : ""} · F{am.macros.fat}
                   </div>
 
                   {am.tags?.length ? (
@@ -277,7 +280,7 @@ export function AthleteMealPickerDrawer({
             })}
             {excludedCount > 0 && (
               <p className="text-white/30 text-xs text-center col-span-full py-1">
-                {excludedCount} meal{excludedCount === 1 ? "" : "s"} hidden — over {carbCapSoft}g carb cap
+                {excludedCount} meal{excludedCount === 1 ? "" : "s"} hidden — starch would exceed {carbCapSoft}g
               </p>
             )}
           </div>
@@ -293,7 +296,7 @@ export function AthleteMealPickerDrawer({
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-xs text-white/70 ml-2">
                   <li>Select your protein category (Chicken, Red Meat, Fish, Eggs)</li>
-                  <li>Meals are tagged with "Carbs" or "P+V" (Protein + Veggies)</li>
+                  <li>Meals tagged <strong className="text-white">Starch</strong> include rice, oats, or potatoes — <strong className="text-white">P+V</strong> is protein + fibrous vegetables only</li>
                   <li>Click any meal to add it to your board instantly</li>
                   <li>All macros are pre-calculated and ready to track</li>
                 </ul>
@@ -317,7 +320,7 @@ export function AthleteMealPickerDrawer({
               <h4 className="font-semibold text-white mb-2">Steps:</h4>
               <ul className="space-y-2 text-white/80 text-sm">
                 <li><strong className="text-white">Select your protein category</strong> (Chicken, Red Meat, Fish, Eggs)</li>
-                <li><strong className="text-white">Meals are tagged</strong> with "Carbs" or "P+V" (Protein + Veggies)</li>
+                <li><strong className="text-white">Starch</strong> meals include rice, oats, or potatoes. <strong className="text-white">P+V</strong> is protein + fibrous vegetables only</li>
                 <li><strong className="text-white">Click any meal</strong> to add it to your board instantly</li>
                 <li><strong className="text-white">All macros</strong> are pre-calculated and ready to track</li>
               </ul>
@@ -326,7 +329,7 @@ export function AthleteMealPickerDrawer({
             <div className="bg-black/20 border border-white/10 rounded-lg p-3">
               <p className="font-semibold text-white mb-1">💡 Tip:</p>
               <p className="text-white/70">
-                Choose meals based on your daily carb targets - use "Carbs" meals when you need energy, and "P+V" meals for lower-carb days!
+                On low-starch days, use <strong className="text-white">P+V</strong> meals. On refeed days, add <strong className="text-white">Starch</strong> meals. Fibrous vegetables are always unlimited.
               </p>
             </div>
           </div>

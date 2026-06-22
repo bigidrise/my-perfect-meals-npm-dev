@@ -271,8 +271,8 @@ export default function PerformanceNutritionHub() {
       toast({
         title: action === "start_refeed" ? "Refeed day started" : "Low-carb phase resumed",
         description: action === "start_refeed"
-          ? `Carb target raised to ${data.state.carbTargetG}g today.`
-          : `Carb target reset to ${data.state.carbTargetG}g.`,
+          ? `Starch allocation raised to ${data.state.carbTargetG}g today.`
+          : `Starch allocation reset to ${data.state.carbTargetG}g.`,
       });
     } catch {
       toast({ title: "Could not update phase", variant: "destructive" });
@@ -738,7 +738,7 @@ export default function PerformanceNutritionHub() {
           ) : (
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-white/5 rounded-xl px-3 py-2">
-                <p className="text-white/40 text-xs">Today's Carb Target</p>
+                <p className="text-white/40 text-xs">Starch Allocation</p>
                 <p className="text-white font-bold text-2xl mt-0.5">{carbTargetG}<span className="text-sm font-normal text-white/50 ml-0.5">g</span></p>
               </div>
               {(cycleState?.fatTargetAdjustG ?? 0) > 0 && (

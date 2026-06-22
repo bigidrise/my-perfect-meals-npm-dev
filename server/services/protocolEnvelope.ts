@@ -1288,11 +1288,11 @@ ${proceduralParts.join("\n")}`;
   // ── CARB CYCLE HARD CONSTRAINT (appended to performanceIntent layer) ──────
   if (envelope.carbCycleContext) {
     const cc = envelope.carbCycleContext;
-    const phaseLabel = cc.isRefeedDay ? "REFEED DAY" : "LOW-CARB DAY";
+    const phaseLabel = cc.isRefeedDay ? "REFEED DAY — STARCH LOAD" : "LOW-STARCH DAY";
     const ccDirective = cc.isRefeedDay
-      ? `Carb budget: ${cc.carbBudgetG}g total. Prioritize complex carbohydrates (sweet potato, rice, oats, fruit) to fill the budget. This is a metabolic reset day — carbs are expected and required.`
-      : `Carb budget: ${cc.carbBudgetG}g total. Keep all carb sources at or below this budget. Prioritize protein and healthy fats. Minimize starchy carbohydrates.`;
-    layers.performanceIntent += `\n\n⚡ CARB CYCLE PROTOCOL — HARD CONSTRAINT (${phaseLabel}):\n${ccDirective}\nThis sport-nutrition hard limit operates alongside existing macro constraints and overrides general carbohydrate preferences.`;
+      ? `STARCH ALLOCATION: ${cc.carbBudgetG}g. This is a metabolic refeed. Increase starchy carbohydrates (rice, oats, potatoes, sweet potato, cream of rice) to meet the allocation. Fibrous vegetables (broccoli, spinach, zucchini, asparagus, greens) are UNRESTRICTED — do NOT reduce them. Protein target is unchanged.`
+      : `STARCH ALLOCATION: ${cc.carbBudgetG}g. This is a starch-restriction day. Keep all starchy carb sources (rice, oats, bread, pasta, potatoes, corn, beans) at or below ${cc.carbBudgetG}g total. Fibrous vegetables (broccoli, spinach, zucchini, asparagus, greens) are UNRESTRICTED and should fill volume. Protein and healthy fats are the priority.`;
+    layers.performanceIntent += `\n\n⚡ STARCH RESPONSE PROTOCOL — HARD CONSTRAINT (${phaseLabel}):\n${ccDirective}\nThis limit applies to STARCH ONLY. It does not restrict fibrous vegetables. It operates alongside existing macro constraints.`;
   }
 
   // ── TIER 6: Avoidances ────────────────────────────────────────────────────
