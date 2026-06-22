@@ -5,6 +5,7 @@ import {
   ArrowLeft, Dumbbell, Trophy, Zap, MessageSquare, Settings,
   Send, Loader2, ChevronRight, Calendar, Target, RefreshCcw,
 } from "lucide-react";
+import { LineChart, Line, ReferenceLine, ResponsiveContainer } from "recharts";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/contexts/PageTitleContext";
@@ -156,6 +157,7 @@ interface CarbCycleData {
     carbTargetG: number;
     fatTargetAdjustG: number;
     weightLog: Array<{ date: string; weight: number; carbsG: number }>;
+    refeedStartWeightLb?: number | null;
     manualOverride?: boolean;
   };
   engine: {
@@ -832,6 +834,48 @@ export default function PerformanceNutritionHub() {
                   ? `${logCount} / 7 entries — ${7 - logCount} more consecutive days to enable stall detection`
                   : `${logCount} entries logged`}
             </p>
+
+            {/* Weight trend sparkline — renders when >= 3 entries exist */}
+            {(() => {
+              const weightLog = cycleState?.weightLog ?? [];
+              const chartData = weightLog.slice(-14);
+              if (chartData.length < 3) return null;
+              const latestWeight = chartData[chartData.length - 1].weight;
+              const refeedLine = phase === "refeed" ? (cycleState?.refeedStartWeightLb ?? null) : null;
+              return (
+                <div className="mt-3 rounded-xl bg-white/5 px-3 pt-3 pb-2">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-white/40 text-xs font-semibold uppercase tracking-wide">Weight Trend</p>
+                    <p className="text-orange-300 text-sm font-bold">{latestWeight} lbs</p>
+                  </div>
+                  <ResponsiveContainer width="100%" height={64}>
+                    <LineChart data={chartData} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
+                      {refeedLine !== null && (
+                        <ReferenceLine
+                          y={refeedLine}
+                          stroke="#86efac"
+                          strokeDasharray="4 3"
+                          strokeWidth={1.5}
+                        />
+                      )}
+                      <Line
+                        type="monotone"
+                        dataKey="weight"
+                        stroke="#f97316"
+                        strokeWidth={2}
+                        dot={false}
+                        isAnimationActive={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                  {refeedLine !== null && (
+                    <p className="text-green-300/60 text-xs mt-1">
+                      — refeed start: {refeedLine} lbs
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
