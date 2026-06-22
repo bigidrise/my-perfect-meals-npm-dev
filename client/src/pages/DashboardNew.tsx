@@ -966,8 +966,9 @@ export default function DashboardNew() {
                 <div>
                   <p className="text-white font-bold text-2xl leading-none">
                     {carbTargetG}
-                    <span className="text-white/50 text-sm font-normal ml-1">g carbs today</span>
+                    <span className="text-white/50 text-sm font-normal ml-1">g starch today</span>
                   </p>
+                  <p className="text-white/30 text-[10px] mt-0.5">fibrous vegetables unrestricted</p>
                   <p className="text-white/50 text-xs mt-1">
                     Phase:{" "}
                     <span className={`font-semibold ${isRefeed ? "text-green-400" : "text-orange-300"}`}>

@@ -936,6 +936,14 @@ export default function BeachBodyMealBoard() {
       fat: Math.round(
         allMeals.reduce((sum, meal) => sum + (meal.nutrition?.fat ?? 0), 0),
       ),
+      // starchyCarbs tracks only the starchy carb allocation (rice, oats, potatoes, etc.)
+      // Fibrous carbs (vegetables) are NOT counted here — they are unrestricted.
+      starchyCarbs: Math.round(
+        allMeals.reduce(
+          (sum, meal) => sum + ((meal as any).starchyCarbs ?? (meal.nutrition as any)?.starchyCarbs ?? 0),
+          0,
+        ),
+      ),
     };
   }, [board, planningMode, activeDayISO]);
 
@@ -1726,7 +1734,7 @@ export default function BeachBodyMealBoard() {
             setPickerList(null);
           }}
           carbCycleState={carbCyclePickerState}
-          carbsUsed={totals.carbs}
+          carbsUsed={totals.starchyCarbs}
         />
 
         <WeeklyOverviewModal
