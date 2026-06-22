@@ -392,6 +392,14 @@ export default function BeachBodyMealBoard() {
     () => readCarbCycleCache()
   );
 
+  const [hasCoachLink, setHasCoachLink] = useState(false);
+
+  useEffect(() => {
+    apiRequest("/api/client/tablet")
+      .then(() => setHasCoachLink(true))
+      .catch(() => setHasCoachLink(false));
+  }, []);
+
   useEffect(() => {
     // Skip the network call when valid cached state is already available —
     // the cache is cleared by write paths so stale data won't linger.
@@ -1868,6 +1876,7 @@ export default function BeachBodyMealBoard() {
           }}
           carbCycleState={carbCyclePickerState}
           carbsUsed={totals.starchyCarbs}
+          hasCoachLink={hasCoachLink}
           macroTargets={(() => {
             const resolved = effectiveUserId ? getResolvedTargets(effectiveUserId) : null;
             if (!resolved || resolved.source === "none") return null;
