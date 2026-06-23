@@ -23,6 +23,9 @@ type TrainingType = "strength" | "hypertrophy" | "powerlifting" | "olympic_lifti
 type TrainingFrequency = "1-2" | "3-4" | "5-6" | "7+";
 type CardioFocus = "none" | "recovery" | "zone_2" | "tempo" | "threshold" | "hiit" | "mixed";
 type AthleticPhase = "off_season" | "pre_season" | "in_season" | "weight_cut" | "recovery";
+type SessionDuration = "under_30" | "30_60" | "60_90" | "90_plus";
+type RecoveryStatus = "good" | "average" | "poor";
+type AdaptationTarget = "endurance" | "recovery" | "conditioning" | "work_capacity" | "speed" | "power" | "fat_loss" | "muscle_gain";
 type CompType = "bodybuilding_show" | "mens_physique" | "classic_physique" | "figure" | "bikini" | "wellness" | "powerlifting_meet" | "strongman_competition" | "olympic_weightlifting_meet" | "fight_camp" | "wrestling_season" | "crossfit_competition" | "hyrox" | "marathon" | "triathlon_race" | "spartan_race" | "other";
 
 const ATHLETIC_GOALS: { value: AthleticGoal; label: string; desc: string }[] = [
@@ -109,7 +112,31 @@ const ATHLETIC_GROUP_KEYS: Record<string, string> = {
   "Other": "other",
 };
 
-const ATHLETIC_TOTAL = 6;
+const SESSION_DURATIONS: { value: SessionDuration; label: string; desc: string }[] = [
+  { value: "under_30", label: "Under 30 min", desc: "Short / accessory sessions" },
+  { value: "30_60",    label: "30–60 min",    desc: "Standard training block" },
+  { value: "60_90",    label: "60–90 min",    desc: "Full session with warm-up & cool-down" },
+  { value: "90_plus",  label: "90 min+",      desc: "High-volume or multi-discipline sessions" },
+];
+
+const RECOVERY_STATUSES: { value: RecoveryStatus; label: string; desc: string }[] = [
+  { value: "good",    label: "Good",    desc: "Sleeping well, low soreness, high energy" },
+  { value: "average", label: "Average", desc: "Some fatigue but manageable" },
+  { value: "poor",    label: "Poor",    desc: "Fatigued, high soreness, sleep-deprived" },
+];
+
+const ADAPTATION_TARGETS: { value: AdaptationTarget; label: string; desc: string }[] = [
+  { value: "endurance",     label: "Endurance",      desc: "Aerobic base and long-duration output" },
+  { value: "conditioning",  label: "Conditioning",   desc: "Work capacity across energy systems" },
+  { value: "speed",         label: "Speed",          desc: "Sprint performance and fast-twitch output" },
+  { value: "power",         label: "Power",          desc: "Explosive force and peak strength" },
+  { value: "work_capacity", label: "Work Capacity",  desc: "Volume tolerance and repeat-effort ability" },
+  { value: "recovery",      label: "Recovery",       desc: "Anti-inflammatory, tissue repair, CNS reset" },
+  { value: "muscle_gain",   label: "Muscle Gain",    desc: "Hypertrophy and anabolic support" },
+  { value: "fat_loss",      label: "Fat Loss",       desc: "Calorie partitioning and lean mass preservation" },
+];
+
+const ATHLETIC_TOTAL = 9;
 const COMP_TOTAL = 4;
 
 export default function PerformanceSetupModal({
@@ -129,12 +156,15 @@ export default function PerformanceSetupModal({
   const [track, setTrack] = useState<ProtocolTrack | "">(existingTrack ?? "");
 
   // Athletic fields
-  const [primaryGoal, setPrimaryGoal]     = useState<AthleticGoal | "">(existingContext?.primaryGoal ?? "");
-  const [trainingType, setTrainingType]   = useState<TrainingType | "">(existingContext?.trainingType ?? "");
-  const [frequency, setFrequency]         = useState<TrainingFrequency | "">(existingContext?.trainingFrequency ?? "");
-  const [cardioFocus, setCardioFocus]     = useState<CardioFocus | "">(existingContext?.cardioFocus ?? "");
-  const [trainingPhase, setTrainingPhase] = useState<AthleticPhase | "">(existingContext?.trainingPhase ?? "");
-  const [twoADays, setTwoADays]           = useState<boolean>(existingContext?.twoADays ?? false);
+  const [primaryGoal, setPrimaryGoal]         = useState<AthleticGoal | "">(existingContext?.primaryGoal ?? "");
+  const [trainingType, setTrainingType]       = useState<TrainingType | "">(existingContext?.trainingType ?? "");
+  const [frequency, setFrequency]             = useState<TrainingFrequency | "">(existingContext?.trainingFrequency ?? "");
+  const [cardioFocus, setCardioFocus]         = useState<CardioFocus | "">(existingContext?.cardioFocus ?? "");
+  const [trainingPhase, setTrainingPhase]     = useState<AthleticPhase | "">(existingContext?.trainingPhase ?? "");
+  const [twoADays, setTwoADays]               = useState<boolean>(existingContext?.twoADays ?? false);
+  const [sessionDuration, setSessionDuration] = useState<SessionDuration | "">(existingContext?.sessionDuration ?? "");
+  const [recoveryStatus, setRecoveryStatus]   = useState<RecoveryStatus | "">(existingContext?.recoveryStatus ?? "");
+  const [adaptationTarget, setAdaptationTarget] = useState<AdaptationTarget | "">(existingContext?.adaptationTarget ?? "");
 
   // Competition Prep fields
   const [compType, setCompType]           = useState<CompType | "">(existingCompContext?.competitionType ?? "");
@@ -163,6 +193,9 @@ export default function PerformanceSetupModal({
       if (step === 3) return !!frequency;
       if (step === 4) return !!cardioFocus;
       if (step === 5) return !!trainingPhase;
+      if (step === 6) return !!sessionDuration;
+      if (step === 7) return !!recoveryStatus;
+      if (step === 8) return !!adaptationTarget;
     }
     if (track === "competition") {
       if (step === 1) return !!compType && (compType !== "other" || !!customSportName.trim());
@@ -180,6 +213,9 @@ export default function PerformanceSetupModal({
         Object.assign(body, {
           primaryGoal, trainingType, trainingFrequency: frequency,
           cardioFocus, trainingPhase, twoADays,
+          sessionDuration:  sessionDuration  || undefined,
+          recoveryStatus:   recoveryStatus   || undefined,
+          adaptationTarget: adaptationTarget || undefined,
           customSportName: trainingType === "other" ? customSportName.trim() : undefined,
           customSportGroup: trainingType === "other" ? customSportGroup : undefined,
         });
@@ -468,6 +504,93 @@ export default function PerformanceSetupModal({
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* ── Athletic: Step 6 — Session Duration ── */}
+          {track === "athletic" && step === 6 && (
+            <div>
+              <p className="text-white font-bold text-lg mb-1">How long are your typical sessions?</p>
+              <p className="text-white/50 text-sm mb-4">Used to calculate glycogen expenditure and recovery nutrition needs.</p>
+              <div className="space-y-2">
+                {SESSION_DURATIONS.map(d => (
+                  <button
+                    key={d.value}
+                    onClick={() => setSessionDuration(d.value)}
+                    className={`w-full text-left px-4 py-3 rounded-xl border transition-colors ${
+                      sessionDuration === d.value
+                        ? "bg-orange-600/20 border-orange-400/60 text-white"
+                        : "bg-white/5 border-white/10 text-white/70"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-sm">{d.label}</p>
+                        <p className="text-xs text-white/40 mt-0.5">{d.desc}</p>
+                      </div>
+                      {sessionDuration === d.value && <Check className="w-4 h-4 text-orange-400 flex-shrink-0" />}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Athletic: Step 7 — Recovery Status ── */}
+          {track === "athletic" && step === 7 && (
+            <div>
+              <p className="text-white font-bold text-lg mb-1">How is your recovery right now?</p>
+              <p className="text-white/50 text-sm mb-4">Your current recovery state shapes protein timing, anti-inflammatory priorities, and calorie density.</p>
+              <div className="space-y-2">
+                {RECOVERY_STATUSES.map(r => (
+                  <button
+                    key={r.value}
+                    onClick={() => setRecoveryStatus(r.value)}
+                    className={`w-full text-left px-4 py-3 rounded-xl border transition-colors ${
+                      recoveryStatus === r.value
+                        ? "bg-orange-600/20 border-orange-400/60 text-white"
+                        : "bg-white/5 border-white/10 text-white/70"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-sm">{r.label}</p>
+                        <p className="text-xs text-white/40 mt-0.5">{r.desc}</p>
+                      </div>
+                      {recoveryStatus === r.value && <Check className="w-4 h-4 text-orange-400 flex-shrink-0" />}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Athletic: Step 8 — Adaptation Target ── */}
+          {track === "athletic" && step === 8 && (
+            <div>
+              <p className="text-white font-bold text-lg mb-1">What are you adapting for?</p>
+              <p className="text-white/50 text-sm mb-4">Your adaptation target drives the demand engine — every meal generated is calibrated to support this outcome.</p>
+              <div className="flex flex-wrap gap-2">
+                {ADAPTATION_TARGETS.map(a => (
+                  <PillButton
+                    key={a.value}
+                    active={adaptationTarget === a.value}
+                    onClick={() => setAdaptationTarget(a.value)}
+                  >
+                    {a.label}
+                  </PillButton>
+                ))}
+              </div>
+              {adaptationTarget && (
+                <div className="mt-4 bg-orange-950/30 border border-orange-500/20 rounded-xl px-4 py-3">
+                  <p className="text-orange-300 text-xs font-semibold mb-0.5">
+                    {ADAPTATION_TARGETS.find(a => a.value === adaptationTarget)?.label}
+                  </p>
+                  <p className="text-white/50 text-xs leading-relaxed">
+                    {ADAPTATION_TARGETS.find(a => a.value === adaptationTarget)?.desc}
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

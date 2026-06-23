@@ -62,6 +62,20 @@ router.post("/ask", async (req, res) => {
       return res.status(400).json({ error: "Message is required." });
     }
 
+    // ── Clinical paywall guard ──────────────────────────────────────────
+    if (userId && process.env.BILLING_ENFORCED === "true") {
+      const [userRow] = await db
+        .select({ entitlements: users.entitlements })
+        .from(users)
+        .where(eq(users.id, userId));
+      const entitlements: string[] = (userRow?.entitlements as string[]) || [];
+      if (!entitlements.includes("pregnancy") && !entitlements.includes("FULL_ACCESS")) {
+        return res.status(403).json({ error: "requires_upgrade", feature: "pregnancy" });
+      }
+    } else if (!userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
     // Load protocol envelope for full user context
     let envelopeContext = "";
     let pregnancyContext = "";

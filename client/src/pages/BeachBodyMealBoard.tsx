@@ -392,6 +392,14 @@ export default function BeachBodyMealBoard() {
     () => readCarbCycleCache()
   );
 
+  const [hasCoachLink, setHasCoachLink] = useState(false);
+
+  useEffect(() => {
+    apiRequest("/api/client/tablet")
+      .then(() => setHasCoachLink(true))
+      .catch(() => setHasCoachLink(false));
+  }, []);
+
   useEffect(() => {
     // Skip the network call when valid cached state is already available —
     // the cache is cleared by write paths so stale data won't linger.
@@ -1011,6 +1019,46 @@ export default function BeachBodyMealBoard() {
     );
   }
 
+  // ── Clinical paywall ─────────────────────────────────────────────────────
+  const entitlements: string[] = (user as any)?.entitlements || [];
+  const hasPerformanceAccess =
+    entitlements.includes("performance_nutrition") || entitlements.includes("FULL_ACCESS");
+
+  if (!hasPerformanceAccess) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 flex flex-col">
+        <BuilderHeader title="Performance Nutrition Builder" onOpenTour={quickTour.openTour} clientId={proClientId} />
+        <div className="flex flex-col items-center justify-center flex-1 px-6 text-center gap-6" style={{ paddingTop: "6rem" }}>
+          <div className="w-20 h-20 rounded-full bg-orange-600/20 border border-orange-500/30 flex items-center justify-center">
+            <span className="text-4xl">🏆</span>
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-white">Performance Nutrition Builder</h2>
+            <p className="text-white/60 text-sm max-w-xs leading-relaxed">
+              Sport-specific meal building with competition prep protocols, starch cycling, and performance carb targets.
+            </p>
+          </div>
+          <div className="bg-orange-950/40 border border-orange-500/30 rounded-2xl px-5 py-4 max-w-xs w-full space-y-3">
+            <p className="text-orange-300 font-semibold text-sm">Clinical Plan Required</p>
+            <ul className="text-white/70 text-xs text-left space-y-1.5">
+              <li>✓ Beach Body &amp; Hard Body meal protocols</li>
+              <li>✓ Competition prep — physique, powerlifting, combat</li>
+              <li>✓ Starch allocation &amp; carb cycling</li>
+              <li>✓ Protocol-aware meal generation</li>
+              <li>✓ Performance Nutrition Hub</li>
+            </ul>
+          </div>
+          <button
+            onClick={() => setLocation("/pricing")}
+            className="bg-orange-600 text-white font-semibold rounded-xl px-8 py-3 text-sm w-full max-w-xs"
+          >
+            View Clinical Plan
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const currentLists =
     FEATURES.dayPlanning === "alpha" && planningMode === "day" && activeDayISO
       ? getDayLists(board, activeDayISO)
@@ -1180,7 +1228,61 @@ export default function BeachBodyMealBoard() {
                 </div>
               )}
 
-            {/* ROW 5: Bottom Actions */}
+            {/* ROW 5: Daily Macro Totals vs Targets */}
+            {FEATURES.dayPlanning === "alpha" && activeDayISO && (() => {
+              const resolved = effectiveUserId ? getResolvedTargets(effectiveUserId) : null;
+              const hasTargets = resolved && resolved.source !== "none" && (
+                resolved.calories > 0 || resolved.protein_g > 0 ||
+                resolved.carbs_g > 0 || resolved.fat_g > 0
+              );
+
+              function macroColor(value: number, target: number): string {
+                if (!target) return "bg-white/10 text-white/80";
+                const pct = value / target;
+                if (pct > 1) return "bg-red-700/60 text-red-100";
+                if (pct >= 0.9) return "bg-amber-600/60 text-amber-100";
+                return "bg-lime-800/50 text-lime-100";
+              }
+
+              return (
+                <div className="flex flex-wrap items-center gap-1.5 px-1">
+                  <span className="text-white/40 text-xs font-medium shrink-0">Today:</span>
+                  {hasTargets ? (
+                    <>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${macroColor(totals.calories, resolved!.calories)}`}>
+                        {totals.calories.toLocaleString()} / {Math.round(resolved!.calories).toLocaleString()} cal
+                      </span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${macroColor(totals.protein, resolved!.protein_g)}`}>
+                        P {totals.protein} / {Math.round(resolved!.protein_g)}g
+                      </span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${macroColor(totals.carbs, resolved!.carbs_g)}`}>
+                        C {totals.carbs} / {Math.round(resolved!.carbs_g)}g
+                      </span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${macroColor(totals.fat, resolved!.fat_g)}`}>
+                        F {totals.fat} / {Math.round(resolved!.fat_g)}g
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                        {totals.calories.toLocaleString()} cal
+                      </span>
+                      <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                        P {totals.protein}g
+                      </span>
+                      <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                        C {totals.carbs}g
+                      </span>
+                      <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                        F {totals.fat}g
+                      </span>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* ROW 6: Bottom Actions */}
             <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
 
               <div className="inline-flex flex-col items-center gap-1">
@@ -1766,16 +1868,25 @@ export default function BeachBodyMealBoard() {
             setPickerOpen(false);
             setPickerList(null);
           }}
-          onPick={(meal) => {
-            if (pickerList) {
-              quickAdd(pickerList, meal);
-            }
+          onPick={(meal, slot) => {
+            quickAdd(slot, meal);
             // Keep the drawer open so the carb budget bar updates in real-time
             // as the user adds multiple meals in a single session.
             // The user closes the drawer manually via the X or backdrop dismiss.
           }}
           carbCycleState={carbCyclePickerState}
           carbsUsed={totals.starchyCarbs}
+          hasCoachLink={hasCoachLink}
+          macroTargets={(() => {
+            const resolved = effectiveUserId ? getResolvedTargets(effectiveUserId) : null;
+            if (!resolved || resolved.source === "none") return null;
+            return {
+              calories: Math.round(resolved.calories ?? 0),
+              protein_g: Math.round(resolved.protein_g ?? 0),
+              carbs_g: Math.round(resolved.carbs_g ?? 0),
+              fat_g: Math.round(resolved.fat_g ?? 0),
+            };
+          })()}
         />
 
         <WeeklyOverviewModal

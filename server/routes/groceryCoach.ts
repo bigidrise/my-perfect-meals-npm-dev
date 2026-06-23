@@ -26,6 +26,21 @@ router.post("/recommend", async (req, res) => {
       return res.status(400).json({ error: "Message is required." });
     }
 
+    // ── Pro plan paywall guard ──────────────────────────────────────────
+    if (!userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    if (process.env.BILLING_ENFORCED === "true") {
+      const [userRow] = await db
+        .select({ entitlements: users.entitlements })
+        .from(users)
+        .where(eq(users.id, userId));
+      const entitlements: string[] = (userRow?.entitlements as string[]) || [];
+      if (!entitlements.includes("grocery_coach") && !entitlements.includes("FULL_ACCESS")) {
+        return res.status(403).json({ error: "requires_upgrade", feature: "grocery_coach" });
+      }
+    }
+
     const finalServingCount = Math.max(1, Math.min(12, Number(servingCount) || 1));
     let userContext = "";
     let macroContext = "";

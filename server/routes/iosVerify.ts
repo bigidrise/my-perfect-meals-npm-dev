@@ -38,6 +38,7 @@ const PLAN_ENTITLEMENTS: Record<string, string[]> = {
     "potluck_planner",
     "holiday_feast",
     "learn_cook",
+    "grocery_coach",
   ],
   mpm_ultimate_monthly: [
     "smart_menu_builder",
@@ -54,6 +55,10 @@ const PLAN_ENTITLEMENTS: Record<string, string[]> = {
     "learn_cook",
     "lab_metrics",
     "care_team",
+    "pregnancy",
+    "getaway",
+    "grocery_coach",
+    "performance_nutrition",
   ],
 };
 

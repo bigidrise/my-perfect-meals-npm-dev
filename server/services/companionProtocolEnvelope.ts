@@ -1,5 +1,20 @@
 import { getFirewallPromptBlock } from "./companionToxicFirewall";
 
+/**
+ * ARCHITECTURE NOTE — Human Performance Layer
+ *
+ * This file is the CANINE nutrition companion protocol (dog meal generation).
+ * The human performance coach protocol lives in:
+ *   - server/routes/performanceNutrition.ts  (/ask endpoint — AI coach)
+ *   - server/services/protocolEnvelope.ts    (performanceLayer: DemandProfile | null)
+ *   - server/services/universalMedicalGuidance.ts (performance block in conditionGuidanceBlocks)
+ *
+ * The DemandProfile from shared/performanceDemandEngine.ts is wired into
+ * loadUserProtocolEnvelope() and injected into the performanceIntent prompt layer
+ * of enforceBeforeGenerate() for all human meal generators.
+ * Dog profiles do not have a human training demand profile — this is by design.
+ */
+
 export interface DogProfile {
   id: string;
   name: string;

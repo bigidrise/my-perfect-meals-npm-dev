@@ -14,7 +14,9 @@ import {
   getAthleteMealsByCategory,
   type AthleteMeal,
 } from "@/data/athleteMeals";
-import { Target } from "lucide-react";
+import { Target, Copy, Check, Send, Loader2 } from "lucide-react";
+import { getResolvedTargets } from "@/lib/macroResolver";
+import { apiRequest } from "@/lib/queryClient";
 
 function simpleHash(str: string): number {
   let hash = 0;
@@ -83,6 +85,18 @@ const CATEGORY_OPTIONS = [
   { value: "eggs_shakes", label: "🥚 Eggs & Shakes" },
 ] as const;
 
+type SlotKey = "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6";
+
+const SLOT_OPTIONS: { value: SlotKey; label: string }[] = [
+  { value: "breakfast", label: "Breakfast" },
+  { value: "lunch", label: "Lunch" },
+  { value: "dinner", label: "Dinner" },
+  { value: "snacks", label: "Snacks" },
+  { value: "meal4", label: "Meal 4" },
+  { value: "meal5", label: "Meal 5" },
+  { value: "meal6", label: "Meal 6" },
+];
+
 export function AthleteMealPickerDrawer({
   open,
   list,
@@ -90,18 +104,56 @@ export function AthleteMealPickerDrawer({
   onPick,
   carbCycleState,
   carbsUsed,
+  macroTargets,
+  userId,
+  hasCoachLink,
 }: {
   open: boolean;
-  list: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6" | null;
+  list: SlotKey | null;
   onClose: () => void;
-  onPick: (meal: Meal) => void;
+  onPick: (meal: Meal, slot: SlotKey) => void;
   carbCycleState?: { phase: string; carbTargetG: number } | null;
   carbsUsed?: number;
+  macroTargets?: { calories: number; protein_g: number; carbs_g: number; fat_g: number } | null;
+  userId?: string;
+  hasCoachLink?: boolean;
 }) {
   const [category, setCategory] =
     React.useState<AthleteMeal["category"]>(DEFAULT_CATEGORY);
   const [showInfoModal, setShowInfoModal] = React.useState(false);
   const [lastAddedId, setLastAddedId] = React.useState<string | null>(null);
+  const [sessionCount, setSessionCount] = React.useState(0);
+  const [sessionMacros, setSessionMacros] = React.useState({ cals: 0, protein: 0, carbs: 0, fat: 0 });
+  const [activeList, setActiveList] = React.useState<SlotKey | null>(list);
+  const [copied, setCopied] = React.useState(false);
+  const [copiedMealId, setCopiedMealId] = React.useState<string | null>(null);
+  const [liveTargets, setLiveTargets] = React.useState<
+    { calories: number; protein_g: number; carbs_g: number; fat_g: number } | null | undefined
+  >(macroTargets);
+  const [sendState, setSendState] = React.useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [sendError, setSendError] = React.useState<string | null>(null);
+
+  // Sync liveTargets when the prop changes (e.g. drawer reopens with fresh data)
+  React.useEffect(() => {
+    setLiveTargets(macroTargets);
+  }, [macroTargets]);
+
+  // Re-read resolved targets whenever a coach pushes an update mid-session
+  React.useEffect(() => {
+    function handleTargetsUpdated() {
+      const resolved = getResolvedTargets(userId);
+      if (resolved.source !== "none") {
+        setLiveTargets({
+          calories: resolved.calories,
+          protein_g: resolved.protein_g,
+          carbs_g: resolved.carbs_g,
+          fat_g: resolved.fat_g,
+        });
+      }
+    }
+    window.addEventListener("mpm:targetsUpdated", handleTargetsUpdated);
+    return () => window.removeEventListener("mpm:targetsUpdated", handleTargetsUpdated);
+  }, [userId]);
 
   const isCycleActive = carbCycleState?.phase === "low_carb" || carbCycleState?.phase === "refeed";
   const carbCap = isCycleActive ? (carbCycleState?.carbTargetG ?? 0) : 0;
@@ -110,13 +162,61 @@ export function AthleteMealPickerDrawer({
     ? Math.min(100, Math.round((carbsUsed / carbCap) * 100))
     : null;
 
-  // Auto-expand first category when drawer opens; reset last-added flash
+  // When drawer opens, sync activeList to the incoming list prop and reset category/flash/count/macros
   React.useEffect(() => {
     if (open) {
+      setActiveList(list);
       setCategory(DEFAULT_CATEGORY);
       setLastAddedId(null);
+      setSessionCount(0);
+      setSessionMacros({ cals: 0, protein: 0, carbs: 0, fat: 0 });
+      setCopied(false);
+      setCopiedMealId(null);
+      setSendState("idle");
+      setSendError(null);
     }
-  }, [open]);
+  }, [open, list]);
+
+  function buildSummaryText() {
+    return `${sessionCount} meal${sessionCount === 1 ? "" : "s"} added — ${sessionMacros.cals.toLocaleString()} cal · P ${sessionMacros.protein}g · C ${sessionMacros.carbs}g · F ${sessionMacros.fat}g`;
+  }
+
+  function handleCopySession() {
+    navigator.clipboard.writeText(buildSummaryText()).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
+
+  function handleCopyMeal(e: React.MouseEvent, am: AthleteMeal) {
+    e.stopPropagation();
+    const starch = am.macros.starchyCarbs;
+    const text = `${am.title} — ${am.macros.kcal} cal · P ${am.macros.protein}g · S ${starch}g · F ${am.macros.fat}g`;
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedMealId(am.id);
+      setTimeout(() => setCopiedMealId((prev) => prev === am.id ? null : prev), 1500);
+    });
+  }
+
+  async function handleSendToCoach() {
+    if (sendState === "sending" || sendState === "sent") return;
+    setSendState("sending");
+    setSendError(null);
+    try {
+      await apiRequest("/api/client/tablet/message", {
+        method: "POST",
+        body: JSON.stringify({ body: buildSummaryText() }),
+        headers: { "Content-Type": "application/json" },
+      });
+      setSendState("sent");
+      setTimeout(() => setSendState("idle"), 2500);
+    } catch (err: any) {
+      const msg = err?.message || "Failed to send";
+      setSendError(msg.includes("No active") ? "No active coach connection" : "Failed to send — try again");
+      setSendState("error");
+      setTimeout(() => { setSendState("idle"); setSendError(null); }, 3000);
+    }
+  }
 
   // Filter meals by selected category, excluding any where adding the meal's STARCH
   // would push cumulative starch more than 20% over the starch cap.
@@ -142,6 +242,8 @@ export function AthleteMealPickerDrawer({
 
   if (!open || !list) return null;
 
+  const slotLabel = SLOT_OPTIONS.find((s) => s.value === activeList)?.label ?? activeList;
+
   return (
     <>
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -149,7 +251,7 @@ export function AthleteMealPickerDrawer({
         <DialogHeader>
           <div className="flex items-center justify-between gap-2">
             <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
-              🏆 Premade Athlete Meals - Add to {list}
+              🏆 Premade Athlete Meals — {slotLabel}
               <button
                 onClick={() => setShowInfoModal(true)}
                 className="bg-lime-700 hover:bg-lime-800 border-2 border-lime-600 text-white rounded-xl w-5 h-5 flex items-center justify-center text-sm font-bold flash-border"
@@ -157,6 +259,11 @@ export function AthleteMealPickerDrawer({
               >
                 ?
               </button>
+              {sessionCount > 0 && (
+                <span className="bg-lime-700/80 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                  {sessionCount} added
+                </span>
+              )}
             </DialogTitle>
             <button
               onClick={onClose}
@@ -165,9 +272,143 @@ export function AthleteMealPickerDrawer({
               Done
             </button>
           </div>
+          {sessionCount > 0 && (
+            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+              <span className="text-white/40 text-xs font-medium">Session total:</span>
+              {(() => {
+                const hasTargets = liveTargets && (
+                  liveTargets.calories > 0 || liveTargets.protein_g > 0 ||
+                  liveTargets.carbs_g > 0 || liveTargets.fat_g > 0
+                );
+
+                function pillColor(value: number, target: number): string {
+                  if (!target) return "bg-white/10 text-white/90";
+                  const pct = value / target;
+                  if (pct > 1) return "bg-red-700/70 text-red-100";
+                  if (pct >= 0.9) return "bg-amber-600/70 text-amber-100";
+                  return "bg-lime-800/60 text-lime-100";
+                }
+
+                if (hasTargets) {
+                  return (
+                    <>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pillColor(sessionMacros.cals, liveTargets!.calories)}`}>
+                        {sessionMacros.cals.toLocaleString()} / {liveTargets!.calories.toLocaleString()} cal
+                      </span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pillColor(sessionMacros.protein, liveTargets!.protein_g)}`}>
+                        P {sessionMacros.protein} / {liveTargets!.protein_g}g
+                      </span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pillColor(sessionMacros.carbs, liveTargets!.carbs_g)}`}>
+                        C {sessionMacros.carbs} / {liveTargets!.carbs_g}g
+                      </span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pillColor(sessionMacros.fat, liveTargets!.fat_g)}`}>
+                        F {sessionMacros.fat} / {liveTargets!.fat_g}g
+                      </span>
+                    </>
+                  );
+                }
+
+                return (
+                  <>
+                    <span className="bg-white/10 text-white/90 text-xs font-semibold px-2 py-0.5 rounded-full">
+                      {sessionMacros.cals.toLocaleString()} cal
+                    </span>
+                    <span className="bg-white/10 text-white/90 text-xs font-semibold px-2 py-0.5 rounded-full">
+                      P {sessionMacros.protein}g
+                    </span>
+                    <span className="bg-white/10 text-white/90 text-xs font-semibold px-2 py-0.5 rounded-full">
+                      C {sessionMacros.carbs}g
+                    </span>
+                    <span className="bg-white/10 text-white/90 text-xs font-semibold px-2 py-0.5 rounded-full">
+                      F {sessionMacros.fat}g
+                    </span>
+                  </>
+                );
+              })()}
+              <button
+                onClick={handleCopySession}
+                className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full transition-all ${
+                  copied
+                    ? "bg-lime-700/80 text-white"
+                    : "bg-white/10 text-white/70 active:bg-white/20"
+                }`}
+                aria-label="Copy session summary to clipboard"
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-3 w-3" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3 w-3" />
+                    Copy
+                  </>
+                )}
+              </button>
+              {hasCoachLink && (
+                <button
+                  onClick={handleSendToCoach}
+                  disabled={sendState === "sending" || sendState === "sent"}
+                  className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full transition-all ${
+                    sendState === "sent"
+                      ? "bg-lime-700/80 text-white"
+                      : sendState === "error"
+                      ? "bg-red-700/70 text-red-100"
+                      : sendState === "sending"
+                      ? "bg-orange-700/60 text-orange-100"
+                      : "bg-orange-600/70 text-white active:bg-orange-600"
+                  }`}
+                  aria-label="Send session summary to coach"
+                >
+                  {sendState === "sending" ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Sending…
+                    </>
+                  ) : sendState === "sent" ? (
+                    <>
+                      <Check className="h-3 w-3" />
+                      Sent!
+                    </>
+                  ) : sendState === "error" ? (
+                    <>
+                      <Send className="h-3 w-3" />
+                      {sendError ?? "Error"}
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-3 w-3" />
+                      Send to Coach
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          )}
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Slot Switcher */}
+          <div className="bg-black/30 p-3 rounded-lg border border-white/10">
+            <p className="text-white/60 text-xs mb-2 font-medium">Adding to:</p>
+            <div className="flex flex-wrap gap-2">
+              {SLOT_OPTIONS.map((slot) => (
+                <button
+                  key={slot.value}
+                  onClick={() => setActiveList(slot.value)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-all ${
+                    activeList === slot.value
+                      ? "bg-orange-600 text-white"
+                      : "bg-white/10 text-white/70"
+                  }`}
+                >
+                  {slot.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Starch Allocation Bar — shown when starch cycle is active */}
           {isCycleActive && carbCap > 0 && (
             <div className={`p-3 rounded-xl border ${carbCycleState?.phase === "refeed" ? "bg-green-950/30 border-green-500/30" : "bg-orange-950/30 border-orange-500/30"}`}>
@@ -230,8 +471,16 @@ export function AthleteMealPickerDrawer({
                 <button
                   key={am.id}
                   onClick={() => {
+                    if (!activeList) return;
                     const mealToAdd = convertAthleteMealToMeal(am);
-                    onPick(mealToAdd);
+                    onPick(mealToAdd, activeList);
+                    setSessionCount((c) => c + 1);
+                    setSessionMacros((prev) => ({
+                      cals: prev.cals + (mealToAdd.nutrition?.calories ?? 0),
+                      protein: prev.protein + (mealToAdd.nutrition?.protein ?? 0),
+                      carbs: prev.carbs + (mealToAdd.nutrition?.carbs ?? 0),
+                      fat: prev.fat + (mealToAdd.nutrition?.fat ?? 0),
+                    }));
                     setLastAddedId(am.id);
                     setTimeout(() => setLastAddedId((prev) => prev === am.id ? null : prev), 1500);
                   }}
@@ -267,6 +516,18 @@ export function AthleteMealPickerDrawer({
                           P+V
                         </Badge>
                       )}
+                      <button
+                        onClick={(e) => handleCopyMeal(e, am)}
+                        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-white/10 text-white/50 hover:bg-white/20 hover:text-white/80 transition-all text-[9px] font-medium"
+                        aria-label="Copy meal details"
+                      >
+                        {copiedMealId === am.id ? (
+                          <Check className="h-2.5 w-2.5 text-lime-400" />
+                        ) : (
+                          <Copy className="h-2.5 w-2.5" />
+                        )}
+                        <span>{copiedMealId === am.id ? "Copied!" : "Copy"}</span>
+                      </button>
                     </div>
                   </div>
 

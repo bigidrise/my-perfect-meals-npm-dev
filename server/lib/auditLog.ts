@@ -35,7 +35,8 @@ export type AuditAction =
   | "AUTH_LOGOUT"   // Session invalidated
   | "AUTH_SIGNUP"   // New account created
   | "AUTH_RESET"    // Password reset initiated or completed
-  | "ORG_VIOLATION"; // Cross-org access attempt (blocked)
+  | "ORG_VIOLATION" // Cross-org access attempt (blocked)
+  | "AI_PROMPT_PHI"; // T1/T2 health fields embedded into an AI prompt context
 
 export interface AuditEntry {
   actor: string;               // actorUserId — the authenticated caller
