@@ -45,11 +45,15 @@ export function useNutritionSummary() {
     window.addEventListener("mpm:conditionsUpdated", invalidate);
     window.addEventListener("mpm:therapeuticUpdated", invalidate);
     window.addEventListener("mpm:glucoseUpdated", invalidate);
+    window.addEventListener("mpm:dietaryUpdated", invalidate);
+    window.addEventListener("mpm:builderUpdated", invalidate);
     return () => {
       window.removeEventListener("mpm:targetsUpdated", invalidate);
       window.removeEventListener("mpm:conditionsUpdated", invalidate);
       window.removeEventListener("mpm:therapeuticUpdated", invalidate);
       window.removeEventListener("mpm:glucoseUpdated", invalidate);
+      window.removeEventListener("mpm:dietaryUpdated", invalidate);
+      window.removeEventListener("mpm:builderUpdated", invalidate);
     };
   }, [queryClient, user?.id]);
 

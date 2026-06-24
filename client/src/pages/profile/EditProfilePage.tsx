@@ -572,6 +572,7 @@ export default function EditProfilePage() {
       }
 
       await refreshUser?.();
+      window.dispatchEvent(new CustomEvent("mpm:dietaryUpdated"));
 
       toast({
         title: "Profile updated",

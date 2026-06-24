@@ -207,6 +207,7 @@ export default function ExtendedOnboarding() {
       }
 
       await refreshUser();
+      window.dispatchEvent(new CustomEvent("mpm:builderUpdated"));
 
       // Move to Safety PIN step
       handleNext();
