@@ -550,6 +550,10 @@ async function initializeApp() {
     const carbCycleRouter = (await import("./routes/carbCycle")).default;
     app.use("/api/performance", requireAuth, carbCycleRouter);
 
+    // Nutrition Personalization Summary — read-only Protocol Envelope mirror
+    const nutritionSummaryRouter = (await import("./routes/nutritionSummary")).default;
+    app.use("/api/nutrition-summary", requireAuth, nutritionSummaryRouter);
+
     console.log("✅ [INIT] Parity routes mounted");
 
     // ── Sandbox password reset — registered BEFORE registerRoutes() so it

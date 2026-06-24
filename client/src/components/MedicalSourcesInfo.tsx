@@ -540,6 +540,70 @@ export function MedicalSourcesInfo({
             </ul>
           </section>
 
+          <section>
+            <h3 className="text-lg font-semibold text-white mb-3">
+              Protocol Priority Framework
+            </h3>
+            <p className="text-white/70 text-sm leading-relaxed mb-4">
+              When multiple health protocols are active simultaneously, My Perfect Meals resolves conflicts using a fixed priority hierarchy. Clinical safety always wins. No user preference can override a medical hard limit.
+            </p>
+            <div className="space-y-2 mb-4">
+              {[
+                { tier: "1", label: "Clinical Safety", detail: "Hard medical limits — kidney, cardiac, oncology, allergy. Never overridden.", color: "text-red-400", bg: "bg-red-500/10 border-red-500/25" },
+                { tier: "2", label: "Medical Hard Limits", detail: "Physician-assigned restrictions: blood glucose, sodium, potassium, phosphorus thresholds.", color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/25" },
+                { tier: "3", label: "Therapeutic Protocols", detail: "Anti-inflammatory, thyroid, hormone, liver, GLP-1 support layers.", color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/25" },
+                { tier: "4", label: "Performance Overlay", detail: "Athletic fueling, carbohydrate timing, sport-specific demands.", color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/25" },
+                { tier: "5", label: "Dietary Identity", detail: "Vegan, keto, gluten-free, halal, and other self-selected diet patterns.", color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/25" },
+                { tier: "6", label: "Culinary Preference", detail: "Cuisine style, heat level, ingredient likes and dislikes.", color: "text-white/50", bg: "bg-white/5 border-white/10" },
+              ].map(p => (
+                <div key={p.tier} className={`flex items-start gap-3 rounded-lg p-3 border ${p.bg}`}>
+                  <span className={`text-xs font-bold ${p.color} flex-shrink-0 mt-0.5 w-4`}>{p.tier}</span>
+                  <div>
+                    <p className={`text-sm font-semibold ${p.color}`}>{p.label}</p>
+                    <p className="text-white/50 text-xs mt-0.5 leading-snug">{p.detail}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <ul className="space-y-3">
+              <SourceItem
+                title="American Diabetes Association (ADA)"
+                description="Evidence-based standards of medical care in diabetes — the clinical foundation for blood glucose management and carbohydrate guidance"
+                url="https://diabetesjournals.org/care/issue/47/Supplement_1"
+              />
+              <SourceItem
+                title="American College of Sports Medicine (ACSM)"
+                description="Position stands on nutrition and athletic performance — the basis for performance overlay carbohydrate timing and protein guidance"
+                url="https://www.acsm.org/education-resources/trending-topics-resources/physical-activity-guidelines"
+              />
+              <SourceItem
+                title="National Kidney Foundation (NKF)"
+                description="Clinical practice guidelines for nutrition in chronic kidney disease — potassium, phosphorus, and protein limits"
+                url="https://www.kidney.org/professionals/guidelines"
+              />
+              <SourceItem
+                title="American Heart Association (AHA)"
+                description="Dietary guidelines for cardiovascular health — sodium limits, saturated fat restrictions, and heart-healthy food priorities"
+                url="https://www.heart.org/en/healthy-living/healthy-eating/eat-smart/nutrition-basics"
+              />
+              <SourceItem
+                title="American Thyroid Association (ATA)"
+                description="Clinical guidelines for thyroid disease management — medication timing, selenium, iodine, and goitrogen considerations"
+                url="https://www.thyroid.org/professionals/ata-professional-guidelines/"
+              />
+              <SourceItem
+                title="Endocrine Society"
+                description="Clinical practice guidelines for hormone optimization, menopause, and metabolic health — the basis for hormone-balancing nutrition"
+                url="https://www.endocrine.org/clinical-practice-guidelines"
+              />
+              <SourceItem
+                title="American Society of Clinical Oncology (ASCO)"
+                description="Oncology nutrition guidance — nutrient density, immune support, and symptom-aware meal planning for cancer support"
+                url="https://www.asco.org/practice-patients/cancer-topics/cancer-prevention-survivorship"
+              />
+            </ul>
+          </section>
+
           <section className="bg-amber-900/20 border border-amber-500/30 rounded-xl p-4">
             <h3 className="text-amber-400 font-semibold mb-2 flex items-center gap-2">
               <Info className="w-4 h-4" />

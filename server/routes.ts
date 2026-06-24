@@ -72,6 +72,7 @@ import groceryCoachRouter from "./routes/groceryCoach";
 import pregnancyCoachRouter from "./routes/pregnancyCoach";
 import performanceNutritionRouter from "./routes/performanceNutrition";
 import carbCycleRouter from "./routes/carbCycle";
+import nutritionSummaryRouter from "./routes/nutritionSummary";
 import alcoholLogRouter from './routes/alcohol-log';
 import vitalsBpRouter from './routes/vitals-bp';
 import proteinTargetsRouter from './routes/proteinTargets';
@@ -603,6 +604,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/pregnancy", requireAuth, pregnancyCoachRouter);
   app.use("/api/performance", requireAuth, performanceNutritionRouter);
   app.use("/api/performance", requireAuth, carbCycleRouter);
+  app.use("/api/nutrition-summary", requireAuth, nutritionSummaryRouter);
 
   // REMOVED: Duplicate route moved to top priority position
 
