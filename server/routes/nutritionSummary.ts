@@ -11,7 +11,8 @@ import { Router } from "express";
 import { requireAuth } from "../middleware/requireAuth";
 import { db } from "../db";
 import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
+import { glucoseLogs } from "../../shared/diabetes-schema";
 import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
 import {
   buildNutritionSummary,
@@ -45,6 +46,13 @@ router.get("/", requireAuth, async (req, res) => {
       .where(eq(users.id, userId))
       .limit(1);
 
+    const [latestGlucoseLog] = await db
+      .select({ value: glucoseLogs.value })
+      .from(glucoseLogs)
+      .where(eq(glucoseLogs.userId, userId))
+      .orderBy(desc(glucoseLogs.loggedAt))
+      .limit(1);
+
     const extras: UserExtrasForSummary = {
       dailyCalorieTarget:  userRow?.dailyCalorieTarget ?? null,
       dailyProteinTarget:  userRow?.dailyProteinTarget ?? null,
@@ -55,6 +63,7 @@ router.get("/", requireAuth, async (req, res) => {
       fitnessGoal:         userRow?.fitnessGoal ?? null,
       performanceContext:  userRow?.performanceContext ?? null,
       weeklyTrainingSchedule: userRow?.weeklyTrainingSchedule ?? null,
+      latestGlucose:       latestGlucoseLog?.value ?? null,
     };
 
     const summary = buildNutritionSummary(envelope, extras);

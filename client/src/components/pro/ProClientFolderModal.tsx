@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { ClientProfile, proStore } from "@/lib/proData";
 import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
-import { LayoutDashboard, Tablet, CheckCircle2, ArrowRight, Send, Loader2, Globe, FileText, MessageSquare, Trash2, Mic, Play, Pause, Square, ChevronDown, ChevronUp } from "lucide-react";
+import { LayoutDashboard, Tablet, CheckCircle2, ArrowRight, Send, Loader2, Globe, FileText, MessageSquare, Trash2, Mic, Play, Pause, Square, ChevronDown, ChevronUp, ShieldCheck } from "lucide-react";
 import StudioMetricsSnapshot from "@/components/pro/StudioMetricsSnapshot";
 import ProClientWeightSnapshot from "@/components/pro/ProClientWeightSnapshot";
 import ProClientLabsSnapshot from "@/components/pro/ProClientLabsSnapshot";
@@ -1236,6 +1236,20 @@ export default function ProClientFolderModal({
             {clientId && studioId && (
               <CycleProtocolControl studioId={studioId} clientUserId={clientId} />
             )}
+
+            <Button
+              className="w-full justify-between bg-orange-600/80 text-white hover:bg-orange-600"
+              onClick={() => {
+                onOpenChange(false);
+                onNavigate(`/pro/clients/${client.id}/nutrition-life-plan`);
+              }}
+            >
+              <span className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4" />
+                View Nutrition Life Plan
+              </span>
+              <ArrowRight className="w-4 h-4" />
+            </Button>
 
             <Button
               className="w-full justify-between bg-purple-600 text-white hover:bg-purple-700"

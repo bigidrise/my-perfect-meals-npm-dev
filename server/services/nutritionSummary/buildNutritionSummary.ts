@@ -38,6 +38,11 @@ export interface NutritionPersonalizationSummary {
       fatG: number | null;
     } | null;
   };
+  nutritionDrivers: {
+    medicalConditions: NutritionSummaryHealthItem[];
+    therapeuticInputs: Array<{ name: string; dose: string }>;
+    liveMetrics: Array<{ label: string; value: string }>;
+  } | null;
   nutritionPriorities: string[];
   compositeExplanation: string;
   conflictPolicy: string;
@@ -55,6 +60,7 @@ export interface UserExtrasForSummary {
   fitnessGoal?: string | null;
   performanceContext?: any | null;
   weeklyTrainingSchedule?: any | null;
+  latestGlucose?: number | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -544,6 +550,57 @@ export function buildNutritionSummary(
     hasAnyActiveProtocol,
   });
 
+  // ── 11. Nutrition Drivers (granular values for the expanded view) ─────────
+  const therapeuticInputsForDrivers: Array<{ name: string; dose: string }> = [];
+  if (envelope.therapeuticSupport && envelope.therapeuticSupportContext) {
+    const ctx = envelope.therapeuticSupportContext as any;
+    const allEntries = [
+      ...(ctx.hormones ?? []),
+      ...(ctx.peptides ?? []),
+      ...(ctx.medications ?? []),
+    ];
+    for (const e of allEntries) {
+      if (e && e.dose > 0) {
+        therapeuticInputsForDrivers.push({
+          name: resolveTherapeuticDisplayName(e.type ?? "", e.label),
+          dose: `${e.dose} ${e.unit ?? ""}`.trim(),
+        });
+      }
+    }
+  }
+
+  const liveMetricsForDrivers: Array<{ label: string; value: string }> = [];
+  const hasDiabeticProtocol = healthItems.some(
+    h => h.label.toLowerCase().includes("diabet") || h.label.toLowerCase().includes("blood sugar")
+  );
+  if (extras.latestGlucose != null && hasDiabeticProtocol) {
+    liveMetricsForDrivers.push({ label: "Blood Glucose", value: `${extras.latestGlucose} mg/dL` });
+  }
+  if (performanceSummary && extras.performanceContext) {
+    const pCtx = extras.performanceContext as any;
+    if (pCtx.trainingPhase) {
+      const phaseLabels: Record<string, string> = {
+        off_season: "Off-Season", pre_season: "Pre-Season", in_season: "In-Season",
+        peak: "Peak Training", weight_cut: "Weight Cut", recovery: "Recovery Phase",
+      };
+      liveMetricsForDrivers.push({ label: "Training Phase", value: phaseLabels[pCtx.trainingPhase] ?? pCtx.trainingPhase });
+    }
+    if (pCtx.trainingFrequency) {
+      liveMetricsForDrivers.push({ label: "Training Frequency", value: `${pCtx.trainingFrequency}× / week` });
+    }
+  }
+  if (pregnancySummary && envelope.pregnancySupportContext) {
+    const pregCtx = envelope.pregnancySupportContext as any;
+    if (pregCtx.weekOfPregnancy) {
+      liveMetricsForDrivers.push({ label: "Pregnancy Week", value: `Week ${pregCtx.weekOfPregnancy}` });
+    }
+  }
+
+  const nutritionDrivers =
+    healthItems.length > 0 || therapeuticInputsForDrivers.length > 0 || liveMetricsForDrivers.length > 0
+      ? { medicalConditions: healthItems, therapeuticInputs: therapeuticInputsForDrivers, liveMetrics: liveMetricsForDrivers }
+      : null;
+
   return {
     activeInputs: {
       health: healthItems,
@@ -555,12 +612,51 @@ export function buildNutritionSummary(
       goal: goalLabel,
       macros,
     },
+    nutritionDrivers,
     nutritionPriorities: allPriorities.slice(0, 8),
     compositeExplanation,
     conflictPolicy: CONFLICT_POLICY,
     hasAnyActiveProtocol,
     meta: { generatedAt },
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// THERAPEUTIC DISPLAY NAME RESOLVER
+// ─────────────────────────────────────────────────────────────────────────────
+
+function resolveTherapeuticDisplayName(type: string, label?: string): string {
+  if (label) return label;
+  const map: Record<string, string> = {
+    "testosterone-cypionate": "Testosterone Cypionate",
+    "testosterone-enanthate": "Testosterone Enanthate",
+    "testosterone-propionate": "Testosterone Propionate",
+    "estradiol": "Estradiol",
+    "estradiol-valerate": "Estradiol Valerate",
+    "progesterone": "Progesterone",
+    "hgh": "Growth Hormone (HGH)",
+    "dhea": "DHEA",
+    "thyroid-t3": "T3 (Liothyronine)",
+    "thyroid-t4": "T4 (Levothyroxine)",
+    "thyroid-t3-t4": "T3/T4 Combo",
+    "bpc-157": "BPC-157",
+    "tb-500": "TB-500",
+    "sermorelin": "Sermorelin",
+    "ipamorelin": "Ipamorelin / CJC-1295",
+    "ghk-cu": "GHK-Cu",
+    "pt-141": "PT-141",
+    "nad+": "NAD+",
+    "mk-677": "MK-677 (Ibutamoren)",
+    "prednisone": "Prednisone",
+    "metformin": "Metformin",
+    "semaglutide": "Semaglutide",
+    "tirzepatide": "Tirzepatide",
+    "tamoxifen": "Tamoxifen",
+    "anastrozole": "Anastrozole",
+    "letrozole": "Letrozole",
+    "clomid": "Clomiphene (Clomid)",
+  };
+  return map[type.toLowerCase()] ?? type.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
