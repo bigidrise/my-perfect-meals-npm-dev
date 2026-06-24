@@ -99,38 +99,21 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
   const moderateItems = activeInputs.health.filter(h => h.priority === "moderate");
   const allHealthItems = [...highItems, ...moderateItems];
 
-  type ChipCategory = "clinical" | "performance" | "pregnancy" | "therapeutic" | "diet" | "cuisine" | "goal";
+  type ChipCategory = "diet" | "cuisine" | "builder" | "goal";
 
   const allChips: { label: string; category: ChipCategory }[] = [
-    ...highItems.map(h => ({ label: h.label, category: "clinical" as const })),
-    ...moderateItems.map(h => ({ label: h.label, category: "clinical" as const })),
-    ...(activeInputs.pregnancy
-      ? [{ label: activeInputs.pregnancy.label + (activeInputs.pregnancy.detail ? ` · ${activeInputs.pregnancy.detail}` : ""), category: "pregnancy" as const }]
-      : []),
-    ...(activeInputs.performance
-      ? [{ label: activeInputs.performance.label + (activeInputs.performance.detail ? ` · ${activeInputs.performance.detail}` : ""), category: "performance" as const }]
-      : []),
-    ...(activeInputs.therapeutic
-      ? [{ label: activeInputs.therapeutic.label + (activeInputs.therapeutic.detail ? ` · ${activeInputs.therapeutic.detail}` : ""), category: "therapeutic" as const }]
-      : []),
     ...activeInputs.dietary.map(d => ({ label: d, category: "diet" as const })),
     ...(activeInputs.cuisine ? [{ label: activeInputs.cuisine, category: "cuisine" as const }] : []),
+    ...(data.mealBuilderLabel ? [{ label: data.mealBuilderLabel, category: "builder" as const }] : []),
     ...(activeInputs.goal ? [{ label: activeInputs.goal, category: "goal" as const }] : []),
   ];
 
   const CHIP_COLORS: Record<ChipCategory, string> = {
-    clinical:    "bg-orange-500/15 border-orange-500/30 text-orange-300",
-    performance: "bg-blue-500/15 border-blue-500/30 text-blue-300",
-    pregnancy:   "bg-pink-500/15 border-pink-500/30 text-pink-300",
-    therapeutic: "bg-violet-500/15 border-violet-500/30 text-violet-300",
-    diet:        "bg-emerald-500/12 border-emerald-500/25 text-emerald-300",
-    cuisine:     "bg-amber-500/12 border-amber-500/25 text-amber-300",
-    goal:        "bg-white/8 border-white/15 text-white/60",
+    diet:    "bg-emerald-500/15 border-emerald-500/30 text-emerald-300",
+    cuisine: "bg-amber-500/15 border-amber-500/30 text-amber-300",
+    builder: "bg-indigo-500/15 border-indigo-500/30 text-indigo-300",
+    goal:    "bg-orange-500/15 border-orange-500/30 text-orange-300",
   };
-
-  const VISIBLE_CAP = 5;
-  const visibleChips = expanded ? allChips : allChips.slice(0, VISIBLE_CAP);
-  const hiddenCount  = allChips.length - VISIBLE_CAP;
 
   const hasTherapeuticInputs = (nutritionDrivers?.therapeuticInputs?.length ?? 0) > 0;
   const hasLiveMetrics       = (nutritionDrivers?.liveMetrics?.length ?? 0) > 0;
@@ -156,7 +139,7 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
       {/* ── Active Input Chips ── */}
       {allChips.length > 0 && (
         <div className="px-4 pb-3 flex flex-wrap gap-1.5">
-          {visibleChips.map((chip, i) => (
+          {allChips.map((chip, i) => (
             <span
               key={i}
               className={`text-[11px] border rounded-full px-2.5 py-0.5 font-medium ${CHIP_COLORS[chip.category]}`}
@@ -164,14 +147,6 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
               {chip.label}
             </span>
           ))}
-          {!expanded && hiddenCount > 0 && (
-            <button
-              onClick={() => setExpanded(true)}
-              className="text-[11px] bg-white/8 border border-white/15 text-white/45 rounded-full px-2.5 py-0.5 font-medium"
-            >
-              +{hiddenCount} more
-            </button>
-          )}
         </div>
       )}
 

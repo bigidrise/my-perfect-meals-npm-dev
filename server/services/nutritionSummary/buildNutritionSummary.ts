@@ -65,6 +65,7 @@ export interface UserExtrasForSummary {
   weeklyTrainingSchedule?: any | null;
   latestGlucose?: number | null;
   selectedMealBuilder?: string | null;
+  activeBoard?: string | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -617,9 +618,8 @@ export function buildNutritionSummary(
       ? { medicalConditions: healthItems, therapeuticInputs: therapeuticInputsForDrivers, liveMetrics: liveMetricsForDrivers }
       : null;
 
-  const mealBuilderLabel = extras.selectedMealBuilder
-    ? (BUILDER_LABEL_MAP[extras.selectedMealBuilder] ?? null)
-    : null;
+  const builderSlug = extras.selectedMealBuilder || extras.activeBoard || null;
+  const mealBuilderLabel = builderSlug ? (BUILDER_LABEL_MAP[builderSlug] ?? null) : null;
 
   return {
     activeInputs: {
