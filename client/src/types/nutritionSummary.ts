@@ -1,4 +1,5 @@
 export interface NutritionSummaryHealthItem {
+  key: string;
   label: string;
   priority: "high" | "moderate";
 }
@@ -19,6 +20,8 @@ export interface NutritionPersonalizationSummary {
       fatG: number | null;
     } | null;
   };
+  dietaryIdentity: string[];
+  mealBuilderLabel: string | null;
   nutritionDrivers: {
     medicalConditions: NutritionSummaryHealthItem[];
     therapeuticInputs: Array<{ name: string; dose: string }>;
