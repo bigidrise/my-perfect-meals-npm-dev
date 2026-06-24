@@ -27,6 +27,8 @@ export interface NutritionPersonalizationSummary {
     health: NutritionSummaryHealthItem[];
     performance: { label: string; detail: string } | null;
     pregnancy: { label: string; detail: string } | null;
+    therapeutic: { label: string; detail: string } | null;
+    cuisine: string | null;
     dietary: string[];
     goal: string | null;
     macros: {
@@ -57,7 +59,6 @@ export interface UserExtrasForSummary {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONDITION → LABEL MAP
-// Mirrors ProtocolVisibilityPanel's PROTOCOL_MAP, server-side.
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface ConditionEntry {
@@ -74,8 +75,8 @@ const CONDITION_MAP: Record<string, ConditionEntry> = {
   "diabetes-type2":   { label: "Type 2 Diabetes Support", priority: "high",     priorities: ["Blood sugar management", "Low-glycemic food choices"] },
   prediabetes:        { label: "Prediabetes Support",     priority: "high",     priorities: ["Blood sugar awareness", "Reduced refined carbohydrates"] },
   // GLP-1
-  "glp-1":            { label: "GLP-1 Protocol",          priority: "high",     priorities: ["Portion control", "High protein, low fat meals", "No carbonated beverages"] },
-  glp1:               { label: "GLP-1 Protocol",          priority: "high",     priorities: ["Portion control", "High protein, low fat meals", "No carbonated beverages"] },
+  "glp-1":            { label: "GLP-1 Protocol",          priority: "high",     priorities: ["Portion density priority", "High protein, low fat meals", "No carbonated beverages"] },
+  glp1:               { label: "GLP-1 Protocol",          priority: "high",     priorities: ["Portion density priority", "High protein, low fat meals", "No carbonated beverages"] },
   // Anti-inflammatory
   "anti-inflammatory":{ label: "Anti-Inflammatory Diet",  priority: "high",     priorities: ["Anti-inflammatory foods", "No seed oils", "Omega-3 priority"] },
   "anti_inflammatory":{ label: "Anti-Inflammatory Diet",  priority: "high",     priorities: ["Anti-inflammatory foods", "No seed oils", "Omega-3 priority"] },
@@ -109,6 +110,8 @@ const CONDITION_MAP: Record<string, ConditionEntry> = {
   gout:               { label: "Gout Support",            priority: "moderate", priorities: ["Low purine foods", "Uric acid management"] },
   // Pregnancy
   "pregnancy-support":{ label: "Pregnancy Nutrition",    priority: "high",     priorities: ["Prenatal nutrient priority", "Food safety focus", "Folate and iron support"] },
+  // Therapeutic support (fallback — detail filled from entries below)
+  "therapeutic-support": { label: "Therapeutic Support", priority: "moderate", priorities: ["Therapeutic nutrition support"] },
 };
 
 const DIET_LABEL_MAP: Record<string, string> = {
@@ -124,6 +127,26 @@ const DIET_LABEL_MAP: Record<string, string> = {
   kosher: "Kosher",
   carnivore: "Carnivore",
   mediterranean: "Mediterranean",
+};
+
+const CUISINE_LABEL_MAP: Record<string, string> = {
+  mexican:      "Mexican Cuisine",
+  italian:      "Italian Cuisine",
+  asian:        "Asian Cuisine",
+  japanese:     "Japanese Cuisine",
+  chinese:      "Chinese Cuisine",
+  indian:       "Indian Cuisine",
+  mediterranean:"Mediterranean Cuisine",
+  middle_eastern:"Middle Eastern Cuisine",
+  thai:         "Thai Cuisine",
+  greek:        "Greek Cuisine",
+  french:       "French Cuisine",
+  american:     "American Cuisine",
+  southern:     "Southern Cuisine",
+  caribbean:    "Caribbean Cuisine",
+  african:      "African Cuisine",
+  korean:       "Korean Cuisine",
+  vietnamese:   "Vietnamese Cuisine",
 };
 
 const PERFORMANCE_OVERLAY_LABELS: Record<string, string> = {
@@ -150,9 +173,7 @@ const FITNESS_GOAL_LABELS: Record<string, string> = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PRIORITY → PRIORITY STRING MAP
-// Each active condition contributes nutrition priorities to the bullet list.
-// Duplicates are removed. Order is: clinical safety first, then performance.
+// PRIORITY STRING MAPS
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PERFORMANCE_OVERLAY_PRIORITIES: Record<string, string[]> = {
@@ -160,6 +181,31 @@ const PERFORMANCE_OVERLAY_PRIORITIES: Record<string, string[]> = {
   competition_prep: ["Competition-phase nutrition", "Body composition management", "Peak performance fueling"],
   recovery:         ["Recovery nutrition support", "Anti-inflammatory foods", "Protein for tissue repair"],
   recomp:           ["Protein priority for recomposition", "Calorie-controlled performance fuel", "Body composition optimization"],
+};
+
+const PERF_GOAL_PRIORITIES: Record<string, string[]> = {
+  fat_loss:    ["Calorie-controlled performance fuel", "Body composition management"],
+  muscle_gain: ["Anabolic muscle-building nutrition", "Caloric surplus for growth"],
+  maintenance: [],
+  performance: ["Peak output and power fueling", "Glycogen replenishment strategy"],
+};
+
+const PERF_PHASE_PRIORITIES: Record<string, string[]> = {
+  off_season:  ["Volume-focused base building", "Nutrient density for recovery"],
+  pre_season:  ["Conditioning ramp-up nutrition", "Carbohydrate periodization"],
+  in_season:   ["Performance maintenance nutrition", "Competition-day fuel timing"],
+  weight_cut:  ["Controlled deficit with muscle preservation", "Hydration optimization"],
+  recovery:    ["Recovery nutrition support", "Anti-inflammatory food focus"],
+};
+
+const CARDIO_FOCUS_PRIORITIES: Record<string, string[]> = {
+  zone_2:    ["Zone 2 cardio fat oxidation support"],
+  hiit:      ["High-intensity glycolytic fuel replenishment"],
+  threshold: ["Lactate threshold nutrition support"],
+  tempo:     ["Aerobic efficiency fueling"],
+  none:      [],
+  recovery:  [],
+  mixed:     ["Mixed-zone cardio fuel strategy"],
 };
 
 const GOAL_PRIORITIES: Record<string, string[]> = {
@@ -170,6 +216,139 @@ const GOAL_PRIORITIES: Record<string, string[]> = {
 
 const CONFLICT_POLICY =
   "Clinical safety requirements always take priority when protocols conflict.";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// THERAPEUTIC ENTRY → PRIORITY MAPPING
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface TherapeuticEntry {
+  type: string;
+  dose: number;
+  unit: string;
+  frequency?: string;
+  label?: string;
+  custom?: boolean;
+}
+
+function buildTherapeuticSummary(ctx: {
+  peptides: TherapeuticEntry[];
+  hormones: TherapeuticEntry[];
+  medications: TherapeuticEntry[];
+  therapies: string[];
+  recoveryGoals: string[];
+} | null): { label: string; detail: string; priorities: string[] } | null {
+  if (!ctx) return null;
+
+  const activeHormones = ctx.hormones.filter(e => e.dose > 0);
+  const activePeptides = ctx.peptides.filter(e => e.dose > 0);
+  const activeMeds     = ctx.medications.filter(e => e.dose > 0);
+
+  const hasAny = activeHormones.length > 0 || activePeptides.length > 0 || activeMeds.length > 0 || ctx.therapies.length > 0;
+  if (!hasAny) return null;
+
+  const priorities: string[] = [];
+  const labels: string[] = [];
+
+  // Hormones
+  for (const h of activeHormones) {
+    const t = h.type.toLowerCase();
+    if (t.startsWith("testosterone")) {
+      labels.push(h.label ?? "Testosterone Therapy");
+      if (!priorities.includes("Muscle preservation and anabolic nutrition support"))
+        priorities.push("Muscle preservation and anabolic nutrition support");
+      if (!priorities.includes("Protein-first meal construction"))
+        priorities.push("Protein-first meal construction");
+      if (!priorities.includes("Healthy fat support for hormone production"))
+        priorities.push("Healthy fat support for hormone production");
+    } else if (t.includes("hgh") || t.includes("growth-hormone")) {
+      labels.push(h.label ?? "HGH");
+      if (!priorities.includes("Anabolic recovery nutrition"))
+        priorities.push("Anabolic recovery nutrition");
+    } else if (t.includes("estradiol") || t.includes("progesterone")) {
+      labels.push(h.label ?? "Hormone Therapy");
+      if (!priorities.includes("Hormone-supportive nutrition"))
+        priorities.push("Hormone-supportive nutrition");
+    } else if (t.includes("dhea")) {
+      labels.push(h.label ?? "DHEA");
+      if (!priorities.includes("Adrenal-supportive nutrition"))
+        priorities.push("Adrenal-supportive nutrition");
+    } else if (t.includes("t3") || t.includes("liothyronine")) {
+      labels.push(h.label ?? "T3 Therapy");
+      if (!priorities.includes("Metabolic rate nutritional support"))
+        priorities.push("Metabolic rate nutritional support");
+    } else {
+      labels.push(h.label ?? h.type);
+      if (!priorities.includes("Hormone-optimized macronutrient ratio"))
+        priorities.push("Hormone-optimized macronutrient ratio");
+    }
+  }
+
+  // Peptides
+  const recoveryPeptides = ["bpc-157", "tb-500", "ghk-cu"];
+  for (const p of activePeptides) {
+    const t = p.type.toLowerCase();
+    labels.push(p.label ?? p.type.toUpperCase());
+    if (recoveryPeptides.some(r => t.includes(r))) {
+      if (!priorities.includes("Recovery-optimized food selection"))
+        priorities.push("Recovery-optimized food selection");
+      if (!priorities.includes("Anti-inflammatory food emphasis"))
+        priorities.push("Anti-inflammatory food emphasis");
+    } else if (t.includes("sermorelin") || t.includes("ipamorelin") || t.includes("cjc")) {
+      if (!priorities.includes("Growth hormone support nutrition"))
+        priorities.push("Growth hormone support nutrition");
+    } else if (t.includes("nad")) {
+      if (!priorities.includes("Cellular energy and mitochondrial nutrition support"))
+        priorities.push("Cellular energy and mitochondrial nutrition support");
+    } else {
+      if (!priorities.includes("Peptide-compatible nutritional support"))
+        priorities.push("Peptide-compatible nutritional support");
+    }
+  }
+
+  // Medications
+  for (const m of activeMeds) {
+    const t = m.type.toLowerCase();
+    labels.push(m.label ?? m.type);
+    if (t.includes("semaglutide") || t.includes("ozempic") || t.includes("tirzepatide") || t.includes("mounjaro")) {
+      if (!priorities.includes("GLP-1 medication compatibility"))
+        priorities.push("GLP-1 medication compatibility");
+      if (!priorities.includes("Portion density priority"))
+        priorities.push("Portion density priority");
+      if (!priorities.includes("Nutrient density over volume"))
+        priorities.push("Nutrient density over volume");
+    } else if (t.includes("metformin")) {
+      if (!priorities.includes("Blood sugar management"))
+        priorities.push("Blood sugar management");
+    } else if (t.includes("prednisone")) {
+      if (!priorities.includes("Sodium and potassium awareness"))
+        priorities.push("Sodium and potassium awareness");
+      if (!priorities.includes("Blood sugar stability under corticosteroid therapy"))
+        priorities.push("Blood sugar stability under corticosteroid therapy");
+    } else if (t.includes("tamoxifen") || t.includes("anastrozole")) {
+      if (!priorities.includes("Estrogen-aware food selection"))
+        priorities.push("Estrogen-aware food selection");
+    } else {
+      if (!priorities.includes("Medication-compatible nutrition support"))
+        priorities.push("Medication-compatible nutrition support");
+    }
+  }
+
+  // Therapies
+  if (ctx.therapies.length > 0) {
+    if (!priorities.includes("Recovery-optimized food selection"))
+      priorities.push("Recovery-optimized food selection");
+  }
+
+  // Build summary label + detail
+  const uniqueLabels = [...new Set(labels)];
+  const detail = uniqueLabels.slice(0, 3).join(", ") + (uniqueLabels.length > 3 ? ` +${uniqueLabels.length - 3} more` : "");
+
+  return {
+    label: "Therapeutic Support",
+    detail,
+    priorities,
+  };
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN BUILDER
@@ -198,11 +377,9 @@ export function buildNutritionSummary(
     }
   };
 
-  // Pull from all condition sources the envelope assembled
   for (const c of envelope.medicalHardLimits) checkCondition(c);
   for (const c of envelope.medicalOptimization) checkCondition(c);
 
-  // Specialty conditions (thyroid, hormone, pregnancy, etc.)
   if (envelope.thyroidSupport) {
     const key = envelope.thyroidType ?? "thyroid-support";
     checkCondition(key);
@@ -211,7 +388,6 @@ export function buildNutritionSummary(
     }
   }
   if (envelope.hormoneOptimization) checkCondition("hormone-optimization");
-  // menopause / perimenopause come through medicalOptimization already
 
   // ── 2. Performance ────────────────────────────────────────────────────────
   let performanceSummary: { label: string; detail: string } | null = null;
@@ -220,17 +396,18 @@ export function buildNutritionSummary(
     const overlayLabel = PERFORMANCE_OVERLAY_LABELS[overlayKey] ?? overlayKey;
     let detail = "";
     const pCtx = extras.performanceContext;
+
     if (pCtx?.trainingType) {
       const typeLabels: Record<string, string> = {
-        strength: "Strength Training", powerlifting: "Powerlifting", bodybuilding: "Bodybuilding",
-        crossfit: "CrossFit", running: "Running", cycling: "Cycling", swimming: "Swimming",
-        basketball: "Basketball", soccer: "Soccer", baseball: "Baseball", football: "Football",
-        volleyball: "Volleyball", tennis: "Tennis", martial_arts: "Martial Arts", other: pCtx.customSportName ?? "Custom Sport",
+        strength: "Strength Training", powerlifting: "Powerlifting", hypertrophy: "Hypertrophy",
+        bodybuilding: "Bodybuilding", crossfit: "CrossFit", endurance_running: "Running",
+        cycling: "Cycling", triathlon: "Triathlon", mma: "MMA", boxing: "Boxing",
+        wrestling: "Wrestling", bjj: "BJJ", tactical: "Tactical", general_fitness: "General Fitness",
+        swimming: "Swimming", basketball: "Basketball", soccer: "Soccer", other: pCtx.customSportName ?? "Custom Sport",
       };
       detail = typeLabels[pCtx.trainingType] ?? pCtx.trainingType;
     }
 
-    // Check today's session if weekly schedule exists
     if (extras.weeklyTrainingSchedule?.schedule) {
       const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
       const todayKey = days[new Date().getDay()];
@@ -250,6 +427,23 @@ export function buildNutritionSummary(
     const perfPriorities = PERFORMANCE_OVERLAY_PRIORITIES[overlayKey] ?? [];
     for (const p of perfPriorities) {
       if (!allPriorities.includes(p)) allPriorities.push(p);
+    }
+
+    // Deepen from performanceContext fields
+    if (extras.performanceContext) {
+      const pCtx = extras.performanceContext;
+      const goalPriorities = PERF_GOAL_PRIORITIES[pCtx.primaryGoal ?? ""] ?? [];
+      for (const p of goalPriorities) {
+        if (!allPriorities.includes(p)) allPriorities.push(p);
+      }
+      const phasePriorities = PERF_PHASE_PRIORITIES[pCtx.trainingPhase ?? ""] ?? [];
+      for (const p of phasePriorities) {
+        if (!allPriorities.includes(p)) allPriorities.push(p);
+      }
+      const cardioPriorities = CARDIO_FOCUS_PRIORITIES[pCtx.cardioFocus ?? ""] ?? [];
+      for (const p of cardioPriorities) {
+        if (!allPriorities.includes(p)) allPriorities.push(p);
+      }
     }
   }
 
@@ -274,14 +468,35 @@ export function buildNutritionSummary(
     }
   }
 
-  // ── 4. Dietary identity ───────────────────────────────────────────────────
+  // ── 4. Therapeutic support ────────────────────────────────────────────────
+  let therapeuticSummary: { label: string; detail: string } | null = null;
+  if (envelope.therapeuticSupport && envelope.therapeuticSupportContext) {
+    const result = buildTherapeuticSummary(envelope.therapeuticSupportContext);
+    if (result) {
+      therapeuticSummary = { label: result.label, detail: result.detail };
+      for (const p of result.priorities) {
+        if (!allPriorities.includes(p)) allPriorities.push(p);
+      }
+    }
+  }
+
+  // ── 5. Dietary identity ───────────────────────────────────────────────────
   const dietItems: string[] = [];
   for (const d of envelope.dietaryIdentity) {
     const label = DIET_LABEL_MAP[d.toLowerCase().trim()];
     if (label && !dietItems.includes(label)) dietItems.push(label);
   }
 
-  // ── 5. Goal ───────────────────────────────────────────────────────────────
+  // ── 6. Cuisine preference ─────────────────────────────────────────────────
+  let cuisineLabel: string | null = null;
+  if (envelope.cuisinePreference) {
+    const key = envelope.cuisinePreference.toLowerCase().replace(/\s+/g, "_");
+    cuisineLabel = CUISINE_LABEL_MAP[key] ?? (
+      envelope.cuisinePreference.charAt(0).toUpperCase() + envelope.cuisinePreference.slice(1) + " Cuisine"
+    );
+  }
+
+  // ── 7. Goal ───────────────────────────────────────────────────────────────
   let goalLabel: string | null = null;
   if (extras.goalType) {
     goalLabel = GOAL_LABELS[extras.goalType] ?? null;
@@ -293,7 +508,7 @@ export function buildNutritionSummary(
     goalLabel = FITNESS_GOAL_LABELS[extras.fitnessGoal] ?? extras.fitnessGoal;
   }
 
-  // ── 6. Macros ─────────────────────────────────────────────────────────────
+  // ── 8. Macros ─────────────────────────────────────────────────────────────
   const hasMacros =
     extras.dailyCalorieTarget ||
     extras.dailyProteinTarget ||
@@ -309,18 +524,20 @@ export function buildNutritionSummary(
       }
     : null;
 
-  // ── 7. hasAnyActiveProtocol ───────────────────────────────────────────────
+  // ── 9. hasAnyActiveProtocol ───────────────────────────────────────────────
   const hasAnyActiveProtocol =
     healthItems.length > 0 ||
     !!performanceSummary ||
     !!pregnancySummary ||
+    !!therapeuticSummary ||
     (dietItems.length > 0 && dietItems.some(d => ![""].includes(d)));
 
-  // ── 8. Composite explanation ──────────────────────────────────────────────
+  // ── 10. Composite explanation ─────────────────────────────────────────────
   const compositeExplanation = buildCompositeExplanation({
     healthItems,
     performanceSummary,
     pregnancySummary,
+    therapeuticSummary,
     dietItems,
     goalLabel,
     nutritionPriorities: allPriorities,
@@ -332,6 +549,8 @@ export function buildNutritionSummary(
       health: healthItems,
       performance: performanceSummary,
       pregnancy: pregnancySummary,
+      therapeutic: therapeuticSummary,
+      cuisine: cuisineLabel,
       dietary: dietItems,
       goal: goalLabel,
       macros,
@@ -346,20 +565,20 @@ export function buildNutritionSummary(
 
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPOSITE EXPLANATION BUILDER
-// Deterministic template — no AI. Reads active inputs and fills a template.
 // ─────────────────────────────────────────────────────────────────────────────
 
 function buildCompositeExplanation(args: {
   healthItems: NutritionSummaryHealthItem[];
   performanceSummary: { label: string; detail: string } | null;
   pregnancySummary: { label: string; detail: string } | null;
+  therapeuticSummary: { label: string; detail: string } | null;
   dietItems: string[];
   goalLabel: string | null;
   nutritionPriorities: string[];
   hasAnyActiveProtocol: boolean;
 }): string {
   const {
-    healthItems, performanceSummary, pregnancySummary,
+    healthItems, performanceSummary, pregnancySummary, therapeuticSummary,
     dietItems, goalLabel, nutritionPriorities, hasAnyActiveProtocol,
   } = args;
 
@@ -367,35 +586,26 @@ function buildCompositeExplanation(args: {
     return "Your meals are personalized using your dietary preferences and macro targets. Every meal generated respects your active food choices and nutritional goals.";
   }
 
-  const parts: string[] = [];
-
-  // Collect all active inputs into a natural-language list
   const activeNames: string[] = [
     ...healthItems.map(h => h.label),
     ...(pregnancySummary ? [pregnancySummary.label] : []),
     ...(performanceSummary ? [performanceSummary.label + (performanceSummary.detail ? ` (${performanceSummary.detail})` : "")] : []),
+    ...(therapeuticSummary ? [therapeuticSummary.label + (therapeuticSummary.detail ? ` (${therapeuticSummary.detail})` : "")] : []),
     ...(dietItems.length > 0 ? [`${dietItems.join(", ")} dietary rules`] : []),
     ...(goalLabel ? [`${goalLabel} goal`] : []),
   ];
 
   const nameStr = formatList(activeNames);
-
-  // Priorities list
   const topPriorities = nutritionPriorities.slice(0, 6);
   const priorityStr = topPriorities.length > 0
     ? formatList(topPriorities.map(p => p.toLowerCase()))
     : "your active nutritional needs";
 
-  if (activeNames.length === 1) {
-    parts.push(`Because you have ${nameStr} active, your meals will prioritize ${priorityStr}.`);
-  } else {
-    parts.push(`Because you have ${nameStr} active simultaneously, your meals will prioritize ${priorityStr}.`);
-  }
+  const sentence = activeNames.length === 1
+    ? `Because you have ${nameStr} active, your meals will prioritize ${priorityStr}.`
+    : `Because you have ${nameStr} active simultaneously, your meals will prioritize ${priorityStr}.`;
 
-  // Always append conflict policy
-  parts.push(CONFLICT_POLICY);
-
-  return parts.join(" ");
+  return `${sentence} ${CONFLICT_POLICY}`;
 }
 
 function formatList(items: string[]): string {

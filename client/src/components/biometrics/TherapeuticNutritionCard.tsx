@@ -456,6 +456,8 @@ export default function TherapeuticNutritionCard() {
         month: "short", day: "numeric", year: "numeric",
       }));
 
+      window.dispatchEvent(new Event("mpm:therapeuticUpdated"));
+
       if (data.modalContent) {
         setModalContent(data.modalContent);
       } else {
