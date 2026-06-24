@@ -144,12 +144,12 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
         onClick={() => setExpanded(o => !o)}
         className="w-full flex items-center justify-between px-4 py-2.5 border-t border-white/8 active:bg-white/5 transition-colors select-none"
       >
-        <span className="text-[11px] font-semibold text-white/50">
+        <span className="text-[11px] font-semibold text-orange-400">
           {expanded ? "Show less" : "See how your meals are being built"}
         </span>
         {expanded
-          ? <ChevronUp className="w-3.5 h-3.5 text-white/30 flex-shrink-0" />
-          : <ChevronDown className="w-3.5 h-3.5 text-white/30 flex-shrink-0" />
+          ? <ChevronUp className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
+          : <ChevronDown className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
         }
       </button>
 
