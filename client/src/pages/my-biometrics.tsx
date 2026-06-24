@@ -86,6 +86,7 @@ import { JustDescribeItModal } from "@/components/JustDescribeItModal";
 import { getCurrentUser } from "@/lib/auth";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ClinicalLabsCard from "@/components/biometrics/ClinicalLabsCard";
+import TherapeuticNutritionCard from "@/components/biometrics/TherapeuticNutritionCard";
 import MacroConsistencyTimeline from "@/components/biometrics/MacroConsistencyTimeline";
 import { hasFeature } from "@/lib/entitlements";
 import { isClinicalOrAbove } from "@/lib/subscriptionCheck";
@@ -2498,6 +2499,9 @@ export default function MyBiometrics() {
             </Card>
           )
         )}
+
+        {/* THERAPEUTIC NUTRITION INTELLIGENCE */}
+        <TherapeuticNutritionCard />
 
         {/* WATER LOG */}
         <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl">

@@ -216,6 +216,8 @@ async function initializeApp() {
           // Adaptive Performance Nutrition — Sprint 1
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS weekly_training_schedule jsonb`);
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_protocol_config jsonb`);
+          // Therapeutic Nutrition Intelligence — Sprint 4
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS therapeutic_support_context jsonb`);
           // LMS content tables
           await database.execute(sql`
             CREATE TABLE IF NOT EXISTS cert_modules (
@@ -553,6 +555,10 @@ async function initializeApp() {
     // Nutrition Personalization Summary — read-only Protocol Envelope mirror
     const nutritionSummaryRouter = (await import("./routes/nutritionSummary")).default;
     app.use("/api/nutrition-summary", requireAuth, nutritionSummaryRouter);
+
+    // Therapeutic Nutrition Intelligence — Sprint 4
+    const therapeuticSetupRouter = (await import("./routes/therapeuticSetup")).default;
+    app.use("/api/therapeutic", requireAuth, therapeuticSetupRouter);
 
     console.log("✅ [INIT] Parity routes mounted");
 
