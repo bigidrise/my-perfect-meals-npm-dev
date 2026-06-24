@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Dumbbell, Trophy, Zap, Settings,
-  Loader2, ChevronRight, Target, RefreshCcw, CheckCircle2, Send, Check,
+  Loader2, ChevronRight, Target, RefreshCcw, CheckCircle2, Send, Check, Copy,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -385,6 +385,7 @@ export default function PerformanceNutritionHub() {
   const [hasCoachLink, setHasCoachLink] = useState(false);
   const [sendState, setSendState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [sendError, setSendError] = useState<string | null>(null);
+  const [protocolCopied, setProtocolCopied] = useState(false);
 
   // ── Clinical paywall ─────────────────────────────────────────────────────
   const entitlements: string[] = (user as any)?.entitlements || [];
@@ -1467,6 +1468,24 @@ export default function PerformanceNutritionHub() {
       : (pCtx ? (PHASE_LABELS[pCtx.trainingPhase] ?? pCtx.trainingPhase) : "—");
     const canEvaluate = !!checkInWeight && !!checkInEnergy && !!checkInStrength;
 
+    function buildProtocolSummaryText(): string {
+      const lines: string[] = ["🏋️ My Performance Protocol"];
+      lines.push(`Track: ${trackLabel}`);
+      lines.push(`Phase: ${currentPhaseLabel}`);
+      lines.push(`Starch Allocation: ${starchTarget > 0 ? `${starchTarget}g` : "Not set"}`);
+      lines.push(`Starch Phase: ${starchPhase === "low_carb" ? "Low-Carb" : starchPhase === "refeed" ? "Refeed" : "Inactive"}`);
+      if (pCtx?.primaryGoal) lines.push(`Goal: ${GOAL_LABELS[pCtx.primaryGoal] ?? pCtx.primaryGoal}`);
+      if (pCtx?.trainingType) lines.push(`Sport/Type: ${TYPE_LABELS[pCtx.trainingType] ?? pCtx.trainingType}`);
+      return lines.join("\n");
+    }
+
+    function handleCopyProtocol() {
+      navigator.clipboard.writeText(buildProtocolSummaryText()).then(() => {
+        setProtocolCopied(true);
+        setTimeout(() => setProtocolCopied(false), 1500);
+      });
+    }
+
     return (
       <div className="space-y-4">
 
@@ -1474,7 +1493,18 @@ export default function PerformanceNutritionHub() {
         <div className="rounded-2xl bg-black/50 border border-white/10 p-4 space-y-3">
           <div className="flex items-center gap-2">
             <Target className="w-4 h-4 text-orange-400" />
-            <p className="text-white font-bold text-sm">Active Protocol</p>
+            <p className="text-white font-bold text-sm flex-1">Active Protocol</p>
+            <button
+              onClick={handleCopyProtocol}
+              className="flex items-center gap-1 bg-white/10 hover:bg-white/15 rounded-full px-3 py-1 text-xs font-semibold text-white transition-colors"
+              aria-label="Copy protocol summary to clipboard"
+            >
+              {protocolCopied ? (
+                <><Check className="h-3 w-3 text-green-400" /><span className="text-green-400">Copied!</span></>
+              ) : (
+                <><Copy className="h-3 w-3" />Copy</>
+              )}
+            </button>
           </div>
           <div className="grid grid-cols-2 gap-2">
             {[
