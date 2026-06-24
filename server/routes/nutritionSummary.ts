@@ -47,10 +47,10 @@ router.get("/", requireAuth, async (req, res) => {
       .limit(1);
 
     const [latestGlucoseLog] = await db
-      .select({ value: glucoseLogs.value })
+      .select({ value: glucoseLogs.valueMgdl })
       .from(glucoseLogs)
       .where(eq(glucoseLogs.userId, userId))
-      .orderBy(desc(glucoseLogs.loggedAt))
+      .orderBy(desc(glucoseLogs.recordedAt))
       .limit(1);
 
     const extras: UserExtrasForSummary = {
