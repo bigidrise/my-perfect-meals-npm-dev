@@ -238,6 +238,7 @@ export default function MealBuilderSelection() {
 
       setConfirmedBuilder(selected);
       await refreshUser();
+      window.dispatchEvent(new CustomEvent("mpm:builderUpdated"));
 
       toast({
         title: "Builder Updated",
