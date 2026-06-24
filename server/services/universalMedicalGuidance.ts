@@ -16,6 +16,8 @@
  */
 
 import type { DemandProfile } from "../../shared/performanceDemandEngine";
+import { buildTherapeuticGuidanceBlocks } from "./therapeuticGuidance";
+import type { TherapeuticSupportCtx } from "./therapeuticGuidance";
 
 export type OncologySymptom =
   | "low_appetite"
@@ -90,6 +92,8 @@ export interface UniversalGuidanceInput {
     currentWeight?: string;
     targetWeight?: string;
   } | null;
+  /** Therapeutic Nutrition Intelligence context — active when "therapeutic-support" is in specialtyConditions. */
+  therapeuticSupportContext?: TherapeuticSupportCtx | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -607,6 +611,11 @@ ${pCtx.trainingPhase === "recovery" ? "RECOVERY PHASE: Prioritize anti-inflammat
 ${pCtx.twoADays ? "2-A-DAYS: This athlete trains twice per day. Intermediate recovery meals between sessions are critical — suggest quick-digesting carb + protein options (rice cakes + turkey, banana + Greek yogurt, etc.)." : ""}
 HARD BLOCKS: NO processed fast food, deep-fried foods, or sugar-dense meals as primary output unless user explicitly describes a treat meal. NO alcohol in any performance-focused meal.
 TONE: Frame meals as "fueling," "recovery," "pre-training," or "post-training" where relevant. Science-informed, practical, no supplements mentioned.`.trim());
+  }
+
+  if (input.therapeuticSupportContext) {
+    const therapeuticBlocks = buildTherapeuticGuidanceBlocks(input.therapeuticSupportContext);
+    blocks.push(...therapeuticBlocks);
   }
 
   if (input.metabolicRecovery) {
