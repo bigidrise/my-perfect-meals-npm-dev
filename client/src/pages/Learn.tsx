@@ -292,6 +292,57 @@ const SECTION_START_HERE: LibraryTopic[] = [
 
 const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
   {
+    id: "nutrition-personalization-summary",
+    title: "How Your Nutrition Is Being Built",
+    subtitle: "The Protocol Envelope explained",
+    icon: Shield,
+    content: {
+      sections: [
+        {
+          heading: "What Is the Nutrition Personalization Summary?",
+          text: "At the top of your dashboard you'll see a card called \"How Your Nutrition Is Being Built.\" This is your window into the Protocol Envelope — the system My Perfect Meals uses to assemble all of your active health inputs before generating any meal.",
+        },
+        {
+          heading: "What It Reads",
+          text: "The card reads every active input from your profile simultaneously:",
+          list: [
+            "Health protocols — diabetes, cardiac, renal, oncology, GLP-1, anti-inflammatory, and more",
+            "Therapeutic protocols — thyroid, hormone optimization, menopause, liver, metabolic recovery",
+            "Performance overlay — athletic fueling, carbohydrate timing, sport-specific demands",
+            "Pregnancy nutrition — trimester-aware nutrients, food safety, prenatal priorities",
+            "Dietary identity — vegan, keto, gluten-free, halal, and all self-selected diet patterns",
+            "Goal — fat loss, muscle building, maintenance",
+            "Macro targets — your daily calorie, protein, carb, and fat numbers",
+          ],
+        },
+        {
+          heading: "Why This Card Always Shows",
+          text: "Even if you have no health protocols active, the card shows your baseline: dietary identity and macro targets. It always tells you what is shaping your meals — never leaves you guessing.",
+        },
+        {
+          heading: "The Protocol Priority Framework",
+          text: "When multiple protocols are active at the same time, the system resolves conflicts using a fixed six-tier hierarchy:",
+          list: [
+            "1 — Clinical Safety: Hard medical limits (kidney, cardiac, oncology, allergy). Never overridden.",
+            "2 — Medical Hard Limits: Blood glucose, sodium, potassium, phosphorus thresholds.",
+            "3 — Therapeutic Protocols: Anti-inflammatory, thyroid, hormone, liver, GLP-1 layers.",
+            "4 — Performance Overlay: Athletic fueling, carbohydrate timing, sport demands.",
+            "5 — Dietary Identity: Vegan, keto, gluten-free, halal, and other self-selected patterns.",
+            "6 — Culinary Preference: Cuisine style, heat level, ingredient likes and dislikes.",
+          ],
+        },
+        {
+          heading: "No New Protocol Logic",
+          text: "The Nutrition Personalization Summary does not create or modify any protocols. It only reads what already exists. Everything you see in that card was already being applied to every meal you generated — the card just makes it visible.",
+        },
+        {
+          heading: "The Conflict Policy",
+          text: "One rule governs all conflicts: clinical safety requirements always take priority. A sodium limit from cardiac protocol will always override a cuisine preference for salty foods. A renal phosphorus cap will always override a high-protein performance target. The hierarchy is fixed and cannot be altered by user settings.",
+        },
+      ],
+    },
+  },
+  {
     id: "meal-generation",
     title: "How Meal Generation Works",
     subtitle: "AI, macros, and real-time creation",
@@ -402,7 +453,7 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
         {
           heading: "Where It Is Applied",
           list: [
-            "All six diet builders — Anti-Inflammatory, Diabetic, Metabolic Med, General Nutrition, Performance, Beach Body",
+            "All six diet builders — Anti-Inflammatory, Diabetic, Metabolic Med, General Nutrition, Performance, Performance Nutrition",
             "Weekly AI Meal Planner",
             "Craving Creator",
             "Fridge Rescue",
@@ -555,7 +606,7 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
         },
         {
           heading: "Works Across All Builders",
-          text: "This shopping system is the same across every meal builder in the app — Weekly, Metabolic Med, Anti-Inflammatory, Diabetic, Performance, Beach Body, and General Nutrition. Same experience, no matter which builder you use.",
+          text: "This shopping system is the same across every meal builder in the app — Weekly, Metabolic Med, Anti-Inflammatory, Diabetic, Performance, Performance Nutrition, and General Nutrition. Same experience, no matter which builder you use.",
         },
         {
           heading: "Your List Syncs Automatically",

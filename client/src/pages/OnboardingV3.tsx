@@ -404,6 +404,7 @@ export default function OnboardingV3() {
               ? []
               : [dietaryStyle === "custom" ? customDietInput.trim().toLowerCase() : dietaryStyle];
           await saveProfile({ dietaryRestrictions: restrictions }, "dietary_style");
+          window.dispatchEvent(new CustomEvent("mpm:dietaryUpdated"));
           break;
         }
         case 6:

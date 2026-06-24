@@ -465,6 +465,17 @@ export const users = pgTable("users", {
     activatedAt: string | null;
     updatedAt: string | null;
   }>(),
+  // Therapeutic Nutrition Intelligence — hormone / peptide / medication context (JSONB).
+  // Active when "therapeutic-support" is in specialtyConditions.
+  // Stacks on top of medical safety layers — never overrides them.
+  // Null = therapeutic support not yet configured.
+  therapeuticSupportContext: jsonb("therapeutic_support_context").$type<{
+    peptides: Array<{ type: string; dose: number; unit: string; frequency?: string; label?: string; custom?: boolean }>;
+    hormones: Array<{ type: string; dose: number; unit: string; frequency?: string; label?: string; custom?: boolean }>;
+    medications: Array<{ type: string; dose: number; unit: string; frequency?: string; label?: string; custom?: boolean }>;
+    therapies: string[];
+    recoveryGoals: string[];
+  }>(),
   // Competition Prep Protocol — date-driven prep context (JSONB).
   // Active when "competition-prep" is in specialtyConditions.
   // Event date is the safeguard — protocol ends automatically at event date.
@@ -494,6 +505,34 @@ export const users = pgTable("users", {
     weightLog: Array<{ date: string; weight: number; carbsG: number }>;
     lastUpdated: string;
     manualOverride?: boolean;
+  }>(),
+  // Adaptive Performance Nutrition — weekly training schedule.
+  // Stores day-of-week → session type mapping + current training phase.
+  // Drives performanceProtocolResolver to compute daily macro targets.
+  // Null = schedule not yet configured by user.
+  weeklyTrainingSchedule: jsonb("weekly_training_schedule").$type<{
+    monday: "strength" | "power" | "endurance" | "sport_practice" | "competition" | "recovery" | "off";
+    tuesday: "strength" | "power" | "endurance" | "sport_practice" | "competition" | "recovery" | "off";
+    wednesday: "strength" | "power" | "endurance" | "sport_practice" | "competition" | "recovery" | "off";
+    thursday: "strength" | "power" | "endurance" | "sport_practice" | "competition" | "recovery" | "off";
+    friday: "strength" | "power" | "endurance" | "sport_practice" | "competition" | "recovery" | "off";
+    saturday: "strength" | "power" | "endurance" | "sport_practice" | "competition" | "recovery" | "off";
+    sunday: "strength" | "power" | "endurance" | "sport_practice" | "competition" | "recovery" | "off";
+    trainingPhase: "stabilization" | "strength" | "power" | "peaking" | "in_season" | "off_season";
+    activatedAt: string;
+    updatedAt: string;
+  }>(),
+  // Adaptive Performance Nutrition — protocol configuration.
+  // Stores baseline macro targets + per-session-type modifiers generated at setup.
+  // Modifiers are goal-driven (fat_loss / muscle_gain / performance / maintenance).
+  // Null = protocol not yet activated.
+  performanceProtocolConfig: jsonb("performance_protocol_config").$type<{
+    baselineCalories: number;
+    baselineProteinG: number;
+    baselineCarbsG: number;
+    baselineFatG: number;
+    sessionModifiers: Record<string, { carbsAdjustG: number; caloriesAdjustKcal: number; proteinAdjustG: number; }>;
+    generatedAt: string;
   }>(),
   // Flags 'request_support' intent for future professional follow-up surfacing
   needsProfessionalFollowup: boolean("needs_professional_followup").default(false),

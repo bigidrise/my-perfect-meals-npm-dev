@@ -83,7 +83,7 @@ export const PLAN_SKUS: PlanSku[] = [
       "Clinical Lab Results Integration — blood work adjusts your meal protocols automatically",
       "Care Team Access — connect to a physician or trainer within the app",
       "Athlete Beverage Creator (calibrated to training phases)",
-      "Beach Body / Hard Body Meal Builder",
+      "Performance Nutrition Builder",
       "Competition Prep Builder",
       "Clinical Advisory System",
     ],

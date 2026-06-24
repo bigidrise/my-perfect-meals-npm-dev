@@ -16,7 +16,7 @@ import {
 import { endLink, getActiveLink } from "../services/clientLinkService";
 import { deactivateProCareClient } from "../services/procareActivation";
 import { studios } from "../db/schema/studio";
-import { AuthenticatedRequest } from "../middleware/requireAuth";
+import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { requireWorkspaceAccess, WorkspaceRequest } from "../middleware/requireWorkspaceAccess";
 import { getWeekBoard, upsertWeekBoard } from "../data/weekBoardsRepo";
 import { getWeekStartISO } from "../utils/week";
@@ -25,6 +25,11 @@ import { assertSameOrg, handleOrgIsolationError } from "../lib/orgIsolation";
 import { logAudit, getClientIp } from "../lib/auditLog";
 import { isOncologySupportEnabled, type OncologySupportContext } from "../services/guardrails/prompt/oncologySupportPromptBuilder";
 import { z } from "zod";
+import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
+import {
+  buildNutritionSummary,
+  type UserExtrasForSummary,
+} from "../services/nutritionSummary/buildNutritionSummary";
 
 const router = Router();
 
@@ -914,6 +919,108 @@ router.get("/clients/:clientId/nutrition-strategy", async (req: any, res) => {
   } catch (error) {
     console.error("❌ [nutrition-strategy] Error:", error);
     return res.status(500).json({ error: "Failed to fetch nutrition strategy" });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/pro/clients/:clientId/nutrition-summary
+// Read-only. Mirrors nutrition-summary DTO — coaches + physicians see all fields
+// including therapeutic doses (Option A policy, read-only).
+// ─────────────────────────────────────────────────────────────────────────────
+router.get("/clients/:clientId/nutrition-summary", requireAuth, async (req, res) => {
+  try {
+    const callerId = getUserId(req);
+    if (!callerId) return res.status(401).json({ error: "Unauthorized" });
+
+    const { clientId } = req.params;
+
+    const [callerProAccount] = await db
+      .select({ id: proAccounts.id, role: proAccounts.role })
+      .from(proAccounts)
+      .where(eq(proAccounts.userId, callerId))
+      .limit(1);
+    if (!callerProAccount) return res.status(403).json({ error: "Pro account required" });
+
+    try {
+      await assertSameOrg(callerId, clientId);
+    } catch (err) {
+      return handleOrgIsolationError(err, res);
+    }
+
+    const [link] = await db
+      .select({ id: clientLinks.id })
+      .from(clientLinks)
+      .where(
+        and(
+          eq(clientLinks.proUserId, callerId),
+          eq(clientLinks.clientUserId, clientId),
+          eq(clientLinks.active, true)
+        )
+      )
+      .limit(1);
+    if (!link) return res.status(403).json({ error: "No active client relationship" });
+
+    const envelope = await loadUserProtocolEnvelope(clientId);
+    if (!envelope) return res.status(404).json({ error: "Client not found" });
+
+    const [userRow] = await db
+      .select({
+        dailyCalorieTarget:     (users as any).dailyCalorieTarget,
+        dailyProteinTarget:     (users as any).dailyProteinTarget,
+        dailyCarbTarget:        (users as any).dailyCarbsTarget,
+        dailyFatTarget:         (users as any).dailyFatTarget,
+        goalType:               (users as any).goalType,
+        goalTarget:             (users as any).goalTarget,
+        fitnessGoal:            users.fitnessGoal,
+        performanceContext:     users.performanceContext,
+        weeklyTrainingSchedule: (users as any).weeklyTrainingSchedule,
+        selectedMealBuilder:    users.selectedMealBuilder,
+        activeBoard:            users.activeBoard,
+      })
+      .from(users)
+      .where(eq(users.id, clientId))
+      .limit(1);
+
+    const [latestGlucoseLog] = await db
+      .select({ value: glucoseLogs.valueMgdl })
+      .from(glucoseLogs)
+      .where(eq(glucoseLogs.userId, clientId))
+      .orderBy(desc(glucoseLogs.recordedAt))
+      .limit(1);
+
+    const extras: UserExtrasForSummary = {
+      dailyCalorieTarget:     userRow?.dailyCalorieTarget ?? null,
+      dailyProteinTarget:     userRow?.dailyProteinTarget ?? null,
+      dailyCarbTarget:        userRow?.dailyCarbTarget ?? null,
+      dailyFatTarget:         userRow?.dailyFatTarget ?? null,
+      goalType:               userRow?.goalType ?? null,
+      goalTarget:             userRow?.goalTarget ?? null,
+      fitnessGoal:            userRow?.fitnessGoal ?? null,
+      performanceContext:     userRow?.performanceContext ?? null,
+      weeklyTrainingSchedule: userRow?.weeklyTrainingSchedule ?? null,
+      latestGlucose:          latestGlucoseLog?.value ?? null,
+      selectedMealBuilder:    userRow?.selectedMealBuilder ?? null,
+      activeBoard:            userRow?.activeBoard ?? null,
+    };
+
+    const summary = buildNutritionSummary(envelope, extras);
+
+    logAudit({
+      actor: callerId,
+      target: clientId,
+      orgId: (req as any).authUser?.organizationId ?? null,
+      action: "READ",
+      resourceType: "nutrition_life_plan",
+      table: "users,glucose_logs",
+      route: req.path,
+      ip: getClientIp(req as any),
+      meta: { callerRole: callerProAccount.role ?? "coach", hasDrivers: !!summary.nutritionDrivers },
+    });
+
+    return res.json(summary);
+  } catch (error) {
+    console.error("❌ [nutrition-summary/pro] Error:", error);
+    return res.status(500).json({ error: "Failed to fetch client nutrition summary" });
   }
 });
 

@@ -86,6 +86,7 @@ import { JustDescribeItModal } from "@/components/JustDescribeItModal";
 import { getCurrentUser } from "@/lib/auth";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ClinicalLabsCard from "@/components/biometrics/ClinicalLabsCard";
+import TherapeuticNutritionCard from "@/components/biometrics/TherapeuticNutritionCard";
 import MacroConsistencyTimeline from "@/components/biometrics/MacroConsistencyTimeline";
 import { hasFeature } from "@/lib/entitlements";
 import { isClinicalOrAbove } from "@/lib/subscriptionCheck";
@@ -189,7 +190,7 @@ export default function MyBiometrics() {
       icon: "📐",
       title: "Body Composition Tracking",
       description:
-        "Track your body fat percentage from scans like DEXA, BodPod, Calipers, or Smart Scale. Your body composition data syncs with the Macro Calculator and can adjust starchy carb allocation for Beach Body and Performance builders.",
+        "Track your body fat percentage from scans like DEXA, BodPod, Calipers, or Smart Scale. Your body composition data syncs with the Macro Calculator and can adjust starchy carb allocation for Performance Nutrition and Performance builders.",
     },
   ];
 
@@ -2498,6 +2499,9 @@ export default function MyBiometrics() {
             </Card>
           )
         )}
+
+        {/* THERAPEUTIC NUTRITION INTELLIGENCE */}
+        <TherapeuticNutritionCard />
 
         {/* WATER LOG */}
         <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl">

@@ -38,9 +38,9 @@ export const PROFESSIONAL_BUILDER_MAP: Record<
   beach_body: {
     key: "beach_body",
     role: "both",
-    label: "Performance Nutrition",
+    label: "Performance Nutrition Builder",
     proRoute: "beach-body-builder",
-    description: "Lean physique and fat-loss focused meal planning.",
+    description: "Sport-specific fueling — energy systems, carb timing, and recovery for athletes.",
   },
   performance_competition: {
     key: "performance_competition",

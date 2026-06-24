@@ -127,7 +127,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
           performanceContext: userData.performanceContext ?? null,
           competitionPrepContext: userData.competitionPrepContext ?? null,
           activeProtocolTrack: userData.activeProtocolTrack ?? null,
+          weeklyTrainingSchedule: userData.weeklyTrainingSchedule ?? null,
+          performanceProtocolConfig: userData.performanceProtocolConfig ?? null,
         };
+        if (userData.weeklyTrainingSchedule && userData.performanceProtocolConfig) {
+          const uid = String(updatedUser.id);
+          localStorage.setItem(`mpm.perfProtocol.${uid}`, JSON.stringify({
+            schedule: userData.weeklyTrainingSchedule,
+            config: userData.performanceProtocolConfig,
+          }));
+        }
         if (userData.oncologySupportIntent) {
           localStorage.setItem("mpm:oncologySupportIntent", userData.oncologySupportIntent);
         } else {

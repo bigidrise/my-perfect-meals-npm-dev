@@ -213,6 +213,11 @@ async function initializeApp() {
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS active_protocol_track text`);
           // Carb Response Engine — boot migration
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS carb_cycle_state jsonb`);
+          // Adaptive Performance Nutrition — Sprint 1
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS weekly_training_schedule jsonb`);
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_protocol_config jsonb`);
+          // Therapeutic Nutrition Intelligence — Sprint 4
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS therapeutic_support_context jsonb`);
           // LMS content tables
           await database.execute(sql`
             CREATE TABLE IF NOT EXISTS cert_modules (
@@ -546,6 +551,14 @@ async function initializeApp() {
     // Carb Response Engine — carb cycle state, log, and override
     const carbCycleRouter = (await import("./routes/carbCycle")).default;
     app.use("/api/performance", requireAuth, carbCycleRouter);
+
+    // Nutrition Personalization Summary — read-only Protocol Envelope mirror
+    const nutritionSummaryRouter = (await import("./routes/nutritionSummary")).default;
+    app.use("/api/nutrition-summary", requireAuth, nutritionSummaryRouter);
+
+    // Therapeutic Nutrition Intelligence — Sprint 4
+    const therapeuticSetupRouter = (await import("./routes/therapeuticSetup")).default;
+    app.use("/api/therapeutic", requireAuth, therapeuticSetupRouter);
 
     console.log("✅ [INIT] Parity routes mounted");
 

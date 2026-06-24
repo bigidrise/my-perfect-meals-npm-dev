@@ -604,6 +604,30 @@ export interface UserProtocolEnvelope {
    * NEVER overrides Tiers 1–4. Medical safety always wins.
    */
   performanceLayer: DemandProfile | null;
+
+  /**
+   * Therapeutic Nutrition Intelligence active flag.
+   * True when "therapeutic-support" is in the user's specialtyConditions array.
+   * Guidance blocks are injected into conditionGuidanceBlocks automatically.
+   * Tier 3 — below Clinical Safety, above Performance and Preferences.
+   */
+  therapeuticSupport: boolean;
+
+  /** The active meal builder slug (e.g. "weekly", "diabetic", "beach_body").
+   * Null when not yet selected. */
+  selectedMealBuilder: string | null;
+
+  /**
+   * Therapeutic Support context — peptides, hormones, medications, therapies, recoveryGoals.
+   * Null when therapeutic support is not active.
+   */
+  therapeuticSupportContext: {
+    peptides: { type: string; dose: number; unit: string; frequency?: string; label?: string; custom?: boolean }[];
+    hormones: { type: string; dose: number; unit: string; frequency?: string; label?: string; custom?: boolean }[];
+    medications: { type: string; dose: number; unit: string; frequency?: string; label?: string; custom?: boolean }[];
+    therapies: string[];
+    recoveryGoals: string[];
+  } | null;
 }
 
 /**
@@ -739,6 +763,8 @@ export async function loadUserProtocolEnvelope(
         performanceControlMode: (users as any).performanceControlMode,
         carbCycleState: users.carbCycleState,
         performanceContext: users.performanceContext,
+        therapeuticSupportContext: (users as any).therapeuticSupportContext,
+        pregnancySupportContext: (users as any).pregnancySupportContext,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -931,6 +957,42 @@ export async function loadUserProtocolEnvelope(
       };
     }
 
+    // ── THERAPEUTIC NUTRITION INTELLIGENCE — additive modifier ────────────────
+    const therapeuticSupport: boolean = specialtyConditionsArr.includes("therapeutic-support");
+    let therapeuticSupportCtx: {
+      peptides: { type: string; dose: number; unit: string; frequency?: string; label?: string; custom?: boolean }[];
+      hormones: { type: string; dose: number; unit: string; frequency?: string; label?: string; custom?: boolean }[];
+      medications: { type: string; dose: number; unit: string; frequency?: string; label?: string; custom?: boolean }[];
+      therapies: string[];
+      recoveryGoals: string[];
+    } | null = null;
+
+    if (therapeuticSupport) {
+      const raw = ((user as any).therapeuticSupportContext as any) ?? null;
+      if (raw && typeof raw === "object") {
+        const parseTherapeuticEntries = (arr: any[]) => {
+          if (!Array.isArray(arr)) return [];
+          return arr
+            .filter(e => e && typeof e === "object" && e.type && Number(e.dose) > 0)
+            .map(e => ({
+              type: String(e.type),
+              dose: Number(e.dose),
+              unit: String(e.unit ?? ""),
+              frequency: e.frequency ? String(e.frequency) : undefined,
+              label: e.label ? String(e.label) : undefined,
+              custom: !!e.custom,
+            }));
+        };
+        therapeuticSupportCtx = {
+          peptides: parseTherapeuticEntries(raw.peptides ?? []),
+          hormones: parseTherapeuticEntries(raw.hormones ?? []),
+          medications: parseTherapeuticEntries(raw.medications ?? []),
+          therapies: Array.isArray(raw.therapies) ? raw.therapies.map(String) : [],
+          recoveryGoals: Array.isArray(raw.recoveryGoals) ? raw.recoveryGoals.map(String) : [],
+        };
+      }
+    }
+
     // ── PERFORMANCE NUTRITION — additive modifier ─────────────────────────────
     const performanceNutrition: boolean = specialtyConditionsArr.includes("performance-nutrition");
     let performanceNutritionCtx: {
@@ -1069,6 +1131,7 @@ export async function loadUserProtocolEnvelope(
       performanceNutritionContext: performanceNutritionCtx,
       performanceDemandProfile,
       competitionPrepContext: competitionPrepCtx,
+      therapeuticSupportContext: therapeuticSupportCtx,
     });
 
     const rawCarbCycle = ((user as any).carbCycleState as any);
@@ -1108,6 +1171,9 @@ export async function loadUserProtocolEnvelope(
       performanceNutrition,
       performanceContext: performanceNutritionCtx,
       performanceLayer: performanceDemandProfile,
+      therapeuticSupport,
+      therapeuticSupportContext: therapeuticSupportCtx,
+      selectedMealBuilder: (user.selectedMealBuilder ?? null) as string | null,
     };
   } catch (error) {
     console.error("[ProtocolEnvelope] Failed to load envelope:", error);
@@ -1151,6 +1217,9 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     performanceNutrition: false,
     performanceContext: null,
     performanceLayer: null,
+    therapeuticSupport: false,
+    therapeuticSupportContext: null,
+    selectedMealBuilder: null,
   };
 }
 

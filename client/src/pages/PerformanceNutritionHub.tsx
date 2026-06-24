@@ -3,13 +3,14 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Dumbbell, Trophy, Zap, Settings,
-  Loader2, ChevronRight, Target, RefreshCcw, CheckCircle2,
+  Loader2, ChevronRight, Target, RefreshCcw, CheckCircle2, Send, Check, Copy,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { useTodayMacros } from "@/hooks/useTodayMacros";
 import PerformanceSetupModal from "@/components/PerformanceSetupModal";
 import {
   computeDemandProfile,
@@ -380,6 +381,18 @@ export default function PerformanceNutritionHub() {
   const [checkInResult, setCheckInResult] = useState<string | null>(null);
   const [checkInLoading, setCheckInLoading] = useState(false);
 
+  // Today's adaptive session — fetched from /api/performance/today when schedule is set
+  const [todaySession, setTodaySession] = useState<{
+    sessionType: string; sessionLabel: string; trainingPhase: string;
+    calories: number; proteinG: number; carbsG: number; fatG: number; description: string;
+  } | null>(null);
+
+  // Coach link + send-to-coach state
+  const [hasCoachLink, setHasCoachLink] = useState(false);
+  const [sendState, setSendState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [protocolCopied, setProtocolCopied] = useState(false);
+
   // ── Clinical paywall ─────────────────────────────────────────────────────
   const entitlements: string[] = (user as any)?.entitlements || [];
   const hasPerformanceAccess =
@@ -414,6 +427,50 @@ export default function PerformanceNutritionHub() {
     (user as any)?.activeProtocolTrack ?? (pCtx ? "athletic" : null);
 
   const isActive = !!activeTrack;
+
+  const todayMacros = useTodayMacros(String((user as any)?.id ?? ""));
+
+  useEffect(() => {
+    fetch(apiUrl("/api/client/tablet"), { headers: getAuthHeaders(), credentials: "include" })
+      .then(r => setHasCoachLink(r.ok))
+      .catch(() => setHasCoachLink(false));
+  }, []);
+
+  function buildDailySummaryText(): string {
+    return `Today's totals — ${Math.round(todayMacros.kcal).toLocaleString()} cal · P ${Math.round(todayMacros.protein)}g · C ${Math.round(todayMacros.carbs)}g · F ${Math.round(todayMacros.fat)}g`;
+  }
+
+  async function handleSendToCoach() {
+    if (sendState === "sending" || sendState === "sent") return;
+    setSendState("sending");
+    setSendError(null);
+    try {
+      const res = await fetch(apiUrl("/api/client/tablet/message"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ body: buildDailySummaryText() }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      setSendState("sent");
+      setTimeout(() => setSendState("idle"), 2500);
+    } catch (err: any) {
+      const msg = err?.message || "Failed to send";
+      setSendError(msg.includes("No active") ? "No active coach connection" : "Failed to send — try again");
+      setSendState("error");
+      setTimeout(() => { setSendState("idle"); setSendError(null); }, 3000);
+    }
+  }
+
+  useEffect(() => {
+    if (!isActive || activeTrack !== "athletic") return;
+    const hasSchedule = !!(user as any)?.weeklyTrainingSchedule;
+    if (!hasSchedule) return;
+    fetch(apiUrl("/api/performance/today"), { headers: getAuthHeaders(), credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.configured) setTodaySession(d); })
+      .catch(() => {});
+  }, [isActive, activeTrack, user]);
 
   useEffect(() => {
     if (!isActive) return;
@@ -909,6 +966,49 @@ export default function PerformanceNutritionHub() {
                 </div>
               )}
 
+              {/* Daily Macro Summary + Send to Coach */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-white/40 text-xs font-medium shrink-0">Today:</span>
+                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                  {Math.round(todayMacros.kcal).toLocaleString()} cal
+                </span>
+                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                  P {Math.round(todayMacros.protein)}g
+                </span>
+                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                  C {Math.round(todayMacros.carbs)}g
+                </span>
+                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                  F {Math.round(todayMacros.fat)}g
+                </span>
+                {hasCoachLink && (
+                  <button
+                    onClick={handleSendToCoach}
+                    disabled={sendState === "sending" || sendState === "sent"}
+                    className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full transition-all ${
+                      sendState === "sent"
+                        ? "bg-lime-700/80 text-white"
+                        : sendState === "error"
+                        ? "bg-red-700/70 text-red-100"
+                        : sendState === "sending"
+                        ? "bg-orange-700/60 text-orange-100"
+                        : "bg-orange-600/70 text-white active:bg-orange-600"
+                    }`}
+                    aria-label="Send today's nutrition summary to coach"
+                  >
+                    {sendState === "sending" ? (
+                      <><Loader2 className="h-3 w-3 animate-spin" />Sending…</>
+                    ) : sendState === "sent" ? (
+                      <><Check className="h-3 w-3" />Sent!</>
+                    ) : sendState === "error" ? (
+                      <><Send className="h-3 w-3" />{sendError ?? "Error"}</>
+                    ) : (
+                      <><Send className="h-3 w-3" />Send to Coach</>
+                    )}
+                  </button>
+                )}
+              </div>
+
               <button
                 onClick={() => setLocation("/beach-body-meal-board")}
                 className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
@@ -927,6 +1027,39 @@ export default function PerformanceNutritionHub() {
       {/* ── Active: Athletic Performance ── */}
       {isActive && activeTrack === "athletic" && pCtx && (
         <div className="px-4 pt-4 max-w-xl mx-auto space-y-4">
+
+          {/* ── Today's Training — Adaptive Performance Nutrition card ── */}
+          {todaySession && (
+            <div className="rounded-2xl bg-black/50 border border-orange-500/40 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                  <p className="text-xs text-orange-300 font-semibold uppercase tracking-wider">Today's Training</p>
+                </div>
+                <span className="text-xs text-white/30 font-medium">
+                  {new Date().toLocaleDateString("en-US", { weekday: "long" })}
+                </span>
+              </div>
+
+              <p className="text-white font-bold text-2xl leading-none mb-0.5">{todaySession.sessionLabel}</p>
+              <p className="text-white/40 text-xs leading-relaxed mb-4">{todaySession.description}</p>
+
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { label: "Calories", value: todaySession.calories.toLocaleString(), unit: "kcal" },
+                  { label: "Protein",  value: `${todaySession.proteinG}`,             unit: "g" },
+                  { label: "Carbs",    value: `${todaySession.carbsG}`,               unit: "g" },
+                  { label: "Fat",      value: `${todaySession.fatG}`,                 unit: "g" },
+                ].map(m => (
+                  <div key={m.label} className="bg-white/5 rounded-xl px-2 py-2.5 text-center">
+                    <p className="text-white font-bold text-base leading-none">{m.value}</p>
+                    <p className="text-white/30 text-xs mt-0.5">{m.unit}</p>
+                    <p className="text-white/20 text-[10px] mt-0.5 uppercase tracking-wide">{m.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* ── Section 1: Performance Profile ── */}
           <div className="rounded-2xl bg-black/50 border border-orange-500/30 p-4">
@@ -1174,7 +1307,49 @@ export default function PerformanceNutritionHub() {
                 </div>
               )}
 
-              {/* Builder access */}
+              {/* Daily Macro Summary + Send to Coach */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-white/40 text-xs font-medium shrink-0">Today:</span>
+                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                  {Math.round(todayMacros.kcal).toLocaleString()} cal
+                </span>
+                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                  P {Math.round(todayMacros.protein)}g
+                </span>
+                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                  C {Math.round(todayMacros.carbs)}g
+                </span>
+                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                  F {Math.round(todayMacros.fat)}g
+                </span>
+                {hasCoachLink && (
+                  <button
+                    onClick={handleSendToCoach}
+                    disabled={sendState === "sending" || sendState === "sent"}
+                    className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full transition-all ${
+                      sendState === "sent"
+                        ? "bg-lime-700/80 text-white"
+                        : sendState === "error"
+                        ? "bg-red-700/70 text-red-100"
+                        : sendState === "sending"
+                        ? "bg-orange-700/60 text-orange-100"
+                        : "bg-orange-600/70 text-white active:bg-orange-600"
+                    }`}
+                    aria-label="Send today's nutrition summary to coach"
+                  >
+                    {sendState === "sending" ? (
+                      <><Loader2 className="h-3 w-3 animate-spin" />Sending…</>
+                    ) : sendState === "sent" ? (
+                      <><Check className="h-3 w-3" />Sent!</>
+                    ) : sendState === "error" ? (
+                      <><Send className="h-3 w-3" />{sendError ?? "Error"}</>
+                    ) : (
+                      <><Send className="h-3 w-3" />Send to Coach</>
+                    )}
+                  </button>
+                )}
+              </div>
+
               <button
                 onClick={() => setLocation("/beach-body-meal-board")}
                 className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
@@ -1342,6 +1517,24 @@ export default function PerformanceNutritionHub() {
       : (pCtx ? (PHASE_LABELS[pCtx.trainingPhase] ?? pCtx.trainingPhase) : "—");
     const canEvaluate = !!checkInWeight && !!checkInEnergy && !!checkInStrength;
 
+    function buildProtocolSummaryText(): string {
+      const lines: string[] = ["🏋️ My Performance Protocol"];
+      lines.push(`Track: ${trackLabel}`);
+      lines.push(`Phase: ${currentPhaseLabel}`);
+      lines.push(`Starch Allocation: ${starchTarget > 0 ? `${starchTarget}g` : "Not set"}`);
+      lines.push(`Starch Phase: ${starchPhase === "low_carb" ? "Low-Carb" : starchPhase === "refeed" ? "Refeed" : "Inactive"}`);
+      if (pCtx?.primaryGoal) lines.push(`Goal: ${GOAL_LABELS[pCtx.primaryGoal] ?? pCtx.primaryGoal}`);
+      if (pCtx?.trainingType) lines.push(`Sport/Type: ${TYPE_LABELS[pCtx.trainingType] ?? pCtx.trainingType}`);
+      return lines.join("\n");
+    }
+
+    function handleCopyProtocol() {
+      navigator.clipboard.writeText(buildProtocolSummaryText()).then(() => {
+        setProtocolCopied(true);
+        setTimeout(() => setProtocolCopied(false), 1500);
+      });
+    }
+
     return (
       <div className="space-y-4">
 
@@ -1349,7 +1542,18 @@ export default function PerformanceNutritionHub() {
         <div className="rounded-2xl bg-black/50 border border-white/10 p-4 space-y-3">
           <div className="flex items-center gap-2">
             <Target className="w-4 h-4 text-orange-400" />
-            <p className="text-white font-bold text-sm">Active Protocol</p>
+            <p className="text-white font-bold text-sm flex-1">Active Protocol</p>
+            <button
+              onClick={handleCopyProtocol}
+              className="flex items-center gap-1 bg-white/10 hover:bg-white/15 rounded-full px-3 py-1 text-xs font-semibold text-white transition-colors"
+              aria-label="Copy protocol summary to clipboard"
+            >
+              {protocolCopied ? (
+                <><Check className="h-3 w-3 text-green-400" /><span className="text-green-400">Copied!</span></>
+              ) : (
+                <><Copy className="h-3 w-3" />Copy</>
+              )}
+            </button>
           </div>
           <div className="grid grid-cols-2 gap-2">
             {[

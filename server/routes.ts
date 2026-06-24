@@ -72,6 +72,8 @@ import groceryCoachRouter from "./routes/groceryCoach";
 import pregnancyCoachRouter from "./routes/pregnancyCoach";
 import performanceNutritionRouter from "./routes/performanceNutrition";
 import carbCycleRouter from "./routes/carbCycle";
+import nutritionSummaryRouter from "./routes/nutritionSummary";
+import therapeuticSetupRouter from "./routes/therapeuticSetup";
 import alcoholLogRouter from './routes/alcohol-log';
 import vitalsBpRouter from './routes/vitals-bp';
 import proteinTargetsRouter from './routes/proteinTargets';
@@ -608,6 +610,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   app.use("/api/performance", requireAuth, performanceNutritionRouter);
   app.use("/api/performance", requireAuth, carbCycleRouter);
+  app.use("/api/nutrition-summary", requireAuth, nutritionSummaryRouter);
+  app.use("/api/therapeutic", requireAuth, therapeuticSetupRouter);
 
   // REMOVED: Duplicate route moved to top priority position
 
@@ -2338,6 +2342,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         performanceContext: (user as any).performanceContext ?? null,
         competitionPrepContext: (user as any).competitionPrepContext ?? null,
         activeProtocolTrack: (user as any).activeProtocolTrack ?? null,
+        weeklyTrainingSchedule: (user as any).weeklyTrainingSchedule ?? null,
+        performanceProtocolConfig: (user as any).performanceProtocolConfig ?? null,
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);
