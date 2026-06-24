@@ -974,6 +974,7 @@ router.get("/clients/:clientId/nutrition-summary", requireAuth, async (req, res)
         fitnessGoal:            users.fitnessGoal,
         performanceContext:     users.performanceContext,
         weeklyTrainingSchedule: (users as any).weeklyTrainingSchedule,
+        selectedMealBuilder:    users.selectedMealBuilder,
       })
       .from(users)
       .where(eq(users.id, clientId))
@@ -997,6 +998,7 @@ router.get("/clients/:clientId/nutrition-summary", requireAuth, async (req, res)
       performanceContext:     userRow?.performanceContext ?? null,
       weeklyTrainingSchedule: userRow?.weeklyTrainingSchedule ?? null,
       latestGlucose:          latestGlucoseLog?.value ?? null,
+      selectedMealBuilder:    userRow?.selectedMealBuilder ?? null,
     };
 
     const summary = buildNutritionSummary(envelope, extras);

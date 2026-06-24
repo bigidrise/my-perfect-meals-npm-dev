@@ -18,6 +18,7 @@ import type { UserProtocolEnvelope } from "../protocolEnvelope";
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface NutritionSummaryHealthItem {
+  key: string;
   label: string;
   priority: "high" | "moderate";
 }
@@ -38,6 +39,8 @@ export interface NutritionPersonalizationSummary {
       fatG: number | null;
     } | null;
   };
+  dietaryIdentity: string[];
+  mealBuilderLabel: string | null;
   nutritionDrivers: {
     medicalConditions: NutritionSummaryHealthItem[];
     therapeuticInputs: Array<{ name: string; dose: string }>;
@@ -61,6 +64,7 @@ export interface UserExtrasForSummary {
   performanceContext?: any | null;
   weeklyTrainingSchedule?: any | null;
   latestGlucose?: number | null;
+  selectedMealBuilder?: string | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -133,6 +137,18 @@ const DIET_LABEL_MAP: Record<string, string> = {
   kosher: "Kosher",
   carnivore: "Carnivore",
   mediterranean: "Mediterranean",
+  "high-protein": "High Protein",
+  "plant-based": "Plant-Based",
+};
+
+const BUILDER_LABEL_MAP: Record<string, string> = {
+  weekly:                  "Weekly Meal Planner",
+  diabetic:                "Diabetic Builder",
+  glp1:                    "GLP-1 Builder",
+  anti_inflammatory:       "Anti-Inflammatory Builder",
+  beach_body:              "Performance Nutrition Builder",
+  general_nutrition:       "General Nutrition Builder",
+  performance_competition: "Competition Builder",
 };
 
 const CUISINE_LABEL_MAP: Record<string, string> = {
@@ -376,7 +392,7 @@ export function buildNutritionSummary(
     const entry = CONDITION_MAP[key];
     if (entry && !seenHealthLabel.has(entry.label)) {
       seenHealthLabel.add(entry.label);
-      healthItems.push({ label: entry.label, priority: entry.priority });
+      healthItems.push({ key, label: entry.label, priority: entry.priority });
       for (const p of entry.priorities) {
         if (!allPriorities.includes(p)) allPriorities.push(p);
       }
@@ -601,6 +617,10 @@ export function buildNutritionSummary(
       ? { medicalConditions: healthItems, therapeuticInputs: therapeuticInputsForDrivers, liveMetrics: liveMetricsForDrivers }
       : null;
 
+  const mealBuilderLabel = extras.selectedMealBuilder
+    ? (BUILDER_LABEL_MAP[extras.selectedMealBuilder] ?? null)
+    : null;
+
   return {
     activeInputs: {
       health: healthItems,
@@ -612,6 +632,8 @@ export function buildNutritionSummary(
       goal: goalLabel,
       macros,
     },
+    dietaryIdentity: dietItems,
+    mealBuilderLabel,
     nutritionDrivers,
     nutritionPriorities: allPriorities.slice(0, 8),
     compositeExplanation,

@@ -32,15 +32,16 @@ router.get("/", requireAuth, async (req, res) => {
 
     const [userRow] = await db
       .select({
-        dailyCalorieTarget:  (users as any).dailyCalorieTarget,
-        dailyProteinTarget:  (users as any).dailyProteinTarget,
-        dailyCarbTarget:     (users as any).dailyCarbsTarget,
-        dailyFatTarget:      (users as any).dailyFatTarget,
-        goalType:            (users as any).goalType,
-        goalTarget:          (users as any).goalTarget,
-        fitnessGoal:         users.fitnessGoal,
-        performanceContext:  users.performanceContext,
+        dailyCalorieTarget:     (users as any).dailyCalorieTarget,
+        dailyProteinTarget:     (users as any).dailyProteinTarget,
+        dailyCarbTarget:        (users as any).dailyCarbsTarget,
+        dailyFatTarget:         (users as any).dailyFatTarget,
+        goalType:               (users as any).goalType,
+        goalTarget:             (users as any).goalTarget,
+        fitnessGoal:            users.fitnessGoal,
+        performanceContext:     users.performanceContext,
         weeklyTrainingSchedule: (users as any).weeklyTrainingSchedule,
+        selectedMealBuilder:    users.selectedMealBuilder,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -54,16 +55,17 @@ router.get("/", requireAuth, async (req, res) => {
       .limit(1);
 
     const extras: UserExtrasForSummary = {
-      dailyCalorieTarget:  userRow?.dailyCalorieTarget ?? null,
-      dailyProteinTarget:  userRow?.dailyProteinTarget ?? null,
-      dailyCarbTarget:     userRow?.dailyCarbTarget ?? null,
-      dailyFatTarget:      userRow?.dailyFatTarget ?? null,
-      goalType:            userRow?.goalType ?? null,
-      goalTarget:          userRow?.goalTarget ?? null,
-      fitnessGoal:         userRow?.fitnessGoal ?? null,
-      performanceContext:  userRow?.performanceContext ?? null,
+      dailyCalorieTarget:     userRow?.dailyCalorieTarget ?? null,
+      dailyProteinTarget:     userRow?.dailyProteinTarget ?? null,
+      dailyCarbTarget:        userRow?.dailyCarbTarget ?? null,
+      dailyFatTarget:         userRow?.dailyFatTarget ?? null,
+      goalType:               userRow?.goalType ?? null,
+      goalTarget:             userRow?.goalTarget ?? null,
+      fitnessGoal:            userRow?.fitnessGoal ?? null,
+      performanceContext:     userRow?.performanceContext ?? null,
       weeklyTrainingSchedule: userRow?.weeklyTrainingSchedule ?? null,
-      latestGlucose:       latestGlucoseLog?.value ?? null,
+      latestGlucose:          latestGlucoseLog?.value ?? null,
+      selectedMealBuilder:    userRow?.selectedMealBuilder ?? null,
     };
 
     const summary = buildNutritionSummary(envelope, extras);
