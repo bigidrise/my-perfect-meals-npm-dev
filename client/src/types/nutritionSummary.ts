@@ -19,6 +19,11 @@ export interface NutritionPersonalizationSummary {
       fatG: number | null;
     } | null;
   };
+  nutritionDrivers: {
+    medicalConditions: NutritionSummaryHealthItem[];
+    therapeuticInputs: Array<{ name: string; dose: string }>;
+    liveMetrics: Array<{ label: string; value: string }>;
+  } | null;
   nutritionPriorities: string[];
   compositeExplanation: string;
   conflictPolicy: string;

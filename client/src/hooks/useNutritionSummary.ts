@@ -44,10 +44,12 @@ export function useNutritionSummary() {
     window.addEventListener("mpm:targetsUpdated", invalidate);
     window.addEventListener("mpm:conditionsUpdated", invalidate);
     window.addEventListener("mpm:therapeuticUpdated", invalidate);
+    window.addEventListener("mpm:glucoseUpdated", invalidate);
     return () => {
       window.removeEventListener("mpm:targetsUpdated", invalidate);
       window.removeEventListener("mpm:conditionsUpdated", invalidate);
       window.removeEventListener("mpm:therapeuticUpdated", invalidate);
+      window.removeEventListener("mpm:glucoseUpdated", invalidate);
     };
   }, [queryClient, user?.id]);
 

@@ -6,19 +6,26 @@
  *
  * Read-only. No new protocol logic. Reads from GET /api/nutrition-summary.
  *
- * This card explains WHY meals are personalized.
- * Protocol cards (Pregnancy, Performance, etc.) confirm the active protocols.
- * The builders execute. Clean separation of responsibilities.
+ * Accepts an optional `summary` prop so it can be embedded in ProCare views.
+ * When no prop is provided it fetches via useNutritionSummary hook.
  */
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, ShieldCheck, Layers } from "lucide-react";
+import { ChevronDown, ChevronUp, ShieldCheck, Layers, FlaskConical, Activity } from "lucide-react";
 import { useNutritionSummary } from "@/hooks/useNutritionSummary";
-import type { NutritionSummaryHealthItem } from "@/types/nutritionSummary";
+import type { NutritionPersonalizationSummary, NutritionSummaryHealthItem } from "@/types/nutritionSummary";
 
-export function NutritionPersonalizationSummaryCard() {
-  const { data, isLoading } = useNutritionSummary();
-  const [expanded, setExpanded] = useState(false);
+interface Props {
+  summary?: NutritionPersonalizationSummary;
+  isLoading?: boolean;
+  defaultExpanded?: boolean;
+}
+
+export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLoading: isLoadingProp, defaultExpanded = false }: Props = {}) {
+  const hook = useNutritionSummary();
+  const data = summaryProp ?? hook.data;
+  const isLoading = isLoadingProp ?? hook.isLoading;
+  const [expanded, setExpanded] = useState(defaultExpanded);
 
   if (isLoading) {
     return (
@@ -32,7 +39,7 @@ export function NutritionPersonalizationSummaryCard() {
 
   if (!data) return null;
 
-  const { activeInputs, nutritionPriorities, compositeExplanation, conflictPolicy, hasAnyActiveProtocol } = data;
+  const { activeInputs, nutritionDrivers, nutritionPriorities, compositeExplanation, conflictPolicy, hasAnyActiveProtocol } = data;
 
   const highItems = activeInputs.health.filter(h => h.priority === "high");
   const moderateItems = activeInputs.health.filter(h => h.priority === "moderate");
@@ -69,6 +76,10 @@ export function NutritionPersonalizationSummaryCard() {
   const VISIBLE_CAP = 5;
   const visibleChips = expanded ? allChips : allChips.slice(0, VISIBLE_CAP);
   const hiddenCount = allChips.length - VISIBLE_CAP;
+
+  const hasDriverDetails =
+    (nutritionDrivers?.therapeuticInputs?.length ?? 0) > 0 ||
+    (nutritionDrivers?.liveMetrics?.length ?? 0) > 0;
 
   return (
     <div className="rounded-2xl bg-black/50 border border-orange-500/25 overflow-hidden">
@@ -145,9 +156,60 @@ export function NutritionPersonalizationSummaryCard() {
       {expanded && (
         <div className="px-4 pb-4 space-y-4 border-t border-white/8">
 
+          {/* ── What's Driving Your Meals — details section ── */}
+          {hasDriverDetails && (
+            <div className="pt-3 space-y-3">
+              <p className="text-[10px] text-white/35 uppercase tracking-widest font-semibold">
+                What's Driving Your Meals
+              </p>
+
+              {/* Therapeutic Protocol — name + dose */}
+              {(nutritionDrivers?.therapeuticInputs?.length ?? 0) > 0 && (
+                <div className="bg-violet-500/8 border border-violet-500/20 rounded-xl p-3">
+                  <div className="flex items-center gap-1.5 mb-2.5">
+                    <FlaskConical className="w-3 h-3 text-violet-400/70 flex-shrink-0" />
+                    <p className="text-[10px] text-violet-400/70 uppercase tracking-widest font-semibold">
+                      Therapeutic Protocol
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    {nutritionDrivers!.therapeuticInputs.map((item, i) => (
+                      <div key={i} className="flex items-center justify-between gap-3">
+                        <span className="text-xs text-white/75 leading-snug">{item.name}</span>
+                        <span className="text-[11px] font-semibold text-violet-300 bg-violet-500/15 border border-violet-500/25 rounded-full px-2.5 py-0.5 flex-shrink-0">
+                          {item.dose}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Live Metrics */}
+              {(nutritionDrivers?.liveMetrics?.length ?? 0) > 0 && (
+                <div className="bg-white/4 border border-white/10 rounded-xl p-3">
+                  <div className="flex items-center gap-1.5 mb-2.5">
+                    <Activity className="w-3 h-3 text-orange-400/70 flex-shrink-0" />
+                    <p className="text-[10px] text-orange-400/70 uppercase tracking-widest font-semibold">
+                      Live Context
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {nutritionDrivers!.liveMetrics.map((m, i) => (
+                      <div key={i} className="bg-white/5 rounded-lg px-2.5 py-2">
+                        <p className="text-[9px] text-white/35 uppercase tracking-wide mb-0.5">{m.label}</p>
+                        <p className="text-xs font-semibold text-white/80">{m.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Nutrition priorities */}
           {nutritionPriorities.length > 0 && (
-            <div className="pt-3">
+            <div className={hasDriverDetails ? "" : "pt-3"}>
               <p className="text-[10px] text-white/35 uppercase tracking-widest font-semibold mb-2">
                 Your Nutrition Priorities
               </p>
@@ -199,7 +261,7 @@ export function NutritionPersonalizationSummaryCard() {
             </div>
           )}
 
-          {/* Conflict policy — always visible at bottom */}
+          {/* Conflict policy */}
           <div className="flex items-start gap-2 pt-1">
             <Layers className="w-3 h-3 text-white/20 flex-shrink-0 mt-0.5" />
             <p className="text-[10px] text-white/25 leading-relaxed">{conflictPolicy}</p>
