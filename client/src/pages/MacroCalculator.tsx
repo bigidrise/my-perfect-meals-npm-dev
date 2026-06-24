@@ -434,7 +434,7 @@ function BodyCompositionGuidedStep({
           </div>
 
           <p className="text-white/80 text-sm leading-relaxed">
-            If you've had your body fat professionally measured — like a DEXA scan, BodPod, calipers, or smart scale — you can add that here. It helps fine-tune your starchy carb allocation in the Beach Body and Performance builders.
+            If you've had your body fat professionally measured — like a DEXA scan, BodPod, calipers, or smart scale — you can add that here. It helps fine-tune your starchy carb allocation in the Performance Nutrition and Performance builders.
           </p>
 
           <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">

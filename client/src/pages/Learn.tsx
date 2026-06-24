@@ -453,7 +453,7 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
         {
           heading: "Where It Is Applied",
           list: [
-            "All six diet builders — Anti-Inflammatory, Diabetic, Metabolic Med, General Nutrition, Performance, Beach Body",
+            "All six diet builders — Anti-Inflammatory, Diabetic, Metabolic Med, General Nutrition, Performance, Performance Nutrition",
             "Weekly AI Meal Planner",
             "Craving Creator",
             "Fridge Rescue",
@@ -606,7 +606,7 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
         },
         {
           heading: "Works Across All Builders",
-          text: "This shopping system is the same across every meal builder in the app — Weekly, Metabolic Med, Anti-Inflammatory, Diabetic, Performance, Beach Body, and General Nutrition. Same experience, no matter which builder you use.",
+          text: "This shopping system is the same across every meal builder in the app — Weekly, Metabolic Med, Anti-Inflammatory, Diabetic, Performance, Performance Nutrition, and General Nutrition. Same experience, no matter which builder you use.",
         },
         {
           heading: "Your List Syncs Automatically",

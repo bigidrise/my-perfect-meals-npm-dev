@@ -65,7 +65,7 @@ const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
     icon: "4",
     title: "Meal Mode",
     description:
-      "Select the coaching style for your client's meal plan — General Nutrition, Beach Body, or Performance. This determines the performance and lifestyle focus of their meals. Clinical protocols are set separately by the physician.",
+      "Select the coaching style for your client's meal plan — General Nutrition, Performance Nutrition, or Performance & Competition. This determines the performance and lifestyle focus of their meals. Clinical protocols are set separately by the physician.",
   },
   {
     icon: "5",
@@ -95,7 +95,7 @@ const SECTION_EXPLAINERS: Record<string, TourStep[]> = {
       icon: "🏋️",
       title: "Meal Mode",
       description:
-        "Choose the coaching style for this client's meals.\n\n• General Nutrition — balanced everyday eating\n• Beach Body — lean physique and body composition\n• Performance & Competition — high-output athletic fueling\n\nIf a clinical protocol is active, it applies medical rules on top of the Meal Mode you select.",
+        "Choose the coaching style for this client's meals.\n\n• General Nutrition — balanced everyday eating\n• Performance Nutrition — lean physique and body composition\n• Performance & Competition — high-output athletic fueling\n\nIf a clinical protocol is active, it applies medical rules on top of the Meal Mode you select.",
     },
   ],
   protocols: [
