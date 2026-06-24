@@ -759,6 +759,8 @@ export async function loadUserProtocolEnvelope(
         performanceControlMode: (users as any).performanceControlMode,
         carbCycleState: users.carbCycleState,
         performanceContext: users.performanceContext,
+        therapeuticSupportContext: (users as any).therapeuticSupportContext,
+        pregnancySupportContext: (users as any).pregnancySupportContext,
       })
       .from(users)
       .where(eq(users.id, userId))
