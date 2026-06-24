@@ -42,6 +42,7 @@ router.get("/", requireAuth, async (req, res) => {
         performanceContext:     users.performanceContext,
         weeklyTrainingSchedule: (users as any).weeklyTrainingSchedule,
         selectedMealBuilder:    users.selectedMealBuilder,
+        activeBoard:            users.activeBoard,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -66,6 +67,7 @@ router.get("/", requireAuth, async (req, res) => {
       weeklyTrainingSchedule: userRow?.weeklyTrainingSchedule ?? null,
       latestGlucose:          latestGlucoseLog?.value ?? null,
       selectedMealBuilder:    userRow?.selectedMealBuilder ?? null,
+      activeBoard:            userRow?.activeBoard ?? null,
     };
 
     const summary = buildNutritionSummary(envelope, extras);
