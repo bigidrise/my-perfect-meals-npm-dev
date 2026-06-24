@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -175,6 +176,7 @@ export default function EditProfilePage() {
   const { user, refreshUser } = useAuth();
   const { toast } = useToast();
   const { isOpen, open, setLastResponse } = useCopilot();
+  const queryClient = useQueryClient();
 
   const [step, setStep] = useState<StepId>(1);
   const [saving, setSaving] = useState(false);
@@ -573,6 +575,7 @@ export default function EditProfilePage() {
 
       await refreshUser?.();
       window.dispatchEvent(new CustomEvent("mpm:dietaryUpdated"));
+      queryClient.invalidateQueries({ queryKey: ["nutrition-summary"] });
 
       toast({
         title: "Profile updated",

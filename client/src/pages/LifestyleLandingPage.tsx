@@ -16,7 +16,6 @@ import {
   Plus,
   PawPrint,
   Palmtree,
-  Dumbbell,
 } from "lucide-react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useAuth } from "@/contexts/AuthContext";
@@ -157,7 +156,6 @@ export default function LifestyleLandingPage() {
 
   const gatheringsLocked = !isProOrAbove(user);
   const getawayLocked = !isProOrAbove(user);
-  const performanceLocked = !isProOrAbove(user);
 
   const handleCardClick = (feature: AIFeature) => {
     if (feature.freeAccess) {
