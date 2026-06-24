@@ -99,22 +99,6 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
   const moderateItems = activeInputs.health.filter(h => h.priority === "moderate");
   const allHealthItems = [...highItems, ...moderateItems];
 
-  type ChipCategory = "diet" | "cuisine" | "builder" | "goal";
-
-  const allChips: { label: string; category: ChipCategory }[] = [
-    ...activeInputs.dietary.map(d => ({ label: d, category: "diet" as const })),
-    ...(activeInputs.cuisine ? [{ label: activeInputs.cuisine, category: "cuisine" as const }] : []),
-    ...(data.mealBuilderLabel ? [{ label: data.mealBuilderLabel, category: "builder" as const }] : []),
-    ...(activeInputs.goal ? [{ label: activeInputs.goal, category: "goal" as const }] : []),
-  ];
-
-  const CHIP_COLORS: Record<ChipCategory, string> = {
-    diet:    "bg-emerald-500/15 border-emerald-500/30 text-emerald-300",
-    cuisine: "bg-amber-500/15 border-amber-500/30 text-amber-300",
-    builder: "bg-indigo-500/15 border-indigo-500/30 text-indigo-300",
-    goal:    "bg-orange-500/15 border-orange-500/30 text-orange-300",
-  };
-
   const hasTherapeuticInputs = (nutritionDrivers?.therapeuticInputs?.length ?? 0) > 0;
   const hasLiveMetrics       = (nutritionDrivers?.liveMetrics?.length ?? 0) > 0;
   const hasDietaryIdentity   = (data.dietaryIdentity?.length ?? 0) > 0;
@@ -136,20 +120,6 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
         )}
       </div>
 
-      {/* ── Active Input Chips ── */}
-      {allChips.length > 0 && (
-        <div className="px-4 pb-3 flex flex-wrap gap-1.5">
-          {allChips.map((chip, i) => (
-            <span
-              key={i}
-              className={`text-[11px] border rounded-full px-2.5 py-0.5 font-medium ${CHIP_COLORS[chip.category]}`}
-            >
-              {chip.label}
-            </span>
-          ))}
-        </div>
-      )}
-
       {/* ── Macros strip ── */}
       {activeInputs.macros && (activeInputs.macros.calories || activeInputs.macros.proteinG) && (
         <div className="px-4 pb-3">
@@ -162,7 +132,7 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
             ].map(m => (
               <div key={m.label} className="bg-white/5 rounded-lg py-1.5 text-center border border-white/8">
                 <p className="text-white font-semibold text-xs leading-none">{m.value}</p>
-                <p className="text-white/30 text-[9px] mt-0.5 uppercase tracking-wide">{m.label}</p>
+                <p className="text-green-400 text-[9px] mt-0.5 uppercase tracking-wide">{m.label}</p>
               </div>
             ))}
           </div>
@@ -279,6 +249,30 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
                   </span>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* ── Cuisine block ── */}
+          {activeInputs.cuisine && (
+            <div className="bg-amber-500/10 border border-amber-500/25 rounded-xl px-3 py-2.5">
+              <p className="text-[11px] font-black uppercase tracking-widest text-amber-400 mb-1.5">
+                Cuisine
+              </p>
+              <p className="text-[12px] font-bold uppercase tracking-wide text-amber-300">
+                {activeInputs.cuisine}
+              </p>
+            </div>
+          )}
+
+          {/* ── Goal block ── */}
+          {activeInputs.goal && (
+            <div className="bg-orange-500/10 border border-orange-500/25 rounded-xl px-3 py-2.5">
+              <p className="text-[11px] font-black uppercase tracking-widest text-orange-400 mb-1.5">
+                Goal
+              </p>
+              <p className="text-[12px] font-bold uppercase tracking-wide text-orange-300">
+                {activeInputs.goal}
+              </p>
             </div>
           )}
 
