@@ -3,7 +3,12 @@
  *
  * React Query hook that fetches the NutritionPersonalizationSummary for the
  * authenticated user. Stale time is 5 minutes — the envelope rarely changes
- * mid-session. Cache is invalidated by mpm:targetsUpdated and mpm:conditionsUpdated events.
+ * mid-session.
+ *
+ * Cache is invalidated by:
+ *   mpm:targetsUpdated      — macro targets changed
+ *   mpm:conditionsUpdated   — health conditions / specialtyConditions changed
+ *   mpm:therapeuticUpdated  — therapeutic support card saved
  */
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -38,9 +43,11 @@ export function useNutritionSummary() {
     };
     window.addEventListener("mpm:targetsUpdated", invalidate);
     window.addEventListener("mpm:conditionsUpdated", invalidate);
+    window.addEventListener("mpm:therapeuticUpdated", invalidate);
     return () => {
       window.removeEventListener("mpm:targetsUpdated", invalidate);
       window.removeEventListener("mpm:conditionsUpdated", invalidate);
+      window.removeEventListener("mpm:therapeuticUpdated", invalidate);
     };
   }, [queryClient, user?.id]);
 

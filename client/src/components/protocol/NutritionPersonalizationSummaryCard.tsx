@@ -1,10 +1,14 @@
 /**
  * NutritionPersonalizationSummaryCard
  *
- * "How Your Nutrition Is Being Built" — the user-facing window into the Protocol Envelope.
+ * "Your Nutrition Life Plan" — the user-facing window into the Protocol Envelope.
  * Lives at the top of the Dashboard, above all other protocol cards.
  *
  * Read-only. No new protocol logic. Reads from GET /api/nutrition-summary.
+ *
+ * This card explains WHY meals are personalized.
+ * Protocol cards (Pregnancy, Performance, etc.) confirm the active protocols.
+ * The builders execute. Clean separation of responsibilities.
  */
 
 import { useState } from "react";
@@ -33,21 +37,33 @@ export function NutritionPersonalizationSummaryCard() {
   const highItems = activeInputs.health.filter(h => h.priority === "high");
   const moderateItems = activeInputs.health.filter(h => h.priority === "moderate");
 
-  const allChips: { label: string; category: "clinical" | "performance" | "pregnancy" | "diet" | "goal" }[] = [
+  type ChipCategory = "clinical" | "performance" | "pregnancy" | "therapeutic" | "diet" | "cuisine" | "goal";
+
+  const allChips: { label: string; category: ChipCategory }[] = [
     ...highItems.map(h => ({ label: h.label, category: "clinical" as const })),
     ...moderateItems.map(h => ({ label: h.label, category: "clinical" as const })),
-    ...(activeInputs.pregnancy ? [{ label: activeInputs.pregnancy.label + (activeInputs.pregnancy.detail ? ` · ${activeInputs.pregnancy.detail}` : ""), category: "pregnancy" as const }] : []),
-    ...(activeInputs.performance ? [{ label: activeInputs.performance.label + (activeInputs.performance.detail ? ` · ${activeInputs.performance.detail}` : ""), category: "performance" as const }] : []),
+    ...(activeInputs.pregnancy
+      ? [{ label: activeInputs.pregnancy.label + (activeInputs.pregnancy.detail ? ` · ${activeInputs.pregnancy.detail}` : ""), category: "pregnancy" as const }]
+      : []),
+    ...(activeInputs.performance
+      ? [{ label: activeInputs.performance.label + (activeInputs.performance.detail ? ` · ${activeInputs.performance.detail}` : ""), category: "performance" as const }]
+      : []),
+    ...(activeInputs.therapeutic
+      ? [{ label: activeInputs.therapeutic.label + (activeInputs.therapeutic.detail ? ` · ${activeInputs.therapeutic.detail}` : ""), category: "therapeutic" as const }]
+      : []),
     ...activeInputs.dietary.map(d => ({ label: d, category: "diet" as const })),
+    ...(activeInputs.cuisine ? [{ label: activeInputs.cuisine, category: "cuisine" as const }] : []),
     ...(activeInputs.goal ? [{ label: activeInputs.goal, category: "goal" as const }] : []),
   ];
 
-  const CHIP_COLORS: Record<string, string> = {
-    clinical:    "bg-orange-500/15 border-orange-500/30 text-orange-300",
-    performance: "bg-blue-500/15 border-blue-500/30 text-blue-300",
-    pregnancy:   "bg-pink-500/15 border-pink-500/30 text-pink-300",
-    diet:        "bg-emerald-500/12 border-emerald-500/25 text-emerald-300",
-    goal:        "bg-white/8 border-white/15 text-white/60",
+  const CHIP_COLORS: Record<ChipCategory, string> = {
+    clinical:     "bg-orange-500/15 border-orange-500/30 text-orange-300",
+    performance:  "bg-blue-500/15 border-blue-500/30 text-blue-300",
+    pregnancy:    "bg-pink-500/15 border-pink-500/30 text-pink-300",
+    therapeutic:  "bg-violet-500/15 border-violet-500/30 text-violet-300",
+    diet:         "bg-emerald-500/12 border-emerald-500/25 text-emerald-300",
+    cuisine:      "bg-amber-500/12 border-amber-500/25 text-amber-300",
+    goal:         "bg-white/8 border-white/15 text-white/60",
   };
 
   const VISIBLE_CAP = 5;
@@ -61,7 +77,7 @@ export function NutritionPersonalizationSummaryCard() {
       <div className="px-4 pt-4 pb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-orange-400 flex-shrink-0" />
-          <p className="text-sm font-bold text-white">How Your Nutrition Is Being Built</p>
+          <p className="text-sm font-bold text-white">Your Nutrition Life Plan</p>
         </div>
         {!hasAnyActiveProtocol && (
           <span className="text-[10px] text-white/30 font-medium bg-white/5 rounded-full px-2 py-0.5 border border-white/10">
@@ -117,7 +133,7 @@ export function NutritionPersonalizationSummaryCard() {
         className="w-full flex items-center justify-between px-4 py-2.5 border-t border-white/8 active:bg-white/5 transition-colors select-none"
       >
         <span className="text-[11px] font-semibold text-white/50">
-          {expanded ? "Show less" : "See why your meals are personalized"}
+          {expanded ? "Show less" : "See how your meals are being built"}
         </span>
         {expanded
           ? <ChevronUp className="w-3.5 h-3.5 text-white/30 flex-shrink-0" />
@@ -149,7 +165,7 @@ export function NutritionPersonalizationSummaryCard() {
           {/* Composite explanation */}
           <div className="bg-white/5 border border-white/8 rounded-xl p-3">
             <p className="text-[10px] text-orange-400/60 uppercase tracking-widest font-semibold mb-1.5">
-              Why Your Meals Are Personalized
+              Current Strategy
             </p>
             <p className="text-xs text-white/65 leading-relaxed">{compositeExplanation}</p>
           </div>

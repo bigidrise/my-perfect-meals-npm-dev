@@ -8,6 +8,8 @@ export interface NutritionPersonalizationSummary {
     health: NutritionSummaryHealthItem[];
     performance: { label: string; detail: string } | null;
     pregnancy: { label: string; detail: string } | null;
+    therapeutic: { label: string; detail: string } | null;
+    cuisine: string | null;
     dietary: string[];
     goal: string | null;
     macros: {
