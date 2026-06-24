@@ -334,7 +334,8 @@ export default function TherapeuticNutritionCard() {
   async function fetchContext() {
     try {
       const res = await fetch(apiUrl("/api/therapeutic/context"), {
-        headers: await getAuthHeaders(),
+        headers: getAuthHeaders(),
+        credentials: "include",
       });
       if (!res.ok) return;
       const data = await res.json();
@@ -443,7 +444,8 @@ export default function TherapeuticNutritionCard() {
     try {
       const res = await fetch(apiUrl("/api/therapeutic/setup"), {
         method: "POST",
-        headers: { ...(await getAuthHeaders()), "Content-Type": "application/json" },
+        headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(currentCtx),
       });
       if (!res.ok) throw new Error("Save failed");
