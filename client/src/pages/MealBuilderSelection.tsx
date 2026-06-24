@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { motion } from "framer-motion";
@@ -100,6 +101,7 @@ export default function MealBuilderSelection() {
   const [, setLocation] = useLocation();
   const { user, refreshUser } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [selected, setSelected] = useState<MealBuilderType | null>(null);
   const [confirmedBuilder, setConfirmedBuilder] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -239,6 +241,7 @@ export default function MealBuilderSelection() {
       setConfirmedBuilder(selected);
       await refreshUser();
       window.dispatchEvent(new CustomEvent("mpm:builderUpdated"));
+      queryClient.invalidateQueries({ queryKey: ["nutrition-summary"] });
 
       toast({
         title: "Builder Updated",
