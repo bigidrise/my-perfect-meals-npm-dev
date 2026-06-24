@@ -62,7 +62,7 @@ function buildEmptyCtx(): TherapeuticSupportCtx {
 
 router.get("/context", async (req, res) => {
   try {
-    const userId = (req as any).userId as string | undefined;
+    const userId = (req as any).authUser?.id as string | undefined;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
     const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
@@ -92,7 +92,7 @@ router.get("/context", async (req, res) => {
 
 router.post("/setup", async (req, res) => {
   try {
-    const userId = (req as any).userId as string | undefined;
+    const userId = (req as any).authUser?.id as string | undefined;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
     const body = req.body as any;

@@ -22,7 +22,7 @@ const router = Router();
 
 router.get("/", requireAuth, async (req, res) => {
   try {
-    const userId = (req as any).userId as string;
+    const userId = (req as any).authUser?.id as string;
 
     const envelope = await loadUserProtocolEnvelope(userId);
     if (!envelope) {
@@ -33,7 +33,7 @@ router.get("/", requireAuth, async (req, res) => {
       .select({
         dailyCalorieTarget:  (users as any).dailyCalorieTarget,
         dailyProteinTarget:  (users as any).dailyProteinTarget,
-        dailyCarbTarget:     (users as any).dailyCarbTarget,
+        dailyCarbTarget:     (users as any).dailyCarbsTarget,
         dailyFatTarget:      (users as any).dailyFatTarget,
         goalType:            (users as any).goalType,
         goalTarget:          (users as any).goalTarget,
