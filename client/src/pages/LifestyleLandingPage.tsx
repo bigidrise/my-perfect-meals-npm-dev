@@ -331,57 +331,6 @@ export default function LifestyleLandingPage() {
             </Card>
           </div>
 
-          {/* ── Performance Nutrition Builder card ── */}
-          <div className="relative">
-            <div
-              className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-60"
-              style={{
-                background:
-                  "radial-gradient(120% 120% at 50% 0%, rgba(251,146,60,0.6), rgba(234,88,12,0.3), rgba(0,0,0,0))",
-              }}
-            />
-            <Card
-              className="relative rounded-xl shadow-md overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 hover:scale-[1.02] bg-gradient-to-r from-black via-orange-950/40 to-black backdrop-blur-lg border border-orange-500/35 hover:shadow-[0_0_30px_rgba(251,146,60,0.45)] hover:border-orange-400/55"
-              onClick={() => {
-                if (performanceLocked) {
-                  requestUpgrade({ requiredTier: "pro", featureName: "Performance Nutrition Builder" });
-                  return;
-                }
-                setLocation("/performance");
-              }}
-              data-testid="card-performance-nutrition"
-            >
-              <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-orange-700/80 to-black rounded-full border border-orange-400/30 shadow-lg z-10">
-                <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse" />
-                <span className="text-orange-200 font-semibold text-[8px] tracking-wide">
-                  Performance AI™
-                </span>
-              </div>
-              <CardContent className="p-3">
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2">
-                    <Dumbbell
-                      className={`h-4 w-4 flex-shrink-0 ${performanceLocked ? "text-orange-500/50" : "text-orange-400"}`}
-                    />
-                    <h3
-                      className={`text-sm font-semibold ${performanceLocked ? "text-white/50" : "text-white"}`}
-                    >
-                      Performance Nutrition Builder
-                    </h3>
-                    {performanceLocked && (
-                      <Lock className="h-3 w-3 text-orange-400/70 ml-auto" />
-                    )}
-                  </div>
-                  <p
-                    className={`text-xs ml-6 ${performanceLocked ? "text-white/40" : "text-white/80"}`}
-                  >
-                    Sport-specific fueling, training phases &amp; performance demand protocols
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
           {/* ── My Perfect Getaway premium card ── */}
           <div className="relative">
             <div
