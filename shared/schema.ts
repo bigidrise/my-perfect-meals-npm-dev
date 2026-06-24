@@ -465,6 +465,17 @@ export const users = pgTable("users", {
     activatedAt: string | null;
     updatedAt: string | null;
   }>(),
+  // Therapeutic Nutrition Intelligence — hormone / peptide / medication context (JSONB).
+  // Active when "therapeutic-support" is in specialtyConditions.
+  // Stacks on top of medical safety layers — never overrides them.
+  // Null = therapeutic support not yet configured.
+  therapeuticSupportContext: jsonb("therapeutic_support_context").$type<{
+    peptides: Array<{ type: string; dose: number; unit: string; frequency?: string; label?: string; custom?: boolean }>;
+    hormones: Array<{ type: string; dose: number; unit: string; frequency?: string; label?: string; custom?: boolean }>;
+    medications: Array<{ type: string; dose: number; unit: string; frequency?: string; label?: string; custom?: boolean }>;
+    therapies: string[];
+    recoveryGoals: string[];
+  }>(),
   // Competition Prep Protocol — date-driven prep context (JSONB).
   // Active when "competition-prep" is in specialtyConditions.
   // Event date is the safeguard — protocol ends automatically at event date.

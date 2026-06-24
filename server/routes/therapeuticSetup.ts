@@ -123,7 +123,7 @@ router.post("/setup", async (req, res) => {
       .update(users)
       .set({
         therapeuticSupportContext: ctx as any,
-        specialtyConditions: JSON.stringify(updatedSpecialty) as any,
+        specialtyConditions: updatedSpecialty as any,
       } as any)
       .where(eq(users.id, userId));
 
