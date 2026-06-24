@@ -396,4 +396,154 @@ ATHLETIC COACHING RULES:
   }
 });
 
+// ── Adaptive Performance Nutrition — Schedule + Today ─────────────────────────
+
+/**
+ * POST /api/performance/schedule
+ * Saves weeklyTrainingSchedule + generates performanceProtocolConfig.
+ * Can be called standalone (edit schedule) or from the setup flow.
+ *
+ * Body: {
+ *   schedule: { monday, tuesday, wednesday, thursday, friday, saturday, sunday },
+ *   trainingPhase: string,
+ *   primaryGoal?: string,          // used to generate default modifiers
+ *   baselineCalories?: number,     // override; falls back to user's daily_calorie_target
+ *   baselineProteinG?: number,
+ *   baselineCarbsG?: number,
+ *   baselineFatG?: number,
+ * }
+ */
+router.post("/schedule", async (req, res) => {
+  try {
+    const userId = resolveUserId(req);
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const {
+      schedule,
+      trainingPhase,
+      primaryGoal,
+      baselineCalories,
+      baselineProteinG,
+      baselineCarbsG,
+      baselineFatG,
+    } = req.body;
+
+    const VALID_SESSION_TYPES = ["strength", "power", "endurance", "sport_practice", "competition", "recovery", "off"];
+    const VALID_PHASES = ["stabilization", "strength", "power", "peaking", "in_season", "off_season"];
+    const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+
+    if (!schedule || typeof schedule !== "object") {
+      return res.status(400).json({ error: "schedule object required" });
+    }
+
+    const normalizedSchedule: Record<string, string> = {};
+    for (const day of DAYS) {
+      const val = schedule[day];
+      if (!VALID_SESSION_TYPES.includes(val)) {
+        return res.status(400).json({ error: `Invalid session type for ${day}: ${val}` });
+      }
+      normalizedSchedule[day] = val;
+    }
+
+    if (!VALID_PHASES.includes(trainingPhase)) {
+      return res.status(400).json({ error: `Invalid trainingPhase: ${trainingPhase}` });
+    }
+
+    const [userRow] = await db
+      .select({
+        dailyCalorieTarget: users.dailyCalorieTarget,
+        dailyProteinTarget: users.dailyProteinTarget,
+        dailyCarbsTarget:   users.dailyCarbsTarget,
+        dailyFatTarget:     users.dailyFatTarget,
+        performanceContext: users.performanceContext,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const pCtx = (userRow?.performanceContext as any) ?? {};
+    const resolvedGoal = primaryGoal ?? pCtx.primaryGoal ?? "maintenance";
+
+    const resolvedBaseCalories = baselineCalories ?? userRow?.dailyCalorieTarget ?? 2000;
+    const resolvedBaseProtein  = baselineProteinG  ?? userRow?.dailyProteinTarget ?? 150;
+    const resolvedBaseCarbs    = baselineCarbsG    ?? userRow?.dailyCarbsTarget   ?? 200;
+    const resolvedBaseFat      = baselineFatG      ?? userRow?.dailyFatTarget     ?? 65;
+
+    const { buildDefaultModifiers } = await import("../services/protocol/performanceProtocolResolver");
+    const sessionModifiers = buildDefaultModifiers(resolvedGoal);
+
+    const now = new Date().toISOString();
+
+    const weeklyTrainingSchedule = {
+      ...normalizedSchedule,
+      trainingPhase,
+      activatedAt: now,
+      updatedAt: now,
+    };
+
+    const performanceProtocolConfig = {
+      baselineCalories: resolvedBaseCalories,
+      baselineProteinG: resolvedBaseProtein,
+      baselineCarbsG:   resolvedBaseCarbs,
+      baselineFatG:     resolvedBaseFat,
+      sessionModifiers,
+      generatedAt: now,
+    };
+
+    await db
+      .update(users)
+      .set({
+        weeklyTrainingSchedule: weeklyTrainingSchedule as any,
+        performanceProtocolConfig: performanceProtocolConfig as any,
+      } as any)
+      .where(eq(users.id, userId));
+
+    const { resolveTodayTargets } = await import("../services/protocol/performanceProtocolResolver");
+    const todayTargets = resolveTodayTargets(weeklyTrainingSchedule as any, performanceProtocolConfig as any);
+
+    console.log(`[APN] Schedule saved for user ${userId} — today: ${todayTargets.sessionType} (${todayTargets.calories} kcal)`);
+
+    res.json({ ok: true, today: todayTargets, weeklyTrainingSchedule, performanceProtocolConfig });
+  } catch (err: any) {
+    console.error("[APN] /schedule error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * GET /api/performance/today
+ * Returns today's resolved session type + macro targets.
+ * Sprint 1 success criterion: { sessionType, sessionLabel, calories, proteinG, carbsG, fatG }
+ */
+router.get("/today", async (req, res) => {
+  try {
+    const userId = resolveUserId(req);
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const [userRow] = await db
+      .select({
+        weeklyTrainingSchedule:    users.weeklyTrainingSchedule,
+        performanceProtocolConfig: users.performanceProtocolConfig,
+      } as any)
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const schedule = (userRow as any)?.weeklyTrainingSchedule;
+    const config   = (userRow as any)?.performanceProtocolConfig;
+
+    if (!schedule || !config) {
+      return res.json({ configured: false, message: "Performance schedule not yet configured." });
+    }
+
+    const { resolveTodayTargets } = await import("../services/protocol/performanceProtocolResolver");
+    const today = resolveTodayTargets(schedule, config);
+
+    res.json({ configured: true, ...today });
+  } catch (err: any) {
+    console.error("[APN] /today error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

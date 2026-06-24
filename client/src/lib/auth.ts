@@ -162,6 +162,8 @@ export interface User {
   performanceContext?: any | null;
   competitionPrepContext?: any | null;
   activeProtocolTrack?: "athletic" | "competition" | null;
+  weeklyTrainingSchedule?: any | null;
+  performanceProtocolConfig?: any | null;
 }
 
 export function getAuthToken(): string | null {

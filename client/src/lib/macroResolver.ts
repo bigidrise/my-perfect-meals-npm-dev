@@ -4,7 +4,7 @@
 import { getMacroTargets, setMacroTargets, type MacroTargets, type StarchStrategy } from './dailyLimits';
 import { proStore, type Targets } from './proData';
 
-export type MacroSource = 'pro' | 'self' | 'none';
+export type MacroSource = 'pro' | 'performance' | 'self' | 'none';
 
 // ProCare coach override hook — allows coach to override individual macro multipliers.
 // When present, these values take precedence over strategy-layer multipliers.
@@ -108,6 +108,57 @@ function getSelfTargets(userId?: string): MacroTargets | null {
   return getMacroTargets(userId);
 }
 
+// ── Performance Protocol tier ─────────────────────────────────────────────────
+// Reads from localStorage (written by AuthContext.refreshUser when both
+// weeklyTrainingSchedule and performanceProtocolConfig are present on the user).
+// Sits between ProCare (Priority 1) and self-set Macro Calculator (Priority 2).
+const LS_PERF_PROTOCOL = 'mpm.perfProtocol';
+
+function getPerformanceProtocolTargets(userId?: string): ResolvedTargets | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const key = `${LS_PERF_PROTOCOL}.${userId || 'anon'}`;
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const state = JSON.parse(raw) as {
+      schedule: Record<string, string>;
+      config: {
+        baselineCalories: number;
+        baselineProteinG: number;
+        baselineCarbsG: number;
+        baselineFatG: number;
+        sessionModifiers: Record<string, { carbsAdjustG: number; caloriesAdjustKcal: number; proteinAdjustG: number }>;
+      };
+    };
+    if (!state?.config || !state?.schedule) return null;
+
+    const DOW = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const today = DOW[new Date().getDay()];
+    const sessionType = state.schedule[today] ?? 'off';
+    const mod = state.config.sessionModifiers?.[sessionType] ?? { carbsAdjustG: 0, caloriesAdjustKcal: 0, proteinAdjustG: 0 };
+
+    const calories  = Math.max(0, (state.config.baselineCalories ?? 0) + (mod.caloriesAdjustKcal ?? 0));
+    const protein_g = Math.max(0, (state.config.baselineProteinG ?? 0) + (mod.proteinAdjustG ?? 0));
+    const carbs_g   = Math.max(0, (state.config.baselineCarbsG   ?? 0) + (mod.carbsAdjustG    ?? 0));
+    const fat_g     = state.config.baselineFatG ?? 0;
+
+    if (calories === 0) return null;
+
+    return {
+      calories,
+      protein_g,
+      carbs_g,
+      fat_g,
+      starchStrategy: 'one',
+      source: 'performance',
+      setBy: 'Performance Protocol',
+      flags: { },
+    };
+  } catch {
+    return null;
+  }
+}
+
 // Item 3: Guarantee mapping exists for a known clientId/realUserId pair
 export function ensureClientMapping(realUserId: string, clientId: string) {
   if (realUserId && clientId) {
@@ -181,6 +232,16 @@ export function getResolvedTargets(userId?: string): ResolvedTargets {
       resolvedTargetsCache[cacheKey] = result;
       return result;
     }
+  }
+
+  // Priority 1.5: Performance Protocol — day-aware adaptive targets
+  // Reads today's session type from weeklyTrainingSchedule, applies modifier
+  // from performanceProtocolConfig. Sits below ProCare, above self-set.
+  const perfTargets = getPerformanceProtocolTargets(userId);
+  if (perfTargets) {
+    console.log('[MPM] Target Source: performance', perfTargets.calories, 'kcal');
+    resolvedTargetsCache[cacheKey] = perfTargets;
+    return perfTargets;
   }
 
   // Priority 2: Self-set targets

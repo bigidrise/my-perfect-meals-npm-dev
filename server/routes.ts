@@ -2333,6 +2333,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         performanceContext: (user as any).performanceContext ?? null,
         competitionPrepContext: (user as any).competitionPrepContext ?? null,
         activeProtocolTrack: (user as any).activeProtocolTrack ?? null,
+        weeklyTrainingSchedule: (user as any).weeklyTrainingSchedule ?? null,
+        performanceProtocolConfig: (user as any).performanceProtocolConfig ?? null,
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);

@@ -25,6 +25,8 @@ type SessionDuration = "under_30" | "30_60" | "60_90" | "90_plus";
 type RecoveryStatus = "good" | "average" | "poor";
 type AdaptationTarget = "endurance" | "recovery" | "conditioning" | "work_capacity" | "speed" | "power" | "fat_loss" | "muscle_gain";
 type CompType = "bodybuilding_show" | "mens_physique" | "classic_physique" | "figure" | "bikini" | "wellness" | "powerlifting_meet" | "strongman_competition" | "olympic_weightlifting_meet" | "fight_camp" | "wrestling_season" | "crossfit_competition" | "hyrox" | "marathon" | "triathlon_race" | "spartan_race" | "other";
+type APNSessionType = "strength" | "power" | "endurance" | "sport_practice" | "competition" | "recovery" | "off";
+type APNTrainingPhase = "stabilization" | "strength" | "power" | "peaking" | "in_season" | "off_season";
 
 const ATHLETIC_GOALS: { value: AthleticGoal; label: string; desc: string }[] = [
   { value: "fat_loss",    label: "Fat Loss",        desc: "Lean out while preserving performance" },
@@ -134,7 +136,42 @@ const ADAPTATION_TARGETS: { value: AdaptationTarget; label: string; desc: string
   { value: "fat_loss",      label: "Fat Loss",       desc: "Calorie partitioning and lean mass preservation" },
 ];
 
-const ATHLETIC_TOTAL = 9;
+// ── Adaptive Performance Nutrition — session type and phase constants ─────────
+const APN_SESSION_TYPES: { value: APNSessionType; label: string; short: string; desc: string }[] = [
+  { value: "strength",       label: "Strength",       short: "Str",   desc: "Resistance training — moderate carbohydrate support" },
+  { value: "power",          label: "Power",          short: "Pwr",   desc: "Explosive output — additional carbs and protein active" },
+  { value: "endurance",      label: "Endurance",      short: "End",   desc: "Aerobic fuel priority — elevated carbohydrate availability" },
+  { value: "sport_practice", label: "Sport Practice", short: "Sport", desc: "Mixed demands — moderate carbohydrate support" },
+  { value: "competition",    label: "Competition",    short: "Comp",  desc: "Game day fueling — maximum carbohydrate availability" },
+  { value: "recovery",       label: "Recovery",       short: "Rec",   desc: "Repair emphasis — reduced carbs, anti-inflammatory priority" },
+  { value: "off",            label: "Rest Day",       short: "Off",   desc: "Complete rest — reduced caloric targets" },
+];
+
+const APN_PHASES: { value: APNTrainingPhase; label: string; desc: string }[] = [
+  { value: "stabilization", label: "Stabilization", desc: "Foundation phase — movement quality, core stability" },
+  { value: "strength",      label: "Strength",      desc: "Building maximal force capacity" },
+  { value: "power",         label: "Power",         desc: "Explosive output — force times velocity" },
+  { value: "peaking",       label: "Peaking",       desc: "Pre-competition sharpening — intensity up, volume down" },
+  { value: "in_season",     label: "In-Season",     desc: "Maintaining performance through competition calendar" },
+  { value: "off_season",    label: "Off-Season",    desc: "Base building and recovery between seasons" },
+];
+
+const APN_DAYS: { key: string; label: string }[] = [
+  { key: "monday",    label: "Mon" },
+  { key: "tuesday",   label: "Tue" },
+  { key: "wednesday", label: "Wed" },
+  { key: "thursday",  label: "Thu" },
+  { key: "friday",    label: "Fri" },
+  { key: "saturday",  label: "Sat" },
+  { key: "sunday",    label: "Sun" },
+];
+
+const DEFAULT_WEEKLY_SCHEDULE: Record<string, APNSessionType> = {
+  monday: "off", tuesday: "off", wednesday: "off", thursday: "off",
+  friday: "off", saturday: "off", sunday: "off",
+};
+
+const ATHLETIC_TOTAL = 10;
 const COMP_TOTAL = 4;
 
 export default function PerformanceSetupModal({
@@ -164,6 +201,16 @@ export default function PerformanceSetupModal({
   const [sessionDuration, setSessionDuration] = useState<SessionDuration | "">(existingContext?.sessionDuration ?? "");
   const [recoveryStatus, setRecoveryStatus]   = useState<RecoveryStatus | "">(existingContext?.recoveryStatus ?? "");
   const [adaptationTarget, setAdaptationTarget] = useState<AdaptationTarget | "">(existingContext?.adaptationTarget ?? "");
+
+  // Adaptive Performance Nutrition fields (step 9)
+  const [weeklySchedule, setWeeklySchedule] = useState<Record<string, APNSessionType>>(
+    existingContext?.weeklyTrainingSchedule
+      ? { ...DEFAULT_WEEKLY_SCHEDULE, ...existingContext.weeklyTrainingSchedule }
+      : { ...DEFAULT_WEEKLY_SCHEDULE }
+  );
+  const [apnPhase, setApnPhase] = useState<APNTrainingPhase | "">(
+    existingContext?.weeklyTrainingSchedule?.trainingPhase ?? ""
+  );
 
   // Competition Prep fields
   const [compType, setCompType]           = useState<CompType | "">(existingCompContext?.competitionType ?? "");
@@ -195,6 +242,10 @@ export default function PerformanceSetupModal({
       if (step === 6) return !!sessionDuration;
       if (step === 7) return !!recoveryStatus;
       if (step === 8) return !!adaptationTarget;
+      if (step === 9) {
+        const allDaysSet = APN_DAYS.every(d => weeklySchedule[d.key] && weeklySchedule[d.key] !== "");
+        return allDaysSet && !!apnPhase;
+      }
     }
     if (track === "competition") {
       if (step === 1) return !!compType && (compType !== "other" || !!customSportName.trim());
@@ -237,6 +288,20 @@ export default function PerformanceSetupModal({
         body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error("Save failed");
+
+      if (track === "athletic" && apnPhase) {
+        await fetch(apiUrl("/api/performance/schedule"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          credentials: "include",
+          body: JSON.stringify({
+            schedule: weeklySchedule,
+            trainingPhase: apnPhase,
+            primaryGoal: primaryGoal || undefined,
+          }),
+        });
+      }
+
       await refreshUser();
       const label = track === "competition" ? "Competition prep protocol saved." : "Athletic performance protocol saved.";
       toast({ title: "Protocol activated", description: label });
@@ -590,6 +655,74 @@ export default function PerformanceSetupModal({
                   </p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ── Athletic: Step 9 — Weekly Training Schedule (APN) ── */}
+          {track === "athletic" && step === 9 && (
+            <div>
+              <p className="text-white font-bold text-lg mb-1">Set your weekly training schedule</p>
+              <p className="text-white/50 text-sm mb-4">
+                Your nutrition automatically adjusts each day based on what you're training.
+                Every session type shifts your carbohydrates, calories, and protein targets.
+              </p>
+
+              <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">Training Phase</p>
+              <div className="flex flex-wrap gap-2 mb-5">
+                {APN_PHASES.map(p => (
+                  <PillButton key={p.value} active={apnPhase === p.value} onClick={() => setApnPhase(p.value)}>
+                    {p.label}
+                  </PillButton>
+                ))}
+              </div>
+              {apnPhase && (
+                <div className="mb-5 bg-orange-950/20 border border-orange-500/15 rounded-xl px-3 py-2">
+                  <p className="text-white/50 text-xs leading-relaxed">
+                    {APN_PHASES.find(p => p.value === apnPhase)?.desc}
+                  </p>
+                </div>
+              )}
+
+              <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-3">Week Schedule</p>
+              <div className="space-y-3">
+                {APN_DAYS.map(day => {
+                  const selected = weeklySchedule[day.key];
+                  const selectedInfo = APN_SESSION_TYPES.find(s => s.value === selected);
+                  return (
+                    <div key={day.key}>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-white/60 text-xs font-semibold w-8 shrink-0">{day.label}</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {APN_SESSION_TYPES.map(s => (
+                            <button
+                              key={s.value}
+                              onClick={() => setWeeklySchedule(prev => ({ ...prev, [day.key]: s.value }))}
+                              className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
+                                selected === s.value
+                                  ? "bg-orange-600 text-white"
+                                  : "bg-white/8 text-white/50 border border-white/10"
+                              }`}
+                            >
+                              {s.short}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {selectedInfo && selected !== "off" && (
+                        <p className="text-white/30 text-xs ml-10 leading-relaxed">{selectedInfo.desc}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="mt-4 bg-orange-950/20 border border-orange-500/15 rounded-xl px-4 py-3">
+                <p className="text-orange-300 text-xs font-semibold mb-1">How this works</p>
+                <p className="text-white/40 text-xs leading-relaxed">
+                  MPM reads your schedule every morning and automatically adjusts your macro targets.
+                  Power days add carbohydrates. Recovery days reduce them. No manual adjustments needed.
+                </p>
+              </div>
             </div>
           )}
 

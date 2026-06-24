@@ -615,6 +615,9 @@ setTimeout(async () => {
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS active_protocol_track text`);
     // Carb Response Engine — boot migration
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS carb_cycle_state jsonb`);
+    // Adaptive Performance Nutrition — Sprint 1
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS weekly_training_schedule jsonb`);
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_protocol_config jsonb`);
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS cert_modules (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
