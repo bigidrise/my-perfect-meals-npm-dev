@@ -190,7 +190,7 @@ export default function MyBiometrics() {
       icon: "📐",
       title: "Body Composition Tracking",
       description:
-        "Track your body fat percentage from scans like DEXA, BodPod, Calipers, or Smart Scale. Your body composition data syncs with the Macro Calculator and can adjust starchy carb allocation for Beach Body and Performance builders.",
+        "Track your body fat percentage from scans like DEXA, BodPod, Calipers, or Smart Scale. Your body composition data syncs with the Macro Calculator and can adjust starchy carb allocation for Performance Nutrition and Performance builders.",
     },
   ];
 

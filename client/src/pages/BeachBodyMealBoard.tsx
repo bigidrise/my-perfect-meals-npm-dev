@@ -1041,7 +1041,7 @@ export default function BeachBodyMealBoard() {
           <div className="bg-orange-950/40 border border-orange-500/30 rounded-2xl px-5 py-4 max-w-xs w-full space-y-3">
             <p className="text-orange-300 font-semibold text-sm">Clinical Plan Required</p>
             <ul className="text-white/70 text-xs text-left space-y-1.5">
-              <li>✓ Beach Body &amp; Hard Body meal protocols</li>
+              <li>✓ Performance Nutrition meal protocols</li>
               <li>✓ Competition prep — physique, powerlifting, combat</li>
               <li>✓ Starch allocation &amp; carb cycling</li>
               <li>✓ Protocol-aware meal generation</li>

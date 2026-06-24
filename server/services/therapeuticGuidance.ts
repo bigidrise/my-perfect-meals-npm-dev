@@ -10,38 +10,67 @@
  *
  * Hierarchy position: Tier 3 — Therapeutic Support
  * (below Clinical Safety & Medical Hard Limits; above Performance & Preferences)
+ *
+ * Data model: structured entries with type, dose, unit, frequency.
+ * Active = entry.dose > 0.
  */
 
+export interface TherapeuticEntry {
+  type: string;       // e.g. "testosterone-cypionate", "bpc-157", "prednisone"
+  dose: number;       // e.g. 200 — REQUIRED, must be > 0 to be active
+  unit: string;       // e.g. "mg/week", "mcg/day", "IU/day"
+  frequency?: string; // e.g. "weekly", "daily" — optional, often implied by unit
+  label?: string;     // display name for custom entries
+  custom?: boolean;   // true for user-added custom entries
+}
+
 export interface TherapeuticSupportCtx {
-  peptides: string[];
-  hormones: string[];
-  medications: string[];
-  therapies: string[];
-  recoveryGoals: string[];
+  peptides: TherapeuticEntry[];
+  hormones: TherapeuticEntry[];
+  medications: TherapeuticEntry[];
+  therapies: string[];        // pill selection — no dosage needed
+  recoveryGoals: string[];    // pill selection — no dosage needed
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DISPLAY LABEL MAPS  (slug → human label for modal text)
+// HELPER — extract active type strings from entries (dose > 0)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function activeTypes(entries: TherapeuticEntry[]): string[] {
+  return (entries ?? []).filter(e => e.dose > 0).map(e => e.type);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DISPLAY LABEL MAPS  (type → human label for modal text)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const PEPTIDE_LABELS: Record<string, string> = {
   "bpc-157": "BPC-157",
   "tb-500": "TB-500",
   "sermorelin": "Sermorelin",
-  "ipamorelin": "Ipamorelin",
+  "ipamorelin": "Ipamorelin / CJC-1295",
   "ghk-cu": "GHK-Cu (Copper Peptide)",
+  "pt-141": "PT-141",
+  "nad+": "NAD+",
 };
 
 export const HORMONE_LABELS: Record<string, string> = {
-  "trt": "TRT / Testosterone Therapy",
-  "estrogen": "Estrogen Therapy",
-  "progesterone": "Progesterone Therapy",
-  "growth-hormone": "Growth Hormone Support",
+  "testosterone-cypionate": "Testosterone Cypionate (TRT)",
+  "testosterone-enanthate": "Testosterone Enanthate",
+  "estradiol": "Estradiol (Estrogen Therapy)",
+  "progesterone": "Progesterone",
+  "hgh": "Growth Hormone (HGH)",
+  "dhea": "DHEA",
+  "thyroid-t3": "T3 (Liothyronine)",
 };
 
 export const MEDICATION_LABELS: Record<string, string> = {
   "prednisone": "Prednisone / Corticosteroids",
-  "metformin-therapeutic": "Metformin (Therapeutic)",
+  "metformin": "Metformin",
+  "semaglutide": "Semaglutide (Ozempic / Wegovy)",
+  "tirzepatide": "Tirzepatide (Mounjaro)",
+  "tamoxifen": "Tamoxifen",
+  "anastrozole": "Anastrozole (Aromatase Inhibitor)",
 };
 
 export const THERAPY_LABELS: Record<string, string> = {
@@ -50,6 +79,7 @@ export const THERAPY_LABELS: Record<string, string> = {
   "red-light-therapy": "Red Light Therapy",
   "sauna-recovery": "Sauna / Heat Recovery",
   "cold-therapy": "Cold Therapy / Ice Bath",
+  "iv-therapy": "IV Nutrient Therapy",
 };
 
 export const RECOVERY_GOAL_LABELS: Record<string, string> = {
@@ -58,6 +88,7 @@ export const RECOVERY_GOAL_LABELS: Record<string, string> = {
   "sleep-optimization": "Sleep Optimization",
   "inflammation-reduction": "Inflammation Reduction",
   "gut-healing": "Gut Healing",
+  "stress-recovery": "Stress & Adrenal Recovery",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -79,70 +110,82 @@ MEAL STRUCTURE: High fiber intake to support healthy estrogen clearance (minimum
 TONE: Frame as "hormone-supportive," "bone-protective," or "cardiovascular-supportive." No medical claims.`.trim();
 
 const PROGESTERONE_GUIDANCE = `⚡ PROGESTERONE THERAPY — NUTRITIONAL SUPPORT PROTOCOL:
-This user is on progesterone therapy. Meal generation must support hormonal balance, blood sugar stability, and sleep quality.
-PRIORITY NUTRIENTS: Magnesium-rich foods (pumpkin seeds, dark leafy greens, almonds, dark chocolate, avocado); vitamin B6 (salmon, poultry, potatoes, bananas); zinc (lean beef, pumpkin seeds, legumes); healthy fats (avocado, olive oil, walnuts, flaxseed); blood sugar stabilizing fiber (vegetables, legumes, whole grains).
-HARD BLOCKS: NO high-glycemic refined carbohydrates as the primary base; NO processed foods with synthetic additives; NO alcohol; NO excess caffeine-containing foods.
-MEAL STRUCTURE: Every meal must pair protein + fiber + healthy fat to stabilize blood sugar. Anti-inflammatory ingredients prioritized. Evening meals should include magnesium-rich foods to support sleep quality and progesterone's calming effects.
-TONE: Frame as "hormone-balancing," "blood sugar-stabilizing," or "sleep-supportive." No medical claims.`.trim();
+This user is on progesterone therapy. Meal generation must support blood sugar stability, sleep quality, and nervous system calm.
+PRIORITY NUTRIENTS: Magnesium-rich foods (pumpkin seeds, dark leafy greens, almonds, dark chocolate — critical for progesterone receptor sensitivity); complex carbohydrates for blood sugar stability (sweet potato, oats, quinoa, legumes); vitamin B6 (salmon, poultry, bananas, chickpeas — progesterone co-factor); zinc (lean beef, pumpkin seeds, oysters); omega-3 fats (salmon, sardines, walnuts, chia seeds); calcium (dairy, sardines, almonds, fortified foods).
+HARD BLOCKS: NO refined sugars or high-glycemic foods as meal anchors; NO caffeine-heavy ingredients in evening meals; NO alcohol.
+MEAL STRUCTURE: Regular moderate-sized meals to maintain blood sugar stability. Include magnesium-rich food at every meal. Evening meals prioritize calming nutrients. Complex carbohydrates paired with protein and fat.
+TONE: Frame as "hormone-balancing," "blood sugar-stable," or "sleep-supportive." No medical claims.`.trim();
 
-const GROWTH_HORMONE_GUIDANCE = `⚡ GROWTH HORMONE SUPPORT — NUTRITIONAL PROTOCOL:
-This user is on growth hormone support. Meal generation must prioritize protein synthesis, fat metabolism, and insulin sensitivity.
-PRIORITY NUTRIENTS: High-quality lean protein at every meal (≥30g — chicken breast, white fish, egg whites, Greek yogurt, lean turkey); healthy fats (avocado, olive oil, wild salmon, sardines); complex carbohydrates with low glycemic impact (sweet potato, oats, quinoa, legumes); arginine-containing foods (pumpkin seeds, turkey, chicken, fish, lentils).
-HARD BLOCKS: NO high-glycemic simple sugars or refined carbohydrates; NO large carbohydrate loads at dinner (insulin spikes interfere with GH response); NO alcohol; NO seed oils; NO processed foods.
-MEAL STRUCTURE: Protein-anchored meals at every sitting. Carbohydrate timing is critical — concentrate complex carbs around training windows, reduce at dinner. Healthy fats at each meal for hormonal support. Avoid late-night high-carbohydrate meals.
-TONE: Frame as "anabolic recovery," "growth-supportive," or "metabolically efficient." No medical claims.`.trim();
+const GROWTH_HORMONE_GUIDANCE = `⚡ GROWTH HORMONE SUPPORT — NUTRITIONAL SUPPORT PROTOCOL:
+This user is using growth hormone support. Meal generation must support anabolic recovery, lean muscle, and metabolic optimization.
+PRIORITY NUTRIENTS: High complete protein at every meal (≥2.0g/kg — lean beef, chicken, salmon, eggs, Greek yogurt, cottage cheese); amino acids supporting GH secretion (arginine — pumpkin seeds, salmon, almonds; lysine — lean beef, chicken, eggs; glutamine — beef, chicken, eggs, spinach); healthy fats for hormone metabolism (avocado, olive oil, salmon, mackerel, walnuts); complex carbohydrates for recovery fueling (sweet potato, oats, quinoa, brown rice); antioxidants for IGF-1 support (berries, colorful vegetables, leafy greens).
+HARD BLOCKS: NO refined sugars or high-glycemic carbohydrates (blunt GH pulse); NO processed foods with additives; NO alcohol.
+MEAL STRUCTURE: Protein at every meal. Pre and post-workout meals are high priority. Anti-inflammatory ingredients throughout. Avoid simple sugars — especially around dosing windows.
+TONE: Frame as "anabolic," "recovery-focused," or "growth-supportive." No medical claims.`.trim();
 
-const PREDNISONE_GUIDANCE = `⚠️ CORTICOSTEROID (PREDNISONE) NUTRITION PROTOCOL — MANDATORY:
-This user is on corticosteroid therapy. Meal generation must mitigate nutritional side effects and support health during treatment.
-PRIORITY NUTRIENTS: Calcium-rich foods for bone protection (dairy, fortified plant milks, leafy greens, sardines, almonds); vitamin D (salmon, eggs, fortified foods); potassium-rich foods to offset urinary potassium loss (bananas, sweet potato, avocado, leafy greens, white beans); lean protein for muscle preservation (≥25g per meal); anti-inflammatory omega-3 sources (salmon, sardines, walnuts, flaxseed, chia seeds); magnesium (leafy greens, pumpkin seeds, dark chocolate).
-HARD BLOCKS: NO high-sodium processed foods, canned soups, or deli meats (corticosteroids cause sodium retention and blood pressure elevation); NO simple sugars or refined carbohydrates as primary base (corticosteroids raise blood glucose); NO alcohol; NO deep-fried foods.
-MEAL STRUCTURE: Every meal must pair protein with fiber and healthy fat to manage blood sugar response. Include a potassium-rich vegetable or fruit at each meal. Prioritize anti-inflammatory whole foods. Limit sodium-heavy ingredients.
-BLOOD SUGAR AWARENESS: Corticosteroid therapy elevates blood glucose. Avoid high-glycemic meals. Pair all carbohydrate sources with protein and fiber.
-TONE: Frame as "treatment-supportive," "anti-inflammatory," or "bone-protective." No medical claims. No mention of drug interactions.`.trim();
+const PREDNISONE_GUIDANCE = `⚡ CORTICOSTEROID / PREDNISONE THERAPY — NUTRITIONAL SUPPORT PROTOCOL:
+This user is on corticosteroid therapy. Meal generation must actively mitigate known nutritional side effects while supporting immune function.
+PRIORITY NUTRIENTS: Calcium (dairy, sardines, kale, almonds, fortified foods — bone loss protection); vitamin D (salmon, eggs, fortified milks, mushrooms); potassium (bananas, sweet potato, spinach, white beans, avocado — counteracts fluid retention); protein for muscle preservation (≥1.6g/kg — chicken, fish, eggs, Greek yogurt, legumes); magnesium (pumpkin seeds, spinach, black beans, almonds); vitamin C (bell peppers, citrus, strawberries, broccoli — immune support); omega-3 fats (salmon, sardines, walnuts, chia — anti-inflammatory).
+HARD BLOCKS: NO high-sodium processed foods (fluid retention and blood pressure); NO refined sugars or high-glycemic foods (blood sugar elevation); NO excess saturated fat (cardiovascular risk); NO alcohol.
+MEAL STRUCTURE: Blood sugar-stabilizing meals at consistent times. High protein to offset muscle catabolism. Bone-protective nutrients at every meal. Anti-inflammatory ingredients prioritized. Potassium-rich foods with every meal.
+TONE: Frame as "anti-inflammatory," "bone-protective," or "blood sugar-stabilizing." No medical claims.`.trim();
 
-const CONNECTIVE_TISSUE_GUIDANCE = `⚡ CONNECTIVE TISSUE RECOVERY NUTRITION PROTOCOL:
-This user is focused on connective tissue recovery and repair. Meal generation must support collagen synthesis, anti-inflammation, and tissue healing.
-PRIORITY NUTRIENTS: Collagen-supporting foods rich in glycine and proline (bone broth, chicken skin, gelatin-containing foods, lean meats — cook methods that preserve collagen); vitamin C at every meal (bell peppers, strawberries, kiwi, citrus, broccoli — critical for collagen cross-linking); high-quality protein for tissue repair (≥1.6g/kg — chicken, fish, eggs, lean meats); zinc for wound healing (pumpkin seeds, lean beef); anti-inflammatory omega-3 sources (salmon, sardines, walnuts, flaxseed, chia seeds); antioxidant-rich vegetables (colorful bell peppers, leafy greens, berries, turmeric, ginger).
-HARD BLOCKS: NO inflammatory ingredients as primary components (refined sugars, seed oils, processed foods, fried foods, alcohol); NO nutritionally empty meals lacking collagen-supportive micronutrients.
-MEAL STRUCTURE: At least one vitamin C source per meal. Protein at every meal — collagen synthesis requires adequate amino acid availability. Include anti-inflammatory ingredients — omega-3 sources, turmeric, ginger, colorful vegetables.
-TONE: Frame as "recovery-focused," "tissue-repair," or "healing-supportive." No medical claims.`.trim();
+const GLP1_MEDICATION_GUIDANCE = `⚡ GLP-1 THERAPY (SEMAGLUTIDE / TIRZEPATIDE) — NUTRITIONAL SUPPORT PROTOCOL:
+This user is on a GLP-1 receptor agonist. Meal generation must support reduced appetite, nausea management, lean muscle preservation, and metabolic optimization.
+PRIORITY NUTRIENTS: High protein for muscle preservation (≥1.6g/kg — focus on compact protein sources: eggs, Greek yogurt, cottage cheese, edamame, canned salmon, chicken); small, nutrient-dense meals; complex carbohydrates with high fiber (oats, legumes, vegetables — slow digestion); healthy fats in moderate portions (avocado, olive oil, nuts in small amounts); high-fiber vegetables for satiety and gut health.
+HARD BLOCKS: NO large portions; NO fried or greasy foods (worsens nausea); NO carbonated beverage ingredients; NO high-fat heavy meals; NO refined sugars as meal anchors.
+MEAL STRUCTURE: Smaller portions, nutrient-dense per calorie. Protein always first. Meals should not be overwhelming in volume. Snacks should be high-protein, compact. Easy-to-digest preparations preferred (steamed, baked, poached).
+TONE: Frame as "nutrient-dense," "protein-first," or "easy-on-digestion." No medical claims.`.trim();
 
-const GUT_SUPPORT_GUIDANCE = `⚡ GUT SUPPORT NUTRITION PROTOCOL:
-This user requires gut-supportive nutrition. Meal generation must prioritize digestive health, microbiome balance, and gut healing.
-PRIORITY NUTRIENTS: Probiotic-rich fermented foods (yogurt, kefir, sauerkraut, kimchi, miso, tempeh — include one source per meal where possible); prebiotic fiber foods (garlic, onion, leeks, asparagus, bananas, oats — feed beneficial bacteria); gut-healing glutamine-containing foods (bone broth, eggs, red cabbage, parsley); easily digestible lean proteins (chicken, fish, eggs, tofu); anti-inflammatory omega-3 sources (salmon, sardines, walnuts, chia seeds); colorful vegetables for microbiome diversity.
-HARD BLOCKS: NO artificial sweeteners (disrupt microbiome composition); NO refined sugars as primary base; NO alcohol; NO deep-fried foods; NO high-fat processed foods.
-MEAL STRUCTURE: Every meal should include at least one probiotic or prebiotic source. Lean proteins over processed protein products. Gentle cooking methods preferred (steamed, baked, lightly sautéed). High variety of vegetables to support microbiome diversity.
-TONE: Frame as "gut-supportive," "microbiome-friendly," or "digestive-health-focused." No medical claims.`.trim();
+const CONNECTIVE_TISSUE_GUIDANCE = `⚡ CONNECTIVE TISSUE RECOVERY — NUTRITIONAL SUPPORT PROTOCOL:
+This user is pursuing connective tissue recovery (peptide therapy, injury recovery, or rehabilitation). Meal generation must support collagen synthesis, tendon and ligament repair, and anti-inflammatory healing.
+PRIORITY NUTRIENTS: Vitamin C (bell peppers, citrus, strawberries, kiwi, broccoli — essential collagen synthesis cofactor); glycine-rich foods (bone broth, chicken skin, gelatin, pork; supports collagen formation); proline sources (egg whites, dairy, asparagus, cabbage); copper (liver, oysters, sesame seeds, cashews, dark chocolate — lysyl oxidase activation); vitamin A (sweet potato, carrots, leafy greens — tissue repair); omega-3 fats (salmon, sardines, walnuts — anti-inflammatory); zinc (lean beef, pumpkin seeds, oysters); sulfur-containing foods (garlic, onion, eggs, cruciferous vegetables — MSM precursors).
+HARD BLOCKS: NO inflammatory oils (canola, soybean, vegetable oil — use olive oil or avocado oil only); NO refined sugars as meal anchors; NO alcohol.
+MEAL STRUCTURE: Vitamin C source at every meal (collagen synthesis requires it in real-time). Include glycine-rich or collagen-supportive foods. Anti-inflammatory base throughout. Protein anchored at every meal.
+TONE: Frame as "recovery-supportive," "collagen-building," or "tissue-repair." No medical claims.`.trim();
 
-const RECOVERY_OPTIMIZATION_GUIDANCE = `⚡ RECOVERY OPTIMIZATION PROTOCOL:
-This user is in active recovery optimization mode. Meal generation must maximize tissue repair, inflammation reduction, and restorative nutrition.
-PRIORITY NUTRIENTS: Anti-inflammatory omega-3 sources at every meal (salmon, sardines, mackerel, walnuts, flaxseed, chia seeds); antioxidant-rich recovery foods (tart cherries, berries, colorful vegetables, turmeric, ginger); magnesium for muscle recovery and sleep quality (leafy greens, pumpkin seeds, dark chocolate, almonds); zinc for tissue repair (pumpkin seeds, lean beef, oysters); adequate protein for muscle protein synthesis (≥1.6g/kg — lean meats, fish, eggs, legumes); vitamin C for collagen repair (bell peppers, citrus, kiwi, broccoli).
-HARD BLOCKS: NO inflammatory ingredients (refined sugars, seed oils, processed snack foods); NO alcohol; NO deep-fried foods.
-MEAL STRUCTURE: Every meal must be anti-inflammatory as the default. Include at least one omega-3 source daily. Include magnesium-rich food daily. Color diversity in vegetables — target 3+ colors per meal. Protein at every meal.
-TONE: Frame as "recovery-focused," "anti-inflammatory," or "restorative." No medical claims.`.trim();
+const GUT_SUPPORT_GUIDANCE = `⚡ GUT SUPPORT PROTOCOL — NUTRITIONAL SUPPORT:
+This user is actively supporting gut health and microbiome diversity. Meal generation must prioritize digestive repair and barrier function.
+PRIORITY NUTRIENTS: Diverse prebiotic fiber (chicory, garlic, onion, asparagus, green bananas, oats, leeks); probiotic-rich foods (Greek yogurt, kefir, kimchi, sauerkraut, miso, tempeh); L-glutamine sources (bone broth, beef, eggs, cabbage — intestinal barrier repair); omega-3 fats (salmon, sardines, walnuts — gut lining); polyphenol-rich foods (blueberries, dark chocolate, extra virgin olive oil, green tea); zinc (lean beef, pumpkin seeds, oysters — gut healing); vitamin D (salmon, eggs — mucosal immunity).
+HARD BLOCKS: NO artificial sweeteners; NO processed foods with emulsifiers or preservatives; NO refined sugars as primary carbohydrate; NO excessive alcohol; NO highly processed seed oils.
+MEAL STRUCTURE: Fermented or probiotic food with at least one daily meal. High fiber variety (aim for 30+ different plant sources weekly). Meals gentle on digestion. Avoid gut-disrupting additives.
+TONE: Frame as "gut-supportive," "microbiome-diverse," or "digestive-healing." No medical claims.`.trim();
+
+const RECOVERY_OPTIMIZATION_GUIDANCE = `⚡ RECOVERY OPTIMIZATION — NUTRITIONAL SUPPORT PROTOCOL:
+This user is prioritizing recovery, sleep optimization, and inflammation reduction. Meal generation must support systemic recovery and restorative sleep.
+PRIORITY NUTRIENTS: Magnesium (pumpkin seeds, dark leafy greens, almonds, dark chocolate — critical for sleep and recovery); tryptophan (turkey, eggs, pumpkin seeds, cottage cheese, bananas — serotonin/melatonin precursor); omega-3 fats (salmon, sardines, walnuts, chia — anti-inflammatory); antioxidants (blueberries, tart cherries, beets, spinach — exercise recovery); complex carbohydrates for evening meals (sweet potato, oats, quinoa — facilitate tryptophan uptake); protein for muscle repair (≥1.6g/kg throughout the day).
+HARD BLOCKS: NO refined sugars in evening meals; NO alcohol; NO heavy saturated fat meals; NO high-caffeine ingredients in evening meals.
+MEAL STRUCTURE: Evening meals include tryptophan + complex carbohydrate combination (facilitates sleep). Anti-inflammatory ingredients at every meal. Magnesium-rich food daily. Morning meals high in protein and antioxidants.
+TONE: Frame as "recovery-optimizing," "anti-inflammatory," or "sleep-supportive." No medical claims.`.trim();
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MAIN BUILDER — called by universalMedicalGuidance
+// GUIDANCE BLOCK BUILDER
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function buildTherapeuticGuidanceBlocks(ctx: TherapeuticSupportCtx): string[] {
   const blocks: string[] = [];
 
-  const hormones = ctx.hormones ?? [];
-  const medications = ctx.medications ?? [];
-  const peptides = ctx.peptides ?? [];
+  const hormoneSlugs = activeTypes(ctx.hormones ?? []);
+  const medicationSlugs = activeTypes(ctx.medications ?? []);
+  const peptideSlugs = activeTypes(ctx.peptides ?? []);
   const therapies = ctx.therapies ?? [];
   const recoveryGoals = ctx.recoveryGoals ?? [];
 
-  if (hormones.includes("trt")) blocks.push(TRT_GUIDANCE);
-  if (hormones.includes("estrogen")) blocks.push(ESTROGEN_GUIDANCE);
-  if (hormones.includes("progesterone")) blocks.push(PROGESTERONE_GUIDANCE);
-  if (hormones.includes("growth-hormone")) blocks.push(GROWTH_HORMONE_GUIDANCE);
+  // Testosterone (any form)
+  const isTRT = hormoneSlugs.some(t => t.startsWith("testosterone-"));
+  if (isTRT) blocks.push(TRT_GUIDANCE);
 
-  if (medications.includes("prednisone")) blocks.push(PREDNISONE_GUIDANCE);
+  if (hormoneSlugs.includes("estradiol")) blocks.push(ESTROGEN_GUIDANCE);
+  if (hormoneSlugs.includes("progesterone")) blocks.push(PROGESTERONE_GUIDANCE);
+  if (hormoneSlugs.includes("hgh")) blocks.push(GROWTH_HORMONE_GUIDANCE);
+
+  if (medicationSlugs.includes("prednisone")) blocks.push(PREDNISONE_GUIDANCE);
+
+  const isGLP1 = medicationSlugs.includes("semaglutide") || medicationSlugs.includes("tirzepatide");
+  if (isGLP1) blocks.push(GLP1_MEDICATION_GUIDANCE);
 
   const needsConnectiveTissue =
-    peptides.some(p => ["bpc-157", "tb-500", "ghk-cu"].includes(p)) ||
+    peptideSlugs.some(p => ["bpc-157", "tb-500", "ghk-cu"].includes(p)) ||
     therapies.includes("connective-tissue-recovery") ||
     recoveryGoals.includes("joint-recovery");
   if (needsConnectiveTissue) blocks.push(CONNECTIVE_TISSUE_GUIDANCE);
@@ -153,7 +196,7 @@ export function buildTherapeuticGuidanceBlocks(ctx: TherapeuticSupportCtx): stri
   if (needsGutSupport) blocks.push(GUT_SUPPORT_GUIDANCE);
 
   const needsRecoveryOptimization =
-    recoveryGoals.some(g => ["muscle-recovery", "inflammation-reduction", "sleep-optimization"].includes(g)) &&
+    recoveryGoals.some(g => ["muscle-recovery", "inflammation-reduction", "sleep-optimization", "stress-recovery"].includes(g)) &&
     !needsConnectiveTissue;
   if (needsRecoveryOptimization) blocks.push(RECOVERY_OPTIMIZATION_GUIDANCE);
 
@@ -171,6 +214,14 @@ export interface TherapeuticModalContent {
   priorities: string[];
   body: string;
   conflictPolicy: string;
+}
+
+function formatEntryLabel(entry: TherapeuticEntry, labelMap: Record<string, string>): string {
+  const name = entry.label || labelMap[entry.type] || entry.type;
+  if (entry.dose > 0 && entry.unit) {
+    return `${name} (${entry.dose} ${entry.unit})`;
+  }
+  return name;
 }
 
 export function buildTherapeuticModalContent(
@@ -192,12 +243,16 @@ export function buildTherapeuticModalContent(
   const specialtyArr = parseArr(user.specialtyConditions);
   const healthArr = parseArr(user.healthConditions).map(c => c.toLowerCase());
 
+  const activeHormones = (ctx.hormones ?? []).filter(e => e.dose > 0);
+  const activePeptides = (ctx.peptides ?? []).filter(e => e.dose > 0);
+  const activeMedications = (ctx.medications ?? []).filter(e => e.dose > 0);
+
   const selectedItems: string[] = [
-    ...ctx.peptides.map(s => PEPTIDE_LABELS[s] ?? s),
-    ...ctx.hormones.map(s => HORMONE_LABELS[s] ?? s),
-    ...ctx.medications.map(s => MEDICATION_LABELS[s] ?? s),
-    ...ctx.therapies.map(s => THERAPY_LABELS[s] ?? s),
-    ...ctx.recoveryGoals.map(s => RECOVERY_GOAL_LABELS[s] ?? s),
+    ...activeHormones.map(e => formatEntryLabel(e, HORMONE_LABELS)),
+    ...activePeptides.map(e => formatEntryLabel(e, PEPTIDE_LABELS)),
+    ...activeMedications.map(e => formatEntryLabel(e, MEDICATION_LABELS)),
+    ...(ctx.therapies ?? []).map(s => THERAPY_LABELS[s] ?? s),
+    ...(ctx.recoveryGoals ?? []).map(s => RECOVERY_GOAL_LABELS[s] ?? s),
   ];
 
   const activeProtocols: string[] = [];
@@ -222,7 +277,6 @@ export function buildTherapeuticModalContent(
   }
 
   if (specialtyArr.includes("hormone-optimization")) { activeProtocols.push("Hormone Optimization"); priorities.push("hormonal balance"); }
-  if (specialtyArr.includes("pregnancy-support")) { /* already handled */ }
 
   const CARDIAC_KEYS = ["cardiac", "heart disease", "cardiovascular", "coronary"];
   if (healthArr.some(c => CARDIAC_KEYS.some(k => c.includes(k)))) {
@@ -239,21 +293,28 @@ export function buildTherapeuticModalContent(
   }
 
   const therapeuticPriorities: string[] = [];
-  if (ctx.hormones.includes("trt")) therapeuticPriorities.push("hormone-supportive protein adequacy");
-  if (ctx.hormones.includes("estrogen")) therapeuticPriorities.push("estrogen metabolism support");
-  if (ctx.hormones.includes("progesterone")) therapeuticPriorities.push("blood sugar stability");
-  if (ctx.hormones.includes("growth-hormone")) therapeuticPriorities.push("anabolic protein synthesis");
-  if (ctx.medications.includes("prednisone")) therapeuticPriorities.push("bone protection and blood sugar management");
-  if (ctx.peptides.some(p => ["bpc-157", "tb-500", "ghk-cu"].includes(p)) || ctx.therapies.includes("connective-tissue-recovery")) {
+  const hormoneSlugs = activeHormones.map(e => e.type);
+  const peptideSlugs = activePeptides.map(e => e.type);
+  const medicationSlugs = activeMedications.map(e => e.type);
+
+  if (hormoneSlugs.some(t => t.startsWith("testosterone-"))) therapeuticPriorities.push("hormone-supportive protein adequacy");
+  if (hormoneSlugs.includes("estradiol")) therapeuticPriorities.push("estrogen metabolism support");
+  if (hormoneSlugs.includes("progesterone")) therapeuticPriorities.push("blood sugar stability");
+  if (hormoneSlugs.includes("hgh")) therapeuticPriorities.push("anabolic protein synthesis");
+  if (medicationSlugs.includes("prednisone")) therapeuticPriorities.push("bone protection and blood sugar management");
+  if (medicationSlugs.includes("semaglutide") || medicationSlugs.includes("tirzepatide")) {
+    therapeuticPriorities.push("nutrient density per calorie and muscle preservation");
+  }
+  if (peptideSlugs.some(p => ["bpc-157", "tb-500", "ghk-cu"].includes(p)) || (ctx.therapies ?? []).includes("connective-tissue-recovery")) {
     therapeuticPriorities.push("connective tissue recovery and collagen synthesis");
   }
-  if (ctx.therapies.includes("gut-support") || ctx.recoveryGoals.includes("gut-healing")) {
+  if ((ctx.therapies ?? []).includes("gut-support") || (ctx.recoveryGoals ?? []).includes("gut-healing")) {
     therapeuticPriorities.push("gut microbiome and digestive health");
   }
-  if (ctx.recoveryGoals.some(g => ["muscle-recovery", "inflammation-reduction", "sleep-optimization"].includes(g))) {
+  if ((ctx.recoveryGoals ?? []).some(g => ["muscle-recovery", "inflammation-reduction", "sleep-optimization", "stress-recovery"].includes(g))) {
     therapeuticPriorities.push("recovery optimization and anti-inflammatory nutrition");
   }
-  if (ctx.recoveryGoals.includes("joint-recovery")) therapeuticPriorities.push("joint-protective nutrition");
+  if ((ctx.recoveryGoals ?? []).includes("joint-recovery")) therapeuticPriorities.push("joint-protective nutrition");
 
   const allPriorities = [...therapeuticPriorities, ...priorities];
 
@@ -266,10 +327,12 @@ export function buildTherapeuticModalContent(
     const protocolText = activeProtocols.length === 1
       ? activeProtocols[0]
       : activeProtocols.slice(0, -1).join(", ") + " and " + activeProtocols[activeProtocols.length - 1];
-    body = `You selected ${selectedText}. Because ${protocolText} ${activeProtocols.length === 1 ? "is" : "are"} also active, your meals will be built to support: ${allPriorities.join(", ")}.`;
+    body = `You entered ${selectedText}. Because ${protocolText} ${activeProtocols.length === 1 ? "is" : "are"} also active, your meals will be built to support: ${allPriorities.join(", ")}.`;
   } else {
-    body = `You selected ${selectedText}. Your meals will be built to support: ${allPriorities.length > 0 ? allPriorities.join(", ") : "your therapeutic nutrition goals"}.`;
+    body = `You entered ${selectedText}. Your meals will be built to support: ${allPriorities.length > 0 ? allPriorities.join(", ") : "your therapeutic nutrition goals"}.`;
   }
+
+  body += "\n\nClinical safety requirements always take priority when protocols conflict.";
 
   return {
     headline: "Your Therapeutic Protocol Is Active",

@@ -35,7 +35,7 @@ const TIER_CONFIG: Record<RequiredTier, { label: string; tagline: string; benefi
     benefits: [
       "Clinical Lab Integration — your blood work shapes your meal protocols",
       "Care Team Access — connect with a physician or trainer in-app",
-      "Beach Body, Competition Prep & Athlete Builders",
+      "Performance Nutrition, Competition Prep & Athlete Builders",
     ],
   },
 };

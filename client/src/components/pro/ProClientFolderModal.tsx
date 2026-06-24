@@ -108,7 +108,7 @@ const BUILDER_LABELS: Record<string, string> = {
   "anti-inflammatory": "Anti-Inflammatory",
   anti_inflammatory: "Anti-Inflammatory",
   weekly: "Weekly",
-  beach_body: "Beach Body",
+  beach_body: "Performance Nutrition",
 };
 
 function getBuilderLabel(client: ClientProfile): string | null {

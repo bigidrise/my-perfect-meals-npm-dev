@@ -618,9 +618,9 @@ export interface UserProtocolEnvelope {
    * Null when therapeutic support is not active.
    */
   therapeuticSupportContext: {
-    peptides: string[];
-    hormones: string[];
-    medications: string[];
+    peptides: { type: string; dose: number; unit: string; frequency?: string; label?: string; custom?: boolean }[];
+    hormones: { type: string; dose: number; unit: string; frequency?: string; label?: string; custom?: boolean }[];
+    medications: { type: string; dose: number; unit: string; frequency?: string; label?: string; custom?: boolean }[];
     therapies: string[];
     recoveryGoals: string[];
   } | null;
@@ -954,9 +954,9 @@ export async function loadUserProtocolEnvelope(
     // ── THERAPEUTIC NUTRITION INTELLIGENCE — additive modifier ────────────────
     const therapeuticSupport: boolean = specialtyConditionsArr.includes("therapeutic-support");
     let therapeuticSupportCtx: {
-      peptides: string[];
-      hormones: string[];
-      medications: string[];
+      peptides: { type: string; dose: number; unit: string; frequency?: string; label?: string; custom?: boolean }[];
+      hormones: { type: string; dose: number; unit: string; frequency?: string; label?: string; custom?: boolean }[];
+      medications: { type: string; dose: number; unit: string; frequency?: string; label?: string; custom?: boolean }[];
       therapies: string[];
       recoveryGoals: string[];
     } | null = null;
@@ -964,10 +964,23 @@ export async function loadUserProtocolEnvelope(
     if (therapeuticSupport) {
       const raw = ((user as any).therapeuticSupportContext as any) ?? null;
       if (raw && typeof raw === "object") {
+        const parseTherapeuticEntries = (arr: any[]) => {
+          if (!Array.isArray(arr)) return [];
+          return arr
+            .filter(e => e && typeof e === "object" && e.type && Number(e.dose) > 0)
+            .map(e => ({
+              type: String(e.type),
+              dose: Number(e.dose),
+              unit: String(e.unit ?? ""),
+              frequency: e.frequency ? String(e.frequency) : undefined,
+              label: e.label ? String(e.label) : undefined,
+              custom: !!e.custom,
+            }));
+        };
         therapeuticSupportCtx = {
-          peptides: Array.isArray(raw.peptides) ? raw.peptides.map(String) : [],
-          hormones: Array.isArray(raw.hormones) ? raw.hormones.map(String) : [],
-          medications: Array.isArray(raw.medications) ? raw.medications.map(String) : [],
+          peptides: parseTherapeuticEntries(raw.peptides ?? []),
+          hormones: parseTherapeuticEntries(raw.hormones ?? []),
+          medications: parseTherapeuticEntries(raw.medications ?? []),
           therapies: Array.isArray(raw.therapies) ? raw.therapies.map(String) : [],
           recoveryGoals: Array.isArray(raw.recoveryGoals) ? raw.recoveryGoals.map(String) : [],
         };

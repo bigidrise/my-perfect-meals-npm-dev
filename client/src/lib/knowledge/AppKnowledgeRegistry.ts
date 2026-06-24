@@ -479,8 +479,8 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
     description:
       "Competition-ready meals with strict macro guardrails.",
     howTo: [
-      "Navigate to Beach Body Meal Board from the Dashboard.",
-      "Each meal automatically enforces Beach Body guardrails.",
+      "Navigate to Performance Nutrition Builder from the Dashboard.",
+      "Each meal automatically enforces Performance Nutrition guardrails.",
       "Protein minimum: 35g per meal for muscle preservation.",
       "Starchy carbs capped at 25g per meal to minimize water retention.",
       "Fibrous carbs target 150g per meal for fullness and digestive health.",

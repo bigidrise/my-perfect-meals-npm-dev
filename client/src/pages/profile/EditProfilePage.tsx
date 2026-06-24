@@ -410,7 +410,7 @@ export default function EditProfilePage() {
       performance_competition: "Performance Builder",
       anti_inflammatory: "Anti-Inflammatory",
       "anti-inflammatory": "Anti-Inflammatory",
-      beach_body: "Beach Body",
+      beach_body: "Performance Nutrition",
     };
     
     return builderType ? (builderNames[builderType] || builderType) : "Not Set";

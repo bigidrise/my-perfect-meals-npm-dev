@@ -132,7 +132,7 @@ export default function ProBoardViewer() {
       case "glp1": return "Metabolic Med";
       case "medical": return "Anti-Inflammatory";
       case "weekly": return "Weekly";
-      case "beach_body": return "Beach Body";
+      case "beach_body": return "Performance Nutrition";
       default: return program;
     }
   })();
