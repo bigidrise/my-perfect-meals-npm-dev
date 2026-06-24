@@ -213,6 +213,9 @@ async function initializeApp() {
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS active_protocol_track text`);
           // Carb Response Engine — boot migration
           await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS carb_cycle_state jsonb`);
+          // Adaptive Performance Nutrition — Sprint 1
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS weekly_training_schedule jsonb`);
+          await database.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_protocol_config jsonb`);
           // LMS content tables
           await database.execute(sql`
             CREATE TABLE IF NOT EXISTS cert_modules (

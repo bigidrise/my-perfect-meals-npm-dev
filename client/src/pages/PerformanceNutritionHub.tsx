@@ -381,6 +381,12 @@ export default function PerformanceNutritionHub() {
   const [checkInResult, setCheckInResult] = useState<string | null>(null);
   const [checkInLoading, setCheckInLoading] = useState(false);
 
+  // Today's adaptive session — fetched from /api/performance/today when schedule is set
+  const [todaySession, setTodaySession] = useState<{
+    sessionType: string; sessionLabel: string; trainingPhase: string;
+    calories: number; proteinG: number; carbsG: number; fatG: number; description: string;
+  } | null>(null);
+
   // Coach link + send-to-coach state
   const [hasCoachLink, setHasCoachLink] = useState(false);
   const [sendState, setSendState] = useState<"idle" | "sending" | "sent" | "error">("idle");
@@ -455,6 +461,16 @@ export default function PerformanceNutritionHub() {
       setTimeout(() => { setSendState("idle"); setSendError(null); }, 3000);
     }
   }
+
+  useEffect(() => {
+    if (!isActive || activeTrack !== "athletic") return;
+    const hasSchedule = !!(user as any)?.weeklyTrainingSchedule;
+    if (!hasSchedule) return;
+    fetch(apiUrl("/api/performance/today"), { headers: getAuthHeaders(), credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.configured) setTodaySession(d); })
+      .catch(() => {});
+  }, [isActive, activeTrack, user]);
 
   useEffect(() => {
     if (!isActive) return;
@@ -1011,6 +1027,39 @@ export default function PerformanceNutritionHub() {
       {/* ── Active: Athletic Performance ── */}
       {isActive && activeTrack === "athletic" && pCtx && (
         <div className="px-4 pt-4 max-w-xl mx-auto space-y-4">
+
+          {/* ── Today's Training — Adaptive Performance Nutrition card ── */}
+          {todaySession && (
+            <div className="rounded-2xl bg-black/50 border border-orange-500/40 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                  <p className="text-xs text-orange-300 font-semibold uppercase tracking-wider">Today's Training</p>
+                </div>
+                <span className="text-xs text-white/30 font-medium">
+                  {new Date().toLocaleDateString("en-US", { weekday: "long" })}
+                </span>
+              </div>
+
+              <p className="text-white font-bold text-2xl leading-none mb-0.5">{todaySession.sessionLabel}</p>
+              <p className="text-white/40 text-xs leading-relaxed mb-4">{todaySession.description}</p>
+
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { label: "Calories", value: todaySession.calories.toLocaleString(), unit: "kcal" },
+                  { label: "Protein",  value: `${todaySession.proteinG}`,             unit: "g" },
+                  { label: "Carbs",    value: `${todaySession.carbsG}`,               unit: "g" },
+                  { label: "Fat",      value: `${todaySession.fatG}`,                 unit: "g" },
+                ].map(m => (
+                  <div key={m.label} className="bg-white/5 rounded-xl px-2 py-2.5 text-center">
+                    <p className="text-white font-bold text-base leading-none">{m.value}</p>
+                    <p className="text-white/30 text-xs mt-0.5">{m.unit}</p>
+                    <p className="text-white/20 text-[10px] mt-0.5 uppercase tracking-wide">{m.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* ── Section 1: Performance Profile ── */}
           <div className="rounded-2xl bg-black/50 border border-orange-500/30 p-4">
