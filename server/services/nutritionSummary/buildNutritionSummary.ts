@@ -618,7 +618,7 @@ export function buildNutritionSummary(
       ? { medicalConditions: healthItems, therapeuticInputs: therapeuticInputsForDrivers, liveMetrics: liveMetricsForDrivers }
       : null;
 
-  const builderSlug = extras.selectedMealBuilder || extras.activeBoard || null;
+  const builderSlug = envelope.selectedMealBuilder || extras.selectedMealBuilder || extras.activeBoard || null;
   const mealBuilderLabel = builderSlug ? (BUILDER_LABEL_MAP[builderSlug] ?? null) : null;
 
   return {
