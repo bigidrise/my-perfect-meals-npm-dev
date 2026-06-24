@@ -67,6 +67,7 @@ import { TipsBanner } from "@/components/TipsBanner";
 import InspirationCaptureModal from "@/components/InspirationCaptureModal";
 import { derivePregnancyStatus } from "@/lib/pregnancyUtils";
 import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
+import { WhatsNewCard } from "@/components/WhatsNewCard";
 
 interface FeatureCard {
   title: string;
@@ -770,6 +771,7 @@ export default function DashboardNew() {
         <PatternAlertBanner />
         <TipsBanner />
 
+        <WhatsNewCard />
         <NutritionPersonalizationSummaryCard />
 
         <motion.div
