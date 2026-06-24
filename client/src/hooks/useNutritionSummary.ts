@@ -33,7 +33,7 @@ export function useNutritionSummary() {
       return res.json();
     },
     enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     gcTime: 10 * 60 * 1000,
   });
 
