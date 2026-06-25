@@ -590,7 +590,7 @@ export default function Router() {
         {/* DELETED: /healthy-kids-meals, /kids-meals, /toddler-meals routes (Phase 1 cleanup) */}
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
         <Route path="/lifestyle/my-perfect-pregnancy" component={MyPerfectPregnancyPage} />
-        <Route path="/performance" component={PerformanceNutritionHub} />
+        <Route path="/performance" component={() => <PaywallGuard component={PerformanceNutritionHub} />} />
         <Route path="/lifestyle/my-perfect-getaway" component={GuardedGetaway} />
         <Route path="/lifestyle/my-perfect-gatherings" component={GuardedGatheringsPage} />
         <Route path="/lifestyle/ultimate-experiences" component={GuardedGatheringsPage} />
