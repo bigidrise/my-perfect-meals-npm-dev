@@ -3,7 +3,7 @@ import express from "express";
 import { db } from "../db";
 import { proAccounts, clientLinks, subscriptions, payouts } from "../db/schema/procare";
 import { users, userGlycemicSettings, glp1Shots } from "@shared/schema";
-import { eq, and, gte, desc } from "drizzle-orm";
+import { eq, and, gte, desc, sql } from "drizzle-orm";
 import { diabetesProfile, glucoseLogs } from "../../shared/diabetes-schema";
 import {
   createConnectAccount,
@@ -963,23 +963,24 @@ router.get("/clients/:clientId/nutrition-summary", requireAuth, async (req, res)
     const envelope = await loadUserProtocolEnvelope(clientId);
     if (!envelope) return res.status(404).json({ error: "Client not found" });
 
-    const [userRow] = await db
-      .select({
-        dailyCalorieTarget:     (users as any).dailyCalorieTarget,
-        dailyProteinTarget:     (users as any).dailyProteinTarget,
-        dailyCarbTarget:        (users as any).dailyCarbsTarget,
-        dailyFatTarget:         (users as any).dailyFatTarget,
-        goalType:               (users as any).goalType,
-        goalTarget:             (users as any).goalTarget,
-        fitnessGoal:            users.fitnessGoal,
-        performanceContext:     users.performanceContext,
-        weeklyTrainingSchedule: (users as any).weeklyTrainingSchedule,
-        selectedMealBuilder:    users.selectedMealBuilder,
-        activeBoard:            users.activeBoard,
-      })
-      .from(users)
-      .where(eq(users.id, clientId))
-      .limit(1);
+    const rawUserResult = await db.execute(sql`
+      SELECT
+        daily_calorie_target     AS "dailyCalorieTarget",
+        daily_protein_target     AS "dailyProteinTarget",
+        daily_carbs_target       AS "dailyCarbTarget",
+        daily_fat_target         AS "dailyFatTarget",
+        goal_type                AS "goalType",
+        goal_target              AS "goalTarget",
+        fitness_goal             AS "fitnessGoal",
+        performance_context      AS "performanceContext",
+        weekly_training_schedule AS "weeklyTrainingSchedule",
+        selected_meal_builder    AS "selectedMealBuilder",
+        active_board             AS "activeBoard"
+      FROM users
+      WHERE id = ${clientId}
+      LIMIT 1
+    `);
+    const userRow = (rawUserResult.rows?.[0] ?? rawUserResult[0] ?? null) as any;
 
     const [latestGlucoseLog] = await db
       .select({ value: glucoseLogs.valueMgdl })
