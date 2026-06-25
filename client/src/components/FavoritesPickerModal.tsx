@@ -37,9 +37,13 @@ const FILTER_TABS: { key: FavoriteCategory; label: string }[] = [
   { key: "drinks", label: "Drinks" },
 ];
 
-// Source type sets — exhaustive across all current builders
+// Source type sets — exhaustive across all current builders.
+// NOTE: "pairings-ai" is intentionally excluded — it saves both wine recommendations
+// AND food pairings (steak, salad, etc.) under the same sourceType. Keyword matching
+// correctly catches the drink items (wine, cocktail, beer names) while food pairings
+// fall through to their correct category.
 const DRINK_SOURCES = new Set([
-  "pairings-ai", "wine-list-helper",
+  "wine-list-helper",
   "beverage-creator", "beverage",
   "athlete-beverage-creator", "athlete-beverage",
   "spirits-hub", "wine-pairing", "cocktail-creator",
@@ -128,8 +132,10 @@ export function classifyFavorite(row: SavedMealRow): FavoriteCategory {
   const mealName = (row.mealData?.name || "").toLowerCase();
   const text = `${title} ${mealName}`;
 
-  if (DRINK_KEYWORDS.some((k) => text.includes(k))) return "drinks";
+  // Check SNACK before DRINK — prevents substring false-positives like
+  // "coffee cake" matching the "coffee" drink keyword before "cake" snack keyword.
   if (SNACK_KEYWORDS.some((k) => text.includes(k))) return "snacks";
+  if (DRINK_KEYWORDS.some((k) => text.includes(k))) return "drinks";
   if (BREAKFAST_KEYWORDS.some((k) => text.includes(k))) return "breakfast-style";
 
   return "mains";
