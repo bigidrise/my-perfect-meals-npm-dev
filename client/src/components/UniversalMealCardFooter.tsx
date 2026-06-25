@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { GlassButton } from "@/components/ui/glass-button";
@@ -7,6 +7,7 @@ import { useLocation } from "wouter";
 import { Check } from "lucide-react";
 import type { MealTemplateBase, NutritionInfo } from "@/data/models";
 import { useAuth } from "@/contexts/AuthContext";
+import { canLogMealToMacros, markMealLogged, fingerprintMeal } from "@/lib/macroLogGuard";
 
 interface UniversalMealCardFooterProps {
   meal: MealTemplateBase;
@@ -30,6 +31,19 @@ export default function UniversalMealCardFooter({
   const [isLoggingMacros, setIsLoggingMacros] = useState(false);
   const [macrosLogged, setMacrosLogged] = useState(false);
   const [planAdded, setPlanAdded] = useState(false);
+
+  const userId = user?.id || "";
+  const mealGuardId = meal.id || fingerprintMeal(
+    meal.name || "meal",
+    (meal.nutritionPerServing as any)?.calories ?? 0,
+    (meal.nutritionPerServing as any)?.protein ?? 0,
+  );
+
+  useEffect(() => {
+    if (!canLogMealToMacros(userId, mealGuardId)) {
+      setMacrosLogged(true);
+    }
+  }, [userId, mealGuardId]);
 
   // Log to Macros handler
   const handleLogMacros = async () => {
@@ -89,16 +103,12 @@ export default function UniversalMealCardFooter({
       // Emit the macros updated event for biometrics dashboard
       window.dispatchEvent(new Event("macros:updated"));
 
+      markMealLogged(userId, mealGuardId);
       setMacrosLogged(true);
       toast({
         title: "Logged Successfully",
         description: `${meal.name} has been logged to your macros for ${currentServings} serving${currentServings !== 1 ? "s" : ""}.`,
       });
-      
-      // Reset success state after 3 seconds
-      setTimeout(() => {
-        setMacrosLogged(false);
-      }, 3000);
     } catch (error) {
       console.error("Error logging meal:", error);
       toast({
