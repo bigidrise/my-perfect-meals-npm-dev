@@ -1463,6 +1463,56 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
     },
   },
   {
+    id: "therapeutic-nutrition-intelligence",
+    title: "Therapeutic Nutrition Intelligence",
+    subtitle: "Hormone, peptide, and therapy-aware meal generation",
+    icon: Stethoscope,
+    content: {
+      sections: [
+        {
+          heading: "What It Is",
+          text: "Therapeutic Nutrition Intelligence is a clinical layer that adjusts every meal the app generates based on the hormones, peptides, medications, and therapies you have active. It does not give medical advice. It adjusts nutrition priorities — protein timing, anti-inflammatory ingredients, gut-protective foods, recovery-focused meals — based on what your protocol requires. You configure it once. Every builder responds.",
+        },
+        {
+          heading: "What It Responds To",
+          list: [
+            "Hormone therapy — testosterone (TRT), estrogen, progesterone, thyroid hormones, and others",
+            "Peptides — BPC-157, TB-500, GHK-Cu, and other recovery-focused compounds",
+            "Medications — corticosteroids like prednisone, GLP-1 medications, immunosuppressants, and others that interact with nutrition",
+            "Therapies — connective tissue recovery, gut support, and other targeted treatment focuses",
+            "Recovery goals — muscle recovery, inflammation reduction, joint health, sleep optimization, stress recovery, and gut healing",
+          ],
+        },
+        {
+          heading: "How It Adjusts Meals",
+          text: "When testosterone therapy is active, meals are built to support hormonal optimization — higher protein adequacy, healthy fats for hormone synthesis, and muscle-supportive timing. When peptides like BPC-157 or TB-500 are active, connective tissue recovery becomes a priority: collagen-supporting foods, anti-inflammatory proteins, and joint-protective ingredients move to the front. When prednisone or corticosteroids are active, the system counteracts known side effects — reducing sodium and refined sugars while boosting potassium, calcium, and anti-inflammatory foods.",
+        },
+        {
+          heading: "Intersection-Aware",
+          text: "This system is built to read your full protocol, not just one setting. If you have testosterone therapy active alongside Diabetes Support and Performance Nutrition, the system understands all three are running at the same time — and builds meals that honor blood sugar management, hormone-supportive protein, and training recovery simultaneously. The strictest rule from any active protocol always wins. Therapeutic guidance is additive — it layers on top, never overriding clinical safety limits.",
+        },
+        {
+          heading: "Where It Runs",
+          list: [
+            "Create a Dish — every custom meal build",
+            "Fridge Rescue — ingredient-to-meal generation",
+            "Snack Creator — snack and between-meal options",
+            "Performance Nutrition Builder — when combined with performance protocols",
+            "Meal Planner and Weekly Meal Board",
+          ],
+        },
+        {
+          heading: "Clinical Safety Always Wins",
+          text: "Therapeutic Nutrition Intelligence sits at Tier 3 in the protocol hierarchy — below Medical Hard Limits and your primary dietary identity. If a therapeutic recommendation conflicts with a medical restriction, the medical restriction wins automatically. You never have to manage conflicts manually.",
+        },
+        {
+          heading: "How to Activate",
+          text: "Open Biometrics and find the Therapeutic Nutrition card. Tap Set Up Protocol to enter your active hormones, peptides, medications, therapies, and recovery goals. The system activates immediately. Return to the same card to update your protocol at any time.",
+        },
+      ],
+    },
+  },
+  {
     id: "my-favorites",
     title: "My Favorites — Build Faster With Meals You Already Love",
     subtitle: "Instant meal recall from your personal saved library",
