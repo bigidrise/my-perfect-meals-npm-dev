@@ -1241,7 +1241,7 @@ export default function ProClientFolderModal({
               className="w-full justify-between bg-orange-600/80 text-white hover:bg-orange-600"
               onClick={() => {
                 onOpenChange(false);
-                onNavigate(`/pro/clients/${client.id}/nutrition-life-plan`);
+                onNavigate(`/pro/clients/${clientId}/nutrition-life-plan`);
               }}
             >
               <span className="flex items-center gap-2">
