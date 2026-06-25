@@ -185,7 +185,6 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
                 <p className="text-red-400 text-2xl font-bold">0%</p>
               </div>
             </div>
-            {targets?.hasTargets && <TargetMacrosStrip targets={targets} />}
           </div>
           <p className="text-sm text-white/50">No meals logged yet</p>
           <p className="text-sm text-white/40 italic">
@@ -212,7 +211,6 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
               <p className={`text-3xl font-bold ${getScoreColor(score)}`}>{score}%</p>
             </div>
           </div>
-          {targets?.hasTargets && <TargetMacrosStrip targets={targets} />}
         </div>
 
         <p className="text-sm text-white/50 italic">
