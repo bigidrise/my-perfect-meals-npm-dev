@@ -72,9 +72,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { SnackCreatorButton } from "@/components/SnackCreatorButton";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
-import { FavoritesPickerModal } from "@/components/FavoritesPickerModal";
-import { savedMealToMeal } from "@/utils/savedMealToMeal";
-import type { SavedMealRow } from "@/hooks/useSavedMeals";
+import { useNavigateToFavorites } from "@/hooks/useNavigateToFavorites";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
@@ -206,9 +204,7 @@ export default function WeeklyMealBoard() {
   // Snack Creator modal state
   const [snackCreatorOpen, setSnackCreatorOpen] = useState(false);
 
-  // Favorites picker state
-  const [favoritesOpen, setFavoritesOpen] = useState(false);
-  const [favoritesSlot, setFavoritesSlot] = useState<"breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6">("breakfast");
+  const goToFavorites = useNavigateToFavorites();
 
   // Create With Chef modal state
   const [createWithChefOpen, setCreateWithChefOpen] = useState(false);
@@ -695,33 +691,6 @@ export default function WeeklyMealBoard() {
   }
 
 
-  const handleFavoriteSelect = useCallback(async (row: SavedMealRow) => {
-    if (!board || !favoritesSlot) return;
-    const mealObj = savedMealToMeal(row);
-    try {
-      if (FEATURES.dayPlanning === 'alpha' && planningMode === 'day' && activeDayISO) {
-        const dayLists = getDayLists(board, activeDayISO);
-        const updatedDayLists = { ...dayLists, [favoritesSlot]: [mealObj] };
-        const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
-        setBoard(updatedBoard);
-        await saveBoard(updatedBoard);
-      } else {
-        const updatedBoard = {
-          ...board,
-          lists: { ...board.lists, [favoritesSlot]: [mealObj] },
-          version: board.version + 1,
-          meta: { ...board.meta, lastUpdatedAt: new Date().toISOString() },
-        };
-        setBoard(updatedBoard);
-        await saveBoard(updatedBoard);
-      }
-      window.dispatchEvent(new Event("macros:updated"));
-      setFavoritesOpen(false);
-    } catch (err) {
-      console.error("Failed to insert favorite:", err);
-    }
-  }, [board, favoritesSlot, planningMode, activeDayISO, saveBoard]);
-
   const lists: Array<["breakfast"|"lunch"|"dinner"|"meal4"|"meal5"|"meal6", string]> = [
     ["breakfast","Meal 1"], ["lunch","Meal 2"], ["dinner","Meal 3"],
     ["meal4","Meal 4"], ["meal5","Meal 5"], ["meal6","Meal 6"],
@@ -937,10 +906,7 @@ export default function WeeklyMealBoard() {
                         onSnackCreator={() => setSnackCreatorOpen(true)}
                         onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)}
                         onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; if (getMealImageUrl(prev, mealId) === imageUrl) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
-                        onFavorites={() => {
-                          setFavoritesSlot(key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6");
-                          setFavoritesOpen(true);
-                        }}
+                        onFavorites={goToFavorites}
                       />
                     </div>
                     <div className="space-y-3">
@@ -1003,10 +969,7 @@ export default function WeeklyMealBoard() {
                       onSnackCreator={() => setSnackCreatorOpen(true)}
                       onSave={(meal) => quickAdd("snacks", meal)}
                       onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; if (getMealImageUrl(prev, mealId) === imageUrl) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
-                      onFavorites={() => {
-                        setFavoritesSlot("snacks");
-                        setFavoritesOpen(true);
-                      }}
+                      onFavorites={goToFavorites}
                     />
                   </div>
                   <div className="space-y-3">
@@ -1073,10 +1036,7 @@ export default function WeeklyMealBoard() {
                   onSnackCreator={() => setSnackCreatorOpen(true)}
                   onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)}
                   onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; if (getMealImageUrl(prev, mealId) === imageUrl) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
-                  onFavorites={() => {
-                    setFavoritesSlot(key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6");
-                    setFavoritesOpen(true);
-                  }}
+                  onFavorites={goToFavorites}
                 />
               </div>
               <div className="space-y-3">
@@ -1423,13 +1383,7 @@ export default function WeeklyMealBoard() {
         </DialogContent>
       </Dialog>
 
-      {/* Favorites Picker Modal */}
-      <FavoritesPickerModal
-        open={favoritesOpen}
-        onClose={() => setFavoritesOpen(false)}
-        onSelect={handleFavoriteSelect}
-        targetLabel={`Meal ${favoritesSlot.charAt(0).toUpperCase() + favoritesSlot.slice(1)}`}
-      />
+
 
       {/* Create With Chef Modal */}
       <CreateWithChefModal
