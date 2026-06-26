@@ -83,6 +83,17 @@ export default function SavedMeals() {
   const { toast } = useToast();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  // If the user arrived here from a builder (via useNavigateToFavorites),
+  // return them there after a successful Add to Plan. Strip the param from
+  // the URL immediately so it doesn't linger on refresh or bookmark.
+  const returnPath = new URLSearchParams(window.location.search).get("from");
+  if (returnPath) {
+    window.history.replaceState(null, "", window.location.pathname);
+  }
+  const handleAddToPlanSuccess = returnPath
+    ? () => setLocation(decodeURIComponent(returnPath))
+    : undefined;
+
   const handleRemove = (row: any) => {
     deleteMeal.mutate(row.id, {
       onSuccess: () => {
@@ -270,6 +281,7 @@ export default function SavedMeals() {
                   servings: d?.servings,
                   servingSize: d?.servingSize,
                 }}
+                onSuccess={handleAddToPlanSuccess}
               />
               <button
                 onClick={() => handleAddToMacros(row)}
