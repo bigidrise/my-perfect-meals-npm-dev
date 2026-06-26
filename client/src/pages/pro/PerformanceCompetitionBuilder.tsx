@@ -39,9 +39,7 @@ import { getResolvedTargets } from "@/lib/macroResolver";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
-import { FavoritesPickerModal } from "@/components/FavoritesPickerModal";
-import { savedMealToMeal } from "@/utils/savedMealToMeal";
-import type { SavedMealRow } from "@/hooks/useSavedMeals";
+import { useNavigateToFavorites } from "@/hooks/useNavigateToFavorites";
 import { MacroBridgeFooter } from "@/components/biometrics/MacroBridgeFooter";
 import { RemainingMacrosFooter } from "@/components/biometrics/RemainingMacrosFooter";
 import { useNutritionBudget } from "@/hooks/useNutritionBudget";
@@ -365,9 +363,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   // Snack Creator modal state (Phase 2)
   const [snackCreatorOpen, setSnackCreatorOpen] = useState(false);
 
-  // Favorites picker state
-  const [favoritesOpen, setFavoritesOpen] = useState(false);
-  const [favoritesSlot, setFavoritesSlot] = useState<"breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6">("breakfast");
+  const goToFavorites = useNavigateToFavorites();
 
   // Guided Tour state
   const [hasSeenInfo, setHasSeenInfo] = useState(false);
@@ -788,22 +784,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     setPickerOpen(true);
   }
 
-  const handleFavoriteSelect = useCallback(async (row: SavedMealRow) => {
-    if (!board || !favoritesSlot) return;
-    const mealObj = savedMealToMeal(row);
-    try {
-      const dayLists = getDayLists(board, activeDayISO);
-      const updatedDayLists = { ...dayLists, [favoritesSlot]: [mealObj] };
-      const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
-      setBoard(updatedBoard);
-      await saveBoard(updatedBoard);
-      window.dispatchEvent(new Event("macros:updated"));
-      setFavoritesOpen(false);
-    } catch (err) {
-      console.error("Failed to insert favorite:", err);
-    }
-  }, [board, favoritesSlot, activeDayISO, saveBoard]);
-
   // Resolved macro targets (coach override → Macro Calculator baseline)
   const coachMacroTargets = useMemo(() => {
     const resolved = getResolvedTargets(clientId);
@@ -1051,10 +1031,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                           }}
                           onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)}
                           onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; if (getMealImageUrl(prev, mealId) === imageUrl) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
-                          onFavorites={() => {
-                            setFavoritesSlot(key as "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6");
-                            setFavoritesOpen(true);
-                          }}
+                          onFavorites={goToFavorites}
                         />
                       </div>
 
@@ -1157,7 +1134,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         onSnackCreator={() => setSnackCreatorOpen(true)}
                         onSave={(meal) => quickAdd("snacks", meal)}
                         onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; if (getMealImageUrl(prev, mealId) === imageUrl) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
-                        onFavorites={() => { setFavoritesSlot("snacks"); setFavoritesOpen(true); }}
+                        onFavorites={goToFavorites}
                       />
                     </div>
 
@@ -1657,14 +1634,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Favorites Picker Modal */}
-      <FavoritesPickerModal
-        open={favoritesOpen}
-        onClose={() => setFavoritesOpen(false)}
-        onSelect={handleFavoriteSelect}
-        targetLabel={`Meal ${favoritesSlot.charAt(0).toUpperCase() + favoritesSlot.slice(1)}`}
-      />
 
       {/* Quick Tour Modal */}
       <QuickTourModal

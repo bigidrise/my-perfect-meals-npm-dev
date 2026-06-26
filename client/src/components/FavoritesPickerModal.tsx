@@ -8,9 +8,24 @@ import {
 } from "@/components/ui/drawer";
 import { useSavedMealsList, type SavedMealRow } from "@/hooks/useSavedMeals";
 import { PillButton } from "@/components/ui/pill-button";
-import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { useStarchGuardPrecheck } from "@/hooks/useStarchGuardPrecheck";
 import { StarchGuardIntercept } from "@/components/StarchGuardIntercept";
+
+/** Small thumbnail that cleanly disappears on broken/expired URLs — no stock photo fallback. */
+function FavThumbnail({ imageUrl, mealName }: { imageUrl: string; mealName: string }) {
+  const [errored, setErrored] = useState(false);
+  if (errored) return null;
+  return (
+    <div className="shrink-0 w-14 h-14 rounded-lg overflow-hidden bg-zinc-800">
+      <img
+        src={imageUrl}
+        alt={mealName}
+        className="w-full h-full object-cover"
+        onError={() => setErrored(true)}
+      />
+    </div>
+  );
+}
 
 export type FavoriteCategory = "all" | "breakfast-style" | "mains" | "snacks" | "drinks";
 
@@ -22,41 +37,118 @@ const FILTER_TABS: { key: FavoriteCategory; label: string }[] = [
   { key: "drinks", label: "Drinks" },
 ];
 
-const DRINK_SOURCES = ["pairings-ai", "wine-list-helper", "beverage-creator"];
-const SNACK_SOURCES = ["dessert-creator"];
+// Source type sets — exhaustive across all current builders.
+// NOTE: "pairings-ai" is intentionally excluded — it saves both wine recommendations
+// AND food pairings (steak, salad, etc.) under the same sourceType. Keyword matching
+// correctly catches the drink items (wine, cocktail, beer names) while food pairings
+// fall through to their correct category.
+const DRINK_SOURCES = new Set([
+  "wine-list-helper",
+  "beverage-creator", "beverage",
+  "athlete-beverage-creator", "athlete-beverage",
+  "spirits-hub", "wine-pairing", "cocktail-creator",
+]);
+const SNACK_SOURCES = new Set([
+  "dessert-creator", "dessert",
+  "snack-creator", "snack",
+  "craving-dessert", "craving-desserts",
+]);
+const SUSHI_SOURCES = new Set([
+  "sushi-creator", "sushi",
+]);
+
+// Slot → category mapping (covers all slot values any builder might store)
+const SLOT_TO_CATEGORY: Record<string, FavoriteCategory> = {
+  breakfast: "breakfast-style",
+  lunch: "mains",
+  dinner: "mains",
+  snack: "snacks",
+  snacks: "snacks",
+  dessert: "snacks",
+  desserts: "snacks",
+  beverage: "drinks",
+  beverages: "drinks",
+  drink: "drinks",
+  drinks: "drinks",
+};
 
 const DRINK_KEYWORDS = [
   "shake", "smoothie", "latte", "juice", "coffee", "tea", "drink",
-  "beverage", "cocktail", "wine", "beer", "agua", "agua fresca",
+  "beverage", "cocktail", "wine", "beer", "agua fresca", "agua",
   "protein shake", "espresso", "mocktail", "matcha", "kombucha",
+  "lemonade", "soda", "sparkling", "infusion", "elixir", "spritzer",
+  "frappe", "cooler", "punch", "tonic", "horchata",
 ];
 const SNACK_KEYWORDS = [
   "cookie", "brownie", "dessert", "cake", "ice cream", "pudding",
   "muffin", "donut", "pie", "pastry", "candy", "treat", "biscotti",
-  "cheesecake", "tart", "macaroon",
+  "cheesecake", "tart", "macaroon", "gelato", "sorbet", "mousse",
+  "truffle", "fudge", "cupcake", "cobbler", "parfait", "crepe",
 ];
 const BREAKFAST_KEYWORDS = [
   "pancake", "waffle", "oatmeal", "cereal", "eggs", "omelette", "omelet",
   "scramble", "granola", "french toast", "bagel", "frittata", "quiche",
   "yogurt", "breakfast", "porridge", "acai bowl", "avocado toast",
+  "hash", "benedict", "crepe", "biscuit and gravy",
 ];
 
+/**
+ * Classify a saved meal into a FavoriteCategory.
+ *
+ * Priority hierarchy (most → least reliable):
+ *   1. Explicit mealCategory/category field stored on mealData
+ *   2. mealData.slot (set by the weekly board and some builders)
+ *   3. sourceType (expanded sets covering all current builders)
+ *   4. Keyword matching on title + meal name
+ *   5. Default → "mains"
+ */
 export function classifyFavorite(row: SavedMealRow): FavoriteCategory {
+  const sourceType = (row.sourceType || "").toLowerCase();
+
+  // 1. Explicit stored category on mealData
+  const storedCat = (
+    row.mealData?.mealCategory ||
+    row.mealData?.category ||
+    row.mealData?.mealType ||
+    ""
+  ).toLowerCase();
+  if (storedCat) {
+    if (storedCat.includes("drink") || storedCat.includes("beverage")) return "drinks";
+    if (storedCat.includes("snack") || storedCat.includes("dessert")) return "snacks";
+    if (storedCat.includes("breakfast")) return "breakfast-style";
+    if (storedCat.includes("lunch") || storedCat.includes("dinner") || storedCat.includes("main")) return "mains";
+  }
+
+  // 2. mealData.slot
+  const slot = (row.mealData?.slot || "").toLowerCase();
+  if (slot && SLOT_TO_CATEGORY[slot]) return SLOT_TO_CATEGORY[slot];
+
+  // 3. sourceType
+  if (DRINK_SOURCES.has(sourceType)) return "drinks";
+  if (SNACK_SOURCES.has(sourceType)) return "snacks";
+
+  // 4. Keyword matching
   const title = (row.title || "").toLowerCase();
   const mealName = (row.mealData?.name || "").toLowerCase();
   const text = `${title} ${mealName}`;
 
-  if (DRINK_SOURCES.some((s) => row.sourceType.includes(s))) return "drinks";
-  if (DRINK_KEYWORDS.some((k) => text.includes(k))) return "drinks";
-
-  if (SNACK_SOURCES.includes(row.sourceType)) return "snacks";
-  if (row.mealData?.slot === "snacks") return "snacks";
+  // Check SNACK before DRINK — prevents substring false-positives like
+  // "coffee cake" matching the "coffee" drink keyword before "cake" snack keyword.
   if (SNACK_KEYWORDS.some((k) => text.includes(k))) return "snacks";
-
-  if (row.mealData?.slot === "breakfast") return "breakfast-style";
+  if (DRINK_KEYWORDS.some((k) => text.includes(k))) return "drinks";
   if (BREAKFAST_KEYWORDS.some((k) => text.includes(k))) return "breakfast-style";
 
   return "mains";
+}
+
+/** Map a saved meal's sourceType to the image slot type used for fallbacks. */
+function toImageSlotType(sourceType: string): "beverage" | "dessert" | "snack" | "sushi" | "meal" {
+  const s = sourceType.toLowerCase();
+  if (DRINK_SOURCES.has(s) || s.includes("beverage") || s.includes("drink") || s.includes("wine") || s.includes("spirits")) return "beverage";
+  if (SNACK_SOURCES.has(s) || s.includes("dessert")) return "dessert";
+  if (s.includes("snack")) return "snack";
+  if (SUSHI_SOURCES.has(s) || s.includes("sushi")) return "sushi";
+  return "meal";
 }
 
 function extractIngredientTexts(mealData: any): string[] {
@@ -191,14 +283,7 @@ export function FavoritesPickerModal({
                     className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3"
                   >
                     {d?.imageUrl && (
-                      <div className="shrink-0 w-14 h-14 rounded-lg overflow-hidden">
-                        <MealImageSlot
-                          imageUrl={d.imageUrl}
-                          mealName={row.title}
-                          size="sm"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
+                      <FavThumbnail imageUrl={d.imageUrl} mealName={row.title} />
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-sm font-medium truncate">{row.title}</p>
