@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Heart, ChevronDown, ChevronRight, ArrowLeft, Loader2, Activity } from "lucide-react";
 import { useSavedMealsList, useDeleteSavedMeal } from "@/hooks/useSavedMeals";
@@ -83,13 +83,20 @@ export default function SavedMeals() {
   const { toast } = useToast();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // If the user arrived here from a builder (via useNavigateToFavorites),
-  // return them there after a successful Add to Plan. Strip the param from
-  // the URL immediately so it doesn't linger on refresh or bookmark.
-  const returnPath = new URLSearchParams(window.location.search).get("from");
-  if (returnPath) {
-    window.history.replaceState(null, "", window.location.pathname);
-  }
+  // Capture the ?from= param once on mount — useState initializer runs only
+  // once so re-renders don't see the stripped URL and lose the value.
+  const [returnPath] = useState<string | null>(
+    () => new URLSearchParams(window.location.search).get("from")
+  );
+
+  // Strip the param from the URL after mount so it doesn't linger on
+  // refresh, bookmark, or share.
+  useEffect(() => {
+    if (returnPath) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, [returnPath]);
+
   const handleAddToPlanSuccess = returnPath
     ? () => setLocation(decodeURIComponent(returnPath))
     : undefined;
