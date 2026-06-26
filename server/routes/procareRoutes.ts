@@ -935,7 +935,7 @@ router.get("/clients/:clientId/nutrition-summary", requireAuth, async (req, res)
     const { clientId } = req.params;
 
     const [callerProAccount] = await db
-      .select({ id: proAccounts.id, role: proAccounts.role })
+      .select({ id: proAccounts.id })
       .from(proAccounts)
       .where(eq(proAccounts.userId, callerId))
       .limit(1);
