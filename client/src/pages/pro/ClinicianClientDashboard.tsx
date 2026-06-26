@@ -43,6 +43,7 @@ import { ProClientBanner } from "@/components/pro/ProClientBanner";
 import WeeklyWeightTrendCard from "@/components/pro/WeeklyWeightTrendCard";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ClinicalProtocolCard from "@/components/protocol/ClinicalProtocolCard";
+import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
 
 const CLINICIAN_DASHBOARD_TOUR_STEPS: TourStep[] = [
   {
@@ -136,6 +137,8 @@ export default function ClinicianClientDashboard() {
   const [bodyComp, setBodyComp] = useState<BodyCompEntry | null>(null);
   const [bodyCompSource, setBodyCompSource] = useState<string | null>(null);
   const [clientGoal, setClientGoal] = useState<{ goalType?: string | null; goalTarget?: string | null; goalTimelineWeeks?: number | null } | null>(null);
+  const [nutritionSummary, setNutritionSummary] = useState<any>(null);
+  const [nutritionSummaryLoading, setNutritionSummaryLoading] = useState(false);
 
   useEffect(() => {
     setT(proStore.getTargets(clientId));
@@ -149,6 +152,19 @@ export default function ClinicianClientDashboard() {
       ensureClientMapping(clientId, clientId);
     }
   }, [clientId]);
+
+  useEffect(() => {
+    if (!resolvedClientUserId) return;
+    setNutritionSummaryLoading(true);
+    fetch(apiUrl(`/api/pro/clients/${resolvedClientUserId}/nutrition-summary`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data) setNutritionSummary(data); })
+      .catch(() => {})
+      .finally(() => setNutritionSummaryLoading(false));
+  }, [resolvedClientUserId]);
 
   // Step 3: Prefill macro targets from the canonical API on first visit.
   // If proStore already has physician-set targets for this client, those are shown instead.
@@ -632,6 +648,12 @@ export default function ClinicianClientDashboard() {
             </div>
           </div>
         )}
+
+        <NutritionPersonalizationSummaryCard
+          summary={nutritionSummary}
+          isLoading={nutritionSummaryLoading}
+          defaultExpanded={false}
+        />
 
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
