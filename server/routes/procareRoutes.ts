@@ -934,31 +934,35 @@ router.get("/clients/:clientId/nutrition-summary", requireAuth, async (req, res)
 
     const { clientId } = req.params;
 
-    const [callerProAccount] = await db
-      .select({ id: proAccounts.id })
-      .from(proAccounts)
-      .where(eq(proAccounts.userId, callerId))
+    const [callerUser] = await db
+      .select({ role: users.role, professionalRole: users.professionalRole })
+      .from(users)
+      .where(eq(users.id, callerId))
       .limit(1);
-    if (!callerProAccount) return res.status(403).json({ error: "Pro account required" });
+    if (!callerUser) return res.status(401).json({ error: "Caller not found" });
 
-    try {
-      await assertSameOrg(callerId, clientId);
-    } catch (err) {
-      return handleOrgIsolationError(err, res);
-    }
+    const isAdmin = callerUser.role === "admin";
 
-    const [link] = await db
-      .select({ id: clientLinks.id })
-      .from(clientLinks)
-      .where(
-        and(
-          eq(clientLinks.proUserId, callerId),
-          eq(clientLinks.clientUserId, clientId),
-          eq(clientLinks.active, true)
+    if (!isAdmin) {
+      try {
+        await assertSameOrg(callerId, clientId);
+      } catch (err) {
+        return handleOrgIsolationError(err, res);
+      }
+
+      const [link] = await db
+        .select({ id: clientLinks.id })
+        .from(clientLinks)
+        .where(
+          and(
+            eq(clientLinks.proUserId, callerId),
+            eq(clientLinks.clientUserId, clientId),
+            eq(clientLinks.active, true)
+          )
         )
-      )
-      .limit(1);
-    if (!link) return res.status(403).json({ error: "No active client relationship" });
+        .limit(1);
+      if (!link) return res.status(403).json({ error: "No active client relationship" });
+    }
 
     const envelope = await loadUserProtocolEnvelope(clientId);
     if (!envelope) return res.status(404).json({ error: "Client not found" });
@@ -1015,7 +1019,7 @@ router.get("/clients/:clientId/nutrition-summary", requireAuth, async (req, res)
       table: "users,glucose_logs",
       route: req.path,
       ip: getClientIp(req as any),
-      meta: { callerRole: callerProAccount.role ?? "coach", hasDrivers: !!summary.nutritionDrivers },
+      meta: { callerRole: callerUser.professionalRole ?? callerUser.role ?? "coach", hasDrivers: !!summary.nutritionDrivers },
     });
 
     return res.json(summary);
