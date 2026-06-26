@@ -41,6 +41,7 @@ import WeeklyWeightTrendCard from "@/components/pro/WeeklyWeightTrendCard";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
 import AddToCalendarButtons from "@/components/AddToCalendarButtons";
+import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
 
 const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
   {
@@ -184,6 +185,8 @@ export default function TrainerClientDashboard() {
   const [recommendedDirectiveKey, setRecommendedDirectiveKey] = useState<string | null>(null);
   const [labDerivedConditions, setLabDerivedConditions] = useState<string[]>([]);
   const [scConditions, setScConditions] = useState<string[]>([]);
+  const [nutritionSummary, setNutritionSummary] = useState<any>(null);
+  const [nutritionSummaryLoading, setNutritionSummaryLoading] = useState(false);
 
   const PROTOCOL_TO_FLAG: Record<string, string> = {
     "liver-disease": "liverDisease",
@@ -250,6 +253,19 @@ export default function TrainerClientDashboard() {
   useEffect(() => {
     fetchBodyComp();
   }, [fetchBodyComp]);
+
+  useEffect(() => {
+    if (!resolvedClientUserId) return;
+    setNutritionSummaryLoading(true);
+    fetch(apiUrl(`/api/pro/clients/${resolvedClientUserId}/nutrition-summary`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data) setNutritionSummary(data); })
+      .catch(() => {})
+      .finally(() => setNutritionSummaryLoading(false));
+  }, [resolvedClientUserId]);
 
   useEffect(() => {
     const uid = resolvedClientUserId;
@@ -708,6 +724,12 @@ export default function TrainerClientDashboard() {
             </CardContent>
           </Card>
         )}
+
+        <NutritionPersonalizationSummaryCard
+          summary={nutritionSummary}
+          isLoading={nutritionSummaryLoading}
+          defaultExpanded={false}
+        />
 
         {bodyComp && (
           <Card className="bg-white/5 border border-white/20">
