@@ -69,9 +69,9 @@ export default function ProtocolVisibilityPanel({
           <span className="text-[10px] text-white/40 font-semibold uppercase tracking-widest shrink-0">
             Built using
           </span>
-          {visibleLabels.map((label) => (
+          {visibleLabels.map((label, i) => (
             <span
-              key={label}
+              key={`${label}-${i}`}
               className="text-[10px] bg-orange-500/15 border border-orange-500/25 text-orange-300 rounded-full px-2 py-0.5 font-medium"
             >
               {label}
@@ -128,8 +128,8 @@ export default function ProtocolVisibilityPanel({
                 Protocols Applied
               </p>
               <div className="space-y-1.5">
-                {highProtocols.map((p) => (
-                  <div key={p.displayLabel} className="flex items-center justify-between">
+                {highProtocols.map((p, i) => (
+                  <div key={`high-${p.displayLabel}-${i}`} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" />
                       <span className="text-xs text-white/75">{p.displayLabel}</span>
@@ -137,8 +137,8 @@ export default function ProtocolVisibilityPanel({
                     <span className="text-[10px] text-orange-400/60 font-medium">High</span>
                   </div>
                 ))}
-                {moderateProtocols.map((p) => (
-                  <div key={p.displayLabel} className="flex items-center justify-between">
+                {moderateProtocols.map((p, i) => (
+                  <div key={`mod-${p.displayLabel}-${i}`} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-amber-400/60 flex-shrink-0" />
                       <span className="text-xs text-white/60">{p.displayLabel}</span>
