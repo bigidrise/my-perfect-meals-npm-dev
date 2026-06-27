@@ -51,7 +51,6 @@ export default function AffiliateOpportunities() {
 
   async function handlePathClick(path: typeof paths[0]) {
     if (!path.requiresProvider) {
-      // Register track silently, then navigate
       try {
         await apiRequest("/api/affiliate/register-track", {
           method: "POST",
@@ -65,7 +64,6 @@ export default function AffiliateOpportunities() {
       return;
     }
 
-    // Business path — check eligibility first
     setChecking(path.id);
     try {
       const data = await apiRequest("/api/affiliate/eligibility") as {
@@ -73,7 +71,6 @@ export default function AffiliateOpportunities() {
       };
 
       if (data.business.eligible) {
-        // Register track, then navigate
         try {
           await apiRequest("/api/affiliate/register-track", {
             method: "POST",
@@ -85,13 +82,11 @@ export default function AffiliateOpportunities() {
         }
         setLocation(path.route);
       } else {
-        // Store intended destination for post-onboarding return
         localStorage.setItem("mpm.affiliate.returnPath", path.route);
         localStorage.setItem("mpm.affiliate.pendingTrack", path.track);
         setShowModal(true);
       }
     } catch {
-      // On error, show modal as a safe fallback
       localStorage.setItem("mpm.affiliate.returnPath", path.route);
       localStorage.setItem("mpm.affiliate.pendingTrack", path.track);
       setShowModal(true);
@@ -143,7 +138,7 @@ export default function AffiliateOpportunities() {
             return (
               <motion.button
                 key={path.id}
-                className="w-full text-left p-5 rounded-2xl bg-black/50 backdrop-blur-md border border-orange-500/30 active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
+                className="w-full text-left p-5 rounded-2xl bg-white border border-orange-200 shadow-sm active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
                 onClick={() => handlePathClick(path)}
                 disabled={!!checking}
                 initial={{ opacity: 0, y: 14 }}
@@ -151,26 +146,26 @@ export default function AffiliateOpportunities() {
                 transition={{ delay: i * 0.08 }}
               >
                 <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-xl bg-orange-500/20 flex-shrink-0 mt-0.5">
-                    <Icon className="h-6 w-6 text-orange-400" />
+                  <div className="p-3 rounded-xl bg-orange-100 flex-shrink-0 mt-0.5">
+                    <Icon className="h-6 w-6 text-orange-500" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-sm font-bold text-white">{path.title}</h3>
+                      <h3 className="text-sm font-bold text-gray-900">{path.title}</h3>
                       {isChecking ? (
                         <div className="w-4 h-4 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin flex-shrink-0" />
                       ) : (
-                        <ChevronRight className="h-4 w-4 text-white/30 flex-shrink-0" />
+                        <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
                       )}
                     </div>
-                    <p className="text-xs text-white/60 mt-1 leading-relaxed">{path.description}</p>
+                    <p className="text-xs text-gray-600 mt-1 leading-relaxed">{path.description}</p>
 
                     {/* Resource preview */}
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {path.resources.map((r) => (
                         <span
                           key={r}
-                          className="text-[10px] px-2 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-300"
+                          className="text-[10px] px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-orange-600"
                         >
                           {r}
                         </span>
@@ -179,8 +174,8 @@ export default function AffiliateOpportunities() {
 
                     {path.requiresProvider && (
                       <div className="mt-3 flex items-center gap-1.5">
-                        <UserCheck className="h-3 w-3 text-orange-400/70" />
-                        <span className="text-[10px] text-orange-400/70 font-medium">Provider account required</span>
+                        <UserCheck className="h-3 w-3 text-orange-500" />
+                        <span className="text-[10px] text-orange-600 font-medium">Provider account required</span>
                       </div>
                     )}
                   </div>
@@ -191,7 +186,7 @@ export default function AffiliateOpportunities() {
         </div>
       </motion.div>
 
-      {/* Professional Account Required Modal */}
+      {/* Professional Account Required Modal — keeps dark treatment as it's a popup overlay */}
       <AnimatePresence>
         {showModal && (
           <motion.div

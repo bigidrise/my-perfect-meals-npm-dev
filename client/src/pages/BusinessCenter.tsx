@@ -64,14 +64,12 @@ const sections = [
 
 const colorMap = {
   orange: {
-    bg: "bg-orange-500/20",
-    icon: "text-orange-400",
-    border: "border-orange-500/30",
+    bg: "bg-orange-100",
+    icon: "text-orange-500",
   },
   blue: {
-    bg: "bg-blue-500/20",
-    icon: "text-blue-400",
-    border: "border-blue-500/30",
+    bg: "bg-blue-100",
+    icon: "text-blue-500",
   },
 };
 
@@ -120,7 +118,7 @@ export default function BusinessCenter() {
           return (
             <motion.button
               key={section.id}
-              className={`w-full text-left p-4 rounded-2xl bg-black/50 backdrop-blur-md border ${colors.border} active:scale-[0.98] transition-all duration-200`}
+              className="w-full text-left p-4 rounded-2xl bg-white border border-gray-200 shadow-sm active:scale-[0.98] transition-all duration-200"
               onClick={() => setLocation(section.route)}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -131,10 +129,10 @@ export default function BusinessCenter() {
                   <Icon className={`h-6 w-6 ${colors.icon}`} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-white">{section.title}</h3>
-                  <p className="text-xs text-white/60 mt-0.5 leading-relaxed">{section.description}</p>
+                  <h3 className="text-sm font-semibold text-gray-900">{section.title}</h3>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{section.description}</p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-white/30 flex-shrink-0" />
+                <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
               </div>
             </motion.button>
           );
