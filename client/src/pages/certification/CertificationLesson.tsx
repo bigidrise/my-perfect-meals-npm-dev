@@ -28,7 +28,6 @@ export default function CertificationLesson() {
       }).catch(() => {});
     }
 
-    // apiRequest already returns parsed JSON — do NOT call .json() again
     apiRequest(`/api/certifications/${certType}/progress?_t=${Date.now()}`)
       .then((d: { moduleProgress?: Array<{ moduleId: string; status: string; score: number | null }> }) => {
         const prog = d.moduleProgress?.find((p) => p.moduleId === moduleId);
@@ -58,6 +57,7 @@ export default function CertificationLesson() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
+      {/* Header — stays dark */}
       <div
         className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
@@ -86,7 +86,7 @@ export default function CertificationLesson() {
       </div>
 
       <div
-        className="px-4 max-w-2xl mx-auto space-y-6"
+        className="px-4 max-w-2xl mx-auto space-y-5"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
       >
         {/* Completion banner */}
@@ -106,45 +106,44 @@ export default function CertificationLesson() {
           </motion.div>
         )}
 
-        {/* Module header */}
-        <div className="flex items-start gap-4 pt-2">
-          <div className="p-3 rounded-xl bg-orange-500/20 flex-shrink-0">
-            <BookOpen className="h-6 w-6 text-orange-400" />
+        {/* Module header — white card */}
+        <div className="bg-white rounded-2xl shadow-sm px-5 py-5 flex items-start gap-4">
+          <div className="p-3 rounded-xl bg-orange-100 flex-shrink-0">
+            <BookOpen className="h-6 w-6 text-orange-600" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-white">{module.title}</h2>
-            <p className="text-sm text-white/60 mt-1">{module.description}</p>
+            <h2 className="text-lg font-bold text-gray-900">{module.title}</h2>
+            <p className="text-sm text-gray-600 mt-1 leading-relaxed">{module.description}</p>
           </div>
         </div>
 
-        {/* Content sections */}
-        {module.sections.map((section, i) => (
-          <motion.div
-            key={i}
-            className="space-y-3"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-          >
-            <h3 className="text-sm font-bold text-orange-300">{section.heading}</h3>
-            {section.text && (
-              <p className="text-sm text-white/80 leading-relaxed">{section.text}</p>
-            )}
-            {section.list && (
-              <ul className="space-y-2">
-                {section.list.map((item, j) => (
-                  <li key={j} className="flex items-start gap-2.5 text-sm text-white/75">
-                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" />
-                    <span className="leading-relaxed">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </motion.div>
-        ))}
-
-        {/* Divider */}
-        <div className="h-px bg-white/10" />
+        {/* Content sections — white card */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          {module.sections.map((section, i) => (
+            <motion.div
+              key={i}
+              className={`px-5 py-5 space-y-3 ${i < module.sections.length - 1 ? "border-b border-gray-100" : ""}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+            >
+              <h3 className="text-sm font-bold text-orange-700">{section.heading}</h3>
+              {section.text && (
+                <p className="text-sm text-gray-700 leading-relaxed">{section.text}</p>
+              )}
+              {section.list && (
+                <ul className="space-y-2.5">
+                  {section.list.map((item, j) => (
+                    <li key={j} className="flex items-start gap-2.5 text-sm text-gray-700">
+                      <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0" />
+                      <span className="leading-relaxed">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </motion.div>
+          ))}
+        </div>
 
         {/* Quiz CTA */}
         <motion.div
@@ -155,7 +154,7 @@ export default function CertificationLesson() {
         >
           {isCompleted ? (
             <>
-              <p className="text-xs text-white/40 text-center">
+              <p className="text-xs text-white/50 text-center">
                 You've already passed this module. You can retake the quiz anytime.
               </p>
               <button
@@ -184,7 +183,7 @@ export default function CertificationLesson() {
             </>
           ) : (
             <>
-              <p className="text-xs text-white/40 text-center">
+              <p className="text-xs text-white/50 text-center">
                 {isFinal
                   ? "When you're ready, start the final assessment. You need 80% to pass."
                   : "When you're ready, take the short quiz to complete this module. You need 80% to pass."}
