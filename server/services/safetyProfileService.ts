@@ -511,14 +511,14 @@ export async function enforceSafetyProfile(
 
     if (dietMatches.length > 0) {
       const primaryDiet = profile.dietaryRestrictions[0];
-      console.log(`🔄 [DIET ADAPT] User ${userId} — "${userText}" conflicts with ${primaryDiet} diet (${dietMatches.join(", ")}) — AI will adapt`);
+      console.log(`🔄 [DIET ADAPT] User ${userId} — "${userText}" conflicts with ${primaryDiet} diet (${dietMatches.join(", ")}) — routing to DietGuard`);
       return {
         result: "DIET_ADAPT",
-        blockedTerms: [],
+        blockedTerms: dietMatches,
         blockedCategories: [],
         ambiguousTerms: [],
-        message: `Adapting to your ${primaryDiet} preferences`,
-        suggestion: `The AI will create a ${primaryDiet}-friendly version for you.`
+        message: `Your request conflicts with your ${primaryDiet} diet`,
+        suggestion: `Chef can create a ${primaryDiet}-friendly version for you.`
       };
     }
   }
@@ -590,11 +590,11 @@ export function enforceSafetyProfileSync(
       const primaryDiet = profile.dietaryRestrictions[0];
       return {
         result: "DIET_ADAPT",
-        blockedTerms: [],
+        blockedTerms: dietMatches,
         blockedCategories: [],
         ambiguousTerms: [],
-        message: `Adapting to your ${primaryDiet} preferences`,
-        suggestion: `The AI will create a ${primaryDiet}-friendly version for you.`
+        message: `Your request conflicts with your ${primaryDiet} diet`,
+        suggestion: `Chef can create a ${primaryDiet}-friendly version for you.`
       };
     }
   }
