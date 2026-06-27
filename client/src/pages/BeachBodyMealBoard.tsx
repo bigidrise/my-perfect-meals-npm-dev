@@ -992,6 +992,20 @@ export default function BeachBodyMealBoard() {
     };
   }, [board, planningMode, activeDayISO]);
 
+  // Stable memoized macro targets for AthleteMealPickerDrawer.
+  // Using an inline IIFE here would create a new object reference on every render,
+  // which triggers the drawer's setLiveTargets useEffect on every render → infinite loop.
+  const athletePickerMacroTargets = useMemo(() => {
+    const resolved = effectiveUserId ? getResolvedTargets(effectiveUserId) : null;
+    if (!resolved || resolved.source === "none") return null;
+    return {
+      calories: Math.round(resolved.calories ?? 0),
+      protein_g: Math.round(resolved.protein_g ?? 0),
+      carbs_g: Math.round(resolved.carbs_g ?? 0),
+      fat_g: Math.round(resolved.fat_g ?? 0),
+    };
+  }, [effectiveUserId]);
+
   // Silent error handling - Facebook-style: no UI for transient network events
   React.useEffect(() => {
     if (error) {
@@ -1371,6 +1385,7 @@ export default function BeachBodyMealBoard() {
                                 slot={key}
                                 meal={meal}
                                 showStarchBadge={true}
+                                builderType="performance-nutrition"
                                 data-wt="wmb-meal-card"
                                 onUpdated={(m) => {
                                   if (m === null) {
@@ -1495,6 +1510,7 @@ export default function BeachBodyMealBoard() {
                         slot={key}
                         meal={meal}
                         showStarchBadge={true}
+                        builderType="performance-nutrition"
                         onUpdated={(m) => {
                           if (m === null) {
                             if (!board) return;
@@ -1581,6 +1597,7 @@ export default function BeachBodyMealBoard() {
                         slot="snacks"
                         meal={meal}
                         showStarchBadge={true}
+                        builderType="performance-nutrition"
                         data-wt="wmb-meal-card"
                         onUpdated={(m) => {
                           if (m === null) {
@@ -1631,6 +1648,7 @@ export default function BeachBodyMealBoard() {
                       slot="snacks"
                       meal={meal}
                       showStarchBadge={true}
+                      builderType="performance-nutrition"
                       data-wt="wmb-meal-card"
                       onUpdated={(m) => {
                         if (m === null) {
@@ -1875,16 +1893,8 @@ export default function BeachBodyMealBoard() {
           carbCycleState={carbCyclePickerState}
           carbsUsed={totals.starchyCarbs}
           hasCoachLink={hasCoachLink}
-          macroTargets={(() => {
-            const resolved = effectiveUserId ? getResolvedTargets(effectiveUserId) : null;
-            if (!resolved || resolved.source === "none") return null;
-            return {
-              calories: Math.round(resolved.calories ?? 0),
-              protein_g: Math.round(resolved.protein_g ?? 0),
-              carbs_g: Math.round(resolved.carbs_g ?? 0),
-              fat_g: Math.round(resolved.fat_g ?? 0),
-            };
-          })()}
+          userId={effectiveUserId}
+          macroTargets={athletePickerMacroTargets}
         />
 
         <WeeklyOverviewModal
