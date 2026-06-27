@@ -23,10 +23,8 @@ export default function CertificationQuiz() {
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
 
-  // ── Restore in-progress attempt on mount ──────────────────────────────────
   useEffect(() => {
     if (!moduleId) return;
-    // apiRequest already returns parsed JSON — do NOT call .json() again
     apiRequest(`/api/certifications/${certType}/modules/${moduleId}/quiz-attempt`)
       .then((data) => {
         if (data.attempt?.answersJson) {
@@ -50,7 +48,6 @@ export default function CertificationQuiz() {
   const allAnswered = answeredCount === questions.length;
   const isFinal = moduleId === "final-assessment";
 
-  // ── Auto-save a single answer (fire-and-forget) ───────────────────────────
   const saveAnswer = (questionId: string, answerIndex: number) => {
     apiRequest(`/api/certifications/${certType}/modules/${moduleId}/quiz-attempt/answer`, {
       method: "POST",
@@ -59,7 +56,6 @@ export default function CertificationQuiz() {
     }).catch(() => {});
   };
 
-  // ── Clear the attempt record (retry or submit) ────────────────────────────
   const clearAttempt = () => {
     apiRequest(`/api/certifications/${certType}/modules/${moduleId}/quiz-attempt`, {
       method: "DELETE",
@@ -89,7 +85,7 @@ export default function CertificationQuiz() {
       });
       clearAttempt();
     } catch {
-      // non-fatal — score is shown to user regardless
+      // non-fatal
     } finally {
       setSaving(false);
       savingRef.current = false;
@@ -105,13 +101,11 @@ export default function CertificationQuiz() {
     setPhase("quiz");
   };
 
-  // After passing, go directly to the next module's lesson — no dashboard detour
   const handleContinue = () => {
     const nextId = getNextModuleId(moduleId);
     if (nextId) {
       setLocation(`/business-center/affiliate/${pathId}/certification/${nextId}`);
     } else {
-      // No next module — all done, go to dashboard for completion
       setLocation(`/business-center/affiliate/${pathId}/certification`);
     }
   };
@@ -124,7 +118,7 @@ export default function CertificationQuiz() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      {/* Header */}
+      {/* Header — stays dark */}
       <div
         className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
@@ -160,7 +154,7 @@ export default function CertificationQuiz() {
       >
         <AnimatePresence mode="wait">
 
-          {/* ── Loading ── */}
+          {/* Loading */}
           {phase === "loading" && (
             <motion.div
               key="loading"
@@ -174,16 +168,16 @@ export default function CertificationQuiz() {
             </motion.div>
           )}
 
-          {/* ── Quiz ── */}
+          {/* Quiz */}
           {phase === "quiz" && (
             <motion.div
               key="quiz"
-              className="space-y-6"
+              className="space-y-5"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              {/* Resume banner when partially answered */}
+              {/* Resume banner */}
               {answeredCount > 0 && answeredCount < questions.length && (
                 <motion.div
                   className="flex items-center gap-3 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20"
@@ -197,40 +191,45 @@ export default function CertificationQuiz() {
                 </motion.div>
               )}
 
-              <p className="text-sm text-white/50 text-center">
+              <p className="text-sm text-white/60 text-center">
                 {questions.length} questions · {passingScore}% to pass
               </p>
 
+              {/* Question cards — white background for legibility */}
               {questions.map((q, qi) => (
                 <motion.div
                   key={q.id}
-                  className="space-y-3"
+                  className="bg-white rounded-2xl shadow-sm overflow-hidden"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: qi * 0.03 }}
                 >
-                  <p className="text-sm font-semibold text-white leading-relaxed">
-                    <span className="text-orange-400 mr-1">{qi + 1}.</span>
-                    {q.question}
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    {q.options.map((option, oi) => {
-                      const selected = answers[q.id] === oi;
-                      return (
-                        <button
-                          key={oi}
-                          onClick={() => handleAnswer(q.id, oi)}
-                          className={`w-full text-left px-4 py-3 rounded-xl border text-sm font-medium transition-all duration-150 active:scale-[0.98] ${
-                            selected
-                              ? "bg-orange-600 border-orange-500 text-white"
-                              : "bg-black/40 border-white/15 text-white/85"
-                          }`}
-                        >
-                          <span className="opacity-50 mr-2">{String.fromCharCode(65 + oi)}.</span>
-                          {option}
-                        </button>
-                      );
-                    })}
+                  <div className="px-5 pt-5 pb-4">
+                    <p className="text-sm font-semibold text-gray-900 leading-relaxed mb-4">
+                      <span className="text-orange-600 mr-1.5">{qi + 1}.</span>
+                      {q.question}
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      {q.options.map((option, oi) => {
+                        const selected = answers[q.id] === oi;
+                        return (
+                          <button
+                            key={oi}
+                            onClick={() => handleAnswer(q.id, oi)}
+                            className={`w-full text-left px-4 py-3 rounded-xl border text-sm font-medium transition-all duration-150 active:scale-[0.98] ${
+                              selected
+                                ? "bg-orange-600 border-orange-600 text-white"
+                                : "bg-gray-50 border-gray-200 text-gray-800 hover:bg-gray-100"
+                            }`}
+                          >
+                            <span className={`mr-2 ${selected ? "text-orange-200" : "text-gray-400"}`}>
+                              {String.fromCharCode(65 + oi)}.
+                            </span>
+                            {option}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </motion.div>
               ))}
@@ -253,7 +252,7 @@ export default function CertificationQuiz() {
             </motion.div>
           )}
 
-          {/* ── Results ── */}
+          {/* Results */}
           {phase === "results" && (
             <motion.div
               key="results"
@@ -285,31 +284,36 @@ export default function CertificationQuiz() {
                 </p>
               </div>
 
-              {/* Answer review */}
-              <div className="space-y-4">
-                <p className="text-xs text-white/40 font-semibold uppercase tracking-wide">Answer Review</p>
+              {/* Answer review — white cards */}
+              <div className="space-y-3">
+                <p className="text-xs text-white/40 font-semibold uppercase tracking-wide px-1">
+                  Answer Review
+                </p>
                 {questions.map((q, qi) => {
                   const chosen = answers[q.id];
                   const correct = chosen === q.correctIndex;
                   return (
                     <div
                       key={q.id}
-                      className={`p-4 rounded-xl border ${
-                        correct ? "border-green-500/20 bg-green-500/5" : "border-red-500/20 bg-red-500/5"
-                      }`}
+                      className="bg-white rounded-2xl shadow-sm overflow-hidden"
                     >
-                      <p className="text-xs font-semibold text-white mb-2">
-                        {qi + 1}. {q.question}
-                      </p>
-                      <p className={`text-xs ${correct ? "text-green-400" : "text-red-400"}`}>
-                        Your answer: {q.options[chosen]}
-                      </p>
-                      {!correct && (
-                        <p className="text-xs text-white/50 mt-1">
-                          Correct: {q.options[q.correctIndex]}
+                      <div className={`h-1 w-full ${correct ? "bg-green-500" : "bg-red-500"}`} />
+                      <div className="px-5 py-4 space-y-2">
+                        <p className="text-sm font-semibold text-gray-900">
+                          {qi + 1}. {q.question}
                         </p>
-                      )}
-                      <p className="text-xs text-white/40 mt-2 leading-relaxed">{q.explanation}</p>
+                        <p className={`text-sm font-medium ${correct ? "text-green-600" : "text-red-600"}`}>
+                          {correct ? "✓ " : "✗ "}Your answer: {q.options[chosen]}
+                        </p>
+                        {!correct && (
+                          <p className="text-sm text-gray-600">
+                            Correct: {q.options[q.correctIndex]}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500 leading-relaxed pt-1 border-t border-gray-100">
+                          {q.explanation}
+                        </p>
+                      </div>
                     </div>
                   );
                 })}
