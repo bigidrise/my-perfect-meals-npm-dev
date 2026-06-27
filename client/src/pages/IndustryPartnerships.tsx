@@ -135,7 +135,7 @@ export default function IndustryPartnerships() {
 
       <div className="pt-16 pb-24 px-4 max-w-lg mx-auto space-y-5">
 
-        {/* Hero */}
+        {/* Hero — stays on gradient, keep white text */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -160,23 +160,23 @@ export default function IndustryPartnerships() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 * idx }}
-              className="bg-black/50 border border-white/10 rounded-2xl p-5"
+              className="bg-white border border-gray-200 shadow-sm rounded-2xl p-5"
             >
               {/* Title */}
               <div className="flex items-center gap-2 mb-3">
-                <div className="bg-orange-500/20 rounded-lg p-1.5">
-                  <Icon className="h-4 w-4 text-orange-400" />
+                <div className="bg-orange-100 rounded-lg p-1.5">
+                  <Icon className="h-4 w-4 text-orange-500" />
                 </div>
-                <h2 className="text-white font-semibold text-sm">{industry.title}</h2>
+                <h2 className="text-gray-900 font-semibold text-sm">{industry.title}</h2>
               </div>
 
               {/* Examples */}
               {industry.examples.length > 0 && (
                 <div className="mb-3">
-                  <p className="text-white/30 text-xs uppercase tracking-wider font-semibold mb-1.5">Examples</p>
+                  <p className="text-gray-400 text-xs uppercase tracking-wider font-semibold mb-1.5">Examples</p>
                   <div className="flex flex-wrap gap-1.5">
                     {industry.examples.map((ex) => (
-                      <span key={ex} className="bg-white/8 border border-white/10 rounded-full px-2.5 py-0.5 text-white/50 text-xs">
+                      <span key={ex} className="bg-gray-100 border border-gray-200 rounded-full px-2.5 py-0.5 text-gray-500 text-xs">
                         {ex}
                       </span>
                     ))}
@@ -186,20 +186,20 @@ export default function IndustryPartnerships() {
 
               {/* How We Help */}
               <div className="mb-4">
-                <p className="text-white/30 text-xs uppercase tracking-wider font-semibold mb-2">How We Help</p>
+                <p className="text-gray-400 text-xs uppercase tracking-wider font-semibold mb-2">How We Help</p>
                 <div className="space-y-1.5">
                   {industry.help.map((item) => (
                     <div key={item} className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-orange-400/50 flex-shrink-0" />
-                      <span className="text-white/60 text-xs leading-relaxed">{item}</span>
+                      <div className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" />
+                      <span className="text-gray-600 text-xs leading-relaxed">{item}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Typical Partnership Path */}
-              <div className="border-t border-white/8 pt-3">
-                <p className="text-white/30 text-xs uppercase tracking-wider font-semibold mb-2">Typical Partnership Path</p>
+              <div className="border-t border-gray-100 pt-3">
+                <p className="text-gray-400 text-xs uppercase tracking-wider font-semibold mb-2">Typical Partnership Path</p>
                 <div className="space-y-2">
                   {industry.paths.map((path) => (
                     path.external ? (
@@ -208,19 +208,19 @@ export default function IndustryPartnerships() {
                         href={path.route}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 bg-orange-600/15 border border-orange-500/25 rounded-xl px-3 py-2.5 w-full text-left"
+                        className="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2.5 w-full text-left"
                       >
-                        <ChevronRight className="h-3.5 w-3.5 text-orange-400 flex-shrink-0" />
-                        <span className="text-orange-300 text-xs font-semibold">{path.label}</span>
+                        <ChevronRight className="h-3.5 w-3.5 text-orange-500 flex-shrink-0" />
+                        <span className="text-orange-600 text-xs font-semibold">{path.label}</span>
                       </a>
                     ) : (
                       <button
                         key={path.label}
                         onClick={() => setLocation(path.route)}
-                        className="flex items-center gap-2 bg-white/6 border border-white/10 rounded-xl px-3 py-2.5 w-full text-left"
+                        className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 w-full text-left"
                       >
-                        <ChevronRight className="h-3.5 w-3.5 text-orange-400 flex-shrink-0" />
-                        <span className="text-white/70 text-xs font-semibold">{path.label}</span>
+                        <ChevronRight className="h-3.5 w-3.5 text-orange-500 flex-shrink-0" />
+                        <span className="text-gray-700 text-xs font-semibold">{path.label}</span>
                       </button>
                     )
                   ))}
@@ -235,13 +235,13 @@ export default function IndustryPartnerships() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35 }}
-          className="bg-orange-600/10 border border-orange-500/20 rounded-2xl p-5"
+          className="bg-orange-50 border border-orange-200 rounded-2xl p-5"
         >
           <div className="flex items-center gap-2 mb-3">
-            <HelpCircle className="h-4 w-4 text-orange-400 flex-shrink-0" />
-            <h2 className="text-white font-semibold text-sm">Not Sure Where You Fit?</h2>
+            <HelpCircle className="h-4 w-4 text-orange-500 flex-shrink-0" />
+            <h2 className="text-gray-900 font-semibold text-sm">Not Sure Where You Fit?</h2>
           </div>
-          <p className="text-white/60 text-sm leading-relaxed mb-4">
+          <p className="text-gray-600 text-sm leading-relaxed mb-4">
             Every organization is different. If you're unsure which pathway best fits your business, schedule a Strategic Partnership Discussion and we'll help determine the best approach.
           </p>
           <a
