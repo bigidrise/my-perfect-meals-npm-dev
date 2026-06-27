@@ -330,11 +330,19 @@ export default function BeverageCreator() {
       }
       // SafetyGuard detected a diet conflict — hand off to DietGuard intercept
       // which shows the proper "Create [Diet] Version" / "Continue Anyway" UI.
-      const adaptPayload = dietAdaptPayload.current;
-      if (adaptPayload) {
+      // Only on the FIRST attempt (skipDietPreflight=false). When the user has
+      // already chosen "Create [Diet] Version" or "Continue Anyway" we skip this
+      // so generation actually proceeds instead of re-showing the modal.
+      if (!skipDietPreflight) {
+        const adaptPayload = dietAdaptPayload.current;
+        if (adaptPayload) {
+          dietAdaptPayload.current = null;
+          triggerDietAlert(adaptPayload.matchedTerms, adaptPayload.message);
+          return;
+        }
+      } else {
+        // Clear any stale payload from the earlier safety check
         dietAdaptPayload.current = null;
-        triggerDietAlert(adaptPayload.matchedTerms, adaptPayload.message);
-        return;
       }
     }
 
