@@ -26,6 +26,7 @@ import { createApiRateLimit } from "./middleware/rateLimit";
 import { errorHandler } from "./middleware/errorHandler";
 import { requireAuth } from "./middleware/requireAuth";
 import { requireActiveAccess } from "./middleware/requireActiveAccess";
+import { requireProAccess } from "./middleware/requireProAccess";
 import healthRouter from "./routes/health.routes";
 import keepaliveRouter from "./routes/keepalive";
 import legalPagesRouter from "./routes/legal-pages";
@@ -372,7 +373,7 @@ import avatarContextRoutes from "./routes/avatar-context";
 app.use("/api/avatar", avatarContextRoutes);
 
 // Meal Replacement System
-app.use("/api/craving-creator", requireAuth, requireActiveAccess, cravingCreatorRouter);  
+app.use("/api/craving-creator", requireAuth, requireProAccess, cravingCreatorRouter);
 app.use("/api/meals/dessert-creator", requireAuth, requireActiveAccess, dessertCreatorRouter);
 app.use("/api/meals/beverage-creator", requireAuth, requireActiveAccess, beverageCreatorRouter);
 app.use("/api/ai/chef-pairings", requireAuth, requireActiveAccess, chefPairingsRouter);

@@ -14,6 +14,9 @@ import { getAuthUserId } from "./utils/getAuthUserId";
 import { checkDailyQuota, checkAndIncrementQuota, incrementDailyUsage, AiFeature } from "./services/aiQuotaService";
 import { requireActiveAccess } from "./middleware/requireActiveAccess";
 import { requirePremiumAccess } from "./middleware/requirePremiumAccess";
+import { requireEssentialAccess } from "./middleware/requireEssentialAccess";
+import { requireProAccess } from "./middleware/requireProAccess";
+import { requireClinicalAccess } from "./middleware/requireClinicalAccess";
 import { requireMacroProfile } from "./middleware/requireMacroProfile";
 import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems, savedMeals as savedMealsTable, creators } from "@shared/schema";
 import { studioMemberships, studios } from "./db/schema/studio";
@@ -601,12 +604,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User confirmed this new system works perfectly - keep it locked!
   app.use("/api", fridgeRescueRouter);
   app.use("/api", inspirationRouter);
-  app.use("/api/grocery-coach", requireAuth, groceryCoachRouter);
-  app.use("/api/pregnancy", requireAuth, pregnancyCoachRouter);
-  app.use("/api/performance", requireAuth, performanceNutritionRouter);
-  app.use("/api/performance", requireAuth, carbCycleRouter);
+  app.use("/api/grocery-coach", requireAuth, requireProAccess, groceryCoachRouter);
+  app.use("/api/pregnancy", requireAuth, requireClinicalAccess, pregnancyCoachRouter);
+  app.use("/api/performance", requireAuth, requireClinicalAccess, performanceNutritionRouter);
+  app.use("/api/performance", requireAuth, requireClinicalAccess, carbCycleRouter);
   app.use("/api/nutrition-summary", requireAuth, nutritionSummaryRouter);
-  app.use("/api/therapeutic", requireAuth, therapeuticSetupRouter);
+  app.use("/api/therapeutic", requireAuth, requireClinicalAccess, therapeuticSetupRouter);
 
   // REMOVED: Duplicate route moved to top priority position
 
@@ -1745,7 +1748,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/push", pushNotificationsRouter);
 
   // Enhanced Shopping List endpoint with scope support
-  app.post("/api/shopping-list", requireAuth, async (req: any, res) => {
+  app.post("/api/shopping-list", requireAuth, requireEssentialAccess, async (req: any, res) => {
     try {
       const authUser = req.authUser;
       const userId = authUser?.id;
@@ -3809,7 +3812,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // 🔒🔒🔒 CRAVING CREATOR API LOCKDOWN - DO NOT MODIFY
   // Add the missing endpoint that the frontend expects
-  app.post("/api/generate-craving-meal", requireAuth, requireActiveAccess, requireMacroProfile, async (req, res) => {
+  app.post("/api/generate-craving-meal", requireAuth, requireProAccess, requireMacroProfile, async (req, res) => {
     try {
       const { craving, userId, medicalProfile, userCategories, generateImages, maxMeals } = req.body;
 
@@ -6924,7 +6927,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     return crypto.createHash("sha256").update(raw).digest("hex").slice(0, 64);
   }
 
-  app.post("/api/saved-meals/toggle", requireAuth, async (req, res) => {
+  app.post("/api/saved-meals/toggle", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const userId = (req as AuthenticatedRequest).authUser.id;
 
@@ -6999,7 +7002,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     }
   });
 
-  app.get("/api/saved-meals", requireAuth, async (req, res) => {
+  app.get("/api/saved-meals", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const userId = (req as AuthenticatedRequest).authUser.id;
 
@@ -7052,7 +7055,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     }
   });
 
-  app.get("/api/saved-meals/check", requireAuth, async (req, res) => {
+  app.get("/api/saved-meals/check", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const userId = (req as AuthenticatedRequest).authUser.id;
 
@@ -7067,7 +7070,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     }
   });
 
-  app.delete("/api/saved-meals/:id", requireAuth, async (req, res) => {
+  app.delete("/api/saved-meals/:id", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const userId = (req as AuthenticatedRequest).authUser.id;
 
@@ -7090,13 +7093,13 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api/meals", mealsRouterShared);
 
   const { default: getawayRouterShared } = await import("./routes/getaway");
-  app.use("/api/getaway", requireAuth, requireActiveAccess, getawayRouterShared);
+  app.use("/api/getaway", requireAuth, requireClinicalAccess, getawayRouterShared);
 
   const { default: gatheringsRouterShared } = await import("./routes/gatherings");
-  app.use("/api/gatherings", requireAuth, requireActiveAccess, gatheringsRouterShared);
+  app.use("/api/gatherings", requireAuth, requireProAccess, gatheringsRouterShared);
 
   const { default: cravingCreatorRouterShared } = await import("./routes/craving-creator");
-  app.use("/api/craving-creator", requireAuth, requireActiveAccess, cravingCreatorRouterShared);
+  app.use("/api/craving-creator", requireAuth, requireProAccess, cravingCreatorRouterShared);
 
   const { default: breakfastRouterShared } = await import("./routes/breakfast");
   app.use("/api/breakfast", breakfastRouterShared);
@@ -7138,16 +7141,16 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api/meal-templates", templateRouterShared);
 
   const { default: chefPairingsRouterShared } = await import("./routes/chef-pairings");
-  app.use("/api/ai/chef-pairings", requireAuth, requireActiveAccess, chefPairingsRouterShared);
+  app.use("/api/ai/chef-pairings", requireAuth, requireProAccess, chefPairingsRouterShared);
 
   const { default: studioGeneratorRouterShared } = await import("./routes/studioGenerator");
-  app.use("/api/studio", requireAuth, requireActiveAccess, studioGeneratorRouterShared);
+  app.use("/api/studio", requireAuth, requireProAccess, studioGeneratorRouterShared);
 
   const { default: dessertCreatorRouterShared } = await import("./routes/dessert-creator");
-  app.use("/api/meals/dessert-creator", requireAuth, requireActiveAccess, dessertCreatorRouterShared);
+  app.use("/api/meals/dessert-creator", requireAuth, requireProAccess, dessertCreatorRouterShared);
 
   const { default: beverageCreatorRouterShared } = await import("./routes/beverage-creator");
-  app.use("/api/meals/beverage-creator", requireAuth, requireActiveAccess, beverageCreatorRouterShared);
+  app.use("/api/meals/beverage-creator", requireAuth, requireProAccess, beverageCreatorRouterShared);
 
   const { default: foodLogsRouterShared } = await import("./routes/foodLogs");
   app.use("/api", foodLogsRouterShared);
@@ -7239,7 +7242,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
 
   const { default: restaurantRoutesShared } = await import("./routes/restaurants");
   const { resolveCuisineMiddleware: resolveCuisineShared } = await import("./middleware/resolveCuisineMiddleware");
-  app.use("/api/restaurants", requireAuth, requireActiveAccess, resolveCuisineShared, restaurantRoutesShared);
+  app.use("/api/restaurants", requireAuth, requireProAccess, resolveCuisineShared, restaurantRoutesShared);
 
   const { default: mealPlanRoutesV1Shared } = await import("./routes/mealPlans.routes");
   app.use("/api/meal-plan", mealPlanRoutesV1Shared);

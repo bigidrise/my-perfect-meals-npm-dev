@@ -12,7 +12,7 @@ import ComingSoon from "@/pages/ComingSoon";
 import StudioBottomNav from "@/components/pro/StudioBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { hasActivePaidSubscription, isProOrAbove } from "@/lib/subscriptionCheck";
+import { hasActivePaidSubscription, isProOrAbove, isClinicalOrAbove } from "@/lib/subscriptionCheck";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 
@@ -116,6 +116,22 @@ function ProGuard({ component: Component }: { component: React.ComponentType }) 
   useEffect(() => {
     if (isBlocked) {
       requestUpgrade({ requiredTier: "pro", featureName: getFeatureNameFromPath(location) });
+    }
+  }, [isBlocked, location]);
+
+  if (!user || isBlocked) return null;
+  return <Component />;
+}
+
+function ClinicalGuard({ component: Component }: { component: React.ComponentType }) {
+  const { user } = useAuth();
+  const [location] = useLocation();
+  const { requestUpgrade } = useUpgradeModal();
+  const isBlocked = !!user && !isClinicalOrAbove(user);
+
+  useEffect(() => {
+    if (isBlocked) {
+      requestUpgrade({ requiredTier: "clinical", featureName: getFeatureNameFromPath(location) });
     }
   }, [isBlocked, location]);
 
@@ -373,7 +389,7 @@ const GuardedBeverageCreator = () => <ProGuard component={BeverageCreator} />;
 const GuardedBeverageCreatorHub = () => <ProGuard component={BeverageCreatorHub} />;
 const GuardedSushiCreator = () => <ProGuard component={SushiCreator} />;
 const GuardedGatheringsPage = () => <ProGuard component={GatheringsPage} />;
-const GuardedGetaway = () => <ProGuard component={MyPerfectGetaway} />;
+const GuardedGetaway = () => <ClinicalGuard component={MyPerfectGetaway} />;
 const GuardedChefPairings = () => <ProGuard component={ChefPairings} />;
 const GuardedPairingsHub = () => <ProGuard component={PairingsHub} />;
 const GuardedPairingsAI = () => <ProGuard component={PairingsAI} />;
@@ -590,7 +606,7 @@ export default function Router() {
         {/* DELETED: /healthy-kids-meals, /kids-meals, /toddler-meals routes (Phase 1 cleanup) */}
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
         <Route path="/lifestyle/my-perfect-pregnancy" component={MyPerfectPregnancyPage} />
-        <Route path="/performance" component={() => <PaywallGuard component={PerformanceNutritionHub} />} />
+        <Route path="/performance" component={() => <ClinicalGuard component={PerformanceNutritionHub} />} />
         <Route path="/lifestyle/my-perfect-getaway" component={GuardedGetaway} />
         <Route path="/lifestyle/my-perfect-gatherings" component={GuardedGatheringsPage} />
         <Route path="/lifestyle/ultimate-experiences" component={GuardedGatheringsPage} />
