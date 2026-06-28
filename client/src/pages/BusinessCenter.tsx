@@ -1,7 +1,7 @@
 import { useLocation } from "wouter";
 import { ArrowLeft, TrendingUp, Users, Building2, HeartPulse, ChevronRight, Handshake, ChefHat, Star } from "lucide-react";
 import { motion } from "framer-motion";
-import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { BC_HEADER } from "@/components/BusinessCenterShell";
 
 const sections = [
   {
@@ -64,12 +64,12 @@ const sections = [
 
 const colorMap = {
   orange: {
-    bg: "bg-orange-600/20",
-    icon: "text-orange-400",
+    bg: "bg-orange-100",
+    icon: "text-orange-500",
   },
   blue: {
-    bg: "bg-blue-500/20",
-    icon: "text-blue-400",
+    bg: "bg-blue-100",
+    icon: "text-blue-500",
   },
 };
 
@@ -78,7 +78,7 @@ export default function BusinessCenter() {
 
   return (
     <motion.div
-      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28`}
+      className="min-h-screen bg-gray-50 pb-28"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
@@ -106,7 +106,7 @@ export default function BusinessCenter() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
       >
         <div className="text-center py-4">
-          <p className="text-white/70 text-sm leading-relaxed">
+          <p className="text-gray-600 text-sm leading-relaxed">
             Grow with My Perfect Meals — whether you want to earn as an affiliate,
             coach clients, or build a business partnership.
           </p>
@@ -118,7 +118,7 @@ export default function BusinessCenter() {
           return (
             <motion.button
               key={section.id}
-              className="w-full text-left p-4 rounded-2xl bg-black/50 border border-white/10 active:scale-[0.98] transition-all duration-200"
+              className="w-full text-left p-4 rounded-2xl bg-white border border-gray-200 shadow-sm active:scale-[0.98] transition-all duration-200"
               onClick={() => setLocation(section.route)}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -129,16 +129,16 @@ export default function BusinessCenter() {
                   <Icon className={`h-6 w-6 ${colors.icon}`} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-white">{section.title}</h3>
-                  <p className="text-xs text-white/60 mt-0.5 leading-relaxed">{section.description}</p>
+                  <h3 className="text-sm font-semibold text-gray-900">{section.title}</h3>
+                  <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">{section.description}</p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-white/30 flex-shrink-0" />
+                <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
               </div>
             </motion.button>
           );
         })}
 
-        <p className="text-center text-white/30 text-xs pb-4 pt-2">
+        <p className="text-center text-gray-400 text-xs pb-4 pt-2">
           New opportunities added regularly
         </p>
       </div>
