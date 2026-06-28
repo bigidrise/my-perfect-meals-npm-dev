@@ -1561,30 +1561,43 @@ export default function SushiCreator() {
                         {/* Row 3: Prepare with Chef + Share (50/50) */}
                         <div className="grid grid-cols-2 gap-2">
                           <GlassButton
+                            type="button"
                             onClick={() => {
+                              const safeId = meal.id ||
+                                (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                                  ? crypto.randomUUID()
+                                  : `sushi-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`);
+                              // Never save a base64 data URL — it exceeds localStorage quota.
+                              // ChefsKitchenPage will re-fetch the image from S3 if imageUrl is absent.
+                              const safeImageUrl = meal.imageUrl?.startsWith("data:") ? undefined : meal.imageUrl;
                               const mealData = {
-                                id: meal.id || crypto.randomUUID(),
+                                id: safeId,
                                 name: meal.name,
                                 description: meal.description,
                                 ingredients: meal.ingredients || [],
                                 instructions: meal.instructions,
-                                imageUrl: meal.imageUrl,
+                                imageUrl: safeImageUrl,
                                 cookMethod: cookMethod || undefined,
                               };
-                              localStorage.setItem(
-                                "mpm_chefs_kitchen_meal",
-                                JSON.stringify(mealData),
-                              );
-                              localStorage.setItem(
-                                "mpm_chefs_kitchen_external_prepare",
-                                "true",
-                              );
-                              localStorage.setItem("mpm_chefs_kitchen_origin", window.location.pathname);
+                              try {
+                                localStorage.setItem(
+                                  "mpm_chefs_kitchen_meal",
+                                  JSON.stringify(mealData),
+                                );
+                                localStorage.setItem(
+                                  "mpm_chefs_kitchen_external_prepare",
+                                  "true",
+                                );
+                                localStorage.setItem("mpm_chefs_kitchen_origin", window.location.pathname);
+                              } catch {
+                                // Storage full — navigate anyway, ChefsKitchenPage handles missing meal gracefully
+                              }
                               setLocation("/lifestyle/chefs-kitchen");
+                              window.scrollTo({ top: 0, behavior: "instant" });
                             }}
-                            className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
+                            className="flex-1 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                           >
-                            Enter Studio
+                            Guided Cooking
                           </GlassButton>
                           <ShareRecipeButton
                             recipe={{

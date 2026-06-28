@@ -184,6 +184,7 @@ export default function BeverageCreator() {
     setOverrideToken,
     overrideToken,
     hasActiveOverride,
+    dietAdaptPayload,
   } = useSafetyGuardPrecheck();
 
   const {
@@ -327,9 +328,26 @@ export default function BeverageCreator() {
       if (!isSafe) {
         return;
       }
+      // SafetyGuard detected a diet conflict — hand off to DietGuard intercept
+      // which shows the proper "Create [Diet] Version" / "Continue Anyway" UI.
+      // Only on the FIRST attempt (skipDietPreflight=false). When the user has
+      // already chosen "Create [Diet] Version" or "Continue Anyway" we skip this
+      // so generation actually proceeds instead of re-showing the modal.
+      if (!skipDietPreflight) {
+        const adaptPayload = dietAdaptPayload.current;
+        if (adaptPayload) {
+          dietAdaptPayload.current = null;
+          triggerDietAlert(adaptPayload.matchedTerms, adaptPayload.message);
+          return;
+        }
+      } else {
+        // Clear any stale payload from the earlier safety check
+        dietAdaptPayload.current = null;
+      }
     }
 
     // 🥗 DietGuard preflight — advisory, skipped on "Let Chef Adapt" retry
+    // Also skipped when SafetyGuard already routed through dietAdaptPayload above.
     if (!skipDietPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
       const dietInput = customBeverageDescription.trim() || `${beverageCategory} ${flavorFamily} ${specificDrink}`.trim();
       const dietOk = checkDiet(dietInput);

@@ -24,6 +24,7 @@ import {
   getWeekBoardByDate,
   updateMealImageInBoard,
   getMealImageUrl,
+  mergeImageUrlsOnly,
 } from "@/lib/boardApi";
 import { useChefMealImage } from "@/hooks/useChefMealImage";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
@@ -238,17 +239,38 @@ export default function BeachBodyMealBoard() {
   }, []);
 
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
+  const boardRef = React.useRef<WeekBoard | null>(null);
   const { fetchImageForMeal } = useChefMealImage();
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
   const isDesktop = useIsDesktop();
 
+  // Reset the initial-hydration gate whenever the viewed week changes so
+  // incoming server data for the new week always paints fresh.
   React.useEffect(() => {
-    if (hookBoard) {
-      setBoard(hookBoard as any);
-      setLoading(hookLoading);
+    boardRef.current = null;
+  }, [weekStartISO]);
+
+  React.useEffect(() => {
+    if (!hookLoading && hookBoard) {
+      if (!boardRef.current) {
+        // First load for this week: always use server data directly.
+        setBoard(hookBoard as any);
+        boardRef.current = hookBoard as any;
+        setLoading(false);
+        return;
+      }
+      // Subsequent server syncs: preserve any locally-set S3 imageUrls that
+      // the server may not have persisted yet (e.g. image just generated and
+      // save is still in flight). mergeImageUrlsOnly starts from the local
+      // board and only upgrades meals that gain an S3 url from the server.
+      setBoard(prev => {
+        if (!prev) return hookBoard as any;
+        return mergeImageUrlsOnly(prev, hookBoard as any);
+      });
     }
+    setLoading(hookLoading);
   }, [hookBoard, hookLoading]);
 
   const saveBoard = React.useCallback(
@@ -970,6 +992,20 @@ export default function BeachBodyMealBoard() {
     };
   }, [board, planningMode, activeDayISO]);
 
+  // Stable memoized macro targets for AthleteMealPickerDrawer.
+  // Using an inline IIFE here would create a new object reference on every render,
+  // which triggers the drawer's setLiveTargets useEffect on every render → infinite loop.
+  const athletePickerMacroTargets = useMemo(() => {
+    const resolved = effectiveUserId ? getResolvedTargets(effectiveUserId) : null;
+    if (!resolved || resolved.source === "none") return null;
+    return {
+      calories: Math.round(resolved.calories ?? 0),
+      protein_g: Math.round(resolved.protein_g ?? 0),
+      carbs_g: Math.round(resolved.carbs_g ?? 0),
+      fat_g: Math.round(resolved.fat_g ?? 0),
+    };
+  }, [effectiveUserId]);
+
   // Silent error handling - Facebook-style: no UI for transient network events
   React.useEffect(() => {
     if (error) {
@@ -1349,6 +1385,7 @@ export default function BeachBodyMealBoard() {
                                 slot={key}
                                 meal={meal}
                                 showStarchBadge={true}
+                                builderType="performance-nutrition"
                                 data-wt="wmb-meal-card"
                                 onUpdated={(m) => {
                                   if (m === null) {
@@ -1473,6 +1510,7 @@ export default function BeachBodyMealBoard() {
                         slot={key}
                         meal={meal}
                         showStarchBadge={true}
+                        builderType="performance-nutrition"
                         onUpdated={(m) => {
                           if (m === null) {
                             if (!board) return;
@@ -1559,6 +1597,7 @@ export default function BeachBodyMealBoard() {
                         slot="snacks"
                         meal={meal}
                         showStarchBadge={true}
+                        builderType="performance-nutrition"
                         data-wt="wmb-meal-card"
                         onUpdated={(m) => {
                           if (m === null) {
@@ -1609,6 +1648,7 @@ export default function BeachBodyMealBoard() {
                       slot="snacks"
                       meal={meal}
                       showStarchBadge={true}
+                      builderType="performance-nutrition"
                       data-wt="wmb-meal-card"
                       onUpdated={(m) => {
                         if (m === null) {
@@ -1853,16 +1893,8 @@ export default function BeachBodyMealBoard() {
           carbCycleState={carbCyclePickerState}
           carbsUsed={totals.starchyCarbs}
           hasCoachLink={hasCoachLink}
-          macroTargets={(() => {
-            const resolved = effectiveUserId ? getResolvedTargets(effectiveUserId) : null;
-            if (!resolved || resolved.source === "none") return null;
-            return {
-              calories: Math.round(resolved.calories ?? 0),
-              protein_g: Math.round(resolved.protein_g ?? 0),
-              carbs_g: Math.round(resolved.carbs_g ?? 0),
-              fat_g: Math.round(resolved.fat_g ?? 0),
-            };
-          })()}
+          userId={effectiveUserId}
+          macroTargets={athletePickerMacroTargets}
         />
 
         <WeeklyOverviewModal

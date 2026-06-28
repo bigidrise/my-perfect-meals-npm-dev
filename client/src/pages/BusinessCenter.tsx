@@ -64,14 +64,12 @@ const sections = [
 
 const colorMap = {
   orange: {
-    bg: "bg-orange-500/20",
+    bg: "bg-orange-600/20",
     icon: "text-orange-400",
-    border: "border-orange-500/30",
   },
   blue: {
     bg: "bg-blue-500/20",
     icon: "text-blue-400",
-    border: "border-blue-500/30",
   },
 };
 
@@ -120,7 +118,7 @@ export default function BusinessCenter() {
           return (
             <motion.button
               key={section.id}
-              className={`w-full text-left p-4 rounded-2xl bg-black/50 backdrop-blur-md border ${colors.border} active:scale-[0.98] transition-all duration-200`}
+              className="w-full text-left p-4 rounded-2xl bg-black/50 border border-white/10 active:scale-[0.98] transition-all duration-200"
               onClick={() => setLocation(section.route)}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
