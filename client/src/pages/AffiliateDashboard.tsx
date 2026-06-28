@@ -208,7 +208,7 @@ export default function AffiliateDashboard() {
   return (
     <>
       <motion.div
-        className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-32`}
+        className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-32 overflow-x-hidden`}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
