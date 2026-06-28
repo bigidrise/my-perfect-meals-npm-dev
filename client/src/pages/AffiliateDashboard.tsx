@@ -6,10 +6,11 @@ import {
   ArrowLeft, Copy, Check, ExternalLink, Award, BarChart2,
   DollarSign, Link2, Shield, Package, Users, X, Send,
   UserPlus, Clock, RefreshCw, QrCode, Download, ChevronDown, ChevronUp,
-  Smartphone, Mail, Youtube, Instagram, Presentation, Megaphone, AlertTriangle
+  Smartphone, Mail, Youtube, Instagram, Presentation, Megaphone, AlertTriangle, Monitor
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 interface AffiliateAccount {
   affiliateTrack: string;
@@ -57,6 +58,8 @@ function formatDate(iso: string | null) {
 export default function AffiliateDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const isDesktop = useIsDesktop();
+  const [copiedDesktopUrl, setCopiedDesktopUrl] = useState(false);
   const [account, setAccount] = useState<AffiliateAccount | null>(null);
   const [rewardfulStatus, setRewardfulStatus] = useState<RewardfulStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -148,6 +151,13 @@ export default function AffiliateDashboard() {
       setSyncLoading(false);
     }
   }, [toast]);
+
+  const copyDesktopUrl = useCallback(() => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopiedDesktopUrl(true);
+      setTimeout(() => setCopiedDesktopUrl(false), 2500);
+    });
+  }, []);
 
   const sendInvite = useCallback(async () => {
     if (!inviteName.trim() || !inviteEmail.trim()) {
@@ -296,20 +306,48 @@ export default function AffiliateDashboard() {
                 ))}
               </div>
 
-              <button
-                onClick={openPortal}
-                disabled={portalLoading}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-orange-600 text-white font-bold text-sm active:scale-[0.98] transition-all disabled:opacity-60"
-              >
-                {portalLoading
-                  ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  : <ExternalLink className="h-4 w-4" />
-                }
-                {portalLoading ? "Opening..." : "Open Rewardful Setup →"}
-              </button>
-              <p className="text-[10px] text-white/30 text-center mt-2">
-                Can't find the email? Open the portal anyway — Rewardful will walk you through setup.
-              </p>
+              {isDesktop ? (
+                <>
+                  <button
+                    onClick={openPortal}
+                    disabled={portalLoading}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-orange-600 text-white font-bold text-sm active:scale-[0.98] transition-all disabled:opacity-60"
+                  >
+                    {portalLoading
+                      ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      : <ExternalLink className="h-4 w-4" />
+                    }
+                    {portalLoading ? "Opening..." : "Open Rewardful Setup →"}
+                  </button>
+                  <p className="text-[10px] text-white/30 text-center mt-2">
+                    Can't find the email? Open the portal anyway — Rewardful will walk you through setup.
+                  </p>
+                </>
+              ) : (
+                <div className="rounded-xl bg-black/40 border border-white/10 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Monitor className="h-4 w-4 text-white/40" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-white/80">Complete this on your desktop</p>
+                      <p className="text-xs text-white/40 mt-1 leading-relaxed">
+                        Rewardful setup requires filling out paperwork — it's designed for a full browser. Copy this page link and open it on your computer to continue.
+                      </p>
+                      <button
+                        onClick={copyDesktopUrl}
+                        className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white/10 text-white text-xs font-semibold active:scale-[0.98] transition-all"
+                      >
+                        {copiedDesktopUrl
+                          ? <Check className="h-3.5 w-3.5 text-green-400" />
+                          : <Copy className="h-3.5 w-3.5" />
+                        }
+                        {copiedDesktopUrl ? "Link Copied!" : "Copy Page Link"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
 
@@ -639,18 +677,44 @@ export default function AffiliateDashboard() {
                 ↑ Complete the account setup above first so you can add your bank account once the portal opens.
               </p>
             )}
-            <button
-              onClick={openPortal}
-              disabled={portalLoading}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-orange-600 text-white font-bold text-sm active:scale-[0.98] transition-all disabled:opacity-60"
-            >
-              {portalLoading ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <ExternalLink className="h-4 w-4" />
-              )}
-              {portalLoading ? "Opening..." : "Open Rewardful Portal"}
-            </button>
+            {isDesktop ? (
+              <button
+                onClick={openPortal}
+                disabled={portalLoading}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-orange-600 text-white font-bold text-sm active:scale-[0.98] transition-all disabled:opacity-60"
+              >
+                {portalLoading ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <ExternalLink className="h-4 w-4" />
+                )}
+                {portalLoading ? "Opening..." : "Open Rewardful Portal"}
+              </button>
+            ) : (
+              <div className="rounded-xl bg-black/40 border border-white/10 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Monitor className="h-4 w-4 text-white/40" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-white/80">Open on your desktop</p>
+                    <p className="text-xs text-white/40 mt-1 leading-relaxed">
+                      The Rewardful portal works best on a full desktop browser. Copy this page link and open it on your computer.
+                    </p>
+                    <button
+                      onClick={copyDesktopUrl}
+                      className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white/10 text-white text-xs font-semibold active:scale-[0.98] transition-all"
+                    >
+                      {copiedDesktopUrl
+                        ? <Check className="h-3.5 w-3.5 text-green-400" />
+                        : <Copy className="h-3.5 w-3.5" />
+                      }
+                      {copiedDesktopUrl ? "Link Copied!" : "Copy Page Link"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </Card>
 
           {/* Card 8 — Marketing Resources */}
