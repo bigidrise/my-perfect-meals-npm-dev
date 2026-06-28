@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { ArrowLeft, Share2, Briefcase, ChevronRight, X, UserCheck, Stethoscope, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
-import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { BC_HEADER } from "@/components/BusinessCenterShell";
 
 const paths = [
   {
@@ -98,7 +98,7 @@ export default function AffiliateOpportunities() {
   return (
     <>
       <motion.div
-        className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28`}
+        className="min-h-screen bg-gray-50 pb-28"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
@@ -126,8 +126,8 @@ export default function AffiliateOpportunities() {
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
         >
           <div className="text-center py-4">
-            <h2 className="text-xl font-bold text-white mb-2">Choose Your Path</h2>
-            <p className="text-white/60 text-sm leading-relaxed">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Choose Your Path</h2>
+            <p className="text-gray-600 text-sm leading-relaxed">
               Select the affiliate path that best describes how you plan to promote My Perfect Meals.
             </p>
           </div>

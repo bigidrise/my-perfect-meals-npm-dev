@@ -1,7 +1,7 @@
 import { useLocation, useRoute } from "wouter";
 import { ArrowLeft, Clock } from "lucide-react";
 import { motion } from "framer-motion";
-import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { BC_HEADER } from "@/components/BusinessCenterShell";
 
 const sectionMeta: Record<string, { title: string; description: string; eta: string }> = {
   affiliate: {
@@ -52,7 +52,7 @@ export default function BusinessCenterSection() {
 
   return (
     <motion.div
-      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28`}
+      className="min-h-screen bg-gray-50 pb-28"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
@@ -89,8 +89,8 @@ export default function BusinessCenterSection() {
             <Clock className="h-8 w-8 text-orange-500" />
           </div>
           <div className="space-y-3">
-            <h2 className="text-xl font-bold text-white">{meta.title}</h2>
-            <p className="text-sm text-white/60 leading-relaxed">{meta.description}</p>
+            <h2 className="text-xl font-bold text-gray-900">{meta.title}</h2>
+            <p className="text-sm text-gray-600 leading-relaxed">{meta.description}</p>
           </div>
           <div className="bg-white border border-orange-200 rounded-xl px-4 py-3 shadow-sm">
             <p className="text-xs text-orange-600 font-medium">{meta.eta}</p>
