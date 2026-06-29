@@ -604,22 +604,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User confirmed this new system works perfectly - keep it locked!
   app.use("/api", fridgeRescueRouter);
   app.use("/api", inspirationRouter);
-<<<<<<< HEAD
-  app.use("/api/grocery-coach", requireAuth, groceryCoachRouter);
+  app.use("/api/grocery-coach", requireAuth, requireProAccess, groceryCoachRouter);
   app.use("/api/pregnancy", requireAuth, pregnancyCoachRouter);
-  // DEBUG trace — remove after diagnosing 404 on /api/performance/setup
-  app.use("/api/performance", (req, _res, next) => {
-    console.log(`[PERF-TRACE] reached /api/performance routing layer — ${req.method} ${req.path}`);
-    next();
-  });
   app.use("/api/performance", requireAuth, performanceNutritionRouter);
   app.use("/api/performance", requireAuth, carbCycleRouter);
-=======
-  app.use("/api/grocery-coach", requireAuth, requireProAccess, groceryCoachRouter);
-  app.use("/api/pregnancy", requireAuth, requireClinicalAccess, pregnancyCoachRouter);
-  app.use("/api/performance", requireAuth, requireClinicalAccess, performanceNutritionRouter);
-  app.use("/api/performance", requireAuth, requireClinicalAccess, carbCycleRouter);
->>>>>>> origin/dev
   app.use("/api/nutrition-summary", requireAuth, nutritionSummaryRouter);
   app.use("/api/therapeutic", requireAuth, requireClinicalAccess, therapeuticSetupRouter);
 

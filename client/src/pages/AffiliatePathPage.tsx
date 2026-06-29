@@ -46,7 +46,7 @@ export default function AffiliatePathPage() {
 
   return (
     <motion.div
-      className="min-h-screen bg-gray-50 pb-28"
+      className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black pb-28"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
@@ -75,10 +75,10 @@ export default function AffiliatePathPage() {
       >
         {/* Hero */}
         <div className="flex items-center gap-4 py-4">
-          <div className="p-4 rounded-2xl bg-orange-100 flex-shrink-0">
-            <Icon className="h-8 w-8 text-orange-500" />
+          <div className="p-4 rounded-2xl bg-orange-500/20 flex-shrink-0">
+            <Icon className="h-8 w-8 text-orange-400" />
           </div>
-          <p className="text-sm text-gray-600 leading-relaxed">{meta.description}</p>
+          <p className="text-sm text-gray-300 leading-relaxed">{meta.description}</p>
         </div>
 
         {/* Resource list */}
@@ -88,7 +88,7 @@ export default function AffiliatePathPage() {
             return isLive ? (
               <motion.button
                 key={resource.name}
-                className="w-full text-left flex items-center gap-4 p-4 rounded-2xl bg-orange-50 border border-orange-200 active:scale-[0.98] transition-transform"
+                className="w-full text-left flex items-center gap-4 p-4 rounded-2xl bg-orange-500/20 border border-orange-500/30 active:scale-[0.98] transition-transform"
                 onClick={() => {
                   if (resource.action === "learning") {
                     setLocation("/learning");
@@ -100,29 +100,29 @@ export default function AffiliatePathPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.06 }}
               >
-                <div className="p-2 rounded-lg bg-orange-100 flex-shrink-0">
-                  <Briefcase className="h-4 w-4 text-orange-500" />
+                <div className="p-2 rounded-lg bg-orange-500/20 flex-shrink-0">
+                  <Briefcase className="h-4 w-4 text-orange-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900">{resource.name}</p>
-                  <p className="text-xs text-orange-600">{"description" in resource ? resource.description : "Start here"}</p>
+                  <p className="text-sm font-semibold text-white">{resource.name}</p>
+                  <p className="text-xs text-orange-400">{"description" in resource ? resource.description : "Start here"}</p>
                 </div>
                 <ChevronRight className="h-5 w-5 text-orange-400 flex-shrink-0" />
               </motion.button>
             ) : (
               <motion.div
                 key={resource.name}
-                className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-gray-200 shadow-sm"
+                className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.06 }}
               >
-                <div className="p-2 rounded-lg bg-orange-50 flex-shrink-0">
-                  <Clock className="h-4 w-4 text-orange-400" />
+                <div className="p-2 rounded-lg bg-orange-500/10 flex-shrink-0">
+                  <Clock className="h-4 w-4 text-orange-400/60" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900">{resource.name}</p>
-                  <p className="text-xs text-gray-500">{"eta" in resource ? resource.eta : ""}</p>
+                  <p className="text-sm font-semibold text-white">{resource.name}</p>
+                  <p className="text-xs text-gray-400">{"eta" in resource ? resource.eta : ""}</p>
                 </div>
               </motion.div>
             );
