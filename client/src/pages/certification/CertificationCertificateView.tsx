@@ -3,7 +3,6 @@ import { useLocation, useParams } from "wouter";
 import { Download, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
-import { BC_GRADIENT } from "@/components/BusinessCenterShell";
 import VisualCertificate from "@/components/certification/VisualCertificate";
 
 interface CertData {
@@ -63,13 +62,13 @@ export default function CertificationCertificateView() {
 
   return (
     <motion.div
-      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28 flex flex-col`}
+      className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black pb-28 flex flex-col"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
       {/* Header */}
       <div
-        className="flex items-center gap-3 px-4 pt-4"
+        className="flex items-center gap-3 px-4"
         style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 16px)" }}
       >
         <button
@@ -88,7 +87,7 @@ export default function CertificationCertificateView() {
           </div>
         ) : !cert || cert.status !== "completed" ? (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-white/40 text-sm text-center">
+            <p className="text-gray-400 text-sm text-center">
               No completed certification found.
             </p>
           </div>
@@ -110,7 +109,7 @@ export default function CertificationCertificateView() {
             </motion.div>
 
             {/* Scroll hint on mobile */}
-            <p className="text-white/30 text-xs text-center -mt-2 md:hidden">
+            <p className="text-gray-500 text-xs text-center -mt-2 md:hidden">
               Scroll left to view full certificate
             </p>
 

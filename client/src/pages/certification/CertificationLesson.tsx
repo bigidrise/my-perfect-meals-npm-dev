@@ -4,7 +4,7 @@ import { ArrowLeft, BookOpen, CheckCircle2, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import { getModuleById } from "@/data/affiliateCertification";
 import { apiRequest } from "@/lib/queryClient";
-import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { BC_HEADER } from "@/components/BusinessCenterShell";
 
 export default function CertificationLesson() {
   const [, setLocation] = useLocation();
@@ -41,8 +41,8 @@ export default function CertificationLesson() {
 
   if (!module) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <p className="text-white/50">Module not found.</p>
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center">
+        <p className="text-gray-400">Module not found.</p>
       </div>
     );
   }
@@ -53,11 +53,10 @@ export default function CertificationLesson() {
 
   return (
     <motion.div
-      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-32`}
+      className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black pb-32"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      {/* Header — stays dark */}
       <div
         className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
@@ -72,10 +71,10 @@ export default function CertificationLesson() {
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-base font-bold text-white truncate">{module.title}</h1>
-            <p className="text-xs text-white/40">~{module.estimatedMinutes} min</p>
+            <p className="text-xs text-white/60">~{module.estimatedMinutes} min</p>
           </div>
           {isCompleted && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-green-500/20 border border-green-500/30">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-green-900/40 border border-green-500/30">
               <CheckCircle2 className="h-3.5 w-3.5 text-green-400" />
               <span className="text-xs text-green-400 font-semibold">
                 {moduleScore != null ? `${moduleScore}%` : "Passed"}
@@ -92,7 +91,7 @@ export default function CertificationLesson() {
         {/* Completion banner */}
         {isCompleted && (
           <motion.div
-            className="flex items-center gap-3 p-4 rounded-2xl bg-green-500/10 border border-green-500/30"
+            className="flex items-center gap-3 p-4 rounded-2xl bg-green-900/30 border border-green-500/30"
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
           >
@@ -100,41 +99,41 @@ export default function CertificationLesson() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-white">Module Completed</p>
               {moduleScore != null && (
-                <p className="text-xs text-white/50">You scored {moduleScore}% on the quiz</p>
+                <p className="text-xs text-gray-400">You scored {moduleScore}% on the quiz</p>
               )}
             </div>
           </motion.div>
         )}
 
-        {/* Module header — white card */}
-        <div className="bg-white rounded-2xl shadow-sm px-5 py-5 flex items-start gap-4">
-          <div className="p-3 rounded-xl bg-orange-100 flex-shrink-0">
-            <BookOpen className="h-6 w-6 text-orange-600" />
+        {/* Module header */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-5 flex items-start gap-4">
+          <div className="p-3 rounded-xl bg-orange-500/20 flex-shrink-0">
+            <BookOpen className="h-6 w-6 text-orange-400" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-gray-900">{module.title}</h2>
-            <p className="text-sm text-gray-600 mt-1 leading-relaxed">{module.description}</p>
+            <h2 className="text-lg font-bold text-white">{module.title}</h2>
+            <p className="text-sm text-gray-300 mt-1 leading-relaxed">{module.description}</p>
           </div>
         </div>
 
-        {/* Content sections — white card */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        {/* Content sections */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
           {module.sections.map((section, i) => (
             <motion.div
               key={i}
-              className={`px-5 py-5 space-y-3 ${i < module.sections.length - 1 ? "border-b border-gray-100" : ""}`}
+              className={`px-5 py-5 space-y-3 ${i < module.sections.length - 1 ? "border-b border-white/5" : ""}`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
             >
-              <h3 className="text-sm font-bold text-orange-700">{section.heading}</h3>
+              <h3 className="text-sm font-bold text-orange-400">{section.heading}</h3>
               {section.text && (
-                <p className="text-sm text-gray-700 leading-relaxed">{section.text}</p>
+                <p className="text-sm text-gray-300 leading-relaxed">{section.text}</p>
               )}
               {section.list && (
                 <ul className="space-y-2.5">
                   {section.list.map((item, j) => (
-                    <li key={j} className="flex items-start gap-2.5 text-sm text-gray-700">
+                    <li key={j} className="flex items-start gap-2.5 text-sm text-gray-300">
                       <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0" />
                       <span className="leading-relaxed">{item}</span>
                     </li>
@@ -154,7 +153,7 @@ export default function CertificationLesson() {
         >
           {isCompleted ? (
             <>
-              <p className="text-xs text-white/50 text-center">
+              <p className="text-xs text-gray-400 text-center">
                 You've already passed this module. You can retake the quiz anytime.
               </p>
               <button
@@ -183,7 +182,7 @@ export default function CertificationLesson() {
             </>
           ) : (
             <>
-              <p className="text-xs text-white/50 text-center">
+              <p className="text-xs text-gray-400 text-center">
                 {isFinal
                   ? "When you're ready, start the final assessment. You need 80% to pass."
                   : "When you're ready, take the short quiz to complete this module. You need 80% to pass."}

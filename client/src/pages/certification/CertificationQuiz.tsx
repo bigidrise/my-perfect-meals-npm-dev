@@ -4,7 +4,7 @@ import { ArrowLeft, CheckCircle2, XCircle, RotateCcw, BookOpen } from "lucide-re
 import { motion, AnimatePresence } from "framer-motion";
 import { getModuleById, getNextModuleId, PASSING_SCORE } from "@/data/affiliateCertification";
 import { apiRequest } from "@/lib/queryClient";
-import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { BC_HEADER } from "@/components/BusinessCenterShell";
 
 type AnswerMap = Record<string, number>;
 type Phase = "loading" | "quiz" | "results";
@@ -37,8 +37,8 @@ export default function CertificationQuiz() {
 
   if (!module) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <p className="text-white/50">Module not found.</p>
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center">
+        <p className="text-gray-400">Module not found.</p>
       </div>
     );
   }
@@ -114,11 +114,10 @@ export default function CertificationQuiz() {
 
   return (
     <motion.div
-      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28`}
+      className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black pb-28"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      {/* Header — stays dark */}
       <div
         className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
@@ -164,7 +163,7 @@ export default function CertificationQuiz() {
               exit={{ opacity: 0 }}
             >
               <div className="w-6 h-6 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin" />
-              <p className="text-xs text-white/30">Restoring your progress…</p>
+              <p className="text-xs text-gray-400">Restoring your progress…</p>
             </motion.div>
           )}
 
@@ -180,33 +179,33 @@ export default function CertificationQuiz() {
               {/* Resume banner */}
               {answeredCount > 0 && answeredCount < questions.length && (
                 <motion.div
-                  className="flex items-center gap-3 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20"
+                  className="flex items-center gap-3 p-3 rounded-xl bg-orange-500/20 border border-orange-500/40"
                   initial={{ opacity: 0, y: -6 }}
                   animate={{ opacity: 1, y: 0 }}
                 >
                   <BookOpen className="h-4 w-4 text-orange-400 flex-shrink-0" />
-                  <p className="text-xs text-orange-200">
+                  <p className="text-xs text-orange-300">
                     Resuming — your answers have been saved. Continue where you left off.
                   </p>
                 </motion.div>
               )}
 
-              <p className="text-sm text-white/60 text-center">
+              <p className="text-sm text-gray-400 text-center">
                 {questions.length} questions · {passingScore}% to pass
               </p>
 
-              {/* Question cards — white background for legibility */}
+              {/* Question cards */}
               {questions.map((q, qi) => (
                 <motion.div
                   key={q.id}
-                  className="bg-white rounded-2xl shadow-sm overflow-hidden"
+                  className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: qi * 0.03 }}
                 >
                   <div className="px-5 pt-5 pb-4">
-                    <p className="text-sm font-semibold text-gray-900 leading-relaxed mb-4">
-                      <span className="text-orange-600 mr-1.5">{qi + 1}.</span>
+                    <p className="text-sm font-semibold text-white leading-relaxed mb-4">
+                      <span className="text-orange-400 mr-1.5">{qi + 1}.</span>
                       {q.question}
                     </p>
                     <div className="flex flex-col gap-2">
@@ -219,10 +218,10 @@ export default function CertificationQuiz() {
                             className={`w-full text-left px-4 py-3 rounded-xl border text-sm font-medium transition-all duration-150 active:scale-[0.98] ${
                               selected
                                 ? "bg-orange-600 border-orange-600 text-white"
-                                : "bg-gray-50 border-gray-200 text-gray-800 hover:bg-gray-100"
+                                : "bg-white/5 border-white/10 text-gray-200"
                             }`}
                           >
-                            <span className={`mr-2 ${selected ? "text-orange-200" : "text-gray-400"}`}>
+                            <span className={`mr-2 ${selected ? "text-orange-200" : "text-gray-500"}`}>
                               {String.fromCharCode(65 + oi)}.
                             </span>
                             {option}
@@ -264,8 +263,8 @@ export default function CertificationQuiz() {
               <div
                 className={`p-6 rounded-2xl text-center border ${
                   passed
-                    ? "bg-green-500/10 border-green-500/30"
-                    : "bg-red-500/10 border-red-500/30"
+                    ? "bg-green-900/30 border-green-500/30"
+                    : "bg-red-900/30 border-red-500/30"
                 }`}
               >
                 {passed ? (
@@ -277,16 +276,16 @@ export default function CertificationQuiz() {
                 <p className={`text-sm font-semibold ${passed ? "text-green-400" : "text-red-400"}`}>
                   {passed ? "Passed" : "Not Passed"}
                 </p>
-                <p className="text-xs text-white/40 mt-1">
+                <p className="text-xs text-gray-400 mt-1">
                   {passed
                     ? "You met the passing score."
                     : `You need ${passingScore}% to pass. Review the lesson and try again.`}
                 </p>
               </div>
 
-              {/* Answer review — white cards */}
+              {/* Answer review */}
               <div className="space-y-3">
-                <p className="text-xs text-white/40 font-semibold uppercase tracking-wide px-1">
+                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide px-1">
                   Answer Review
                 </p>
                 {questions.map((q, qi) => {
@@ -295,22 +294,22 @@ export default function CertificationQuiz() {
                   return (
                     <div
                       key={q.id}
-                      className="bg-white rounded-2xl shadow-sm overflow-hidden"
+                      className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden"
                     >
                       <div className={`h-1 w-full ${correct ? "bg-green-500" : "bg-red-500"}`} />
                       <div className="px-5 py-4 space-y-2">
-                        <p className="text-sm font-semibold text-gray-900">
+                        <p className="text-sm font-semibold text-white">
                           {qi + 1}. {q.question}
                         </p>
-                        <p className={`text-sm font-medium ${correct ? "text-green-600" : "text-red-600"}`}>
+                        <p className={`text-sm font-medium ${correct ? "text-green-400" : "text-red-400"}`}>
                           {correct ? "✓ " : "✗ "}Your answer: {q.options[chosen]}
                         </p>
                         {!correct && (
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-gray-300">
                             Correct: {q.options[q.correctIndex]}
                           </p>
                         )}
-                        <p className="text-xs text-gray-500 leading-relaxed pt-1 border-t border-gray-100">
+                        <p className="text-xs text-gray-400 leading-relaxed pt-1 border-t border-white/5">
                           {q.explanation}
                         </p>
                       </div>

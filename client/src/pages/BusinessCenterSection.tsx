@@ -52,7 +52,7 @@ export default function BusinessCenterSection() {
 
   return (
     <motion.div
-      className="min-h-screen bg-gray-50 pb-28"
+      className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black pb-28"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
@@ -85,15 +85,15 @@ export default function BusinessCenterSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <div className="w-16 h-16 rounded-2xl bg-orange-100 flex items-center justify-center mx-auto">
-            <Clock className="h-8 w-8 text-orange-500" />
+          <div className="w-16 h-16 rounded-2xl bg-orange-500/20 flex items-center justify-center mx-auto">
+            <Clock className="h-8 w-8 text-orange-400" />
           </div>
           <div className="space-y-3">
-            <h2 className="text-xl font-bold text-gray-900">{meta.title}</h2>
-            <p className="text-sm text-gray-600 leading-relaxed">{meta.description}</p>
+            <h2 className="text-xl font-bold text-white">{meta.title}</h2>
+            <p className="text-sm text-gray-300 leading-relaxed">{meta.description}</p>
           </div>
-          <div className="bg-white border border-orange-200 rounded-xl px-4 py-3 shadow-sm">
-            <p className="text-xs text-orange-600 font-medium">{meta.eta}</p>
+          <div className="bg-orange-500/20 border border-orange-500/30 rounded-xl px-4 py-3">
+            <p className="text-xs text-orange-400 font-medium">{meta.eta}</p>
           </div>
         </motion.div>
       </div>

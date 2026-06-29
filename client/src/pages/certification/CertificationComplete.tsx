@@ -3,7 +3,6 @@ import { useLocation, useParams } from "wouter";
 import { Award, CheckCircle2, Copy, Download, ExternalLink, FileText, Link2, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
-import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 
 interface AffiliateAccount {
   isActive: boolean;
@@ -159,7 +158,6 @@ export default function CertificationComplete() {
       const data: any = await apiRequest("/api/affiliate/dashboard-link");
       if (data.url) window.open(data.url, "_blank", "noopener,noreferrer");
     } catch {
-      // fall back to business center if magic link fails
       setLocation("/business-center");
     } finally {
       setDashboardLoading(false);
@@ -180,11 +178,10 @@ export default function CertificationComplete() {
       })
     : null;
 
-  // ── Affiliate banner logic ─────────────────────────────────────────────────
   const renderAffiliateBanner = () => {
     if (affiliateChecking) {
       return (
-        <div className="flex items-center justify-center gap-2 py-3 text-white/30 text-xs">
+        <div className="flex items-center justify-center gap-2 py-3 text-gray-400 text-xs">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
           Checking affiliate status…
         </div>
@@ -195,19 +192,19 @@ export default function CertificationComplete() {
 
     if (affiliate.isActive) {
       return (
-        <div className="p-4 rounded-2xl bg-green-500/10 border border-green-500/30 space-y-3">
+        <div className="p-4 rounded-2xl bg-green-900/30 border border-green-500/30 space-y-3">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-400 flex-shrink-0" />
             <span className="text-sm font-bold text-green-400">Affiliate Account Activated!</span>
           </div>
           {affiliate.rewardfulReferralUrl && (
             <>
-              <p className="text-xs text-white/50 leading-relaxed">
+              <p className="text-xs text-gray-400 leading-relaxed">
                 Your referral link is ready. Share it to start earning commissions.
               </p>
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-black/30 border border-white/10">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10">
                 <Link2 className="h-3.5 w-3.5 text-orange-400 flex-shrink-0" />
-                <p className="text-xs font-mono text-orange-300 truncate flex-1">
+                <p className="text-xs font-mono text-orange-400 truncate flex-1">
                   {affiliate.rewardfulReferralUrl}
                 </p>
               </div>
@@ -217,11 +214,10 @@ export default function CertificationComplete() {
       );
     }
 
-    // Social affiliate — cert is complete (only cert needed), activation is in progress
     if (isSocialTrack) {
       if (activating) {
         return (
-          <div className="p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center gap-3">
+          <div className="p-4 rounded-2xl bg-orange-500/20 border border-orange-500/30 flex items-center gap-3">
             <Loader2 className="h-4 w-4 text-orange-400 animate-spin flex-shrink-0" />
             <p className="text-xs text-orange-300 leading-relaxed">
               <span className="font-bold">Activating your affiliate account…</span>
@@ -229,9 +225,8 @@ export default function CertificationComplete() {
           </div>
         );
       }
-      // Polling exhausted — activation still pending (e.g. Rewardful campaign requires approval)
       return (
-        <div className="p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20">
+        <div className="p-4 rounded-2xl bg-orange-500/20 border border-orange-500/30">
           <p className="text-xs text-orange-300 leading-relaxed text-center">
             <span className="font-bold">Your account is being set up.</span> You'll receive an email
             when your affiliate account is fully activated and your referral link is ready.
@@ -240,13 +235,12 @@ export default function CertificationComplete() {
       );
     }
 
-    // Business affiliate — phase 2 still needed
     if (isBusinessTrack) {
       const phase1Done = !!affiliate.phase1CompletedAt;
       const phase2Done = !!affiliate.phase2CompletedAt;
       if (phase1Done && !phase2Done) {
         return (
-          <div className="p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 space-y-1">
+          <div className="p-4 rounded-2xl bg-orange-500/20 border border-orange-500/30 space-y-1">
             <p className="text-xs text-orange-300 leading-relaxed text-center">
               <span className="font-bold">Phase 1 complete!</span> Complete your Platform
               Certification to activate your Business Affiliate account.
@@ -259,7 +253,6 @@ export default function CertificationComplete() {
     return null;
   };
 
-  // ── Primary action buttons (track-aware) ────────────────────────────────────
   const renderPrimaryActions = () => {
     if (affiliateChecking || activating) return null;
 
@@ -302,7 +295,7 @@ export default function CertificationComplete() {
 
   return (
     <motion.div
-      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28 flex flex-col`}
+      className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black pb-28 flex flex-col"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
@@ -331,12 +324,12 @@ export default function CertificationComplete() {
               transition={{ delay: 0.2 }}
             >
               <h1 className="text-2xl font-bold text-white">Certification Complete</h1>
-              <p className="text-white/60 text-sm">{certPathLabel} Certification</p>
+              <p className="text-gray-400 text-sm">{certPathLabel} Certification</p>
             </motion.div>
 
             {/* Certificate card */}
             <motion.div
-              className="w-full bg-black/40 backdrop-blur-lg border border-orange-500/30 rounded-2xl p-6 space-y-4 text-left"
+              className="w-full bg-white/5 border border-orange-500/30 rounded-2xl p-6 space-y-4 text-left"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
@@ -348,7 +341,7 @@ export default function CertificationComplete() {
 
               {cert?.certificateName && (
                 <div className="space-y-1 text-center">
-                  <p className="text-xs text-white/40 uppercase tracking-wide font-semibold">
+                  <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">
                     Issued To
                   </p>
                   <p className="text-xl font-bold text-white">{cert.certificateName}</p>
@@ -357,7 +350,7 @@ export default function CertificationComplete() {
 
               {cert?.certificateNumber && (
                 <div className="space-y-1 text-center">
-                  <p className="text-xs text-white/40 uppercase tracking-wide font-semibold">
+                  <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">
                     Certificate Number
                   </p>
                   <p className="text-base font-bold text-white font-mono">{cert.certificateNumber}</p>
@@ -367,14 +360,14 @@ export default function CertificationComplete() {
               <div className="flex gap-4 justify-center">
                 {cert?.score != null && (
                   <div className="space-y-0.5 text-center">
-                    <p className="text-xs text-white/40 uppercase tracking-wide font-semibold">Score</p>
+                    <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Score</p>
                     <p className="text-2xl font-bold text-orange-400">{cert.score}%</p>
                   </div>
                 )}
                 {completedDate && (
                   <div className="space-y-0.5 text-center">
-                    <p className="text-xs text-white/40 uppercase tracking-wide font-semibold">Issued</p>
-                    <p className="text-sm font-semibold text-white/70">{completedDate}</p>
+                    <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Issued</p>
+                    <p className="text-sm font-semibold text-gray-300">{completedDate}</p>
                   </div>
                 )}
               </div>
@@ -382,7 +375,7 @@ export default function CertificationComplete() {
               {/* Inline name capture if missing */}
               {!hasName && cert && (
                 <div className="pt-2 border-t border-white/10 space-y-3">
-                  <p className="text-xs text-white/50 text-center leading-relaxed">
+                  <p className="text-xs text-gray-400 text-center leading-relaxed">
                     Enter your full name to enable certificate download.
                   </p>
                   <input
@@ -390,7 +383,7 @@ export default function CertificationComplete() {
                     value={nameInput}
                     onChange={(e) => { setNameInput(e.target.value); setNameError(""); }}
                     placeholder="First and last name"
-                    className="w-full bg-black/40 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-orange-500/50"
+                    className="w-full bg-white/5 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-orange-400"
                   />
                   {nameError && <p className="text-xs text-red-400">{nameError}</p>}
                   <button
@@ -421,16 +414,18 @@ export default function CertificationComplete() {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.45 }}
             >
-              {/* Track-aware primary actions (dashboard / copy link) */}
               {renderPrimaryActions()}
 
-              {/* Certificate actions — always shown once name is set */}
               {hasName && (
                 <>
                   <button
                     onClick={() => setLocation(`/business-center/affiliate/${pathId}/certification/view`)}
-                    className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-                    style={isSocialTrack && affiliate?.isActive ? { background: "rgba(255,255,255,0.10)" } : {}}
+                    className="w-full p-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                    style={
+                      isSocialTrack && affiliate?.isActive
+                        ? { backgroundColor: "rgba(255,255,255,0.1)", color: "white" }
+                        : { backgroundColor: "rgb(234,88,12)", color: "white" }
+                    }
                   >
                     <FileText className="h-4 w-4" />
                     View Certificate
@@ -471,7 +466,7 @@ export default function CertificationComplete() {
                 View Certification Record
               </button>
 
-              <p className="text-xs text-white/30 leading-relaxed px-2 text-center">
+              <p className="text-xs text-gray-400 leading-relaxed px-2 text-center">
                 Your certificate is always available for download from this page.
               </p>
             </motion.div>

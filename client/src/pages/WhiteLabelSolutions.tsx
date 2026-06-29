@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { BC_GRADIENT } from "@/components/BusinessCenterShell";
 import { useLocation } from "wouter";
 
 const TOTAL_STAGES = 15;
@@ -513,11 +512,11 @@ export default function WhiteLabelSolutions() {
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} text-white flex flex-col`}>
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex flex-col">
       {/* Progress header */}
       <div className="px-4 pt-6 pb-3 flex-shrink-0 max-w-2xl mx-auto w-full">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-orange-300 text-xs font-semibold uppercase tracking-wider">
+          <span className="text-orange-400 text-xs font-semibold uppercase tracking-wider">
             Stage {stage.number} of {TOTAL_STAGES}
           </span>
           <div className="flex items-center gap-3">
@@ -548,11 +547,11 @@ export default function WhiteLabelSolutions() {
       {/* Content */}
       <div className="flex-1 px-4 pb-4 max-w-2xl mx-auto w-full">
         <div className="pt-5 pb-3">
-          <h1 className="text-xl font-bold leading-tight mb-1">{stage.title}</h1>
-          <p className="text-white/50 text-sm">{stage.subtitle}</p>
+          <h1 className="text-xl font-bold leading-tight mb-1 text-white">{stage.title}</h1>
+          <p className="text-gray-400 text-sm">{stage.subtitle}</p>
         </div>
 
-        {/* Path selector stage (Stage 13) */}
+        {/* Path selector stage (Stage 14) */}
         {(stage as any).isPathSelector && (
           <div className="mt-2">
             {selectedTier === null ? (
@@ -562,12 +561,12 @@ export default function WhiteLabelSolutions() {
                     <button
                       key={path.id}
                       onClick={() => setSelectedTier(path.id)}
-                      className="w-full text-left bg-white border border-gray-300 shadow-sm rounded-xl p-4"
+                      className="w-full text-left bg-white/5 border border-white/15 rounded-xl p-4"
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="text-gray-900 font-semibold text-sm">{path.label}</div>
-                          <div className="text-gray-500 text-xs mt-0.5">{path.description}</div>
+                          <div className="text-white font-semibold text-sm">{path.label}</div>
+                          <div className="text-gray-400 text-xs mt-0.5">{path.description}</div>
                         </div>
                         <div className="flex-shrink-0 ml-3 w-7 h-7 rounded-full bg-orange-600 flex items-center justify-center">
                           <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -579,14 +578,14 @@ export default function WhiteLabelSolutions() {
                   ) : (
                     <div
                       key={path.id}
-                      className="bg-gray-50 border border-gray-200 rounded-xl p-4 opacity-40"
+                      className="bg-white/5 border border-white/5 rounded-xl p-4 opacity-40"
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="text-gray-700 font-semibold text-sm">{path.label}</div>
-                          <div className="text-gray-400 text-xs mt-0.5">{path.description}</div>
+                          <div className="text-gray-400 font-semibold text-sm">{path.label}</div>
+                          <div className="text-gray-500 text-xs mt-0.5">{path.description}</div>
                         </div>
-                        <span className="text-xs text-gray-400 border border-gray-200 rounded-full px-2.5 py-1 flex-shrink-0 ml-3">Coming Soon</span>
+                        <span className="text-xs text-gray-500 border border-white/10 rounded-full px-2.5 py-1 flex-shrink-0 ml-3">Coming Soon</span>
                       </div>
                     </div>
                   )
@@ -601,51 +600,51 @@ export default function WhiteLabelSolutions() {
                   <div className="space-y-4">
                     <button
                       onClick={() => setSelectedTier(null)}
-                      className="text-gray-500 text-xs underline underline-offset-2"
+                      className="text-white/50 text-xs underline underline-offset-2"
                     >
                       ← Back to categories
                     </button>
 
-                    <div className="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
-                      <div className="text-orange-600 font-bold text-sm">{activePath.label}</div>
+                    <div className="bg-orange-500/20 border border-orange-500/30 rounded-xl px-4 py-3">
+                      <div className="text-orange-400 font-bold text-sm">{activePath.label}</div>
                     </div>
 
-                    <div className="bg-white border border-gray-200 shadow-sm rounded-xl p-4">
-                      <div className="text-orange-600 font-semibold text-xs uppercase tracking-wider mb-3">Who This Is For</div>
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                      <div className="text-orange-400 font-semibold text-xs uppercase tracking-wider mb-3">Who This Is For</div>
                       <div className="flex flex-wrap gap-2">
                         {detail.whoFor.map((role: string, i: number) => (
-                          <span key={i} className="text-xs bg-gray-100 border border-gray-200 text-gray-600 rounded-full px-3 py-1">{role}</span>
+                          <span key={i} className="text-xs bg-white/10 border border-white/10 text-gray-300 rounded-full px-3 py-1">{role}</span>
                         ))}
                       </div>
                     </div>
 
-                    <div className="bg-white border border-gray-200 shadow-sm rounded-xl p-4">
-                      <div className="text-orange-600 font-semibold text-xs uppercase tracking-wider mb-3">What's Included</div>
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                      <div className="text-orange-400 font-semibold text-xs uppercase tracking-wider mb-3">What's Included</div>
                       <div className="space-y-1.5">
                         {detail.included.map((item: string, i: number) => (
                           <div key={i} className="flex items-center gap-2">
-                            <svg className="w-3.5 h-3.5 text-orange-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <svg className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                             </svg>
-                            <span className="text-gray-700 text-sm">{item}</span>
+                            <span className="text-gray-300 text-sm">{item}</span>
                           </div>
                         ))}
                       </div>
                     </div>
 
-                    <div className="bg-white border border-gray-200 shadow-sm rounded-xl p-4">
-                      <div className="text-orange-600 font-semibold text-xs uppercase tracking-wider mb-3">Investment Expectations</div>
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                      <div className="text-orange-400 font-semibold text-xs uppercase tracking-wider mb-3">Investment Expectations</div>
                       <div className="grid grid-cols-2 gap-4 mb-3">
                         <div>
                           <div className="text-gray-400 text-xs mb-1">Setup & Launch</div>
-                          <div className="text-gray-900 font-bold text-base">{detail.setupLabel}</div>
+                          <div className="text-white font-bold text-base">{detail.setupLabel}</div>
                         </div>
                         <div>
                           <div className="text-gray-400 text-xs mb-1">Monthly Licensing</div>
-                          <div className="text-gray-900 font-bold text-base">{detail.monthlyLabel}</div>
+                          <div className="text-white font-bold text-base">{detail.monthlyLabel}</div>
                         </div>
                       </div>
-                      <p className="text-gray-400 text-xs leading-relaxed border-t border-gray-100 pt-3">{detail.pricingNote}</p>
+                      <p className="text-gray-400 text-xs leading-relaxed border-t border-white/10 pt-3">{detail.pricingNote}</p>
                     </div>
                   </div>
                 );
@@ -662,24 +661,24 @@ export default function WhiteLabelSolutions() {
                 return (
                   <div key={i} className="space-y-3">
                     {block.tiers.map((tier: any, j: number) => (
-                      <div key={j} className="bg-white border border-gray-200 shadow-sm rounded-xl overflow-hidden">
-                        <div className="bg-orange-50 border-b border-gray-200 px-4 py-3">
-                          <div className="text-orange-600 font-bold text-sm">{tier.label}</div>
-                          <p className="text-gray-500 text-xs mt-0.5 leading-snug">{tier.forWhom}</p>
+                      <div key={j} className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                        <div className="bg-orange-500/20 border-b border-white/10 px-4 py-3">
+                          <div className="text-orange-400 font-bold text-sm">{tier.label}</div>
+                          <p className="text-gray-400 text-xs mt-0.5 leading-snug">{tier.forWhom}</p>
                         </div>
                         <div className="px-4 py-3 grid grid-cols-2 gap-3">
                           <div>
                             <div className="text-gray-400 text-xs uppercase tracking-wider mb-1">Setup Investment</div>
-                            <div className={`font-bold leading-tight ${tier.setup === "Custom scope" ? "text-gray-500 text-sm" : "text-gray-900 text-sm"}`}>{tier.setup}</div>
+                            <div className={`font-bold leading-tight ${tier.setup === "Custom scope" ? "text-gray-400 text-sm" : "text-white text-sm"}`}>{tier.setup}</div>
                           </div>
                           <div>
                             <div className="text-gray-400 text-xs uppercase tracking-wider mb-1">Monthly Platform Fee</div>
-                            <div className={`font-bold leading-tight ${tier.monthly === "Custom scope" ? "text-gray-500 text-sm" : "text-gray-900 text-sm"}`}>{tier.monthly}</div>
+                            <div className={`font-bold leading-tight ${tier.monthly === "Custom scope" ? "text-gray-400 text-sm" : "text-white text-sm"}`}>{tier.monthly}</div>
                           </div>
                         </div>
                         <div className="px-4 pb-3 flex flex-wrap gap-1.5">
                           {tier.drivers.map((d: string, k: number) => (
-                            <span key={k} className="text-xs bg-gray-100 border border-gray-200 text-gray-500 rounded-full px-2.5 py-0.5">{d}</span>
+                            <span key={k} className="text-xs bg-white/10 border border-white/10 text-gray-400 rounded-full px-2.5 py-0.5">{d}</span>
                           ))}
                         </div>
                       </div>
@@ -688,21 +687,21 @@ export default function WhiteLabelSolutions() {
                 );
               }
               return (
-                <div key={i} className="bg-white border border-gray-200 shadow-sm rounded-xl p-4">
+                <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-4">
                   {block.heading && (
-                    <div className="text-orange-600 font-semibold text-sm mb-2">
+                    <div className="text-orange-400 font-semibold text-sm mb-2">
                       {block.heading}
                     </div>
                   )}
                   {block.body && (
-                    <p className="text-gray-700 text-sm leading-relaxed">{block.body}</p>
+                    <p className="text-gray-300 text-sm leading-relaxed">{block.body}</p>
                   )}
                   {block.examples && (
                     <div className="space-y-3 mt-3">
                       {block.examples.map((ex: any, j: number) => (
-                        <div key={j} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                          <div className="text-orange-600 text-xs font-semibold mb-1">{ex.label}</div>
-                          <p className="text-gray-600 text-xs leading-relaxed">{ex.desc}</p>
+                        <div key={j} className="bg-white/5 border border-white/10 rounded-lg p-3">
+                          <div className="text-orange-400 text-xs font-semibold mb-1">{ex.label}</div>
+                          <p className="text-gray-300 text-xs leading-relaxed">{ex.desc}</p>
                         </div>
                       ))}
                     </div>
@@ -726,15 +725,15 @@ export default function WhiteLabelSolutions() {
                   onClick={() => toggleAppCheck(i)}
                   className={`w-full text-left flex items-start gap-3 rounded-xl border p-3 transition-colors ${
                     appChecks[i]
-                      ? "bg-orange-50 border-orange-400"
-                      : "bg-white border-gray-200"
+                      ? "bg-orange-500/10 border-orange-500/40"
+                      : "bg-white/5 border-white/15"
                   }`}
                 >
                   <div
                     className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center text-xs font-bold transition-colors ${
                       appChecks[i]
                         ? "bg-orange-600 border-orange-600 text-white"
-                        : "border-gray-300 bg-transparent"
+                        : "border-white/20 bg-transparent"
                     }`}
                   >
                     {appChecks[i] && (
@@ -743,16 +742,16 @@ export default function WhiteLabelSolutions() {
                       </svg>
                     )}
                   </div>
-                  <span className="text-sm text-gray-700 leading-snug">{label}</span>
+                  <span className="text-sm text-gray-300 leading-snug">{label}</span>
                 </button>
               ))}
             </div>
 
-            {/* Application CTA — visible once all boxes checked */}
+            {/* Application CTA */}
             <div className={`space-y-3 transition-opacity duration-300 ${allBoxesChecked ? "opacity-100" : "opacity-30 pointer-events-none select-none"}`}>
-              <div className="bg-orange-50 border border-orange-200 rounded-xl px-4 py-4 text-center space-y-1">
-                <p className="text-orange-600 font-semibold text-sm">You're ready to apply.</p>
-                <p className="text-gray-500 text-xs">The application opens in a new tab and takes approximately 5–8 minutes to complete.</p>
+              <div className="bg-orange-500/20 border border-orange-500/30 rounded-xl px-4 py-4 text-center space-y-1">
+                <p className="text-orange-400 font-semibold text-sm">You're ready to apply.</p>
+                <p className="text-gray-400 text-xs">The application opens in a new tab and takes approximately 5–8 minutes to complete.</p>
               </div>
 
               <a
@@ -763,7 +762,7 @@ export default function WhiteLabelSolutions() {
               >
                 Open Partnership Application →
               </a>
-              <p className="text-gray-400 text-xs text-center">
+              <p className="text-gray-500 text-xs text-center">
                 Not a commitment. Our partnership team reviews every application personally.
               </p>
             </div>
@@ -773,16 +772,16 @@ export default function WhiteLabelSolutions() {
 
       {/* Acknowledgment + Continue — non-application stages */}
       {!(stage as any).isApplication && (!(stage as any).isPathSelector || selectedTier !== null) && (
-        <div className="px-4 pb-10 pt-2 flex-shrink-0 border-t border-gray-200 max-w-2xl mx-auto w-full">
+        <div className="px-4 pb-10 pt-2 flex-shrink-0 border-t border-white/10 max-w-2xl mx-auto w-full">
           <button
             onClick={() => toggleAck(currentStage)}
             className={`w-full text-left flex items-start gap-3 rounded-xl border p-3 mt-4 mb-3 transition-colors ${
-              ackDone ? "bg-orange-50 border-orange-400" : "bg-white border-gray-200"
+              ackDone ? "bg-orange-500/10 border-orange-500/40" : "bg-white/5 border-white/15"
             }`}
           >
             <div
               className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                ackDone ? "bg-orange-600 border-orange-600" : "border-gray-300 bg-transparent"
+                ackDone ? "bg-orange-600 border-orange-600" : "border-white/20 bg-transparent"
               }`}
             >
               {ackDone && (
@@ -791,14 +790,14 @@ export default function WhiteLabelSolutions() {
                 </svg>
               )}
             </div>
-            <span className="text-sm text-gray-700 leading-snug">{stage.ack}</span>
+            <span className="text-sm text-gray-300 leading-snug">{stage.ack}</span>
           </button>
 
           <button
             onClick={goNext}
             disabled={!ackDone}
             className={`w-full py-4 rounded-xl font-semibold text-sm transition-colors ${
-              ackDone ? "bg-orange-600 text-white" : "bg-gray-100 text-gray-400 cursor-not-allowed"
+              ackDone ? "bg-orange-600 text-white" : "bg-white/5 text-white/20 cursor-not-allowed"
             }`}
           >
             {currentStage === STAGES.length - 2
