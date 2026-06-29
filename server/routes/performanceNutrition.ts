@@ -30,6 +30,7 @@ function resolveUserId(req: any): string | undefined {
 
 // ── Save / update performance setup (both tracks) ────────────────────────────
 router.post("/setup", async (req, res) => {
+  console.log(`[PERF-TRACE] /setup handler entered — method: ${req.method}, body: ${JSON.stringify(req.body)}, authUser: ${JSON.stringify((req as any).authUser?.id)}, session: ${JSON.stringify((req as any).session?.userId)}`);
   try {
     const userId = resolveUserId(req);
     if (!userId) return res.status(401).json({ error: "Not authenticated" });

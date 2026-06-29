@@ -3,7 +3,6 @@ import { useLocation, useParams } from "wouter";
 import { Download, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
-import { BC_GRADIENT } from "@/components/BusinessCenterShell";
 import VisualCertificate from "@/components/certification/VisualCertificate";
 
 interface CertData {
@@ -63,22 +62,22 @@ export default function CertificationCertificateView() {
 
   return (
     <motion.div
-      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28 flex flex-col`}
+      className="min-h-screen bg-gray-50 pb-28 flex flex-col"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
       {/* Header */}
       <div
-        className="flex items-center gap-3 px-4 pt-4"
+        className="flex items-center gap-3 px-4"
         style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 16px)" }}
       >
         <button
           onClick={() => setLocation(`/business-center/affiliate/${pathId}/certification/complete`)}
-          className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center active:scale-90 transition-transform"
+          className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center active:scale-90 transition-transform"
         >
-          <ArrowLeft className="h-4 w-4 text-white" />
+          <ArrowLeft className="h-4 w-4 text-gray-700" />
         </button>
-        <p className="text-white font-semibold text-sm">Certification Record</p>
+        <p className="text-gray-900 font-semibold text-sm">Certification Record</p>
       </div>
 
       <div className="flex-1 flex flex-col items-center px-4 pt-6 space-y-6 max-w-4xl mx-auto w-full">
@@ -88,7 +87,7 @@ export default function CertificationCertificateView() {
           </div>
         ) : !cert || cert.status !== "completed" ? (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-white/40 text-sm text-center">
+            <p className="text-gray-500 text-sm text-center">
               No completed certification found.
             </p>
           </div>
@@ -110,7 +109,7 @@ export default function CertificationCertificateView() {
             </motion.div>
 
             {/* Scroll hint on mobile */}
-            <p className="text-white/30 text-xs text-center -mt-2 md:hidden">
+            <p className="text-gray-400 text-xs text-center -mt-2 md:hidden">
               Scroll left to view full certificate
             </p>
 
@@ -141,7 +140,7 @@ export default function CertificationCertificateView() {
 
               <button
                 onClick={() => setLocation(`/business-center/affiliate/${pathId}/certification`)}
-                className="w-full p-4 rounded-2xl bg-white/10 text-white font-bold text-sm active:scale-[0.98] transition-transform print:hidden"
+                className="w-full p-4 rounded-2xl bg-gray-100 text-gray-700 font-bold text-sm active:scale-[0.98] transition-transform print:hidden"
               >
                 Back to Certification Dashboard
               </button>

@@ -4,7 +4,7 @@ import { ArrowLeft, CheckCircle2, XCircle, RotateCcw, BookOpen } from "lucide-re
 import { motion, AnimatePresence } from "framer-motion";
 import { getModuleById, getNextModuleId, PASSING_SCORE } from "@/data/affiliateCertification";
 import { apiRequest } from "@/lib/queryClient";
-import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { BC_HEADER } from "@/components/BusinessCenterShell";
 
 type AnswerMap = Record<string, number>;
 type Phase = "loading" | "quiz" | "results";
@@ -37,8 +37,8 @@ export default function CertificationQuiz() {
 
   if (!module) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <p className="text-white/50">Module not found.</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-500">Module not found.</p>
       </div>
     );
   }
@@ -114,11 +114,10 @@ export default function CertificationQuiz() {
 
   return (
     <motion.div
-      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28`}
+      className="min-h-screen bg-gray-50 pb-28"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      {/* Header — stays dark */}
       <div
         className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
@@ -129,14 +128,14 @@ export default function CertificationQuiz() {
               onClick={() =>
                 setLocation(`/business-center/affiliate/${pathId}/certification/${moduleId}`)
               }
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 text-gray-700 text-xs font-medium active:scale-[0.95] transition-transform"
             >
               <ArrowLeft className="h-4 w-4" />
               Back
             </button>
           )}
           <div className="flex-1 min-w-0">
-            <h1 className="text-base font-bold text-white truncate">
+            <h1 className="text-base font-bold text-gray-900 truncate">
               {isFinal ? "Final Assessment" : `${module.title} — Quiz`}
             </h1>
             {phase === "quiz" && answeredCount > 0 && answeredCount < questions.length && (
@@ -164,7 +163,7 @@ export default function CertificationQuiz() {
               exit={{ opacity: 0 }}
             >
               <div className="w-6 h-6 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin" />
-              <p className="text-xs text-white/30">Restoring your progress…</p>
+              <p className="text-xs text-gray-400">Restoring your progress…</p>
             </motion.div>
           )}
 
@@ -180,22 +179,22 @@ export default function CertificationQuiz() {
               {/* Resume banner */}
               {answeredCount > 0 && answeredCount < questions.length && (
                 <motion.div
-                  className="flex items-center gap-3 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20"
+                  className="flex items-center gap-3 p-3 rounded-xl bg-orange-50 border border-orange-200"
                   initial={{ opacity: 0, y: -6 }}
                   animate={{ opacity: 1, y: 0 }}
                 >
-                  <BookOpen className="h-4 w-4 text-orange-400 flex-shrink-0" />
-                  <p className="text-xs text-orange-200">
+                  <BookOpen className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                  <p className="text-xs text-orange-700">
                     Resuming — your answers have been saved. Continue where you left off.
                   </p>
                 </motion.div>
               )}
 
-              <p className="text-sm text-white/60 text-center">
+              <p className="text-sm text-gray-500 text-center">
                 {questions.length} questions · {passingScore}% to pass
               </p>
 
-              {/* Question cards — white background for legibility */}
+              {/* Question cards */}
               {questions.map((q, qi) => (
                 <motion.div
                   key={q.id}
@@ -240,7 +239,7 @@ export default function CertificationQuiz() {
                 className={`w-full p-4 rounded-2xl font-bold text-sm transition-all duration-200 active:scale-[0.98] ${
                   allAnswered && !saving
                     ? "bg-orange-600 text-white"
-                    : "bg-white/10 text-white/30 cursor-default"
+                    : "bg-gray-100 text-gray-300 cursor-default"
                 }`}
               >
                 {saving
@@ -264,29 +263,29 @@ export default function CertificationQuiz() {
               <div
                 className={`p-6 rounded-2xl text-center border ${
                   passed
-                    ? "bg-green-500/10 border-green-500/30"
-                    : "bg-red-500/10 border-red-500/30"
+                    ? "bg-green-50 border-green-200"
+                    : "bg-red-50 border-red-200"
                 }`}
               >
                 {passed ? (
-                  <CheckCircle2 className="h-10 w-10 text-green-400 mx-auto mb-3" />
+                  <CheckCircle2 className="h-10 w-10 text-green-500 mx-auto mb-3" />
                 ) : (
                   <XCircle className="h-10 w-10 text-red-400 mx-auto mb-3" />
                 )}
-                <p className="text-4xl font-bold text-white mb-1">{score}%</p>
-                <p className={`text-sm font-semibold ${passed ? "text-green-400" : "text-red-400"}`}>
+                <p className="text-4xl font-bold text-gray-900 mb-1">{score}%</p>
+                <p className={`text-sm font-semibold ${passed ? "text-green-600" : "text-red-500"}`}>
                   {passed ? "Passed" : "Not Passed"}
                 </p>
-                <p className="text-xs text-white/40 mt-1">
+                <p className="text-xs text-gray-500 mt-1">
                   {passed
                     ? "You met the passing score."
                     : `You need ${passingScore}% to pass. Review the lesson and try again.`}
                 </p>
               </div>
 
-              {/* Answer review — white cards */}
+              {/* Answer review */}
               <div className="space-y-3">
-                <p className="text-xs text-white/40 font-semibold uppercase tracking-wide px-1">
+                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide px-1">
                   Answer Review
                 </p>
                 {questions.map((q, qi) => {
@@ -333,7 +332,7 @@ export default function CertificationQuiz() {
                     onClick={() =>
                       setLocation(`/business-center/affiliate/${pathId}/certification/${moduleId}`)
                     }
-                    className="flex-1 p-4 rounded-2xl bg-white/10 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
+                    className="flex-1 p-4 rounded-2xl bg-gray-100 text-gray-700 font-semibold text-sm active:scale-[0.98] transition-transform"
                   >
                     Review Lesson
                   </button>
