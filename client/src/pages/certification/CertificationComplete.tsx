@@ -192,19 +192,19 @@ export default function CertificationComplete() {
 
     if (affiliate.isActive) {
       return (
-        <div className="p-4 rounded-2xl bg-green-50 border border-green-200 space-y-3">
+        <div className="p-4 rounded-2xl bg-green-900/30 border border-green-500/30 space-y-3">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-            <span className="text-sm font-bold text-green-700">Affiliate Account Activated!</span>
+            <CheckCircle2 className="h-4 w-4 text-green-400 flex-shrink-0" />
+            <span className="text-sm font-bold text-green-400">Affiliate Account Activated!</span>
           </div>
           {affiliate.rewardfulReferralUrl && (
             <>
-              <p className="text-xs text-gray-500 leading-relaxed">
+              <p className="text-xs text-gray-400 leading-relaxed">
                 Your referral link is ready. Share it to start earning commissions.
               </p>
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 border border-gray-200">
-                <Link2 className="h-3.5 w-3.5 text-orange-500 flex-shrink-0" />
-                <p className="text-xs font-mono text-orange-600 truncate flex-1">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10">
+                <Link2 className="h-3.5 w-3.5 text-orange-400 flex-shrink-0" />
+                <p className="text-xs font-mono text-orange-400 truncate flex-1">
                   {affiliate.rewardfulReferralUrl}
                 </p>
               </div>
@@ -217,17 +217,17 @@ export default function CertificationComplete() {
     if (isSocialTrack) {
       if (activating) {
         return (
-          <div className="p-4 rounded-2xl bg-orange-50 border border-orange-200 flex items-center gap-3">
-            <Loader2 className="h-4 w-4 text-orange-500 animate-spin flex-shrink-0" />
-            <p className="text-xs text-orange-700 leading-relaxed">
+          <div className="p-4 rounded-2xl bg-orange-500/20 border border-orange-500/30 flex items-center gap-3">
+            <Loader2 className="h-4 w-4 text-orange-400 animate-spin flex-shrink-0" />
+            <p className="text-xs text-orange-300 leading-relaxed">
               <span className="font-bold">Activating your affiliate account…</span>
             </p>
           </div>
         );
       }
       return (
-        <div className="p-4 rounded-2xl bg-orange-50 border border-orange-200">
-          <p className="text-xs text-orange-700 leading-relaxed text-center">
+        <div className="p-4 rounded-2xl bg-orange-500/20 border border-orange-500/30">
+          <p className="text-xs text-orange-300 leading-relaxed text-center">
             <span className="font-bold">Your account is being set up.</span> You'll receive an email
             when your affiliate account is fully activated and your referral link is ready.
           </p>
@@ -240,8 +240,8 @@ export default function CertificationComplete() {
       const phase2Done = !!affiliate.phase2CompletedAt;
       if (phase1Done && !phase2Done) {
         return (
-          <div className="p-4 rounded-2xl bg-orange-50 border border-orange-200 space-y-1">
-            <p className="text-xs text-orange-700 leading-relaxed text-center">
+          <div className="p-4 rounded-2xl bg-orange-500/20 border border-orange-500/30 space-y-1">
+            <p className="text-xs text-orange-300 leading-relaxed text-center">
               <span className="font-bold">Phase 1 complete!</span> Complete your Platform
               Certification to activate your Business Affiliate account.
             </p>
@@ -280,7 +280,7 @@ export default function CertificationComplete() {
           {affiliate.rewardfulReferralUrl && (
             <button
               onClick={handleCopyLink}
-              className="w-full p-4 rounded-2xl bg-gray-100 text-gray-700 font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+              className="w-full p-4 rounded-2xl bg-white/10 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
             >
               <Copy className="h-4 w-4" />
               {copied ? "Link Copied!" : "Copy Referral Link"}
@@ -295,7 +295,7 @@ export default function CertificationComplete() {
 
   return (
     <motion.div
-      className="min-h-screen bg-gray-50 pb-28 flex flex-col"
+      className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black pb-28 flex flex-col"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
@@ -309,12 +309,12 @@ export default function CertificationComplete() {
           <>
             {/* Trophy */}
             <motion.div
-              className="w-24 h-24 rounded-full bg-orange-100 flex items-center justify-center"
+              className="w-24 h-24 rounded-full bg-orange-500/20 flex items-center justify-center"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 200, damping: 12, delay: 0.1 }}
             >
-              <Award className="h-12 w-12 text-orange-500" />
+              <Award className="h-12 w-12 text-orange-400" />
             </motion.div>
 
             <motion.div
@@ -323,59 +323,59 @@ export default function CertificationComplete() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <h1 className="text-2xl font-bold text-gray-900">Certification Complete</h1>
-              <p className="text-gray-600 text-sm">{certPathLabel} Certification</p>
+              <h1 className="text-2xl font-bold text-white">Certification Complete</h1>
+              <p className="text-gray-400 text-sm">{certPathLabel} Certification</p>
             </motion.div>
 
             {/* Certificate card */}
             <motion.div
-              className="w-full bg-white border border-orange-200 shadow-sm rounded-2xl p-6 space-y-4 text-left"
+              className="w-full bg-white/5 border border-orange-500/30 rounded-2xl p-6 space-y-4 text-left"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
               <div className="flex items-center gap-2 justify-center">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
-                <span className="text-sm font-semibold text-green-600">Certified</span>
+                <CheckCircle2 className="h-5 w-5 text-green-400" />
+                <span className="text-sm font-semibold text-green-400">Certified</span>
               </div>
 
               {cert?.certificateName && (
                 <div className="space-y-1 text-center">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">
+                  <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">
                     Issued To
                   </p>
-                  <p className="text-xl font-bold text-gray-900">{cert.certificateName}</p>
+                  <p className="text-xl font-bold text-white">{cert.certificateName}</p>
                 </div>
               )}
 
               {cert?.certificateNumber && (
                 <div className="space-y-1 text-center">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">
+                  <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">
                     Certificate Number
                   </p>
-                  <p className="text-base font-bold text-gray-900 font-mono">{cert.certificateNumber}</p>
+                  <p className="text-base font-bold text-white font-mono">{cert.certificateNumber}</p>
                 </div>
               )}
 
               <div className="flex gap-4 justify-center">
                 {cert?.score != null && (
                   <div className="space-y-0.5 text-center">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Score</p>
-                    <p className="text-2xl font-bold text-orange-500">{cert.score}%</p>
+                    <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Score</p>
+                    <p className="text-2xl font-bold text-orange-400">{cert.score}%</p>
                   </div>
                 )}
                 {completedDate && (
                   <div className="space-y-0.5 text-center">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Issued</p>
-                    <p className="text-sm font-semibold text-gray-600">{completedDate}</p>
+                    <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Issued</p>
+                    <p className="text-sm font-semibold text-gray-300">{completedDate}</p>
                   </div>
                 )}
               </div>
 
               {/* Inline name capture if missing */}
               {!hasName && cert && (
-                <div className="pt-2 border-t border-gray-100 space-y-3">
-                  <p className="text-xs text-gray-500 text-center leading-relaxed">
+                <div className="pt-2 border-t border-white/10 space-y-3">
+                  <p className="text-xs text-gray-400 text-center leading-relaxed">
                     Enter your full name to enable certificate download.
                   </p>
                   <input
@@ -383,9 +383,9 @@ export default function CertificationComplete() {
                     value={nameInput}
                     onChange={(e) => { setNameInput(e.target.value); setNameError(""); }}
                     placeholder="First and last name"
-                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-orange-400"
+                    className="w-full bg-white/5 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-orange-400"
                   />
-                  {nameError && <p className="text-xs text-red-500">{nameError}</p>}
+                  {nameError && <p className="text-xs text-red-400">{nameError}</p>}
                   <button
                     onClick={handleSaveName}
                     disabled={!nameInput.trim() || nameSaving}
@@ -423,7 +423,7 @@ export default function CertificationComplete() {
                     className="w-full p-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
                     style={
                       isSocialTrack && affiliate?.isActive
-                        ? { backgroundColor: "rgb(243,244,246)", color: "rgb(55,65,81)" }
+                        ? { backgroundColor: "rgba(255,255,255,0.1)", color: "white" }
                         : { backgroundColor: "rgb(234,88,12)", color: "white" }
                     }
                   >
@@ -434,11 +434,11 @@ export default function CertificationComplete() {
                   <button
                     onClick={handleDownload}
                     disabled={downloading}
-                    className="w-full p-4 rounded-2xl bg-gray-100 text-gray-700 font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-60"
+                    className="w-full p-4 rounded-2xl bg-white/10 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-60"
                   >
                     {downloading ? (
                       <>
-                        <div className="w-4 h-4 border-2 border-gray-400 border-t-gray-700 rounded-full animate-spin" />
+                        <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                         Generating PDF…
                       </>
                     ) : (
@@ -453,14 +453,14 @@ export default function CertificationComplete() {
 
               <button
                 onClick={() => setLocation("/business-center")}
-                className="w-full p-4 rounded-2xl bg-gray-100 text-gray-700 font-bold text-sm active:scale-[0.98] transition-transform"
+                className="w-full p-4 rounded-2xl bg-white/10 text-white font-bold text-sm active:scale-[0.98] transition-transform"
               >
                 Go to Business Suite
               </button>
 
               <button
                 onClick={() => setLocation(`/business-center/affiliate/${pathId}/certification`)}
-                className="w-full p-3 rounded-2xl bg-gray-100 text-gray-700 font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                className="w-full p-3 rounded-2xl bg-white/10 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
               >
                 <FileText className="h-4 w-4" />
                 View Certification Record

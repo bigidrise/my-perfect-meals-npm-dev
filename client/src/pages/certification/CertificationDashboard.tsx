@@ -30,14 +30,14 @@ function statusIcon(status: string) {
   if (status === "completed") return <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />;
   if (status === "in_progress") return <PlayCircle className="h-5 w-5 text-orange-400 flex-shrink-0" />;
   if (status === "quiz_failed") return <Clock className="h-5 w-5 text-red-400 flex-shrink-0" />;
-  return <Circle className="h-5 w-5 text-gray-300 flex-shrink-0" />;
+  return <Circle className="h-5 w-5 text-gray-600 flex-shrink-0" />;
 }
 
 function statusLabel(status: string) {
-  if (status === "completed") return <span className="text-xs text-green-600 font-medium">Completed</span>;
-  if (status === "in_progress") return <span className="text-xs text-orange-500 font-semibold">Current — Tap to Continue</span>;
+  if (status === "completed") return <span className="text-xs text-green-500 font-medium">Completed</span>;
+  if (status === "in_progress") return <span className="text-xs text-orange-400 font-semibold">Current — Tap to Continue</span>;
   if (status === "quiz_failed") return <span className="text-xs text-red-400 font-medium">Quiz — Retry</span>;
-  return <span className="text-xs text-gray-400">Not Started</span>;
+  return <span className="text-xs text-gray-500">Not Started</span>;
 }
 
 export default function CertificationDashboard() {
@@ -162,7 +162,7 @@ export default function CertificationDashboard() {
 
   return (
     <motion.div
-      className="min-h-screen bg-gray-50 pb-28"
+      className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black pb-28"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
@@ -174,14 +174,14 @@ export default function CertificationDashboard() {
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
           <button
             onClick={() => setLocation(`/business-center/affiliate/${pathId}`)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 text-gray-700 text-xs font-medium active:scale-[0.95] transition-transform"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
           >
             <ArrowLeft className="h-4 w-4" />
             Back
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-base font-bold text-gray-900 truncate">Affiliate Certification</h1>
-            <p className="text-xs text-gray-500">{certPathLabel} Path</p>
+            <h1 className="text-base font-bold text-white truncate">Affiliate Certification</h1>
+            <p className="text-xs text-white/60">{certPathLabel} Path</p>
           </div>
         </div>
       </div>
@@ -193,18 +193,18 @@ export default function CertificationDashboard() {
         {/* Certification complete banner */}
         {data?.certification?.status === "completed" && (
           <motion.div
-            className="flex items-center gap-3 p-4 rounded-2xl bg-green-50 border border-green-200"
+            className="flex items-center gap-3 p-4 rounded-2xl bg-green-900/30 border border-green-500/30"
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <Award className="h-6 w-6 text-green-500 flex-shrink-0" />
+            <Award className="h-6 w-6 text-green-400 flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900">Certification Complete</p>
-              <p className="text-xs text-gray-500 font-mono">{data.certification.certificateNumber}</p>
+              <p className="text-sm font-semibold text-white">Certification Complete</p>
+              <p className="text-xs text-gray-400 font-mono">{data.certification.certificateNumber}</p>
             </div>
             <button
               onClick={() => setLocation(`/business-center/affiliate/${pathId}/certification/complete`)}
-              className="px-3 py-1.5 rounded-xl bg-green-100 text-green-700 text-xs font-medium active:scale-[0.95] transition-transform"
+              className="px-3 py-1.5 rounded-xl bg-green-500/20 text-green-400 text-xs font-medium active:scale-[0.95] transition-transform"
             >
               View
             </button>
@@ -212,18 +212,18 @@ export default function CertificationDashboard() {
         )}
 
         {/* Progress bar */}
-        <div className="p-4 rounded-2xl bg-white border border-gray-200 shadow-sm space-y-3">
+        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
           <div className="flex justify-between items-center">
-            <span className="text-sm font-semibold text-gray-900">Progress</span>
+            <span className="text-sm font-semibold text-white">Progress</span>
             {loading ? (
-              <div className="h-4 w-10 rounded bg-gray-200 animate-pulse" />
+              <div className="h-4 w-10 rounded bg-white/10 animate-pulse" />
             ) : (
-              <span className="text-sm font-bold text-orange-500">{progressPct}%</span>
+              <span className="text-sm font-bold text-orange-400">{progressPct}%</span>
             )}
           </div>
-          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-2 bg-white/10 rounded-full overflow-hidden">
             {loading ? (
-              <div className="h-full w-1/3 rounded-full bg-gray-200 animate-pulse" />
+              <div className="h-full w-1/3 rounded-full bg-white/10 animate-pulse" />
             ) : (
               <motion.div
                 className="h-full bg-orange-500 rounded-full"
@@ -233,9 +233,9 @@ export default function CertificationDashboard() {
             )}
           </div>
           {loading ? (
-            <div className="h-3 w-36 rounded bg-gray-200 animate-pulse" />
+            <div className="h-3 w-36 rounded bg-white/10 animate-pulse" />
           ) : (
-            <p className="text-xs text-gray-500">{completedCount} of {totalModules} modules complete</p>
+            <p className="text-xs text-gray-400">{completedCount} of {totalModules} modules complete</p>
           )}
         </div>
 
@@ -281,22 +281,22 @@ export default function CertificationDashboard() {
                 <div key={module.id}>
                   {showSeparator && (
                     <div className="flex items-center gap-3 py-2">
-                      <div className="flex-1 h-px bg-gray-200" />
-                      <span className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">Up Next</span>
-                      <div className="flex-1 h-px bg-gray-200" />
+                      <div className="flex-1 h-px bg-white/10" />
+                      <span className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Up Next</span>
+                      <div className="flex-1 h-px bg-white/10" />
                     </div>
                   )}
                   <motion.button
                     className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 ${
                       isLocked
-                        ? "bg-gray-100 border-gray-200 opacity-50 cursor-default"
+                        ? "bg-white/5 border-white/10 opacity-50 cursor-default"
                         : isFinal && !prevCompleted
-                        ? "bg-gray-100 border-gray-200 opacity-50 cursor-default"
+                        ? "bg-white/5 border-white/10 opacity-50 cursor-default"
                         : isCurrent
-                        ? "bg-orange-50 border-orange-200"
+                        ? "bg-orange-500/20 border border-orange-500/40"
                         : status === "completed"
-                        ? "bg-gray-50 border-gray-200"
-                        : "bg-white border-gray-200 active:scale-[0.98]"
+                        ? "bg-white/5 border-white/5"
+                        : "bg-white/5 border-white/10 active:scale-[0.98]"
                     }`}
                     onClick={() => !isLocked && handleModuleClick(module.id, i)}
                     initial={{ opacity: 0, y: 8 }}
@@ -305,26 +305,26 @@ export default function CertificationDashboard() {
                   >
                     <div className="flex items-center gap-3">
                       {isLocked ? (
-                        <Lock className="h-5 w-5 text-gray-300 flex-shrink-0" />
+                        <Lock className="h-5 w-5 text-gray-600 flex-shrink-0" />
                       ) : (
                         statusIcon(status)
                       )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className={`text-xs flex-shrink-0 ${status === "completed" ? "text-gray-400" : "text-gray-400"}`}>
+                          <span className="text-xs flex-shrink-0 text-gray-500">
                             {isFinal ? "Final" : `Module ${i + 1}`}
                           </span>
-                          <h3 className={`text-sm font-semibold truncate ${status === "completed" ? "text-gray-400" : "text-gray-900"}`}>
+                          <h3 className={`text-sm font-semibold truncate ${status === "completed" ? "text-gray-400" : "text-white"}`}>
                             {module.title}
                           </h3>
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
                           {statusLabel(status)}
                           {progress?.score != null && (
-                            <span className="text-xs text-gray-400">· Score: {progress.score}%</span>
+                            <span className="text-xs text-gray-500">· Score: {progress.score}%</span>
                           )}
                           {status === "not_started" && !isLocked && (
-                            <span className="text-xs text-gray-400">· ~{module.estimatedMinutes} min</span>
+                            <span className="text-xs text-gray-500">· ~{module.estimatedMinutes} min</span>
                           )}
                         </div>
                       </div>
@@ -349,7 +349,7 @@ export default function CertificationDashboard() {
         )}
       </div>
 
-      {/* Name capture modal — stays dark as overlay */}
+      {/* Name capture modal — dark overlay */}
       <AnimatePresence>
         {showNameModal && (
           <motion.div
