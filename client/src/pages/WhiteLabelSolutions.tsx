@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { BC_GRADIENT } from "@/components/BusinessCenterShell";
 import { useLocation } from "wouter";
 
 const TOTAL_STAGES = 15;
@@ -513,31 +512,31 @@ export default function WhiteLabelSolutions() {
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} text-white flex flex-col`}>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Progress header */}
       <div className="px-4 pt-6 pb-3 flex-shrink-0 max-w-2xl mx-auto w-full">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-orange-300 text-xs font-semibold uppercase tracking-wider">
+          <span className="text-orange-500 text-xs font-semibold uppercase tracking-wider">
             Stage {stage.number} of {TOTAL_STAGES}
           </span>
           <div className="flex items-center gap-3">
             {currentStage > 0 && (
               <button
                 onClick={goBack}
-                className="text-white/50 text-xs underline underline-offset-2"
+                className="text-gray-500 text-xs underline underline-offset-2"
               >
                 ← Back
               </button>
             )}
             <button
               onClick={() => setLocation("/business-center")}
-              className="text-white/30 text-xs"
+              className="text-gray-400 text-xs"
             >
               ✕
             </button>
           </div>
         </div>
-        <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+        <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
           <div
             className="h-full bg-orange-500 rounded-full transition-all duration-500"
             style={{ width: `${(stage.number / TOTAL_STAGES) * 100}%` }}
@@ -548,8 +547,8 @@ export default function WhiteLabelSolutions() {
       {/* Content */}
       <div className="flex-1 px-4 pb-4 max-w-2xl mx-auto w-full">
         <div className="pt-5 pb-3">
-          <h1 className="text-xl font-bold leading-tight mb-1">{stage.title}</h1>
-          <p className="text-white/50 text-sm">{stage.subtitle}</p>
+          <h1 className="text-xl font-bold leading-tight mb-1 text-gray-900">{stage.title}</h1>
+          <p className="text-gray-500 text-sm">{stage.subtitle}</p>
         </div>
 
         {/* Path selector stage (Stage 13) */}

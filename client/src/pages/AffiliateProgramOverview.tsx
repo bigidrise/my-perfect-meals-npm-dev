@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { BC_HEADER } from "@/components/BusinessCenterShell";
 import { useLocation } from "wouter";
 import {
   ArrowLeft, DollarSign, Clock, TrendingUp, Users, ShieldCheck,
@@ -168,7 +168,7 @@ export default function AffiliateProgramOverview() {
 
   if (!gateChecked) {
     return (
-      <div className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} flex items-center justify-center`}>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin" />
       </div>
     );
@@ -176,7 +176,7 @@ export default function AffiliateProgramOverview() {
 
   return (
     <motion.div
-      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-32`}
+      className="min-h-screen bg-gray-50 pb-32"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
@@ -188,14 +188,14 @@ export default function AffiliateProgramOverview() {
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
           <button
             onClick={() => setLocation("/business-center")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 text-gray-700 text-xs font-medium active:scale-[0.95] transition-transform"
           >
             <ArrowLeft className="h-4 w-4" />
             Business Suite
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-base font-bold text-white">Affiliate Program</h1>
-            <p className="text-xs text-white/40">How it works — read before you apply</p>
+            <h1 className="text-base font-bold text-gray-900">Affiliate Program</h1>
+            <p className="text-xs text-gray-500">How it works — read before you apply</p>
           </div>
         </div>
       </div>
@@ -210,9 +210,9 @@ export default function AffiliateProgramOverview() {
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <p className="text-xs text-orange-400 font-semibold uppercase tracking-widest">My Perfect Meals</p>
-          <h1 className="text-2xl font-black text-white leading-tight">Affiliate Program Overview</h1>
-          <p className="text-sm text-white/50 leading-relaxed max-w-sm mx-auto">
+          <p className="text-xs text-orange-500 font-semibold uppercase tracking-widest">My Perfect Meals</p>
+          <h1 className="text-2xl font-black text-gray-900 leading-tight">Affiliate Program Overview</h1>
+          <p className="text-sm text-gray-600 leading-relaxed max-w-sm mx-auto">
             Understand the economics before you activate. No surprises, no fine print buried at the end.
           </p>
         </motion.div>

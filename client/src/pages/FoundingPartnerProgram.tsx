@@ -1,7 +1,7 @@
 import { useLocation } from "wouter";
 import { ArrowLeft, Star, Users, CheckCircle2, TrendingUp, Clock, ChevronRight, Percent } from "lucide-react";
 import { motion } from "framer-motion";
-import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { BC_HEADER } from "@/components/BusinessCenterShell";
 
 const FOUNDING_PARTNER_FORM = "https://forms.gle/7wAMmDA1vz1wCzzKA";
 
@@ -37,7 +37,7 @@ export default function FoundingPartnerProgram() {
 
   return (
     <motion.div
-      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} pb-28 text-white`}
+      className="min-h-screen bg-gray-50 pb-28"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
@@ -50,12 +50,12 @@ export default function FoundingPartnerProgram() {
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
           <button
             onClick={() => setLocation("/business-center")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 text-gray-700 text-xs font-medium active:scale-[0.95] transition-transform"
           >
             <ArrowLeft className="h-4 w-4" />
             Back
           </button>
-          <h1 className="text-lg font-bold text-white">Founding Business Partner Program</h1>
+          <h1 className="text-lg font-bold text-gray-900">Founding Business Partner Program</h1>
         </div>
       </div>
 

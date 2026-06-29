@@ -1,7 +1,7 @@
 import { useLocation } from "wouter";
 import { ArrowLeft, ChevronRight, Handshake, Pill, Dumbbell, GraduationCap, HeartPulse, Code2, HelpCircle } from "lucide-react";
 import { motion } from "framer-motion";
-import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { BC_HEADER } from "@/components/BusinessCenterShell";
 
 const STRATEGIC_FORM = "https://forms.gle/7wAMmDA1vz1wCzzKA";
 
@@ -118,14 +118,14 @@ export default function IndustryPartnerships() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} text-white`}
+      className="min-h-screen bg-gray-50"
     >
       {/* Header */}
       <div className={BC_HEADER}>
         <div className="flex items-center gap-3 px-4 py-3">
           <button
             onClick={() => setLocation("/business-center")}
-            className="flex items-center gap-1.5 text-white/60 text-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 text-gray-700 text-xs font-medium active:scale-[0.95] transition-transform"
           >
             <ArrowLeft className="h-4 w-4" />
             Business Suite
@@ -135,18 +135,18 @@ export default function IndustryPartnerships() {
 
       <div className="pt-16 pb-24 px-4 max-w-lg mx-auto space-y-5">
 
-        {/* Hero — stays on gradient, keep white text */}
+        {/* Hero */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="pt-4"
         >
           <div className="flex items-center gap-2 mb-2">
-            <Handshake className="h-5 w-5 text-orange-400 flex-shrink-0" />
-            <h1 className="text-white font-bold text-lg leading-tight">Industry & Strategic Partnerships</h1>
+            <Handshake className="h-5 w-5 text-orange-500 flex-shrink-0" />
+            <h1 className="text-gray-900 font-bold text-lg leading-tight">Industry & Strategic Partnerships</h1>
           </div>
-          <p className="text-orange-300 font-semibold text-sm mb-2">How Different Organizations Work With My Perfect Meals</p>
-          <p className="text-white/55 text-sm leading-relaxed">
+          <p className="text-orange-500 font-semibold text-sm mb-2">How Different Organizations Work With My Perfect Meals</p>
+          <p className="text-gray-600 text-sm leading-relaxed">
             My Perfect Meals is designed to support a wide range of organizations across health, fitness, nutrition, wellness, education, and technology. Below are examples of how different industries can leverage the platform.
           </p>
         </motion.div>
