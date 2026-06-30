@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { ArrowLeft, Star, Users, CheckCircle2, TrendingUp, Clock, ChevronRight, Percent } from "lucide-react";
+import { ArrowLeft, Star, Users, CheckCircle2, TrendingUp, Clock, ChevronRight, Percent, GraduationCap } from "lucide-react";
 import { motion } from "framer-motion";
 import { BC_HEADER } from "@/components/BusinessCenterShell";
 
@@ -587,6 +587,71 @@ export default function FoundingPartnerProgram() {
           <p className="text-gray-500 text-xs leading-relaxed mt-3 border-t border-white/5 pt-3">
             Both tracks reflect meaningful discounts from standard rates in recognition of early commitment, feedback participation, and the collaborative nature of this program.
           </p>
+        </motion.div>
+
+        {/* Building Your Team */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.33 }}
+          className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-4"
+        >
+          <div className="flex items-center gap-2">
+            <GraduationCap className="h-4 w-4 text-orange-400 flex-shrink-0" />
+            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Building Your Team</h3>
+          </div>
+
+          <p className="text-gray-300 text-sm leading-relaxed">
+            Your organization joins as the Founding Business Partner. But the people who represent My Perfect Meals — the coaches, trainers, providers, and staff who use the platform with clients — benefit from understanding the platform well before they begin.
+          </p>
+
+          <p className="text-gray-300 text-sm leading-relaxed">
+            My Perfect Meals Academy is where that happens. It covers the platform itself, the adaptive nutrition approach, coaching philosophy, brand standards, and how to communicate about My Perfect Meals accurately and effectively.
+          </p>
+
+          <div className="space-y-2.5">
+            {[
+              {
+                heading: "Confident representation",
+                body: "Team members who understand the platform can explain it clearly to clients — which directly affects adoption and results.",
+              },
+              {
+                heading: "Consistent messaging",
+                body: "The Academy covers approved language and marketing standards, so your team communicates consistently across every interaction.",
+              },
+              {
+                heading: "Protected standing",
+                body: "Proper onboarding protects your organization, your clients, and your professional reputation — not just My Perfect Meals.",
+              },
+            ].map((point, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <div className="mt-1 w-4 h-4 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle2 className="w-3 h-3 text-orange-400" />
+                </div>
+                <div>
+                  <p className="text-white text-xs font-semibold leading-snug">{point.heading}</p>
+                  <p className="text-gray-400 text-xs mt-0.5 leading-relaxed">{point.body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-3">
+            <p className="text-orange-200 text-xs leading-relaxed">
+              Academy certification is included as part of the Founding Business Partner implementation process — it's professional onboarding so your team knows how to use the platform correctly from day one.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setLocation("/business-center/academy")}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/8 border border-white/15 text-white text-sm font-medium active:scale-[0.98] transition-all duration-150"
+          >
+            <div className="flex items-center gap-2">
+              <GraduationCap className="h-4 w-4 text-orange-400" />
+              <span>View My Perfect Meals Academy</span>
+            </div>
+            <ChevronRight className="h-4 w-4 text-white/40" />
+          </button>
         </motion.div>
 
         {/* Section 6 — CTA */}
