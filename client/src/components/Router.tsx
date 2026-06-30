@@ -777,8 +777,8 @@ export default function Router() {
         <Route path="/tips" component={SafeTips} />
         <Route path="/pro/physician" component={PhysicianPortal} />
         <Route path="/care-team" component={SafeCareTeam} />
-        <Route path="/care-team/physician" component={() => <ProcareGate component={SafePhysicianCareTeam} />} />
-        <Route path="/care-team/trainer" component={() => <ProcareGate component={SafeTrainerCareTeam} />} />
+        <Route path="/care-team/physician" component={SafePhysicianCareTeam} />
+        <Route path="/care-team/trainer" component={SafeTrainerCareTeam} />
         <Route path="/pro-portal" component={GuardedProPortal} />
         <Route path="/pro" component={() => { const [, go] = useLocation(); useEffect(() => { go("/pro-portal"); }, []); return null; }} />
         <Route path="/pro/clients" component={GuardedProClients} />
