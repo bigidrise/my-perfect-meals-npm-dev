@@ -180,7 +180,11 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
         setCertChecked(true);
       })
       .catch(() => {
-        setCertified(true);
+        sessionStorage.setItem(
+          "mpm.launchpad.redirectMsg",
+          "Unable to verify Academy certification. Please try again."
+        );
+        setLocation("/pro-launchpad");
         setCertChecked(true);
       });
   }, [user?.id]);
@@ -773,8 +777,8 @@ export default function Router() {
         <Route path="/tips" component={SafeTips} />
         <Route path="/pro/physician" component={PhysicianPortal} />
         <Route path="/care-team" component={SafeCareTeam} />
-        <Route path="/care-team/physician" component={() => <ProcareGate component={SafePhysicianCareTeam} />} />
-        <Route path="/care-team/trainer" component={() => <ProcareGate component={SafeTrainerCareTeam} />} />
+        <Route path="/care-team/physician" component={SafePhysicianCareTeam} />
+        <Route path="/care-team/trainer" component={SafeTrainerCareTeam} />
         <Route path="/pro-portal" component={GuardedProPortal} />
         <Route path="/pro" component={() => { const [, go] = useLocation(); useEffect(() => { go("/pro-portal"); }, []); return null; }} />
         <Route path="/pro/clients" component={GuardedProClients} />
@@ -798,16 +802,16 @@ export default function Router() {
           path="/pro/performance-competition-builder"
           component={GuardedPerformanceBuilder}
         />
-        <Route path="/pro/clients/:id/general-nutrition-builder" component={GeneralNutritionBuilder} />
-        <Route path="/pro/clients/:id/performance-competition-builder" component={PerformanceCompetitionBuilderProCare} />
-        <Route path="/pro/clients/:id/diabetic-builder" component={SafeDiabeticMenuBuilder} />
-        <Route path="/pro/clients/:id/glp1-builder" component={SafeGLP1MealBuilder} />
-        <Route path="/pro/clients/:id/anti-inflammatory-builder" component={SafeAntiInflammatoryMenuBuilder} />
-        <Route path="/pro/clients/:id/kidney-disease-builder" component={SafeAntiInflammatoryMenuBuilder} />
-        <Route path="/pro/clients/:id/heart-failure-builder" component={SafeAntiInflammatoryMenuBuilder} />
-        <Route path="/pro/clients/:id/liver-disease-builder" component={SafeAntiInflammatoryMenuBuilder} />
-        <Route path="/pro/clients/:id/weekly-builder" component={SafeWeeklyMealBoard} />
-        <Route path="/pro/clients/:id/beach-body-builder" component={BeachBodyMealBoard} />
+        <Route path="/pro/clients/:id/general-nutrition-builder" component={() => <ProCareStudioGuard component={GeneralNutritionBuilder} />} />
+        <Route path="/pro/clients/:id/performance-competition-builder" component={() => <ProCareStudioGuard component={PerformanceCompetitionBuilderProCare} />} />
+        <Route path="/pro/clients/:id/diabetic-builder" component={() => <ProCareStudioGuard component={SafeDiabeticMenuBuilder} />} />
+        <Route path="/pro/clients/:id/glp1-builder" component={() => <ProCareStudioGuard component={SafeGLP1MealBuilder} />} />
+        <Route path="/pro/clients/:id/anti-inflammatory-builder" component={() => <ProCareStudioGuard component={SafeAntiInflammatoryMenuBuilder} />} />
+        <Route path="/pro/clients/:id/kidney-disease-builder" component={() => <ProCareStudioGuard component={SafeAntiInflammatoryMenuBuilder} />} />
+        <Route path="/pro/clients/:id/heart-failure-builder" component={() => <ProCareStudioGuard component={SafeAntiInflammatoryMenuBuilder} />} />
+        <Route path="/pro/clients/:id/liver-disease-builder" component={() => <ProCareStudioGuard component={SafeAntiInflammatoryMenuBuilder} />} />
+        <Route path="/pro/clients/:id/weekly-builder" component={() => <ProCareStudioGuard component={SafeWeeklyMealBoard} />} />
+        <Route path="/pro/clients/:id/beach-body-builder" component={() => <ProCareStudioGuard component={BeachBodyMealBoard} />} />
         {/* Physician Hub Routes (Diabetic, GLP-1, Medical Diets, Clinical Lifestyle) */}
         <Route path="/diabetic-hub" component={SafeDiabeticHub} />
         <Route path="/diabetes-support" component={SafeDiabetesSupport} />
