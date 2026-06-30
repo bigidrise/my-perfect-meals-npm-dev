@@ -128,7 +128,7 @@ export default function CertificationLesson() {
             >
               <h3 className="text-sm font-bold text-orange-400">{section.heading}</h3>
               {section.text && (
-                <p className="text-sm text-gray-300 leading-relaxed">{section.text}</p>
+                <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">{section.text}</p>
               )}
               {section.list && (
                 <ul className="space-y-2.5">
@@ -139,6 +139,15 @@ export default function CertificationLesson() {
                     </li>
                   ))}
                 </ul>
+              )}
+              {section.tip && (
+                <div className="flex items-start gap-3 rounded-xl bg-orange-500/10 border border-orange-500/20 px-4 py-3 mt-1">
+                  <span className="text-orange-400 text-base leading-none mt-0.5 flex-shrink-0">💡</span>
+                  <div>
+                    <p className="text-xs font-bold text-orange-400 mb-1">Coach's Tip</p>
+                    <p className="text-xs text-orange-100/80 leading-relaxed">{section.tip}</p>
+                  </div>
+                </div>
               )}
             </motion.div>
           ))}
