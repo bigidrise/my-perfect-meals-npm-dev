@@ -589,7 +589,7 @@ export default function AffiliateProgramOverview() {
                   cursor: allChecked ? "pointer" : "default",
                 }}
               >
-                <span>Start My Perfect Meals Academy</span>
+                <span>Begin Platform Certification</span>
                 <GraduationCap className="h-5 w-5" />
               </button>
               {!allChecked && (

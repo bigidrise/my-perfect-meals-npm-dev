@@ -111,7 +111,7 @@ export function getBuilderLabel(dietType: string): string {
     'anti-inflammatory': 'Anti-Inflammatory',
     'glp1': 'Metabolic Med',
     'diabetic': 'Diabetic',
-    'beachbody': 'Beachbody',
+    'beachbody': 'Performance Nutrition Builder',
     'performance': 'Performance',
     'liver-support': 'Liver Support',
     'general-nutrition': 'Nutrition',

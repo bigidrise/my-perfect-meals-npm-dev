@@ -256,28 +256,31 @@ export default function CertificationComplete() {
   const renderPrimaryActions = () => {
     if (affiliateChecking || activating) return null;
 
-    if (isSocialTrack && affiliate?.isActive) {
+    if (isBusinessTrack) {
+      return (
+        <button
+          onClick={() => setLocation("/pro-launchpad")}
+          className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+        >
+          <ChevronRight className="h-5 w-5" />
+          Continue to Phase 2
+        </button>
+      );
+    }
+
+    if (isSocialTrack) {
+      if (activating) return null;
       return (
         <>
           <button
-            onClick={handleOpenDashboard}
-            disabled={dashboardLoading}
-            className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-60"
+            onClick={() => setLocation("/business-center/affiliate/dashboard")}
+            className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
-            {dashboardLoading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Opening…
-              </>
-            ) : (
-              <>
-                <ExternalLink className="h-4 w-4" />
-                Open Affiliate Dashboard
-              </>
-            )}
+            <ExternalLink className="h-4 w-4" />
+            Continue to Partner Dashboard
           </button>
 
-          {affiliate.rewardfulReferralUrl && (
+          {affiliate?.rewardfulReferralUrl && (
             <button
               onClick={handleCopyLink}
               className="w-full p-4 rounded-2xl bg-white/10 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
@@ -395,6 +398,32 @@ export default function CertificationComplete() {
                   </button>
                 </div>
               )}
+            </motion.div>
+
+            {/* What You've Learned — Phase 1 summary */}
+            <motion.div
+              className="w-full p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3 text-left"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+            >
+              <p className="text-xs font-bold text-orange-400 uppercase tracking-widest text-center">
+                Phase 1 Complete — You Now Understand
+              </p>
+              <div className="space-y-2">
+                {[
+                  "What My Perfect Meals is and how it works",
+                  "How the platform personalizes nutrition",
+                  "How to represent the brand professionally",
+                  "How to help clients succeed",
+                  "The affiliate program and earning structure",
+                ].map((item) => (
+                  <div key={item} className="flex items-start gap-2.5">
+                    <CheckCircle2 className="h-4 w-4 text-green-400 flex-shrink-0 mt-0.5" />
+                    <span className="text-xs text-gray-300 leading-relaxed">{item}</span>
+                  </div>
+                ))}
+              </div>
             </motion.div>
 
             {/* Affiliate activation banner */}
