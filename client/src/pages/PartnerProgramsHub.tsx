@@ -6,6 +6,7 @@ import {
   Stethoscope,
   Building2,
   TrendingUp,
+  GraduationCap,
   ChevronRight,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -66,6 +67,17 @@ const programs = [
     accent: "bg-white/8",
     iconColor: "text-orange-400",
     border: "border-white/10",
+  },
+  {
+    id: "academy",
+    title: "My Perfect Meals Academy",
+    description:
+      "Platform certification for everyone who represents My Perfect Meals — partners, coaches, physicians, and all healthcare professionals.",
+    icon: GraduationCap,
+    route: "/business-center/academy",
+    accent: "bg-orange-500/20",
+    iconColor: "text-orange-400",
+    border: "border-orange-500/20",
   },
 ];
 
