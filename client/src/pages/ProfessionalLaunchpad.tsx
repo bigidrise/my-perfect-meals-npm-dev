@@ -145,15 +145,13 @@ export default function ProfessionalLaunchpad() {
           </div>
 
           <div className="space-y-3">
-            {steps.map((step, i) => (
+            {steps.filter(step => !step.locked).map((step, i) => (
               <div
                 key={step.id}
                 className={`rounded-2xl border p-4 ${
-                  step.locked
-                    ? "border-white/8 bg-white/3 opacity-50"
-                    : step.done
-                      ? "border-green-500/20 bg-green-900/10"
-                      : "border-orange-500/20 bg-white/5"
+                  step.done
+                    ? "border-green-500/20 bg-green-900/10"
+                    : "border-orange-500/20 bg-white/5"
                 }`}
               >
                 <div className="flex items-start gap-3">
