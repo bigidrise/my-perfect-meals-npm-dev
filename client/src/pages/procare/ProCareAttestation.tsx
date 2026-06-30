@@ -92,7 +92,7 @@ export default function ProCareAttestation() {
       clearProCareSignupData();
       await refreshUser();
       localStorage.setItem("coachMode", "self");
-      setLocation("/dashboard");
+      setLocation("/pro-launchpad");
     } catch (err: any) {
       if (err.message?.includes("LEGAL_REACCEPT_REQUIRED") || err.message?.includes("legal documents")) {
         setShowProfessionalModal(true);

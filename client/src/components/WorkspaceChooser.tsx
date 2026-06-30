@@ -1,7 +1,9 @@
-import { } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Home, Briefcase, Crown } from "lucide-react";
+import { Home, Briefcase, Crown, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
 
 interface WorkspaceChooserProps {
   onChoose: (choice: "personal" | "workspace") => void;
@@ -9,6 +11,8 @@ interface WorkspaceChooserProps {
 
 export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  const [checking, setChecking] = useState(false);
 
   localStorage.removeItem("mpm_workspace_preference");
 
@@ -16,8 +20,34 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
     ? "Physicians Clinic"
     : "Trainers Studio";
 
-  const handleChoice = (choice: "personal" | "workspace") => {
-    onChoose(choice);
+  const handleChoice = async (choice: "personal" | "workspace") => {
+    if (choice !== "workspace") {
+      onChoose(choice);
+      return;
+    }
+
+    setChecking(true);
+    try {
+      const phase1Res = await apiRequest("/api/certifications/platform/progress");
+      const phase1Complete =
+        (phase1Res as any)?.certification?.status === "completed" &&
+        !!(phase1Res as any)?.certification?.completedAt;
+
+      if (!phase1Complete) {
+        sessionStorage.setItem(
+          "mpm.launchpad.redirectMsg",
+          "Complete the My Perfect Meals Academy — Phase 1 before accessing the Studio."
+        );
+        setLocation("/pro-launchpad");
+        return;
+      }
+
+      onChoose("workspace");
+    } catch {
+      onChoose("workspace");
+    } finally {
+      setChecking(false);
+    }
   };
 
   return (
@@ -46,7 +76,8 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
 
           <button
             onClick={() => handleChoice("personal")}
-            className="w-full p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-lg active:scale-[0.98] transition-transform text-left"
+            disabled={checking}
+            className="w-full p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-lg active:scale-[0.98] transition-transform text-left disabled:opacity-60"
           >
             <div className="flex items-start gap-4">
               <div className="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/20">
@@ -61,15 +92,22 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
 
           <button
             onClick={() => handleChoice("workspace")}
-            className="w-full p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-lg active:scale-[0.98] transition-transform text-left"
+            disabled={checking}
+            className="w-full p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-lg active:scale-[0.98] transition-transform text-left disabled:opacity-60"
           >
             <div className="flex items-start gap-4">
               <div className="p-2.5 rounded-xl bg-orange-500/20 border border-orange-500/20">
-                <Briefcase className="h-5 w-5 text-orange-400" />
+                {checking ? (
+                  <Loader2 className="h-5 w-5 text-orange-400 animate-spin" />
+                ) : (
+                  <Briefcase className="h-5 w-5 text-orange-400" />
+                )}
               </div>
               <div className="flex-1">
                 <h3 className="text-white font-semibold text-base">Workspace</h3>
-                <p className="text-white/50 text-sm mt-0.5">Manage clients in {workspaceName}.</p>
+                <p className="text-white/50 text-sm mt-0.5">
+                  {checking ? "Checking access..." : `Manage clients in ${workspaceName}.`}
+                </p>
               </div>
             </div>
           </button>
