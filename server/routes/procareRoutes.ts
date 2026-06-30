@@ -1,9 +1,10 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import express from "express";
 import { db } from "../db";
 import { proAccounts, clientLinks, subscriptions, payouts } from "../db/schema/procare";
 import { users, userGlycemicSettings, glp1Shots } from "@shared/schema";
 import { eq, and, gte, desc, sql } from "drizzle-orm";
+import { requirePhase1Cert } from "../middleware/requirePhase1Cert";
 import { diabetesProfile, glucoseLogs } from "../../shared/diabetes-schema";
 import {
   createConnectAccount,
@@ -277,7 +278,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
 });
 
 // GET /api/pro/clients/:clientId/board-control — read current board control setting
-router.get("/clients/:clientId/board-control", async (req, res) => {
+router.get("/clients/:clientId/board-control", requireAuth, requirePhase1Cert, async (req, res) => {
   try {
     const proUserId = (req as AuthenticatedRequest).authUser?.id;
     if (!proUserId) return res.status(401).json({ error: "Authentication required" });
@@ -299,7 +300,7 @@ router.get("/clients/:clientId/board-control", async (req, res) => {
 });
 
 // PATCH /api/pro/clients/:clientId/board-control — set board control ("client" or "professional")
-router.patch("/clients/:clientId/board-control", async (req, res) => {
+router.patch("/clients/:clientId/board-control", requireAuth, requirePhase1Cert, async (req, res) => {
   try {
     const proUserId = (req as AuthenticatedRequest).authUser?.id;
     if (!proUserId) return res.status(401).json({ error: "Authentication required" });
@@ -329,7 +330,7 @@ router.patch("/clients/:clientId/board-control", async (req, res) => {
   }
 });
 
-router.post("/end-relationship", async (req, res) => {
+router.post("/end-relationship", requireAuth, requirePhase1Cert, async (req, res) => {
   try {
     const authUser = (req as AuthenticatedRequest).authUser;
     if (!authUser) {
@@ -381,7 +382,7 @@ const oncologySupportSchema = z.object({
  * Retrieve the current Cancer Support Nutrition context for a client.
  * Only accessible by the verified studio owner for this client.
  */
-router.get("/oncology-support/:clientUserId", async (req, res) => {
+router.get("/oncology-support/:clientUserId", requireAuth, requirePhase1Cert, async (req, res) => {
   try {
     if (!isOncologySupportEnabled()) {
       return res.status(404).json({ error: "Feature not available" });
@@ -424,7 +425,7 @@ router.get("/oncology-support/:clientUserId", async (req, res) => {
  *
  * To disable: send { enabled: false, symptoms: [], emphasis: { highProteinNutrientDensity: false } }
  */
-router.put("/oncology-support/:clientUserId", async (req, res) => {
+router.put("/oncology-support/:clientUserId", requireAuth, requirePhase1Cert, async (req, res) => {
   try {
     if (!isOncologySupportEnabled()) {
       return res.status(404).json({ error: "Feature not available" });
@@ -498,7 +499,7 @@ router.put("/oncology-support/:clientUserId", async (req, res) => {
  * GET /api/pro/glp1-protocol/:clientUserId
  * Read whether GLP-1 protocol is physician-assigned for a client.
  */
-router.get("/glp1-protocol/:clientUserId", async (req, res) => {
+router.get("/glp1-protocol/:clientUserId", requireAuth, requirePhase1Cert, async (req, res) => {
   try {
     const requesterId = getUserId(req);
     const { clientUserId } = req.params;
@@ -532,7 +533,7 @@ router.get("/glp1-protocol/:clientUserId", async (req, res) => {
  * The protocol envelope reads medicalConditions and stacks GLP-1 guidance
  * automatically on the next meal generation call.
  */
-router.put("/glp1-protocol/:clientUserId", async (req, res) => {
+router.put("/glp1-protocol/:clientUserId", requireAuth, requirePhase1Cert, async (req, res) => {
   try {
     const requesterId = getUserId(req);
     const { clientUserId } = req.params;
@@ -605,7 +606,7 @@ router.put("/glp1-protocol/:clientUserId", async (req, res) => {
 // requireWorkspaceAccess validates the active clientLinks relationship before any data is served.
 
 // GET /api/pro/week-boards/:clientId/current-week — client's current week board
-router.get("/week-boards/:clientId/current-week", requireWorkspaceAccess, async (req, res) => {
+router.get("/week-boards/:clientId/current-week", requireAuth, requirePhase1Cert, requireWorkspaceAccess, async (req, res) => {
   try {
     const { workspaceUserId } = (req as WorkspaceRequest).workspace;
     const builderType = (req.query.bt as string | undefined) ?? "";
@@ -619,7 +620,7 @@ router.get("/week-boards/:clientId/current-week", requireWorkspaceAccess, async 
 });
 
 // GET /api/pro/week-board/:clientId/:weekStartISO — client's board for a specific week
-router.get("/week-board/:clientId/:weekStartISO", requireWorkspaceAccess, async (req, res) => {
+router.get("/week-board/:clientId/:weekStartISO", requireAuth, requirePhase1Cert, requireWorkspaceAccess, async (req, res) => {
   try {
     const { workspaceUserId } = (req as WorkspaceRequest).workspace;
     const { weekStartISO } = req.params;
@@ -633,7 +634,7 @@ router.get("/week-board/:clientId/:weekStartISO", requireWorkspaceAccess, async 
 });
 
 // PUT /api/pro/week-board/:clientId/:weekStartISO — save to client's board
-router.put("/week-board/:clientId/:weekStartISO", requireWorkspaceAccess, async (req, res) => {
+router.put("/week-board/:clientId/:weekStartISO", requireAuth, requirePhase1Cert, requireWorkspaceAccess, async (req, res) => {
   try {
     const { workspaceUserId, boardLocked } = (req as WorkspaceRequest).workspace;
     const { weekStartISO } = req.params;
@@ -658,7 +659,7 @@ router.put("/week-board/:clientId/:weekStartISO", requireWorkspaceAccess, async 
 // ─── Workspace-Aware Board Lock Status (T003) ─────────────────────────────────
 // GET /api/pro/clients/:clientId/board-lock — client's board lock state (pro perspective)
 // Replaces /api/me/board-lock when a pro is operating inside a client workspace.
-router.get("/clients/:clientId/board-lock", requireWorkspaceAccess, async (req, res) => {
+router.get("/clients/:clientId/board-lock", requireAuth, requirePhase1Cert, requireWorkspaceAccess, async (req, res) => {
   try {
     const { boardLocked } = (req as WorkspaceRequest).workspace;
     return res.json({ locked: boardLocked });
@@ -747,7 +748,7 @@ router.post("/disconnect-self", async (req, res) => {
 // Returns active hub configuration, guardrails, and glucose trend for a client.
 // Role-gated: physicians see insulin + GLP-1 dose + medications; coaches do not.
 // ─────────────────────────────────────────────────────────────────────────────
-router.get("/clients/:clientId/nutrition-strategy", async (req: any, res) => {
+router.get("/clients/:clientId/nutrition-strategy", requireAuth, requirePhase1Cert, async (req: any, res) => {
   try {
     const callerId = getUserId(req);
     const { clientId } = req.params;
@@ -927,7 +928,7 @@ router.get("/clients/:clientId/nutrition-strategy", async (req: any, res) => {
 // Read-only. Mirrors nutrition-summary DTO — coaches + physicians see all fields
 // including therapeutic doses (Option A policy, read-only).
 // ─────────────────────────────────────────────────────────────────────────────
-router.get("/clients/:clientId/nutrition-summary", requireAuth, async (req, res) => {
+router.get("/clients/:clientId/nutrition-summary", requireAuth, requirePhase1Cert, async (req, res) => {
   try {
     const callerId = getUserId(req);
     if (!callerId) return res.status(401).json({ error: "Unauthorized" });

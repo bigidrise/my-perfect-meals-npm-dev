@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import {
   ArrowLeft, DollarSign, Clock, TrendingUp, Users, ShieldCheck,
   ChevronRight, CheckCircle2, XCircle, Stethoscope, Briefcase, Calculator,
+  GraduationCap,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
@@ -24,11 +25,11 @@ function Section({ title, children, delay = 0 }: { title: string; children: Reac
   );
 }
 
-function Row({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-4 py-2 border-b border-white/10 last:border-0">
       <span className="text-xs text-gray-400 flex-1">{label}</span>
-      <span className={`text-xs font-semibold text-right flex-shrink-0 ${highlight ? "text-orange-400" : "text-orange-400"}`}>{value}</span>
+      <span className="text-xs font-semibold text-right flex-shrink-0 text-orange-400">{value}</span>
     </div>
   );
 }
@@ -61,16 +62,14 @@ function EarningsCalculator() {
           <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">
             Referrals
           </label>
-          <div className="relative">
-            <input
-              type="number"
-              min={1}
-              max={10000}
-              value={referrals}
-              onChange={(e) => setReferrals(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white text-sm font-semibold focus:outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400/20"
-            />
-          </div>
+          <input
+            type="number"
+            min={1}
+            max={10000}
+            value={referrals}
+            onChange={(e) => setReferrals(Math.max(1, parseInt(e.target.value) || 1))}
+            className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white text-sm font-semibold focus:outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400/20"
+          />
           <p className="text-[10px] text-gray-500">number of customers</p>
         </div>
 
@@ -95,7 +94,7 @@ function EarningsCalculator() {
       </div>
 
       <div className="rounded-xl bg-orange-500/20 border border-orange-500/30 p-4 space-y-1">
-        <Row label="Monthly commission" value={fmt(monthly)} highlight />
+        <Row label="Monthly commission" value={fmt(monthly)} />
         <Row label="12-month earnings" value={fmt(twelveMonth)} />
         <Row label="24-month earnings (full term)" value={fmt(twentyFourMonth)} />
       </div>
@@ -104,6 +103,119 @@ function EarningsCalculator() {
         Assumes all referred customers remain active for the full period. Actual earnings depend on subscriber retention, plan type, and qualifying payment status.
       </p>
     </div>
+  );
+}
+
+interface AffiliateAccount {
+  affiliateTrack?: string;
+  isActive?: boolean;
+  activatedAt?: string | null;
+  requiredPhases?: string | null;
+  phase1CompletedAt?: string | null;
+  phase2CompletedAt?: string | null;
+}
+
+function StatusPanel({
+  acct,
+  onDashboard,
+  dashboardLoading = false,
+  onContinueAcademy,
+}: {
+  acct: AffiliateAccount | null;
+  onDashboard: () => void;
+  dashboardLoading?: boolean;
+  onContinueAcademy: () => void;
+}) {
+  const isActive = acct?.isActive || !!acct?.activatedAt;
+  const academyComplete = !!acct?.phase1CompletedAt;
+  const hasTrack = !!acct?.affiliateTrack;
+
+  const dot = (active: boolean, partial?: boolean) => (
+    <div
+      className={`h-4 w-4 rounded-full border flex-shrink-0 flex items-center justify-center ${
+        active
+          ? "bg-green-500 border-green-500"
+          : partial
+          ? "border-orange-400"
+          : "border-gray-600"
+      }`}
+    >
+      {active && (
+        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 12 12">
+          <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
+    </div>
+  );
+
+  return (
+    <motion.div
+      className="p-4 rounded-2xl border space-y-3"
+      style={{
+        backgroundColor: isActive ? "rgba(249,115,22,0.08)" : "rgba(255,255,255,0.04)",
+        borderColor: isActive ? "rgba(249,115,22,0.35)" : "rgba(255,255,255,0.12)",
+      }}
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+    >
+      <p className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">Your Partner Status</p>
+
+      <div className="space-y-2">
+        <div className="flex items-center gap-2.5">
+          {dot(academyComplete, hasTrack && !academyComplete)}
+          <span className={`text-sm ${academyComplete ? "text-white" : hasTrack ? "text-white/70" : "text-gray-500"}`}>
+            {academyComplete ? "Academy Completed" : hasTrack ? "Academy In Progress" : "Academy: Not Started"}
+          </span>
+        </div>
+        <div className="flex items-center gap-2.5">
+          {dot(isActive)}
+          <span className={`text-sm ${isActive ? "text-white" : "text-gray-500"}`}>
+            {isActive ? "Partner Account Active" : "Partner Account: Not Active"}
+          </span>
+        </div>
+        {isActive && (
+          <div className="flex items-center justify-between pt-1 border-t border-white/10 mt-1">
+            <span className="text-xs text-gray-400">Commission Rate</span>
+            <span className="text-xs font-bold text-orange-400">30% per active subscriber</span>
+          </div>
+        )}
+        {!isActive && !hasTrack && !academyComplete && (
+          <p className="text-xs text-gray-500 leading-relaxed pt-1">
+            Complete the Academy to activate your partner account.
+          </p>
+        )}
+      </div>
+
+      {(isActive || academyComplete) && (
+        <button
+          onClick={onDashboard}
+          disabled={dashboardLoading}
+          className="w-full p-3 rounded-xl bg-orange-600 text-white text-sm font-bold flex items-center justify-between active:scale-[0.98] transition-all disabled:opacity-60"
+        >
+          {dashboardLoading ? (
+            <>
+              <span>Opening Dashboard…</span>
+              <div className="h-4 w-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+            </>
+          ) : (
+            <>
+              <span>Open Partner Dashboard</span>
+              <ChevronRight className="h-4 w-4" />
+            </>
+          )}
+        </button>
+      )}
+
+      {hasTrack && !academyComplete && (
+        <button
+          onClick={onContinueAcademy}
+          className="w-full p-3 rounded-xl bg-orange-600 text-white text-sm font-bold flex items-center justify-between active:scale-[0.98] transition-all"
+        >
+          <span>Continue Your Academy</span>
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      )}
+    </motion.div>
   );
 }
 
@@ -116,7 +228,9 @@ const ACKNOWLEDGMENTS = [
 export default function AffiliateProgramOverview() {
   const [, setLocation] = useLocation();
   const [checked, setChecked] = useState<boolean[]>([false, false, false]);
-  const [gateChecked, setGateChecked] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [acct, setAcct] = useState<AffiliateAccount | null>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
 
   const allChecked = checked.every(Boolean);
 
@@ -128,45 +242,69 @@ export default function AffiliateProgramOverview() {
     (async () => {
       try {
         const data = await apiRequest("/api/affiliate/account") as {
-          account: {
-            affiliateTrack?: string;
-            isActive?: boolean;
-            activatedAt?: string | null;
-            requiredPhases?: string | null;
-            phase1CompletedAt?: string | null;
-            phase2CompletedAt?: string | null;
-          } | null;
+          account: AffiliateAccount | null;
         };
-        const acct = data?.account;
-        if (!acct) return;
+        const a = data?.account ?? null;
+        setAcct(a);
 
-        const certRequirementsMet =
-          (acct.requiredPhases === "phase_1_only" && !!acct.phase1CompletedAt) ||
-          (acct.requiredPhases === "both_phases" && !!acct.phase2CompletedAt);
-
-        if (acct.isActive || acct.activatedAt || certRequirementsMet) {
-          if (certRequirementsMet && !acct.activatedAt && !acct.isActive) {
+        if (a) {
+          const certMet =
+            (a.requiredPhases === "phase_1_only" && !!a.phase1CompletedAt) ||
+            (a.requiredPhases === "both_phases" && !!a.phase2CompletedAt);
+          if (certMet && !a.activatedAt && !a.isActive) {
             apiRequest("/api/affiliate/activate-retry", { method: "POST" }).catch(() => {});
           }
-          setLocation("/business-center/affiliate/dashboard");
-          return;
-        }
-
-        if (acct.affiliateTrack) {
-          const path = acct.affiliateTrack === "business_affiliate"
-            ? "/business-center/affiliate/coaching"
-            : "/business-center/affiliate/social";
-          setLocation(path);
         }
       } catch {
-        // Non-blocking — show overview on error
+        setAcct(null);
       } finally {
-        setGateChecked(true);
+        setLoading(false);
       }
     })();
   }, []);
 
-  if (!gateChecked) {
+  async function handleDashboard() {
+    if (dashboardLoading) return;
+    setDashboardLoading(true);
+    try {
+      const data: any = await apiRequest("/api/affiliate/dashboard-link");
+      if (data?.url) {
+        window.open(data.url, "_blank", "noopener,noreferrer");
+      }
+    } catch {
+      setLocation("/business-center/affiliate/dashboard");
+    } finally {
+      setDashboardLoading(false);
+    }
+  }
+
+  function handleContinueAcademy() {
+    if (acct?.affiliateTrack === "social_affiliate") {
+      setLocation("/business-center/affiliate/social/certification");
+    } else {
+      setLocation("/business-center/affiliate/coaching/certification");
+    }
+  }
+
+  async function handleStartAcademy() {
+    try {
+      await apiRequest("/api/affiliate/register-track", {
+        method: "POST",
+        body: JSON.stringify({ track: "business_affiliate" }),
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch {
+      // Non-blocking — proceed to certification even if already registered
+    }
+    setLocation("/business-center/affiliate/coaching/certification");
+  }
+
+  const isActive = acct?.isActive || !!acct?.activatedAt;
+  const academyComplete = !!acct?.phase1CompletedAt;
+  const hasTrack = !!acct?.affiliateTrack;
+  const hasStartedJourney = hasTrack || academyComplete || isActive;
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin" />
@@ -187,14 +325,14 @@ export default function AffiliateProgramOverview() {
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
           <button
-            onClick={() => setLocation("/business-center")}
+            onClick={() => setLocation("/business-center/partners")}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
           >
             <ArrowLeft className="h-4 w-4" />
-            Business Suite
+            Partner Programs
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-base font-bold text-white">Affiliate Program</h1>
+            <h1 className="text-base font-bold text-white">Partner Program</h1>
             <p className="text-xs text-white/50">How it works — read before you apply</p>
           </div>
         </div>
@@ -204,6 +342,14 @@ export default function AffiliateProgramOverview() {
         className="px-4 max-w-2xl mx-auto space-y-4"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
       >
+        {/* Status Panel — always visible */}
+        <StatusPanel
+          acct={acct}
+          onDashboard={handleDashboard}
+          dashboardLoading={dashboardLoading}
+          onContinueAcademy={handleContinueAcademy}
+        />
+
         {/* Hero */}
         <motion.div
           className="text-center py-4 space-y-2"
@@ -211,7 +357,7 @@ export default function AffiliateProgramOverview() {
           animate={{ opacity: 1, y: 0 }}
         >
           <p className="text-xs text-orange-400 font-semibold uppercase tracking-widest">My Perfect Meals</p>
-          <h1 className="text-2xl font-black text-white leading-tight">Affiliate Program Overview</h1>
+          <h1 className="text-2xl font-black text-white leading-tight">Partner Program Overview</h1>
           <p className="text-sm text-gray-300 leading-relaxed max-w-sm mx-auto">
             Understand the economics before you activate. No surprises, no fine print buried at the end.
           </p>
@@ -406,76 +552,105 @@ export default function AffiliateProgramOverview() {
           </div>
         </Section>
 
-        {/* Before You Continue — acknowledgment gate */}
-        <motion.div
-          className="p-5 rounded-2xl bg-orange-500/20 border border-orange-500/30 space-y-4"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.26 }}
-        >
-          <h2 className="text-sm font-bold text-white">Before You Continue</h2>
-          <p className="text-xs text-gray-400 leading-relaxed">
-            Confirm that you have read and understood the following. All three are required.
-          </p>
+        {/* Bottom CTA — acknowledgments for new users, quick action for returning */}
+        {!hasStartedJourney ? (
+          <>
+            {/* Acknowledgment gate — new users only */}
+            <motion.div
+              className="p-5 rounded-2xl bg-orange-500/20 border border-orange-500/30 space-y-4"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.26 }}
+            >
+              <h2 className="text-sm font-bold text-white">Before You Continue</h2>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Confirm that you have read and understood the following. All three are required.
+              </p>
+              <div className="space-y-3">
+                {ACKNOWLEDGMENTS.map((text, i) => (
+                  <button
+                    key={i}
+                    onClick={() => toggle(i)}
+                    className="w-full flex items-start gap-3 p-3.5 rounded-xl border text-left active:scale-[0.99] transition-all duration-150"
+                    style={{
+                      borderColor: checked[i] ? "rgba(249,115,22,0.5)" : "rgba(255,255,255,0.1)",
+                      backgroundColor: checked[i] ? "rgba(249,115,22,0.10)" : "rgba(255,255,255,0.04)",
+                    }}
+                  >
+                    <div
+                      className="w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all duration-150"
+                      style={{
+                        borderColor: checked[i] ? "rgb(249,115,22)" : "rgba(255,255,255,0.2)",
+                        backgroundColor: checked[i] ? "rgb(249,115,22)" : "transparent",
+                      }}
+                    >
+                      {checked[i] && (
+                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 12 12">
+                          <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className={`text-xs leading-relaxed transition-colors duration-150 ${checked[i] ? "text-white" : "text-gray-400"}`}>
+                      {text}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
 
-          <div className="space-y-3">
-            {ACKNOWLEDGMENTS.map((text, i) => (
+            <motion.div
+              className="space-y-3 pt-2"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.30 }}
+            >
               <button
-                key={i}
-                onClick={() => toggle(i)}
-                className="w-full flex items-start gap-3 p-3.5 rounded-xl border text-left active:scale-[0.99] transition-all duration-150"
+                onClick={() => { if (allChecked) handleStartAcademy(); }}
+                disabled={!allChecked}
+                className="w-full p-4 rounded-2xl font-bold text-sm flex items-center justify-between transition-all duration-200 active:scale-[0.98]"
                 style={{
-                  borderColor: checked[i] ? "rgba(249,115,22,0.5)" : "rgba(255,255,255,0.1)",
-                  backgroundColor: checked[i] ? "rgba(249,115,22,0.10)" : "rgba(255,255,255,0.04)",
+                  backgroundColor: allChecked ? "rgb(234,88,12)" : "rgba(255,255,255,0.05)",
+                  color: allChecked ? "white" : "rgba(255,255,255,0.2)",
+                  cursor: allChecked ? "pointer" : "default",
                 }}
               >
-                <div
-                  className="w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all duration-150"
-                  style={{
-                    borderColor: checked[i] ? "rgb(249,115,22)" : "rgba(255,255,255,0.2)",
-                    backgroundColor: checked[i] ? "rgb(249,115,22)" : "transparent",
-                  }}
-                >
-                  {checked[i] && (
-                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 12 12">
-                      <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </div>
-                <span className={`text-xs leading-relaxed transition-colors duration-150 ${checked[i] ? "text-white" : "text-gray-400"}`}>
-                  {text}
-                </span>
+                <span>Begin Platform Certification</span>
+                <GraduationCap className="h-5 w-5" />
               </button>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* CTA */}
-        <motion.div
-          className="space-y-3 pt-2"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.30 }}
-        >
-          <button
-            onClick={() => { if (allChecked) setLocation("/business-center/affiliate/choose"); }}
-            disabled={!allChecked}
-            className="w-full p-4 rounded-2xl font-bold text-sm flex items-center justify-between transition-all duration-200 active:scale-[0.98]"
-            style={{
-              backgroundColor: allChecked ? "rgb(234,88,12)" : "rgba(255,255,255,0.05)",
-              color: allChecked ? "white" : "rgba(255,255,255,0.2)",
-              cursor: allChecked ? "pointer" : "default",
-            }}
+              {!allChecked && (
+                <p className="text-center text-xs text-gray-500 leading-relaxed">
+                  Confirm all three items above to continue.
+                </p>
+              )}
+            </motion.div>
+          </>
+        ) : (
+          /* Returning users — quick action footer */
+          <motion.div
+            className="pt-2 space-y-3"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.26 }}
           >
-            <span>Choose Your Affiliate Path</span>
-            <ChevronRight className="h-5 w-5" />
-          </button>
-          {!allChecked && (
-            <p className="text-center text-xs text-gray-500 leading-relaxed">
-              Confirm all three items above to continue.
-            </p>
-          )}
-        </motion.div>
+            {isActive || academyComplete ? (
+              <button
+                onClick={handleDashboard}
+                className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm flex items-center justify-between active:scale-[0.98] transition-all"
+              >
+                <span>Open Partner Dashboard</span>
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            ) : (
+              <button
+                onClick={handleContinueAcademy}
+                className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm flex items-center justify-between active:scale-[0.98] transition-all"
+              >
+                <span>Continue Your Academy</span>
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            )}
+          </motion.div>
+        )}
       </div>
     </motion.div>
   );

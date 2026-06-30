@@ -5,7 +5,7 @@ import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { userAffiliateAccounts } from "../db/schema/affiliateAccounts";
 import { users } from "../../shared/schema";
 import { checkBusinessAffiliateEligibility } from "../services/affiliateEligibility";
-import { getRewardfulMagicLink, getRewardfulAffiliate, getRewardfulAffiliateStatus } from "../services/rewardfulApi";
+import { getRewardfulMagicLink, getRewardfulAffiliate, getRewardfulAffiliateStatus, getRewardfulAffiliateByEmail } from "../services/rewardfulApi";
 import { sendAffiliateReferralInvite } from "../services/emailService";
 
 const router = Router();
@@ -170,8 +170,10 @@ router.get("/account", requireAuth, async (req, res) => {
   }
 });
 
-// ─── GET /api/affiliate/dashboard-link ────────────────────────────────────────
-router.get("/dashboard-link", requireAuth, async (req, res) => {
+// ─── GET /api/affiliate/dashboard ─────────────────────────────────────────────
+// Returns the full affiliate account record for the partner dashboard page.
+// Same data as /account but unwrapped (no nesting) to match AffiliateDashboard expectations.
+router.get("/dashboard", requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const [account] = await db
@@ -180,20 +182,135 @@ router.get("/dashboard-link", requireAuth, async (req, res) => {
       .where(eq(userAffiliateAccounts.userId, userId))
       .limit(1);
 
-    if (!account?.rewardfulAffiliateId) {
-      return res.status(404).json({ error: "No active affiliate account found" });
+    if (!account) return res.status(404).json({ error: "No affiliate account found" });
+
+    let phase1CompletedAt = account.phase1CompletedAt;
+    let phase2CompletedAt = account.phase2CompletedAt;
+
+    if (!phase1CompletedAt || !phase2CompletedAt) {
+      const { userCertifications } = await import("../db/schema/certifications");
+      const certs = await db
+        .select({ type: userCertifications.certificationType, completedAt: userCertifications.completedAt })
+        .from(userCertifications)
+        .where(eq(userCertifications.userId, String(userId)));
+
+      for (const cert of certs) {
+        if (!cert.completedAt) continue;
+        if (!phase1CompletedAt && cert.type === "affiliate_social") {
+          phase1CompletedAt = cert.completedAt;
+          db.update(userAffiliateAccounts)
+            .set({ phase1CompletedAt: cert.completedAt, updatedAt: new Date() })
+            .where(eq(userAffiliateAccounts.userId, userId))
+            .catch(() => {});
+        }
+        if (!phase2CompletedAt && (cert.type === "platform" || cert.type === "affiliate_coaching")) {
+          phase2CompletedAt = cert.completedAt;
+          db.update(userAffiliateAccounts)
+            .set({ phase2CompletedAt: cert.completedAt, updatedAt: new Date() })
+            .where(eq(userAffiliateAccounts.userId, userId))
+            .catch(() => {});
+        }
+      }
     }
 
-    if (account.rewardfulState !== "active") {
-      return res.status(403).json({ error: "Affiliate account is not active" });
+    let referralUrl = account.rewardfulReferralUrl;
+    let referralToken = account.rewardfulReferralToken;
+    if (account.rewardfulAffiliateId && !referralUrl) {
+      try {
+        const rewardfulAffiliate = await getRewardfulAffiliate(account.rewardfulAffiliateId);
+        const fetchedUrl = rewardfulAffiliate?.links?.[0]?.url ?? "";
+        const fetchedToken = rewardfulAffiliate?.links?.[0]?.token ?? "";
+        if (fetchedUrl) {
+          referralUrl = fetchedUrl;
+          referralToken = fetchedToken;
+          db.update(userAffiliateAccounts)
+            .set({ rewardfulReferralUrl: fetchedUrl, rewardfulReferralToken: fetchedToken, updatedAt: new Date() })
+            .where(eq(userAffiliateAccounts.userId, userId))
+            .catch(() => {});
+        }
+      } catch (e) {
+        console.warn("[Affiliate] dashboard auto-sync referral URL failed:", e);
+      }
     }
 
-    const magicLink = await getRewardfulMagicLink(account.rewardfulAffiliateId);
-    if (!magicLink) {
-      return res.status(502).json({ error: "Could not generate affiliate dashboard link" });
+    return res.json({
+      affiliateTrack: account.affiliateTrack,
+      requiredPhases: account.requiredPhases,
+      phase1CompletedAt,
+      phase2CompletedAt,
+      rewardfulState: account.rewardfulState,
+      rewardfulReferralUrl: referralUrl,
+      rewardfulReferralToken: referralToken,
+      activatedAt: account.activatedAt,
+      isActive: account.rewardfulState === "active",
+    });
+  } catch (err) {
+    console.error("[Affiliate] dashboard error:", err);
+    return res.status(500).json({ error: "Failed to fetch affiliate dashboard" });
+  }
+});
+
+// ─── GET /api/affiliate/dashboard-link ────────────────────────────────────────
+router.get("/dashboard-link", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser.id;
+    let [account] = await db
+      .select()
+      .from(userAffiliateAccounts)
+      .where(eq(userAffiliateAccounts.userId, userId))
+      .limit(1);
+
+    if (!account) {
+      return res.status(404).json({ error: "No affiliate account found" });
     }
 
-    return res.json({ url: magicLink });
+    // Auto-seed: if rewardfulAffiliateId is missing, look up by email from Rewardful
+    if (!account.rewardfulAffiliateId) {
+      const [userRow] = await db
+        .select({ email: users.email })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (userRow?.email) {
+        const rewardfulAffiliate = await getRewardfulAffiliateByEmail(userRow.email);
+        if (rewardfulAffiliate?.id) {
+          const seedFields: Record<string, unknown> = {
+            rewardfulAffiliateId: rewardfulAffiliate.id,
+            updatedAt: new Date(),
+          };
+          if (rewardfulAffiliate.state) seedFields.rewardfulState = rewardfulAffiliate.state;
+          if (rewardfulAffiliate.links?.[0]?.url && !account.rewardfulReferralUrl) {
+            seedFields.rewardfulReferralUrl = rewardfulAffiliate.links[0].url;
+          }
+          if (rewardfulAffiliate.links?.[0]?.token && !account.rewardfulReferralToken) {
+            seedFields.rewardfulReferralToken = rewardfulAffiliate.links[0].token;
+          }
+          await db.update(userAffiliateAccounts)
+            .set(seedFields as any)
+            .where(eq(userAffiliateAccounts.userId, userId));
+          account = { ...account, rewardfulAffiliateId: rewardfulAffiliate.id, rewardfulState: (rewardfulAffiliate.state ?? account.rewardfulState) };
+          console.log(`[Affiliate] dashboard-link: auto-seeded rewardfulAffiliateId=${rewardfulAffiliate.id} for userId=${userId}`);
+        }
+      }
+    }
+
+    if (!account.rewardfulAffiliateId) {
+      return res.status(404).json({ error: "No Rewardful affiliate account linked" });
+    }
+
+    // Try SSO magic link first; fall back to direct dashboard URL
+    let url: string | null = null;
+    try {
+      url = await getRewardfulMagicLink(account.rewardfulAffiliateId);
+    } catch {
+      // SSO failed — fall through to direct URL fallback
+    }
+    if (!url) {
+      url = `https://app.getrewardful.com/affiliates/${account.rewardfulAffiliateId}`;
+    }
+
+    return res.json({ url });
   } catch (err) {
     console.error("[Affiliate] dashboard-link error:", err);
     return res.status(500).json({ error: "Failed to generate dashboard link" });

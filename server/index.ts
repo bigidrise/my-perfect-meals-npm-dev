@@ -621,6 +621,8 @@ setTimeout(async () => {
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_protocol_config jsonb`);
     // Therapeutic Nutrition Intelligence — Sprint 4
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS therapeutic_support_context jsonb`);
+    // Professional Launchpad — Phase 2 ProCare training completion gate
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS procare_training_completed boolean NOT NULL DEFAULT false`);
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS cert_modules (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

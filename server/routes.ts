@@ -17,6 +17,7 @@ import { requirePremiumAccess } from "./middleware/requirePremiumAccess";
 import { requireEssentialAccess } from "./middleware/requireEssentialAccess";
 import { requireProAccess } from "./middleware/requireProAccess";
 import { requireClinicalAccess } from "./middleware/requireClinicalAccess";
+import { requirePhase1Cert } from "./middleware/requirePhase1Cert";
 import { requireMacroProfile } from "./middleware/requireMacroProfile";
 import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems, savedMeals as savedMealsTable, creators } from "@shared/schema";
 import { studioMemberships, studios } from "./db/schema/studio";
@@ -100,6 +101,7 @@ import biometricsRoutes from "./routes/biometricsRoutes";
 import builderPlansRoutes from "./routes/builderPlans";
 import careTeamRoutes from "./routes/careTeamRoutes";
 import procareRoutes from "./routes/procareRoutes";
+import procareTrainingRouter from "./routes/procareTrainingRoutes";
 import studioRoutes from "./routes/studioRoutes";
 import onboardingProgressRoutes from "./routes/onboardingProgress";
 import foundersRoutes from "./routes/foundersRoutes";
@@ -2281,6 +2283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         profilePhotoUrl: user.profilePhotoUrl || null,
         role: user.role || "client",
         isProCare: user.isProCare || false,
+        procareTrainingCompleted: user.procareTrainingCompleted || false,
         activeBoard: user.activeBoard || null,
         builderSwitchUnlimited: user.builderSwitchUnlimited || false,
         onboardingCompletedAt: user.onboardingCompletedAt?.toISOString() || null,
@@ -6888,14 +6891,15 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api/pro/workspace", requireAuth, workspaceRoutes);
 
   const proTabletRoutes = (await import("./routes/proTabletRoutes")).default;
-  app.use("/api/pro/tablet", requireAuth, proTabletRoutes);
+  app.use("/api/pro/tablet", requireAuth, requirePhase1Cert, proTabletRoutes);
 
   const clientTabletRoutes = (await import("./routes/clientTabletRoutes")).default;
   app.use("/api/client/tablet", requireAuth, clientTabletRoutes);
 
   app.use("/api/care-team", requireAuth, requirePremiumAccess, careTeamRoutes);
   app.use("/api/pro", requireAuth, requirePremiumAccess, procareRoutes);
-  app.use("/api/studios", requireAuth, requirePremiumAccess, studioRoutes);
+  app.use("/api/pro/training", requireAuth, procareTrainingRouter);
+  app.use("/api/studios", requireAuth, requirePremiumAccess, requirePhase1Cert, studioRoutes);
   const cycleProtocolRoutes = (await import("./routes/cycleProtocolRoutes")).default;
   app.use("/api", requireAuth, cycleProtocolRoutes);
   const legalRoutes = (await import("./routes/legalRoutes")).default;

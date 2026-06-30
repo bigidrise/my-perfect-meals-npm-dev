@@ -288,13 +288,12 @@ export default function ProCareWelcome() {
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
         <Button
           onClick={() => {
-            if (role === "trainer") setLocation("/care-team/trainer");
-            else if (role === "physician") setLocation("/care-team/physician");
+            if (role === "trainer" || role === "physician") setLocation("/pro-launchpad");
             else setLocation("/procare-identity");
           }}
           className="w-full h-14 text-md font-semibold rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
         >
-          {role ? "Enter Your Studio" : "Continue"}
+          {role ? "Go to Your Launchpad" : "Continue"}
           <ArrowRight className="w-5 h-5" />
         </Button>
       </div>
