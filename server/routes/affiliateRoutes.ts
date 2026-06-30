@@ -170,6 +170,86 @@ router.get("/account", requireAuth, async (req, res) => {
   }
 });
 
+// ─── GET /api/affiliate/dashboard ─────────────────────────────────────────────
+// Returns the full affiliate account record for the partner dashboard page.
+// Same data as /account but unwrapped (no nesting) to match AffiliateDashboard expectations.
+router.get("/dashboard", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser.id;
+    const [account] = await db
+      .select()
+      .from(userAffiliateAccounts)
+      .where(eq(userAffiliateAccounts.userId, userId))
+      .limit(1);
+
+    if (!account) return res.status(404).json({ error: "No affiliate account found" });
+
+    let phase1CompletedAt = account.phase1CompletedAt;
+    let phase2CompletedAt = account.phase2CompletedAt;
+
+    if (!phase1CompletedAt || !phase2CompletedAt) {
+      const { userCertifications } = await import("../db/schema/certifications");
+      const certs = await db
+        .select({ type: userCertifications.certificationType, completedAt: userCertifications.completedAt })
+        .from(userCertifications)
+        .where(eq(userCertifications.userId, String(userId)));
+
+      for (const cert of certs) {
+        if (!cert.completedAt) continue;
+        if (!phase1CompletedAt && cert.type === "affiliate_social") {
+          phase1CompletedAt = cert.completedAt;
+          db.update(userAffiliateAccounts)
+            .set({ phase1CompletedAt: cert.completedAt, updatedAt: new Date() })
+            .where(eq(userAffiliateAccounts.userId, userId))
+            .catch(() => {});
+        }
+        if (!phase2CompletedAt && (cert.type === "platform" || cert.type === "affiliate_coaching")) {
+          phase2CompletedAt = cert.completedAt;
+          db.update(userAffiliateAccounts)
+            .set({ phase2CompletedAt: cert.completedAt, updatedAt: new Date() })
+            .where(eq(userAffiliateAccounts.userId, userId))
+            .catch(() => {});
+        }
+      }
+    }
+
+    let referralUrl = account.rewardfulReferralUrl;
+    let referralToken = account.rewardfulReferralToken;
+    if (account.rewardfulAffiliateId && !referralUrl) {
+      try {
+        const rewardfulAffiliate = await getRewardfulAffiliate(account.rewardfulAffiliateId);
+        const fetchedUrl = rewardfulAffiliate?.links?.[0]?.url ?? "";
+        const fetchedToken = rewardfulAffiliate?.links?.[0]?.token ?? "";
+        if (fetchedUrl) {
+          referralUrl = fetchedUrl;
+          referralToken = fetchedToken;
+          db.update(userAffiliateAccounts)
+            .set({ rewardfulReferralUrl: fetchedUrl, rewardfulReferralToken: fetchedToken, updatedAt: new Date() })
+            .where(eq(userAffiliateAccounts.userId, userId))
+            .catch(() => {});
+        }
+      } catch (e) {
+        console.warn("[Affiliate] dashboard auto-sync referral URL failed:", e);
+      }
+    }
+
+    return res.json({
+      affiliateTrack: account.affiliateTrack,
+      requiredPhases: account.requiredPhases,
+      phase1CompletedAt,
+      phase2CompletedAt,
+      rewardfulState: account.rewardfulState,
+      rewardfulReferralUrl: referralUrl,
+      rewardfulReferralToken: referralToken,
+      activatedAt: account.activatedAt,
+      isActive: account.rewardfulState === "active",
+    });
+  } catch (err) {
+    console.error("[Affiliate] dashboard error:", err);
+    return res.status(500).json({ error: "Failed to fetch affiliate dashboard" });
+  }
+});
+
 // ─── GET /api/affiliate/dashboard-link ────────────────────────────────────────
 router.get("/dashboard-link", requireAuth, async (req, res) => {
   try {

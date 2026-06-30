@@ -262,8 +262,17 @@ export default function AffiliateProgramOverview() {
     }
   }
 
-  function handleStartAcademy() {
-    setLocation("/business-center/affiliate/choose");
+  async function handleStartAcademy() {
+    try {
+      await apiRequest("/api/affiliate/register-track", {
+        method: "POST",
+        body: JSON.stringify({ track: "business_affiliate" }),
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch {
+      // Non-blocking — proceed to certification even if already registered
+    }
+    setLocation("/business-center/affiliate/coaching/certification");
   }
 
   const isActive = acct?.isActive || !!acct?.activatedAt;

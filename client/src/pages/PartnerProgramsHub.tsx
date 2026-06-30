@@ -59,7 +59,7 @@ const programs = [
   },
   {
     id: "partner-program",
-    title: "Partner Program",
+    title: "Partner Program (Affiliate)",
     description:
       "Earn recurring commissions by referring subscribers to My Perfect Meals.",
     icon: TrendingUp,
