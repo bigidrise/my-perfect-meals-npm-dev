@@ -5,7 +5,7 @@ import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { userAffiliateAccounts } from "../db/schema/affiliateAccounts";
 import { users } from "../../shared/schema";
 import { checkBusinessAffiliateEligibility } from "../services/affiliateEligibility";
-import { getRewardfulMagicLink, getRewardfulAffiliate, getRewardfulAffiliateStatus } from "../services/rewardfulApi";
+import { getRewardfulMagicLink, getRewardfulAffiliate, getRewardfulAffiliateStatus, getRewardfulAffiliateByEmail } from "../services/rewardfulApi";
 import { sendAffiliateReferralInvite } from "../services/emailService";
 
 const router = Router();
@@ -254,26 +254,63 @@ router.get("/dashboard", requireAuth, async (req, res) => {
 router.get("/dashboard-link", requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
-    const [account] = await db
+    let [account] = await db
       .select()
       .from(userAffiliateAccounts)
       .where(eq(userAffiliateAccounts.userId, userId))
       .limit(1);
 
-    if (!account?.rewardfulAffiliateId) {
-      return res.status(404).json({ error: "No active affiliate account found" });
+    if (!account) {
+      return res.status(404).json({ error: "No affiliate account found" });
     }
 
-    if (account.rewardfulState !== "active") {
-      return res.status(403).json({ error: "Affiliate account is not active" });
+    // Auto-seed: if rewardfulAffiliateId is missing, look up by email from Rewardful
+    if (!account.rewardfulAffiliateId) {
+      const [userRow] = await db
+        .select({ email: users.email })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (userRow?.email) {
+        const rewardfulAffiliate = await getRewardfulAffiliateByEmail(userRow.email);
+        if (rewardfulAffiliate?.id) {
+          const seedFields: Record<string, unknown> = {
+            rewardfulAffiliateId: rewardfulAffiliate.id,
+            updatedAt: new Date(),
+          };
+          if (rewardfulAffiliate.state) seedFields.rewardfulState = rewardfulAffiliate.state;
+          if (rewardfulAffiliate.links?.[0]?.url && !account.rewardfulReferralUrl) {
+            seedFields.rewardfulReferralUrl = rewardfulAffiliate.links[0].url;
+          }
+          if (rewardfulAffiliate.links?.[0]?.token && !account.rewardfulReferralToken) {
+            seedFields.rewardfulReferralToken = rewardfulAffiliate.links[0].token;
+          }
+          await db.update(userAffiliateAccounts)
+            .set(seedFields as any)
+            .where(eq(userAffiliateAccounts.userId, userId));
+          account = { ...account, rewardfulAffiliateId: rewardfulAffiliate.id, rewardfulState: (rewardfulAffiliate.state ?? account.rewardfulState) };
+          console.log(`[Affiliate] dashboard-link: auto-seeded rewardfulAffiliateId=${rewardfulAffiliate.id} for userId=${userId}`);
+        }
+      }
     }
 
-    const magicLink = await getRewardfulMagicLink(account.rewardfulAffiliateId);
-    if (!magicLink) {
-      return res.status(502).json({ error: "Could not generate affiliate dashboard link" });
+    if (!account.rewardfulAffiliateId) {
+      return res.status(404).json({ error: "No Rewardful affiliate account linked" });
     }
 
-    return res.json({ url: magicLink });
+    // Try SSO magic link first; fall back to direct dashboard URL
+    let url: string | null = null;
+    try {
+      url = await getRewardfulMagicLink(account.rewardfulAffiliateId);
+    } catch {
+      // SSO failed — fall through to direct URL fallback
+    }
+    if (!url) {
+      url = `https://app.getrewardful.com/affiliates/${account.rewardfulAffiliateId}`;
+    }
+
+    return res.json({ url });
   } catch (err) {
     console.error("[Affiliate] dashboard-link error:", err);
     return res.status(500).json({ error: "Failed to generate dashboard link" });

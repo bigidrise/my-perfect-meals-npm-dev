@@ -118,10 +118,12 @@ interface AffiliateAccount {
 function StatusPanel({
   acct,
   onDashboard,
+  dashboardLoading = false,
   onContinueAcademy,
 }: {
   acct: AffiliateAccount | null;
   onDashboard: () => void;
+  dashboardLoading?: boolean;
   onContinueAcademy: () => void;
 }) {
   const isActive = acct?.isActive || !!acct?.activatedAt;
@@ -187,10 +189,20 @@ function StatusPanel({
       {(isActive || academyComplete) && (
         <button
           onClick={onDashboard}
-          className="w-full p-3 rounded-xl bg-orange-600 text-white text-sm font-bold flex items-center justify-between active:scale-[0.98] transition-all"
+          disabled={dashboardLoading}
+          className="w-full p-3 rounded-xl bg-orange-600 text-white text-sm font-bold flex items-center justify-between active:scale-[0.98] transition-all disabled:opacity-60"
         >
-          <span>Open Partner Dashboard</span>
-          <ChevronRight className="h-4 w-4" />
+          {dashboardLoading ? (
+            <>
+              <span>Opening Dashboard…</span>
+              <div className="h-4 w-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+            </>
+          ) : (
+            <>
+              <span>Open Partner Dashboard</span>
+              <ChevronRight className="h-4 w-4" />
+            </>
+          )}
         </button>
       )}
 
@@ -218,6 +230,7 @@ export default function AffiliateProgramOverview() {
   const [checked, setChecked] = useState<boolean[]>([false, false, false]);
   const [loading, setLoading] = useState(true);
   const [acct, setAcct] = useState<AffiliateAccount | null>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
 
   const allChecked = checked.every(Boolean);
 
@@ -250,8 +263,19 @@ export default function AffiliateProgramOverview() {
     })();
   }, []);
 
-  function handleDashboard() {
-    setLocation("/business-center/affiliate/dashboard");
+  async function handleDashboard() {
+    if (dashboardLoading) return;
+    setDashboardLoading(true);
+    try {
+      const data: any = await apiRequest("/api/affiliate/dashboard-link");
+      if (data?.url) {
+        window.open(data.url, "_blank", "noopener,noreferrer");
+      }
+    } catch {
+      setLocation("/business-center/affiliate/dashboard");
+    } finally {
+      setDashboardLoading(false);
+    }
   }
 
   function handleContinueAcademy() {
@@ -322,6 +346,7 @@ export default function AffiliateProgramOverview() {
         <StatusPanel
           acct={acct}
           onDashboard={handleDashboard}
+          dashboardLoading={dashboardLoading}
           onContinueAcademy={handleContinueAcademy}
         />
 
