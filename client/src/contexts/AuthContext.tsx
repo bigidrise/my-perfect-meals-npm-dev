@@ -77,6 +77,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           professionalRole: userData.professionalRole || null,
           procareEntryPath: userData.procareEntryPath || null,
           attestedAt: userData.attestedAt || null,
+          procareTrainingCompleted: userData.procareTrainingCompleted || false,
           age: userData.age || null,
           height: userData.height || null,
           weight: userData.weight || null,

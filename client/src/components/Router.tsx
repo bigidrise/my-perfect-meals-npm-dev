@@ -65,6 +65,17 @@ function AdminGuard({ component: Component }: { component: React.ComponentType }
   return <Component />;
 }
 
+function ProcareGate({ component: Component }: { component: React.ComponentType }) {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  if (!user) return null;
+  if (user.professionalRole && !user.procareTrainingCompleted) {
+    setLocation("/pro-launchpad");
+    return null;
+  }
+  return <Component />;
+}
+
 function BuilderAccessGuard({ builderKey, component: Component }: { builderKey: BuilderKey; component: React.ComponentType }) {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
@@ -184,6 +195,8 @@ import ProCareWelcome from "@/pages/procare/ProCareWelcome";
 import ProCareIdentity from "@/pages/procare/ProCareIdentity";
 import ProCareAttestation from "@/pages/procare/ProCareAttestation";
 import ProCareRewards from "@/pages/procare/ProCareRewards";
+import ProfessionalLaunchpad from "@/pages/ProfessionalLaunchpad";
+import ProcareTraining from "@/pages/ProcareTraining";
 // DELETED: CommunityTestPage, CommunityPage (no page component exists)
 
 // Additional component imports
@@ -359,6 +372,8 @@ const SafeTips = withPageErrorBoundary(TipsStrategiesPage, "Tips");
 const SafeCareTeam = withPageErrorBoundary(CareTeam, "Care Team");
 const SafePhysicianCareTeam = withPageErrorBoundary(PhysicianCareTeam, "Physician Care Team");
 const SafeTrainerCareTeam = withPageErrorBoundary(TrainerCareTeam, "Trainer Care Team");
+const SafeProfessionalLaunchpad = withPageErrorBoundary(ProfessionalLaunchpad, "Professional Launchpad");
+const SafeProcareTraining = withPageErrorBoundary(ProcareTraining, "ProCare Training");
 const SafeProPortal = withPageErrorBoundary(ProPortal, "Pro Portal");
 const SafeProClients = withPageErrorBoundary(ProClients, "Pro Clients");
 const SafeProClientsPhysician = withPageErrorBoundary(ProClientsPhysician, "Physician Clients");
@@ -476,6 +491,7 @@ export default function Router() {
     "/checkout/success",
     "/consumer-welcome", "/procare-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation",
     "/trainer-welcome", "/physician-welcome",
+    "/pro-launchpad", "/pro-training",
     "/procare-info", "/family-info", "/personal-guidance-info",
     "/privacy", "/privacy-policy", "/terms", "/delete-account",
     "/profile", "/settings",
@@ -579,6 +595,8 @@ export default function Router() {
         <Route path="/procare-welcome" component={ProCareWelcome} />
         <Route path="/trainer-welcome" component={ProCareWelcome} />
         <Route path="/physician-welcome" component={ProCareWelcome} />
+        <Route path="/pro-launchpad" component={SafeProfessionalLaunchpad} />
+        <Route path="/pro-training" component={SafeProcareTraining} />
         <Route path="/procare-identity" component={ProCareIdentity} />
         <Route path="/procare-rewards" component={ProCareRewards} />
         <Route path="/procare-attestation" component={ProCareAttestation} />
@@ -710,8 +728,8 @@ export default function Router() {
         <Route path="/tips" component={SafeTips} />
         <Route path="/pro/physician" component={PhysicianPortal} />
         <Route path="/care-team" component={SafeCareTeam} />
-        <Route path="/care-team/physician" component={SafePhysicianCareTeam} />
-        <Route path="/care-team/trainer" component={SafeTrainerCareTeam} />
+        <Route path="/care-team/physician" component={() => <ProcareGate component={SafePhysicianCareTeam} />} />
+        <Route path="/care-team/trainer" component={() => <ProcareGate component={SafeTrainerCareTeam} />} />
         <Route path="/pro-portal" component={SafeProPortal} />
         <Route path="/pro" component={() => { const [, go] = useLocation(); useEffect(() => { go("/pro-portal"); }, []); return null; }} />
         <Route path="/pro/clients" component={SafeProClients} />

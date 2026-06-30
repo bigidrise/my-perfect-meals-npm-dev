@@ -395,6 +395,7 @@ export const users = pgTable("users", {
   attestationText: text("attestation_text"), // version of attestation they agreed to
   attestedAt: timestamp("attested_at", { withTimezone: true }), // when attestation was accepted
   procareEntryPath: text("procare_entry_path").$type<"certified"|"experienced"|"non_certified">(), // which path they chose
+  procareTrainingCompleted: boolean("procare_training_completed").default(false), // true after Phase 2 ProCare training is done
   // Onboarding V2 - Medical conditions, builder recommendation, flavor preference
   medicalConditions: text("medical_conditions").array().default(sql`ARRAY[]::text[]`), // diabetes-type1, diabetes-type2, prediabetes, glp1, anti-inflammatory, none
   // Self-selected specialty health protocol — activates the appropriate clinical variant of the Anti-Inflammatory Builder
