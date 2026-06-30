@@ -1,4 +1,4 @@
-import React, { lazy, useEffect, useRef } from "react";
+import React, { lazy, useEffect, useRef, useState } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { BUILDER_MAP, type BuilderKey } from "@/lib/builderMap";
 import GeneralNutritionBuilder from "@/pages/pro/GeneralNutritionBuilder";
@@ -13,6 +13,7 @@ import StudioBottomNav from "@/components/pro/StudioBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { hasActivePaidSubscription, isProOrAbove, isClinicalOrAbove } from "@/lib/subscriptionCheck";
+import { apiRequest } from "@/lib/queryClient";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 
@@ -150,6 +151,45 @@ function ClinicalGuard({ component: Component }: { component: React.ComponentTyp
   return <Component />;
 }
 
+function ProCareStudioGuard({ component: Component }: { component: React.ComponentType }) {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  const [certChecked, setCertChecked] = useState(false);
+  const [certified, setCertified] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    if (!user.professionalRole) {
+      setCertified(true);
+      setCertChecked(true);
+      return;
+    }
+    apiRequest("/api/certifications/platform/progress")
+      .then((res: any) => {
+        const complete =
+          res?.certification?.status === "completed" && !!res?.certification?.completedAt;
+        if (!complete) {
+          sessionStorage.setItem(
+            "mpm.launchpad.redirectMsg",
+            "Complete Phase 1 Academy certification to access the ProCare Studio."
+          );
+          setLocation("/pro-launchpad");
+        } else {
+          setCertified(true);
+        }
+        setCertChecked(true);
+      })
+      .catch(() => {
+        setCertified(true);
+        setCertChecked(true);
+      });
+  }, [user?.id]);
+
+  if (!certChecked) return null;
+  if (!certified) return null;
+  return <Component />;
+}
+
 // Plan Builder Pages
 // DELETED: PlanBuilderTurbo, PlanBuilderHub, CompetitionBeachbodyBoard
 import Builders from "@/pages/Builders";
@@ -195,8 +235,7 @@ import ProCareWelcome from "@/pages/procare/ProCareWelcome";
 import ProCareIdentity from "@/pages/procare/ProCareIdentity";
 import ProCareAttestation from "@/pages/procare/ProCareAttestation";
 import ProCareRewards from "@/pages/procare/ProCareRewards";
-import ProfessionalLaunchpad from "@/pages/ProfessionalLaunchpad";
-import ProcareTraining from "@/pages/ProcareTraining";
+import ProLaunchpad from "@/pages/procare/ProLaunchpad";
 // DELETED: CommunityTestPage, CommunityPage (no page component exists)
 
 // Additional component imports
@@ -372,8 +411,6 @@ const SafeTips = withPageErrorBoundary(TipsStrategiesPage, "Tips");
 const SafeCareTeam = withPageErrorBoundary(CareTeam, "Care Team");
 const SafePhysicianCareTeam = withPageErrorBoundary(PhysicianCareTeam, "Physician Care Team");
 const SafeTrainerCareTeam = withPageErrorBoundary(TrainerCareTeam, "Trainer Care Team");
-const SafeProfessionalLaunchpad = withPageErrorBoundary(ProfessionalLaunchpad, "Professional Launchpad");
-const SafeProcareTraining = withPageErrorBoundary(ProcareTraining, "ProCare Training");
 const SafeProPortal = withPageErrorBoundary(ProPortal, "Pro Portal");
 const SafeProClients = withPageErrorBoundary(ProClients, "Pro Clients");
 const SafeProClientsPhysician = withPageErrorBoundary(ProClientsPhysician, "Physician Clients");
@@ -390,6 +427,15 @@ const SafeGLP1Hub = withPageErrorBoundary(GLP1Hub, "Metabolic Medication Hub");
 const SafeGLP1MealBuilder = withPageErrorBoundary(GLP1MealBuilder, "Metabolic Medication Builder");
 const SafeAntiInflammatoryMenuBuilder = withPageErrorBoundary(AntiInflammatoryMenuBuilder, "Anti-Inflammatory Menu Builder");
 
+const GuardedProPortal = () => <ProCareStudioGuard component={SafeProPortal} />;
+const GuardedProClients = () => <ProCareStudioGuard component={SafeProClients} />;
+const GuardedProClientsPhysician = () => <ProCareStudioGuard component={SafeProClientsPhysician} />;
+const GuardedWorkspaceShell = () => <ProCareStudioGuard component={SafeWorkspaceShell} />;
+const GuardedProClientDashboard = () => <ProCareStudioGuard component={SafeProClientDashboard} />;
+const GuardedProClientNutritionPlan = () => <ProCareStudioGuard component={SafeProClientNutritionPlan} />;
+const GuardedTrainerClientDashboard = () => <ProCareStudioGuard component={SafeTrainerClientDashboard} />;
+const GuardedClinicianClientDashboard = () => <ProCareStudioGuard component={SafeClinicianClientDashboard} />;
+const GuardedProBoardViewer = () => <ProCareStudioGuard component={SafeProBoardViewer} />;
 const GuardedWeeklyMealBoard = () => <BuilderAccessGuard builderKey="weekly" component={SafeWeeklyMealBoard} />;
 const GuardedShoppingList = () => <PaywallGuard component={SafeShoppingList} />;
 const GuardedBeachBodyBuilder = () => <BuilderAccessGuard builderKey="beach_body" component={BeachBodyMealBoard} />;
@@ -454,6 +500,7 @@ export default function Router() {
     "/procare-identity",
     "/procare-rewards",
     "/procare-attestation",
+    "/pro-launchpad",
     "/procare-info",
     "/family-info",
     "/personal-guidance-info",
@@ -489,9 +536,8 @@ export default function Router() {
     "/onboarding", "/onboarding-v2", "/onboarding/extended",
     "/pricing", "/paywall", "/apply-guidance",
     "/checkout/success",
-    "/consumer-welcome", "/procare-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation",
+    "/consumer-welcome", "/procare-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation", "/pro-launchpad",
     "/trainer-welcome", "/physician-welcome",
-    "/pro-launchpad", "/pro-training",
     "/procare-info", "/family-info", "/personal-guidance-info",
     "/privacy", "/privacy-policy", "/terms", "/delete-account",
     "/profile", "/settings",
@@ -595,11 +641,10 @@ export default function Router() {
         <Route path="/procare-welcome" component={ProCareWelcome} />
         <Route path="/trainer-welcome" component={ProCareWelcome} />
         <Route path="/physician-welcome" component={ProCareWelcome} />
-        <Route path="/pro-launchpad" component={SafeProfessionalLaunchpad} />
-        <Route path="/pro-training" component={SafeProcareTraining} />
         <Route path="/procare-identity" component={ProCareIdentity} />
         <Route path="/procare-rewards" component={ProCareRewards} />
         <Route path="/procare-attestation" component={ProCareAttestation} />
+        <Route path="/pro-launchpad" component={ProLaunchpad} />
         {/* DELETED: CommunityTestPage, CommunityPage routes */}
         <Route path="/onboarding" component={SafeOnboarding} />
         <Route path="/onboarding-v2" component={SafeOnboardingV2} />
@@ -730,17 +775,17 @@ export default function Router() {
         <Route path="/care-team" component={SafeCareTeam} />
         <Route path="/care-team/physician" component={() => <ProcareGate component={SafePhysicianCareTeam} />} />
         <Route path="/care-team/trainer" component={() => <ProcareGate component={SafeTrainerCareTeam} />} />
-        <Route path="/pro-portal" component={SafeProPortal} />
+        <Route path="/pro-portal" component={GuardedProPortal} />
         <Route path="/pro" component={() => { const [, go] = useLocation(); useEffect(() => { go("/pro-portal"); }, []); return null; }} />
-        <Route path="/pro/clients" component={SafeProClients} />
-        <Route path="/pro/physician-clients" component={SafeProClientsPhysician} />
-        <Route path="/pro/workspace/:clientId" component={SafeWorkspaceShell} />
-        <Route path="/pro/clients/:id" component={SafeProClientDashboard} />
-        <Route path="/pro/clients/:id/nutrition-life-plan" component={SafeProClientNutritionPlan} />
-        <Route path="/pro/clients/:id/trainer" component={SafeTrainerClientDashboard} />
-        <Route path="/pro/clients/:id/clinician" component={SafeClinicianClientDashboard} />
-        <Route path="/pro/clients/:clientId/board/:program" component={SafeProBoardViewer} />
-        <Route path="/pro-client-dashboard" component={SafeProClientDashboard} />
+        <Route path="/pro/clients" component={GuardedProClients} />
+        <Route path="/pro/physician-clients" component={GuardedProClientsPhysician} />
+        <Route path="/pro/workspace/:clientId" component={GuardedWorkspaceShell} />
+        <Route path="/pro/clients/:id" component={GuardedProClientDashboard} />
+        <Route path="/pro/clients/:id/nutrition-life-plan" component={GuardedProClientNutritionPlan} />
+        <Route path="/pro/clients/:id/trainer" component={GuardedTrainerClientDashboard} />
+        <Route path="/pro/clients/:id/clinician" component={GuardedClinicianClientDashboard} />
+        <Route path="/pro/clients/:clientId/board/:program" component={GuardedProBoardViewer} />
+        <Route path="/pro-client-dashboard" component={GuardedProClientDashboard} />
         <Route
           path="/performance-competition-builder"
           component={GuardedPerformanceBuilder}
