@@ -71,7 +71,7 @@ const pillars = [
     description:
       "Platform certification and professional development for everyone who represents My Perfect Meals",
     icon: GraduationCap,
-    route: "/business-center/affiliate",
+    route: "/business-center/academy",
     accent: "bg-orange-500/20",
     iconColor: "text-orange-400",
     borderAccent: "border-orange-500/20",
