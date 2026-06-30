@@ -100,6 +100,7 @@ import biometricsRoutes from "./routes/biometricsRoutes";
 import builderPlansRoutes from "./routes/builderPlans";
 import careTeamRoutes from "./routes/careTeamRoutes";
 import procareRoutes from "./routes/procareRoutes";
+import procareTrainingRouter from "./routes/procareTrainingRoutes";
 import studioRoutes from "./routes/studioRoutes";
 import onboardingProgressRoutes from "./routes/onboardingProgress";
 import foundersRoutes from "./routes/foundersRoutes";
@@ -2281,6 +2282,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         profilePhotoUrl: user.profilePhotoUrl || null,
         role: user.role || "client",
         isProCare: user.isProCare || false,
+        procareTrainingCompleted: user.procareTrainingCompleted || false,
         activeBoard: user.activeBoard || null,
         builderSwitchUnlimited: user.builderSwitchUnlimited || false,
         onboardingCompletedAt: user.onboardingCompletedAt?.toISOString() || null,
@@ -6895,6 +6897,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
 
   app.use("/api/care-team", requireAuth, requirePremiumAccess, careTeamRoutes);
   app.use("/api/pro", requireAuth, requirePremiumAccess, procareRoutes);
+  app.use("/api/pro/training", requireAuth, procareTrainingRouter);
   app.use("/api/studios", requireAuth, requirePremiumAccess, studioRoutes);
   const cycleProtocolRoutes = (await import("./routes/cycleProtocolRoutes")).default;
   app.use("/api", requireAuth, cycleProtocolRoutes);

@@ -111,6 +111,7 @@ export interface User {
   attestationText?: string | null;
   procareEntryPath?: string | null;
   attestedAt?: string | null;
+  procareTrainingCompleted?: boolean;
   studioMembership?: {
     studioId: string;
     studioName: string | null;
