@@ -187,14 +187,14 @@ export default function AffiliateProgramOverview() {
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
           <button
-            onClick={() => setLocation("/business-center")}
+            onClick={() => setLocation("/business-center/partners")}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
           >
             <ArrowLeft className="h-4 w-4" />
-            Business Suite
+            Partner Programs
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-base font-bold text-white">Affiliate Program</h1>
+            <h1 className="text-base font-bold text-white">Partner Program</h1>
             <p className="text-xs text-white/50">How it works — read before you apply</p>
           </div>
         </div>
@@ -211,7 +211,7 @@ export default function AffiliateProgramOverview() {
           animate={{ opacity: 1, y: 0 }}
         >
           <p className="text-xs text-orange-400 font-semibold uppercase tracking-widest">My Perfect Meals</p>
-          <h1 className="text-2xl font-black text-white leading-tight">Affiliate Program Overview</h1>
+          <h1 className="text-2xl font-black text-white leading-tight">Partner Program Overview</h1>
           <p className="text-sm text-gray-300 leading-relaxed max-w-sm mx-auto">
             Understand the economics before you activate. No surprises, no fine print buried at the end.
           </p>
