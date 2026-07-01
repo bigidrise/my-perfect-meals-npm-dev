@@ -66,16 +66,6 @@ function AdminGuard({ component: Component }: { component: React.ComponentType }
   return <Component />;
 }
 
-function ProcareGate({ component: Component }: { component: React.ComponentType }) {
-  const { user } = useAuth();
-  const [, setLocation] = useLocation();
-  if (!user) return null;
-  if (user.professionalRole && user.phase2GateEnabled && !user.procareTrainingCompleted) {
-    setLocation("/pro-launchpad");
-    return null;
-  }
-  return <Component />;
-}
 
 function BuilderAccessGuard({ builderKey, component: Component }: { builderKey: BuilderKey; component: React.ComponentType }) {
   const { user } = useAuth();

@@ -9,6 +9,7 @@ import { requireActiveAccess } from '../middleware/requireActiveAccess';
 import { getAuthUserId } from '../utils/getAuthUserId';
 import { users } from '../../shared/schema';
 import { companionProfiles } from '../db/schema/companionProfiles';
+import { logAudit, getClientIp } from '../lib/auditLog';
 
 const router = express.Router();
 
@@ -50,6 +51,7 @@ router.post('/ingest', requireAuth, async (req, res) => {
       await db.insert(biometricSample).values(rows);
     }
 
+    logAudit({ actor: String(userId), action: "WRITE", resourceType: "biometric_sample", table: "biometric_sample", route: req.path, ip: getClientIp(req as any), meta: { count: rows.length, types: [...new Set(filteredSamples.map(s => s.type))].join(",") } });
     res.status(201).json({ 
       inserted: rows.length,
       filtered: body.samples.length - filteredSamples.length,
@@ -323,6 +325,7 @@ router.post('/weight', requireAuth, async (req, res) => {
       return sampleResult;
     });
 
+    logAudit({ actor: String(userId), action: "WRITE", resourceType: "biometric_weight", table: "biometric_sample", resourceId: result.id, route: req.path, ip: getClientIp(req as any), meta: { unit, updated: result.updated } });
     console.log(`[biometrics] Weight saved for user ${userId}`);
 
     return res.json({ 

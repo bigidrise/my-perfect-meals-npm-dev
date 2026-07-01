@@ -5,6 +5,7 @@ import { glucoseLogs } from "../../shared/diabetes-schema";
 import { and, eq, gte, lte, desc } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
+import { logAudit, getClientIp } from "../lib/auditLog";
 
 const router = Router();
 
@@ -87,6 +88,7 @@ router.post("/api/users/:userId/glucose-logs", requireAuth, async (req, res) => 
       recordedAt: new Date(),
     }).returning();
 
+    logAudit({ actor: userId, action: "WRITE", resourceType: "glucose_log", table: "glucose_logs", resourceId: newLog.id, route: req.path, ip: getClientIp(req as any), meta: { context: data.context } });
     res.json(newLog);
   } catch (error) {
     console.error("Error creating glucose log:", error);

@@ -224,6 +224,16 @@ app.use("/api/stripe/webhook", express.raw({ type: "application/json" }), stripe
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: false }));
 
+// ─── SECURITY: SESSION_SECRET must be set — never fall back to a default ──────
+if (!process.env.SESSION_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('🚨 FATAL: SESSION_SECRET is not set. Refusing to start in production with a default secret.');
+    process.exit(1);
+  } else {
+    console.warn('⚠️  SESSION_SECRET not set — using insecure dev default. Set SESSION_SECRET before deploying.');
+  }
+}
+
 // Session middleware for authentication
 app.use(session({
   secret: process.env.SESSION_SECRET || 'mpm-session-secret-dev-only',

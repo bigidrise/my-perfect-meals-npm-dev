@@ -286,6 +286,41 @@ router.post("/repair-image-cache", async (req, res) => {
   }
 });
 
+router.get("/grandfather-migration-status", async (req, res) => {
+  try {
+    // One row per user — matches the grandfather migration's unique-user semantics.
+    // DISTINCT ON picks the earliest qualifying cert per user (ORDER BY u.id, uc.completed_at ASC).
+    const rows = await db.execute(sql`
+      SELECT DISTINCT ON (u.id)
+        u.id,
+        u.email,
+        u.username,
+        u.professional_role AS "professionalRole",
+        u.procare_training_completed AS "procareTrainingCompleted",
+        uc.certification_type AS "certificationType",
+        uc.completed_at AS "certCompletedAt"
+      FROM users u
+      JOIN user_certifications uc ON uc.user_id = u.id
+      WHERE
+        u.procare_training_completed = true
+        AND u.professional_role IS NOT NULL
+        AND uc.certification_type IN ('platform', 'affiliate_coaching')
+        AND uc.completed_at IS NOT NULL
+        AND uc.completed_at < '2026-07-01T00:00:00Z'
+      ORDER BY u.id, uc.completed_at ASC
+    `);
+    const professionals = (rows as any).rows ?? (Array.isArray(rows) ? rows : []);
+    return res.json({
+      ok: true,
+      count: professionals.length,
+      professionals,
+    });
+  } catch (err: any) {
+    console.error("[admin/grandfather-migration-status] error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 router.post("/run-grandfather-migration", async (req, res) => {
   const actor = (req as AuthenticatedRequest).authUser;
   try {
