@@ -27,6 +27,7 @@ type AdminUser = {
   isTester: boolean | null;
   isFounder: boolean | null;
   isProCare: boolean | null;
+  procareTrainingCompleted: boolean | null;
   onboardingCompletedAt: string | null;
   safetyPinHash: string | null;
   safetyPinSetAt: string | null;
@@ -166,6 +167,7 @@ function UserDetail({ user, onAction }: { user: AdminUser; onAction: (label: str
     ["Tester", <StatusPill value={user.isTester} />],
     ["Founder", <StatusPill value={user.isFounder} />],
     ["ProCare", <StatusPill value={user.isProCare} />],
+    ["ProCare Training", <StatusPill value={user.procareTrainingCompleted} />],
     ["Onboarding", <StatusPill value={user.onboardingCompletedAt} />],
     ["Macros Defined", <StatusPill value={user.macrosDefined} />],
     ["Safety PIN Set", <StatusPill value={user.safetyPinHash} />],
