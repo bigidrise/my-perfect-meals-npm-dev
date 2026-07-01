@@ -700,6 +700,25 @@ setTimeout(async () => {
         user_agent text
       )
     `);
+    // Grandfather existing certified professionals — Phase 2 gate protection
+    // Sets procare_training_completed=true for professionals who completed Phase 1
+    // BEFORE Phase 2 training existed (cutoff: 2026-07-01).
+    // Idempotent: only touches rows still at the default false.
+    // The completed_at cutoff prevents this from auto-whitelisting future professionals
+    // who complete Phase 1 after Phase 2 launches — they must complete Phase 2 themselves.
+    await db.execute(sql`
+      UPDATE users
+      SET procare_training_completed = true
+      WHERE
+        professional_role IS NOT NULL
+        AND procare_training_completed = false
+        AND id IN (
+          SELECT user_id FROM user_certifications
+          WHERE certification_type IN ('platform', 'affiliate_coaching')
+            AND completed_at IS NOT NULL
+            AND completed_at < '2026-07-01T00:00:00Z'
+        )
+    `);
     console.log('✅ LMS + white label boot migrations complete');
   } catch (err: any) {
     console.error('❌ LMS boot migrations failed:', err.message);

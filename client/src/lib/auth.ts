@@ -112,6 +112,7 @@ export interface User {
   procareEntryPath?: string | null;
   attestedAt?: string | null;
   procareTrainingCompleted?: boolean;
+  phase2GateEnabled?: boolean;
   studioMembership?: {
     studioId: string;
     studioName: string | null;

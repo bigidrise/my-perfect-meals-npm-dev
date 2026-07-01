@@ -9,6 +9,7 @@ MyPerfectMeals is a full-stack TypeScript application providing AI-powered meal 
 - `ONCOLOGY_SUPPORT_V1` (default: active, set to "off" to disable)
 - `MACRO_AUDIT` (set to `true` for macro debug logging)
 - `BILLING_ENFORCED` — set to `"true"` to activate real paywalls. While unset/false, everyone gets PAID_FULL (pre-launch mode). This is the master launch switch — no code deploy needed.
+- `PHASE2_GATE_ENABLED` — set to `"true"` to enforce the Phase 2 ProCare Training gate on the server and client. While unset/false, all professionals pass through freely. Flip to `"true"` only after Phase 2 content ships AND the grandfather migration has run (the migration is idempotent and runs automatically on every boot).
 - `MPM_TESTER_EMAILS` — comma-separated list of emails that get `isTester=true` on signup. Empty = no testers (post-launch default).
 - ~~`TESTER_PROGRAM_ACTIVE`~~ — **REPLACED** by `BILLING_ENFORCED` + `MPM_TESTER_EMAILS`. Do not use.
 
