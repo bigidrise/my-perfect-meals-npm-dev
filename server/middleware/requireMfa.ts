@@ -8,12 +8,17 @@
  *     blocked and must set up MFA before accessing clinical tools.
  *
  * Both checks are skipped for non-clinical roles (client).
+ *
+ * SECURITY — FAIL CLOSED: A DB error must never silently pass clinical access
+ * through. If the MFA check cannot complete, this middleware returns 503 so the
+ * caller knows the auth service is temporarily unavailable rather than bypassed.
  */
 
 import { Request, Response, NextFunction } from "express";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { logAudit, getClientIp } from "../lib/auditLog";
 import type { AuthenticatedRequest } from "./requireAuth";
 
 const CLINICAL_ROLES = new Set(["coach", "admin"]);
@@ -58,7 +63,22 @@ export async function requireMfa(
 
     next();
   } catch (err) {
-    console.error("[requireMfa] DB lookup error:", err);
-    next(); // fail-open to avoid blocking on transient DB errors
+    // FAIL CLOSED — never call next() when identity cannot be verified.
+    // Log the failure and return 503 so the caller retries rather than proceeds.
+    process.stderr.write(
+      `[requireMfa] DB error — failing CLOSED for user ${userId}: ${(err as any)?.message ?? String(err)}\n`
+    );
+    logAudit({
+      actor: userId,
+      action: "MFA_CHALLENGE_FAILED",
+      resourceType: "auth",
+      route: req.path,
+      ip: getClientIp(req as any),
+      meta: { reason: "mfa_db_error", failClosed: true },
+    });
+    res.status(503).json({
+      error: "Authentication service temporarily unavailable. Please try again.",
+      code: "MFA_SERVICE_UNAVAILABLE",
+    });
   }
 }

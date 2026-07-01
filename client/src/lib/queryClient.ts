@@ -4,18 +4,26 @@ import { apiUrl } from "./resolveApiBase";
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     let message = res.statusText;
+    let code: string | undefined;
 
     try {
       const data = await res.clone().json();
       if (data?.error) message = data.error;
       else if (data?.message) message = data.message;
       else message = JSON.stringify(data);
+      code = data?.code;
     } catch {
       try {
         const text = await res.clone().text();
         if (text && !text.startsWith("<")) message = text;
       } catch {
       }
+    }
+
+    // If the server enforced an idle timeout, signal the IdleTimeoutModal to
+    // sign the user out cleanly rather than leaving the app in a broken state.
+    if (res.status === 401 && code === "SESSION_IDLE_TIMEOUT") {
+      window.dispatchEvent(new CustomEvent("mpm:session-idle-timeout"));
     }
 
     throw new Error(`${res.status}: ${message}`);

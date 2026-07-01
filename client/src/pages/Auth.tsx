@@ -15,6 +15,7 @@ export default function Auth() {
   const isProCare = useMemo(() => new URLSearchParams(search).get("procare") === "true", [search]);
   const urlMode = useMemo(() => new URLSearchParams(search).get("mode"), [search]);
   const urlRole = useMemo(() => new URLSearchParams(search).get("role") as "trainer" | "physician" | null, [search]);
+  const isIdleTimeout = useMemo(() => new URLSearchParams(search).get("reason") === "idle_timeout", [search]);
   const [mode, setMode] = useState<"signup" | "login">(
     isProCare || urlRole ? "signup" : urlMode === "signup" ? "signup" : "login"
   );
@@ -140,6 +141,17 @@ export default function Auth() {
                       bg-black/25 backdrop-blur-xl border border-white/10 shadow-xl">
         <span className="absolute inset-0 -z-0 pointer-events-none rounded-2xl
                          bg-gradient-to-br from-white/10 via-transparent to-transparent" />
+
+        {isIdleTimeout && (
+          <div className="relative z-10 mb-4 flex items-start gap-2 rounded-xl bg-orange-600/15 border border-orange-500/30 px-3 py-2.5">
+            <svg className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-xs text-orange-200">
+              You were signed out after a period of inactivity. Please sign in again to continue.
+            </p>
+          </div>
+        )}
 
         {(isProCare || urlRole) && mode === "signup" && (
           <div className="relative z-10 mb-4 flex justify-center">

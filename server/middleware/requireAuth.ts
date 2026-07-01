@@ -5,6 +5,18 @@ import { eq } from "drizzle-orm";
 import { resolveAccessTier, getTrialDaysRemaining, type AccessTier } from "../lib/accessTier";
 import { loadOrgContext } from "../lib/orgContext";
 
+// ── Idle session timeout thresholds ───────────────────────────────────────────
+// Clinical roles (coach, admin) require a shorter timeout to meet HIPAA
+// §164.312(a)(2)(iii) automatic logoff requirements.
+// Token-based (mobile) auth is exempt — these timeouts only apply to
+// browser sessions where an unattended workstation is a real threat.
+const IDLE_TIMEOUT_MS: Record<string, number> = {
+  coach: 15 * 60 * 1000,  // 15 minutes
+  admin: 15 * 60 * 1000,  // 15 minutes
+  client: 60 * 60 * 1000, // 60 minutes
+};
+const IDLE_TIMEOUT_FALLBACK_MS = 60 * 60 * 1000; // 60 minutes for unknown roles
+
 export interface AuthenticatedUser {
   id: string;
   email: string;
@@ -71,6 +83,9 @@ export async function requireAuth(
   const sessionUser = (req as any).session?.userId;
 
   if (token) {
+    // ── Token-based auth (mobile / native) ────────────────────────────────────
+    // Idle timeout is NOT applied here — mobile OS handles app lifecycle and
+    // the auth token has its own revocation path.
     try {
       const [user] = await db
         .select()
@@ -90,6 +105,7 @@ export async function requireAuth(
       console.error(`[requireAuth] 401 db_error (token lookup) — route: ${route}`, error);
     }
   } else if (sessionUser) {
+    // ── Session-based auth (browser) ──────────────────────────────────────────
     try {
       const [user] = await db
         .select()
@@ -98,6 +114,28 @@ export async function requireAuth(
         .limit(1);
 
       if (user) {
+        // ── Idle session timeout (HIPAA §164.312(a)(2)(iii)) ──────────────────
+        const role = (user.role as string) ?? "client";
+        const idleThreshold = IDLE_TIMEOUT_MS[role] ?? IDLE_TIMEOUT_FALLBACK_MS;
+        const lastActive = (req as any).session?.lastActiveAt as number | undefined;
+        const now = Date.now();
+
+        if (lastActive && now - lastActive > idleThreshold) {
+          // Destroy the session before responding so it cannot be reused
+          (req as any).session.destroy?.(() => {});
+          res.status(401).json({
+            error: "Your session has expired due to inactivity. Please sign in again.",
+            code: "SESSION_IDLE_TIMEOUT",
+          });
+          return;
+        }
+
+        // Stamp last-active time so subsequent requests can measure idle gap
+        if ((req as any).session) {
+          (req as any).session.lastActiveAt = now;
+        }
+        // ── End idle timeout ──────────────────────────────────────────────────
+
         (req as AuthenticatedRequest).authUser = buildAuthUser(user);
         (req as any).orgContext = await loadOrgContext(user.organizationId ?? null);
         return next();

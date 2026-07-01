@@ -34,6 +34,7 @@ import { Capacitor } from "@capacitor/core";
 import { VoiceProvider } from "@/voice/VoiceProvider";
 import { UpdateProvider, useUpdateState } from "@/contexts/UpdateContext";
 import { UpdateBanner } from "@/components/UpdateBanner";
+import { IdleTimeoutModal } from "@/components/IdleTimeoutModal";
 
 // Initialize native demo mode BEFORE React renders (for iOS preview recording)
 initNativeDemoMode();
@@ -203,6 +204,7 @@ export default function App() {
                 <AvatarSelector />
                 <ChefVoiceAssistant />
                 <VoiceConcierge />
+                <IdleTimeoutModal />
                 <Toaster />
               </ProClientProvider>
               </UpgradeModalProvider>

@@ -27,6 +27,7 @@ const SAFE_USER_FIELDS = {
   isTester: users.isTester,
   isFounder: users.isFounder,
   isProCare: users.isProCare,
+  procareTrainingCompleted: users.procareTrainingCompleted,
   onboardingCompletedAt: users.onboardingCompletedAt,
   safetyPinHash: users.safetyPinHash,
   safetyPinSetAt: users.safetyPinSetAt,
