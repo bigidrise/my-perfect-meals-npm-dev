@@ -18,6 +18,7 @@ import { requireEssentialAccess } from "./middleware/requireEssentialAccess";
 import { requireProAccess } from "./middleware/requireProAccess";
 import { requireClinicalAccess } from "./middleware/requireClinicalAccess";
 import { requirePhase1Cert } from "./middleware/requirePhase1Cert";
+import { requirePhase2Training } from "./middleware/requirePhase2Training";
 import { requireMacroProfile } from "./middleware/requireMacroProfile";
 import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems, savedMeals as savedMealsTable, creators } from "@shared/schema";
 import { studioMemberships, studios } from "./db/schema/studio";
@@ -6891,7 +6892,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api/pro/workspace", requireAuth, workspaceRoutes);
 
   const proTabletRoutes = (await import("./routes/proTabletRoutes")).default;
-  app.use("/api/pro/tablet", requireAuth, requirePhase1Cert, proTabletRoutes);
+  app.use("/api/pro/tablet", requireAuth, requirePhase1Cert, requirePhase2Training, proTabletRoutes);
 
   const clientTabletRoutes = (await import("./routes/clientTabletRoutes")).default;
   app.use("/api/client/tablet", requireAuth, clientTabletRoutes);
@@ -6899,7 +6900,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api/care-team", requireAuth, requirePremiumAccess, careTeamRoutes);
   app.use("/api/pro", requireAuth, requirePremiumAccess, procareRoutes);
   app.use("/api/pro/training", requireAuth, procareTrainingRouter);
-  app.use("/api/studios", requireAuth, requirePremiumAccess, requirePhase1Cert, studioRoutes);
+  app.use("/api/studios", requireAuth, requirePremiumAccess, requirePhase1Cert, requirePhase2Training, studioRoutes);
   const cycleProtocolRoutes = (await import("./routes/cycleProtocolRoutes")).default;
   app.use("/api", requireAuth, cycleProtocolRoutes);
   const legalRoutes = (await import("./routes/legalRoutes")).default;

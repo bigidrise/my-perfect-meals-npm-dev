@@ -171,14 +171,22 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
       }
       apiRequest("/api/certifications/platform/progress")
         .then((res: any) => {
-          const complete =
+          const phase1Complete =
             res?.certification?.status === "completed" && !!res?.certification?.completedAt;
-          if (!complete) {
+          if (!phase1Complete) {
             sessionStorage.setItem(
               "mpm.launchpad.redirectMsg",
               isInitial
                 ? "Complete Phase 1 Academy certification to access the ProCare Studio."
                 : "Your ProCare Studio access has been revoked. Please contact support."
+            );
+            setCertified(false);
+            certifiedRef.current = false;
+            setLocation("/pro-launchpad");
+          } else if (!user?.procareTrainingCompleted) {
+            sessionStorage.setItem(
+              "mpm.launchpad.redirectMsg",
+              "Complete Phase 2 ProCare Training to access the ProCare Studio."
             );
             setCertified(false);
             certifiedRef.current = false;
@@ -193,7 +201,7 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
           if (isInitial) {
             sessionStorage.setItem(
               "mpm.launchpad.redirectMsg",
-              "Unable to verify Academy certification. Please try again."
+              "Unable to verify certifications. Please try again."
             );
             setCertified(false);
             certifiedRef.current = false;
@@ -203,7 +211,7 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
           // On polling errors, keep current state — don't kick out on transient failures
         });
     },
-    [user?.id]
+    [user?.id, user?.procareTrainingCompleted]
   );
 
   // Initial check on mount / user change
