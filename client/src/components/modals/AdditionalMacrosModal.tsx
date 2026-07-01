@@ -89,14 +89,14 @@ export default function AdditionalMacrosModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="bg-neutral-900 border border-white/20 text-white max-w-md mx-auto">
-        <DialogHeader>
+      <DialogContent className="bg-neutral-900 border border-white/20 text-white max-w-md mx-auto max-h-[90svh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-xl font-semibold text-center">
             Quick Add Protein/Carbs
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 pt-2">
+        <div className="space-y-4 pt-2 overflow-y-auto flex-1">
           <p className="text-sm text-white/70 text-center">
             Need more protein or carbs? Enter the amount you want and pick a source.
           </p>
