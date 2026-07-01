@@ -28,15 +28,20 @@ import { db } from "../db";
 import { auditLog } from "../db/schema/auditLog";
 
 export type AuditAction =
-  | "READ"          // T1 field read by a non-owner (coach, physician)
-  | "WRITE"         // T1/T2 field created or updated
-  | "DELETE"        // T1/T2 record deleted
-  | "AUTH_LOGIN"    // Successful authentication
-  | "AUTH_LOGOUT"   // Session invalidated
-  | "AUTH_SIGNUP"   // New account created
-  | "AUTH_RESET"    // Password reset initiated or completed
-  | "ORG_VIOLATION" // Cross-org access attempt (blocked)
-  | "AI_PROMPT_PHI"; // T1/T2 health fields embedded into an AI prompt context
+  | "READ"                  // T1 field read by a non-owner (coach, physician)
+  | "WRITE"                 // T1/T2 field created or updated
+  | "DELETE"                // T1/T2 record deleted
+  | "AUTH_LOGIN"            // Successful authentication
+  | "AUTH_LOGOUT"           // Session invalidated
+  | "AUTH_SIGNUP"           // New account created
+  | "AUTH_FAILED_LOGIN"     // Failed authentication attempt (bad password or user not found)
+  | "AUTH_LOCKOUT"          // Account locked after repeated failed attempts
+  | "AUTH_RESET_REQUESTED"  // Password reset token generated and emailed
+  | "AUTH_RESET_COMPLETED"  // Password successfully changed via reset token
+  | "AUTH_ACCOUNT_DELETED"  // Account permanently deleted
+  | "AUTH_RESET"            // Legacy: password reset initiated or completed (kept for existing rows)
+  | "ORG_VIOLATION"         // Cross-org access attempt (blocked)
+  | "AI_PROMPT_PHI";        // T1/T2 health fields embedded into an AI prompt context
 
 export interface AuditEntry {
   actor: string;               // actorUserId — the authenticated caller

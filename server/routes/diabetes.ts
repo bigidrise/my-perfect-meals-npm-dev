@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
 import { enforceAssignedBuilder } from "../middleware/studioAccess";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
+import { logAudit, getClientIp } from "../lib/auditLog";
 
 export const diabetesRouter = Router();
 
@@ -62,6 +63,7 @@ diabetesRouter.put("/profile", async (req, res) => {
         guardrails,
       });
     }
+    logAudit({ actor: userId, action: "WRITE", resourceType: "diabetes_profile", table: "diabetes_profile", route: req.path, ip: getClientIp(req as any), meta: { isUpdate: !!existing } });
     res.json({ ok: true });
   } catch (e) {
     console.error("[Diabetes] PUT /profile error:", e);
@@ -115,6 +117,7 @@ diabetesRouter.post("/glucose", async (req, res) => {
       })
       .returning();
 
+    logAudit({ actor: userId, action: "WRITE", resourceType: "glucose_log", table: "glucose_logs", resourceId: row[0]?.id, route: req.path, ip: getClientIp(req as any), meta: { context } });
     if (valueMgdl < 54) return res.status(201).json({ ok: true, row: row[0], alert: "LOW_CRITICAL" });
     if (valueMgdl > 400) return res.status(201).json({ ok: true, row: row[0], alert: "HIGH_CRITICAL" });
 

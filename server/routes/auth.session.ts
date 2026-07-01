@@ -16,6 +16,63 @@ function generateAuthToken(): string {
   return crypto.randomBytes(32).toString("hex");
 }
 
+// ─── Account lockout (in-memory, resets on server restart) ───────────────────
+// Protects against brute-force credential stuffing.
+// Using email as key so unauthenticated callers can't enumerate by userId.
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+interface LockoutEntry { count: number; lockedUntil: number | null }
+const loginAttempts = new Map<string, LockoutEntry>();
+
+function getLockoutEntry(email: string): LockoutEntry {
+  return loginAttempts.get(email) ?? { count: 0, lockedUntil: null };
+}
+
+function isLockedOut(email: string): boolean {
+  const entry = getLockoutEntry(email);
+  if (!entry.lockedUntil) return false;
+  if (Date.now() < entry.lockedUntil) return true;
+  loginAttempts.delete(email);
+  return false;
+}
+
+function recordFailedAttempt(email: string): { locked: boolean } {
+  const entry = getLockoutEntry(email);
+  const count = entry.count + 1;
+  if (count >= MAX_LOGIN_ATTEMPTS) {
+    loginAttempts.set(email, { count, lockedUntil: Date.now() + LOCKOUT_DURATION_MS });
+    return { locked: true };
+  }
+  loginAttempts.set(email, { count, lockedUntil: null });
+  return { locked: false };
+}
+
+function clearLockout(email: string): void {
+  loginAttempts.delete(email);
+}
+
+// ─── Password policy (NIST SP 800-63B aligned) ───────────────────────────────
+const MIN_PASSWORD_LENGTH = 12;
+const MAX_PASSWORD_LENGTH = 128;
+
+function validatePassword(password: string): string | null {
+  if (typeof password !== "string") return "Password must be a string";
+  if (password.length < MIN_PASSWORD_LENGTH) return `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
+  if (password.length > MAX_PASSWORD_LENGTH) return `Password must be at most ${MAX_PASSWORD_LENGTH} characters`;
+  return null;
+}
+
+// Common/compromised passwords block-list (basic subset — extend as needed)
+const COMMON_PASSWORDS = new Set([
+  "password123456", "qwerty123456789", "123456789012", "iloveyou123456",
+  "password1234567", "admin12345678", "welcome12345678", "monkey12345678",
+]);
+
+function isCommonPassword(password: string): boolean {
+  return COMMON_PASSWORDS.has(password.toLowerCase());
+}
+
 function isTesterEmail(email: string): boolean {
   // Allowlist-based: only explicit emails get isTester=true at signup.
   // Set MPM_TESTER_EMAILS as a comma-separated list in env.
@@ -40,9 +97,9 @@ router.post("/api/auth/signup", async (req, res) => {
       return res.status(400).json({ error: "Email and password are required" });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ error: "Password must be at least 6 characters" });
-    }
+    const pwError = validatePassword(password);
+    if (pwError) return res.status(400).json({ error: pwError });
+    if (isCommonPassword(password)) return res.status(400).json({ error: "This password is too common. Please choose a stronger passphrase." });
 
     // Check if user already exists
     const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1);
@@ -255,28 +312,43 @@ router.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    console.log("🔐 Login attempt received");
-
     if (!email || !password) {
-      console.log("❌ Missing email or password");
       return res.status(400).json({ error: "Email and password are required" });
     }
 
+    const normalizedEmail = (email as string).toLowerCase().trim();
+
+    // ── Lockout check ─────────────────────────────────────────────────────────
+    if (isLockedOut(normalizedEmail)) {
+      return res.status(429).json({ error: "Account temporarily locked due to too many failed attempts. Try again in 15 minutes." });
+    }
+
     // Find user by email (case-insensitive)
-    const normalizedEmail = email.toLowerCase().trim();
     const [user] = await db.select().from(users).where(sql`LOWER(${users.email}) = ${normalizedEmail}`).limit(1);
     
     if (!user) {
-      console.log("❌ User not found");
+      const result = recordFailedAttempt(normalizedEmail);
+      logAudit({ actor: "anonymous", action: "AUTH_FAILED_LOGIN", resourceType: "auth", route: "/api/auth/login", ip: getClientIp(req as any), meta: { reason: "user_not_found" } });
+      if (result.locked) {
+        logAudit({ actor: "anonymous", action: "AUTH_LOCKOUT", resourceType: "auth", route: "/api/auth/login", ip: getClientIp(req as any) });
+      }
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      console.log("❌ Password mismatch for user ID:", user.id);
+      const result = recordFailedAttempt(normalizedEmail);
+      logAudit({ actor: user.id, action: "AUTH_FAILED_LOGIN", resourceType: "auth", route: "/api/auth/login", ip: getClientIp(req as any), meta: { reason: "bad_password", attempt: getLockoutEntry(normalizedEmail).count } });
+      if (result.locked) {
+        logAudit({ actor: user.id, action: "AUTH_LOCKOUT", resourceType: "auth", route: "/api/auth/login", ip: getClientIp(req as any) });
+        return res.status(429).json({ error: "Account temporarily locked due to too many failed attempts. Try again in 15 minutes." });
+      }
       return res.status(401).json({ error: "Invalid email or password" });
     }
+
+    // Successful login — clear failed attempt counter
+    clearLockout(normalizedEmail);
 
     // Login: only regenerate auth token if missing — never overwrite isTester from login
     const authToken = user.authToken || generateAuthToken();
@@ -397,6 +469,7 @@ router.delete("/api/auth/delete-account", requireAuth, async (req, res) => {
 
   try {
     console.log(`🗑️ Account deletion requested for user ID: ${userId}`);
+    logAudit({ actor: userId, action: "AUTH_ACCOUNT_DELETED", resourceType: "auth", route: "/api/auth/delete-account", ip: getClientIp(req as any) });
 
     await db.delete(users).where(eq(users.id, userId));
 
@@ -438,6 +511,7 @@ router.post("/api/auth/forgot-password", async (req, res) => {
         resetTokenHash,
         resetTokenExpires,
       }).where(eq(users.id, user.id));
+      logAudit({ actor: user.id, action: "AUTH_RESET_REQUESTED", resourceType: "auth", route: "/api/auth/forgot-password", ip: getClientIp(req as any) });
       console.log(`📧 [FORGOT-PASSWORD] Token saved to database`);
 
       const fwdProto = req.headers["x-forwarded-proto"];
@@ -490,9 +564,9 @@ router.post("/api/auth/reset-password", async (req, res) => {
       return res.status(400).json({ error: "Token and password are required" });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ error: "Password must be at least 6 characters" });
-    }
+    const pwResetError = validatePassword(password);
+    if (pwResetError) return res.status(400).json({ error: pwResetError });
+    if (isCommonPassword(password)) return res.status(400).json({ error: "This password is too common. Please choose a stronger passphrase." });
 
     const now = new Date();
     const usersWithValidExpiry = await db.select().from(users).where(
@@ -537,6 +611,7 @@ router.post("/api/auth/reset-password", async (req, res) => {
 
     const verifyOk = verify && await bcrypt.compare(password, verify.password);
     console.log(`✅ Password reset for user ${matchedUser.id} — verify bcrypt: ${verifyOk}`);
+    logAudit({ actor: matchedUser.id, action: "AUTH_RESET_COMPLETED", resourceType: "auth", route: "/api/auth/reset-password", ip: getClientIp(req as any) });
 
     res.json({
       message: "Password reset successful",

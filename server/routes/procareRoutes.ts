@@ -498,7 +498,7 @@ router.put("/oncology-support/:clientUserId", requireAuth, requirePhase1Cert, re
       .set({ oncologySupportContext: context as any, updatedAt: new Date() })
       .where(eq(users.id, clientUserId as any));
 
-    console.log(`[oncology-support PUT] Physician ${requesterId} (${ownerName ?? "unknown"}) ${body.enabled ? "assigned" : "disabled"} Cancer Support Nutrition for client ${clientUserId}. Symptoms: [${body.symptoms.join(", ")}]`);
+    console.log(`[oncology-support PUT] Physician ${requesterId} ${body.enabled ? "assigned" : "disabled"} Cancer Support Nutrition for client ${clientUserId} | symptomsCount=${body.symptoms.length}`);
     logAudit({ actor: requesterId, target: clientUserId, orgId: (req as any).authUser?.organizationId ?? null, action: "WRITE", resourceType: "oncology_context", table: "users", field: "oncology_support_context", route: req.path, ip: getClientIp(req as any), meta: { enabled: body.enabled, symptomsCount: body.symptoms.length } });
     res.json({ ok: true, oncologySupportContext: context });
   } catch (error: any) {

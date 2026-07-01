@@ -16,6 +16,7 @@ import {
   labSignalToSubtitle,
 } from "../services/resolveProtocolFromLabs";
 import { verifyClinicalAccess } from "../utils/verifyClinicalAccess";
+import { logAudit, getClientIp } from "../lib/auditLog";
 
 const router = express.Router();
 
@@ -218,6 +219,9 @@ router.post("/", requireAuth, async (req, res) => {
       .returning({ id: clinicalLabs.id });
 
     const labId = inserted[0]?.id ?? null;
+
+    const isSelfAccess = requesterId === targetUserId;
+    logAudit({ actor: requesterId as string, target: isSelfAccess ? undefined : targetUserId as string, action: "WRITE", resourceType: "clinical_labs", table: "clinical_labs", resourceId: labId, route: req.path, ip: getClientIp(req as any), meta: { selfAccess: isSelfAccess } });
 
     // Run protocol resolver on the just-saved values
     const protocolSignal = resolveProtocolFromLabs({
@@ -472,6 +476,11 @@ router.get("/:userId", requireAuth, async (req, res) => {
     if (!hasAccess) {
       console.warn(`[clinicalLabs GET] UNAUTHORIZED: requester ${requesterId} attempted to read labs for user ${userId}`);
       return res.status(403).json({ error: "You are not authorized to view labs for this user" });
+    }
+
+    const isCoachRead = requesterId !== userId;
+    if (isCoachRead) {
+      logAudit({ actor: requesterId as string, target: userId, action: "READ", resourceType: "clinical_labs", table: "clinical_labs", route: req.path, ip: getClientIp(req as any), meta: { requesterRole: "coach_or_physician" } });
     }
 
     const rows = await db

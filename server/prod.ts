@@ -25,6 +25,12 @@ process.on("uncaughtException", (error) => {
   console.error("🚨 UNCAUGHT EXCEPTION:", error);
 });
 
+// ─── SECURITY: SESSION_SECRET must be explicitly set in production ────────────
+if (!process.env.SESSION_SECRET) {
+  console.error("🚨 FATAL: SESSION_SECRET environment variable is not set. Refusing to start without it.");
+  process.exit(1);
+}
+
 const app = express();
 app.set("trust proxy", 1);
 
