@@ -706,7 +706,7 @@ setTimeout(async () => {
     // Idempotent: only touches rows still at the default false.
     // The completed_at cutoff prevents this from auto-whitelisting future professionals
     // who complete Phase 1 after Phase 2 launches — they must complete Phase 2 themselves.
-    await db.execute(sql`
+    const grandfatherResult = await db.execute(sql`
       UPDATE users
       SET procare_training_completed = true
       WHERE
@@ -719,9 +719,12 @@ setTimeout(async () => {
             AND completed_at < '2026-07-01T00:00:00Z'
         )
     `);
+    const grandfatheredCount = (grandfatherResult as any).rowCount ?? (grandfatherResult as any).count ?? '?';
+    console.log(`✅ Grandfather migration: ${grandfatheredCount} professional(s) grandfathered (procare_training_completed=true)`);
     console.log('✅ LMS + white label boot migrations complete');
   } catch (err: any) {
     console.error('❌ LMS boot migrations failed:', err.message);
+    console.error('❌ GRANDFATHER MIGRATION MAY NOT HAVE COMPLETED — professionals who certified before Phase 2 may be incorrectly blocked if PHASE2_GATE_ENABLED is flipped on. Verify procare_training_completed rows before enabling the gate.');
   }
 }, 2500);
 
