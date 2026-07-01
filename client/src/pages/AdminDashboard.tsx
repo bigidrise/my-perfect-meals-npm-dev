@@ -1,10 +1,10 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { Search, User, ShieldAlert, LogOut, RefreshCw, Ban, CheckCircle, RotateCcw, KeyRound, ChefHat, ArrowRight, Award } from "lucide-react";
+import { Search, User, ShieldAlert, LogOut, RefreshCw, Ban, CheckCircle, RotateCcw, KeyRound, ChefHat, ArrowRight, Award, Users, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const ENV = import.meta.env.MODE === "production" ? "PRODUCTION" : "DEVELOPMENT";
@@ -27,6 +27,7 @@ type AdminUser = {
   isTester: boolean | null;
   isFounder: boolean | null;
   isProCare: boolean | null;
+  procareTrainingCompleted: boolean | null;
   onboardingCompletedAt: string | null;
   safetyPinHash: string | null;
   safetyPinSetAt: string | null;
@@ -166,6 +167,7 @@ function UserDetail({ user, onAction }: { user: AdminUser; onAction: (label: str
     ["Tester", <StatusPill value={user.isTester} />],
     ["Founder", <StatusPill value={user.isFounder} />],
     ["ProCare", <StatusPill value={user.isProCare} />],
+    ["ProCare Training", <StatusPill value={user.procareTrainingCompleted} />],
     ["Onboarding", <StatusPill value={user.onboardingCompletedAt} />],
     ["Macros Defined", <StatusPill value={user.macrosDefined} />],
     ["Safety PIN Set", <StatusPill value={user.safetyPinHash} />],
@@ -222,6 +224,175 @@ function UserDetail({ user, onAction }: { user: AdminUser; onAction: (label: str
             })}
           </div>
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+type GrandfatheredPro = {
+  id: string;
+  email: string;
+  username: string;
+  professionalRole: string | null;
+  procareTrainingCompleted: boolean;
+  certificationType: string;
+  certCompletedAt: string | null;
+};
+
+function GrandfatherStatusPanel() {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<{ count: number; professionals: GrandfatheredPro[] } | null>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [runningMigration, setRunningMigration] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(apiUrl("/api/admin/grandfather-migration-status"), {
+        headers: getAuthHeaders(),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed");
+      setData({ count: json.count, professionals: json.professionals });
+    } catch (e: any) {
+      toast({ title: "Failed to load grandfather status", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const downloadCSV = () => {
+    if (!data || data.professionals.length === 0) return;
+    const headers = ["email", "username", "role", "cert_type", "cert_completed_at"];
+    const rows = data.professionals.map((p) => [
+      p.email,
+      p.username,
+      p.professionalRole ?? "",
+      p.certificationType,
+      p.certCompletedAt ? new Date(p.certCompletedAt).toISOString() : "",
+    ]);
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `grandfathered-professionals-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const runMigration = async () => {
+    if (!window.confirm("Re-run the grandfather migration? This is safe to run multiple times — it only updates professionals who don't yet have procare_training_completed=true.")) return;
+    setRunningMigration(true);
+    try {
+      const res = await fetch(apiUrl("/api/admin/run-grandfather-migration"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed");
+      toast({ title: "Migration complete", description: json.message });
+      await load();
+    } catch (e: any) {
+      toast({ title: "Migration failed", description: e.message, variant: "destructive" });
+    } finally {
+      setRunningMigration(false);
+    }
+  };
+
+  return (
+    <Card className="bg-black/40 border border-white/10 rounded-2xl">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-white text-base flex items-center gap-2">
+          <Users className="h-4 w-4 text-orange-400" />
+          Phase 2 Grandfather Migration Status
+        </CardTitle>
+        <p className="text-xs text-white/40 mt-0.5">
+          Professionals with <code className="text-orange-300/80">procare_training_completed=true</code> via the pre-July 2026 grandfather path
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {loading && <p className="text-xs text-white/40">Loading…</p>}
+
+        {!loading && data && (
+          <>
+            <div className="flex items-center gap-3">
+              <span className="text-3xl font-bold text-orange-400">{data.count}</span>
+              <span className="text-sm text-white/60">grandfathered professional{data.count !== 1 ? "s" : ""}</span>
+              <div className="ml-auto flex items-center gap-2">
+                {data.count > 0 && (
+                  <button
+                    onClick={downloadCSV}
+                    className="text-xs text-white/50 bg-white/10 hover:bg-white/20 transition flex items-center gap-1 px-2 py-1 rounded-md"
+                  >
+                    <Download className="h-3 w-3" /> Download CSV
+                  </button>
+                )}
+                <button
+                  onClick={load}
+                  className="text-xs text-white/30 hover:text-white/60 transition flex items-center gap-1"
+                >
+                  <RefreshCw className="h-3 w-3" /> Refresh
+                </button>
+              </div>
+            </div>
+
+            {data.count > 0 && (
+              <>
+                <button
+                  onClick={() => setExpanded((v) => !v)}
+                  className="text-xs text-orange-400 underline"
+                >
+                  {expanded ? "Hide list" : `Show ${data.count} professional${data.count !== 1 ? "s" : ""}`}
+                </button>
+
+                {expanded && (
+                  <div className="mt-2 rounded-lg border border-white/10 overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-white/5 text-white/40 text-left">
+                          <th className="px-3 py-2 font-medium">Email</th>
+                          <th className="px-3 py-2 font-medium">Role</th>
+                          <th className="px-3 py-2 font-medium">Cert Type</th>
+                          <th className="px-3 py-2 font-medium">Cert Completed</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.professionals.map((p) => (
+                          <tr key={p.id} className="border-t border-white/5 hover:bg-white/5 transition">
+                            <td className="px-3 py-2 text-white/80">{p.email}</td>
+                            <td className="px-3 py-2 text-white/60">{p.professionalRole ?? "—"}</td>
+                            <td className="px-3 py-2 text-white/60">{p.certificationType}</td>
+                            <td className="px-3 py-2 text-white/50">
+                              {p.certCompletedAt ? new Date(p.certCompletedAt).toLocaleDateString() : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            )}
+
+            <div className="border-t border-white/10 pt-3">
+              <button
+                onClick={runMigration}
+                disabled={runningMigration}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-orange-700 hover:bg-orange-600 disabled:opacity-50 transition"
+              >
+                {runningMigration ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
+                Re-run Migration (idempotent)
+              </button>
+              <p className="text-xs text-white/30 mt-1.5">Safe to re-run. Only affects professionals not yet grandfathered.</p>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
@@ -333,6 +504,9 @@ export default function AdminDashboard() {
             <ArrowRight className="h-4 w-4 text-orange-400 flex-shrink-0" />
           </CardContent>
         </Card>
+
+        {/* Grandfather Migration Status */}
+        <GrandfatherStatusPanel />
 
         {/* Search */}
         <Card className="bg-black/40 border border-white/10 rounded-2xl">

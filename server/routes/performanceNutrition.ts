@@ -15,6 +15,7 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
+import { logAudit, getClientIp } from "../lib/auditLog";
 
 const router = express.Router();
 
@@ -30,7 +31,7 @@ function resolveUserId(req: any): string | undefined {
 
 // ── Save / update performance setup (both tracks) ────────────────────────────
 router.post("/setup", async (req, res) => {
-  console.log(`[PERF-TRACE] /setup handler entered — method: ${req.method}, body: ${JSON.stringify(req.body)}, authUser: ${JSON.stringify((req as any).authUser?.id)}, session: ${JSON.stringify((req as any).session?.userId)}`);
+  console.log(`[performanceNutrition] /setup entered | userId=${(req as any).authUser?.id ?? (req as any).session?.userId ?? "unknown"}`);
   try {
     const userId = resolveUserId(req);
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
@@ -103,6 +104,7 @@ router.post("/setup", async (req, res) => {
         } as any)
         .where(eq(users.id, userId));
 
+      logAudit({ actor: userId, action: "WRITE", resourceType: "performance_context", table: "users", field: "competition_prep_context", route: req.path, ip: getClientIp(req as any), meta: { track: "competition" } });
       return res.json({ success: true, track: "competition", competitionPrepContext });
 
     } else {
@@ -200,6 +202,7 @@ router.post("/setup", async (req, res) => {
         } as any)
         .where(eq(users.id, userId));
 
+      logAudit({ actor: userId, action: "WRITE", resourceType: "performance_context", table: "users", field: "performance_context", route: req.path, ip: getClientIp(req as any), meta: { track: "athletic" } });
       return res.json({ success: true, track: "athletic", performanceContext });
     }
   } catch (err: any) {

@@ -224,6 +224,16 @@ app.use("/api/stripe/webhook", express.raw({ type: "application/json" }), stripe
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: false }));
 
+// ─── SECURITY: SESSION_SECRET must be set — never fall back to a default ──────
+if (!process.env.SESSION_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('🚨 FATAL: SESSION_SECRET is not set. Refusing to start in production with a default secret.');
+    process.exit(1);
+  } else {
+    console.warn('⚠️  SESSION_SECRET not set — using insecure dev default. Set SESSION_SECRET before deploying.');
+  }
+}
+
 // Session middleware for authentication
 app.use(session({
   secret: process.env.SESSION_SECRET || 'mpm-session-secret-dev-only',
@@ -700,9 +710,31 @@ setTimeout(async () => {
         user_agent text
       )
     `);
+    // Grandfather existing certified professionals — Phase 2 gate protection
+    // Sets procare_training_completed=true for professionals who completed Phase 1
+    // BEFORE Phase 2 training existed (cutoff: 2026-07-01).
+    // Idempotent: only touches rows still at the default false.
+    // The completed_at cutoff prevents this from auto-whitelisting future professionals
+    // who complete Phase 1 after Phase 2 launches — they must complete Phase 2 themselves.
+    const grandfatherResult = await db.execute(sql`
+      UPDATE users
+      SET procare_training_completed = true
+      WHERE
+        professional_role IS NOT NULL
+        AND procare_training_completed = false
+        AND id IN (
+          SELECT user_id FROM user_certifications
+          WHERE certification_type IN ('platform', 'affiliate_coaching')
+            AND completed_at IS NOT NULL
+            AND completed_at < '2026-07-01T00:00:00Z'
+        )
+    `);
+    const grandfatheredCount = (grandfatherResult as any).rowCount ?? (grandfatherResult as any).count ?? '?';
+    console.log(`✅ Grandfather migration: ${grandfatheredCount} professional(s) grandfathered (procare_training_completed=true)`);
     console.log('✅ LMS + white label boot migrations complete');
   } catch (err: any) {
     console.error('❌ LMS boot migrations failed:', err.message);
+    console.error('❌ GRANDFATHER MIGRATION MAY NOT HAVE COMPLETED — professionals who certified before Phase 2 may be incorrectly blocked if PHASE2_GATE_ENABLED is flipped on. Verify procare_training_completed rows before enabling the gate.');
   }
 }, 2500);
 

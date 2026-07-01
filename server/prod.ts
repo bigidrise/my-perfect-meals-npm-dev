@@ -25,6 +25,12 @@ process.on("uncaughtException", (error) => {
   console.error("🚨 UNCAUGHT EXCEPTION:", error);
 });
 
+// ─── SECURITY: SESSION_SECRET must be explicitly set in production ────────────
+if (!process.env.SESSION_SECRET) {
+  console.error("🚨 FATAL: SESSION_SECRET environment variable is not set. Refusing to start without it.");
+  process.exit(1);
+}
+
 const app = express();
 app.set("trust proxy", 1);
 
@@ -298,6 +304,27 @@ async function initializeApp() {
               user_agent text
             )
           `);
+          // Grandfather existing certified professionals — Phase 2 gate protection
+          // Sets procare_training_completed=true for professionals who completed Phase 1
+          // BEFORE Phase 2 training existed (cutoff: 2026-07-01).
+          // Idempotent: only touches rows still at the default false.
+          // The completed_at cutoff prevents this from auto-whitelisting future professionals
+          // who complete Phase 1 after Phase 2 launches — they must complete Phase 2 themselves.
+          const grandfatherResult = await database.execute(sql`
+            UPDATE users
+            SET procare_training_completed = true
+            WHERE
+              professional_role IS NOT NULL
+              AND procare_training_completed = false
+              AND id IN (
+                SELECT user_id FROM user_certifications
+                WHERE certification_type IN ('platform', 'affiliate_coaching')
+                  AND completed_at IS NOT NULL
+                  AND completed_at < '2026-07-01T00:00:00Z'
+              )
+          `);
+          const grandfatheredCount = (grandfatherResult as any).rowCount ?? (grandfatherResult as any).count ?? '?';
+          console.log(`✅ [INIT] Grandfather migration: ${grandfatheredCount} professional(s) grandfathered (procare_training_completed=true)`);
         })(),
         migTimeout(6000),
       ]);
@@ -307,6 +334,9 @@ async function initializeApp() {
       console.warn(
         "⚠️ [INIT] Column migration skipped (timeout or error):",
         (migErr as Error).message,
+      );
+      console.warn(
+        "⚠️ [INIT] GRANDFATHER MIGRATION MAY NOT HAVE COMPLETED — professionals who certified before Phase 2 may be incorrectly blocked if PHASE2_GATE_ENABLED is flipped on. Verify procare_training_completed rows before enabling the gate.",
       );
     }
 

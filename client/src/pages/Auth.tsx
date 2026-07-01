@@ -2,9 +2,11 @@ import { useState, useMemo } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { login, signUp, getProCareSignupData, clearProCareSignupData } from "@/lib/auth";
+import type { User } from "@/lib/auth";
 import { Stethoscope } from "lucide-react";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
+import { MfaChallengeModal } from "@/components/MfaChallengeModal";
 
 export default function Auth() {
   const [, setLocation] = useLocation();
@@ -13,6 +15,7 @@ export default function Auth() {
   const isProCare = useMemo(() => new URLSearchParams(search).get("procare") === "true", [search]);
   const urlMode = useMemo(() => new URLSearchParams(search).get("mode"), [search]);
   const urlRole = useMemo(() => new URLSearchParams(search).get("role") as "trainer" | "physician" | null, [search]);
+  const isIdleTimeout = useMemo(() => new URLSearchParams(search).get("reason") === "idle_timeout", [search]);
   const [mode, setMode] = useState<"signup" | "login">(
     isProCare || urlRole ? "signup" : urlMode === "signup" ? "signup" : "login"
   );
@@ -21,12 +24,46 @@ export default function Auth() {
   const [err, setErr] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showWorkspaceChooser, setShowWorkspaceChooser] = useState(false);
+  const [showMfaChallenge, setShowMfaChallenge] = useState(false);
+
+  async function proceedAfterLogin(u: User) {
+    setUser(u);
+    localStorage.setItem("isAuthenticated", "true");
+    sessionStorage.removeItem("mpm.welcomeGateDone");
+
+    const isProfessionalFromLogin = u?.isProCare && (u?.professionalRole === "trainer" || u?.professionalRole === "physician");
+    const fullUser = await refreshUser();
+    const isProfessionalFromRefresh = fullUser?.isProCare && (fullUser?.professionalRole === "trainer" || fullUser?.professionalRole === "physician");
+    const isProfessional = isProfessionalFromLogin || isProfessionalFromRefresh;
+    const onboardingDone = fullUser?.onboardingCompletedAt;
+
+    if (isProfessional && mode === "login") {
+      localStorage.removeItem("mpm_workspace_preference");
+      setShowWorkspaceChooser(true);
+    } else if (mode === "signup" && urlRole === "trainer") {
+      setLocation("/trainer-welcome");
+    } else if (mode === "signup" && urlRole === "physician") {
+      setLocation("/physician-welcome");
+    } else if (mode === "signup") {
+      setLocation("/consumer-welcome");
+    } else if (hasActivePaidSubscription(fullUser) && !onboardingDone) {
+      setLocation("/onboarding");
+    } else {
+      const pendingPlan = sessionStorage.getItem("mpm_pending_plan");
+      if (pendingPlan) {
+        sessionStorage.removeItem("mpm_pending_plan");
+        setLocation(`/pricing?plan=${pendingPlan}`);
+      } else {
+        setLocation("/");
+      }
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
     try {
-      let u;
+      let u: User;
       if (mode === "signup") {
         let procareData = isProCare ? getProCareSignupData() : null;
         if (!procareData && urlRole) {
@@ -43,43 +80,36 @@ export default function Auth() {
           clearProCareSignupData();
         }
       } else {
-        u = await login(email.trim(), pwd);
-      }
-      setUser(u);
-      
-      localStorage.setItem("isAuthenticated", "true");
-      sessionStorage.removeItem("mpm.welcomeGateDone");
-
-      const isProfessionalFromLogin = u?.isProCare && (u?.professionalRole === "trainer" || u?.professionalRole === "physician");
-      const fullUser = await refreshUser();
-      const isProfessionalFromRefresh = fullUser?.isProCare && (fullUser?.professionalRole === "trainer" || fullUser?.professionalRole === "physician");
-      const isProfessional = isProfessionalFromLogin || isProfessionalFromRefresh;
-
-      const onboardingDone = fullUser?.onboardingCompletedAt;
-
-      if (isProfessional && mode === "login") {
-        localStorage.removeItem("mpm_workspace_preference");
-        setShowWorkspaceChooser(true);
-      } else if (mode === "signup" && urlRole === "trainer") {
-        setLocation("/trainer-welcome");
-      } else if (mode === "signup" && urlRole === "physician") {
-        setLocation("/physician-welcome");
-      } else if (mode === "signup") {
-        setLocation("/consumer-welcome");
-      } else if (hasActivePaidSubscription(fullUser) && !onboardingDone) {
-        setLocation("/onboarding");
-      } else {
-        const pendingPlan = sessionStorage.getItem("mpm_pending_plan");
-        if (pendingPlan) {
-          sessionStorage.removeItem("mpm_pending_plan");
-          setLocation(`/pricing?plan=${pendingPlan}`);
-        } else {
-          setLocation("/");
+        const loginResult = await login(email.trim(), pwd);
+        if ("mfaRequired" in loginResult && loginResult.mfaRequired) {
+          setShowMfaChallenge(true);
+          return;
         }
+        u = loginResult as User;
       }
+      await proceedAfterLogin(u);
     } catch (e: any) {
       setErr(e?.message || "Authentication failed.");
     }
+  }
+
+  if (showMfaChallenge) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 text-white bg-gradient-to-br from-neutral-700 via-black to-black">
+        <MfaChallengeModal
+          onSuccess={async (u: User) => {
+            setShowMfaChallenge(false);
+            try {
+              await proceedAfterLogin(u);
+            } catch (e: any) {
+              setErr(e?.message || "Login failed.");
+              setShowMfaChallenge(false);
+            }
+          }}
+          onCancel={() => setShowMfaChallenge(false)}
+        />
+      </div>
+    );
   }
 
   if (showWorkspaceChooser) {
@@ -111,6 +141,17 @@ export default function Auth() {
                       bg-black/25 backdrop-blur-xl border border-white/10 shadow-xl">
         <span className="absolute inset-0 -z-0 pointer-events-none rounded-2xl
                          bg-gradient-to-br from-white/10 via-transparent to-transparent" />
+
+        {isIdleTimeout && (
+          <div className="relative z-10 mb-4 flex items-start gap-2 rounded-xl bg-orange-600/15 border border-orange-500/30 px-3 py-2.5">
+            <svg className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-xs text-orange-200">
+              You were signed out after a period of inactivity. Please sign in again to continue.
+            </p>
+          </div>
+        )}
 
         {(isProCare || urlRole) && mode === "signup" && (
           <div className="relative z-10 mb-4 flex justify-center">

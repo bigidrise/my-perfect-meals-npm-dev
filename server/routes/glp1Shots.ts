@@ -6,6 +6,7 @@ import { eq, and, gte, lte, desc } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
 import { requireOrgFlag } from "../middleware/requireOrgFlag";
+import { logAudit, getClientIp } from "../lib/auditLog";
 
 const router = Router();
 
@@ -77,6 +78,7 @@ router.post("/users/:userId/glp1-shots", requireAuth, async (req, res) => {
       .values({ userId, ...data, dateUtc: new Date(data.dateUtc) })
       .returning();
 
+    logAudit({ actor: userId, action: "WRITE", resourceType: "glp1_shot", table: "glp1_shots", resourceId: newShot.id, route: req.path, ip: getClientIp(req as any) });
     res.json(newShot);
   } catch (error) {
     console.error("Error creating GLP-1 shot:", error);
@@ -103,6 +105,7 @@ router.patch("/users/:userId/glp1-shots/:shotId", requireAuth, async (req, res) 
       .returning();
 
     if (!updated) return res.status(404).json({ error: "Shot not found" });
+    logAudit({ actor: userId, action: "WRITE", resourceType: "glp1_shot", table: "glp1_shots", resourceId: shotId, route: req.path, ip: getClientIp(req as any) });
     res.json(updated);
   } catch (error) {
     console.error("Error updating GLP-1 shot:", error);
@@ -124,6 +127,7 @@ router.delete("/users/:userId/glp1-shots/:shotId", requireAuth, async (req, res)
       .returning();
 
     if (!deleted) return res.status(404).json({ error: "Shot not found" });
+    logAudit({ actor: userId, action: "DELETE", resourceType: "glp1_shot", table: "glp1_shots", resourceId: shotId, route: req.path, ip: getClientIp(req as any) });
     res.json({ ok: true });
   } catch (error) {
     console.error("Error deleting GLP-1 shot:", error);

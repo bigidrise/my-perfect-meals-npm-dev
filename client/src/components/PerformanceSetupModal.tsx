@@ -330,7 +330,7 @@ export default function PerformanceSetupModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full sm:max-w-lg bg-gradient-to-b from-zinc-950 to-black border border-orange-500/20 rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[92vh] flex flex-col">
+      <div className="relative w-full sm:max-w-lg bg-gradient-to-b from-zinc-950 to-black border border-orange-500/20 rounded-t-3xl sm:rounded-3xl overflow-clip max-h-[92vh] flex flex-col">
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-white/10 flex-shrink-0">
@@ -359,7 +359,7 @@ export default function PerformanceSetupModal({
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-5 space-y-4">
 
           {/* ── Step 0: Track Selector ── */}
           {step === 0 && (
@@ -444,36 +444,43 @@ export default function PerformanceSetupModal({
             <div>
               <p className="text-white font-bold text-lg mb-1">What type of training do you do?</p>
               <p className="text-white/50 text-sm mb-4">Select your primary sport or discipline.</p>
-              <div className="space-y-5">
+              <div className="space-y-4">
                 {groups.map(group => (
                   <div key={group}>
                     <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">{group}</p>
-                    <div className="flex flex-wrap gap-2 mb-2">
+                    <div className="space-y-1.5">
                       {TRAINING_TYPES.filter(t => t.group === group).map(t => (
-                        <PillButton
+                        <button
                           key={t.value}
-                          active={trainingType === t.value}
                           onClick={() => { setTrainingType(t.value); if (t.value !== "other") setCustomSportName(""); }}
+                          className={`w-full text-left px-4 py-2.5 rounded-xl border transition-colors text-sm font-semibold ${
+                            trainingType === t.value
+                              ? "bg-orange-600/20 border-orange-400/60 text-white"
+                              : "bg-white/5 border-white/10 text-white/70"
+                          }`}
                         >
-                          {t.label}
-                        </PillButton>
+                          <div className="flex items-center justify-between">
+                            <span>{t.label}</span>
+                            {trainingType === t.value && <Check className="w-4 h-4 text-orange-400 flex-shrink-0" />}
+                          </div>
+                        </button>
                       ))}
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={trainingType === "other" && customSportGroup === ATHLETIC_GROUP_KEYS[group] ? customSportName : ""}
-                        onChange={e => handleCustomSportInput(group, ATHLETIC_GROUP_KEYS[group], e.target.value, setTrainingType)}
-                        placeholder={`Other ${group.toLowerCase()} sport…`}
-                        className={`w-full bg-white/5 border rounded-xl px-3 py-2 text-white text-sm placeholder:text-white/20 outline-none focus:border-orange-500/60 transition-colors ${
-                          trainingType === "other" && customSportGroup === ATHLETIC_GROUP_KEYS[group]
-                            ? "border-orange-400/60 bg-orange-600/10"
-                            : "border-white/10"
-                        }`}
-                      />
-                      {trainingType === "other" && customSportGroup === ATHLETIC_GROUP_KEYS[group] && customSportName.trim() && (
-                        <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-orange-400" />
-                      )}
+                      <div className="relative mt-1">
+                        <input
+                          type="text"
+                          value={trainingType === "other" && customSportGroup === ATHLETIC_GROUP_KEYS[group] ? customSportName : ""}
+                          onChange={e => handleCustomSportInput(group, ATHLETIC_GROUP_KEYS[group], e.target.value, setTrainingType)}
+                          placeholder={`Other ${group.toLowerCase()} sport…`}
+                          className={`w-full bg-white/5 border rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/20 outline-none focus:border-orange-500/60 transition-colors ${
+                            trainingType === "other" && customSportGroup === ATHLETIC_GROUP_KEYS[group]
+                              ? "border-orange-400/60 bg-orange-600/10"
+                              : "border-white/10"
+                          }`}
+                        />
+                        {trainingType === "other" && customSportGroup === ATHLETIC_GROUP_KEYS[group] && customSportName.trim() && (
+                          <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-orange-400" />
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -732,36 +739,43 @@ export default function PerformanceSetupModal({
             <div>
               <p className="text-white font-bold text-lg mb-1">What type of competition?</p>
               <p className="text-white/50 text-sm mb-4">Each competition type uses a different prep timeline and peak week protocol.</p>
-              <div className="space-y-5">
+              <div className="space-y-4">
                 {compGroups.map(group => (
                   <div key={group}>
                     <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">{group}</p>
-                    <div className="flex flex-wrap gap-2 mb-2">
+                    <div className="space-y-1.5">
                       {COMP_TYPES.filter(c => c.group === group).map(c => (
-                        <PillButton
+                        <button
                           key={c.value}
-                          active={compType === c.value}
                           onClick={() => { setCompType(c.value); if (c.value !== "other") setCustomSportName(""); }}
+                          className={`w-full text-left px-4 py-2.5 rounded-xl border transition-colors text-sm font-semibold ${
+                            compType === c.value
+                              ? "bg-orange-600/20 border-orange-400/60 text-white"
+                              : "bg-white/5 border-white/10 text-white/70"
+                          }`}
                         >
-                          {c.label}
-                        </PillButton>
+                          <div className="flex items-center justify-between">
+                            <span>{c.label}</span>
+                            {compType === c.value && <Check className="w-4 h-4 text-orange-400 flex-shrink-0" />}
+                          </div>
+                        </button>
                       ))}
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={compType === "other" && customSportGroup === COMP_GROUP_KEYS[group] ? customSportName : ""}
-                        onChange={e => handleCustomSportInput(group, COMP_GROUP_KEYS[group], e.target.value, setCompType)}
-                        placeholder={`Other ${group.toLowerCase()} sport…`}
-                        className={`w-full bg-white/5 border rounded-xl px-3 py-2 text-white text-sm placeholder:text-white/20 outline-none focus:border-orange-500/60 transition-colors ${
-                          compType === "other" && customSportGroup === COMP_GROUP_KEYS[group]
-                            ? "border-orange-400/60 bg-orange-600/10"
-                            : "border-white/10"
-                        }`}
-                      />
-                      {compType === "other" && customSportGroup === COMP_GROUP_KEYS[group] && customSportName.trim() && (
-                        <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-orange-400" />
-                      )}
+                      <div className="relative mt-1">
+                        <input
+                          type="text"
+                          value={compType === "other" && customSportGroup === COMP_GROUP_KEYS[group] ? customSportName : ""}
+                          onChange={e => handleCustomSportInput(group, COMP_GROUP_KEYS[group], e.target.value, setCompType)}
+                          placeholder={`Other ${group.toLowerCase()} sport…`}
+                          className={`w-full bg-white/5 border rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/20 outline-none focus:border-orange-500/60 transition-colors ${
+                            compType === "other" && customSportGroup === COMP_GROUP_KEYS[group]
+                              ? "border-orange-400/60 bg-orange-600/10"
+                              : "border-white/10"
+                          }`}
+                        />
+                        {compType === "other" && customSportGroup === COMP_GROUP_KEYS[group] && customSportName.trim() && (
+                          <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-orange-400" />
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -881,7 +895,7 @@ export default function PerformanceSetupModal({
         </div>
 
         {/* Footer */}
-        <div className="px-5 pb-6 pt-3 border-t border-white/10 flex gap-3 flex-shrink-0">
+        <div className="px-5 pt-3 border-t border-white/10 flex gap-3 flex-shrink-0" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1.5rem)" }}>
           {step > 0 && (
             <button
               onClick={() => setStep(s => s - 1)}

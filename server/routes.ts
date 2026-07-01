@@ -18,6 +18,7 @@ import { requireEssentialAccess } from "./middleware/requireEssentialAccess";
 import { requireProAccess } from "./middleware/requireProAccess";
 import { requireClinicalAccess } from "./middleware/requireClinicalAccess";
 import { requirePhase1Cert } from "./middleware/requirePhase1Cert";
+import { requirePhase2Training } from "./middleware/requirePhase2Training";
 import { requireMacroProfile } from "./middleware/requireMacroProfile";
 import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems, savedMeals as savedMealsTable, creators } from "@shared/schema";
 import { studioMemberships, studios } from "./db/schema/studio";
@@ -67,6 +68,8 @@ import OpenAI from 'openai';
 import pushNotificationsRouter from './routes/pushNotifications';
 import mealPlanReplaceRouter from './routes/meal-plan-replace';
 import authSessionRouter from './routes/auth.session';
+import mfaRoutes from './routes/auth.mfa';
+import { requireMfa } from './middleware/requireMfa';
 import { MealEngineService } from "./services/mealEngineService";
 import { generateFridgeRescueMeals } from "./services/fridgeRescueGenerator";
 import { getBuilderSwitchStatus, attemptBuilderSwitch } from "./services/builderSwitchService";
@@ -435,6 +438,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/stripe", stripeRouter);
 
   app.use(authSessionRouter);
+  app.use("/api/auth/mfa", mfaRoutes);
   app.use(alcoholLogRouter);
   app.use('/api/vitals/bp', vitalsBpRouter);
   app.use('/api', proteinTargetsRouter);
@@ -2284,6 +2288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: user.role || "client",
         isProCare: user.isProCare || false,
         procareTrainingCompleted: user.procareTrainingCompleted || false,
+        phase2GateEnabled: process.env.PHASE2_GATE_ENABLED === "true",
         activeBoard: user.activeBoard || null,
         builderSwitchUnlimited: user.builderSwitchUnlimited || false,
         onboardingCompletedAt: user.onboardingCompletedAt?.toISOString() || null,
@@ -6875,31 +6880,33 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api", mealBoardsRoutes);
 
   // Pro shared board routes (coach/physician ↔ client board access)
+  // requirePhase2Training: passes non-professionals (clients accessing their own boards)
+  // through unaffected; blocks untrained professionals from reading client data.
   const proBoardRoutes = (await import("./routes/proBoardRoutes")).default;
-  app.use("/api/pro/board", requireAuth, requirePremiumAccess, proBoardRoutes);
+  app.use("/api/pro/board", requireAuth, requirePremiumAccess, requirePhase1Cert, requirePhase2Training, proBoardRoutes);
 
   const proWeekBoardRoutes = (await import("./routes/proWeekBoard")).default;
-  app.use("/api/pro", requireAuth, proWeekBoardRoutes);
+  app.use("/api/pro", requireAuth, requirePhase1Cert, requirePhase2Training, proWeekBoardRoutes);
 
   const proBiometricsRoutes = (await import("./routes/proBiometricsRoutes")).default;
-  app.use("/api/pro", requireAuth, proBiometricsRoutes);
+  app.use("/api/pro", requireAuth, requirePhase1Cert, requirePhase2Training, proBiometricsRoutes);
 
   const proProgramHistoryRoutes = (await import("./routes/proProgramHistory")).default;
-  app.use("/api/pro", requireAuth, proProgramHistoryRoutes);
+  app.use("/api/pro", requireAuth, requirePhase1Cert, requirePhase2Training, proProgramHistoryRoutes);
 
   const workspaceRoutes = (await import("./routes/workspaceRoutes")).default;
-  app.use("/api/pro/workspace", requireAuth, workspaceRoutes);
+  app.use("/api/pro/workspace", requireAuth, requirePhase1Cert, requirePhase2Training, workspaceRoutes);
 
   const proTabletRoutes = (await import("./routes/proTabletRoutes")).default;
-  app.use("/api/pro/tablet", requireAuth, requirePhase1Cert, proTabletRoutes);
+  app.use("/api/pro/tablet", requireAuth, requirePhase1Cert, requirePhase2Training, requireMfa, proTabletRoutes);
 
   const clientTabletRoutes = (await import("./routes/clientTabletRoutes")).default;
   app.use("/api/client/tablet", requireAuth, clientTabletRoutes);
 
   app.use("/api/care-team", requireAuth, requirePremiumAccess, careTeamRoutes);
-  app.use("/api/pro", requireAuth, requirePremiumAccess, procareRoutes);
+  app.use("/api/pro", requireAuth, requirePremiumAccess, requireMfa, procareRoutes);
   app.use("/api/pro/training", requireAuth, procareTrainingRouter);
-  app.use("/api/studios", requireAuth, requirePremiumAccess, requirePhase1Cert, studioRoutes);
+  app.use("/api/studios", requireAuth, requirePremiumAccess, requirePhase1Cert, requirePhase2Training, requireMfa, studioRoutes);
   const cycleProtocolRoutes = (await import("./routes/cycleProtocolRoutes")).default;
   app.use("/api", requireAuth, cycleProtocolRoutes);
   const legalRoutes = (await import("./routes/legalRoutes")).default;
