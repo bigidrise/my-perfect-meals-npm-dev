@@ -6877,20 +6877,22 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api", mealBoardsRoutes);
 
   // Pro shared board routes (coach/physician ↔ client board access)
+  // requirePhase2Training: passes non-professionals (clients accessing their own boards)
+  // through unaffected; blocks untrained professionals from reading client data.
   const proBoardRoutes = (await import("./routes/proBoardRoutes")).default;
-  app.use("/api/pro/board", requireAuth, requirePremiumAccess, proBoardRoutes);
+  app.use("/api/pro/board", requireAuth, requirePremiumAccess, requirePhase1Cert, requirePhase2Training, proBoardRoutes);
 
   const proWeekBoardRoutes = (await import("./routes/proWeekBoard")).default;
-  app.use("/api/pro", requireAuth, proWeekBoardRoutes);
+  app.use("/api/pro", requireAuth, requirePhase1Cert, requirePhase2Training, proWeekBoardRoutes);
 
   const proBiometricsRoutes = (await import("./routes/proBiometricsRoutes")).default;
-  app.use("/api/pro", requireAuth, proBiometricsRoutes);
+  app.use("/api/pro", requireAuth, requirePhase1Cert, requirePhase2Training, proBiometricsRoutes);
 
   const proProgramHistoryRoutes = (await import("./routes/proProgramHistory")).default;
-  app.use("/api/pro", requireAuth, proProgramHistoryRoutes);
+  app.use("/api/pro", requireAuth, requirePhase1Cert, requirePhase2Training, proProgramHistoryRoutes);
 
   const workspaceRoutes = (await import("./routes/workspaceRoutes")).default;
-  app.use("/api/pro/workspace", requireAuth, workspaceRoutes);
+  app.use("/api/pro/workspace", requireAuth, requirePhase1Cert, requirePhase2Training, workspaceRoutes);
 
   const proTabletRoutes = (await import("./routes/proTabletRoutes")).default;
   app.use("/api/pro/tablet", requireAuth, requirePhase1Cert, requirePhase2Training, proTabletRoutes);

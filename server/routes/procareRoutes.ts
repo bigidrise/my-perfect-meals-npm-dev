@@ -45,6 +45,10 @@ function getUserId(req: any): string {
 /**
  * POST /api/pro/onboard
  * Create Stripe Connect onboarding link for pros
+ *
+ * [PHASE2-EXEMPT] — Pro self-service account setup. The caller is the professional
+ * setting up their own Stripe Connect account; no client data is accessed or returned.
+ * Phase 2 gate is not applicable here.
  */
 router.post("/onboard", async (req, res) => {
   try {
@@ -106,6 +110,11 @@ router.post("/onboard", async (req, res) => {
 /**
  * POST /api/checkout/session
  * Create subscription checkout session for clients
+ *
+ * [PHASE2-EXEMPT] — Client-initiated payment flow. The caller IS the client (not a
+ * professional); the route reads the client's own active link to locate their pro's
+ * Stripe account. No client data is exposed to a professional actor.
+ * Phase 2 gate is not applicable here.
  */
 router.post("/checkout/session", async (req, res) => {
   try {
@@ -165,6 +174,10 @@ router.post("/checkout/session", async (req, res) => {
  * POST /api/stripe/webhook
  * Handle Stripe webhooks for payment events and auto-transfer $10 to pros
  * Note: Must use raw body for signature verification
+ *
+ * [PHASE2-EXEMPT] — External Stripe webhook. There is no user session to gate;
+ * access is controlled by Stripe signature verification (constructWebhookEvent).
+ * Phase 2 gate is not applicable here.
  */
 router.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
   const signature = req.headers["stripe-signature"] as string;
@@ -673,6 +686,10 @@ router.get("/clients/:clientId/board-lock", requireAuth, requirePhase1Cert, requ
 // ─── ProCare Connection Status ─────────────────────────────────────────────────
 // GET /api/pro/connection-status — returns the caller's active ProCare connection
 // Used by the More page to show connected-state card vs. code-input card.
+//
+// [PHASE2-EXEMPT] — Client-facing introspection endpoint. The caller is a client
+// looking up their own active ProCare connection (which pro they are linked to).
+// No client data is exposed to a professional actor. Phase 2 gate not applicable.
 router.get("/connection-status", async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser?.id;
@@ -721,6 +738,10 @@ router.get("/connection-status", async (req, res) => {
 
 // ─── Client Self-Disconnect ─────────────────────────────────────────────────────
 // POST /api/pro/disconnect-self — authenticated client disconnects from their provider
+//
+// [PHASE2-EXEMPT] — Client self-action. The caller IS the client; this route ends
+// the client's own link to their pro. No client data is exposed to a professional
+// actor. Phase 2 gate not applicable.
 router.post("/disconnect-self", async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser?.id;
