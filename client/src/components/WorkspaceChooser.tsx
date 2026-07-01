@@ -42,6 +42,15 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
         return;
       }
 
+      if (user?.phase2GateEnabled && !user?.procareTrainingCompleted) {
+        sessionStorage.setItem(
+          "mpm.launchpad.redirectMsg",
+          "Complete Phase 2 ProCare Training to access the ProCare Studio."
+        );
+        setLocation("/pro-launchpad");
+        return;
+      }
+
       onChoose("workspace");
     } catch {
       onChoose("workspace");

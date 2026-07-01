@@ -70,7 +70,7 @@ function ProcareGate({ component: Component }: { component: React.ComponentType 
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   if (!user) return null;
-  if (user.professionalRole && !user.procareTrainingCompleted) {
+  if (user.professionalRole && user.phase2GateEnabled && !user.procareTrainingCompleted) {
     setLocation("/pro-launchpad");
     return null;
   }
@@ -183,7 +183,7 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
             setCertified(false);
             certifiedRef.current = false;
             setLocation("/pro-launchpad");
-          } else if (!user?.procareTrainingCompleted) {
+          } else if (user?.phase2GateEnabled && !user?.procareTrainingCompleted) {
             sessionStorage.setItem(
               "mpm.launchpad.redirectMsg",
               "Complete Phase 2 ProCare Training to access the ProCare Studio."
@@ -211,7 +211,7 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
           // On polling errors, keep current state — don't kick out on transient failures
         });
     },
-    [user?.id, user?.procareTrainingCompleted]
+    [user?.id, user?.procareTrainingCompleted, user?.phase2GateEnabled]
   );
 
   // Initial check on mount / user change
@@ -282,6 +282,7 @@ import ProCareIdentity from "@/pages/procare/ProCareIdentity";
 import ProCareAttestation from "@/pages/procare/ProCareAttestation";
 import ProCareRewards from "@/pages/procare/ProCareRewards";
 import ProLaunchpad from "@/pages/procare/ProLaunchpad";
+import ProCareTraining from "@/pages/procare/ProCareTraining";
 // DELETED: CommunityTestPage, CommunityPage (no page component exists)
 
 // Additional component imports
@@ -354,6 +355,7 @@ import GatheringsPage from "@/pages/lifestyle/GatheringsPage";
 import MyPerfectGetaway from "@/pages/lifestyle/MyPerfectGetaway";
 import MyPerfectPregnancyPage from "@/pages/MyPerfectPregnancyPage";
 import PerformanceNutritionHub from "@/pages/PerformanceNutritionHub";
+import PerformanceNutritionSetupPage from "@/pages/PerformanceNutritionSetupPage";
 import CravingCreatorLanding from "@/pages/CravingCreatorLanding";
 import SushiCreator from "@/pages/SushiCreator";
 import BeverageCreatorHub from "@/pages/BeverageCreatorHub";
@@ -547,9 +549,11 @@ export default function Router() {
     "/procare-rewards",
     "/procare-attestation",
     "/pro-launchpad",
+    "/procare-training",
     "/procare-info",
     "/family-info",
     "/personal-guidance-info",
+    "/performance/setup",
   ];
 
   const shouldShowBottomNav = !hideBottomNavRoutes.includes(location);
@@ -582,7 +586,7 @@ export default function Router() {
     "/onboarding", "/onboarding-v2", "/onboarding/extended",
     "/pricing", "/paywall", "/apply-guidance",
     "/checkout/success",
-    "/consumer-welcome", "/procare-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation", "/pro-launchpad",
+    "/consumer-welcome", "/procare-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation", "/pro-launchpad", "/procare-training",
     "/trainer-welcome", "/physician-welcome",
     "/procare-info", "/family-info", "/personal-guidance-info",
     "/privacy", "/privacy-policy", "/terms", "/delete-account",
@@ -691,6 +695,7 @@ export default function Router() {
         <Route path="/procare-rewards" component={ProCareRewards} />
         <Route path="/procare-attestation" component={ProCareAttestation} />
         <Route path="/pro-launchpad" component={ProLaunchpad} />
+        <Route path="/procare-training" component={ProCareTraining} />
         {/* DELETED: CommunityTestPage, CommunityPage routes */}
         <Route path="/onboarding" component={SafeOnboarding} />
         <Route path="/onboarding-v2" component={SafeOnboardingV2} />
@@ -718,6 +723,7 @@ export default function Router() {
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
         <Route path="/lifestyle/my-perfect-pregnancy" component={MyPerfectPregnancyPage} />
         <Route path="/performance" component={PerformanceNutritionHub} />
+        <Route path="/performance/setup" component={PerformanceNutritionSetupPage} />
         <Route path="/lifestyle/my-perfect-getaway" component={GuardedGetaway} />
         <Route path="/lifestyle/my-perfect-gatherings" component={GuardedGatheringsPage} />
         <Route path="/lifestyle/ultimate-experiences" component={GuardedGatheringsPage} />

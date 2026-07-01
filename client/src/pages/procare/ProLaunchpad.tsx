@@ -178,10 +178,10 @@ export default function ProLaunchpad() {
               phase1Complete && !phase2Complete
                 ? state.phase2.status === "in_progress"
                   ? "Continue Training"
-                  : "Coming Soon"
+                  : "Start Training"
                 : undefined
             }
-            onCta={phase1Complete && !phase2Complete ? () => setLocation("/learning") : undefined}
+            onCta={phase1Complete && !phase2Complete ? () => setLocation("/procare-training") : undefined}
           />
 
           <LaunchpadStep

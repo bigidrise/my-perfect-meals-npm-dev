@@ -49,15 +49,38 @@ router.get("/launchpad-status", requireAuth, async (req, res) => {
 });
 
 // POST /api/pro/training/complete
-// Marks Phase 2 ProCare Training as complete — unlocks the studio
+// Marks Phase 2 ProCare Training as complete — unlocks the studio.
+// Writes to both users.procareTrainingCompleted (fast flag) and
+// userCertifications (so ProLaunchpad's cert-progress check resolves correctly).
 router.post("/complete", requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
+    const now = new Date();
 
-    await db
-      .update(users)
-      .set({ procareTrainingCompleted: true })
-      .where(eq(users.id, userId));
+    await Promise.all([
+      db
+        .update(users)
+        .set({ procareTrainingCompleted: true })
+        .where(eq(users.id, userId)),
+
+      db
+        .insert(userCertifications)
+        .values({
+          userId,
+          certificationType: "procare_training",
+          status: "completed",
+          completedAt: now,
+          updatedAt: now,
+        })
+        .onConflictDoUpdate({
+          target: [userCertifications.userId, userCertifications.certificationType],
+          set: {
+            status: "completed",
+            completedAt: now,
+            updatedAt: now,
+          },
+        }),
+    ]);
 
     return res.json({ ok: true });
   } catch (err) {

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { mealImageCache } from "../db/schema/mealImageCache";
-import { eq, ilike, or, desc, notLike, and } from "drizzle-orm";
+import { eq, ilike, or, desc, notLike, and, sql } from "drizzle-orm";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
 
 const S3_BUCKET = process.env.S3_BUCKET_NAME || "my-perfect-meals-images";
@@ -282,6 +282,35 @@ router.post("/repair-image-cache", async (req, res) => {
     });
   } catch (err: any) {
     console.error("[admin/repair-image-cache] error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/run-grandfather-migration", async (req, res) => {
+  const actor = (req as AuthenticatedRequest).authUser;
+  try {
+    const result = await db.execute(sql`
+      UPDATE users
+      SET procare_training_completed = true
+      WHERE
+        professional_role IS NOT NULL
+        AND procare_training_completed = false
+        AND id IN (
+          SELECT user_id FROM user_certifications
+          WHERE certification_type IN ('platform', 'affiliate_coaching')
+            AND completed_at IS NOT NULL
+            AND completed_at < '2026-07-01T00:00:00Z'
+        )
+    `);
+    const rowCount = (result as any).rowCount ?? (result as any).count ?? 0;
+    console.log(`✅ [admin/run-grandfather-migration] ${rowCount} professional(s) grandfathered (procare_training_completed=true) — triggered by ${actor.email}`);
+    return res.json({
+      ok: true,
+      rowsUpdated: rowCount,
+      message: `Grandfather migration complete: ${rowCount} professional(s) updated.`,
+    });
+  } catch (err: any) {
+    console.error("[admin/run-grandfather-migration] error:", err);
     return res.status(500).json({ error: err.message });
   }
 });
