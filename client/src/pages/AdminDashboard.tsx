@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { Search, User, ShieldAlert, LogOut, RefreshCw, Ban, CheckCircle, RotateCcw, KeyRound, ChefHat, ArrowRight, Award, Users } from "lucide-react";
+import { Search, User, ShieldAlert, LogOut, RefreshCw, Ban, CheckCircle, RotateCcw, KeyRound, ChefHat, ArrowRight, Award, Users, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const ENV = import.meta.env.MODE === "production" ? "PRODUCTION" : "DEVELOPMENT";
@@ -262,6 +262,28 @@ function GrandfatherStatusPanel() {
 
   useEffect(() => { load(); }, [load]);
 
+  const downloadCSV = () => {
+    if (!data || data.professionals.length === 0) return;
+    const headers = ["email", "username", "role", "cert_type", "cert_completed_at"];
+    const rows = data.professionals.map((p) => [
+      p.email,
+      p.username,
+      p.professionalRole ?? "",
+      p.certificationType,
+      p.certCompletedAt ? new Date(p.certCompletedAt).toISOString() : "",
+    ]);
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `grandfathered-professionals-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const runMigration = async () => {
     if (!window.confirm("Re-run the grandfather migration? This is safe to run multiple times — it only updates professionals who don't yet have procare_training_completed=true.")) return;
     setRunningMigration(true);
@@ -300,12 +322,22 @@ function GrandfatherStatusPanel() {
             <div className="flex items-center gap-3">
               <span className="text-3xl font-bold text-orange-400">{data.count}</span>
               <span className="text-sm text-white/60">grandfathered professional{data.count !== 1 ? "s" : ""}</span>
-              <button
-                onClick={load}
-                className="ml-auto text-xs text-white/30 hover:text-white/60 transition flex items-center gap-1"
-              >
-                <RefreshCw className="h-3 w-3" /> Refresh
-              </button>
+              <div className="ml-auto flex items-center gap-2">
+                {data.count > 0 && (
+                  <button
+                    onClick={downloadCSV}
+                    className="text-xs text-white/50 bg-white/10 hover:bg-white/20 transition flex items-center gap-1 px-2 py-1 rounded-md"
+                  >
+                    <Download className="h-3 w-3" /> Download CSV
+                  </button>
+                )}
+                <button
+                  onClick={load}
+                  className="text-xs text-white/30 hover:text-white/60 transition flex items-center gap-1"
+                >
+                  <RefreshCw className="h-3 w-3" /> Refresh
+                </button>
+              </div>
             </div>
 
             {data.count > 0 && (
