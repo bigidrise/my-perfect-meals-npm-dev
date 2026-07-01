@@ -282,6 +282,7 @@ import ProCareIdentity from "@/pages/procare/ProCareIdentity";
 import ProCareAttestation from "@/pages/procare/ProCareAttestation";
 import ProCareRewards from "@/pages/procare/ProCareRewards";
 import ProLaunchpad from "@/pages/procare/ProLaunchpad";
+import ProCareTraining from "@/pages/procare/ProCareTraining";
 // DELETED: CommunityTestPage, CommunityPage (no page component exists)
 
 // Additional component imports
@@ -547,6 +548,7 @@ export default function Router() {
     "/procare-rewards",
     "/procare-attestation",
     "/pro-launchpad",
+    "/procare-training",
     "/procare-info",
     "/family-info",
     "/personal-guidance-info",
@@ -582,7 +584,7 @@ export default function Router() {
     "/onboarding", "/onboarding-v2", "/onboarding/extended",
     "/pricing", "/paywall", "/apply-guidance",
     "/checkout/success",
-    "/consumer-welcome", "/procare-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation", "/pro-launchpad",
+    "/consumer-welcome", "/procare-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation", "/pro-launchpad", "/procare-training",
     "/trainer-welcome", "/physician-welcome",
     "/procare-info", "/family-info", "/personal-guidance-info",
     "/privacy", "/privacy-policy", "/terms", "/delete-account",
@@ -691,6 +693,7 @@ export default function Router() {
         <Route path="/procare-rewards" component={ProCareRewards} />
         <Route path="/procare-attestation" component={ProCareAttestation} />
         <Route path="/pro-launchpad" component={ProLaunchpad} />
+        <Route path="/procare-training" component={ProCareTraining} />
         {/* DELETED: CommunityTestPage, CommunityPage routes */}
         <Route path="/onboarding" component={SafeOnboarding} />
         <Route path="/onboarding-v2" component={SafeOnboardingV2} />
