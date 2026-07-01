@@ -360,6 +360,11 @@ export const users = pgTable("users", {
   // Token-based authentication (secure alternative to session)
   authToken: text("auth_token").unique(), // 256-bit random token for API authentication
   authTokenCreatedAt: timestamp("auth_token_created_at", { withTimezone: true }),
+  // Multi-factor authentication (TOTP / RFC 6238)
+  mfaEnabled: boolean("mfa_enabled").notNull().default(false),
+  mfaSecret: varchar("mfa_secret", { length: 128 }),        // base32 TOTP secret — NEVER expose to client after setup
+  mfaBackupCodes: jsonb("mfa_backup_codes"),                 // SHA-256 hashed backup codes array
+  mfaEnrolledAt: timestamp("mfa_enrolled_at", { withTimezone: true }),
   profilePhotoUrl: text("profile_photo_url"), // URL to user's profile photo in object storage
   // Role-based access control for Pro Care
   role: text("role").$type<"admin"|"coach"|"client">().notNull().default("client"), // admin = full access, coach = Pro Care tools, client = assigned board only

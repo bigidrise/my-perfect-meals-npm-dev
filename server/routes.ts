@@ -68,6 +68,8 @@ import OpenAI from 'openai';
 import pushNotificationsRouter from './routes/pushNotifications';
 import mealPlanReplaceRouter from './routes/meal-plan-replace';
 import authSessionRouter from './routes/auth.session';
+import mfaRoutes from './routes/auth.mfa';
+import { requireMfa } from './middleware/requireMfa';
 import { MealEngineService } from "./services/mealEngineService";
 import { generateFridgeRescueMeals } from "./services/fridgeRescueGenerator";
 import { getBuilderSwitchStatus, attemptBuilderSwitch } from "./services/builderSwitchService";
@@ -436,6 +438,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/stripe", stripeRouter);
 
   app.use(authSessionRouter);
+  app.use("/api/auth/mfa", mfaRoutes);
   app.use(alcoholLogRouter);
   app.use('/api/vitals/bp', vitalsBpRouter);
   app.use('/api', proteinTargetsRouter);
@@ -6895,15 +6898,15 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api/pro/workspace", requireAuth, requirePhase1Cert, requirePhase2Training, workspaceRoutes);
 
   const proTabletRoutes = (await import("./routes/proTabletRoutes")).default;
-  app.use("/api/pro/tablet", requireAuth, requirePhase1Cert, requirePhase2Training, proTabletRoutes);
+  app.use("/api/pro/tablet", requireAuth, requirePhase1Cert, requirePhase2Training, requireMfa, proTabletRoutes);
 
   const clientTabletRoutes = (await import("./routes/clientTabletRoutes")).default;
   app.use("/api/client/tablet", requireAuth, clientTabletRoutes);
 
   app.use("/api/care-team", requireAuth, requirePremiumAccess, careTeamRoutes);
-  app.use("/api/pro", requireAuth, requirePremiumAccess, procareRoutes);
+  app.use("/api/pro", requireAuth, requirePremiumAccess, requireMfa, procareRoutes);
   app.use("/api/pro/training", requireAuth, procareTrainingRouter);
-  app.use("/api/studios", requireAuth, requirePremiumAccess, requirePhase1Cert, requirePhase2Training, studioRoutes);
+  app.use("/api/studios", requireAuth, requirePremiumAccess, requirePhase1Cert, requirePhase2Training, requireMfa, studioRoutes);
   const cycleProtocolRoutes = (await import("./routes/cycleProtocolRoutes")).default;
   app.use("/api", requireAuth, cycleProtocolRoutes);
   const legalRoutes = (await import("./routes/legalRoutes")).default;

@@ -350,6 +350,19 @@ router.post("/api/auth/login", async (req, res) => {
     // Successful login — clear failed attempt counter
     clearLockout(normalizedEmail);
 
+    // ── MFA gate ──────────────────────────────────────────────────────────────
+    // If the user has MFA enabled, pause here and require a TOTP challenge.
+    // Set pendingMfaUserId on the session so the /mfa/challenge endpoint can
+    // verify the code and promote to a full session.
+    if (user.mfaEnabled) {
+      if (req.session) {
+        (req.session as any).pendingMfaUserId = user.id;
+        delete (req.session as any).userId; // no full session until TOTP verified
+      }
+      logAudit({ actor: user.id, action: "AUTH_LOGIN", resourceType: "auth", route: req.path, ip: getClientIp(req as any), meta: { mfaRequired: true } });
+      return res.json({ mfaRequired: true });
+    }
+
     // Login: only regenerate auth token if missing — never overwrite isTester from login
     const authToken = user.authToken || generateAuthToken();
     const updateFields: any = {};

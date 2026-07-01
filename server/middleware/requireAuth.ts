@@ -9,6 +9,7 @@ export interface AuthenticatedUser {
   id: string;
   email: string;
   username: string;
+  role: "admin" | "coach" | "client";
   plan: string;
   entitlements: string[];
   planLookupKey: string | null;
@@ -43,6 +44,7 @@ function buildAuthUser(user: any): AuthenticatedUser {
     id: user.id,
     email: user.email,
     username: user.username,
+    role: (user.role as "admin" | "coach" | "client") ?? "client",
     plan: user.plan,
     entitlements: user.entitlements || [],
     planLookupKey: user.planLookupKey || null,

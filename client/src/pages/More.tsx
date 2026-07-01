@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
 import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X, Link2Off, ShieldCheck, Users, TrendingUp, Lightbulb } from "lucide-react";
+import { MfaSetupSection } from "@/components/MfaSetupSection";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActivePaidSubscription, isClinicalOrAbove } from "@/lib/subscriptionCheck";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
@@ -556,7 +557,14 @@ export default function MorePage() {
               </GlassCard>
             )}
 
-            {/* 3. Other features (Supplement Hub, etc.) */}
+            {/* 3. Account Security — Two-Factor Authentication */}
+            <GlassCard className="border border-white/10">
+              <GlassCardContent className="p-5">
+                <MfaSetupSection />
+              </GlassCardContent>
+            </GlassCard>
+
+            {/* 4. Other features (Supplement Hub, etc.) */}
             {proCareFeatures.filter(f => f.roleKey === null).map((feature) => {
               const Icon = feature.icon;
               return (

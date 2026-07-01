@@ -166,6 +166,8 @@ export interface User {
   activeProtocolTrack?: "athletic" | "competition" | null;
   weeklyTrainingSchedule?: any | null;
   performanceProtocolConfig?: any | null;
+  // Multi-factor authentication
+  mfaEnabled?: boolean;
 }
 
 export function getAuthToken(): string | null {
@@ -320,7 +322,10 @@ export async function signUp(email: string, password: string, procareData?: ProC
   }
 }
 
-export async function login(email: string, password: string): Promise<User> {
+export async function login(
+  email: string,
+  password: string
+): Promise<User | { mfaRequired: true }> {
   try {
     const response = await fetch(apiUrl("/api/auth/login"), {
       method: "POST",
@@ -335,12 +340,17 @@ export async function login(email: string, password: string): Promise<User> {
     }
 
     const userData = await response.json();
-    
+
+    // MFA gate — server has stored pendingMfaUserId in session
+    if (userData.mfaRequired === true) {
+      return { mfaRequired: true };
+    }
+
     // Store auth token from server response
     if (userData.authToken) {
       setAuthToken(userData.authToken);
     }
-    
+
     const user: User = {
       id: userData.id,
       email: userData.email,
@@ -352,6 +362,7 @@ export async function login(email: string, password: string): Promise<User> {
       activeBoard: userData.activeBoard || null,
       onboardingCompletedAt: userData.onboardingCompletedAt || null,
       studioMembership: userData.studioMembership || null,
+      mfaEnabled: userData.mfaEnabled || false,
     };
 
     localStorage.setItem("mpm_current_user", JSON.stringify(user));
@@ -374,6 +385,57 @@ export async function login(email: string, password: string): Promise<User> {
     console.error("Login failed:", error);
     throw error;
   }
+}
+
+/**
+ * Complete an MFA challenge after login.
+ * The session must have pendingMfaUserId set (done by the login endpoint).
+ */
+export async function completeMfaChallenge(
+  code: string,
+  isBackup = false
+): Promise<User> {
+  const endpoint = isBackup
+    ? "/api/auth/mfa/challenge/backup"
+    : "/api/auth/mfa/challenge";
+
+  const response = await fetch(apiUrl(endpoint), {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "MFA verification failed");
+  }
+
+  const userData = await response.json();
+
+  if (userData.authToken) {
+    setAuthToken(userData.authToken);
+  }
+
+  const user: User = {
+    id: userData.id,
+    email: userData.email,
+    name: userData.username,
+    isProCare: userData.isProCare || false,
+    professionalRole: userData.professionalRole || null,
+    role: userData.role || "client",
+    selectedMealBuilder: userData.selectedMealBuilder || null,
+    activeBoard: userData.activeBoard || null,
+    onboardingCompletedAt: userData.onboardingCompletedAt || null,
+    studioMembership: userData.studioMembership || null,
+    mfaEnabled: userData.mfaEnabled || false,
+  };
+
+  localStorage.setItem("mpm_current_user", JSON.stringify(user));
+  localStorage.setItem("userId", user.id);
+  localStorage.setItem("isAuthenticated", "true");
+
+  return user;
 }
 
 export function logout(): void {
