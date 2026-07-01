@@ -2,9 +2,11 @@ import { useState, useMemo } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { login, signUp, getProCareSignupData, clearProCareSignupData } from "@/lib/auth";
+import type { User } from "@/lib/auth";
 import { Stethoscope } from "lucide-react";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
+import { MfaChallengeModal } from "@/components/MfaChallengeModal";
 
 export default function Auth() {
   const [, setLocation] = useLocation();
@@ -21,12 +23,46 @@ export default function Auth() {
   const [err, setErr] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showWorkspaceChooser, setShowWorkspaceChooser] = useState(false);
+  const [showMfaChallenge, setShowMfaChallenge] = useState(false);
+
+  async function proceedAfterLogin(u: User) {
+    setUser(u);
+    localStorage.setItem("isAuthenticated", "true");
+    sessionStorage.removeItem("mpm.welcomeGateDone");
+
+    const isProfessionalFromLogin = u?.isProCare && (u?.professionalRole === "trainer" || u?.professionalRole === "physician");
+    const fullUser = await refreshUser();
+    const isProfessionalFromRefresh = fullUser?.isProCare && (fullUser?.professionalRole === "trainer" || fullUser?.professionalRole === "physician");
+    const isProfessional = isProfessionalFromLogin || isProfessionalFromRefresh;
+    const onboardingDone = fullUser?.onboardingCompletedAt;
+
+    if (isProfessional && mode === "login") {
+      localStorage.removeItem("mpm_workspace_preference");
+      setShowWorkspaceChooser(true);
+    } else if (mode === "signup" && urlRole === "trainer") {
+      setLocation("/trainer-welcome");
+    } else if (mode === "signup" && urlRole === "physician") {
+      setLocation("/physician-welcome");
+    } else if (mode === "signup") {
+      setLocation("/consumer-welcome");
+    } else if (hasActivePaidSubscription(fullUser) && !onboardingDone) {
+      setLocation("/onboarding");
+    } else {
+      const pendingPlan = sessionStorage.getItem("mpm_pending_plan");
+      if (pendingPlan) {
+        sessionStorage.removeItem("mpm_pending_plan");
+        setLocation(`/pricing?plan=${pendingPlan}`);
+      } else {
+        setLocation("/");
+      }
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
     try {
-      let u;
+      let u: User;
       if (mode === "signup") {
         let procareData = isProCare ? getProCareSignupData() : null;
         if (!procareData && urlRole) {
@@ -43,43 +79,36 @@ export default function Auth() {
           clearProCareSignupData();
         }
       } else {
-        u = await login(email.trim(), pwd);
-      }
-      setUser(u);
-      
-      localStorage.setItem("isAuthenticated", "true");
-      sessionStorage.removeItem("mpm.welcomeGateDone");
-
-      const isProfessionalFromLogin = u?.isProCare && (u?.professionalRole === "trainer" || u?.professionalRole === "physician");
-      const fullUser = await refreshUser();
-      const isProfessionalFromRefresh = fullUser?.isProCare && (fullUser?.professionalRole === "trainer" || fullUser?.professionalRole === "physician");
-      const isProfessional = isProfessionalFromLogin || isProfessionalFromRefresh;
-
-      const onboardingDone = fullUser?.onboardingCompletedAt;
-
-      if (isProfessional && mode === "login") {
-        localStorage.removeItem("mpm_workspace_preference");
-        setShowWorkspaceChooser(true);
-      } else if (mode === "signup" && urlRole === "trainer") {
-        setLocation("/trainer-welcome");
-      } else if (mode === "signup" && urlRole === "physician") {
-        setLocation("/physician-welcome");
-      } else if (mode === "signup") {
-        setLocation("/consumer-welcome");
-      } else if (hasActivePaidSubscription(fullUser) && !onboardingDone) {
-        setLocation("/onboarding");
-      } else {
-        const pendingPlan = sessionStorage.getItem("mpm_pending_plan");
-        if (pendingPlan) {
-          sessionStorage.removeItem("mpm_pending_plan");
-          setLocation(`/pricing?plan=${pendingPlan}`);
-        } else {
-          setLocation("/");
+        const loginResult = await login(email.trim(), pwd);
+        if ("mfaRequired" in loginResult && loginResult.mfaRequired) {
+          setShowMfaChallenge(true);
+          return;
         }
+        u = loginResult as User;
       }
+      await proceedAfterLogin(u);
     } catch (e: any) {
       setErr(e?.message || "Authentication failed.");
     }
+  }
+
+  if (showMfaChallenge) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 text-white bg-gradient-to-br from-neutral-700 via-black to-black">
+        <MfaChallengeModal
+          onSuccess={async (u: User) => {
+            setShowMfaChallenge(false);
+            try {
+              await proceedAfterLogin(u);
+            } catch (e: any) {
+              setErr(e?.message || "Login failed.");
+              setShowMfaChallenge(false);
+            }
+          }}
+          onCancel={() => setShowMfaChallenge(false)}
+        />
+      </div>
+    );
   }
 
   if (showWorkspaceChooser) {

@@ -40,6 +40,11 @@ export type AuditAction =
   | "AUTH_RESET_COMPLETED"  // Password successfully changed via reset token
   | "AUTH_ACCOUNT_DELETED"  // Account permanently deleted
   | "AUTH_RESET"            // Legacy: password reset initiated or completed (kept for existing rows)
+  | "MFA_ENROLLED"          // User completed TOTP setup and confirmed first code
+  | "MFA_DISABLED"          // User removed MFA (requires TOTP or backup code verification)
+  | "MFA_CHALLENGE_SUCCESS" // TOTP or backup code verified during login challenge
+  | "MFA_CHALLENGE_FAILED"  // Bad TOTP or backup code attempt during login
+  | "MFA_BACKUP_USED"       // Backup code consumed (one less remaining)
   | "ORG_VIOLATION"         // Cross-org access attempt (blocked)
   | "AI_PROMPT_PHI";        // T1/T2 health fields embedded into an AI prompt context
 
