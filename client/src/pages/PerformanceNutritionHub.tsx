@@ -675,7 +675,10 @@ export default function PerformanceNutritionHub() {
   if (!hasPerformanceAccess) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white pb-20">
-        <div className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center gap-3">
+        <div
+          className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 pb-3 flex items-center gap-3"
+          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
+        >
           <button
             onClick={() => setLocation("/")}
             className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"
@@ -723,7 +726,10 @@ export default function PerformanceNutritionHub() {
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-32"
     >
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center gap-3">
+      <div
+        className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 pb-3 flex items-center gap-3"
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
+      >
         <button
           onClick={() => setLocation("/")}
           className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"
