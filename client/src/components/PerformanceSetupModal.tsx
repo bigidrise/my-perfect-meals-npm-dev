@@ -330,7 +330,7 @@ export default function PerformanceSetupModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full sm:max-w-lg bg-gradient-to-b from-zinc-950 to-black border border-orange-500/20 rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[92vh] flex flex-col">
+      <div className="relative w-full sm:max-w-lg bg-gradient-to-b from-zinc-950 to-black border border-orange-500/20 rounded-t-3xl sm:rounded-3xl overflow-clip max-h-[92vh] flex flex-col">
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-white/10 flex-shrink-0">
@@ -895,7 +895,7 @@ export default function PerformanceSetupModal({
         </div>
 
         {/* Footer */}
-        <div className="px-5 pb-6 pt-3 border-t border-white/10 flex gap-3 flex-shrink-0">
+        <div className="px-5 pt-3 border-t border-white/10 flex gap-3 flex-shrink-0" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1.5rem)" }}>
           {step > 0 && (
             <button
               onClick={() => setStep(s => s - 1)}
