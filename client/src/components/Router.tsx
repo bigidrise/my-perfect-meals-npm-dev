@@ -1,4 +1,4 @@
-import React, { lazy, useEffect, useRef, useState } from "react";
+import React, { lazy, useCallback, useEffect, useRef, useState } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { BUILDER_MAP, type BuilderKey } from "@/lib/builderMap";
 import GeneralNutritionBuilder from "@/pages/pro/GeneralNutritionBuilder";
@@ -151,43 +151,77 @@ function ClinicalGuard({ component: Component }: { component: React.ComponentTyp
   return <Component />;
 }
 
+const PROCARE_CERT_POLL_MS = 5 * 60 * 1000; // 5 minutes
+
 function ProCareStudioGuard({ component: Component }: { component: React.ComponentType }) {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [certChecked, setCertChecked] = useState(false);
   const [certified, setCertified] = useState(false);
+  const certifiedRef = useRef(false);
 
+  const verifyCert = useCallback(
+    (isInitial: boolean) => {
+      if (!user) return;
+      if (!user.professionalRole) {
+        setCertified(true);
+        certifiedRef.current = true;
+        if (isInitial) setCertChecked(true);
+        return;
+      }
+      apiRequest("/api/certifications/platform/progress")
+        .then((res: any) => {
+          const complete =
+            res?.certification?.status === "completed" && !!res?.certification?.completedAt;
+          if (!complete) {
+            sessionStorage.setItem(
+              "mpm.launchpad.redirectMsg",
+              isInitial
+                ? "Complete Phase 1 Academy certification to access the ProCare Studio."
+                : "Your ProCare Studio access has been revoked. Please contact support."
+            );
+            setCertified(false);
+            certifiedRef.current = false;
+            setLocation("/pro-launchpad");
+          } else {
+            setCertified(true);
+            certifiedRef.current = true;
+          }
+          if (isInitial) setCertChecked(true);
+        })
+        .catch(() => {
+          if (isInitial) {
+            sessionStorage.setItem(
+              "mpm.launchpad.redirectMsg",
+              "Unable to verify Academy certification. Please try again."
+            );
+            setCertified(false);
+            certifiedRef.current = false;
+            setLocation("/pro-launchpad");
+            setCertChecked(true);
+          }
+          // On polling errors, keep current state — don't kick out on transient failures
+        });
+    },
+    [user?.id]
+  );
+
+  // Initial check on mount / user change
   useEffect(() => {
-    if (!user) return;
-    if (!user.professionalRole) {
-      setCertified(true);
-      setCertChecked(true);
-      return;
-    }
-    apiRequest("/api/certifications/platform/progress")
-      .then((res: any) => {
-        const complete =
-          res?.certification?.status === "completed" && !!res?.certification?.completedAt;
-        if (!complete) {
-          sessionStorage.setItem(
-            "mpm.launchpad.redirectMsg",
-            "Complete Phase 1 Academy certification to access the ProCare Studio."
-          );
-          setLocation("/pro-launchpad");
-        } else {
-          setCertified(true);
-        }
-        setCertChecked(true);
-      })
-      .catch(() => {
-        sessionStorage.setItem(
-          "mpm.launchpad.redirectMsg",
-          "Unable to verify Academy certification. Please try again."
-        );
-        setLocation("/pro-launchpad");
-        setCertChecked(true);
-      });
+    setCertChecked(false);
+    setCertified(false);
+    certifiedRef.current = false;
+    verifyCert(true);
   }, [user?.id]);
+
+  // Periodic re-verification while the page stays open
+  useEffect(() => {
+    if (!user?.professionalRole) return;
+    const intervalId = setInterval(() => {
+      verifyCert(false);
+    }, PROCARE_CERT_POLL_MS);
+    return () => clearInterval(intervalId);
+  }, [user?.id, verifyCert]);
 
   if (!certChecked) return null;
   if (!certified) return null;
