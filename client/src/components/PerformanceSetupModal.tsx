@@ -359,7 +359,7 @@ export default function PerformanceSetupModal({
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-5 space-y-4">
 
           {/* ── Step 0: Track Selector ── */}
           {step === 0 && (
