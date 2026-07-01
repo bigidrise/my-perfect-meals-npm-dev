@@ -355,6 +355,7 @@ import GatheringsPage from "@/pages/lifestyle/GatheringsPage";
 import MyPerfectGetaway from "@/pages/lifestyle/MyPerfectGetaway";
 import MyPerfectPregnancyPage from "@/pages/MyPerfectPregnancyPage";
 import PerformanceNutritionHub from "@/pages/PerformanceNutritionHub";
+import PerformanceNutritionSetupPage from "@/pages/PerformanceNutritionSetupPage";
 import CravingCreatorLanding from "@/pages/CravingCreatorLanding";
 import SushiCreator from "@/pages/SushiCreator";
 import BeverageCreatorHub from "@/pages/BeverageCreatorHub";
@@ -552,6 +553,7 @@ export default function Router() {
     "/procare-info",
     "/family-info",
     "/personal-guidance-info",
+    "/performance/setup",
   ];
 
   const shouldShowBottomNav = !hideBottomNavRoutes.includes(location);
@@ -721,6 +723,7 @@ export default function Router() {
         <Route path="/glp1-meals-tracking" component={GLP1MealsTracking} />
         <Route path="/lifestyle/my-perfect-pregnancy" component={MyPerfectPregnancyPage} />
         <Route path="/performance" component={PerformanceNutritionHub} />
+        <Route path="/performance/setup" component={PerformanceNutritionSetupPage} />
         <Route path="/lifestyle/my-perfect-getaway" component={GuardedGetaway} />
         <Route path="/lifestyle/my-perfect-gatherings" component={GuardedGatheringsPage} />
         <Route path="/lifestyle/ultimate-experiences" component={GuardedGatheringsPage} />

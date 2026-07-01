@@ -11,7 +11,7 @@ import { usePageTitle } from "@/contexts/PageTitleContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
-import PerformanceSetupModal from "@/components/PerformanceSetupModal";
+// import PerformanceSetupModal from "@/components/PerformanceSetupModal"; // kept during validation — see PerformanceNutritionSetupPage
 import {
   computeDemandProfile,
   FUEL_DEMAND_LABELS,
@@ -361,8 +361,6 @@ export default function PerformanceNutritionHub() {
     if (param === "starch" || param === "protocols" || param === "protocol") return param as ActiveTab;
     return "protocol";
   });
-  const [setupOpen, setSetupOpen] = useState(false);
-
   // Pro View toggle — gated to procare / care_team / isAdmin
   // Only restore persisted "pro" from localStorage if user is still entitled;
   // otherwise force "user" and clear the stale key.
@@ -743,7 +741,7 @@ export default function PerformanceNutritionHub() {
           </p>
         </div>
         <button
-          onClick={() => setSetupOpen(true)}
+          onClick={() => setLocation("/performance/setup")}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600/20 border border-orange-500/30 text-orange-300 text-xs font-semibold"
         >
           <Settings className="w-3.5 h-3.5" />
@@ -762,7 +760,7 @@ export default function PerformanceNutritionHub() {
           </div>
           <div className="space-y-3">
             <button
-              onClick={() => setSetupOpen(true)}
+              onClick={() => setLocation("/performance/setup")}
               className="w-full text-left px-4 py-4 rounded-2xl bg-black/50 border border-white/10 active:scale-[0.98] transition-transform"
             >
               <div className="flex items-start gap-3">
@@ -777,7 +775,7 @@ export default function PerformanceNutritionHub() {
               </div>
             </button>
             <button
-              onClick={() => setSetupOpen(true)}
+              onClick={() => setLocation("/performance/setup")}
               className="w-full text-left px-4 py-4 rounded-2xl bg-black/50 border border-white/10 active:scale-[0.98] transition-transform"
             >
               <div className="flex items-start gap-3">
@@ -1371,15 +1369,15 @@ export default function PerformanceNutritionHub() {
         </div>
       )}
 
-      {/* Setup modal */}
-      <PerformanceSetupModal
+      {/* Setup modal — commented out during validation of PerformanceNutritionSetupPage (/performance/setup) */}
+      {/* <PerformanceSetupModal
         isOpen={setupOpen}
         onClose={() => setSetupOpen(false)}
         onSuccess={() => setSetupOpen(false)}
         existingContext={pCtx}
         existingCompContext={compCtx}
         existingTrack={activeTrack}
-      />
+      /> */}
     </motion.div>
   );
 
