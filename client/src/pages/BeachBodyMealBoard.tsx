@@ -1088,7 +1088,7 @@ export default function BeachBodyMealBoard() {
   if (!hasPerformanceAccess) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 flex flex-col">
-        <BuilderHeader title="Performance Nutrition Builder" onOpenTour={quickTour.openTour} clientId={proClientId} />
+        <BuilderHeader title="Performance Nutrition Builder" onOpenTour={quickTour.openTour} clientId={proClientId} backTo="/performance" backLabel="Performance Hub" />
         <div className="flex flex-col items-center justify-center flex-1 px-6 text-center gap-6" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}>
           <div className="w-20 h-20 rounded-full bg-orange-600/20 border border-orange-500/30 flex items-center justify-center">
             <span className="text-4xl">🏆</span>
@@ -1133,7 +1133,7 @@ export default function BeachBodyMealBoard() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-36 overflow-x-hidden"
     >
-      <BuilderHeader title="Performance Nutrition Builder" onOpenTour={quickTour.openTour} clientId={proClientId} />
+      <BuilderHeader title="Performance Nutrition Builder" onOpenTour={quickTour.openTour} clientId={proClientId} backTo="/performance" backLabel="Performance Hub" />
       <TrialBanner />
 
       {/* Main Content */}

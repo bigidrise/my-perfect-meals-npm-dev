@@ -1052,7 +1052,7 @@ export default function GLP1MealBuilder() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24 overflow-x-hidden"
     >
-      <BuilderHeader title="Metabolic Medication Builder" onOpenTour={quickTour.openTour} clientId={proClientId} />
+      <BuilderHeader title="Metabolic Medication Builder" onOpenTour={quickTour.openTour} clientId={proClientId} backTo="/glp1-hub" backLabel="Metabolic Hub" />
       <TrialBanner />
 
       {/* Main Content */}
