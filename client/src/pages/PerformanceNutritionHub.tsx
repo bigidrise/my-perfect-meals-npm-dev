@@ -939,7 +939,7 @@ export default function PerformanceNutritionHub() {
 
               {/* Daily Macro Targets */}
               <div className="space-y-1.5">
-                <p className="text-white/40 text-[10px] font-semibold uppercase tracking-wider">Today's Targets</p>
+                <p className="text-white text-[11px] font-semibold uppercase tracking-wider">Today's Targets</p>
                 <div className="grid grid-cols-5 gap-1.5">
                   {[
                     { label: "Calories", value: resolvedTargets.calories > 0 ? Math.round(resolvedTargets.calories).toLocaleString() : "—", unit: "kcal" },
@@ -948,10 +948,10 @@ export default function PerformanceNutritionHub() {
                     { label: "Fibrous",  value: resolvedTargets.fibrous_carbs_g > 0 ? Math.round(resolvedTargets.fibrous_carbs_g) : resolvedTargets.carbs_g > 0 ? Math.round(resolvedTargets.carbs_g * 0.3) : "—", unit: "g" },
                     { label: "Fat",      value: resolvedTargets.fat_g > 0 ? Math.round(resolvedTargets.fat_g) : "—",                       unit: "g" },
                   ].map(m => (
-                    <div key={m.label} className="bg-white/5 rounded-xl px-1.5 py-2.5 text-center">
+                    <div key={m.label} className="bg-white/10 rounded-xl px-1.5 py-2.5 text-center">
                       <p className="text-white font-bold text-sm leading-none">{m.value}</p>
-                      <p className="text-white/30 text-[10px] mt-0.5">{m.unit}</p>
-                      <p className="text-white/20 text-[9px] mt-0.5 uppercase tracking-wide">{m.label}</p>
+                      <p className="text-white/70 text-[10px] mt-0.5">{m.unit}</p>
+                      <p className="text-white/70 text-[9px] mt-0.5 uppercase tracking-wide">{m.label}</p>
                     </div>
                   ))}
                 </div>
@@ -984,16 +984,16 @@ export default function PerformanceNutritionHub() {
                   <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
                   <p className="text-xs text-orange-300 font-semibold uppercase tracking-wider">Today's Training</p>
                 </div>
-                <span className="text-xs text-white/30 font-medium">
+                <span className="text-xs text-white font-semibold">
                   {new Date().toLocaleDateString("en-US", { weekday: "long" })}
                 </span>
               </div>
 
               <p className="text-white font-bold text-2xl leading-none mb-0.5">{todaySession.sessionLabel}</p>
-              <p className="text-white/70 text-xs leading-relaxed mb-4">{todaySession.description}</p>
+              <p className="text-white/80 text-xs leading-relaxed mb-4">{todaySession.description}</p>
 
               {/* Today's Targets */}
-              <p className="text-white/40 text-[10px] font-semibold uppercase tracking-wider mb-2">Today's Targets</p>
+              <p className="text-white text-[11px] font-semibold uppercase tracking-wider mb-2">Today's Targets</p>
               <div className="grid grid-cols-5 gap-1.5 mb-4">
                 {[
                   { label: "Calories", value: todaySession.calories.toLocaleString(), unit: "kcal" },
@@ -1002,10 +1002,10 @@ export default function PerformanceNutritionHub() {
                   { label: "Fibrous",  value: `${todaySession.fibrousCarbsG}`,        unit: "g" },
                   { label: "Fat",      value: `${todaySession.fatG}`,                 unit: "g" },
                 ].map(m => (
-                  <div key={m.label} className="bg-white/5 rounded-xl px-1.5 py-2.5 text-center">
+                  <div key={m.label} className="bg-white/10 rounded-xl px-1.5 py-2.5 text-center">
                     <p className="text-white font-bold text-sm leading-none">{m.value}</p>
-                    <p className="text-white/30 text-[10px] mt-0.5">{m.unit}</p>
-                    <p className="text-white/20 text-[9px] mt-0.5 uppercase tracking-wide">{m.label}</p>
+                    <p className="text-white/70 text-[10px] mt-0.5">{m.unit}</p>
+                    <p className="text-white/70 text-[9px] mt-0.5 uppercase tracking-wide">{m.label}</p>
                   </div>
                 ))}
               </div>
@@ -1022,7 +1022,7 @@ export default function PerformanceNutritionHub() {
                 const anyLogged = todaySession.logged.calories > 0;
                 return (
                   <div className="border-t border-white/10 pt-3">
-                    <p className="text-white/40 text-[10px] font-semibold uppercase tracking-wider mb-2">
+                    <p className="text-white text-[11px] font-semibold uppercase tracking-wider mb-2">
                       Remaining Today
                     </p>
                     <div className="grid grid-cols-5 gap-1.5">
@@ -1033,15 +1033,15 @@ export default function PerformanceNutritionHub() {
                         { label: "Fibrous",  value: `${rem.fibrousCarbsG}`,        unit: "g" },
                         { label: "Fat",      value: `${rem.fatG}`,                 unit: "g" },
                       ].map(m => (
-                        <div key={m.label} className="bg-orange-600/10 rounded-xl px-1.5 py-2 text-center">
-                          <p className={`font-bold text-sm leading-none ${anyLogged ? "text-orange-300" : "text-white/30"}`}>{m.value}</p>
-                          <p className="text-white/20 text-[10px] mt-0.5">{m.unit}</p>
-                          <p className="text-white/20 text-[9px] mt-0.5 uppercase tracking-wide">{m.label}</p>
+                        <div key={m.label} className="bg-orange-600/20 rounded-xl px-1.5 py-2 text-center">
+                          <p className={`font-bold text-sm leading-none ${anyLogged ? "text-orange-300" : "text-white/60"}`}>{m.value}</p>
+                          <p className="text-white/70 text-[10px] mt-0.5">{m.unit}</p>
+                          <p className="text-white/70 text-[9px] mt-0.5 uppercase tracking-wide">{m.label}</p>
                         </div>
                       ))}
                     </div>
                     {!anyLogged && (
-                      <p className="text-white/25 text-[10px] mt-2 text-center">Log meals to see remaining</p>
+                      <p className="text-white/60 text-[10px] mt-2 text-center">Log meals to see remaining</p>
                     )}
                   </div>
                 );
