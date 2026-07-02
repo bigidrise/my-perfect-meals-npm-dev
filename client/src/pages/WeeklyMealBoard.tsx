@@ -1331,8 +1331,7 @@ export default function WeeklyMealBoard() {
       >
         {/* Protocol Status Bar — active clinical protocols for this user */}
         <ProtocolStatusBar className="mb-1" />
-        {/* Nutrition Budget Banner - Phase 1: Read-only awareness */}
-        <NutritionBudgetBanner className="mb-2" userId={effectiveUserId} />
+        {/* NutritionBudgetBanner hidden — restore when reactivity is fixed */}
 
         <div className="mb-6 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl">
           <div className="px-4 py-4 flex flex-col gap-3">
