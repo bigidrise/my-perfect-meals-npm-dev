@@ -15,6 +15,7 @@ import { type UserProtocolEnvelope } from "../services/protocolEnvelope";
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from "../services/behavioralMemoryService";
 import { resolveCreatorSystemForUser } from "../services/creatorSystems/resolveCreatorSystemForUser";
 import { applyCreatorTransformation } from "../services/creatorSystems/applyCreatorTransformation";
+import { generateMealImageUnified } from "../services/mealImageGenerator";
 import {
   buildBeveragePromptBlocks,
   validateBeverageOutput,
@@ -557,8 +558,13 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
 
     const medicalBadges = computeMedicalBadges(constraints, ingredientNames);
 
-    // Image is generated client-side in parallel via /api/meals/generate-image
-    const imageUrl = null;
+    // Generate image server-inline via canonical pipeline (caching + fallback handled internally)
+    let imageUrl: string | null = null;
+    try {
+      imageUrl = await generateMealImageUnified(meal.name, ingredientNames, "beverage");
+    } catch (imgErr) {
+      console.warn("[BEVERAGE] Image generation failed:", imgErr);
+    }
 
     // Creator System 2-pass transformation — applied after all safety checks and normalization.
     if (userId && userId !== "1") {

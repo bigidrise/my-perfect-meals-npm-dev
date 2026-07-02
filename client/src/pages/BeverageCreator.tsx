@@ -241,24 +241,7 @@ export default function BeverageCreator() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
-  // On mount: if a beverage was restored from localStorage but the imageUrl was
-  // stripped (because it was a base64 blob that couldn't be persisted), re-fetch
-  // it now. By the time the user comes back the background S3 upload has finished
-  // so the DB cache will return a small, persistent S3 URL.
-  useEffect(() => {
-    if (generatedBeverage && !generatedBeverage.imageUrl && generatedBeverage.name) {
-      setBeverageImageLoading(true);
-      fetch(apiUrl("/api/meals/generate-image"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mealId: generatedBeverage.id, mealName: generatedBeverage.name, mealType: "beverages", ingredients: generatedBeverage.ingredients || [] }),
-      })
-        .then(r => r.json())
-        .then(d => { if (d.imageUrl) setGeneratedBeverage(prev => prev ? { ...prev, imageUrl: d.imageUrl } : prev); })
-        .catch(() => {})
-        .finally(() => setBeverageImageLoading(false));
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Image is now returned inline from the server — no client-side re-fetch needed on mount.
 
   useEffect(() => {
     if (generatedBeverage) {
@@ -445,19 +428,7 @@ export default function BeverageCreator() {
 
       stopProgressTicker();
       setGeneratedBeverage(meal);
-      // Fire image async — non-blocking
-      setBeverageImageLoading(true);
-      fetch(apiUrl("/api/meals/generate-image"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mealId: meal.id, mealName: meal.name, mealType: "beverages", ingredients: meal.ingredients }),
-      })
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.imageUrl) setGeneratedBeverage((prev: any) => prev ? { ...prev, imageUrl: d.imageUrl } : prev);
-        })
-        .catch(() => {})
-        .finally(() => setBeverageImageLoading(false));
+      setBeverageImageLoading(false); // Image is returned inline from the server
 
       toast({
         title: "✨ Drink Created!",

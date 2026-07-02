@@ -18,6 +18,7 @@ import { getPrimaryDiet } from "../services/allergyGuardrails";
 import { buildChefAdaptationBlock } from "../utils/chefAdaptationBlock";
 import { resolveCreatorSystemForUser } from "../services/creatorSystems/resolveCreatorSystemForUser";
 import { applyCreatorTransformation } from "../services/creatorSystems/applyCreatorTransformation";
+import { generateMealImageUnified } from "../services/mealImageGenerator";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -414,8 +415,13 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
 
     const medicalBadges = computeMedicalBadges(constraints, ingredientNames);
 
-    // Image is generated client-side in parallel via /api/meals/generate-image
-    const imageUrl = null;
+    // Generate image server-inline via canonical pipeline (caching + fallback handled internally)
+    let imageUrl: string | null = null;
+    try {
+      imageUrl = await generateMealImageUnified(meal.name, ingredientNames, "dessert");
+    } catch (imgErr) {
+      console.warn("[DESSERT] Image generation failed:", imgErr);
+    }
 
     // Creator System 2-pass transformation — applied after all safety checks and normalization.
     if (userId && userId !== "1") {

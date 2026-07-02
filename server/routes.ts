@@ -4338,7 +4338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Per-meal image endpoint — called by client after user selects a specific meal.
   // DO NOT call image generation directly — uses generateMealImageUnified only.
-  app.post("/api/meals/generate-image", async (req, res) => {
+  app.post("/api/meals/generate-image", requireAuth, async (req, res) => {
     try {
       const { mealName, ingredients = [], mealType, sourceType } = req.body;
       if (!mealName) return res.status(400).json({ error: "mealName is required" });

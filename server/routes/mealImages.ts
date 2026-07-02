@@ -2,12 +2,13 @@
 // API endpoints for meal image generation
 
 import { Router } from 'express';
+import { requireAuth } from '../middleware/requireAuth';
 import { generateMealImage, generateMealImages, getCachedImage, getImageCacheStats } from '../services/mealImageGenerator';
 
 export const mealImagesRouter = Router();
 
 // Generate single meal image
-mealImagesRouter.post('/meal-images/generate', async (req, res) => {
+mealImagesRouter.post('/meal-images/generate', requireAuth, async (req, res) => {
   try {
     const { mealName, ingredients, style, templateRef, mealType } = req.body;
     
@@ -40,7 +41,7 @@ mealImagesRouter.post('/meal-images/generate', async (req, res) => {
 });
 
 // Batch generate images for meal plan
-mealImagesRouter.post('/meal-images/generate-batch', async (req, res) => {
+mealImagesRouter.post('/meal-images/generate-batch', requireAuth, async (req, res) => {
   try {
     const { meals } = req.body;
     
@@ -76,7 +77,7 @@ mealImagesRouter.post('/meal-images/generate-batch', async (req, res) => {
 });
 
 // Get cached image if available
-mealImagesRouter.post('/meal-images/cached', (req, res) => {
+mealImagesRouter.post('/meal-images/cached', requireAuth, (req, res) => {
   try {
     const { mealName, ingredients, style, mealType } = req.body;
     
@@ -112,7 +113,7 @@ mealImagesRouter.post('/meal-images/cached', (req, res) => {
 });
 
 // Get cache statistics (dev/debug endpoint)
-mealImagesRouter.get('/meal-images/cache-stats', (req, res) => {
+mealImagesRouter.get('/meal-images/cache-stats', requireAuth, (req, res) => {
   try {
     const stats = getImageCacheStats();
     res.json({
@@ -129,7 +130,7 @@ mealImagesRouter.get('/meal-images/cache-stats', (req, res) => {
 });
 
 // Enhanced meal hydration with optional image generation
-mealImagesRouter.post('/meal-images/hydrate-with-image', async (req, res) => {
+mealImagesRouter.post('/meal-images/hydrate-with-image', requireAuth, async (req, res) => {
   try {
     const { meal, generateImage = false } = req.body;
     
