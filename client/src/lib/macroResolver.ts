@@ -145,8 +145,10 @@ function getPerformanceProtocolTargets(userId?: string): ResolvedTargets | null 
     if (calories === 0) return null;
 
     // Derive starchy/fibrous split from the user's self-set targets (proportional scaling).
-    // If no self-set split exists, fall back to 60% starchy / 40% fibrous — a conservative
-    // performance default that covers most training contexts.
+    // If no self-set split exists, use the app's vegetable floor system — the same logic
+    // the Macro Calculator uses (splitStarchyFibrous): fibrous minimum is 25g (the app's
+    // hardcoded floor), then starchy = remainder. This keeps one nutrition philosophy across
+    // the app rather than inventing a performance-specific ratio.
     const selfT = getSelfTargets(userId);
     let starchyCarbs_g: number;
     let fibrousCarbs_g: number;
@@ -155,8 +157,10 @@ function getPerformanceProtocolTargets(userId?: string): ResolvedTargets | null 
       starchyCarbs_g = Math.round(carbs_g * starchRatio);
       fibrousCarbs_g = Math.max(0, carbs_g - starchyCarbs_g);
     } else {
-      starchyCarbs_g = Math.round(carbs_g * 0.6);
-      fibrousCarbs_g = carbs_g - starchyCarbs_g;
+      // App default floor: min 25g fibrous (vegetable system minimum), starchy gets the rest.
+      // Mirrors MacroCalculator's splitStarchyFibrous floor — not a performance protocol.
+      fibrousCarbs_g = Math.max(25, Math.round(carbs_g * 0.25));
+      starchyCarbs_g = Math.max(0, carbs_g - fibrousCarbs_g);
     }
 
     return {

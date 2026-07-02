@@ -702,6 +702,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         skipImage,
         explicitOverride,
         userDietOverride,
+        performanceSessionContext,
       } = req.body;
 
       // When user chose "Continue Anyway" on the diet guard, inject a soft coaching override
@@ -843,6 +844,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         skipImage: skipImage === true,
         safetyAlreadyChecked: true,
         explicitOverride: explicitOverride || null,
+        performanceSessionContext: performanceSessionContext || undefined,
       });
 
       const durationMs = Date.now() - startTime;

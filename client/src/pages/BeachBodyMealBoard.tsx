@@ -83,6 +83,7 @@ import {
 } from "lucide-react";
 import { FEATURES } from "@/utils/features";
 import { apiRequest } from "@/lib/queryClient";
+import type { PerformanceSessionContext } from "@/hooks/useCreateWithChefRequest";
 import { DayChips } from "@/components/DayChips";
 import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
 
@@ -416,6 +417,28 @@ export default function BeachBodyMealBoard() {
     apiRequest("/api/client/tablet")
       .then(() => setHasCoachLink(true))
       .catch(() => setHasCoachLink(false));
+  }, []);
+
+  // Today's performance session — fetched on mount so CreateWithChef can pass
+  // session-aware coaching context into AI meal generation.
+  const [todayPerformanceSession, setTodayPerformanceSession] = useState<{
+    sessionType: string;
+    sessionLabel: string;
+    description: string;
+  } | null>(null);
+
+  useEffect(() => {
+    apiRequest("/api/performance/today")
+      .then((data: any) => {
+        if (data?.configured && data?.sessionType) {
+          setTodayPerformanceSession({
+            sessionType: data.sessionType,
+            sessionLabel: data.sessionLabel ?? data.sessionType,
+            description: data.description ?? "",
+          });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -991,6 +1014,20 @@ export default function BeachBodyMealBoard() {
       ),
     };
   }, [board, planningMode, activeDayISO]);
+
+  // Performance session context — assembled from today's session + resolved starchy/fibrous targets.
+  // Passed to CreateWithChefModal so the AI generates meals calibrated to today's training demands.
+  const performanceSessionContext = useMemo((): PerformanceSessionContext | undefined => {
+    if (!todayPerformanceSession) return undefined;
+    const resolved = effectiveUserId ? getResolvedTargets(effectiveUserId) : null;
+    return {
+      sessionType: todayPerformanceSession.sessionType,
+      sessionLabel: todayPerformanceSession.sessionLabel,
+      reasoning: todayPerformanceSession.description,
+      starchyCarbs_g: resolved?.starchyCarbs_g != null ? Math.round(resolved.starchyCarbs_g) : undefined,
+      fibrousCarbs_g: resolved?.fibrousCarbs_g != null ? Math.round(resolved.fibrousCarbs_g) : undefined,
+    };
+  }, [todayPerformanceSession, effectiveUserId]);
 
   // Stable memoized macro targets for AthleteMealPickerDrawer.
   // Using an inline IIFE here would create a new object reference on every render,
@@ -1967,6 +2004,7 @@ export default function BeachBodyMealBoard() {
           dietPhase="lean"
           starchContext={starchContext}
           remainingMacros={remainingMacrosForChef}
+          performanceSessionContext={performanceSessionContext}
         />
 
         {/* Snack Creator Modal - contest prep guardrails (performance mode) */}

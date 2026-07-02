@@ -317,6 +317,19 @@ export interface MealGenerationRequest {
    * - hybrid: strong aim with small deviation allowed (Performance)
    */
   builderMode?: BuilderMode;
+  /**
+   * Today's performance session context — injected into the prompt so the AI
+   * behaves like a performance coach, adjusting meal composition by session type
+   * (strength, endurance, recovery, competition, off, etc.).
+   * Only used when dietType === 'beachbody' and the builder is performance-context-aware.
+   */
+  performanceSessionContext?: {
+    sessionType: string;
+    sessionLabel: string;
+    reasoning: string;
+    starchyCarbs_g?: number;
+    fibrousCarbs_g?: number;
+  };
 }
 
 export interface MealGenerationResponse {
@@ -2361,7 +2374,14 @@ export async function generateFromDescriptionUnified(
   diversityContext?: { usedBases: Record<string, number>; usedTypes: Record<string, number> } | null,
   dietPhase?: string,
   remainingMacros?: { protein?: number; carbs?: number; fat?: number; calories?: number },
-  builderMode?: BuilderMode
+  builderMode?: BuilderMode,
+  performanceSessionContext?: {
+    sessionType: string;
+    sessionLabel: string;
+    reasoning: string;
+    starchyCarbs_g?: number;
+    fibrousCarbs_g?: number;
+  }
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
 
@@ -2591,6 +2611,34 @@ Create the recipe for: "${description}"`;
       const overrideInstruction = `\n\nEXPLICIT USER REQUEST — MANDATORY: The user has explicitly requested "${explicitOverride.item}". You MUST include it in this meal. Do NOT substitute or remove it. You may only adjust the portion size, cooking method, or sides to best fit the plan. Never say it is "not allowed" or omit it.`;
       prompt = prompt + overrideInstruction;
       console.log(`✅ [ExplicitOverride] Injected override for "${explicitOverride.item}"`);
+    }
+
+    // PERFORMANCE SESSION COACHING INJECTION
+    // Appended last so it takes final precedence — the session type shapes ingredient
+    // selection, portion size, and carb composition across every generated meal.
+    if (performanceSessionContext) {
+      const psc = performanceSessionContext;
+      const carbLine = (psc.starchyCarbs_g != null && psc.fibrousCarbs_g != null)
+        ? `\n- Starchy carb budget: ${psc.starchyCarbs_g}g (rice, oats, sweet potato, cream of rice, white potato)\n- Fibrous carb target: ${psc.fibrousCarbs_g}g (vegetables only — broccoli, spinach, asparagus, green beans, zucchini)`
+        : psc.starchyCarbs_g != null
+        ? `\n- Starchy carb budget: ${psc.starchyCarbs_g}g (glycogen-supporting carbs — rice, oats, sweet potato)`
+        : '';
+      const sessionBlock = `
+
+=== PERFORMANCE COACHING CONTEXT (MANDATORY) ===
+Today's training session: ${psc.sessionLabel} (${psc.sessionType})
+${psc.reasoning}${carbLine}
+
+This meal MUST reflect today's training demands:
+- STRENGTH / POWER day → higher starchy carbs for glycogen replenishment, moderate fat, high protein
+- ENDURANCE day → highest carb content, lean protein, minimal fat
+- RECOVERY / REST day → reduced carbs, anti-inflammatory ingredients prioritized (omega-3 fish, turmeric, ginger, tart cherries, colorful vegetables), no heavy starchy carbs
+- COMPETITION day → maximum carb availability, easily digestible foods, nothing new or unfamiliar
+- OFF day → lean protein + vegetables, minimal starchy carbs
+
+Do NOT generate a generic meal. Composition, portions, and ingredients must align with: ${psc.sessionLabel}.`;
+      prompt = prompt + sessionBlock;
+      console.log(`🏋️ [PerformanceSession] Injected session context: ${psc.sessionType} (${psc.sessionLabel})`);
     }
 
     const messages: Array<{ role: 'system' | 'user'; content: string }> = [];
@@ -3498,7 +3546,8 @@ export async function generateMealUnified(
         request.diversityContext,
         request.dietPhase,
         request.remainingMacros,
-        request.builderMode
+        request.builderMode,
+        request.performanceSessionContext
       );
       break;
 
