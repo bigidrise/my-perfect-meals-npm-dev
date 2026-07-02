@@ -184,7 +184,6 @@ export default function AthleteBeverageCreator() {
   });
 
   const [isGenerating, setIsGenerating] = useState(false);
-  const [beverageImageLoading, setBeverageImageLoading] = useState(false);
 
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [pendingGeneration, setPendingGeneration] = useState(false);
@@ -256,22 +255,7 @@ export default function AthleteBeverageCreator() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
-  // On mount: re-fetch image if beverage was restored without imageUrl
-  // (base64 was stripped from localStorage to avoid quota failures).
-  useEffect(() => {
-    if (generatedBeverage && !generatedBeverage.imageUrl && generatedBeverage.name) {
-      setBeverageImageLoading(true);
-      fetch(apiUrl("/api/meals/generate-image"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mealId: generatedBeverage.id, mealName: normalizeBeverageImageName(generatedBeverage.name), mealType: "beverages", ingredients: generatedBeverage.ingredients || [] }),
-      })
-        .then(r => r.json())
-        .then(d => { if (d.imageUrl) setGeneratedBeverage(prev => prev ? { ...prev, imageUrl: d.imageUrl } : prev); })
-        .catch(() => {})
-        .finally(() => setBeverageImageLoading(false));
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Image is now returned inline from the server — no client-side re-fetch needed on mount.
 
   useEffect(() => {
     if (generatedBeverage) {
@@ -432,20 +416,8 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
         return;
       }
 
+      // imageUrl is returned inline from the server — no separate fetch needed
       setGeneratedBeverage(meal);
-      // Fire image async — non-blocking
-      setBeverageImageLoading(true);
-      fetch(apiUrl("/api/meals/generate-image"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mealId: meal.id, mealName: normalizeBeverageImageName(meal.name), mealType: "beverages", ingredients: meal.ingredients }),
-      })
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.imageUrl) setGeneratedBeverage((prev: any) => prev ? { ...prev, imageUrl: d.imageUrl } : prev);
-        })
-        .catch(() => {})
-        .finally(() => setBeverageImageLoading(false));
 
       toast({
         title: "✨ Performance Drink Created!",
@@ -831,7 +803,7 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
                     imageUrl={generatedBeverage.imageUrl}
                     mealName={generatedBeverage.name}
                     sourceType="beverage"
-                    isLoading={beverageImageLoading}
+                    isLoading={false}
                   />
 
                   <div className="mb-4 p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-lg">
