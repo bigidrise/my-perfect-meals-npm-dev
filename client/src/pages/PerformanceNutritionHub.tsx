@@ -629,7 +629,7 @@ export default function PerformanceNutritionHub() {
   // Tab labels differ by track
   const tabLabel = (tab: ActiveTab): string => {
     if (tab === "protocol") return activeTrack === "competition" ? "Meal Builder" : "Nutrient Plan";
-    if (tab === "starch") return "Starch";
+    if (tab === "starch") return "Carbohydrates";
     return "Protocols";
   };
 
@@ -934,21 +934,38 @@ export default function PerformanceNutritionHub() {
                 </div>
               )}
 
-              {/* Daily Macro Summary */}
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-white/40 text-xs font-medium shrink-0">Today:</span>
-                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  {Math.round(todayMacros.kcal).toLocaleString()} cal
-                </span>
-                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  P {Math.round(todayMacros.protein)}g
-                </span>
-                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  C {Math.round(todayMacros.carbs)}g
-                </span>
-                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  F {Math.round(todayMacros.fat)}g
-                </span>
+              {/* Daily Macro Summary — Targets + Logged */}
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-orange-400/70 text-xs font-medium shrink-0 w-12">Target</span>
+                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    {todaySession ? Math.round(todaySession.calories).toLocaleString() : "—"} cal
+                  </span>
+                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    P {todaySession ? Math.round(todaySession.proteinG) : "—"}g
+                  </span>
+                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    C {todaySession ? Math.round(todaySession.carbsG) : "—"}g
+                  </span>
+                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    F {todaySession ? Math.round(todaySession.fatG) : "—"}g
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-white/40 text-xs font-medium shrink-0 w-12">Logged</span>
+                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    {Math.round(todayMacros.kcal).toLocaleString()} cal
+                  </span>
+                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    P {Math.round(todayMacros.protein)}g
+                  </span>
+                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    C {Math.round(todayMacros.carbs)}g
+                  </span>
+                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    F {Math.round(todayMacros.fat)}g
+                  </span>
+                </div>
               </div>
 
               <button
@@ -1249,21 +1266,38 @@ export default function PerformanceNutritionHub() {
                 </div>
               )}
 
-              {/* Daily Macro Summary */}
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-white/40 text-xs font-medium shrink-0">Today:</span>
-                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  {Math.round(todayMacros.kcal).toLocaleString()} cal
-                </span>
-                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  P {Math.round(todayMacros.protein)}g
-                </span>
-                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  C {Math.round(todayMacros.carbs)}g
-                </span>
-                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  F {Math.round(todayMacros.fat)}g
-                </span>
+              {/* Daily Macro Summary — Targets + Logged */}
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-orange-400/70 text-xs font-medium shrink-0 w-12">Target</span>
+                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    {todaySession ? Math.round(todaySession.calories).toLocaleString() : "—"} cal
+                  </span>
+                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    P {todaySession ? Math.round(todaySession.proteinG) : "—"}g
+                  </span>
+                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    C {todaySession ? Math.round(todaySession.carbsG) : "—"}g
+                  </span>
+                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    F {todaySession ? Math.round(todaySession.fatG) : "—"}g
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-white/40 text-xs font-medium shrink-0 w-12">Logged</span>
+                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    {Math.round(todayMacros.kcal).toLocaleString()} cal
+                  </span>
+                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    P {Math.round(todayMacros.protein)}g
+                  </span>
+                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    C {Math.round(todayMacros.carbs)}g
+                  </span>
+                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    F {Math.round(todayMacros.fat)}g
+                  </span>
+                </div>
               </div>
 
               <button
