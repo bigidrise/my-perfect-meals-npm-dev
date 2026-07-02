@@ -721,7 +721,7 @@ export default function PerformanceNutritionHub() {
         <div className="px-4 pt-10 max-w-lg mx-auto">
           <div className="text-center mb-8">
             <p className="text-white font-bold text-xl mb-2">Performance Nutrition Hub</p>
-            <p className="text-white/50 text-sm leading-relaxed">
+            <p className="text-white/80 text-sm leading-relaxed">
               Two separate protocol engines. Choose the one that matches your goal.
             </p>
           </div>
@@ -736,9 +736,9 @@ export default function PerformanceNutritionHub() {
                 </div>
                 <div className="flex-1">
                   <p className="text-white font-bold text-sm">Athletic Performance</p>
-                  <p className="text-white/50 text-xs mt-0.5">MMA, boxing, CrossFit, endurance, tactical, strength sports</p>
+                  <p className="text-white/70 text-xs mt-0.5">MMA, boxing, CrossFit, endurance, tactical, strength sports</p>
                 </div>
-                <ChevronRight className="w-4 h-4 text-white/30 mt-1 flex-shrink-0" />
+                <ChevronRight className="w-4 h-4 text-white/60 mt-1 flex-shrink-0" />
               </div>
             </button>
             <button
@@ -751,9 +751,9 @@ export default function PerformanceNutritionHub() {
                 </div>
                 <div className="flex-1">
                   <p className="text-white font-bold text-sm">Competition Prep</p>
-                  <p className="text-white/50 text-xs mt-0.5">Bodybuilding, physique, powerlifting, fight camp — calendar-driven</p>
+                  <p className="text-white/70 text-xs mt-0.5">Bodybuilding, physique, powerlifting, fight camp — calendar-driven</p>
                 </div>
-                <ChevronRight className="w-4 h-4 text-white/30 mt-1 flex-shrink-0" />
+                <ChevronRight className="w-4 h-4 text-white/60 mt-1 flex-shrink-0" />
               </div>
             </button>
           </div>
@@ -845,7 +845,7 @@ export default function PerformanceNutritionHub() {
                           return (
                             <div key={ph} className="flex-1 text-center">
                               <div className={`h-2 rounded-full mb-1.5 transition-all ${isCurrent ? "bg-orange-400" : isPast ? "bg-orange-400/40" : "bg-white/10"}`} />
-                              <p className={`leading-tight ${isCurrent ? "text-orange-300 font-semibold" : "text-white/30"}`} style={{ fontSize: "9px" }}>
+                              <p className={`leading-tight ${isCurrent ? "text-orange-300 font-semibold" : "text-white/60"}`} style={{ fontSize: "9px" }}>
                                 {label}
                               </p>
                             </div>
@@ -855,7 +855,7 @@ export default function PerformanceNutritionHub() {
                       <div className="flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" />
                         <p className="text-orange-300 text-xs font-semibold">{compPhase.phaseLabel}</p>
-                        <span className="text-white/30 text-xs">— {compPhase.weeksOut} wks out</span>
+                        <span className="text-white/70 text-xs">— {compPhase.weeksOut} wks out</span>
                       </div>
                     </>
                   );
@@ -1140,7 +1140,7 @@ export default function PerformanceNutritionHub() {
                             </span>
                             <p className="text-white font-semibold text-xs">{proto.name}</p>
                           </div>
-                          <p className="text-white/50 text-xs leading-relaxed">{proto.note}</p>
+                          <p className="text-white/70 text-xs leading-relaxed">{proto.note}</p>
                         </div>
                       ))}
                     </div>
@@ -1167,12 +1167,12 @@ export default function PerformanceNutritionHub() {
                         <div key={label} className={`rounded-xl border px-3 py-2.5 ${cls}`}>
                           <div className="flex items-center justify-between gap-2">
                             <div>
-                              <p className="text-xs opacity-60 mb-0.5">{label}</p>
+                              <p className="text-xs opacity-80 mb-0.5">{label}</p>
                               <p className="font-bold text-xs">{value}</p>
                             </div>
                           </div>
                           {signals.length > 0 && (
-                            <p className="text-xs opacity-50 mt-1.5">← {signals.join(" · ")}</p>
+                            <p className="text-xs opacity-70 mt-1.5">← {signals.join(" · ")}</p>
                           )}
                         </div>
                       ))}
@@ -1181,19 +1181,19 @@ export default function PerformanceNutritionHub() {
                 })() : (
                   <div className="grid grid-cols-2 gap-2">
                     <div className={`rounded-xl border px-3 py-2.5 ${FUEL_DEMAND_COLORS[demandProfile.fuelDemand]}`}>
-                      <p className="text-xs opacity-60 mb-0.5">Fuel Demand</p>
+                      <p className="text-xs opacity-80 mb-0.5">Fuel Demand</p>
                       <p className="font-bold text-xs">{FUEL_DEMAND_LABELS[demandProfile.fuelDemand]}</p>
                     </div>
                     <div className={`rounded-xl border px-3 py-2.5 ${RECOVERY_DEMAND_COLORS[demandProfile.recoveryDemand]}`}>
-                      <p className="text-xs opacity-60 mb-0.5">Recovery Demand</p>
+                      <p className="text-xs opacity-80 mb-0.5">Recovery Demand</p>
                       <p className="font-bold text-xs">{RECOVERY_DEMAND_LABELS[demandProfile.recoveryDemand]}</p>
                     </div>
                     <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
-                      <p className="text-white/40 text-xs mb-0.5">Adaptation Focus</p>
+                      <p className="text-white/70 text-xs mb-0.5">Adaptation Focus</p>
                       <p className="text-white font-bold text-xs">{ADAPTATION_DEMAND_LABELS[demandProfile.adaptationDemand]}</p>
                     </div>
                     <div className={`rounded-xl border px-3 py-2.5 ${TRAINING_LOAD_COLORS[demandProfile.trainingLoad]}`}>
-                      <p className="text-xs opacity-60 mb-0.5">Training Load</p>
+                      <p className="text-xs opacity-80 mb-0.5">Training Load</p>
                       <p className="font-bold text-xs">{TRAINING_LOAD_LABELS[demandProfile.trainingLoad]}</p>
                     </div>
                   </div>
@@ -1216,7 +1216,7 @@ export default function PerformanceNutritionHub() {
                               <p className="text-white font-semibold text-sm">{priority}</p>
                             </div>
                             {PRIORITY_RATIONALES[priority] && (
-                              <p className="text-white/40 text-xs leading-relaxed pl-7">{PRIORITY_RATIONALES[priority]}</p>
+                              <p className="text-white/70 text-xs leading-relaxed pl-7">{PRIORITY_RATIONALES[priority]}</p>
                             )}
                           </>
                         ) : (
@@ -1240,7 +1240,7 @@ export default function PerformanceNutritionHub() {
                 return (
                   <div className="rounded-2xl bg-black/50 border border-white/10 p-4">
                     <p className="text-white font-bold text-sm mb-1">AI Instruction Categories</p>
-                    <p className="text-white/40 text-xs mb-3">What the system instructs the AI to prioritize for this profile</p>
+                    <p className="text-white/70 text-xs mb-3">What the system instructs the AI to prioritize for this profile</p>
                     <div className="space-y-1.5">
                       {cats.map((cat, i) => (
                         <div key={i} className="flex items-center gap-2">
@@ -1358,17 +1358,17 @@ export default function PerformanceNutritionHub() {
           {phase !== "inactive" ? (
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-white/5 rounded-xl px-3 py-2">
-                <p className="text-white/40 text-xs">Starch Allocation</p>
-                <p className="text-white font-bold text-2xl mt-0.5">{carbTargetG}<span className="text-sm font-normal text-white/50 ml-0.5">g</span></p>
+                <p className="text-white/70 text-xs">Starch Allocation</p>
+                <p className="text-white font-bold text-2xl mt-0.5">{carbTargetG}<span className="text-sm font-normal text-white/70 ml-0.5">g</span></p>
               </div>
               <div className="bg-white/5 rounded-xl px-3 py-2">
-                <p className="text-white/40 text-xs">Fibrous Carbs</p>
+                <p className="text-white/70 text-xs">Fibrous Carbs</p>
                 <p className="text-green-300 font-semibold text-sm mt-1">Unrestricted</p>
               </div>
             </div>
           ) : (
             <div className="bg-white/5 rounded-xl px-4 py-3">
-              <p className="text-white/50 text-xs leading-relaxed">
+              <p className="text-white/70 text-xs leading-relaxed">
                 Log daily weight via the Protocols tab check-in to activate stall detection and automatic phase management.
               </p>
             </div>
@@ -1393,7 +1393,7 @@ export default function PerformanceNutritionHub() {
             { label: "Floor limit",      value: "50g minimum — protocol cycles, never drops below" },
           ].map(({ label, value }) => (
             <div key={label} className="flex items-start justify-between gap-3">
-              <p className="text-white/40 text-xs flex-shrink-0 w-28">{label}</p>
+              <p className="text-white/70 text-xs flex-shrink-0 w-28">{label}</p>
               <p className="text-white/80 text-xs text-right">{value}</p>
             </div>
           ))}
@@ -1409,7 +1409,7 @@ export default function PerformanceNutritionHub() {
             { phase: "Stall (>7 days)",   response: "Refeed trigger activates → protocol adjusts" },
           ].map(({ phase: ph, response }) => (
             <div key={ph} className="flex items-start justify-between gap-3">
-              <p className="text-white/40 text-xs flex-shrink-0 w-28">{ph}</p>
+              <p className="text-white/70 text-xs flex-shrink-0 w-28">{ph}</p>
               <p className="text-white/80 text-xs text-right">{response}</p>
             </div>
           ))}
@@ -1426,7 +1426,7 @@ export default function PerformanceNutritionHub() {
         {/* Manual override controls */}
         {phase !== "inactive" && (
           <div className="rounded-2xl bg-black/50 border border-white/10 p-4">
-            <p className="text-white/40 text-xs font-semibold uppercase tracking-wide mb-3">Manual Override</p>
+            <p className="text-white/80 text-xs font-semibold uppercase tracking-wide mb-3">Manual Override</p>
             <div className="flex gap-2">
               {phase !== "refeed" ? (
                 <button
@@ -1508,7 +1508,7 @@ export default function PerformanceNutritionHub() {
               { label: "Starch Phase",     value: starchPhase === "low_carb" ? "Low-Carb" : starchPhase === "refeed" ? "Refeed" : "Inactive" },
             ].map(({ label, value }) => (
               <div key={label} className="bg-white/5 rounded-xl px-3 py-2">
-                <p className="text-white/40 text-xs">{label}</p>
+                <p className="text-white/70 text-xs">{label}</p>
                 <p className="text-white font-semibold text-sm mt-0.5">{value}</p>
               </div>
             ))}
@@ -1521,7 +1521,7 @@ export default function PerformanceNutritionHub() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-white/40 text-xs mb-1.5 block">Scale (lbs)</label>
+              <label className="text-white/80 text-xs mb-1.5 block">Scale (lbs)</label>
               <input
                 type="number"
                 value={checkInWeight}
@@ -1532,7 +1532,7 @@ export default function PerformanceNutritionHub() {
               />
             </div>
             <div>
-              <label className="text-white/40 text-xs mb-1.5 block">Starch Today (g) <span className="text-white/20">opt.</span></label>
+              <label className="text-white/80 text-xs mb-1.5 block">Starch Today (g) <span className="text-white/50">opt.</span></label>
               <input
                 type="number"
                 value={checkInStarch}
@@ -1545,7 +1545,7 @@ export default function PerformanceNutritionHub() {
           </div>
 
           <div>
-            <label className="text-white/40 text-xs mb-2 block">Energy Level</label>
+            <label className="text-white/80 text-xs mb-2 block">Energy Level</label>
             <div className="flex gap-2">
               {(["low", "moderate", "high"] as const).map(level => (
                 <button
@@ -1564,7 +1564,7 @@ export default function PerformanceNutritionHub() {
           </div>
 
           <div>
-            <label className="text-white/40 text-xs mb-2 block">Strength</label>
+            <label className="text-white/80 text-xs mb-2 block">Strength</label>
             <div className="flex gap-2">
               {(["declining", "holding", "increasing"] as const).map(level => (
                 <button
@@ -1612,7 +1612,7 @@ export default function PerformanceNutritionHub() {
 
         {/* Weight Response Reference */}
         <div className="rounded-2xl bg-black/50 border border-white/10 p-4 space-y-0">
-          <p className="text-white/40 text-xs font-semibold uppercase tracking-wide mb-3">Weight Response Reference</p>
+          <p className="text-white/80 text-xs font-semibold uppercase tracking-wide mb-3">Weight Response Reference</p>
           {[
             { signals: "Scale ↓ · Energy good · Strength good",  directive: "On track — maintain protocol" },
             { signals: "Scale flat >7 days · any signals",        directive: "Refeed trigger — starch allocation raised" },
