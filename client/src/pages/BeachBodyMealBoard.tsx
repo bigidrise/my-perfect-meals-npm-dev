@@ -1141,7 +1141,7 @@ export default function BeachBodyMealBoard() {
         className="max-w-[1600px] mx-auto px-4 space-y-6"
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${proClientId ? '9rem' : '6rem'})` }}
       >
-        <NutritionBudgetBanner className="mb-2" userId={effectiveUserId} />
+        {/* NutritionBudgetBanner hidden — restore when reactivity is fixed */}
 
         {/* ── Protocol Active Banner ── */}
         {(() => {
