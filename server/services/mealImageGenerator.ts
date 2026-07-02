@@ -501,6 +501,16 @@ export function buildStableCacheKey(mealName: string, ingredients: string[], sou
 const memCache = new Map<string, string>();
 
 // ─────────────────────────────────────────────────────────────────────────────
+// IN-FLIGHT DEDUPLICATION
+// If two callers request the same image while a DALL-E call is already running
+// (e.g. server pre-warm + client request arriving in parallel), they share the
+// single in-flight promise instead of spawning two DALL-E calls.
+// Entries are removed when the promise settles (success or failure).
+// ─────────────────────────────────────────────────────────────────────────────
+
+const inflightRequests = new Map<string, Promise<string>>();
+
+// ─────────────────────────────────────────────────────────────────────────────
 // DALL-E TIMEOUT HELPER
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -778,9 +788,6 @@ export async function generateMealImageUnified(
   ingredients: Array<string | Record<string, any>> = [],
   sourceType?: ImageSourceType
 ): Promise<string> {
-  // DO NOT call image generation directly.
-  // Use generateMealImageUnified only.
-
   if (!mealName || !mealName.trim()) {
     return getSemanticFallback("meal");
   }
@@ -792,11 +799,25 @@ export async function generateMealImageUnified(
     .map(i => typeof i === "string" ? i : (i.name || i.item || ""))
     .filter(Boolean);
 
-  const result = await generateMealImage({
+  // IN-FLIGHT DEDUPLICATION: if an identical request is already running
+  // (e.g. server pre-warm fired by the pipeline + client request arriving
+  // moments later), join the existing promise instead of spawning a second
+  // DALL-E call.
+  const dedupeKey = buildStableCacheKey(normalizedName, ingredientNames, sourceType);
+  const existing = inflightRequests.get(dedupeKey);
+  if (existing) {
+    console.log(`⚡ [img-dedup] joining in-flight request for: ${normalizedName}`);
+    return existing;
+  }
+
+  const work = generateMealImage({
     mealName: normalizedName,
     ingredients: ingredientNames,
     sourceType,
+  }).then(r => r.url).finally(() => {
+    inflightRequests.delete(dedupeKey);
   });
 
-  return result.url;
+  inflightRequests.set(dedupeKey, work);
+  return work;
 }

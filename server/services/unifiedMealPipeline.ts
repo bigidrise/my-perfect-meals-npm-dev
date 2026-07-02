@@ -2923,6 +2923,18 @@ Create the recipe for: "${description}"`;
       }
     } else {
       console.log(`⚡ [create-with-chef] skipImage=true — returning text immediately, client handles image`);
+      // PRE-WARM: fire image generation in the background so the DB cache is
+      // primed before the client's /api/meals/generate-image request arrives.
+      // The in-flight deduplication in generateMealImageUnified ensures the
+      // client request joins this promise instead of spawning a second DALL-E call.
+      generateMealImageUnified(
+        finalMealData.name,
+        (finalMealData.ingredients || []).map((ing: any) => ing.name || ing).filter(Boolean),
+      ).then((url) => {
+        if (url) console.log(`🔥 [create-with-chef] pre-warm complete: ${finalMealData.name}`);
+      }).catch(() => {
+        // silent — client will retry via /api/meals/generate-image
+      });
     }
     
     const unifiedMeal: UnifiedMeal = {
