@@ -47,7 +47,6 @@ import { DailyTargetsCard } from "@/components/biometrics/DailyTargetsCard";
 import { ProTipCard } from "@/components/ProTipCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { lockDay, isDayLocked } from "@/lib/lockedDays";
-import { setQuickView } from "@/lib/macrosQuickView";
 import WeeklyOverviewModal from "@/components/WeeklyOverviewModal";
 import BuilderShoppingBar from "@/components/BuilderShoppingBar";
 import { useToast } from "@/hooks/use-toast";
@@ -1456,15 +1455,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         queryClient.invalidateQueries({ queryKey: ["/api/users", clientId, "macros", "today"] });
                         queryClient.invalidateQueries({ queryKey: ["/api/users", clientId, "macro-logs", "daily"] });
                         window.dispatchEvent(new Event("macros:updated"));
-                        setQuickView({
-                          protein: consumed.protein,
-                          carbs: consumed.carbs,
-                          fat: consumed.fat,
-                          calories: consumed.calories,
-                          starchyCarbs: consumed.starchyCarbs,
-                          fibrousCarbs: consumed.fibrousCarbs,
-                          dateISO: activeDayISO,
-                        });
                         toast({
                           title: "Day Saved to Coach Targets",
                           description: `${formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
