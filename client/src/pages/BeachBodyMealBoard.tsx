@@ -330,9 +330,10 @@ export default function BeachBodyMealBoard() {
     [activeDayISO, planningMode, effectiveUserId],
   );
 
-  // Handle "Go to Today" from locked day dialog
+  // Handle "Go to Today" from locked day dialog — use device local timezone
   const handleGoToToday = useCallback(() => {
-    const today = todayISOInTZ("America/Chicago");
+    const localTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const today = todayISOInTZ(localTZ);
     setActiveDayISO(today);
     setLockedDayDialogOpen(false);
     setPendingLockedDayISO("");
@@ -616,10 +617,14 @@ export default function BeachBodyMealBoard() {
     return weekStartISO ? weekDatesInTZ(weekStartISO, "America/Chicago") : [];
   }, [weekStartISO]);
 
-  // CHICAGO CALENDAR FIX v1.0: Default to today if in current week, otherwise Monday
+  // Default to today in the user's LOCAL timezone, not Chicago.
+  // The week date structure remains Chicago-aligned (CHICAGO CALENDAR FIX v1.0),
+  // but which day is highlighted as "today" must match the user's device clock.
+  // Using Chicago here caused users in ET to see yesterday's meals as "today."
   useEffect(() => {
     if (weekDatesList.length > 0 && !activeDayISO) {
-      const todayISO = getTodayISOSafe("America/Chicago");
+      const localTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const todayISO = getTodayISOSafe(localTZ);
       const todayInWeek = weekDatesList.find((d) => d === todayISO);
       setActiveDayISO(todayInWeek ?? weekDatesList[0]);
     }
