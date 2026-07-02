@@ -808,16 +808,46 @@ export default function MyBiometrics() {
     }
   };
 
-  const resetToday = () => {
+  const resetToday = async () => {
+    // Clear local state and input fields immediately (optimistic)
     setMacroRows((prev) => prev.filter((r) => r.day !== today));
-    // Clear any input fields too
     setP("");
     setC("");
     setF("");
     setK("");
     setSc("");
     setFc("");
-    // Show confirmation toast
+
+    // Clear localStorage cache so it doesn't restore on next load
+    try {
+      const stored = loadJSON<{ rows?: OfflineDay[] }>(LS_MACROS, {});
+      if (stored.rows) {
+        const filtered = stored.rows.filter((r: OfflineDay) => r.day !== today);
+        saveJSON(LS_MACROS, { rows: filtered });
+      }
+    } catch {
+      // ignore cache errors
+    }
+
+    // Delete from server so it doesn't come back on reload
+    if (userId) {
+      try {
+        await apiRequest(`/api/users/${userId}/macro-logs/today`, {
+          method: "DELETE",
+        });
+        // Invalidate any cached queries
+        window.dispatchEvent(new Event("macros:updated"));
+      } catch (e) {
+        console.error("Failed to reset today on server:", e);
+        toast({
+          title: "Reset failed",
+          description: "Could not clear today's macros from the server. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     toast({
       title: "Reset Complete",
       description: "Today's macros have been cleared.",
