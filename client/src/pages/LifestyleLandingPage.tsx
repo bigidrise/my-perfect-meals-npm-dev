@@ -16,7 +16,6 @@ import {
   Plus,
   PawPrint,
   Palmtree,
-  Zap,
 } from "lucide-react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useAuth } from "@/contexts/AuthContext";
@@ -441,62 +440,6 @@ export default function LifestyleLandingPage() {
               </CardContent>
             </Card>
           </div>
-
-          {/* ── Performance Nutrition Builder card ── */}
-          {(() => {
-            const perfLocked = !isProOrAbove(user);
-            return (
-              <div className="relative">
-                <div
-                  className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-60"
-                  style={{
-                    background:
-                      "radial-gradient(120% 120% at 50% 0%, rgba(251,146,60,0.6), rgba(234,88,12,0.3), rgba(0,0,0,0))",
-                  }}
-                />
-                <Card
-                  className="relative rounded-xl shadow-md overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 hover:scale-[1.02] bg-gradient-to-r from-black via-orange-950/40 to-black backdrop-blur-lg border border-orange-500/30 hover:shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:border-orange-400/50"
-                  onClick={() => {
-                    if (perfLocked) {
-                      requestUpgrade({ requiredTier: "pro", featureName: "Performance Nutrition Builder" });
-                      return;
-                    }
-                    setLocation("/performance");
-                  }}
-                  data-testid="card-performance-nutrition"
-                >
-                  <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-orange-700/80 to-black rounded-full border border-orange-400/30 shadow-lg z-10">
-                    <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse" />
-                    <span className="text-orange-200 font-semibold text-[8px] tracking-wide">
-                      Performance AI™
-                    </span>
-                  </div>
-                  <CardContent className="p-3">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <Zap
-                          className={`h-4 w-4 flex-shrink-0 ${perfLocked ? "text-orange-500/50" : "text-orange-400"}`}
-                        />
-                        <h3
-                          className={`text-sm font-semibold ${perfLocked ? "text-white/50" : "text-white"}`}
-                        >
-                          Performance Nutrition Builder
-                        </h3>
-                        {perfLocked && (
-                          <Lock className="h-3 w-3 text-orange-400/70 ml-auto" />
-                        )}
-                      </div>
-                      <p
-                        className={`text-xs ml-6 ${perfLocked ? "text-white/40" : "text-white/80"}`}
-                      >
-                        Sport-specific fueling, carb cycling &amp; recovery nutrition built around your training
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            );
-          })()}
 
           {/* Cards */}
           <div className="flex flex-col gap-3">
