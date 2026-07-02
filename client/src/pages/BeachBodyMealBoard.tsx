@@ -41,7 +41,7 @@ import { LockedDayDialog } from "@/components/biometrics/LockedDayDialog";
 import { lockDay, isDayLocked } from "@/lib/lockedDays";
 import { setQuickView } from "@/lib/macrosQuickView";
 import { getMacroTargets } from "@/lib/dailyLimits";
-import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
+import { usePerformanceNutrition } from "@/hooks/useBaselineNutrition";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { useAuth } from "@/contexts/AuthContext";
@@ -222,8 +222,8 @@ export default function BeachBodyMealBoard() {
   const effectiveUserId = proClientId || user?.id;
 
   // Resolve nutrition ONCE at this level. Presentation components receive it as props.
-  // Baseline resolver — never applies Performance session modifiers.
-  const nutritionTargets = useBaselineNutrition(effectiveUserId);
+  // Performance resolver — applies session modifier for the selected training day.
+  const nutritionTargets = usePerformanceNutrition(effectiveUserId);
 
   // Board loading
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
