@@ -144,11 +144,28 @@ function getPerformanceProtocolTargets(userId?: string): ResolvedTargets | null 
 
     if (calories === 0) return null;
 
+    // Derive starchy/fibrous split from the user's self-set targets (proportional scaling).
+    // If no self-set split exists, fall back to 60% starchy / 40% fibrous — a conservative
+    // performance default that covers most training contexts.
+    const selfT = getSelfTargets(userId);
+    let starchyCarbs_g: number;
+    let fibrousCarbs_g: number;
+    if (selfT && (selfT.starchyCarbs_g ?? 0) > 0 && (selfT.fibrousCarbs_g ?? 0) > 0 && (selfT.carbs_g ?? 0) > 0) {
+      const starchRatio = selfT.starchyCarbs_g / selfT.carbs_g;
+      starchyCarbs_g = Math.round(carbs_g * starchRatio);
+      fibrousCarbs_g = Math.max(0, carbs_g - starchyCarbs_g);
+    } else {
+      starchyCarbs_g = Math.round(carbs_g * 0.6);
+      fibrousCarbs_g = carbs_g - starchyCarbs_g;
+    }
+
     return {
       calories,
       protein_g,
       carbs_g,
       fat_g,
+      starchyCarbs_g,
+      fibrousCarbs_g,
       starchStrategy: 'one',
       source: 'performance',
       setBy: 'Performance Protocol',
