@@ -4,6 +4,15 @@ import { useCurrentPageTitle } from "@/contexts/PageTitleContext";
 import { ProfileSheet } from "@/components/ProfileSheet";
 import { HubControlIcon } from "@/components/icons/HubControlIcon";
 import { useOrgBranding } from "@/hooks/useOrgBranding";
+import { ChevronLeft } from "lucide-react";
+
+const HUB_BACK_MAP: Record<string, { hub: string; label: string }> = {
+  "/beach-body-meal-board":       { hub: "/performance",  label: "Performance Hub" },
+  "/diabetic-menu-builder":       { hub: "/diabetic-hub", label: "Diabetes Hub" },
+  "/glp1-meal-builder":           { hub: "/glp1-hub",     label: "Metabolic Hub" },
+  "/anti-inflammatory-menu-builder": { hub: "/diabetic-hub", label: "Diabetes Hub" },
+  "/performance-competition-builder": { hub: "/performance", label: "Performance Hub" },
+};
 
 const ROUTE_TITLES: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -98,7 +107,7 @@ function getPageTitle(location: string): string {
 }
 
 export default function DesktopHeader() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user } = useAuth();
   const contextTitle = useCurrentPageTitle();
   const { appName } = useOrgBranding();
@@ -106,10 +115,22 @@ export default function DesktopHeader() {
   const fallbackTitle = getPageTitle(location);
   const title = contextTitle || (fallbackTitle === "Signature Kitchen Experience" ? appName : fallbackTitle);
   const planLabel = getPlanLabel(user?.planLookupKey);
+  const hubBack = HUB_BACK_MAP[location] ?? null;
 
   return (
     <header className="h-14 shrink-0 bg-black/40 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-6">
-      <h1 className="text-lg font-semibold text-white">{title}</h1>
+      <div className="flex items-center gap-3">
+        {hubBack && (
+          <button
+            onClick={() => setLocation(hubBack.hub)}
+            className="flex items-center gap-1 text-orange-400 hover:text-orange-300 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span className="text-sm font-medium">{hubBack.label}</span>
+          </button>
+        )}
+        <h1 className="text-lg font-semibold text-white">{title}</h1>
+      </div>
 
       <div className="flex items-center gap-3">
         {planLabel && (
