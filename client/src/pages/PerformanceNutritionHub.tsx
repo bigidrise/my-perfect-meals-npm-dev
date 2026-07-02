@@ -382,7 +382,10 @@ export default function PerformanceNutritionHub() {
   // Today's adaptive session — fetched from /api/performance/today when schedule is set
   const [todaySession, setTodaySession] = useState<{
     sessionType: string; sessionLabel: string; trainingPhase: string;
-    calories: number; proteinG: number; carbsG: number; fatG: number; description: string;
+    calories: number; proteinG: number; carbsG: number; fatG: number;
+    starchyCarbsG: number; fibrousCarbsG: number;
+    description: string;
+    logged: { calories: number; proteinG: number; carbsG: number; fatG: number; starchyCarbsG: number; fibrousCarbsG: number };
   } | null>(null);
 
   const [protocolCopied, setProtocolCopied] = useState(false);
@@ -936,20 +939,21 @@ export default function PerformanceNutritionHub() {
 
               {/* Daily Macro Targets */}
               <div className="space-y-1.5">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-white text-xs font-medium shrink-0 w-12">Target</span>
-                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    {resolvedTargets.calories > 0 ? Math.round(resolvedTargets.calories).toLocaleString() : "—"} cal
-                  </span>
-                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    P {resolvedTargets.protein_g > 0 ? Math.round(resolvedTargets.protein_g) : "—"}g
-                  </span>
-                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    C {resolvedTargets.carbs_g > 0 ? Math.round(resolvedTargets.carbs_g) : "—"}g
-                  </span>
-                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    F {resolvedTargets.fat_g > 0 ? Math.round(resolvedTargets.fat_g) : "—"}g
-                  </span>
+                <p className="text-white/40 text-[10px] font-semibold uppercase tracking-wider">Today's Targets</p>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {[
+                    { label: "Calories", value: resolvedTargets.calories > 0 ? Math.round(resolvedTargets.calories).toLocaleString() : "—", unit: "kcal" },
+                    { label: "Protein",  value: resolvedTargets.protein_g > 0 ? Math.round(resolvedTargets.protein_g) : "—",               unit: "g" },
+                    { label: "Starchy",  value: resolvedTargets.starchy_carbs_g > 0 ? Math.round(resolvedTargets.starchy_carbs_g) : resolvedTargets.carbs_g > 0 ? Math.round(resolvedTargets.carbs_g * 0.7) : "—", unit: "g" },
+                    { label: "Fibrous",  value: resolvedTargets.fibrous_carbs_g > 0 ? Math.round(resolvedTargets.fibrous_carbs_g) : resolvedTargets.carbs_g > 0 ? Math.round(resolvedTargets.carbs_g * 0.3) : "—", unit: "g" },
+                    { label: "Fat",      value: resolvedTargets.fat_g > 0 ? Math.round(resolvedTargets.fat_g) : "—",                       unit: "g" },
+                  ].map(m => (
+                    <div key={m.label} className="bg-white/5 rounded-xl px-1.5 py-2.5 text-center">
+                      <p className="text-white font-bold text-sm leading-none">{m.value}</p>
+                      <p className="text-white/30 text-[10px] mt-0.5">{m.unit}</p>
+                      <p className="text-white/20 text-[9px] mt-0.5 uppercase tracking-wide">{m.label}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -988,20 +992,60 @@ export default function PerformanceNutritionHub() {
               <p className="text-white font-bold text-2xl leading-none mb-0.5">{todaySession.sessionLabel}</p>
               <p className="text-white/70 text-xs leading-relaxed mb-4">{todaySession.description}</p>
 
-              <div className="grid grid-cols-4 gap-2">
+              {/* Today's Targets */}
+              <p className="text-white/40 text-[10px] font-semibold uppercase tracking-wider mb-2">Today's Targets</p>
+              <div className="grid grid-cols-5 gap-1.5 mb-4">
                 {[
                   { label: "Calories", value: todaySession.calories.toLocaleString(), unit: "kcal" },
                   { label: "Protein",  value: `${todaySession.proteinG}`,             unit: "g" },
-                  { label: "Carbs",    value: `${todaySession.carbsG}`,               unit: "g" },
+                  { label: "Starchy",  value: `${todaySession.starchyCarbsG}`,        unit: "g" },
+                  { label: "Fibrous",  value: `${todaySession.fibrousCarbsG}`,        unit: "g" },
                   { label: "Fat",      value: `${todaySession.fatG}`,                 unit: "g" },
                 ].map(m => (
-                  <div key={m.label} className="bg-white/5 rounded-xl px-2 py-2.5 text-center">
-                    <p className="text-white font-bold text-base leading-none">{m.value}</p>
-                    <p className="text-white/30 text-xs mt-0.5">{m.unit}</p>
-                    <p className="text-white/20 text-[10px] mt-0.5 uppercase tracking-wide">{m.label}</p>
+                  <div key={m.label} className="bg-white/5 rounded-xl px-1.5 py-2.5 text-center">
+                    <p className="text-white font-bold text-sm leading-none">{m.value}</p>
+                    <p className="text-white/30 text-[10px] mt-0.5">{m.unit}</p>
+                    <p className="text-white/20 text-[9px] mt-0.5 uppercase tracking-wide">{m.label}</p>
                   </div>
                 ))}
               </div>
+
+              {/* Remaining Today */}
+              {todaySession.logged && (() => {
+                const rem = {
+                  calories:      Math.max(0, todaySession.calories      - todaySession.logged.calories),
+                  proteinG:      Math.max(0, todaySession.proteinG      - todaySession.logged.proteinG),
+                  starchyCarbsG: Math.max(0, todaySession.starchyCarbsG - todaySession.logged.starchyCarbsG),
+                  fibrousCarbsG: Math.max(0, todaySession.fibrousCarbsG - todaySession.logged.fibrousCarbsG),
+                  fatG:          Math.max(0, todaySession.fatG          - todaySession.logged.fatG),
+                };
+                const anyLogged = todaySession.logged.calories > 0;
+                return (
+                  <div className="border-t border-white/10 pt-3">
+                    <p className="text-white/40 text-[10px] font-semibold uppercase tracking-wider mb-2">
+                      Remaining Today
+                    </p>
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {[
+                        { label: "Calories", value: rem.calories.toLocaleString(), unit: "kcal" },
+                        { label: "Protein",  value: `${rem.proteinG}`,             unit: "g" },
+                        { label: "Starchy",  value: `${rem.starchyCarbsG}`,        unit: "g" },
+                        { label: "Fibrous",  value: `${rem.fibrousCarbsG}`,        unit: "g" },
+                        { label: "Fat",      value: `${rem.fatG}`,                 unit: "g" },
+                      ].map(m => (
+                        <div key={m.label} className="bg-orange-600/10 rounded-xl px-1.5 py-2 text-center">
+                          <p className={`font-bold text-sm leading-none ${anyLogged ? "text-orange-300" : "text-white/30"}`}>{m.value}</p>
+                          <p className="text-white/20 text-[10px] mt-0.5">{m.unit}</p>
+                          <p className="text-white/20 text-[9px] mt-0.5 uppercase tracking-wide">{m.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {!anyLogged && (
+                      <p className="text-white/25 text-[10px] mt-2 text-center">Log meals to see remaining</p>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           )}
 

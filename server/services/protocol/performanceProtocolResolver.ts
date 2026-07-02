@@ -60,21 +60,25 @@ export interface PerformanceProtocolConfig {
 
 /** Live baseline supplied by the Macro Calculator — always from DB columns, never from a snapshot. */
 export interface MacroBaseline {
-  calories: number;
-  proteinG: number;
-  carbsG:   number;
-  fatG:     number;
+  calories:      number;
+  proteinG:      number;
+  carbsG:        number;
+  fatG:          number;
+  starchyCarbsG: number;
+  fibrousCarbsG: number;
 }
 
 export interface ResolvedSessionTargets {
   sessionType:   SessionType;
   sessionLabel:  string;
   trainingPhase: TrainingPhase;
-  calories:  number;
-  proteinG:  number;
-  carbsG:    number;
-  fatG:      number;
-  description: string;
+  calories:      number;
+  proteinG:      number;
+  carbsG:        number;
+  fatG:          number;
+  starchyCarbsG: number;
+  fibrousCarbsG: number;
+  description:   string;
 }
 
 export const SESSION_LABELS: Record<SessionType, string> = {
@@ -173,10 +177,13 @@ export function resolveTodayTargets(
   const sessionType: SessionType = (schedule[dayKey] as SessionType) ?? "off";
   const mod      = config.sessionModifiers[sessionType] ?? { carbsAdjustG: 0, caloriesAdjustKcal: 0, proteinAdjustG: 0 };
 
-  const calories = Math.max(0, baseline.calories + mod.caloriesAdjustKcal);
-  const proteinG = Math.max(0, baseline.proteinG  + mod.proteinAdjustG);
-  const carbsG   = Math.max(0, baseline.carbsG    + mod.carbsAdjustG);
-  const fatG     = baseline.fatG;
+  const calories      = Math.max(0, baseline.calories + mod.caloriesAdjustKcal);
+  const proteinG      = Math.max(0, baseline.proteinG  + mod.proteinAdjustG);
+  const carbsG        = Math.max(0, baseline.carbsG    + mod.carbsAdjustG);
+  const fatG          = baseline.fatG;
+  // Training carb adjustments apply to starchy carbs only — fibrous carbs are fixed.
+  const starchyCarbsG = Math.max(0, baseline.starchyCarbsG + mod.carbsAdjustG);
+  const fibrousCarbsG = baseline.fibrousCarbsG;
 
   return {
     sessionType,
@@ -186,6 +193,8 @@ export function resolveTodayTargets(
     proteinG,
     carbsG,
     fatG,
+    starchyCarbsG,
+    fibrousCarbsG,
     description: SESSION_DESCRIPTIONS[sessionType],
   };
 }
