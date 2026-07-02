@@ -316,6 +316,55 @@ export function hasProOverride(userId?: string): boolean {
 }
 
 /**
+ * Nutrition Baseline — for "Today's Nutrition Balance" banners and any UI
+ * that must always show the Macro Calculator baseline, never a performance modifier.
+ *
+ * Priority order:
+ *   1. ProCare targets (coach-set)
+ *   2. MacroCalculator self-set targets
+ *   3. No targets set (source: 'none', all zeros)
+ *
+ * Intentionally skips the Performance Protocol layer.
+ * Performance modifiers belong in a dedicated "Today's Performance Targets" surface,
+ * not in the general nutrition budget tracker.
+ */
+export function getNutritionBaseline(userId?: string): ResolvedTargets {
+  // Priority 1: Professional targets
+  const clientId = getCurrentUserClientId(userId);
+  if (clientId && proStore.hasTargets(clientId)) {
+    // Re-use full getResolvedTargets for the pro path — it will return source:'pro'
+    // and will never reach the performance layer for a pro-managed user.
+    const full = getResolvedTargets(userId);
+    if (full.source === 'pro') return full;
+  }
+
+  // Priority 2: MacroCalculator (self-set)
+  const selfTargets = getSelfTargets(userId);
+  if (selfTargets) {
+    return {
+      calories: selfTargets.calories,
+      protein_g: selfTargets.protein_g,
+      carbs_g: selfTargets.carbs_g,
+      fat_g: selfTargets.fat_g,
+      starchyCarbs_g: selfTargets.starchyCarbs_g,
+      fibrousCarbs_g: selfTargets.fibrousCarbs_g,
+      starchStrategy: selfTargets.starchStrategy || 'one',
+      source: 'self',
+    };
+  }
+
+  // Priority 3: No targets set
+  return {
+    calories: 0,
+    protein_g: 0,
+    carbs_g: 0,
+    fat_g: 0,
+    starchStrategy: 'one',
+    source: 'none',
+  };
+}
+
+/**
  * Canonical carb sub-target resolver.
  * Always call this — never read starchyCarbs_g / fibrousCarbs_g directly from
  * a resolved target object. Directive-based builders (Anti-Inflammatory, etc.)

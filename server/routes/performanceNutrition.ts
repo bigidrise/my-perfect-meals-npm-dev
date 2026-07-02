@@ -485,11 +485,9 @@ router.post("/schedule", async (req, res) => {
       updatedAt: now,
     };
 
+    // Performance Protocol only stores schedule modifiers — NOT a baseline snapshot.
+    // The Macro Calculator (dailyCalorieTarget etc.) remains the sole owner of baseline macros.
     const performanceProtocolConfig = {
-      baselineCalories: resolvedBaseCalories,
-      baselineProteinG: resolvedBaseProtein,
-      baselineCarbsG:   resolvedBaseCarbs,
-      baselineFatG:     resolvedBaseFat,
       sessionModifiers,
       generatedAt: now,
     };
@@ -503,7 +501,13 @@ router.post("/schedule", async (req, res) => {
       .where(eq(users.id, userId));
 
     const { resolveTodayTargets } = await import("../services/protocol/performanceProtocolResolver");
-    const todayTargets = resolveTodayTargets(weeklyTrainingSchedule as any, performanceProtocolConfig as any);
+    const liveBaseline = {
+      calories: resolvedBaseCalories,
+      proteinG:  resolvedBaseProtein,
+      carbsG:    resolvedBaseCarbs,
+      fatG:      resolvedBaseFat,
+    };
+    const todayTargets = resolveTodayTargets(weeklyTrainingSchedule as any, performanceProtocolConfig as any, liveBaseline);
 
     console.log(`[APN] Schedule saved for user ${userId} — today: ${todayTargets.sessionType} (${todayTargets.calories} kcal)`);
 
@@ -528,6 +532,10 @@ router.get("/today", async (req, res) => {
       .select({
         weeklyTrainingSchedule:    users.weeklyTrainingSchedule,
         performanceProtocolConfig: users.performanceProtocolConfig,
+        dailyCalorieTarget:        users.dailyCalorieTarget,
+        dailyProteinTarget:        users.dailyProteinTarget,
+        dailyCarbsTarget:          users.dailyCarbsTarget,
+        dailyFatTarget:            users.dailyFatTarget,
       } as any)
       .from(users)
       .where(eq(users.id, userId))
@@ -541,7 +549,14 @@ router.get("/today", async (req, res) => {
     }
 
     const { resolveTodayTargets } = await import("../services/protocol/performanceProtocolResolver");
-    const today = resolveTodayTargets(schedule, config);
+    // Baseline always comes from the live Macro Calculator columns — never from the config snapshot.
+    const liveBaseline = {
+      calories: (userRow as any)?.dailyCalorieTarget ?? 2000,
+      proteinG:  (userRow as any)?.dailyProteinTarget ?? 150,
+      carbsG:    (userRow as any)?.dailyCarbsTarget   ?? 200,
+      fatG:      (userRow as any)?.dailyFatTarget     ?? 65,
+    };
+    const today = resolveTodayTargets(schedule, config, liveBaseline);
 
     res.json({ configured: true, ...today });
   } catch (err: any) {
