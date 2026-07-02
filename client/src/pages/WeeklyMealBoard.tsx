@@ -641,15 +641,17 @@ export default function WeeklyMealBoard() {
           await saveBoard(updatedBoard);
         }
 
-        fetchImageForMeal(meal, slot, (mealId, imageUrl) => {
-          setBoard(prev => {
-            if (!prev) return prev;
-            if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
-            const updated = updateMealImageInBoard(prev, mealId, imageUrl);
-            saveBoard(updated).catch(() => {});
-            return updated;
-          });
-        }, userDiet);
+        if (!meal.imageUrl) {
+          fetchImageForMeal(meal, slot, (mealId, imageUrl) => {
+            setBoard(prev => {
+              if (!prev) return prev;
+              if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
+              const updated = updateMealImageInBoard(prev, mealId, imageUrl);
+              saveBoard(updated).catch(() => {});
+              return updated;
+            });
+          }, userDiet);
+        }
 
         window.dispatchEvent(new Event("macros:updated"));
 
@@ -746,20 +748,22 @@ export default function WeeklyMealBoard() {
 
         // Trigger proper image pipeline — pass full snack with ingredients so the
         // DALL-E prompt has real food context. mealType normalized in useChefMealImage.
-        fetchImageForMeal(
-          { id: snack.id, name: snack.name, ingredients: snack.ingredients },
-          'snack',
-          (mealId, imageUrl) => {
-            setBoard(prev => {
-              if (!prev) return prev;
-              if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
-              const updated = updateMealImageInBoard(prev, mealId, imageUrl);
-              saveBoard(updated).catch(() => {});
-              return updated;
-            });
-          },
-          userDiet,
-        );
+        if (!snack.imageUrl) {
+          fetchImageForMeal(
+            { id: snack.id, name: snack.name, ingredients: snack.ingredients },
+            'snack',
+            (mealId, imageUrl) => {
+              setBoard(prev => {
+                if (!prev) return prev;
+                if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
+                const updated = updateMealImageInBoard(prev, mealId, imageUrl);
+                saveBoard(updated).catch(() => {});
+                return updated;
+              });
+            },
+            userDiet,
+          );
+        }
 
         // Dispatch walkthrough event for snacks
         const eventTarget = document.querySelector(

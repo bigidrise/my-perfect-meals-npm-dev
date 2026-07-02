@@ -631,15 +631,17 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
 
         setBoard(updatedBoard);
-        fetchImageForMeal(transformedMeal, slot, (mealId, imageUrl) => {
-          setBoard(prev => {
-            if (!prev) return prev;
-            if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
-            const updated = updateMealImageInBoard(prev, mealId, imageUrl);
-            saveBoard(updated).catch(() => {});
-            return updated;
+        if (!transformedMeal.imageUrl) {
+          fetchImageForMeal(transformedMeal, slot, (mealId, imageUrl) => {
+            setBoard(prev => {
+              if (!prev) return prev;
+              if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
+              const updated = updateMealImageInBoard(prev, mealId, imageUrl);
+              saveBoard(updated).catch(() => {});
+              return updated;
+            });
           });
-        });
+        }
         toast({
           title: "AI Meal Added!",
           description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === slot)?.[1]}`,
@@ -697,14 +699,15 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           description: `${snack.title} added successfully`,
         });
 
-        // Trigger proper image pipeline — matches Chef/Craving Creator flow
-        fetchImageForMeal({ id: snack.id, name: snack.name }, 'snacks', (mealId, imageUrl) => {
-          setBoard(prev => {
-            if (!prev) return prev;
-            if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
-            return updateMealImageInBoard(prev, mealId, imageUrl);
+        if (!snack.imageUrl) {
+          fetchImageForMeal({ id: snack.id, name: snack.name }, 'snacks', (mealId, imageUrl) => {
+            setBoard(prev => {
+              if (!prev) return prev;
+              if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
+              return updateMealImageInBoard(prev, mealId, imageUrl);
+            });
           });
-        });
+        }
 
         setSnackPickerOpen(false);
       } catch (error) {

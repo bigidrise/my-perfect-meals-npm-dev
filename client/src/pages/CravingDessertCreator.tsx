@@ -263,12 +263,47 @@ export default function DessertCreator() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
+  // Write-back: whenever generatedDessert is set (on mount-restore OR after a new generation)
+  // and imageUrl is missing or still a data: URL, fetch the permanent S3 URL and write it
+  // back into state. The localStorage save effect below fires again once imageUrl is an S3
+  // URL, so subsequent restores always have a valid imageUrl. The S3-URL guard at the top
+  // makes this safe to run on every generatedDessert change without looping.
+  useEffect(() => {
+    if (!generatedDessert) return;
+    const url = generatedDessert.imageUrl;
+    if (url && !url.startsWith('data:')) return; // Already has an S3 URL — nothing to do
+    if (!generatedDessert.name) return;
+
+    setDessertImageLoading(true);
+    fetch(apiUrl("/api/meals/generate-image"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mealId: generatedDessert.id,
+        mealName: generatedDessert.name,
+        mealType: "desserts",
+        ingredients: generatedDessert.ingredients || [],
+      }),
+    })
+      .then(r => r.json())
+      .then(d => { if (d.imageUrl) setGeneratedDessert((prev: any) => prev ? { ...prev, imageUrl: d.imageUrl } : prev); })
+      .catch(() => {})
+      .finally(() => setDessertImageLoading(false));
+  }, [generatedDessert]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (generatedDessert) {
       try {
+        // Never save a base64 data URL to localStorage — it's too large and will
+        // silently fail quota, losing the imageUrl on the next restore.
+        // The write-back effect above re-fetches the S3 URL on mount so the next
+        // save always carries a valid imageUrl.
+        const toSave = generatedDessert.imageUrl?.startsWith('data:')
+          ? { ...generatedDessert, imageUrl: undefined }
+          : generatedDessert;
         localStorage.setItem(
           "mpm_dessert_creator_result",
-          JSON.stringify(generatedDessert),
+          JSON.stringify(toSave),
         );
       } catch {}
     }

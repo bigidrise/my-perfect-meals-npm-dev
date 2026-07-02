@@ -241,15 +241,41 @@ export default function BeverageCreator() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
-  // Image is now returned inline from the server — no client-side re-fetch needed on mount.
+  // Write-back: whenever generatedBeverage is set (on mount-restore OR after a new generation)
+  // and imageUrl is missing or still a data: URL, fetch the permanent S3 URL and write it
+  // back into state. The localStorage save effect below fires again once imageUrl is an S3
+  // URL, so subsequent restores always have a valid imageUrl. The S3-URL guard at the top
+  // makes this safe to run on every generatedBeverage change without looping.
+  useEffect(() => {
+    if (!generatedBeverage) return;
+    const url = generatedBeverage.imageUrl;
+    if (url && !url.startsWith('data:')) return; // Already has an S3 URL — nothing to do
+    if (!generatedBeverage.name) return;
+
+    setBeverageImageLoading(true);
+    fetch(apiUrl("/api/meals/generate-image"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mealId: generatedBeverage.id,
+        mealName: generatedBeverage.name,
+        mealType: "beverages",
+        ingredients: generatedBeverage.ingredients || [],
+      }),
+    })
+      .then(r => r.json())
+      .then(d => { if (d.imageUrl) setGeneratedBeverage((prev: any) => prev ? { ...prev, imageUrl: d.imageUrl } : prev); })
+      .catch(() => {})
+      .finally(() => setBeverageImageLoading(false));
+  }, [generatedBeverage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (generatedBeverage) {
       try {
         // Never save a base64 data URL to localStorage — it's too large and will
         // silently fail quota, losing the imageUrl on the next restore.
-        // The background S3 upload will complete shortly; the mount effect below
-        // re-fetches the (now-cached) S3 URL on the next page load.
+        // The write-back effect above re-fetches the S3 URL on mount so the next
+        // save always carries a valid imageUrl.
         const toSave = generatedBeverage.imageUrl?.startsWith('data:')
           ? { ...generatedBeverage, imageUrl: undefined }
           : generatedBeverage;

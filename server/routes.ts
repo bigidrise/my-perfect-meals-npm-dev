@@ -4389,8 +4389,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         medicalFlags: user?.healthConditions || []
       });
 
-      console.log(`📅 Weekly meal plan generated: ${generatedMeals.length} meals`);
-      res.json({ meals: generatedMeals });
+      console.log(`📅 Weekly meal plan generated: ${generatedMeals.length} meals — inlining images`);
+
+      const { generateMealImageUnified, normalizeMealTypeToSourceType } = await import("./services/mealImageGenerator");
+      const mealsWithImages = await Promise.all(
+        generatedMeals.map(async (meal: any) => {
+          try {
+            const ingredientNames = (meal.ingredients || []).map((i: any) =>
+              typeof i === "string" ? i : (i.name || i.item || "")
+            ).filter(Boolean);
+            const sourceType = normalizeMealTypeToSourceType(meal.mealType || "dinner");
+            const imageUrl = await generateMealImageUnified(meal.name, ingredientNames, sourceType);
+            return { ...meal, imageUrl };
+          } catch {
+            return meal;
+          }
+        })
+      );
+
+      res.json({ meals: mealsWithImages });
     } catch (error: any) {
       console.error("❌ Weekly meals error:", error);
       res.status(500).json({ message: error.message });
