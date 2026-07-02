@@ -13,6 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { Loader2 } from "lucide-react";
 import {
   useCreateWithChefRequest,
+  type PerformanceSessionContext,
   DietType,
   BeachBodyPhase,
   BuilderMode,
@@ -51,6 +52,7 @@ interface CreateWithChefModalProps {
   diversityContext?: DiversityContext;
   remainingMacros?: RemainingMacros;
   builderMode?: BuilderMode;
+  performanceSessionContext?: PerformanceSessionContext;
 }
 
 export function CreateWithChefModal({
@@ -64,6 +66,7 @@ export function CreateWithChefModal({
   diversityContext,
   remainingMacros,
   builderMode,
+  performanceSessionContext,
 }: CreateWithChefModalProps) {
   const [description, setDescription] = useState("");
   const [safetyEnabled, setSafetyEnabled] = useState(true);
@@ -182,7 +185,8 @@ export function CreateWithChefModal({
       userDietOverride,
       diversityContext,
       remainingMacros,
-      builderMode
+      builderMode,
+      performanceSessionContext
     );
 
     if (meal) {

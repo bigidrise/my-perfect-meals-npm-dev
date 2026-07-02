@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Dumbbell, Trophy, Zap, Settings,
-  Loader2, ChevronRight, Target, RefreshCcw, CheckCircle2, Send, Check, Copy,
+  Loader2, ChevronRight, Target, RefreshCcw, CheckCircle2, Check, Copy,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +11,7 @@ import { usePageTitle } from "@/contexts/PageTitleContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
+import { getResolvedTargets } from "@/lib/macroResolver";
 // import PerformanceSetupModal from "@/components/PerformanceSetupModal"; // kept during validation — see PerformanceNutritionSetupPage
 import {
   computeDemandProfile,
@@ -385,10 +386,6 @@ export default function PerformanceNutritionHub() {
     calories: number; proteinG: number; carbsG: number; fatG: number; description: string;
   } | null>(null);
 
-  // Coach link + send-to-coach state
-  const [hasCoachLink, setHasCoachLink] = useState(false);
-  const [sendState, setSendState] = useState<"idle" | "sending" | "sent" | "error">("idle");
-  const [sendError, setSendError] = useState<string | null>(null);
   const [protocolCopied, setProtocolCopied] = useState(false);
 
   // ── Clinical paywall ─────────────────────────────────────────────────────
@@ -427,38 +424,7 @@ export default function PerformanceNutritionHub() {
   const isActive = !!activeTrack;
 
   const todayMacros = useTodayMacros(String((user as any)?.id ?? ""));
-
-  useEffect(() => {
-    fetch(apiUrl("/api/client/tablet"), { headers: getAuthHeaders(), credentials: "include" })
-      .then(r => setHasCoachLink(r.ok))
-      .catch(() => setHasCoachLink(false));
-  }, []);
-
-  function buildDailySummaryText(): string {
-    return `Today's totals — ${Math.round(todayMacros.kcal).toLocaleString()} cal · P ${Math.round(todayMacros.protein)}g · C ${Math.round(todayMacros.carbs)}g · F ${Math.round(todayMacros.fat)}g`;
-  }
-
-  async function handleSendToCoach() {
-    if (sendState === "sending" || sendState === "sent") return;
-    setSendState("sending");
-    setSendError(null);
-    try {
-      const res = await fetch(apiUrl("/api/client/tablet/message"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        credentials: "include",
-        body: JSON.stringify({ body: buildDailySummaryText() }),
-      });
-      if (!res.ok) throw new Error("Failed");
-      setSendState("sent");
-      setTimeout(() => setSendState("idle"), 2500);
-    } catch (err: any) {
-      const msg = err?.message || "Failed to send";
-      setSendError(msg.includes("No active") ? "No active coach connection" : "Failed to send — try again");
-      setSendState("error");
-      setTimeout(() => { setSendState("idle"); setSendError(null); }, 3000);
-    }
-  }
+  const resolvedTargets = getResolvedTargets(String((user as any)?.id ?? ""));
 
   useEffect(() => {
     if (!isActive || activeTrack !== "athletic") return;
@@ -665,7 +631,7 @@ export default function PerformanceNutritionHub() {
   // Tab labels differ by track
   const tabLabel = (tab: ActiveTab): string => {
     if (tab === "protocol") return activeTrack === "competition" ? "Meal Builder" : "Nutrient Plan";
-    if (tab === "starch") return "Starch";
+    if (tab === "starch") return "Carbohydrates";
     return "Protocols";
   };
 
@@ -970,47 +936,38 @@ export default function PerformanceNutritionHub() {
                 </div>
               )}
 
-              {/* Daily Macro Summary + Send to Coach */}
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-white/40 text-xs font-medium shrink-0">Today:</span>
-                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  {Math.round(todayMacros.kcal).toLocaleString()} cal
-                </span>
-                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  P {Math.round(todayMacros.protein)}g
-                </span>
-                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  C {Math.round(todayMacros.carbs)}g
-                </span>
-                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  F {Math.round(todayMacros.fat)}g
-                </span>
-                {hasCoachLink && (
-                  <button
-                    onClick={handleSendToCoach}
-                    disabled={sendState === "sending" || sendState === "sent"}
-                    className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full transition-all ${
-                      sendState === "sent"
-                        ? "bg-lime-700/80 text-white"
-                        : sendState === "error"
-                        ? "bg-red-700/70 text-red-100"
-                        : sendState === "sending"
-                        ? "bg-orange-700/60 text-orange-100"
-                        : "bg-orange-600/70 text-white active:bg-orange-600"
-                    }`}
-                    aria-label="Send today's nutrition summary to coach"
-                  >
-                    {sendState === "sending" ? (
-                      <><Loader2 className="h-3 w-3 animate-spin" />Sending…</>
-                    ) : sendState === "sent" ? (
-                      <><Check className="h-3 w-3" />Sent!</>
-                    ) : sendState === "error" ? (
-                      <><Send className="h-3 w-3" />{sendError ?? "Error"}</>
-                    ) : (
-                      <><Send className="h-3 w-3" />Send to Coach</>
-                    )}
-                  </button>
-                )}
+              {/* Daily Macro Summary — Targets + Logged */}
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-orange-400/70 text-xs font-medium shrink-0 w-12">Target</span>
+                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    {resolvedTargets.calories > 0 ? Math.round(resolvedTargets.calories).toLocaleString() : "—"} cal
+                  </span>
+                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    P {resolvedTargets.protein_g > 0 ? Math.round(resolvedTargets.protein_g) : "—"}g
+                  </span>
+                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    C {resolvedTargets.carbs_g > 0 ? Math.round(resolvedTargets.carbs_g) : "—"}g
+                  </span>
+                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    F {resolvedTargets.fat_g > 0 ? Math.round(resolvedTargets.fat_g) : "—"}g
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-white/40 text-xs font-medium shrink-0 w-12">Logged</span>
+                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    {Math.round(todayMacros.kcal).toLocaleString()} cal
+                  </span>
+                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    P {Math.round(todayMacros.protein)}g
+                  </span>
+                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    C {Math.round(todayMacros.carbs)}g
+                  </span>
+                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    F {Math.round(todayMacros.fat)}g
+                  </span>
+                </div>
               </div>
 
               <button
@@ -1311,47 +1268,38 @@ export default function PerformanceNutritionHub() {
                 </div>
               )}
 
-              {/* Daily Macro Summary + Send to Coach */}
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-white/40 text-xs font-medium shrink-0">Today:</span>
-                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  {Math.round(todayMacros.kcal).toLocaleString()} cal
-                </span>
-                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  P {Math.round(todayMacros.protein)}g
-                </span>
-                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  C {Math.round(todayMacros.carbs)}g
-                </span>
-                <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  F {Math.round(todayMacros.fat)}g
-                </span>
-                {hasCoachLink && (
-                  <button
-                    onClick={handleSendToCoach}
-                    disabled={sendState === "sending" || sendState === "sent"}
-                    className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full transition-all ${
-                      sendState === "sent"
-                        ? "bg-lime-700/80 text-white"
-                        : sendState === "error"
-                        ? "bg-red-700/70 text-red-100"
-                        : sendState === "sending"
-                        ? "bg-orange-700/60 text-orange-100"
-                        : "bg-orange-600/70 text-white active:bg-orange-600"
-                    }`}
-                    aria-label="Send today's nutrition summary to coach"
-                  >
-                    {sendState === "sending" ? (
-                      <><Loader2 className="h-3 w-3 animate-spin" />Sending…</>
-                    ) : sendState === "sent" ? (
-                      <><Check className="h-3 w-3" />Sent!</>
-                    ) : sendState === "error" ? (
-                      <><Send className="h-3 w-3" />{sendError ?? "Error"}</>
-                    ) : (
-                      <><Send className="h-3 w-3" />Send to Coach</>
-                    )}
-                  </button>
-                )}
+              {/* Daily Macro Summary — Targets + Logged */}
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-orange-400/70 text-xs font-medium shrink-0 w-12">Target</span>
+                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    {resolvedTargets.calories > 0 ? Math.round(resolvedTargets.calories).toLocaleString() : "—"} cal
+                  </span>
+                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    P {resolvedTargets.protein_g > 0 ? Math.round(resolvedTargets.protein_g) : "—"}g
+                  </span>
+                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    C {resolvedTargets.carbs_g > 0 ? Math.round(resolvedTargets.carbs_g) : "—"}g
+                  </span>
+                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    F {resolvedTargets.fat_g > 0 ? Math.round(resolvedTargets.fat_g) : "—"}g
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-white/40 text-xs font-medium shrink-0 w-12">Logged</span>
+                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    {Math.round(todayMacros.kcal).toLocaleString()} cal
+                  </span>
+                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    P {Math.round(todayMacros.protein)}g
+                  </span>
+                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    C {Math.round(todayMacros.carbs)}g
+                  </span>
+                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    F {Math.round(todayMacros.fat)}g
+                  </span>
+                </div>
               </div>
 
               <button
