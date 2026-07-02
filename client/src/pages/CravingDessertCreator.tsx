@@ -274,31 +274,7 @@ export default function DessertCreator() {
     }
   }, [generatedDessert]);
 
-  // Re-fetch image on mount if restored dessert is missing it — DB cache returns instantly
-  useEffect(() => {
-    if (generatedDessert && !generatedDessert.imageUrl) {
-      setDessertImageLoading(true);
-      fetch(apiUrl("/api/meals/generate-image"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mealId: generatedDessert.id,
-          mealName: generatedDessert.name,
-          mealType: "desserts",
-          ingredients: generatedDessert.ingredients,
-        }),
-      })
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.imageUrl)
-            setGeneratedDessert((prev: any) =>
-              prev ? { ...prev, imageUrl: d.imageUrl } : prev,
-            );
-        })
-        .catch(() => {})
-        .finally(() => setDessertImageLoading(false));
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Image is now returned inline from the server — no client-side re-fetch needed.
 
   useEffect(() => {
     if (cakeType === "wedding-cake") {
@@ -471,19 +447,7 @@ export default function DessertCreator() {
 
       stopProgressTicker();
       setGeneratedDessert(meal);
-      // Fire image async — non-blocking
-      setDessertImageLoading(true);
-      fetch(apiUrl("/api/meals/generate-image"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mealId: meal.id, mealName: meal.name, mealType: "desserts", ingredients: meal.ingredients }),
-      })
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.imageUrl) setGeneratedDessert((prev: any) => prev ? { ...prev, imageUrl: d.imageUrl } : prev);
-        })
-        .catch(() => {})
-        .finally(() => setDessertImageLoading(false));
+      setDessertImageLoading(false); // Image is returned inline from the server
 
       toast({
         title: "✨ Dessert Created!",

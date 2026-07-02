@@ -17,6 +17,7 @@ import { sanitizeMealName } from "../utils/mealNameSanitizer";
 import { resolveActiveSystem } from "../services/creatorSystems/resolver";
 import { applyCreatorTransformation } from "../services/creatorSystems/applyCreatorTransformation";
 import { resolveKitchenSystem } from "../services/creatorSystems/resolveKitchenSystem";
+import { generateMealImageUnified } from "../services/mealImageGenerator";
 
 const router = express.Router();
 
@@ -189,9 +190,21 @@ router.post('/generate', requireAuth, async (req, res) => {
       generatedMeal = await applyCreatorTransformation(generatedMeal, creatorSystem, "meal");
     }
 
+    // Generate image server-inline via canonical pipeline (caching + fallback handled internally)
+    let cravingImageUrl: string | null = null;
+    try {
+      const ingNames = (generatedMeal.ingredients || [])
+        .map((i: any) => (typeof i === "string" ? i : i?.name || ""))
+        .filter(Boolean);
+      cravingImageUrl = await generateMealImageUnified(generatedMeal.name, ingNames, "meal");
+    } catch (imgErr) {
+      console.warn("[CRAVING] Image generation failed:", imgErr);
+    }
+
     // Add servings info to the meal response
     const mealWithServings = {
       ...generatedMeal,
+      imageUrl: cravingImageUrl || (generatedMeal as any).imageUrl || null,
       servingSize: `${servings} ${servings === 1 ? 'serving' : 'servings'}`,
       servings: servings
     };
