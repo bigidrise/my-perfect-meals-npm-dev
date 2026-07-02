@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
-import { getResolvedTargets } from "@/lib/macroResolver";
+import { getResolvedTargets, setPerfSelectedDate } from "@/lib/macroResolver";
 // import PerformanceSetupModal from "@/components/PerformanceSetupModal"; // kept during validation — see PerformanceNutritionSetupPage
 import {
   computeDemandProfile,
@@ -1081,7 +1081,7 @@ export default function PerformanceNutritionHub() {
                     return (
                       <button
                         key={day}
-                        onClick={() => setSelectedDate(dateStr)}
+                        onClick={() => { setSelectedDate(dateStr); setPerfSelectedDate(dateStr); }}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
                           isSelected
                             ? "bg-orange-600/30 border border-orange-500/50"

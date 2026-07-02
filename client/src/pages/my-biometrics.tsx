@@ -401,7 +401,7 @@ export default function MyBiometrics() {
 
   // Macro Targets state (persistent, not date-specific) - now with pro override support
   const [targets, setTargets] = useState<MacroTargets | null>(null);
-  const [targetSource, setTargetSource] = useState<"pro" | "self" | "none">(
+  const [targetSource, setTargetSource] = useState<"pro" | "self" | "performance" | "none">(
     "none",
   );
   const [proName, setProName] = useState<string>("");
@@ -411,6 +411,38 @@ export default function MyBiometrics() {
   const refreshTargetsRef = useRef<() => Promise<void>>(async () => {});
 
   const refreshTargets = async () => {
+    // Priority 0: Performance Protocol — for athletes, daily macro targets change by session type.
+    // If a performance protocol is configured, use its date-specific targets and skip the baseline fetch.
+    if (user?.id) {
+      try {
+        const storedPerfDate = typeof window !== 'undefined'
+          ? localStorage.getItem('mpm.performance.selectedDate') : null;
+        const dateQs = storedPerfDate ? `?date=${storedPerfDate}` : '';
+        const perfRes = await fetch(apiUrl(`/api/performance/today${dateQs}`), {
+          headers: { ...getAuthHeaders() },
+          credentials: 'include',
+          cache: 'no-store',
+        });
+        if (perfRes.ok) {
+          const perfData = await perfRes.json();
+          if (perfData?.configured && (perfData?.calories ?? 0) > 0) {
+            setTargets({
+              calories: perfData.calories,
+              protein_g: perfData.proteinG,
+              carbs_g: perfData.carbsG,
+              fat_g: perfData.fatG,
+              starchyCarbs_g: perfData.starchyCarbsG ?? 0,
+              fibrousCarbs_g: perfData.fibrousCarbsG ?? 0,
+            });
+            setTargetSource('performance');
+            return;
+          }
+        }
+      } catch {
+        // Not on performance protocol or network failure — fall through to baseline
+      }
+    }
+
     // Priority 1: canonical DB record — always fetch fresh, no browser cache.
     // Both Macro Calculator and Studio Save Targets write to this same record,
     // so reading it first guarantees Studio changes are immediately visible here.

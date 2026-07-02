@@ -115,6 +115,26 @@ function getSelfTargets(userId?: string): MacroTargets | null {
 // permanent source of truth and prevents the protocol from holding stale baseline snapshots.
 const LS_PERF_PROTOCOL = 'mpm.perfProtocol';
 
+/** localStorage key — written by the Performance Hub when the user selects a training day. */
+export const LS_PERF_SELECTED_DATE = 'mpm.performance.selectedDate';
+
+/**
+ * Set (or clear) the active performance date.
+ * Call this from the Performance Hub whenever the user taps a different day.
+ * It updates localStorage, invalidates the macro-resolver cache, and broadcasts
+ * `mpm:targetsUpdated` so the builder, biometrics, and pickers all re-render.
+ */
+export function setPerfSelectedDate(dateStr: string | null): void {
+  if (typeof window === 'undefined') return;
+  if (dateStr) {
+    localStorage.setItem(LS_PERF_SELECTED_DATE, dateStr);
+  } else {
+    localStorage.removeItem(LS_PERF_SELECTED_DATE);
+  }
+  clearResolvedTargetsCache();
+  window.dispatchEvent(new CustomEvent('mpm:targetsUpdated'));
+}
+
 function getPerformanceProtocolTargets(userId?: string): ResolvedTargets | null {
   if (typeof window === 'undefined') return null;
   try {
@@ -139,7 +159,10 @@ function getPerformanceProtocolTargets(userId?: string): ResolvedTargets | null 
     if (!baseline || !baseline.calories || baseline.calories === 0) return null;
 
     const DOW = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const today = DOW[new Date().getDay()];
+    // Use the date selected in the Performance Hub, falling back to real-world today.
+    const storedDate = localStorage.getItem(LS_PERF_SELECTED_DATE);
+    const refDate = storedDate ? new Date(storedDate + 'T12:00:00') : new Date();
+    const today = DOW[refDate.getDay()];
     const sessionType = state.schedule[today] ?? 'off';
     const mod = state.config.sessionModifiers?.[sessionType] ?? { carbsAdjustG: 0, caloriesAdjustKcal: 0, proteinAdjustG: 0 };
 
