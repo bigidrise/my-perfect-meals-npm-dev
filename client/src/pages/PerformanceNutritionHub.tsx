@@ -11,6 +11,7 @@ import { usePageTitle } from "@/contexts/PageTitleContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
+import { getResolvedTargets } from "@/lib/macroResolver";
 // import PerformanceSetupModal from "@/components/PerformanceSetupModal"; // kept during validation — see PerformanceNutritionSetupPage
 import {
   computeDemandProfile,
@@ -423,6 +424,7 @@ export default function PerformanceNutritionHub() {
   const isActive = !!activeTrack;
 
   const todayMacros = useTodayMacros(String((user as any)?.id ?? ""));
+  const resolvedTargets = getResolvedTargets(String((user as any)?.id ?? ""));
 
   useEffect(() => {
     if (!isActive || activeTrack !== "athletic") return;
@@ -939,16 +941,16 @@ export default function PerformanceNutritionHub() {
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-orange-400/70 text-xs font-medium shrink-0 w-12">Target</span>
                   <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    {todaySession ? Math.round(todaySession.calories).toLocaleString() : "—"} cal
+                    {resolvedTargets.calories > 0 ? Math.round(resolvedTargets.calories).toLocaleString() : "—"} cal
                   </span>
                   <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    P {todaySession ? Math.round(todaySession.proteinG) : "—"}g
+                    P {resolvedTargets.protein_g > 0 ? Math.round(resolvedTargets.protein_g) : "—"}g
                   </span>
                   <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    C {todaySession ? Math.round(todaySession.carbsG) : "—"}g
+                    C {resolvedTargets.carbs_g > 0 ? Math.round(resolvedTargets.carbs_g) : "—"}g
                   </span>
                   <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    F {todaySession ? Math.round(todaySession.fatG) : "—"}g
+                    F {resolvedTargets.fat_g > 0 ? Math.round(resolvedTargets.fat_g) : "—"}g
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -1271,16 +1273,16 @@ export default function PerformanceNutritionHub() {
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-orange-400/70 text-xs font-medium shrink-0 w-12">Target</span>
                   <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    {todaySession ? Math.round(todaySession.calories).toLocaleString() : "—"} cal
+                    {resolvedTargets.calories > 0 ? Math.round(resolvedTargets.calories).toLocaleString() : "—"} cal
                   </span>
                   <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    P {todaySession ? Math.round(todaySession.proteinG) : "—"}g
+                    P {resolvedTargets.protein_g > 0 ? Math.round(resolvedTargets.protein_g) : "—"}g
                   </span>
                   <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    C {todaySession ? Math.round(todaySession.carbsG) : "—"}g
+                    C {resolvedTargets.carbs_g > 0 ? Math.round(resolvedTargets.carbs_g) : "—"}g
                   </span>
                   <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    F {todaySession ? Math.round(todaySession.fatG) : "—"}g
+                    F {resolvedTargets.fat_g > 0 ? Math.round(resolvedTargets.fat_g) : "—"}g
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 flex-wrap">
