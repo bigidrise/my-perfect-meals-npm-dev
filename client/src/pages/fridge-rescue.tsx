@@ -1098,12 +1098,26 @@ const FridgeRescuePage = () => {
                     className="overflow-hidden bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl flex flex-col h-full"
                   >
                     <div className="relative">
-                      <MealImageSlot
-                        imageUrl={meal.imageUrl}
-                        mealName={meal.name}
-                        isLoading={!!loadingImages[meal.id]}
-                        height="h-48"
-                      />
+                      {(meal.imageUrl || loadingImages[meal.id]) ? (
+                        <MealImageSlot
+                          imageUrl={meal.imageUrl}
+                          mealName={meal.name}
+                          isLoading={!!loadingImages[meal.id]}
+                          height="h-48"
+                        />
+                      ) : (
+                        <div className="h-48 mb-0 flex flex-col items-center justify-center gap-2 bg-black/40 border-b border-orange-400/30 text-center px-4">
+                          <p className="text-white/70 text-xs mb-2">
+                            Saved in an older session — regenerate to get the image.
+                          </p>
+                          <button
+                            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                            className="px-3 py-1.5 rounded-full bg-orange-600 text-white text-xs font-medium"
+                          >
+                            Scroll up to regenerate
+                          </button>
+                        </div>
+                      )}
                       <div className="absolute top-3 left-3">
                         <Badge
                           variant={
