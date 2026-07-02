@@ -1295,25 +1295,6 @@ export default function PerformanceNutritionHub() {
                 </div>
               )}
 
-              {/* Daily Macro Summary — Targets + Logged */}
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-white text-xs font-medium shrink-0 w-12">Target</span>
-                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    {resolvedTargets.calories > 0 ? Math.round(resolvedTargets.calories).toLocaleString() : "—"} cal
-                  </span>
-                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    P {resolvedTargets.protein_g > 0 ? Math.round(resolvedTargets.protein_g) : "—"}g
-                  </span>
-                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    C {resolvedTargets.carbs_g > 0 ? Math.round(resolvedTargets.carbs_g) : "—"}g
-                  </span>
-                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    F {resolvedTargets.fat_g > 0 ? Math.round(resolvedTargets.fat_g) : "—"}g
-                  </span>
-                </div>
-              </div>
-
               <button
                 onClick={() => setLocation("/beach-body-meal-board")}
                 className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
