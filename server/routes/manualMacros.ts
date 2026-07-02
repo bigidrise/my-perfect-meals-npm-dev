@@ -619,6 +619,42 @@ router.post("/users/:userId/macros/daily-summary", requireAuth, async (req, res)
   }
 });
 
+// DELETE /api/users/:userId/macro-logs/today
+// Deletes all macro_logs rows for the authenticated user for today (UTC date).
+router.delete("/users/:userId/macro-logs/today", requireAuth, async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const targetUserId = req.params.userId;
+    const authUserId = authReq.authUser.id;
+
+    // Only the user themselves can reset their own today
+    if (targetUserId !== authUserId) {
+      return res.status(403).json({ error: "Access denied." });
+    }
+
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setUTCHours(23, 59, 59, 999);
+
+    await db
+      .delete(macroLogs)
+      .where(
+        and(
+          eq(macroLogs.userId, targetUserId),
+          gte(macroLogs.at, todayStart),
+          lte(macroLogs.at, todayEnd),
+        ),
+      );
+
+    console.log(`🗑️ Reset today's macro logs for user ${targetUserId}`);
+    res.json({ ok: true });
+  } catch (e: any) {
+    console.error("reset today error:", e);
+    res.status(500).json({ error: e.message || "Failed to reset today." });
+  }
+});
+
 // GET /api/users/:userId/macro-logs/daily-with-source?start&end
 // Returns per-day rows with locked-day priority for biometrics charts.
 // If a locked-day row exists for a date, only that row is used; otherwise all sources are summed.
