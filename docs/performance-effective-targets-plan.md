@@ -200,3 +200,89 @@ This same pattern (baseline + daily adjustment layer + one coaching explanation)
 - Cardiac rehab (activity-level daily adjustments)
 
 The Performance workspace proves the pattern. Other specialized protocols follow the same shape without changing how the general app behaves.
+
+---
+
+## Design Principles (Permanent)
+
+### This Is a Protocol Engine
+
+Performance is the first protocol. It is not a one-off sports feature.
+
+Every specialty condition in My Perfect Meals asks the same question:
+
+> **"Given this user, on this date, what should today's nutrition look like?"**
+
+The adjustment supplier is the only thing that changes:
+
+| Protocol | Adjustment Driver |
+|---|---|
+| Performance | Today's workout type |
+| Pregnancy | Current trimester |
+| GLP-1 | Current medication phase |
+| Diabetes | Today's glucose context |
+| Cardiac | Sodium restriction level |
+| Oncology | Treatment day vs. off day |
+| Renal | Current restriction tier |
+| Menopause | Current hormonal phase |
+
+The engine — baseline → adjustment layer → effective daily targets → protocol-aware consumers — is identical across all of them. Performance proves the pattern; every future protocol slots in without changing how the general app behaves.
+
+---
+
+### The Calendar Is the Operating System
+
+The selected date is not a UI convenience. It is the trigger that sets the entire nutritional context.
+
+When a user taps **Thursday**, every protocol-aware surface responds simultaneously:
+
+- Builder targets update
+- Hub targets update
+- Biometrics comparison updates
+- Restaurant recommendations update
+- Beverage, cravings, and meal generation receive Thursday's targets
+
+The date is the operating system for the protocol. Nothing computes independently of it.
+
+---
+
+### Protocol Isolation Rule
+
+> **A protocol may influence only protocol-aware consumers. It must never modify the global nutritional baseline.**
+
+```
+Macro Calculator
+        ↓
+[Protocol] e.g. Performance
+        ↓
+Today's Coaching Plan
+        ↓
+Protocol-aware consumers ONLY
+```
+
+Everything outside the protocol workspace continues using the Macro Calculator unless it explicitly opts in to the protocol workspace.
+
+---
+
+## Future Enhancement (Not Now — Write It Down While Fresh)
+
+Rich coaching explanation for a selected day:
+
+```
+Friday — Power Day
+
+Heavy lower-body session
+
+Training Goals
+• Max force production
+• Full glycogen availability
+• High recovery priority
+
+Nutrition Strategy
+• Higher starchy carbohydrates
+• Protein maintained
+• Normal fibrous vegetables
+• Increased hydration
+```
+
+This transforms the app from "here are your macros" into "here is your coach explaining today's plan." The AI value is visible: users understand *why* today's numbers are different, not just *what* they are.
