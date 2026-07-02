@@ -405,16 +405,17 @@ export default function GLP1MealBuilder() {
 
       window.dispatchEvent(new Event("macros:updated"));
 
-      // Trigger proper image pipeline — matches Chef/Craving Creator flow
-      fetchImageForMeal({ id: snack.id, name: snack.name }, 'snacks', (mealId, imageUrl) => {
-        setBoard(prev => {
-          if (!prev) return prev;
-          if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
-          const updated = updateMealImageInBoard(prev, mealId, imageUrl);
-          saveBoard(updated).catch(() => {});
-          return updated;
+      if (!snack.imageUrl) {
+        fetchImageForMeal({ id: snack.id, name: snack.name }, 'snacks', (mealId, imageUrl) => {
+          setBoard(prev => {
+            if (!prev) return prev;
+            if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
+            const updated = updateMealImageInBoard(prev, mealId, imageUrl);
+            saveBoard(updated).catch(() => {});
+            return updated;
+          });
         });
-      });
+      }
     } catch (error) {
       console.error("Failed to add snack:", error);
       toast({
@@ -723,15 +724,17 @@ export default function GLP1MealBuilder() {
         const updatedDayLists = { ...dayLists, [slot]: updatedSlotMeals };
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
         setBoard(updatedBoard);
-        fetchImageForMeal(transformedMeal, slot, (mealId, imageUrl) => {
-          setBoard(prev => {
-            if (!prev) return prev;
-            if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
-            const updated = updateMealImageInBoard(prev, mealId, imageUrl);
-            saveBoard(updated).catch(() => {});
-            return updated;
+        if (!transformedMeal.imageUrl) {
+          fetchImageForMeal(transformedMeal, slot, (mealId, imageUrl) => {
+            setBoard(prev => {
+              if (!prev) return prev;
+              if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
+              const updated = updateMealImageInBoard(prev, mealId, imageUrl);
+              saveBoard(updated).catch(() => {});
+              return updated;
+            });
           });
-        });
+        }
         
         // Persist to database (was missing - caused meals to not persist!)
         await saveBoard(updatedBoard);
