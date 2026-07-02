@@ -1,6 +1,4 @@
 import { getDayStarchStatus } from '@/utils/starchMealClassifier';
-import { getResolvedTargets } from '@/lib/macroResolver';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface Meal {
   name?: string;
@@ -16,12 +14,10 @@ interface DailyStarchIndicatorProps {
   bodyFatSlotDelta?: number;
 }
 
+// Presentation component — never calls a nutrition resolver.
+// Strategy is always supplied by the parent workflow page via strategyOverride.
 export function DailyStarchIndicator({ meals, compact = false, strategyOverride, bodyFatSlotDelta = 0 }: DailyStarchIndicatorProps) {
-  const { user } = useAuth();
-  
-  // Get strategy from macroResolver (respects pro override) or use override
-  const resolvedTargets = getResolvedTargets(user?.id);
-  const strategy = strategyOverride || resolvedTargets.starchStrategy || 'one';
+  const strategy = strategyOverride || 'one';
   const baseSlots = strategy === 'flex' ? 2 : 1;
   // Apply body fat adjustment (minimum 0 slots)
   const maxSlots = Math.max(0, baseSlots + bodyFatSlotDelta);

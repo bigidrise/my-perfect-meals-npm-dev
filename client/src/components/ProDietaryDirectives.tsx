@@ -2,14 +2,14 @@
 // Simple component to show professional dietary directives on meal generator pages
 
 import { useEffect, useState } from 'react';
-import { getResolvedTargets, type ResolvedTargets } from '@/lib/macroResolver';
+import { getNutritionBaseline, type ResolvedTargets } from '@/lib/macroResolver';
 import { Stethoscope, Activity } from 'lucide-react';
 
 export function ProDietaryDirectives() {
   const [resolved, setResolved] = useState<ResolvedTargets | null>(null);
 
   useEffect(() => {
-    const targets = getResolvedTargets();
+    const targets = getNutritionBaseline();
     if (targets.source === 'pro' && targets.flags) {
       setResolved(targets);
     }

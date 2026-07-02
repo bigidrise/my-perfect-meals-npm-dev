@@ -64,7 +64,7 @@ import { setActiveBuilderNs } from "@/lib/activeBuilderNs";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
-import { getResolvedTargets } from "@/lib/macroResolver";
+import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -111,6 +111,9 @@ export default function WeeklyMealBoard() {
   const clientId = params?.id || "1";
   const isProCareMode = !!params?.id;
   const effectiveUserId = proClientId || user?.id;
+
+  // Resolve nutrition ONCE. Presentation components receive it as props.
+  const nutritionTargets = useBaselineNutrition(effectiveUserId);
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
@@ -213,8 +216,8 @@ export default function WeeklyMealBoard() {
   // Build StarchContext for Create With Chef modal
   const starchContext: StarchContext | undefined = useMemo(() => {
     if (!board || !activeDayISO) return undefined;
-    const resolved = effectiveUserId ? getResolvedTargets(effectiveUserId) : null;
-    const strategy = resolved?.starchStrategy || 'one';
+    const resolved = nutritionTargets;
+    const strategy = resolved.starchStrategy || 'one';
     const dayLists = getDayLists(board, activeDayISO);
     const existingMeals: StarchContext['existingMeals'] = [];
     for (const slot of ['breakfast', 'lunch', 'dinner'] as const) {
@@ -1092,16 +1095,7 @@ export default function WeeklyMealBoard() {
           <DailyTargetsCard
             userId={effectiveUserId}
             showQuickAddButton={false}
-            targetsOverride={(() => {
-              const resolved = getResolvedTargets(effectiveUserId);
-              return {
-                protein_g: resolved.protein_g || 0,
-                carbs_g: resolved.carbs_g || 0,
-                fat_g: resolved.fat_g || 0,
-                starchyCarbs_g: resolved.starchyCarbs_g,
-                fibrousCarbs_g: resolved.fibrousCarbs_g,
-              };
-            })()}
+            targetsOverride={nutritionTargets}
           />
         </div>
 
@@ -1155,13 +1149,13 @@ export default function WeeklyMealBoard() {
               fibrousCarbs: slots.breakfast.fibrousCarbs + slots.lunch.fibrousCarbs + slots.dinner.fibrousCarbs + slots.snacks.fibrousCarbs,
             };
             const dayAlreadyLocked = isDayLocked(activeDayISO, effectiveUserId);
-            const resolved = getResolvedTargets(effectiveUserId);
             
             if (proClientId) return null;
             return (
               <div className="col-span-full mb-6">
                 <RemainingMacrosFooter
                   consumedOverride={consumed}
+                  targetsOverride={nutritionTargets}
                   showSaveButton={false}
                   layoutMode="inline"
                   onSaveDay={async () => {
