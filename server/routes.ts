@@ -10,6 +10,7 @@ import { processMealImageForSave } from "./services/imageLifecycle";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { registerCreatorRoutes } from "./routes/creator";
 import { requireAuth, AuthenticatedRequest } from "./middleware/requireAuth";
+import { createApiRateLimit } from "./middleware/rateLimit";
 import { getAuthUserId } from "./utils/getAuthUserId";
 import { checkDailyQuota, checkAndIncrementQuota, incrementDailyUsage, AiFeature } from "./services/aiQuotaService";
 import { requireActiveAccess } from "./middleware/requireActiveAccess";
@@ -4338,7 +4339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Per-meal image endpoint — called by client after user selects a specific meal.
   // DO NOT call image generation directly — uses generateMealImageUnified only.
-  app.post("/api/meals/generate-image", requireAuth, async (req, res) => {
+  app.post("/api/meals/generate-image", requireAuth, createApiRateLimit(), async (req, res) => {
     try {
       const { mealName, ingredients = [], mealType, sourceType } = req.body;
       if (!mealName) return res.status(400).json({ error: "mealName is required" });

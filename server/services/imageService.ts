@@ -38,68 +38,17 @@ export async function generateRecipeImage(recipeName: string): Promise<string | 
   });
 }
 
-// 🔒 LOCKDOWN PROTECTED: Main image generation function - DO NOT MODIFY
+// DEPRECATED: use generateMealImageUnified directly.
+// Thin wrapper — delegates to the canonical pipeline so all generation flows
+// share the same 4-layer cache (memory → DB → S3 → DALL-E). Not deleted yet;
+// removal happens in a later cleanup task once smoke tests pass.
 export async function generateImage(options: ImageGenerationOptions): Promise<string | null> {
   try {
-    // Generate deterministic hash for both in-memory and persistent cache
-    const imageHash = buildMealImageCacheKey({
-      name: options.name,
-      ingredients: options.ingredients,
-      calories: options.calories,
-      protein: options.protein,
-      carbs: options.carbs,
-      fat: options.fat,
-      description: options.description,
-    });
-    
-    const cacheKey = `${options.type}-${imageHash}`;
-  
-    // 🔒 PROTECTED: Check in-memory cache first - critical for performance
-    if (imageCache.has(cacheKey)) {
-      console.log(`📸 Using in-memory cached image for: ${options.name}`);
-      return imageCache.get(cacheKey)!;
-    }
-
-    // Check if image exists in permanent storage
-    const existingImageUrl = await checkImageExists(imageHash);
-    if (existingImageUrl) {
-      console.log(`💾 Using persistent cached image for: ${options.name}`);
-      imageCache.set(cacheKey, existingImageUrl);
-      return existingImageUrl;
-    }
-
-    console.log(`🎨 Generating new image for: ${options.name}`);
-    
-    // Use DALL-E 3 for high-quality, authentic food images
-    if (process.env.OPENAI_API_KEY) {
-      const dalleUrl = await generateDalleImage(options);
-      if (dalleUrl) {
-        // Upload to permanent storage (Canva-style: NEVER return temp URLs)
-        try {
-          const { permanentUrl } = await uploadImageToPermanentStorage({
-            imageUrl: dalleUrl,
-            mealName: options.name,
-            imageHash,
-          });
-          
-          // Cache the permanent URL (not the temporary DALL-E URL)
-          imageCache.set(cacheKey, permanentUrl);
-          console.log(`🤖 Generated and stored DALL-E image for: ${options.name}`);
-          return permanentUrl;
-        } catch (uploadError) {
-          // Canva-style: NEVER return temp URL - return null to trigger fallback instead
-          console.error(`⚠️ Failed to upload to permanent storage, returning null (no temp URLs allowed):`, uploadError);
-          return null;
-        }
-      }
-    } else {
-      console.log(`⚠️ No OpenAI API key available for DALL-E generation`);
-    }
-
-    console.log(`⚠️ No image generated for: ${options.name}`);
-    return null;
+    const { generateMealImageUnified } = await import("./mealImageGenerator");
+    const sourceType = options.type === "beverage" ? "beverage" : "meal";
+    return await generateMealImageUnified(options.name, options.ingredients ?? [], sourceType);
   } catch (error) {
-    console.error(`❌ Image generation failed for ${options.name}:`, error);
+    console.error(`❌ [imageService.generateImage deprecated wrapper] failed for ${options.name}:`, error);
     return null;
   }
 }
