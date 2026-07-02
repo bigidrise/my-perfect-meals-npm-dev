@@ -98,7 +98,7 @@ import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
 import { useNavigateToFavorites } from "@/hooks/useNavigateToFavorites";
-import { getResolvedTargets } from "@/lib/macroResolver";
+import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import DailyMealProgressBar from "@/components/guided/DailyMealProgressBar";
@@ -194,6 +194,9 @@ export default function DiabeticMenuBuilder() {
   const { user } = useAuth();
 
   const effectiveUserId = proClientId || user?.id;
+
+  // Resolve nutrition ONCE. Presentation components receive it as props.
+  const nutritionTargets = useBaselineNutrition(effectiveUserId);
 
   // Diabetic Meal Memory: fetch latest glucose (own user only; ProCare stamp deferred)
   const { data: glucoseLogsData } = useGlucoseLogs(proClientId ? undefined : user?.id?.toString(), 1);
@@ -385,8 +388,8 @@ export default function DiabeticMenuBuilder() {
   // Build StarchContext for Create With Chef modal
   const starchContext: StarchContext | undefined = useMemo(() => {
     if (!board || !activeDayISO) return undefined;
-    const resolved = effectiveUserId ? getResolvedTargets(effectiveUserId) : null;
-    const strategy = resolved?.starchStrategy || "one";
+    const resolved = nutritionTargets;
+    const strategy = resolved.starchStrategy || "one";
     const dayLists = getDayLists(board, activeDayISO);
     const existingMeals: StarchContext["existingMeals"] = [];
     for (const slot of ["breakfast", "lunch", "dinner"] as const) {
@@ -1254,6 +1257,7 @@ export default function DiabeticMenuBuilder() {
                         ...dayLists.snacks,
                       ];
                     })()}
+                    strategyOverride={nutritionTargets.starchStrategy || 'one'}
                   />
                 </div>
               )}
@@ -1263,7 +1267,7 @@ export default function DiabeticMenuBuilder() {
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
                 <span className="font-medium text-white/70">Active Clinical Supports:</span>
                 {(() => {
-                  const flags = effectiveUserId ? getResolvedTargets(effectiveUserId)?.flags : null;
+                  const flags = nutritionTargets.flags;
                   return [
                     { key: "anti-inflammatory", label: "Anti-Inflammatory", isActive: !!flags?.antiInflammatory || antiInflammatoryFromUserPrefs,                                            activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
                     { key: "cardiac",            label: "Cardiac Health",    isActive: !!flags?.cardiac           || labDerivedConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
@@ -1537,17 +1541,7 @@ export default function DiabeticMenuBuilder() {
           <DailyTargetsCard
             userId={effectiveUserId}
             onQuickAddClick={() => setAdditionalMacrosOpen(true)}
-            targetsOverride={(() => {
-              const targetMacros = getMacroTargets(effectiveUserId);
-              if (!targetMacros) return { protein_g: 0, carbs_g: 0, fat_g: 0 };
-              return {
-                protein_g: targetMacros.protein_g || 0,
-                carbs_g: targetMacros.carbs_g || 0,
-                fat_g: targetMacros.fat_g || 0,
-                starchyCarbs_g: targetMacros.starchyCarbs_g,
-                fibrousCarbs_g: targetMacros.fibrousCarbs_g,
-              };
-            })()}
+            targetsOverride={nutritionTargets}
           />
         </div>
 
@@ -1632,6 +1626,7 @@ export default function DiabeticMenuBuilder() {
               <div className="col-span-full mb-6">
                 <RemainingMacrosFooter
                   consumedOverride={consumed}
+                  targetsOverride={nutritionTargets}
                   showSaveButton={false}
                   layoutMode="inline"
                   onSaveDay={async () => {
@@ -1915,20 +1910,8 @@ export default function DiabeticMenuBuilder() {
         open={additionalMacrosOpen}
         onClose={() => setAdditionalMacrosOpen(false)}
         onAdd={(meal) => quickAdd("snacks", meal)}
-        proteinDeficit={(() => {
-          const resolved = getResolvedTargets(effectiveUserId);
-          return Math.max(
-            0,
-            (resolved.protein_g || 0) - Math.round(totals.protein),
-          );
-        })()}
-        carbsDeficit={(() => {
-          const resolved = getResolvedTargets(effectiveUserId);
-          return Math.max(
-            0,
-            (resolved.carbs_g || 0) - Math.round(totals.carbs),
-          );
-        })()}
+        proteinDeficit={Math.max(0, (nutritionTargets.protein_g || 0) - Math.round(totals.protein))}
+        carbsDeficit={Math.max(0, (nutritionTargets.carbs_g || 0) - Math.round(totals.carbs))}
       />
     </motion.div>
   );

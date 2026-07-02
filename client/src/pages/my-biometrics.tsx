@@ -65,7 +65,7 @@ import { normalizeMacros } from "@/lib/macroNormalize";
 import { getQuickView, clearQuickView, QuickView } from "@/lib/macrosQuickView";
 import { parseBiometricsParams, BIOMETRICS_SOURCES, SECTION_IDS } from "@/lib/biometricsNavigation";
 import { getMacroTargets, MacroTargets } from "@/lib/dailyLimits";
-import { getResolvedTargets } from "@/lib/macroResolver";
+import { getNutritionBaseline } from "@/lib/macroResolver";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { MACRO_SOURCES, getMacroSourceBySlug } from "@/lib/macroSourcesConfig";
@@ -433,7 +433,7 @@ export default function MyBiometrics() {
               fibrousCarbs_g: data.fibrousCarbs_g,
             });
             // Use resolver only to determine the source label (pro vs self).
-            const resolved = getResolvedTargets(user.id);
+            const resolved = getNutritionBaseline(user.id);
             setTargetSource(resolved.source === "pro" ? "pro" : "self");
             if (resolved.source === "pro" && resolved.setBy) {
               setProName(resolved.setBy);
@@ -447,7 +447,7 @@ export default function MyBiometrics() {
     }
 
     // Priority 2: local resolver (localStorage / proStore) — offline fallback.
-    const resolved = getResolvedTargets(user?.id);
+    const resolved = getNutritionBaseline(user?.id);
     if (resolved.source !== "none") {
       setTargets({
         calories: resolved.calories,

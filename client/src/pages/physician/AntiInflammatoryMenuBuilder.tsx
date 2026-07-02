@@ -93,7 +93,8 @@ import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
 import { useNavigateToFavorites } from "@/hooks/useNavigateToFavorites";
-import { getResolvedTargets, clearResolvedTargetsCache } from "@/lib/macroResolver";
+import { getNutritionBaseline, clearResolvedTargetsCache } from "@/lib/macroResolver";
+import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
 import { proStore } from "@/lib/proData";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
@@ -153,6 +154,9 @@ export default function AntiInflammatoryMenuBuilder() {
 
   const effectiveUserId = proClientId || user?.id;
 
+  // Resolve nutrition ONCE. Presentation components receive it as props.
+  const nutritionTargets = useBaselineNutrition(effectiveUserId);
+
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
   const [weekStartISO, setWeekStartISO] =
@@ -162,7 +166,7 @@ export default function AntiInflammatoryMenuBuilder() {
   // resolveClinicalModeFromFlags reads flags and picks the correct mode + namespace.
   const [clinicalModeState, setClinicalModeState] = React.useState<ClinicalMode>(
     () => resolveClinicalModeFromFlags(
-      effectiveUserId ? getResolvedTargets(effectiveUserId)?.flags : undefined
+      effectiveUserId ? getNutritionBaseline(effectiveUserId)?.flags : undefined
     ).mode
   );
 
@@ -190,14 +194,14 @@ export default function AntiInflammatoryMenuBuilder() {
   // Re-resolve mode when client context hydrates (handles page refresh)
   useEffect(() => {
     if (!effectiveUserId) return;
-    const flags = getResolvedTargets(effectiveUserId)?.flags;
+    const flags = nutritionTargets.flags;
     const { mode } = resolveClinicalModeFromFlags(flags);
     setClinicalModeState(mode);
   }, [effectiveUserId]);
 
   const resolvedProtocol = useMemo(
     () => resolveClinicalModeFromFlags({
-      ...(effectiveUserId ? getResolvedTargets(effectiveUserId)?.flags : undefined),
+      ...nutritionTargets.flags,
       // Bridge: user self-selected thyroid via edit page / onboarding.
       // Merge it into the flags so the modifier badge and indicator light fire.
       ...(thyroidFromSpecialtyCondition ? { thyroidSupport: true } : {}),
@@ -486,8 +490,8 @@ export default function AntiInflammatoryMenuBuilder() {
   // Build StarchContext for Create With Chef modal
   const starchContext: StarchContext | undefined = useMemo(() => {
     if (!board || !activeDayISO) return undefined;
-    const resolved = effectiveUserId ? getResolvedTargets(effectiveUserId) : null;
-    const strategy = resolved?.starchStrategy || 'one';
+    const resolved = nutritionTargets;
+    const strategy = resolved.starchStrategy || 'one';
     const dayLists = getDayLists(board, activeDayISO);
     const existingMeals: StarchContext['existingMeals'] = [];
     for (const slot of ['breakfast', 'lunch', 'dinner'] as const) {
@@ -1337,6 +1341,7 @@ export default function AntiInflammatoryMenuBuilder() {
                         ...dayLists.snacks,
                       ];
                     })()}
+                    strategyOverride={nutritionTargets.starchStrategy || 'one'}
                   />
                 </div>
               )}
@@ -1596,17 +1601,7 @@ export default function AntiInflammatoryMenuBuilder() {
             <DailyTargetsCard
               userId={effectiveUserId}
               onQuickAddClick={() => setAdditionalMacrosOpen(true)}
-              targetsOverride={(() => {
-                const targetMacros = getMacroTargets(effectiveUserId);
-                if (!targetMacros) return { protein_g: 0, carbs_g: 0, fat_g: 0 };
-                return {
-                  protein_g: targetMacros.protein_g || 0,
-                  carbs_g: targetMacros.carbs_g || 0,
-                  fat_g: targetMacros.fat_g || 0,
-                  starchyCarbs_g: targetMacros.starchyCarbs_g,
-                  fibrousCarbs_g: targetMacros.fibrousCarbs_g,
-                };
-              })()}
+              targetsOverride={nutritionTargets}
             />
           </div>
 
@@ -1665,6 +1660,7 @@ export default function AntiInflammatoryMenuBuilder() {
                 <div className="col-span-full mb-6">
                   <RemainingMacrosFooter
                     consumedOverride={consumed}
+                    targetsOverride={nutritionTargets}
                     showSaveButton={false}
                     layoutMode="inline"
                     onSaveDay={async () => {
@@ -1860,14 +1856,8 @@ export default function AntiInflammatoryMenuBuilder() {
         open={additionalMacrosOpen}
         onClose={() => setAdditionalMacrosOpen(false)}
         onAdd={(meal) => quickAdd("snacks", meal)}
-        proteinDeficit={(() => {
-          const resolved = getResolvedTargets(effectiveUserId);
-          return Math.max(0, (resolved.protein_g || 0) - Math.round(totals.protein));
-        })()}
-        carbsDeficit={(() => {
-          const resolved = getResolvedTargets(effectiveUserId);
-          return Math.max(0, (resolved.carbs_g || 0) - Math.round(totals.carbs));
-        })()}
+        proteinDeficit={Math.max(0, (nutritionTargets.protein_g || 0) - Math.round(totals.protein))}
+        carbsDeficit={Math.max(0, (nutritionTargets.carbs_g || 0) - Math.round(totals.carbs))}
       />
       </div>
     </motion.div>

@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getResolvedTargets, resolveDisplayCarbTargets } from "@/lib/macroResolver";
+import { resolveDisplayCarbTargets } from "@/lib/macroResolver";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
 import {
   MPM_GLASS,
@@ -65,21 +65,14 @@ export function RemainingMacrosFooter({
     return () => window.removeEventListener("mpm:targetsUpdated", handleUpdate);
   }, []);
 
+  // Presentation component — never resolves nutrition internally.
+  // The parent workflow page must supply targetsOverride with pre-resolved targets.
+  // When no targets are provided the component renders a "Set your macros" prompt.
   const targets = useMemo(() => {
-    if (targetsOverride) {
-      const { starchyCarbs_g, fibrousCarbs_g } = resolveDisplayCarbTargets(targetsOverride);
-      return { ...targetsOverride, starchyCarbs_g, fibrousCarbs_g };
-    }
-    const resolved = getResolvedTargets(effectiveUserId);
-    const { starchyCarbs_g, fibrousCarbs_g } = resolveDisplayCarbTargets(resolved);
-    return {
-      protein_g: resolved.protein_g,
-      carbs_g: resolved.carbs_g,
-      fat_g: resolved.fat_g,
-      starchyCarbs_g,
-      fibrousCarbs_g,
-    };
-  }, [effectiveUserId, targetsOverride, tick]);
+    if (!targetsOverride) return { protein_g: 0, carbs_g: 0, fat_g: 0, starchyCarbs_g: 0, fibrousCarbs_g: 0 };
+    const { starchyCarbs_g, fibrousCarbs_g } = resolveDisplayCarbTargets(targetsOverride);
+    return { ...targetsOverride, starchyCarbs_g, fibrousCarbs_g };
+  }, [targetsOverride, tick]);
 
   const hasTargets = targets.protein_g > 0 || targets.carbs_g > 0 || targets.fat_g > 0;
 

@@ -17,7 +17,7 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { proStore } from "@/lib/proData";
-import { getResolvedTargets, clearResolvedTargetsCache, unlinkUser } from "@/lib/macroResolver";
+import { getNutritionBaseline, clearResolvedTargetsCache, unlinkUser } from "@/lib/macroResolver";
 import { getAuthHeaders } from "@/lib/auth";
 
 const POLL_INTERVAL_MS = 45_000;
@@ -139,7 +139,7 @@ export function useMacroTargetSync() {
         if (!data.hasTargets) return;
 
         // Compare API values with what the resolver currently sees
-        const current = getResolvedTargets(userId);
+        const current = getNutritionBaseline(userId);
         const apiProtein   = Math.round(data.protein_g ?? 0);
         const apiFat       = Math.round(data.fat_g ?? 0);
         const apiStarchy   = Math.round(data.starchyCarbs_g ?? 0);
