@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
-import { useTodayMacros } from "@/hooks/useTodayMacros";
 import { getResolvedTargets } from "@/lib/macroResolver";
 // import PerformanceSetupModal from "@/components/PerformanceSetupModal"; // kept during validation — see PerformanceNutritionSetupPage
 import {
@@ -423,7 +422,6 @@ export default function PerformanceNutritionHub() {
 
   const isActive = !!activeTrack;
 
-  const todayMacros = useTodayMacros(String((user as any)?.id ?? ""));
   const resolvedTargets = getResolvedTargets(String((user as any)?.id ?? ""));
 
   useEffect(() => {
@@ -786,7 +784,7 @@ export default function PerformanceNutritionHub() {
                   <p className="text-white font-bold text-3xl leading-none">
                     {compPhase.weeksOut < 0 ? "✓" : compPhase.weeksOut}
                   </p>
-                  <p className="text-white/50 text-xs mt-0.5">
+                  <p className="text-white/70 text-xs mt-0.5">
                     {compPhase.weeksOut < 0 ? "complete" : compPhase.weeksOut === 0 ? "show day" : "weeks out"}
                   </p>
                 </div>
@@ -803,20 +801,20 @@ export default function PerformanceNutritionHub() {
             {/* Event date + weights */}
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-white/5 rounded-xl px-3 py-2">
-                <p className="text-white/40 text-xs">Event Date</p>
+                <p className="text-white/70 text-xs">Event Date</p>
                 <p className="text-white font-semibold text-sm mt-0.5">
                   {new Date(compCtx.eventDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                 </p>
               </div>
               {compCtx.currentWeight && (
                 <div className="bg-white/5 rounded-xl px-3 py-2">
-                  <p className="text-white/40 text-xs">Current Weight</p>
+                  <p className="text-white/70 text-xs">Current Weight</p>
                   <p className="text-white font-semibold text-sm mt-0.5">{compCtx.currentWeight}</p>
                 </div>
               )}
               {compCtx.targetWeight && (
                 <div className="bg-white/5 rounded-xl px-3 py-2">
-                  <p className="text-white/40 text-xs">Target</p>
+                  <p className="text-white/70 text-xs">Target</p>
                   <p className="text-white font-semibold text-sm mt-0.5">{compCtx.targetWeight}</p>
                 </div>
               )}
@@ -832,9 +830,9 @@ export default function PerformanceNutritionHub() {
                   return (
                     <>
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-white/40 text-xs">Protocol Timeline</p>
+                        <p className="text-white/70 text-xs">Protocol Timeline</p>
                         {nextPhase && (
-                          <p className="text-white/30 text-xs">Next: <span className="text-white/50 font-medium">{nextPhase.label}</span></p>
+                          <p className="text-white/60 text-xs">Next: <span className="text-white/80 font-medium">{nextPhase.label}</span></p>
                         )}
                       </div>
                       <div className="flex gap-1 mb-2">
@@ -936,10 +934,10 @@ export default function PerformanceNutritionHub() {
                 </div>
               )}
 
-              {/* Daily Macro Summary — Targets + Logged */}
+              {/* Daily Macro Targets */}
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-orange-400/70 text-xs font-medium shrink-0 w-12">Target</span>
+                  <span className="text-orange-300 text-xs font-medium shrink-0 w-12">Target</span>
                   <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
                     {resolvedTargets.calories > 0 ? Math.round(resolvedTargets.calories).toLocaleString() : "—"} cal
                   </span>
@@ -953,21 +951,6 @@ export default function PerformanceNutritionHub() {
                     F {resolvedTargets.fat_g > 0 ? Math.round(resolvedTargets.fat_g) : "—"}g
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-white/40 text-xs font-medium shrink-0 w-12">Logged</span>
-                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    {Math.round(todayMacros.kcal).toLocaleString()} cal
-                  </span>
-                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    P {Math.round(todayMacros.protein)}g
-                  </span>
-                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    C {Math.round(todayMacros.carbs)}g
-                  </span>
-                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    F {Math.round(todayMacros.fat)}g
-                  </span>
-                </div>
               </div>
 
               <button
@@ -976,7 +959,7 @@ export default function PerformanceNutritionHub() {
               >
                 <div className="text-left">
                   <p className="font-bold text-sm">Launch Performance Nutrition Builder</p>
-                  <p className="text-white/50 text-xs mt-0.5">Build meals calibrated for your prep phase</p>
+                  <p className="text-white/80 text-xs mt-0.5">Build meals calibrated for your prep phase</p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
               </button>
@@ -1003,7 +986,7 @@ export default function PerformanceNutritionHub() {
               </div>
 
               <p className="text-white font-bold text-2xl leading-none mb-0.5">{todaySession.sessionLabel}</p>
-              <p className="text-white/40 text-xs leading-relaxed mb-4">{todaySession.description}</p>
+              <p className="text-white/70 text-xs leading-relaxed mb-4">{todaySession.description}</p>
 
               <div className="grid grid-cols-4 gap-2">
                 {[
@@ -1285,21 +1268,6 @@ export default function PerformanceNutritionHub() {
                     F {resolvedTargets.fat_g > 0 ? Math.round(resolvedTargets.fat_g) : "—"}g
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-white/40 text-xs font-medium shrink-0 w-12">Logged</span>
-                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    {Math.round(todayMacros.kcal).toLocaleString()} cal
-                  </span>
-                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    P {Math.round(todayMacros.protein)}g
-                  </span>
-                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    C {Math.round(todayMacros.carbs)}g
-                  </span>
-                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    F {Math.round(todayMacros.fat)}g
-                  </span>
-                </div>
               </div>
 
               <button
@@ -1308,7 +1276,7 @@ export default function PerformanceNutritionHub() {
               >
                 <div className="text-left">
                   <p className="font-bold text-sm">Launch Performance Nutrition Builder</p>
-                  <p className="text-white/50 text-xs mt-0.5">Build sport-calibrated meals now</p>
+                  <p className="text-white/80 text-xs mt-0.5">Build sport-calibrated meals now</p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
               </button>
