@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 
 export type DietType = 
@@ -74,14 +74,15 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
     setProgress(100);
   };
 
-  const cancel = () => {
+  const cancel = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
     stopProgressTicker();
     setGenerating(false);
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const generateSnack = async (
     description: string,
