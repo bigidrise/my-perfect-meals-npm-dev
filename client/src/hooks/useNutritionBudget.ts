@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
-import { getResolvedTargets, resolveDisplayCarbTargets } from "@/lib/macroResolver";
+import { getNutritionBaseline, resolveDisplayCarbTargets } from "@/lib/macroResolver";
 
 export type NutrientStatus = 'good' | 'low' | 'exhausted' | 'over';
 
@@ -54,7 +54,7 @@ export function useNutritionBudget(userId?: string): NutritionBudget {
   const todayMacros = useTodayMacros(effectiveUserId);
 
   return useMemo(() => {
-    const resolved = getResolvedTargets(effectiveUserId || undefined);
+    const resolved = getNutritionBaseline(effectiveUserId || undefined);
 
     const { starchyCarbs_g: starchyTarget, fibrousCarbs_g: fibrousTarget } = resolveDisplayCarbTargets(resolved);
 
