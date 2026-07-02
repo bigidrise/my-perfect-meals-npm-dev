@@ -433,17 +433,24 @@ export default function BeachBodyMealBoard() {
   } | null>(null);
 
   useEffect(() => {
-    apiRequest("/api/performance/today")
-      .then((data: any) => {
-        if (data?.configured && data?.sessionType) {
-          setTodayPerformanceSession({
-            sessionType: data.sessionType,
-            sessionLabel: data.sessionLabel ?? data.sessionType,
-            description: data.description ?? "",
-          });
-        }
-      })
-      .catch(() => {});
+    const fetchSession = () => {
+      const storedDate = (() => { try { return localStorage.getItem('mpm.performance.selectedDate'); } catch { return null; } })();
+      const dateQs = storedDate ? `?date=${storedDate}` : '';
+      apiRequest(`/api/performance/today${dateQs}`)
+        .then((data: any) => {
+          if (data?.configured && data?.sessionType) {
+            setTodayPerformanceSession({
+              sessionType: data.sessionType,
+              sessionLabel: data.sessionLabel ?? data.sessionType,
+              description: data.description ?? "",
+            });
+          }
+        })
+        .catch(() => {});
+    };
+    fetchSession();
+    window.addEventListener('mpm:targetsUpdated', fetchSession);
+    return () => window.removeEventListener('mpm:targetsUpdated', fetchSession);
   }, []);
 
   useEffect(() => {
