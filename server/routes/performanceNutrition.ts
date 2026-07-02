@@ -550,10 +550,14 @@ router.get("/today", async (req, res) => {
       return res.json({ configured: false, message: "Performance schedule not yet configured." });
     }
 
-    // Fetch today's macro log totals for Remaining Today
+    // Optional ?date=YYYY-MM-DD param — allows the hub to view any day's coaching plan
+    const rawDateParam = typeof req.query.date === "string" ? req.query.date : null;
+    const targetDate   = rawDateParam ? new Date(rawDateParam + "T12:00:00") : new Date();
+
+    // Fetch macro log totals for the target date (today's logs when no date param)
     const { macroLogs } = await import("../../shared/schema");
-    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-    const todayEnd   = new Date(); todayEnd.setHours(23, 59, 59, 999);
+    const logStart = new Date(targetDate); logStart.setHours(0, 0, 0, 0);
+    const logEnd   = new Date(targetDate); logEnd.setHours(23, 59, 59, 999);
     const [logged] = await db
       .select({
         calories:      sql<number>`COALESCE(SUM(${macroLogs.kcal}), 0)`,
@@ -565,7 +569,7 @@ router.get("/today", async (req, res) => {
       })
       .from(macroLogs)
       .where(
-        sql`${macroLogs.userId} = ${userId} AND ${macroLogs.at} >= ${todayStart} AND ${macroLogs.at} <= ${todayEnd}`
+        sql`${macroLogs.userId} = ${userId} AND ${macroLogs.at} >= ${logStart} AND ${macroLogs.at} <= ${logEnd}`
       );
 
     const { resolveTodayTargets } = await import("../services/protocol/performanceProtocolResolver");
@@ -582,7 +586,7 @@ router.get("/today", async (req, res) => {
       starchyCarbsG: rawStarchy !== null ? Number(rawStarchy) : Math.round(baseCarbsG * 0.7),
       fibrousCarbsG: rawFibrous !== null ? Number(rawFibrous) : Math.round(baseCarbsG * 0.3),
     };
-    const today = resolveTodayTargets(schedule, config, liveBaseline);
+    const today = resolveTodayTargets(schedule, config, liveBaseline, targetDate);
 
     res.json({
       configured: true,

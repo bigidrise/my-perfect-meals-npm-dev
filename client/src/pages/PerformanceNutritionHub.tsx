@@ -75,6 +75,75 @@ const ADAPTATION_TARGET_LABELS: Record<string, string> = {
   muscle_gain:    "Muscle Gain Adaptation",
 };
 
+const PERF_SESSION_LABELS: Record<string, string> = {
+  strength:       "Strength",
+  power:          "Power",
+  endurance:      "Endurance",
+  sport_practice: "Sport Practice",
+  competition:    "Competition",
+  recovery:       "Recovery",
+  off:            "Rest Day",
+};
+
+const PERF_SESSION_WHY: Record<string, string[]> = {
+  power: [
+    "Higher carbohydrate intake is assigned today — explosive output relies heavily on muscle glycogen.",
+    "Protein remains constant to maintain recovery and muscle protein synthesis.",
+    "Fibrous vegetables stay unchanged — gut stability is critical on high-output days.",
+  ],
+  strength: [
+    "Moderate carbohydrate support is active to fuel resistance training and drive post-session recovery.",
+    "Protein remains consistent at your daily target to sustain muscle protein synthesis.",
+    "Fat intake stays at baseline — hormonal support is maintained throughout the training phase.",
+  ],
+  endurance: [
+    "Elevated carbohydrate availability is active — aerobic work steadily depletes muscle glycogen.",
+    "Protein targets remain unchanged to support repair of endurance-trained muscle fibers.",
+    "Anti-inflammatory food sources are prioritized to manage systemic training stress.",
+  ],
+  sport_practice: [
+    "Moderate carbohydrate support matches the mixed-demand nature of sport practice.",
+    "Protein stays at your daily target for consistent recovery signaling.",
+    "Starchy carb timing around the session supports glycogen availability without over-fueling.",
+  ],
+  competition: [
+    "Maximum carbohydrate availability is active — every meal is carb-anchored for peak glycolytic output.",
+    "Protein remains at your performance baseline to support muscle integrity throughout competition.",
+    "Fast-digesting carbohydrate sources are prioritized for rapid glycogen replenishment.",
+  ],
+  recovery: [
+    "Carbohydrate targets are reduced — glycogen stores do not require full replacement on active recovery days.",
+    "Protein stays consistent — muscle repair continues even when training volume drops.",
+    "Anti-inflammatory foods are prioritized: omega-3s, colorful vegetables, and polyphenol-rich sources.",
+  ],
+  off: [
+    "Caloric targets are slightly reduced — energy expenditure is lower on full rest days.",
+    "Lean protein and fibrous vegetables are the priority — no large carbohydrate anchor is needed.",
+    "Use this day to hydrate, sleep, and prepare your body for the next training block.",
+  ],
+};
+
+const DOW_SCHED_KEYS = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"] as const;
+const DOW_SHORT_LABELS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const DOW_FULL_LABELS  = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+function getThisWeekDates() {
+  const now = new Date();
+  const todayDow = now.getDay();
+  return DOW_SCHED_KEYS.map((day, i) => {
+    const d = new Date(now);
+    d.setDate(now.getDate() - todayDow + i);
+    return {
+      day,
+      dateStr:  d.toISOString().split("T")[0],
+      short:    DOW_SHORT_LABELS[i],
+      full:     DOW_FULL_LABELS[i],
+      isPast:   i < todayDow,
+      isToday:  i === todayDow,
+    };
+  });
+}
+
 // ── Competition phase engine ─────────────────────────────────────────────────
 function deriveCompPrepPhase(eventDate: string, competitionType: string): {
   weeksOut: number; phase: string; phaseLabel: string; phaseColor: string;
@@ -379,6 +448,11 @@ export default function PerformanceNutritionHub() {
   const [checkInResult, setCheckInResult] = useState<string | null>(null);
   const [checkInLoading, setCheckInLoading] = useState(false);
 
+  // Date-aware coaching plan — selectedDate drives which day's plan is shown
+  const todayDateStr = new Date().toISOString().split("T")[0];
+  const [selectedDate, setSelectedDate] = useState<string>(todayDateStr);
+  const isViewingToday = selectedDate === todayDateStr;
+
   // Today's adaptive session — fetched from /api/performance/today when schedule is set
   const [todaySession, setTodaySession] = useState<{
     sessionType: string; sessionLabel: string; trainingPhase: string;
@@ -431,11 +505,12 @@ export default function PerformanceNutritionHub() {
     if (!isActive || activeTrack !== "athletic") return;
     const hasSchedule = !!(user as any)?.weeklyTrainingSchedule;
     if (!hasSchedule) return;
-    fetch(apiUrl("/api/performance/today"), { headers: getAuthHeaders(), credentials: "include" })
+    const dateQs = selectedDate !== todayDateStr ? `?date=${selectedDate}` : "";
+    fetch(apiUrl(`/api/performance/today${dateQs}`), { headers: getAuthHeaders(), credentials: "include" })
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.configured) setTodaySession(d); })
       .catch(() => {});
-  }, [isActive, activeTrack, user]);
+  }, [isActive, activeTrack, user, selectedDate]);
 
   useEffect(() => {
     if (!isActive) return;
@@ -976,24 +1051,116 @@ export default function PerformanceNutritionHub() {
       {isActive && activeTrack === "athletic" && pCtx && (
         <div className="px-4 pt-4 max-w-xl mx-auto space-y-4">
 
-          {/* ── Today's Training — Adaptive Performance Nutrition card ── */}
+          {/* ── Weekly Coaching Schedule card ── */}
+          {(() => {
+            const sched = (user as any)?.weeklyTrainingSchedule;
+            if (!sched) return null;
+            const weekDates = getThisWeekDates();
+            return (
+              <div className="rounded-2xl bg-black/50 border border-orange-500/30 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-orange-400" />
+                    <p className="text-xs text-orange-300 font-semibold uppercase tracking-wider">Weekly Coaching Schedule</p>
+                  </div>
+                  <button
+                    onClick={() => setLocation("/performance/setup")}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/10 border border-white/10 text-white/70 text-xs font-medium"
+                  >
+                    <Settings className="w-3 h-3" />
+                    Edit Schedule
+                  </button>
+                </div>
+
+                <div className="space-y-1.5">
+                  {weekDates.map(({ day, dateStr, short, full, isPast, isToday }) => {
+                    const sessionType: string = (sched as any)[day] ?? "off";
+                    const sessionLabel = PERF_SESSION_LABELS[sessionType] ?? sessionType;
+                    const isSelected = selectedDate === dateStr;
+
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => setSelectedDate(dateStr)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
+                          isSelected
+                            ? "bg-orange-600/30 border border-orange-500/50"
+                            : "bg-white/5 border border-transparent"
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          isPast   ? "bg-green-600/30 border border-green-500/40" :
+                          isToday  ? "bg-orange-500/30 border border-orange-400/60" :
+                                     "bg-white/10 border border-white/10"
+                        }`}>
+                          {isPast
+                            ? <Check className="w-3 h-3 text-green-400" />
+                            : isToday
+                            ? <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse block" />
+                            : <span className="w-1.5 h-1.5 rounded-full bg-white/30 block" />
+                          }
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-bold w-7 ${isSelected ? "text-orange-300" : isPast ? "text-white/50" : isToday ? "text-orange-300" : "text-white/70"}`}>
+                              {short}
+                            </span>
+                            <span className={`text-xs font-semibold ${isSelected ? "text-white" : isPast ? "text-white/50" : isToday ? "text-white" : "text-white/70"}`}>
+                              {sessionLabel}
+                            </span>
+                            {isToday && !isSelected && (
+                              <span className="text-[9px] text-orange-400 font-semibold uppercase tracking-wider">Today</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {isSelected && (
+                          <ChevronRight className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ── Coaching Plan card — updates when a different day is selected ── */}
           {todaySession && (
             <div className="rounded-2xl bg-black/50 border border-orange-500/40 p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
-                  <p className="text-xs text-orange-300 font-semibold uppercase tracking-wider">Today's Training</p>
+                  {isViewingToday && <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />}
+                  <p className="text-xs text-orange-300 font-semibold uppercase tracking-wider">
+                    {isViewingToday ? "Today's Training" : new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" })}
+                  </p>
                 </div>
-                <span className="text-xs text-white font-semibold">
-                  {new Date().toLocaleDateString("en-US", { weekday: "long" })}
+                <span className="text-xs text-white/60 font-medium">
+                  {new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                 </span>
               </div>
 
-              <p className="text-white font-bold text-2xl leading-none mb-0.5">{todaySession.sessionLabel}</p>
-              <p className="text-white/80 text-xs leading-relaxed mb-4">{todaySession.description}</p>
+              <p className="text-white font-bold text-2xl leading-none mb-1">{todaySession.sessionLabel}</p>
 
-              {/* Today's Targets */}
-              <p className="text-white text-[11px] font-semibold uppercase tracking-wider mb-2">Today's Targets</p>
+              {/* Why explanation */}
+              {(() => {
+                const bullets = PERF_SESSION_WHY[todaySession.sessionType];
+                if (!bullets) return null;
+                return (
+                  <div className="mb-4 space-y-1">
+                    {bullets.map((line, i) => (
+                      <p key={i} className="text-white/70 text-xs leading-relaxed flex gap-1.5">
+                        <span className="text-orange-400 mt-0.5 flex-shrink-0">·</span>
+                        {line}
+                      </p>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {/* Coaching Plan Targets */}
+              <p className="text-white text-[11px] font-semibold uppercase tracking-wider mb-2">Coaching Plan Targets</p>
               <div className="grid grid-cols-5 gap-1.5 mb-4">
                 {[
                   { label: "Calories", value: todaySession.calories.toLocaleString(), unit: "kcal" },
@@ -1010,8 +1177,8 @@ export default function PerformanceNutritionHub() {
                 ))}
               </div>
 
-              {/* Remaining Today */}
-              {todaySession.logged && (() => {
+              {/* Remaining Today — only shown when viewing today */}
+              {isViewingToday && todaySession.logged && (() => {
                 const rem = {
                   calories:      Math.max(0, todaySession.calories      - todaySession.logged.calories),
                   proteinG:      Math.max(0, todaySession.proteinG      - todaySession.logged.proteinG),
