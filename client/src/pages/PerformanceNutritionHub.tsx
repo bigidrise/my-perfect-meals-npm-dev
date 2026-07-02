@@ -937,7 +937,7 @@ export default function PerformanceNutritionHub() {
               {/* Daily Macro Targets */}
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-orange-300 text-xs font-medium shrink-0 w-12">Target</span>
+                  <span className="text-white text-xs font-medium shrink-0 w-12">Target</span>
                   <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
                     {resolvedTargets.calories > 0 ? Math.round(resolvedTargets.calories).toLocaleString() : "—"} cal
                   </span>
@@ -1254,7 +1254,7 @@ export default function PerformanceNutritionHub() {
               {/* Daily Macro Summary — Targets + Logged */}
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-orange-400/70 text-xs font-medium shrink-0 w-12">Target</span>
+                  <span className="text-white text-xs font-medium shrink-0 w-12">Target</span>
                   <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
                     {resolvedTargets.calories > 0 ? Math.round(resolvedTargets.calories).toLocaleString() : "—"} cal
                   </span>
