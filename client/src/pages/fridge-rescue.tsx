@@ -718,16 +718,14 @@ const FridgeRescuePage = () => {
       }
 
       if (data?.meals?.length > 0) {
-        const next = { ...data.meals[0] };
-        if (!next.imageUrl) {
-          next.imageUrl = "/assets/meals/default-dinner.jpg"; // fallback image
-        }
+        const next = { ...data.meals[0], id: mealId };
         setMeals((prev) =>
-          prev.map((meal) =>
-            meal.id === mealId ? { ...next, id: mealId } : meal,
-          ),
+          prev.map((meal) => (meal.id === mealId ? next : meal)),
         );
         console.log("✅ Meal replaced locally:", next.name);
+        if (!next.imageUrl) {
+          hydrateImages([next]);
+        }
       }
     } catch (error) {
       console.error("Replace meal error:", error);

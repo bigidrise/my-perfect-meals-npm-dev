@@ -78,6 +78,18 @@ export function isFirstPartyImageUrl(url: string | undefined | null): ImageValid
     };
   }
 
+  // Base64 data URIs (e.g. from gpt-image-1 b64_json) must be uploaded to S3.
+  // They are self-contained but are ~2 MB blobs; client localStorage will silently
+  // drop them on the quota boundary. Route them through the S3 upload path so the
+  // client always receives a small, permanent https:// URL.
+  if (url.startsWith('data:')) {
+    return {
+      isFirstParty: false,
+      needsIngestion: true,
+      reason: 'URL is a base64 data URI — must be uploaded to S3 for permanent storage'
+    };
+  }
+
   // Unknown relative paths - assume they're okay (could be legacy)
   return {
     isFirstParty: true,
