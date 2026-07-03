@@ -56,6 +56,10 @@ module.exports = {
         "no-restricted-globals": ["error", {
           "name": "fetch",
           "message": "Use apiRequest() from @/lib/queryClient instead of raw fetch(). Raw fetch bypasses auth headers and session tokens."
+        }],
+        "no-restricted-syntax": ["warn", {
+          "selector": "JSXAttribute[name.name='rawLayout']",
+          "message": "rawLayout bypasses the Universal Modal layout system. Use a typed component instead (InformationModal, FormModal, ConfirmationModal, WorkflowModal, etc.). Only BreakfastMealsHub and MealHubFactory have documented rawLayout exceptions."
         }]
       }
     },
@@ -66,6 +70,15 @@ module.exports = {
       ],
       rules: {
         "no-restricted-imports": "off"
+      }
+    },
+    {
+      files: [
+        "**/BreakfastMealsHub.tsx",
+        "**/MealHubFactory.tsx"
+      ],
+      rules: {
+        "no-restricted-syntax": "off"
       }
     },
     {

@@ -5,7 +5,6 @@ import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { PillButton } from "@/components/ui/pill-button";
 import { UniversalDialog } from "@/components/ui/universal-modal";
-import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   ChefHat,
   ArrowLeft,
@@ -368,43 +367,43 @@ export default function ChefKitchensAdmin() {
       </div>
 
       {/* ── Create Dialog ─────────────────────────────────────────── */}
-      <UniversalDialog rawLayout open={createOpen} onOpenChange={setCreateOpen} onOpenAutoFocus={e => e.preventDefault()} className="bg-zinc-900 border-white/10 text-white max-w-lg max-h-[90vh] overflow-y-auto [&>button.absolute]:hidden">
-          <DialogHeader>
-            <DialogTitle className="text-white">New Chef Kitchen</DialogTitle>
-            <DialogDescription className="text-white/50">
-              Create a dormant kitchen. Toggle Active + Visible when ready to launch.
-            </DialogDescription>
-            <div className="flex justify-end">
-              <PillButton onClick={() => setCreateOpen(false)}>Close</PillButton>
-            </div>
-          </DialogHeader>
-          <KitchenForm form={form} onChange={f} isCreate />
-          <div className="flex gap-2 justify-end pt-2 border-t border-white/10">
+      <UniversalDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onOpenAutoFocus={e => e.preventDefault()}
+        className="bg-zinc-900 border-white/10 text-white max-w-lg"
+        title="New Chef Kitchen"
+        description="Create a dormant kitchen. Toggle Active + Visible when ready to launch."
+        footer={
+          <>
             <PillButton onClick={() => setCreateOpen(false)}>Cancel</PillButton>
             <PillButton onClick={submitCreate} disabled={isSubmitting || !form.slug || !form.displayName}>
               {isSubmitting ? "Creating…" : "Create Kitchen"}
             </PillButton>
-          </div>
+          </>
+        }
+      >
+        <KitchenForm form={form} onChange={f} isCreate />
       </UniversalDialog>
 
       {/* ── Edit Dialog ───────────────────────────────────────────── */}
-      <UniversalDialog rawLayout open={!!editTarget} onOpenChange={open => { if (!open) setEditTarget(null); }} onOpenAutoFocus={e => e.preventDefault()} className="bg-zinc-900 border-white/10 text-white max-w-lg max-h-[90vh] overflow-y-auto [&>button.absolute]:hidden">
-          <DialogHeader>
-            <DialogTitle className="text-white">Edit — {editTarget?.displayName}</DialogTitle>
-            <DialogDescription className="text-white/50 font-mono text-xs">
-              /{editTarget?.slug}
-            </DialogDescription>
-            <div className="flex justify-end">
-              <PillButton onClick={() => setEditTarget(null)}>Close</PillButton>
-            </div>
-          </DialogHeader>
-          <KitchenForm form={form} onChange={f} isCreate={false} />
-          <div className="flex gap-2 justify-end pt-2 border-t border-white/10">
+      <UniversalDialog
+        open={!!editTarget}
+        onOpenChange={open => { if (!open) setEditTarget(null); }}
+        onOpenAutoFocus={e => e.preventDefault()}
+        className="bg-zinc-900 border-white/10 text-white max-w-lg"
+        title={`Edit — ${editTarget?.displayName ?? ""}`}
+        description={<span className="font-mono text-xs text-white/50">/{editTarget?.slug}</span>}
+        footer={
+          <>
             <PillButton onClick={() => setEditTarget(null)}>Cancel</PillButton>
             <PillButton onClick={submitEdit} disabled={isSubmitting}>
               {isSubmitting ? "Saving…" : "Save Changes"}
             </PillButton>
-          </div>
+          </>
+        }
+      >
+        <KitchenForm form={form} onChange={f} isCreate={false} />
       </UniversalDialog>
     </div>
   );

@@ -102,8 +102,7 @@ import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import DailyMealProgressBar from "@/components/guided/DailyMealProgressBar";
-import { UniversalDialog } from "@/components/ui/universal-modal";
-import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { InformationModal } from "@/components/ui/universal-modal";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
@@ -1805,7 +1804,7 @@ export default function DiabeticMenuBuilder() {
       />
 
       {/* Daily Totals Info Modal - Next Steps After First Meal */}
-      <UniversalDialog rawLayout open={showDailyTotalsInfo} onOpenChange={(open) => {
+      <InformationModal open={showDailyTotalsInfo} onOpenChange={(open) => {
           if (!open) {
             setShowDailyTotalsInfo(false);
             setHasSeenDailyTotalsInfo(true);
@@ -1814,13 +1813,7 @@ export default function DiabeticMenuBuilder() {
               "true",
             );
           }
-        }} className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md mx-auto rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-white text-xl flex items-center gap-2">
-              <Sparkles className="h-6 w-6 text-orange-400" />
-              Next Steps - Track Your Progress!
-            </DialogTitle>
-          </DialogHeader>
+        }} className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md mx-auto rounded-2xl" title={<span className="flex items-center gap-2"><Sparkles className="h-6 w-6 text-orange-400" />Next Steps - Track Your Progress!</span>}>
           <div className="text-white/90 text-sm space-y-4">
             <p className="text-base font-semibold text-white">
               Great job creating your meals! Here's what to do next:
@@ -1879,7 +1872,7 @@ export default function DiabeticMenuBuilder() {
               effectively!
             </p>
           </div>
-      </UniversalDialog>
+      </InformationModal>
 
       {/* Quick Tour Modal */}
       <QuickTourModal
