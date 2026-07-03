@@ -158,7 +158,10 @@ export default function MyPerfectPregnancyPage() {
 
   function applyUserToPregnancyData(u: any) {
     const status = derivePregnancyStatus(u);
-    if (!status) return;
+    if (!status) {
+      setPregnancyData(null);
+      return;
+    }
     setPregnancyData({
       stage: status.stage as Stage,
       weekOfPregnancy: status.weekOfPregnancy,
