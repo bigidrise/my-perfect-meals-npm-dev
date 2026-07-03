@@ -16,13 +16,8 @@ import { PillButton } from "@/components/ui/pill-button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Popover,
   PopoverContent,
@@ -602,6 +597,7 @@ export default function MyBiometrics() {
   const [highlightQv, setHighlightQv] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [showNextActionModal, setShowNextActionModal] = useState(false);
+  const [showPersistentInfo, setShowPersistentInfo] = useState(false);
 
   // Return-to-source state (populated from ?from= param on arrival)
   const [returnSource, setReturnSource] = useState<{ label: string; path: string } | null>(null);
@@ -1847,22 +1843,20 @@ export default function MyBiometrics() {
                   <Target className="h-4 w-4" />
                   {targets ? "Macro Targets Active" : "Today's Macros"}
                 </div>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-orange-600/20 text-orange-200 border-orange-400/30 hover:bg-orange-600/30 hover:border-orange-400/50 h-auto py-1 px-3 rounded-full text-xs flex items-center gap-1"
-                      data-testid="button-persistent-explanation"
-                    >
-                      <Info className="h-3 w-3" />
-                      <span>Persistent</span>
-                      <span className="text-orange-300/70 text-[10px]">
-                        (tap)
-                      </span>
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="bg-black/90 backdrop-blur-lg border border-white/20 text-white max-w-md">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-orange-600/20 text-orange-200 border-orange-400/30 hover:bg-orange-600/30 hover:border-orange-400/50 h-auto py-1 px-3 rounded-full text-xs flex items-center gap-1"
+                  data-testid="button-persistent-explanation"
+                  onClick={() => setShowPersistentInfo(true)}
+                >
+                  <Info className="h-3 w-3" />
+                  <span>Persistent</span>
+                  <span className="text-orange-300/70 text-[10px]">
+                    (tap)
+                  </span>
+                </Button>
+                <UniversalDialog rawLayout open={showPersistentInfo} onOpenChange={setShowPersistentInfo} className="bg-black/90 backdrop-blur-lg border-white/20 text-white max-w-md">
                     <DialogHeader>
                       <DialogTitle className="text-white flex items-center gap-2">
                         <Info className="h-5 w-5 text-orange-400" />
@@ -1919,8 +1913,7 @@ export default function MyBiometrics() {
                         </div>
                       )}
                     </div>
-                  </DialogContent>
-                </Dialog>
+                </UniversalDialog>
               </div>
 
               {/* Pro-set badge (if targets are set by professional) */}
@@ -2700,8 +2693,7 @@ export default function MyBiometrics() {
       />
 
       {/* MODAL #1 — Guide modal: shown on arrival from Add to Macros / Save Day */}
-      <Dialog open={showGuideModal} onOpenChange={setShowGuideModal}>
-        <DialogContent className="bg-black/90 backdrop-blur-lg border border-white/20 text-white max-w-sm mx-4">
+      <UniversalDialog rawLayout open={showGuideModal} onOpenChange={setShowGuideModal} className="bg-black/90 backdrop-blur-lg border-white/20 text-white max-w-sm mx-4">
           <DialogHeader>
             <DialogTitle className="text-white text-lg">Go to Quick View</DialogTitle>
           </DialogHeader>
@@ -2719,12 +2711,10 @@ export default function MyBiometrics() {
               OK
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
+      </UniversalDialog>
 
       {/* MODAL #2 — Next action modal: shown after Add to Today or Dismiss */}
-      <Dialog open={showNextActionModal} onOpenChange={setShowNextActionModal}>
-        <DialogContent className="bg-black/90 backdrop-blur-lg border border-white/20 text-white max-w-sm mx-4">
+      <UniversalDialog rawLayout open={showNextActionModal} onOpenChange={setShowNextActionModal} className="bg-black/90 backdrop-blur-lg border-white/20 text-white max-w-sm mx-4">
           <DialogHeader>
             <DialogTitle className="text-white text-lg">What would you like to do next?</DialogTitle>
           </DialogHeader>
@@ -2749,8 +2739,7 @@ export default function MyBiometrics() {
               Stay on Biometrics
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
+      </UniversalDialog>
 
     </motion.div>
   );

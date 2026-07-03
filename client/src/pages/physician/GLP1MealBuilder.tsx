@@ -99,12 +99,8 @@ import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import DailyMealProgressBar from "@/components/guided/DailyMealProgressBar";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
@@ -1640,9 +1636,7 @@ export default function GLP1MealBuilder() {
       />
 
       {/* Daily Totals Info Modal - Next Steps After First Meal */}
-      <Dialog
-        open={showDailyTotalsInfo}
-        onOpenChange={(open) => {
+      <UniversalDialog rawLayout open={showDailyTotalsInfo} onOpenChange={(open) => {
           if (!open) {
             setShowDailyTotalsInfo(false);
             setHasSeenDailyTotalsInfo(true);
@@ -1651,9 +1645,7 @@ export default function GLP1MealBuilder() {
               "true",
             );
           }
-        }}
-      >
-        <DialogContent className="bg-zinc-900/95 backdrop-blur-xl border border-white/10 text-white max-w-md mx-auto rounded-2xl">
+        }} className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md mx-auto rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-white text-xl flex items-center gap-2">
               <Sparkles className="h-6 w-6 text-orange-400" />
@@ -1718,8 +1710,7 @@ export default function GLP1MealBuilder() {
               effectively!
             </p>
           </div>
-        </DialogContent>
-      </Dialog>
+      </UniversalDialog>
 
       {/* Quick Tour Modal */}
       <QuickTourModal

@@ -10,13 +10,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
   Calculator,
@@ -1723,11 +1718,7 @@ export default function DashboardNew() {
         }}
       />
 
-      <Dialog
-        open={showSubscriptionModal}
-        onOpenChange={setShowSubscriptionModal}
-      >
-        <DialogContent className="sm:max-w-md bg-black/90 text-white border border-orange-500/40 backdrop-blur-lg">
+      <UniversalDialog rawLayout open={showSubscriptionModal} onOpenChange={setShowSubscriptionModal} className="sm:max-w-md bg-black/90 text-white border-orange-500/40 backdrop-blur-lg">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-center">
               Unlock Full Access
@@ -1765,8 +1756,7 @@ export default function DashboardNew() {
               Continue with Free Features
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
+      </UniversalDialog>
 
       {showWorkspaceChooser && (
         <WorkspaceChooser
