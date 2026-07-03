@@ -90,7 +90,6 @@ import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
 import { DuplicateDayModal } from "@/components/DuplicateDayModal";
 import {
   Dialog,
-  DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";

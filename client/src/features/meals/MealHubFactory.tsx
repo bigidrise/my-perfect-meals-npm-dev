@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Home } from "lucide-react";
@@ -326,8 +327,7 @@ export function createMealHub(type: "breakfast"|"lunch"|"dinner"|"snacks", meals
           </div>
         </div>
 
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="bg-zinc-900/95 text-white border-white/20 max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <UniversalDialog rawLayout open={open} onOpenChange={setOpen} className="bg-zinc-900/95 text-white border-white/20 max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
             {activeMeal && activeTemplate && (
               <>
                 {/* Sticky header */}
@@ -552,8 +552,7 @@ export function createMealHub(type: "breakfast"|"lunch"|"dinner"|"snacks", meals
                 </div>
               </>
             )}
-          </DialogContent>
-        </Dialog>
+        </UniversalDialog>
       </div>
     );
   };
