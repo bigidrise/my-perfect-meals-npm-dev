@@ -1,11 +1,6 @@
 import React from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { Lock, Sparkles, Clock, Zap } from "lucide-react";
@@ -58,8 +53,7 @@ export const GuestUpgradePromptModal: React.FC<GuestUpgradePromptModalProps> = (
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="max-w-sm mx-auto bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-white/10">
+    <UniversalDialog rawLayout open={open} onOpenChange={(isOpen) => !isOpen && onClose()} className="max-w-sm mx-auto bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-white/10">
         <DialogHeader className="text-center">
           <div className="flex justify-center mb-4">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center border border-amber-400/30">
@@ -129,8 +123,7 @@ export const GuestUpgradePromptModal: React.FC<GuestUpgradePromptModalProps> = (
             Maybe Later
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+    </UniversalDialog>
   );
 };
 

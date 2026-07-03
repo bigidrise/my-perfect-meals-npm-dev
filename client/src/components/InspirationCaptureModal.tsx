@@ -1,11 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Camera,
   Mic,
@@ -426,8 +422,12 @@ export default function InspirationCaptureModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="bg-black/95 border border-white/10 text-white max-w-lg w-full max-h-[90vh] overflow-y-auto rounded-2xl p-0">
+    <UniversalDialog
+      open={open}
+      onOpenChange={handleClose}
+      rawLayout
+      className="bg-black/95 border-white/10 text-white max-w-lg w-full max-h-[90vh] overflow-y-auto rounded-2xl p-0"
+    >
         <div className="bg-gradient-to-br from-black/60 via-orange-950/30 to-black/80 rounded-2xl p-6">
 
           {/* ── Header ── */}
@@ -916,7 +916,6 @@ export default function InspirationCaptureModal({
           )}
 
         </div>
-      </DialogContent>
-    </Dialog>
+    </UniversalDialog>
   );
 }

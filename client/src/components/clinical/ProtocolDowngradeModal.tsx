@@ -1,11 +1,6 @@
 import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, BookOpen, TrendingUp } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -88,8 +83,7 @@ export default function ProtocolDowngradeModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o && !busy) onClose(); }}>
-      <DialogContent className="bg-[#0a1a0e] border border-emerald-500/25 text-white max-w-md rounded-2xl p-0 overflow-hidden shadow-2xl">
+    <UniversalDialog rawLayout open={open} onOpenChange={(o) => { if (!o && !busy) onClose(); }} className="bg-[#0a1a0e] border-emerald-500/25 text-white max-w-md rounded-2xl p-0 overflow-hidden shadow-2xl">
 
         {/* Header band */}
         <div className="bg-gradient-to-r from-emerald-900/60 to-teal-900/40 px-6 pt-6 pb-4 border-b border-emerald-500/20">
@@ -173,7 +167,6 @@ export default function ProtocolDowngradeModal({
             Deactivate {signal.protocolLabel}
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+    </UniversalDialog>
   );
 }

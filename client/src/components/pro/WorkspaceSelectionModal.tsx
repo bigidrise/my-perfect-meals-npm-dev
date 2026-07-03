@@ -1,12 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Dumbbell, Stethoscope } from "lucide-react";
 import { proStore, WorkspaceType } from "@/lib/proData";
 
@@ -48,12 +43,7 @@ export default function WorkspaceSelectionModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => {}}>
-      <DialogContent 
-        className="bg-black/95 border border-white/20 max-w-md"
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
-      >
+    <UniversalDialog rawLayout open={isOpen} onOpenChange={() => {}} className="bg-black/95 border-white/20 max-w-md">
         <DialogHeader className="text-center">
           <DialogTitle className="text-white text-xl">
             Select Your Workspace for {clientName}
@@ -88,7 +78,6 @@ export default function WorkspaceSelectionModal({
             </span>
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+    </UniversalDialog>
   );
 }

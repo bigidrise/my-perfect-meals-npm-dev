@@ -26,12 +26,8 @@ import React, { useState, useRef, useEffect } from "react";
 import { apiUrl } from '@/lib/resolveApiBase';
 import { X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -901,8 +897,8 @@ export default function MealPremadePicker({
     : allMeals;
 
   return (
-    <Dialog open={open} onOpenChange={handleDialogChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] bg-gradient-to-br from-zinc-900 via-zinc-800 to-black border border-white/20 rounded-2xl">
+    <>
+    <UniversalDialog rawLayout open={open} onOpenChange={handleDialogChange} className="max-w-2xl max-h-[85vh] bg-gradient-to-br from-zinc-900 via-zinc-800 to-black border-white/20 rounded-2xl">
         <DialogHeader>
           <DialogTitle className="text-white text-xl font-semibold">
             {mealType.charAt(0).toUpperCase() + mealType.slice(1)} Premades
@@ -989,15 +985,14 @@ export default function MealPremadePicker({
             />
           </div>
         )}
-      </DialogContent>
-
-      {/* Preparation Style Modal */}
-      <PreparationModal
-        open={prepModalOpen}
-        ingredientName={currentIngredient}
-        onClose={() => setPrepModalOpen(false)}
-        onSelect={handlePrepSelect}
-      />
-    </Dialog>
+    </UniversalDialog>
+    {/* Preparation Style Modal */}
+    <PreparationModal
+      open={prepModalOpen}
+      ingredientName={currentIngredient}
+      onClose={() => setPrepModalOpen(false)}
+      onSelect={handlePrepSelect}
+    />
+    </>
   );
 }

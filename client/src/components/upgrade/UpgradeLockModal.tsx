@@ -1,8 +1,5 @@
 import { useLocation } from "wouter";
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
 import { Lock } from "lucide-react";
 
 interface UpgradeLockModalProps {
@@ -15,8 +12,7 @@ export function UpgradeLockModal({ open, onClose, message }: UpgradeLockModalPro
   const [, setLocation] = useLocation();
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="sm:max-w-sm bg-black/90 backdrop-blur-2xl border border-orange-500/30 text-white p-0 gap-0">
+    <UniversalDialog rawLayout open={open} onOpenChange={(v) => { if (!v) onClose(); }} className="sm:max-w-sm bg-black/90 backdrop-blur-2xl border-orange-500/30 text-white p-0 gap-0">
         <div className="p-6 text-center">
           <div className="w-12 h-12 bg-orange-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <Lock className="h-6 w-6 text-orange-400" />
@@ -39,7 +35,6 @@ export function UpgradeLockModal({ open, onClose, message }: UpgradeLockModalPro
             </button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+    </UniversalDialog>
   );
 }

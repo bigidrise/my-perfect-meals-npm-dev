@@ -1,11 +1,6 @@
 import React from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useLocation } from "wouter";
 import { Lock, CheckCircle2 } from "lucide-react";
 import type { RequiredTier } from "@/contexts/UpgradeModalContext";
@@ -62,8 +57,7 @@ export function TierUpgradeModal({ open, onClose, requiredTier, featureName }: T
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) handleDismiss(); }}>
-      <DialogContent className="max-w-sm mx-auto bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 border border-white/10 rounded-2xl">
+    <UniversalDialog rawLayout open={open} onOpenChange={(isOpen) => { if (!isOpen) handleDismiss(); }} className="max-w-sm mx-auto bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 border-white/10 rounded-2xl">
         <DialogHeader className="text-center items-center">
           <div className="flex justify-center mb-3">
             <div className="w-14 h-14 rounded-full bg-orange-500/10 border border-orange-500/30 flex items-center justify-center">
@@ -108,8 +102,7 @@ export function TierUpgradeModal({ open, onClose, requiredTier, featureName }: T
             Maybe Later
           </button>
         </div>
-      </DialogContent>
-    </Dialog>
+    </UniversalDialog>
   );
 }
 

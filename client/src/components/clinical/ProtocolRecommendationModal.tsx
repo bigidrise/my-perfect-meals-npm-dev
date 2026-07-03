@@ -1,11 +1,6 @@
 import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, FlaskConical, ShieldCheck, BookOpen } from "lucide-react";
@@ -151,13 +146,14 @@ export default function ProtocolRecommendationModal({
   }
 
   return (
-    <Dialog
+    <UniversalDialog
+      rawLayout
       open={open}
       onOpenChange={(v) => {
         if (!v && !busy) onClose();
       }}
+      className="bg-[#0d1117] border-white/10 text-white max-w-md rounded-2xl p-0 overflow-hidden shadow-2xl"
     >
-      <DialogContent className="bg-[#0d1117] border border-white/10 text-white max-w-md rounded-2xl p-0 overflow-hidden shadow-2xl">
         {/* Header band */}
         <div className="bg-gradient-to-r from-cyan-900/60 to-teal-900/60 px-6 pt-6 pb-4 border-b border-white/10">
           <DialogHeader>
@@ -269,7 +265,6 @@ export default function ProtocolRecommendationModal({
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+    </UniversalDialog>
   );
 }

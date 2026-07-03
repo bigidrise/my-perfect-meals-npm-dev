@@ -1,11 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Cookie } from "lucide-react";
@@ -268,8 +263,7 @@ export function SnackCreatorModal({
   const isProcessing = generating || checking;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-900/95 backdrop-blur-xl border border-white/10 text-white max-w-md">
+    <UniversalDialog rawLayout open={open} onOpenChange={onOpenChange} className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl text-white">
             <Cookie className="h-6 w-6 text-lime-400" />
@@ -383,7 +377,6 @@ export function SnackCreatorModal({
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+    </UniversalDialog>
   );
 }

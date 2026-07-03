@@ -1,10 +1,5 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
 import { useState } from "react";
@@ -41,13 +36,14 @@ export function QuickTourModal({
   };
 
   return (
-    <Dialog
+    <UniversalDialog
+      rawLayout
       open={isOpen}
       onOpenChange={(open) => {
         if (!open) onClose(dontShowAgain);
       }}
+      className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md mx-auto rounded-2xl"
     >
-      <DialogContent className="bg-zinc-900/95 backdrop-blur-xl border border-white/10 text-white max-w-md mx-auto rounded-2xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-white text-center">
             {title}
@@ -104,7 +100,6 @@ export function QuickTourModal({
             </button>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+    </UniversalDialog>
   );
 }

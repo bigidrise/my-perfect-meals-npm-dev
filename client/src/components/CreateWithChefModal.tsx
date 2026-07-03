@@ -1,12 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import BreathingOrb from "@/components/BreathingOrb";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -414,8 +409,7 @@ export function CreateWithChefModal({
   const isProcessing = generating || safetyChecking;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-900/95 backdrop-blur-xl border border-white/10 text-white max-w-md">
+    <UniversalDialog rawLayout open={open} onOpenChange={onOpenChange} className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md">
         <DialogHeader>
           <DialogTitle className="text-white text-xl font-semibold">
             Create with AI Chef
@@ -636,7 +630,6 @@ export function CreateWithChefModal({
             </>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+    </UniversalDialog>
   );
 }
