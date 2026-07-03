@@ -24,6 +24,34 @@ interface CertProgress {
   loading: boolean;
 }
 
+// Add new professional certifications here — no UI redesign required.
+// Each entry maps to a CertProgress key for the "done" state.
+const PROFESSIONAL_CERTS: {
+  label: string;
+  sublabel: string;
+  doneKey: keyof Omit<CertProgress, "loading">;
+  route: string;
+}[] = [
+  {
+    label: "Personal Experience",
+    sublabel: "Completed personal onboarding",
+    doneKey: "personalDone",
+    route: "/onboarding",
+  },
+  {
+    label: "Phase 1 — Platform Fundamentals",
+    sublabel: "Platform mastery certification",
+    doneKey: "phase1Done",
+    route: "/certifications/platform",
+  },
+  {
+    label: "Phase 2 — Business & ProCare Success",
+    sublabel: "Business & practice training",
+    doneKey: "phase2Done",
+    route: "/procare-training",
+  },
+];
+
 const pillars = [
   {
     id: "partners",
@@ -179,24 +207,15 @@ export default function BusinessCenter() {
                   <Loader2 className="w-4 h-4 text-orange-400 animate-spin" />
                 ) : (
                   <div className="space-y-1.5 mb-3">
-                    <CertRow
-                      label="Personal Experience"
-                      sublabel="Completed personal onboarding"
-                      done={certProgress.personalDone}
-                      onClick={() => setLocation("/onboarding")}
-                    />
-                    <CertRow
-                      label="Phase 1 — Platform Fundamentals"
-                      sublabel="Platform mastery certification"
-                      done={certProgress.phase1Done}
-                      onClick={() => setLocation("/certifications/platform")}
-                    />
-                    <CertRow
-                      label="Phase 2 — Business & ProCare Success"
-                      sublabel="Business & practice training"
-                      done={certProgress.phase2Done}
-                      onClick={() => setLocation("/procare-training")}
-                    />
+                    {PROFESSIONAL_CERTS.map((cert) => (
+                      <CertRow
+                        key={cert.doneKey}
+                        label={cert.label}
+                        sublabel={cert.sublabel}
+                        done={certProgress[cert.doneKey]}
+                        onClick={() => setLocation(cert.route)}
+                      />
+                    ))}
                     {allCertified && (
                       <div className="flex items-center gap-2 pt-1">
                         <span className="text-sm">🏆</span>

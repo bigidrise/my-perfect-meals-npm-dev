@@ -98,6 +98,14 @@ export default function PlatformCertDashboard() {
 
   useEffect(() => { if (user) load(); }, [user, load]);
 
+  // Gate: professionals must complete personal onboarding before Phase 1 certification
+  useEffect(() => {
+    if (!user) return;
+    if (user.professionalRole && !user.onboardingCompletedAt && certType === "platform") {
+      setLocation("/professional-onboarding-bridge");
+    }
+  }, [user?.id, user?.onboardingCompletedAt, certType]);
+
   const prevLocationRef = useRef<string | null>(null);
   useEffect(() => {
     const dashPath = `/certifications/${certType}`;
