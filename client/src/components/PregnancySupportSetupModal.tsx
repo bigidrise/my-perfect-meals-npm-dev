@@ -55,6 +55,8 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
   const [isBreastfeeding, setIsBreastfeeding] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
 
   function toggleSymptom(s: Symptom) {
     setSymptoms(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
@@ -84,6 +86,20 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
       console.error("[PregnancySetup] save failed:", err);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDeactivate() {
+    setDeactivating(true);
+    try {
+      await apiRequest("/api/pregnancy/setup", { method: "DELETE" });
+      onSaved?.({ stage: "", dueDate: null });
+      setShowDeactivateConfirm(false);
+      setTimeout(() => onOpenChange(false), 400);
+    } catch (err) {
+      console.error("[PregnancySetup] deactivate failed:", err);
+    } finally {
+      setDeactivating(false);
     }
   }
 
@@ -243,6 +259,40 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
           >
             {saved ? "✓ Saved!" : saving ? "Saving…" : "Save My Pregnancy Setup"}
           </button>
+
+          {/* Deactivate section */}
+          <div className="pt-2 border-t border-white/10">
+            {!showDeactivateConfirm ? (
+              <button
+                onClick={() => setShowDeactivateConfirm(true)}
+                className="w-full py-3 rounded-xl bg-white/10 border border-white/20 text-white text-sm font-semibold active:bg-white/20 transition-colors"
+              >
+                Turn off pregnancy nutrition
+              </button>
+            ) : (
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
+                <p className="text-white/80 text-sm font-semibold">Turn off pregnancy nutrition?</p>
+                <p className="text-white/50 text-xs leading-relaxed">
+                  This will remove pregnancy-specific guidance from your meals and coaching. You can turn it back on whenever you're ready — no judgment, no questions.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleDeactivate}
+                    disabled={deactivating}
+                    className="flex-1 py-2.5 rounded-xl bg-white/10 text-white/80 text-xs font-semibold active:bg-white/20 transition-colors disabled:opacity-50"
+                  >
+                    {deactivating ? "Turning off…" : "Yes, turn it off"}
+                  </button>
+                  <button
+                    onClick={() => setShowDeactivateConfirm(false)}
+                    className="flex-1 py-2.5 rounded-xl bg-pink-700/40 text-white text-xs font-semibold active:bg-pink-700/60 transition-colors"
+                  >
+                    Keep it on
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </SheetContent>
     </Sheet>

@@ -118,7 +118,7 @@ export default function ProCareTraining() {
       setStep((s) => s - 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
-      setLocation("/pro-launchpad");
+      setLocation("/professional-onboarding-bridge");
     }
   };
 
@@ -128,7 +128,7 @@ export default function ProCareTraining() {
     try {
       await apiRequest("/api/pro/training/complete", { method: "POST" });
       await refreshUser();
-      setLocation("/pro-launchpad");
+      setLocation("/procare-certified");
     } catch (err: any) {
       setError(err?.message || "Something went wrong. Please try again.");
       setCompleting(false);
