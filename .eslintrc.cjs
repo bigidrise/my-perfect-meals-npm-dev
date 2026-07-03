@@ -46,11 +46,26 @@ module.exports = {
         node: false,
       },
       rules: {
-        "no-restricted-imports": "off", // Frontend can import what it needs
+        "no-restricted-imports": ["error", {
+          "paths": [{
+            "name": "@/components/ui/dialog",
+            "importNames": ["DialogContent"],
+            "message": "Do not import DialogContent directly. Use a typed component from @/components/ui/universal-modal instead (FormModal, InformationModal, PickerModal, ConfirmationModal, WorkflowModal, WizardModal, or UniversalDialog). Only universal-modal.tsx may import DialogContent."
+          }]
+        }],
         "no-restricted-globals": ["error", {
           "name": "fetch",
           "message": "Use apiRequest() from @/lib/queryClient instead of raw fetch(). Raw fetch bypasses auth headers and session tokens."
         }]
+      }
+    },
+    {
+      files: [
+        "client/src/components/ui/universal-modal.tsx",
+        "client/src/components/ui/command.tsx"
+      ],
+      rules: {
+        "no-restricted-imports": "off"
       }
     },
     {
