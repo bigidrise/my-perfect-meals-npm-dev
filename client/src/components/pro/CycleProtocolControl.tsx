@@ -183,7 +183,7 @@ export default function CycleProtocolControl({ studioId, clientUserId }: CyclePr
       <div className="space-y-2.5">
         <div className="space-y-1.5">
           <p className="text-[10px] text-white/50 uppercase tracking-wide font-medium">Strategy Type</p>
-          <div className="grid grid-cols-2 gap-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
             {STRATEGY_TYPES.map((t) => (
               <button
                 key={t}
