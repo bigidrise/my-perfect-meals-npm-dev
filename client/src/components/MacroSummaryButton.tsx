@@ -38,7 +38,7 @@ export default function MacroSummaryButton({ label="Show Macros", title, nutriti
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md bg-white/5 backdrop-blur-2xl border border-white/30 text-white">
+        <DialogContent className="max-w-md w-[calc(100vw-2rem)] bg-white/5 backdrop-blur-2xl border border-white/30 text-white">
           <DialogHeader>
             <DialogTitle className="text-white">{title ? `Macros for ${title}` : "Macros Summary"}</DialogTitle>
           </DialogHeader>
