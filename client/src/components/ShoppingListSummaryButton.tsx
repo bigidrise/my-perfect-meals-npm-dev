@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ShoppingCart, Lock } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { InformationModal } from "@/components/ui/universal-modal";
 import { useToast } from "@/hooks/use-toast";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { useFreeLock } from "@/hooks/useFreeLock";
@@ -66,16 +66,36 @@ export default function ShoppingListSummaryButton({ ingredients, mealName, class
         {isFree && <Lock className="h-3 w-3 ml-1 opacity-60" />}
       </Button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg w-[calc(100vw-2rem)] bg-white/5 backdrop-blur-2xl border border-white/30 text-white">
-          <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5" />
-              Shopping List
-              {mealName && <span className="text-sm font-normal text-white/70">— {mealName}</span>}
-            </DialogTitle>
-          </DialogHeader>
-
+      <InformationModal
+        open={open}
+        onOpenChange={setOpen}
+        title={
+          <span className="flex items-center gap-2">
+            <ShoppingCart className="h-5 w-5" />
+            Shopping List
+            {mealName && <span className="text-sm font-normal text-white/70">— {mealName}</span>}
+          </span>
+        }
+        className="max-w-lg bg-white/5 backdrop-blur-2xl border-white/30 text-white"
+        footer={
+          <>
+            <Button
+              variant="outline"
+              className="border-white/30 text-white/80"
+              onClick={() => setOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={onAddToList}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              Add to Smart Grocery List
+            </Button>
+          </>
+        }
+      >
           <div className="space-y-3">
             <div className="rounded-xl p-4 bg-black/20 border border-white/15 max-h-[400px] overflow-auto">
               <div className="space-y-2">
@@ -93,25 +113,7 @@ export default function ShoppingListSummaryButton({ ingredients, mealName, class
               {ingredients.length} ingredient{ingredients.length !== 1 ? 's' : ''} • Click "Add to Smart Grocery List" to save for shopping
             </p>
           </div>
-
-          <DialogFooter className="gap-2">
-            <Button 
-              variant="outline" 
-              className="border-white/30 text-white/80" 
-              onClick={() => setOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={onAddToList} 
-              className="bg-emerald-600 hover:bg-emerald-700"
-            >
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              Add to Smart Grocery List
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </InformationModal>
 
       <UpgradeLockModal open={showLockModal} onClose={closeLockModal} message={lockMessage} />
     </>

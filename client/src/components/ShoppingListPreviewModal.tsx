@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { WorkflowModal } from "@/components/ui/universal-modal";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, X, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -146,23 +146,70 @@ export default function ShoppingListPreviewModal({ isOpen, onClose, meal }: Shop
   const updatedItems = previewData?.updatedItems || 0;
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="bg-gradient-to-br from-black/95 via-gray-900/95 to-black/95 border-white/20 text-white max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-white/95 flex items-center gap-2">
-            <ShoppingCart className="h-5 w-5 text-green-400" />
-            Add to Shopping List
-          </DialogTitle>
-          {meal && (
-            <div className="text-sm text-white/70">
-              <span className="font-medium text-white/90">{meal.mealName}</span>
-              {meal.generator && <span className="ml-2">({meal.generator})</span>}
-              {meal.day && meal.slot && <span className="ml-2">• {meal.day} {meal.slot}</span>}
-            </div>
+    <WorkflowModal
+      open={isOpen}
+      onOpenChange={handleClose}
+      title={
+        <span className="text-xl font-bold text-white/95 flex items-center gap-2">
+          <ShoppingCart className="h-5 w-5 text-green-400" />
+          Add to Shopping List
+        </span>
+      }
+      description={meal ? (
+        <span className="text-sm text-white/70">
+          <span className="font-medium text-white/90">{meal.mealName}</span>
+          {meal.generator && <span className="ml-2">({meal.generator})</span>}
+          {meal.day && meal.slot && <span className="ml-2">• {meal.day} {meal.slot}</span>}
+        </span>
+      ) : undefined}
+      className="bg-gradient-to-br from-black/95 via-gray-900/95 to-black/95 border-white/20 text-white max-w-2xl"
+      footer={
+        <>
+          <Button
+            variant="outline"
+            onClick={handleClose}
+            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+            disabled={commitMutation.isPending}
+            data-testid="button-cancel-preview"
+          >
+            Cancel
+          </Button>
+          
+          {previewData && totalItems > 0 && (
+            <>
+              <Button
+                variant="outline"
+                onClick={handleViewList}
+                className="bg-blue-500/20 border-blue-400/30 text-white hover:bg-blue-500/30"
+                disabled={commitMutation.isPending}
+                data-testid="button-view-list"
+              >
+                View List
+              </Button>
+              
+              <Button
+                onClick={handleConfirm}
+                className="bg-green-500/20 border border-green-400/30 text-white hover:bg-green-500/30"
+                disabled={commitMutation.isPending}
+                data-testid="button-confirm-add"
+              >
+                {commitMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    Add to List
+                  </>
+                )}
+              </Button>
+            </>
           )}
-        </DialogHeader>
-
-        <div className="flex-1 overflow-y-auto px-1">
+        </>
+      }
+    >
           {previewMutation.isPending ? (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-white/70 mb-4" />
@@ -213,53 +260,6 @@ export default function ShoppingListPreviewModal({ isOpen, onClose, meal }: Shop
               No items to preview
             </div>
           )}
-        </div>
-
-        <DialogFooter className="flex gap-2 mt-4">
-          <Button
-            variant="outline"
-            onClick={handleClose}
-            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-            disabled={commitMutation.isPending}
-            data-testid="button-cancel-preview"
-          >
-            Cancel
-          </Button>
-          
-          {previewData && totalItems > 0 && (
-            <>
-              <Button
-                variant="outline"
-                onClick={handleViewList}
-                className="bg-blue-500/20 border-blue-400/30 text-white hover:bg-blue-500/30"
-                disabled={commitMutation.isPending}
-                data-testid="button-view-list"
-              >
-                View List
-              </Button>
-              
-              <Button
-                onClick={handleConfirm}
-                className="bg-green-500/20 border border-green-400/30 text-white hover:bg-green-500/30"
-                disabled={commitMutation.isPending}
-                data-testid="button-confirm-add"
-              >
-                {commitMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Adding...
-                  </>
-                ) : (
-                  <>
-                    <ShoppingCart className="h-4 w-4 mr-2" />
-                    Add to List
-                  </>
-                )}
-              </Button>
-            </>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </WorkflowModal>
   );
 }

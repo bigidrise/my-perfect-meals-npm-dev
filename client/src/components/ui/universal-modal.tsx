@@ -7,7 +7,7 @@
  *
  * ENFORCEMENT: The only file in this codebase allowed to import
  * `DialogContent` is this file. Every other modal must use one of:
- *   ConfirmationModal, FormModal, PickerModal,
+ *   UniversalDialog, ConfirmationModal, FormModal, PickerModal,
  *   InformationModal, WorkflowModal, WizardModal
  *
  * See UNIVERSAL_MODAL_SYSTEM.md for the full architecture guide.
@@ -22,6 +22,74 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+
+// ─── 0. UniversalDialog — general-purpose base bridge ────────────────────────
+/**
+ * Use when a modal doesn't fit any of the 5 typed variants below.
+ * All typed components follow the same layout contract as this base.
+ *
+ * Width: max-w-md by default; override via className.
+ * Body: scrolls by default; set disableBodyScroll for fixed-height content.
+ */
+export interface UniversalDialogProps extends Omit<BaseModalProps, "children" | "title"> {
+  /** Required for normal use; omit only when rawLayout=true */
+  title?: React.ReactNode
+  /** Prevents ModalBody scroll wrapping — use for short non-scrolling content */
+  disableBodyScroll?: boolean
+  /**
+   * Skip the built-in DialogHeader + ModalBody wrapping.
+   * Use for complex modals with their own internal header/scroll structure.
+   * When true, children render directly inside DialogContent's flex column.
+   */
+  rawLayout?: boolean
+  /** Forwarded to Radix DialogContent's onOpenAutoFocus */
+  onOpenAutoFocus?: (e: Event) => void
+  children?: React.ReactNode
+}
+
+export function UniversalDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  footer,
+  className,
+  disableBodyScroll = false,
+  rawLayout = false,
+  onOpenAutoFocus,
+  children,
+}: UniversalDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className={cn(
+          "flex flex-col max-w-md w-[calc(100vw-2rem)] max-h-[90vh] overflow-hidden",
+          className
+        )}
+        onOpenAutoFocus={onOpenAutoFocus}
+      >
+        {rawLayout ? (
+          children
+        ) : (
+          <>
+            <DialogHeader className="shrink-0">
+              <DialogTitle>{title}</DialogTitle>
+              {description && (
+                <DialogDescription>{description}</DialogDescription>
+              )}
+            </DialogHeader>
+            {disableBodyScroll ? (
+              <div className="shrink-0">{open ? children : null}</div>
+            ) : (
+              <ModalBody className="px-1">{open ? children : null}</ModalBody>
+            )}
+            {footer && <ModalFooter>{footer}</ModalFooter>}
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 // ─── Shared layout primitives ─────────────────────────────────────────────────
 

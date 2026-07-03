@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ClientProfile, proStore } from "@/lib/proData";
 import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
@@ -785,11 +786,13 @@ export default function ProClientFolderModal({
 
   return (
     <>
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="bg-zinc-900 border-white/10 text-white max-w-md max-h-[90vh] overflow-hidden flex flex-col [&>button.absolute]:hidden"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
+    <UniversalDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      rawLayout
+      onOpenAutoFocus={(e) => e.preventDefault()}
+      className="bg-zinc-900 border-white/10 text-white max-w-md max-h-[90vh] overflow-hidden flex flex-col [&>button.absolute]:hidden"
+    >
         <DialogHeader className="shrink-0 bg-zinc-900 -mx-6 px-6 pt-2 pb-4 border-b border-white/10">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
@@ -1252,8 +1255,7 @@ export default function ProClientFolderModal({
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+    </UniversalDialog>
     <QuickTourModal
       steps={FOLDER_TOUR_STEPS}
       isOpen={folderTour.shouldShow}
