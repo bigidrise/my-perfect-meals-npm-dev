@@ -108,7 +108,7 @@ export default function PasteMacrosModal({ open, onOpenChange, initial }: Props)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg bg-white/5 backdrop-blur-2xl border border-white/30 text-white">
+      <DialogContent className="max-w-lg w-[calc(100vw-2rem)] bg-white/5 backdrop-blur-2xl border border-white/30 text-white">
         <DialogHeader>
           <DialogTitle className="text-white">Paste Macros</DialogTitle>
         </DialogHeader>

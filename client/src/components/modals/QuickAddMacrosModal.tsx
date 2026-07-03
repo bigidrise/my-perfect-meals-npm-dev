@@ -195,7 +195,7 @@ export default function QuickAddMacrosModal({
   };
 
   const dialogContent = (
-    <DialogContent className="sm:max-w-md bg-black/90 backdrop-blur-xl border border-white/20 text-white">
+    <DialogContent className="max-w-md w-[calc(100vw-2rem)] bg-black/90 backdrop-blur-xl border border-white/20 text-white">
       <DialogHeader>
         <DialogTitle>Quick Add Macros</DialogTitle>
       </DialogHeader>

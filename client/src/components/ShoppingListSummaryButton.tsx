@@ -67,7 +67,7 @@ export default function ShoppingListSummaryButton({ ingredients, mealName, class
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-lg bg-white/5 backdrop-blur-2xl border border-white/30 text-white">
+        <DialogContent className="max-w-lg w-[calc(100vw-2rem)] bg-white/5 backdrop-blur-2xl border border-white/30 text-white">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <ShoppingCart className="h-5 w-5" />

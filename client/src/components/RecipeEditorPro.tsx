@@ -157,8 +157,8 @@ export function RecipeEditorPro({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className={`max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br ${theme.headerGradient} text-white ${theme.borderColor}`}>
-        <DialogHeader>
+      <DialogContent className={`flex flex-col max-w-4xl w-[calc(100vw-2rem)] h-[90vh] overflow-hidden bg-gradient-to-br ${theme.headerGradient} text-white ${theme.borderColor}`}>
+        <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2 text-xl font-bold">
             {theme.icon}
             {theme.title}
@@ -169,6 +169,7 @@ export function RecipeEditorPro({
           </DialogDescription>
         </DialogHeader>
 
+        <div className="flex-1 overflow-y-auto min-h-0">
         {/* Context Display */}
         {prefillCode && (
           <Card className="bg-white/10 border-white/20 mb-4">
@@ -358,6 +359,7 @@ export function RecipeEditorPro({
             </Button>
           </div>
         </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

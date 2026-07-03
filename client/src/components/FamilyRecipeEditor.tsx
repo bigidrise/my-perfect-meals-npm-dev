@@ -112,14 +112,15 @@ export function FamilyRecipeEditor({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-slate-900 to-indigo-900 text-white border-slate-700">
-        <DialogHeader>
+      <DialogContent className="flex flex-col max-w-4xl w-[calc(100vw-2rem)] h-[90vh] overflow-hidden bg-gradient-to-br from-slate-900 to-indigo-900 text-white border-slate-700">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2 text-xl font-bold">
             <ChefHat className="w-6 h-6 text-orange-400" />
             Add Family Recipe
           </DialogTitle>
         </DialogHeader>
 
+        <div className="flex-1 overflow-y-auto min-h-0">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Basic Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -281,6 +282,7 @@ export function FamilyRecipeEditor({
             </Button>
           </div>
         </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
