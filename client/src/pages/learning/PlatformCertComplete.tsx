@@ -25,6 +25,13 @@ const CERT_LABELS: Record<string, string> = {
   business_success: "Business Success Certification",
 };
 
+function certBadge(score: number | null | undefined) {
+  if (score == null) return null;
+  if (score >= 95) return { label: "Master Professional", icon: "🥇", color: "text-amber-400 border-amber-400/40 bg-amber-400/10" };
+  if (score >= 90) return { label: "Advanced Professional", icon: "🥈", color: "text-slate-200 border-slate-400/40 bg-slate-400/10" };
+  return { label: "Certified Professional", icon: "🥉", color: "text-orange-400 border-orange-500/40 bg-orange-500/10" };
+}
+
 export default function PlatformCertComplete() {
   const [, setLocation] = useLocation();
   const params = useParams<{ certType: string }>();
@@ -102,9 +109,18 @@ export default function PlatformCertComplete() {
           <div className="h-24 w-24 rounded-full bg-orange-500/20 border-2 border-orange-500/40 flex items-center justify-center">
             <Award className="h-12 w-12 text-orange-400" />
           </div>
-          <div className="text-center">
+          <div className="text-center space-y-2">
             <h2 className="text-2xl font-black text-white">Certified!</h2>
-            <p className="text-sm text-orange-400 font-semibold mt-1">{CERT_LABELS[certType] ?? "Certification"}</p>
+            <p className="text-sm text-orange-400 font-semibold">{CERT_LABELS[certType] ?? "Certification"}</p>
+            {cert && (() => {
+              const badge = certBadge(cert.score);
+              return badge ? (
+                <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold ${badge.color}`}>
+                  <span>{badge.icon}</span>
+                  <span>{badge.label}</span>
+                </div>
+              ) : null;
+            })()}
           </div>
         </motion.div>
 
