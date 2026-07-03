@@ -196,12 +196,35 @@ export default function PlatformCertComplete() {
           {downloading ? "Downloading…" : "Download Certificate (PDF)"}
         </motion.button>
 
+        {certType === "platform" && (
+          <motion.div
+            className="p-5 rounded-2xl bg-orange-900/20 border border-orange-500/30 text-center space-y-3"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+          >
+            <p className="text-sm font-bold text-white">
+              Congratulations! You've Mastered Phase 1 — Platform Fundamentals.
+            </p>
+            <p className="text-xs text-white/60 leading-relaxed">
+              Now let's learn how to build and grow your professional business using ProCare.
+            </p>
+            <button
+              onClick={() => setLocation("/procare-training")}
+              className="w-full p-4 rounded-xl bg-orange-600 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            >
+              Begin Phase 2 — Business & ProCare Success
+              <span className="text-base">→</span>
+            </button>
+          </motion.div>
+        )}
+
         <motion.button
           onClick={() => setLocation("/learning")}
           className="w-full p-4 rounded-2xl bg-white/10 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
+          transition={{ delay: 0.4 }}
         >
           Back to Learning Hub
         </motion.button>
