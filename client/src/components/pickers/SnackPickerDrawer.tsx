@@ -422,6 +422,7 @@ export default function SnackPickerDrawer({
     : allSnacks;
 
   return (
+    <>
     <PickerModal
       open={open}
       onOpenChange={handleDialogChange}
@@ -507,5 +508,6 @@ export default function SnackPickerDrawer({
       onClose={() => setPrepModalOpen(false)}
       onSelect={handlePrepSelect}
     />
+    </>
   );
 }
