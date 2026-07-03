@@ -199,7 +199,7 @@ export default function ProNutritionStrategyCard({ clientId, isPhysician }: Prop
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="bg-white/5 rounded-lg p-2.5">
                 <p className="text-[9px] text-white/35 uppercase tracking-wide mb-0.5">Per-Meal Carb Limit</p>
                 <p className="text-base font-bold text-white">
@@ -246,7 +246,7 @@ export default function ProNutritionStrategyCard({ clientId, isPhysician }: Prop
               <Syringe className="w-3.5 h-3.5 text-blue-400 shrink-0" />
               <span className="text-xs font-semibold text-white/70">Metabolic Med Status</span>
             </div>
-            <div className="grid grid-cols-2 gap-x-4 text-xs mt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 text-xs mt-1">
               <div>
                 <p className="text-[9px] text-white/35 uppercase tracking-wide">Last Injection</p>
                 <p className="text-white/80 font-medium mt-0.5">{formatShotDate(glp1.lastShotDate)}</p>
