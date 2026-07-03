@@ -164,23 +164,15 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
           const phase1Complete =
             res?.certification?.status === "completed" && !!res?.certification?.completedAt;
           if (!phase1Complete) {
-            sessionStorage.setItem(
-              "mpm.launchpad.redirectMsg",
-              isInitial
-                ? "Complete Phase 1 Academy certification to access the ProCare Studio."
-                : "Your ProCare Studio access has been revoked. Please contact support."
-            );
             setCertified(false);
             certifiedRef.current = false;
-            setLocation("/pro-launchpad");
+            // Route directly into the certification flow, not the launchpad
+            setLocation("/professional-onboarding-bridge");
           } else if (user?.phase2GateEnabled && !user?.procareTrainingCompleted) {
-            sessionStorage.setItem(
-              "mpm.launchpad.redirectMsg",
-              "Complete Phase 2 ProCare Training to access the ProCare Studio."
-            );
             setCertified(false);
             certifiedRef.current = false;
-            setLocation("/pro-launchpad");
+            // Phase 1 done, Phase 2 required — go directly into Phase 2
+            setLocation("/procare-training");
           } else {
             setCertified(true);
             certifiedRef.current = true;
@@ -189,13 +181,9 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
         })
         .catch(() => {
           if (isInitial) {
-            sessionStorage.setItem(
-              "mpm.launchpad.redirectMsg",
-              "Unable to verify certifications. Please try again."
-            );
             setCertified(false);
             certifiedRef.current = false;
-            setLocation("/pro-launchpad");
+            setLocation("/professional-onboarding-bridge");
             setCertChecked(true);
           }
           // On polling errors, keep current state — don't kick out on transient failures
@@ -273,6 +261,8 @@ import ProCareAttestation from "@/pages/procare/ProCareAttestation";
 import ProCareRewards from "@/pages/procare/ProCareRewards";
 import ProLaunchpad from "@/pages/procare/ProLaunchpad";
 import ProCareTraining from "@/pages/procare/ProCareTraining";
+import ProfessionalOnboardingBridge from "@/pages/procare/ProfessionalOnboardingBridge";
+import CertifiedProfessionalUnlock from "@/pages/procare/CertifiedProfessionalUnlock";
 // DELETED: CommunityTestPage, CommunityPage (no page component exists)
 
 // Additional component imports
@@ -539,6 +529,9 @@ export default function Router() {
     "/procare-rewards",
     "/procare-attestation",
     "/pro-launchpad",
+    "/professional-dashboard",
+    "/professional-onboarding-bridge",
+    "/procare-certified",
     "/procare-training",
     "/procare-info",
     "/family-info",
@@ -576,7 +569,7 @@ export default function Router() {
     "/onboarding", "/onboarding-v2", "/onboarding/extended",
     "/pricing", "/paywall", "/apply-guidance",
     "/checkout/success",
-    "/consumer-welcome", "/procare-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation", "/pro-launchpad", "/procare-training",
+    "/consumer-welcome", "/procare-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation", "/pro-launchpad", "/professional-dashboard", "/professional-onboarding-bridge", "/procare-certified", "/procare-training",
     "/trainer-welcome", "/physician-welcome",
     "/procare-info", "/family-info", "/personal-guidance-info",
     "/privacy", "/privacy-policy", "/terms", "/delete-account",
@@ -685,6 +678,9 @@ export default function Router() {
         <Route path="/procare-rewards" component={ProCareRewards} />
         <Route path="/procare-attestation" component={ProCareAttestation} />
         <Route path="/pro-launchpad" component={ProLaunchpad} />
+        <Route path="/professional-dashboard" component={ProLaunchpad} />
+        <Route path="/professional-onboarding-bridge" component={ProfessionalOnboardingBridge} />
+        <Route path="/procare-certified" component={CertifiedProfessionalUnlock} />
         <Route path="/procare-training" component={ProCareTraining} />
         {/* DELETED: CommunityTestPage, CommunityPage routes */}
         <Route path="/onboarding" component={SafeOnboarding} />

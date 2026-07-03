@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import {
   ArrowLeft,
@@ -6,9 +7,22 @@ import {
   GraduationCap,
   Handshake,
   ChevronRight,
+  Trophy,
+  CheckCircle2,
+  Circle,
+  Loader2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { useAuth } from "@/contexts/AuthContext";
+import { apiRequest } from "@/lib/queryClient";
+
+interface CertProgress {
+  personalDone: boolean;
+  phase1Done: boolean;
+  phase2Done: boolean;
+  loading: boolean;
+}
 
 const pillars = [
   {
@@ -59,6 +73,47 @@ const pillars = [
 
 export default function BusinessCenter() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
+  const isProfessional = !!(user?.professionalRole || user?.isProCare);
+
+  const [certProgress, setCertProgress] = useState<CertProgress>({
+    personalDone: false,
+    phase1Done: false,
+    phase2Done: false,
+    loading: true,
+  });
+
+  useEffect(() => {
+    if (!isProfessional) {
+      setCertProgress((p) => ({ ...p, loading: false }));
+      return;
+    }
+    (async () => {
+      try {
+        const [p1Res, p2Res] = await Promise.allSettled([
+          apiRequest("/api/certifications/platform/progress"),
+          apiRequest("/api/certifications/procare_training/progress"),
+        ]);
+        const phase1Done =
+          p1Res.status === "fulfilled" &&
+          (p1Res.value as any)?.certification?.status === "completed";
+        const phase2Done =
+          p2Res.status === "fulfilled" &&
+          (p2Res.value as any)?.certification?.status === "completed";
+        setCertProgress({
+          personalDone: !!user?.onboardingCompletedAt,
+          phase1Done,
+          phase2Done,
+          loading: false,
+        });
+      } catch {
+        setCertProgress((p) => ({ ...p, loading: false }));
+      }
+    })();
+  }, [isProfessional, user?.onboardingCompletedAt]);
+
+  const allCertified =
+    certProgress.personalDone && certProgress.phase1Done && certProgress.phase2Done;
 
   return (
     <motion.div
@@ -94,6 +149,76 @@ export default function BusinessCenter() {
           </p>
         </div>
 
+        {/* Professional Certifications card — only for ProCare professionals */}
+        {isProfessional && (
+          <motion.div
+            className="w-full text-left p-5 rounded-2xl bg-black/50 border border-orange-500/30"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-xl bg-orange-500/20 flex-shrink-0">
+                <Trophy className="h-6 w-6 text-orange-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-sm font-bold text-white leading-snug">
+                    Professional Certifications
+                  </h3>
+                  {allCertified && (
+                    <span className="text-[9px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/20">
+                      Certified
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-white/55 mb-3 leading-relaxed">
+                  Your professional learning center. Complete certifications, track progress, and expand your expertise.
+                </p>
+
+                {certProgress.loading ? (
+                  <Loader2 className="w-4 h-4 text-orange-400 animate-spin" />
+                ) : (
+                  <div className="space-y-1.5 mb-3">
+                    <CertRow
+                      label="Personal Experience"
+                      sublabel="Completed personal onboarding"
+                      done={certProgress.personalDone}
+                      onClick={() => setLocation("/onboarding")}
+                    />
+                    <CertRow
+                      label="Phase 1 — Platform Fundamentals"
+                      sublabel="Platform mastery certification"
+                      done={certProgress.phase1Done}
+                      onClick={() => setLocation("/certifications/platform")}
+                    />
+                    <CertRow
+                      label="Phase 2 — Business & ProCare Success"
+                      sublabel="Business & practice training"
+                      done={certProgress.phase2Done}
+                      onClick={() => setLocation("/procare-training")}
+                    />
+                    {allCertified && (
+                      <div className="flex items-center gap-2 pt-1">
+                        <span className="text-sm">🏆</span>
+                        <p className="text-xs font-semibold text-orange-300">
+                          Certified My Perfect Meals Professional
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <button
+                  onClick={() => setLocation(allCertified ? "/certifications/platform" : "/professional-onboarding-bridge")}
+                  className="text-xs font-semibold text-orange-400 active:opacity-60 transition-opacity"
+                >
+                  {allCertified ? "View Certifications →" : "Continue Certification →"}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {pillars.map((pillar, i) => {
           const Icon = pillar.icon;
           return (
@@ -103,7 +228,7 @@ export default function BusinessCenter() {
               onClick={() => setLocation(pillar.route)}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.07 }}
+              transition={{ delay: (isProfessional ? 0.08 : 0) + i * 0.07 }}
             >
               <div className="flex items-start gap-4">
                 <div className={`p-3 rounded-xl ${pillar.accent} flex-shrink-0`}>
@@ -128,5 +253,35 @@ export default function BusinessCenter() {
         </p>
       </div>
     </motion.div>
+  );
+}
+
+function CertRow({
+  label,
+  sublabel,
+  done,
+  onClick,
+}: {
+  label: string;
+  sublabel: string;
+  done: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={done ? undefined : onClick}
+      className="w-full flex items-center gap-2 text-left active:opacity-70 transition-opacity"
+    >
+      {done ? (
+        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+      ) : (
+        <Circle className="w-4 h-4 text-white/20 shrink-0" />
+      )}
+      <div className="flex-1 min-w-0">
+        <p className={`text-xs font-semibold ${done ? "text-emerald-300" : "text-white/60"}`}>
+          {label}
+        </p>
+      </div>
+    </button>
   );
 }

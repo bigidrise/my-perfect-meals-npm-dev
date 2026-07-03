@@ -1,114 +1,66 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Play,
-  Pause,
-  Shield,
-  Target,
-  Users,
-  Sliders,
-  User,
-  ChevronDown,
-  HandCoins,
-  ExternalLink,
-} from "lucide-react";
-
+import { ArrowRight, Play, Pause, GraduationCap, User, Rocket, CheckCircle2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { voiceManager } from "@/voice/VoiceManager";
+import { PillButton } from "@/components/ui/pill-button";
 
-const AFFILIATE_FORM_URL = "https://forms.gle/b3LmRsWVFkabNfLU9";
+const COPILOT_SCRIPT = `Welcome to My Perfect Meals Professional.
 
-const SECTIONS = [
+I'm Chef Copilot, and before you dive in, I want you to understand exactly what's about to happen — and why it's designed this way.
+
+Every My Perfect Meals professional completes a three-step onboarding before accessing the Studio. Not because it's a requirement. Because it works.
+
+Step one: You'll complete your own My Perfect Meals profile. You'll generate your own nutrition plan, explore the meal builders, and experience the app exactly the way your future clients will. This matters because you can't confidently guide someone through an experience you haven't had yourself.
+
+Step two: You'll complete Professional Certification — Phase 1, Platform Fundamentals. You'll learn every feature of the platform, how to personalize nutrition, how to use AI responsibly, and how to onboard clients efficiently.
+
+Step three: Phase 2, Business and ProCare Success. You'll learn how to build your practice, manage clients, use the Studio, grow recurring revenue, and get the most from every tool in the platform.
+
+When you're finished, your Professional Studio and Business Suite will unlock — and you'll enter them prepared, not guessing.
+
+Professionals who complete this onboarding are more confident, provide better client outcomes, and grow their businesses faster. That's not marketing. That's what we've seen.
+
+When you're ready, tap Begin Your Professional Journey.`;
+
+const JOURNEY_STEPS = [
   {
-    id: "respect",
-    icon: <Target className="w-6 h-6 text-blue-400" />,
-    title: "You Set the Plan",
-    points: [
-      "You define the strategy and direction",
-      "You decide what's right for each client",
-      "The app never overrides your professional judgment",
-      "Your expertise drives every decision",
-    ],
+    number: "1",
+    icon: <User className="w-5 h-5 text-orange-400" />,
+    title: "Experience My Perfect Meals as a User",
+    description:
+      "Complete your own personal profile and generate your first nutrition plan. You'll understand exactly what your clients experience before you ever guide one.",
   },
   {
-    id: "baseline",
-    icon: <Shield className="w-6 h-6 text-emerald-400" />,
-    title: "A Safe, Evidence-Based Baseline",
-    points: [
-      "Built from NIH guidelines and accepted clinical standards",
-      "Designed to be safe and conservative by default",
-      "Saves you time — no starting from zero",
-      "You can keep it as-is, adjust within guardrails, or override it entirely",
-    ],
+    number: "2",
+    icon: <GraduationCap className="w-5 h-5 text-orange-400" />,
+    title: "Professional Certification — Phase 1: Platform Fundamentals",
+    description:
+      "Master every feature of the platform. Learn to personalize nutrition, use AI responsibly, onboard clients, and save time through automation.",
   },
   {
-    id: "guardrails",
-    icon: <Sliders className="w-6 h-6 text-amber-400" />,
-    title: "Guardrails Are Defaults, Not Restrictions",
-    points: [
-      "Guardrails prevent client drift between sessions",
-      "They can be overridden intentionally at any time",
-      "All overrides are visible and controlled by you",
-      "Think of them as assistants, not barriers",
-    ],
-  },
-  {
-    id: "compliance",
-    icon: <Users className="w-6 h-6 text-purple-400" />,
-    title: "Your Compliance Partner",
-    points: [
-      "Keeps clients aligned when you're not present",
-      "Maintains structure when decision fatigue is highest",
-      "Reduces off-plan behavior during weekends, social events, and travel",
-      "The coach sets the track — the app keeps the client on it",
-    ],
-  },
-  {
-    id: "personal",
-    icon: <User className="w-6 h-6 text-cyan-400" />,
-    title: "Full Personal Access Included",
-    points: [
-      "Use all meal builders for your own nutrition",
-      "Experience exactly what your clients experience",
-      "One account — professional tools and personal use",
-      "See the app through your client's eyes",
-    ],
-  },
-  {
-    id: "affiliate",
-    icon: <HandCoins className="w-6 h-6 text-green-400" />,
-    title: "Professional Affiliate Program",
-    points: [
-      "Sign up and receive your own unique product code",
-      "Share your code with clients, followers, and your community",
-      "Earn 25% of every subscription that signs up using your code",
-      "Commissions paid directly to your bank account — no caps, no limits",
-    ],
+    number: "3",
+    icon: <Rocket className="w-5 h-5 text-orange-400" />,
+    title: "Professional Certification — Phase 2: Business & ProCare Success",
+    description:
+      "Learn to manage clients, use the Studio, build recurring revenue, run questionnaires, and grow your professional practice using ProCare.",
   },
 ];
 
-const COPILOT_SCRIPT = `Welcome to My Perfect Meals for Professionals.
-
-I'm Chef copilot, your AI coach in your pocket, and before you create your account, we want you to clearly understand what this platform is, how it works, and most importantly — how it respects your role.
-
-You set the plan. You define the strategy. You decide what's right for each client. My Perfect Meals will never override your professional judgment. Your expertise drives every decision.
-
-The app includes a safe, evidence-based baseline — built from NIH guidelines and accepted clinical standards. It's designed to be conservative and save you time, so you never have to start from zero. But you're always in control. You can keep the baseline as-is, adjust within guardrails, or override it entirely.
-
-Speaking of guardrails — think of them as defaults, not restrictions. They prevent client drift between sessions. They can be overridden intentionally at any time, and all overrides are visible and controlled by you.
-
-Here's where the real value lives. When you're not present — when social pressure is high, when structure tends to break down — My Perfect Meals keeps your plan intact. You set the track. The app keeps the client on it.
-
-Your professional account also includes full personal access. Use all the meal builders for your own nutrition. Experience exactly what your clients experience. One account — professional tools and personal use. You'll notice that as we set this up, I'll also walk you through your own personal profile. That's intentional. When you use My Perfect Meals for yourself, you experience exactly what your clients experience.
-
-And here's something you'll want to know about: the Professional Affiliate Program. When you sign up, you'll receive your own unique product code. Share that code with your clients, your followers, your community — anyone who could benefit from the app. For every subscription that signs up using your code, you earn twenty-five percent — paid directly to your bank account. No caps, no limits. The more people you help, the more you earn.
-
-When you're ready, choose your professional role below to get started.`;
+const CERT_BENEFITS = [
+  "Learn every feature of the platform",
+  "Learn how to personalize nutrition for each client",
+  "Learn how to use AI responsibly and effectively",
+  "Learn how to onboard clients efficiently",
+  "Learn how to save time through automation",
+  "Learn how to build and grow recurring revenue",
+  "Learn how to use the Studio and Business Suite",
+  "Learn how to confidently answer client questions",
+];
 
 export default function ProCareWelcome() {
   const [location, setLocation] = useLocation();
+  const { user } = useAuth();
   const isTrainerWelcome = location === "/trainer-welcome";
   const isPhysicianWelcome = location === "/physician-welcome";
   const role: "trainer" | "physician" | null = isTrainerWelcome
@@ -116,9 +68,7 @@ export default function ProCareWelcome() {
     : isPhysicianWelcome
       ? "physician"
       : null;
-  const [expandedSection, setExpandedSection] = useState<string | null>(
-    "respect",
-  );
+
   const [isPlaying, setIsPlaying] = useState(false);
   const voiceRef = useRef<boolean>(false);
 
@@ -151,151 +101,124 @@ export default function ProCareWelcome() {
     }
   };
 
-  const toggleSection = (id: string) => {
-    setExpandedSection(expandedSection === id ? null : id);
+  const handleBegin = () => {
+    if (role === "trainer" || role === "physician") {
+      setLocation("/professional-onboarding-bridge");
+    } else {
+      setLocation("/procare-identity");
+    }
   };
 
-  return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
-      <div className="flex-1 overflow-y-auto px-4 pb-32">
-        {/* Back button — only shown on the legacy /procare-welcome path, not post-signup role routes */}
-        {!role && (
-          <div className="pt-10 pb-2">
-            <button
-              onClick={() => setLocation("/welcome")}
-              className="flex items-center gap-1 text-white/60 text-sm mb-2 active:scale-[0.98]"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </button>
-          </div>
-        )}
-        {role && <div className="pt-10 pb-2" />}
+  const roleLabel =
+    role === "trainer"
+      ? "Trainer"
+      : role === "physician"
+        ? "Physician"
+        : "Professional";
 
-        {/* Chef Hero Section */}
-        <div className="flex flex-col items-center mb-4 -mt-2">
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white flex flex-col">
+      <div className="flex-1 overflow-y-auto px-4 pb-36">
+        <div className="pt-10 pb-2" />
+
+        {/* Hero */}
+        <div className="flex flex-col items-center mb-6 text-center">
           <img
             src="/assets/ProCareChef.png"
             alt="Chef"
-            className="w-[26rem] h-auto -mb-3"
+            className="w-56 h-auto"
           />
-          <h1 className="text-2xl font-bold italic mt-0">
-            {role === "trainer"
-              ? "Welcome, Trainer"
-              : role === "physician"
-                ? "Welcome, Physician"
-                : "Welcome, Professional"}
+          <h1 className="text-3xl font-black mt-3 leading-tight">
+            Welcome to My Perfect Meals Professional
           </h1>
-          <p className="text-white/60 text-sm leading-relaxed text-center mt-1 max-w-xs">
+          <p className="text-white/60 text-sm leading-relaxed mt-2 max-w-xs">
             {role
-              ? "Your account is ready. Here's how My Perfect Meals works"
-              : "Before you create an account, understand how My Perfect Meals works"}{" "}
-            <span className="italic">with</span> you, not instead of you.
-          </p>
-          <p className="text-green-400/80 text-xs mt-2 font-medium">
-            Ask about our affiliate program for 25% commission.
+              ? `Your ${roleLabel} account is ready.`
+              : "Your professional account is ready."}{" "}
+            Before you begin working with clients, every professional completes a three-step onboarding process.
           </p>
         </div>
 
-        {/* Copilot Audio Button */}
+        {/* Copilot */}
         <div className="mb-6">
           <button
             onClick={toggleCopilot}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-900/50 to-indigo-900/50 border border-blue-400/20 active:scale-[0.98] transition-transform ${!isPlaying ? "animate-pulse-glow-blue" : ""}`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-black/30 border border-orange-500/30 active:scale-[0.98] transition-transform ${!isPlaying ? "animate-pulse-glow-blue" : ""}`}
           >
-            <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center ${isPlaying ? "bg-red-500/20 border border-red-400/30" : "bg-blue-500/20 border border-blue-400/30"}`}
-            >
-              {isPlaying ? (
-                <Pause className="w-5 h-5 text-red-400" />
-              ) : (
-                <Play className="w-5 h-5 text-blue-400 ml-0.5" />
-              )}
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isPlaying ? "bg-red-500/20 border border-red-400/30" : "bg-orange-500/20 border border-orange-400/30"}`}>
+              {isPlaying ? <Pause className="w-5 h-5 text-red-400" /> : <Play className="w-5 h-5 text-orange-400 ml-0.5" />}
             </div>
             <div className="text-left flex-1">
               <p className="text-sm font-medium text-white">
-                {isPlaying
-                  ? "Listening to Professional Overview..."
-                  : "Listen to Professional Overview"}
+                {isPlaying ? "Listening to Professional Overview..." : "Listen to Professional Overview"}
               </p>
               <p className="text-xs text-white/50">
-                {isPlaying
-                  ? "Tap to stop"
-                  : "Hear everything explained by our Copilot"}
+                {isPlaying ? "Tap to stop" : "Hear the full journey explained by Chef Copilot"}
               </p>
             </div>
           </button>
         </div>
 
-        {/* Sections */}
-        <div className="space-y-3">
-          {SECTIONS.map((section) => {
-            const isExpanded = expandedSection === section.id;
-            return (
+        {/* 3-Step Journey */}
+        <div className="mb-6">
+          <p className="text-xs font-semibold uppercase tracking-widest text-orange-400 mb-3">
+            Your Professional Journey
+          </p>
+          <div className="space-y-3">
+            {JOURNEY_STEPS.map((step) => (
               <div
-                key={section.id}
-                className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm overflow-hidden"
+                key={step.number}
+                className="flex items-start gap-4 p-4 rounded-2xl bg-black/30 border border-white/10"
               >
-                <button
-                  onClick={() => toggleSection(section.id)}
-                  className="w-full flex items-center gap-3 px-4 py-3 active:scale-[0.98] transition-transform"
-                >
-                  {section.icon}
-                  <span className="text-sm font-semibold flex-1 text-left">
-                    {section.title}
-                  </span>
-                  <ChevronDown
-                    className={`w-4 h-4 text-white/40 transition-transform ${isExpanded ? "rotate-180" : ""}`}
-                  />
-                </button>
-                {isExpanded && (
-                  <div className="px-4 pb-4 space-y-2">
-                    {section.points.map((point, i) => (
-                      <div key={i} className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-white/30 mt-1.5 shrink-0" />
-                        <p className="text-sm text-white/70">{point}</p>
-                      </div>
-                    ))}
-                    {section.id === "affiliate" && (
-                      <div className="pt-3">
-                        <Button
-                          onClick={() => window.open(AFFILIATE_FORM_URL, "_blank", "noopener,noreferrer")}
-                          className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-xl w-full"
-                        >
-                          <HandCoins className="w-4 h-4" />
-                          Become an Affiliate
-                          <ExternalLink className="w-3.5 h-3.5 ml-auto" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <div className="w-8 h-8 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-sm font-black text-orange-400">{step.number}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white leading-snug mb-1">{step.title}</p>
+                  <p className="text-xs text-white/50 leading-relaxed">{step.description}</p>
+                </div>
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
 
-        {/* Philosophy Statement */}
-        <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border border-blue-400/10">
-          <p className="text-sm text-white/60 italic text-center">
-            "My Perfect Meals is not a coaching system. It is a compliance
-            system that works for the coach."
+        {/* Why it matters */}
+        <div className="mb-6 p-4 rounded-2xl bg-black/30 border border-orange-500/20">
+          <p className="text-sm font-bold text-white mb-3">Why every professional begins with certification</p>
+          <div className="space-y-2">
+            {CERT_BENEFITS.map((benefit, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 text-orange-400 mt-0.5 shrink-0" />
+                <p className="text-xs text-white/70 leading-relaxed">{benefit}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Social proof */}
+        <div className="p-4 rounded-2xl bg-black/20 border border-white/5">
+          <p className="text-sm text-white/60 italic text-center leading-relaxed">
+            "Every My Perfect Meals professional completes this certification before entering the Studio.
+            Professionals who go through it are more confident, provide better client outcomes,
+            and grow their businesses faster."
           </p>
         </div>
       </div>
 
-      {/* Fixed Bottom CTA */}
+      {/* Fixed CTA */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
-        <Button
-          onClick={() => {
-            if (role === "trainer" || role === "physician") setLocation("/pro-launchpad");
-            else setLocation("/procare-identity");
-          }}
-          className="w-full h-14 text-md font-semibold rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
+        {user?.onboardingCompletedAt ? (
+          <div className="mb-2 text-center">
+            <p className="text-xs text-white/40">Personal profile already complete — continuing to certification</p>
+          </div>
+        ) : null}
+        <button
+          onClick={handleBegin}
+          className="w-full h-14 text-md font-bold rounded-2xl bg-orange-600 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
         >
-          {role ? "Go to Your Launchpad" : "Continue"}
+          Begin Your Professional Journey
           <ArrowRight className="w-5 h-5" />
-        </Button>
+        </button>
       </div>
     </div>
   );
