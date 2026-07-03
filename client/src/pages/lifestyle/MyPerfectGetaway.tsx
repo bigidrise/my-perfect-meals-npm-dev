@@ -177,7 +177,7 @@ export default function MyPerfectGetaway() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="min-h-screen bg-gradient-to-br from-black via-orange-950/40 to-black pb-24"
+      className="min-h-screen bg-gradient-to-br from-black via-orange-950/40 to-black pb-36"
     >
       {/* Header */}
       {!isDesktop && (
