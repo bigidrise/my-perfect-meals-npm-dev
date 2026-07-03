@@ -294,4 +294,38 @@ router.post("/setup", async (req, res) => {
   }
 });
 
+// Deactivate pregnancy support — clears all pregnancy fields and removes
+// "pregnancy-support" from specialtyConditions without touching other protocols.
+router.delete("/setup", async (req, res) => {
+  try {
+    const userId = resolveUserId(req);
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const [currentUser] = await db
+      .select({ specialtyConditions: users.specialtyConditions })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const currentConditions: string[] = (currentUser?.specialtyConditions as string[] | null) ?? [];
+    const updatedConditions = currentConditions.filter(c => c !== "pregnancy-support");
+
+    await db
+      .update(users)
+      .set({
+        pregnancyStage: null,
+        pregnancyDueDate: null,
+        pregnancySupportContext: null,
+        specialtyConditions: updatedConditions as any,
+      })
+      .where(eq(users.id, userId));
+
+    console.log(`[PregnancyCoach] Pregnancy support deactivated for user ${userId}`);
+    return res.json({ success: true });
+  } catch (error: any) {
+    console.error("[PregnancyCoach] Deactivate error:", error);
+    return res.status(500).json({ error: "Failed to deactivate pregnancy support" });
+  }
+});
+
 export default router;
