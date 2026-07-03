@@ -2,9 +2,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { useState } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
-} from "@/components/ui/dialog";
+import { WorkflowModal } from "@/components/ui/universal-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -156,20 +154,23 @@ export function RecipeEditorPro({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className={`flex flex-col max-w-4xl w-[calc(100vw-2rem)] h-[90vh] overflow-hidden bg-gradient-to-br ${theme.headerGradient} text-white ${theme.borderColor}`}>
-        <DialogHeader className="shrink-0">
-          <DialogTitle className="flex items-center gap-2 text-xl font-bold">
-            {theme.icon}
-            {theme.title}
-          </DialogTitle>
-          <DialogDescription className="text-white/80">
-            Save a custom recipe to this {theme.contextLabel.toLowerCase()}
-            {prefillMenuSlug ? " menu." : "."}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex-1 overflow-y-auto min-h-0">
+    <WorkflowModal
+      open={open}
+      onOpenChange={onClose}
+      title={
+        <span className="flex items-center gap-2 text-xl font-bold text-white">
+          {theme.icon}
+          {theme.title}
+        </span>
+      }
+      description={
+        <span className="text-sm text-white/80">
+          Save a custom recipe to this {theme.contextLabel.toLowerCase()}
+          {prefillMenuSlug ? " menu." : "."}
+        </span>
+      }
+      className={`bg-gradient-to-br ${theme.headerGradient} text-white ${theme.borderColor}`}
+    >
         {/* Context Display */}
         {prefillCode && (
           <Card className="bg-white/10 border-white/20 mb-4">
@@ -359,8 +360,6 @@ export function RecipeEditorPro({
             </Button>
           </div>
         </form>
-        </div>
-      </DialogContent>
-    </Dialog>
+    </WorkflowModal>
   );
 }
