@@ -109,7 +109,7 @@ export default function ProClientComplianceSnapshot({ clientId }: ProClientCompl
         </p>
       )}
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-1">
         {metrics.map((m) => (
           <div key={m.label} className="text-center">
             <div className="flex items-center justify-center gap-1 mb-0.5">

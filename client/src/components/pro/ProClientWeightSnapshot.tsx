@@ -287,7 +287,7 @@ export default function ProClientWeightSnapshot({ clientId }: ProClientWeightSna
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-2 text-center">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-center">
         <div>
           <p className="text-sm font-bold text-white">
             {latestWeight != null ? `${latestWeight} lb` : "—"}
