@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { InformationModal } from "@/components/ui/universal-modal";
 import { Button } from '@/components/ui/button';
 
 interface PreparationModalProps {
@@ -149,14 +149,12 @@ export default function PreparationModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) { setSelectedStyle(''); onClose(); } }}>
-      <DialogContent className="bg-black/70 backdrop-blur-xl border border-white/20 rounded-2xl max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="text-white text-base">
-            How do you want your {ingredientName.toLowerCase()}?
-          </DialogTitle>
-        </DialogHeader>
-
+    <InformationModal
+      open={open}
+      onOpenChange={(isOpen) => { if (!isOpen) { setSelectedStyle(''); onClose(); } }}
+      title={`How do you want your ${ingredientName.toLowerCase()}?`}
+      className="bg-black/70 backdrop-blur-xl border-white/20 rounded-2xl max-w-sm"
+    >
         {styles.length > 0 ? (
           <div className="mt-3 space-y-3">
             <div className="grid grid-cols-2 gap-2">
@@ -209,8 +207,7 @@ export default function PreparationModal({
             </div>
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+    </InformationModal>
   );
 }
 

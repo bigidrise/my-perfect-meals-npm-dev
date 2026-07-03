@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PickerModal } from "@/components/ui/universal-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -141,15 +141,17 @@ export function ReplaceMealMenu({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <RefreshCw className="h-5 w-5" />
-            Replace {currentMeal?.name || slotName(mealIndex)}
-          </DialogTitle>
-        </DialogHeader>
-
+    <PickerModal
+      open={isOpen}
+      onOpenChange={onClose}
+      title={
+        <span className="flex items-center gap-2">
+          <RefreshCw className="h-5 w-5" />
+          Replace {currentMeal?.name || slotName(mealIndex)}
+        </span>
+      }
+      className="max-w-4xl"
+    >
         <Tabs defaultValue="fridge" className="h-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="fridge" className="flex items-center gap-2">
@@ -288,7 +290,6 @@ export function ReplaceMealMenu({
             </div>
           </TabsContent>
         </Tabs>
-      </DialogContent>
-    </Dialog>
+    </PickerModal>
   );
 }

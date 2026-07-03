@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { apiUrl } from '@/lib/resolveApiBase';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { InformationModal } from "@/components/ui/universal-modal";
 import { Button } from '@/components/ui/button';
 import { formatIngredientWithGrams } from '@/utils/unitConversions';
 
@@ -36,13 +36,12 @@ export default function CookingInstructionsModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-900 text-zinc-100 border-zinc-800 max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold">
-            Cooking Instructions — {hydrated?.title || meal?.title}
-          </DialogTitle>
-        </DialogHeader>
+    <InformationModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title={`Cooking Instructions — ${hydrated?.title || meal?.title}`}
+      className="bg-zinc-900 text-zinc-100 border-zinc-800 max-w-2xl"
+    >
         <div className="space-y-6">
           <div>
             <div className="text-sm font-semibold mb-2 text-zinc-300">
@@ -86,7 +85,6 @@ export default function CookingInstructionsModal({
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+    </InformationModal>
   );
 }

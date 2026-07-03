@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { FormModal } from "@/components/ui/universal-modal";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getDayNameLong, formatDateShort } from "@/utils/week";
@@ -101,18 +101,33 @@ export function DuplicateDayModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="bg-gradient-to-br from-black/90 via-gray-800/90 to-black/90 border border-white/20 text-white max-w-md" data-testid="duplicate-days-panel">
+    <FormModal
+      open={isOpen}
+      onOpenChange={handleClose}
+      title={`Duplicate ${sourceDayName}`}
+      description={`Copy all meals from ${sourceDayName} to any other day.`}
+      className="bg-gradient-to-br from-black/90 via-gray-800/90 to-black/90 border-white/20 text-white max-w-md"
+      footer={
+        <>
+          <Button
+            variant="outline"
+            onClick={handleClose}
+            className="bg-white/10 border-white/20 text-white"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirm}
+            disabled={selectedDates.length === 0}
+            className="bg-gradient-to-r from-blue-600 to-blue-700 text-white disabled:opacity-50"
+            data-testid="duplicate-confirm-button"
+          >
+            Duplicate to {selectedDates.length} day{selectedDates.length !== 1 ? "s" : ""}
+          </Button>
+        </>
+      }
+    >
         <div data-testid="duplicate-days-selected" style={{ display: "none" }} />
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-white">
-            Duplicate {sourceDayName}
-          </DialogTitle>
-          <p className="text-white/70 text-sm">
-            Copy all meals from {sourceDayName} to any other day.
-          </p>
-        </DialogHeader>
-
         <div className="space-y-3">
           <div className="flex gap-2">
             <Button
@@ -183,24 +198,6 @@ export function DuplicateDayModal({
           </div>
         </div>
 
-        <DialogFooter className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={handleClose}
-            className="bg-white/10 border-white/20 text-white"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleConfirm}
-            disabled={selectedDates.length === 0}
-            className="bg-gradient-to-r from-blue-600 to-blue-700 text-white disabled:opacity-50"
-            data-testid="duplicate-confirm-button"
-          >
-            Duplicate to {selectedDates.length} day{selectedDates.length !== 1 ? "s" : ""}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </FormModal>
   );
 }

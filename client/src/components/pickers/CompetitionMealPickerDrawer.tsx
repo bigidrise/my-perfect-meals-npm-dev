@@ -1,5 +1,5 @@
 import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PickerModal } from "@/components/ui/universal-modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -115,21 +115,23 @@ export function CompetitionMealPickerDrawer({
 
   return (
     <>
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="bg-black/90 border border-white/20 text-white max-w-4xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
-            🏆 Competition Prep Meals - Add to {list}
-            <button
-              onClick={() => setShowInfoModal(true)}
-              className="bg-lime-700 hover:bg-lime-800 border-2 border-lime-600 text-white rounded-xl w-5 h-5 flex items-center justify-center text-sm font-bold flash-border"
-              aria-label="How to use Performance & Competition Builder"
-            >
-              ?
-            </button>
-          </DialogTitle>
-        </DialogHeader>
-
+    <PickerModal
+      open={open}
+      onOpenChange={(v) => !v && onClose()}
+      title={
+        <span className="text-2xl font-bold text-white flex items-center gap-2">
+          🏆 Competition Prep Meals - Add to {list}
+          <button
+            onClick={() => setShowInfoModal(true)}
+            className="bg-lime-700 hover:bg-lime-800 border-2 border-lime-600 text-white rounded-xl w-5 h-5 flex items-center justify-center text-sm font-bold flash-border"
+            aria-label="How to use Performance & Competition Builder"
+          >
+            ?
+          </button>
+        </span>
+      }
+      className="bg-black/90 border-white/20 text-white max-w-4xl"
+    >
         <div className="space-y-4">
           {/* Category Selector */}
           <div className="bg-black/30 p-4 rounded-lg border border-white/10">
@@ -239,8 +241,7 @@ export function CompetitionMealPickerDrawer({
             </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+    </PickerModal>
 
     {/* Info Modal */}
     {showInfoModal && (

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PickerModal } from "@/components/ui/universal-modal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -114,27 +114,27 @@ export default function ReplacePicker({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] bg-gradient-to-br from-purple-900/95 to-blue-900/95 backdrop-blur border-white/20 text-white overflow-hidden">
-        <DialogHeader>
-          <div className="flex justify-between items-center">
-            <DialogTitle className="text-2xl font-bold text-white">
-              Replace with Different Meal
-            </DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="text-white hover:bg-white/20"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          <p className="text-white/80">
-            Choose a replacement meal (for {servings} serving{servings !== 1 ? 's' : ''})
-          </p>
-        </DialogHeader>
-
+    <PickerModal
+      open={isOpen}
+      onOpenChange={onClose}
+      title={
+        <div className="flex justify-between items-center w-full">
+          <span className="text-2xl font-bold text-white">
+            Replace with Different Meal
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="text-white hover:bg-white/20"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      }
+      description={`Choose a replacement meal (for ${servings} serving${servings !== 1 ? 's' : ''})`}
+      className="max-w-4xl bg-gradient-to-br from-purple-900/95 to-blue-900/95 backdrop-blur border-white/20 text-white"
+    >
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="h-full">
           <TabsList className="grid w-full grid-cols-2 bg-white/10 border border-white/20">
             <TabsTrigger 
@@ -169,7 +169,6 @@ export default function ReplacePicker({
             </TabsContent>
           </div>
         </Tabs>
-      </DialogContent>
-    </Dialog>
+    </PickerModal>
   );
 }
