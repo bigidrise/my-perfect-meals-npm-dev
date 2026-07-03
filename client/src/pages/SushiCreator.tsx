@@ -1256,12 +1256,26 @@ export default function SushiCreator() {
 
                       <p className="text-white/90 mb-4">{meal.description}</p>
 
-                      <MealImageSlot
-                        imageUrl={meal.imageUrl}
-                        mealName={meal.name}
-                        sourceType="sushi"
-                        isLoading={!!loadingImages[meal.id]}
-                      />
+                      {(meal.imageUrl || loadingImages[meal.id]) ? (
+                        <MealImageSlot
+                          imageUrl={meal.imageUrl}
+                          mealName={meal.name}
+                          sourceType="sushi"
+                          isLoading={!!loadingImages[meal.id]}
+                        />
+                      ) : (
+                        <div className="mb-6 p-4 rounded-xl bg-black/40 border border-orange-400/30 text-center">
+                          <p className="text-white/70 text-sm mb-3">
+                            This result was saved in an older session before images were stored. Generate a fresh dish to get your image.
+                          </p>
+                          <button
+                            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                            className="px-4 py-2 rounded-full bg-orange-600 text-white text-sm font-medium"
+                          >
+                            Scroll up to regenerate
+                          </button>
+                        </div>
+                      )}
 
                       {/* Serving Size Display - ALWAYS SHOW */}
                       <div className="mb-4 p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-lg">

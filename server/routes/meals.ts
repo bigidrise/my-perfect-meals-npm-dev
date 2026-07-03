@@ -5,8 +5,11 @@ import { eq, desc, and, sql } from "drizzle-orm";
 import { db } from "../db";
 import { users, mealInstances, userRecipes } from "@shared/schema";
 import { requireAuth } from "../middleware/requireAuth";
+import { createApiRateLimit } from "../middleware/rateLimit";
 import { getAuthUserId } from "../utils/getAuthUserId";
 import { generateMealImageUnified, type ImageSourceType } from "../services/mealImageGenerator";
+
+const imageRateLimit = createApiRateLimit();
 
 const router = express.Router();
 
@@ -16,7 +19,7 @@ const router = express.Router();
 // Routes through the 4-layer system: memory cache → DB cache → S3 → DALL-E.
 // Cache hits are instant; new images are persisted so they never regenerate.
 // ─────────────────────────────────────────────
-router.post("/generate-image", async (req: any, res) => {
+router.post("/generate-image", requireAuth, imageRateLimit, async (req: any, res) => {
   const { mealName, mealType = "dinner", ingredients } = req.body || {};
 
   if (!mealName || mealName.trim().length < 3) {

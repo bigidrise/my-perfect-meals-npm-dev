@@ -126,7 +126,10 @@ export function SnackCreatorModal({
       setBuilderConflictItem("");
       cancel();
     }
-  }, [open, cancel, clearAlert, clearDietAlert]);
+    // Only re-run when open changes. cancel/clearAlert/clearDietAlert are intentionally
+    // excluded — they are not stable references and would cause an infinite render loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const executeGeneration = async (explicitOverride?: ExplicitOverride) => {
     const userDietOverride = continueAnywayRef.current;

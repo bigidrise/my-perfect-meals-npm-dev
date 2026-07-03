@@ -56,7 +56,7 @@ import {
   hasPaidPlan,
 } from "@/lib/subscriptionCheck";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
-import { getResolvedTargets } from "@/lib/macroResolver";
+import { getNutritionBaseline } from "@/lib/macroResolver";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { ComplianceCard } from "@/components/dashboard/ComplianceCard";
 import { apiUrl } from "@/lib/resolveApiBase";

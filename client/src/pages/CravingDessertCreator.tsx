@@ -263,42 +263,53 @@ export default function DessertCreator() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
+  // Write-back: whenever generatedDessert is set (on mount-restore OR after a new generation)
+  // and imageUrl is missing or still a data: URL, fetch the permanent S3 URL and write it
+  // back into state. The localStorage save effect below fires again once imageUrl is an S3
+  // URL, so subsequent restores always have a valid imageUrl. The S3-URL guard at the top
+  // makes this safe to run on every generatedDessert change without looping.
+  useEffect(() => {
+    if (!generatedDessert) return;
+    const url = generatedDessert.imageUrl;
+    if (url && !url.startsWith('data:')) return; // Already has an S3 URL — nothing to do
+    if (!generatedDessert.name) return;
+
+    setDessertImageLoading(true);
+    fetch(apiUrl("/api/meals/generate-image"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mealId: generatedDessert.id,
+        mealName: generatedDessert.name,
+        mealType: "desserts",
+        ingredients: generatedDessert.ingredients || [],
+      }),
+    })
+      .then(r => r.json())
+      .then(d => { if (d.imageUrl) setGeneratedDessert((prev: any) => prev ? { ...prev, imageUrl: d.imageUrl } : prev); })
+      .catch(() => {})
+      .finally(() => setDessertImageLoading(false));
+  }, [generatedDessert]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (generatedDessert) {
       try {
+        // Never save a base64 data URL to localStorage — it's too large and will
+        // silently fail quota, losing the imageUrl on the next restore.
+        // The write-back effect above re-fetches the S3 URL on mount so the next
+        // save always carries a valid imageUrl.
+        const toSave = generatedDessert.imageUrl?.startsWith('data:')
+          ? { ...generatedDessert, imageUrl: undefined }
+          : generatedDessert;
         localStorage.setItem(
           "mpm_dessert_creator_result",
-          JSON.stringify(generatedDessert),
+          JSON.stringify(toSave),
         );
       } catch {}
     }
   }, [generatedDessert]);
 
-  // Re-fetch image on mount if restored dessert is missing it — DB cache returns instantly
-  useEffect(() => {
-    if (generatedDessert && !generatedDessert.imageUrl) {
-      setDessertImageLoading(true);
-      fetch(apiUrl("/api/meals/generate-image"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mealId: generatedDessert.id,
-          mealName: generatedDessert.name,
-          mealType: "desserts",
-          ingredients: generatedDessert.ingredients,
-        }),
-      })
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.imageUrl)
-            setGeneratedDessert((prev: any) =>
-              prev ? { ...prev, imageUrl: d.imageUrl } : prev,
-            );
-        })
-        .catch(() => {})
-        .finally(() => setDessertImageLoading(false));
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Image is now returned inline from the server — no client-side re-fetch needed.
 
   useEffect(() => {
     if (cakeType === "wedding-cake") {
@@ -471,19 +482,7 @@ export default function DessertCreator() {
 
       stopProgressTicker();
       setGeneratedDessert(meal);
-      // Fire image async — non-blocking
-      setDessertImageLoading(true);
-      fetch(apiUrl("/api/meals/generate-image"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mealId: meal.id, mealName: meal.name, mealType: "desserts", ingredients: meal.ingredients }),
-      })
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.imageUrl) setGeneratedDessert((prev: any) => prev ? { ...prev, imageUrl: d.imageUrl } : prev);
-        })
-        .catch(() => {})
-        .finally(() => setDessertImageLoading(false));
+      setDessertImageLoading(false); // Image is returned inline from the server
 
       toast({
         title: "✨ Dessert Created!",
@@ -974,12 +973,26 @@ export default function DessertCreator() {
                     {generatedDessert.description}
                   </p>
 
-                  <MealImageSlot
-                    imageUrl={generatedDessert.imageUrl}
-                    mealName={generatedDessert.name}
-                    sourceType="dessert"
-                    isLoading={dessertImageLoading}
-                  />
+                  {generatedDessert.imageUrl ? (
+                    <MealImageSlot
+                      imageUrl={generatedDessert.imageUrl}
+                      mealName={generatedDessert.name}
+                      sourceType="dessert"
+                      isLoading={dessertImageLoading}
+                    />
+                  ) : (
+                    <div className="mb-4 p-4 rounded-xl bg-black/40 border border-orange-400/30 text-center">
+                      <p className="text-white/70 text-sm mb-3">
+                        This result was saved in an older session before images were stored. Generate a fresh dessert to get your image.
+                      </p>
+                      <button
+                        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                        className="px-4 py-2 rounded-full bg-orange-600 text-white text-sm font-medium"
+                      >
+                        Scroll up to regenerate
+                      </button>
+                    </div>
+                  )}
 
                   <div className="mb-4 p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-lg">
                     <div className="flex items-center gap-2 text-sm text-white">

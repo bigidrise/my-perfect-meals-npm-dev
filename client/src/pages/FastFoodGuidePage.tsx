@@ -368,7 +368,7 @@ export default function FastFoodGuidePage() {
     () => generatedMeals.map((m) => ({ id: m.id, name: m.name || m.meal, imageUrl: m.imageUrl })),
     [generatedMeals],
   );
-  const { imageMap: chefFlowImages } = useChefFlowImages(chefFlowMeals, "fast-food");
+  const { imageMap: chefFlowImages, failedSet: chefFlowFailed } = useChefFlowImages(chefFlowMeals, "fast-food");
 
   const { toast } = useToast();
   const { user } = useAuth();
@@ -1056,10 +1056,24 @@ export default function FastFoodGuidePage() {
                         <div className="grid md:grid-cols-3 gap-4">
                           {/* Meal Image — ChefFlow Render System */}
                           <div className="relative h-48 md:h-auto">
-                            <ChefFlowImage
-                              src={chefFlowImages[chefFlowMealId(meal, "fast-food")]}
-                              alt={meal.name || meal.meal || "Meal"}
-                            />
+                            {(!meal.imageUrl && chefFlowFailed.has(chefFlowMealId(meal, "fast-food"))) ? (
+                              <div className="h-48 flex flex-col items-center justify-center gap-2 bg-black/40 border-b border-orange-400/30 text-center px-4">
+                                <p className="text-white/70 text-xs mb-2">
+                                  This result was saved in an older session before images were stored. Generate a fresh search to get your image.
+                                </p>
+                                <button
+                                  onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                                  className="px-3 py-1.5 rounded-full bg-orange-600 text-white text-xs font-medium"
+                                >
+                                  Scroll up to search again
+                                </button>
+                              </div>
+                            ) : (
+                              <ChefFlowImage
+                                src={chefFlowImages[chefFlowMealId(meal, "fast-food")]}
+                                alt={meal.name || meal.meal || "Meal"}
+                              />
+                            )}
                           </div>
 
                           {/* Meal Details */}

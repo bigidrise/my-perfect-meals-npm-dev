@@ -10,8 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
-import { useTodayMacros } from "@/hooks/useTodayMacros";
-import { getResolvedTargets } from "@/lib/macroResolver";
+import { getResolvedTargets, setPerfSelectedDate } from "@/lib/macroResolver";
 // import PerformanceSetupModal from "@/components/PerformanceSetupModal"; // kept during validation — see PerformanceNutritionSetupPage
 import {
   computeDemandProfile,
@@ -75,6 +74,75 @@ const ADAPTATION_TARGET_LABELS: Record<string, string> = {
   fat_loss:       "Fat Loss Adaptation",
   muscle_gain:    "Muscle Gain Adaptation",
 };
+
+const PERF_SESSION_LABELS: Record<string, string> = {
+  strength:       "Strength",
+  power:          "Power",
+  endurance:      "Endurance",
+  sport_practice: "Sport Practice",
+  competition:    "Competition",
+  recovery:       "Recovery",
+  off:            "Rest Day",
+};
+
+const PERF_SESSION_WHY: Record<string, string[]> = {
+  power: [
+    "Higher carbohydrate intake is assigned today — explosive output relies heavily on muscle glycogen.",
+    "Protein remains constant to maintain recovery and muscle protein synthesis.",
+    "Fibrous vegetables stay unchanged — gut stability is critical on high-output days.",
+  ],
+  strength: [
+    "Moderate carbohydrate support is active to fuel resistance training and drive post-session recovery.",
+    "Protein remains consistent at your daily target to sustain muscle protein synthesis.",
+    "Fat intake stays at baseline — hormonal support is maintained throughout the training phase.",
+  ],
+  endurance: [
+    "Elevated carbohydrate availability is active — aerobic work steadily depletes muscle glycogen.",
+    "Protein targets remain unchanged to support repair of endurance-trained muscle fibers.",
+    "Anti-inflammatory food sources are prioritized to manage systemic training stress.",
+  ],
+  sport_practice: [
+    "Moderate carbohydrate support matches the mixed-demand nature of sport practice.",
+    "Protein stays at your daily target for consistent recovery signaling.",
+    "Starchy carb timing around the session supports glycogen availability without over-fueling.",
+  ],
+  competition: [
+    "Maximum carbohydrate availability is active — every meal is carb-anchored for peak glycolytic output.",
+    "Protein remains at your performance baseline to support muscle integrity throughout competition.",
+    "Fast-digesting carbohydrate sources are prioritized for rapid glycogen replenishment.",
+  ],
+  recovery: [
+    "Carbohydrate targets are reduced — glycogen stores do not require full replacement on active recovery days.",
+    "Protein stays consistent — muscle repair continues even when training volume drops.",
+    "Anti-inflammatory foods are prioritized: omega-3s, colorful vegetables, and polyphenol-rich sources.",
+  ],
+  off: [
+    "Caloric targets are slightly reduced — energy expenditure is lower on full rest days.",
+    "Lean protein and fibrous vegetables are the priority — no large carbohydrate anchor is needed.",
+    "Use this day to hydrate, sleep, and prepare your body for the next training block.",
+  ],
+};
+
+const DOW_SCHED_KEYS = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"] as const;
+const DOW_SHORT_LABELS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const DOW_FULL_LABELS  = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+function getThisWeekDates() {
+  const now = new Date();
+  const todayDow = now.getDay();
+  return DOW_SCHED_KEYS.map((day, i) => {
+    const d = new Date(now);
+    d.setDate(now.getDate() - todayDow + i);
+    return {
+      day,
+      dateStr:  d.toISOString().split("T")[0],
+      short:    DOW_SHORT_LABELS[i],
+      full:     DOW_FULL_LABELS[i],
+      isPast:   i < todayDow,
+      isToday:  i === todayDow,
+    };
+  });
+}
 
 // ── Competition phase engine ─────────────────────────────────────────────────
 function deriveCompPrepPhase(eventDate: string, competitionType: string): {
@@ -380,10 +448,18 @@ export default function PerformanceNutritionHub() {
   const [checkInResult, setCheckInResult] = useState<string | null>(null);
   const [checkInLoading, setCheckInLoading] = useState(false);
 
+  // Date-aware coaching plan — selectedDate drives which day's plan is shown
+  const todayDateStr = new Date().toISOString().split("T")[0];
+  const [selectedDate, setSelectedDate] = useState<string>(todayDateStr);
+  const isViewingToday = selectedDate === todayDateStr;
+
   // Today's adaptive session — fetched from /api/performance/today when schedule is set
   const [todaySession, setTodaySession] = useState<{
     sessionType: string; sessionLabel: string; trainingPhase: string;
-    calories: number; proteinG: number; carbsG: number; fatG: number; description: string;
+    calories: number; proteinG: number; carbsG: number; fatG: number;
+    starchyCarbsG: number; fibrousCarbsG: number;
+    description: string;
+    logged: { calories: number; proteinG: number; carbsG: number; fatG: number; starchyCarbsG: number; fibrousCarbsG: number };
   } | null>(null);
 
   const [protocolCopied, setProtocolCopied] = useState(false);
@@ -423,18 +499,18 @@ export default function PerformanceNutritionHub() {
 
   const isActive = !!activeTrack;
 
-  const todayMacros = useTodayMacros(String((user as any)?.id ?? ""));
   const resolvedTargets = getResolvedTargets(String((user as any)?.id ?? ""));
 
   useEffect(() => {
     if (!isActive || activeTrack !== "athletic") return;
     const hasSchedule = !!(user as any)?.weeklyTrainingSchedule;
     if (!hasSchedule) return;
-    fetch(apiUrl("/api/performance/today"), { headers: getAuthHeaders(), credentials: "include" })
+    const dateQs = selectedDate !== todayDateStr ? `?date=${selectedDate}` : "";
+    fetch(apiUrl(`/api/performance/today${dateQs}`), { headers: getAuthHeaders(), credentials: "include" })
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.configured) setTodaySession(d); })
       .catch(() => {});
-  }, [isActive, activeTrack, user]);
+  }, [isActive, activeTrack, user, selectedDate]);
 
   useEffect(() => {
     if (!isActive) return;
@@ -720,7 +796,7 @@ export default function PerformanceNutritionHub() {
         <div className="px-4 pt-10 max-w-lg mx-auto">
           <div className="text-center mb-8">
             <p className="text-white font-bold text-xl mb-2">Performance Nutrition Hub</p>
-            <p className="text-white/50 text-sm leading-relaxed">
+            <p className="text-white/80 text-sm leading-relaxed">
               Two separate protocol engines. Choose the one that matches your goal.
             </p>
           </div>
@@ -735,9 +811,9 @@ export default function PerformanceNutritionHub() {
                 </div>
                 <div className="flex-1">
                   <p className="text-white font-bold text-sm">Athletic Performance</p>
-                  <p className="text-white/50 text-xs mt-0.5">MMA, boxing, CrossFit, endurance, tactical, strength sports</p>
+                  <p className="text-white/70 text-xs mt-0.5">MMA, boxing, CrossFit, endurance, tactical, strength sports</p>
                 </div>
-                <ChevronRight className="w-4 h-4 text-white/30 mt-1 flex-shrink-0" />
+                <ChevronRight className="w-4 h-4 text-white/60 mt-1 flex-shrink-0" />
               </div>
             </button>
             <button
@@ -750,9 +826,9 @@ export default function PerformanceNutritionHub() {
                 </div>
                 <div className="flex-1">
                   <p className="text-white font-bold text-sm">Competition Prep</p>
-                  <p className="text-white/50 text-xs mt-0.5">Bodybuilding, physique, powerlifting, fight camp — calendar-driven</p>
+                  <p className="text-white/70 text-xs mt-0.5">Bodybuilding, physique, powerlifting, fight camp — calendar-driven</p>
                 </div>
-                <ChevronRight className="w-4 h-4 text-white/30 mt-1 flex-shrink-0" />
+                <ChevronRight className="w-4 h-4 text-white/60 mt-1 flex-shrink-0" />
               </div>
             </button>
           </div>
@@ -786,7 +862,7 @@ export default function PerformanceNutritionHub() {
                   <p className="text-white font-bold text-3xl leading-none">
                     {compPhase.weeksOut < 0 ? "✓" : compPhase.weeksOut}
                   </p>
-                  <p className="text-white/50 text-xs mt-0.5">
+                  <p className="text-white/70 text-xs mt-0.5">
                     {compPhase.weeksOut < 0 ? "complete" : compPhase.weeksOut === 0 ? "show day" : "weeks out"}
                   </p>
                 </div>
@@ -803,20 +879,20 @@ export default function PerformanceNutritionHub() {
             {/* Event date + weights */}
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-white/5 rounded-xl px-3 py-2">
-                <p className="text-white/40 text-xs">Event Date</p>
+                <p className="text-white/70 text-xs">Event Date</p>
                 <p className="text-white font-semibold text-sm mt-0.5">
                   {new Date(compCtx.eventDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                 </p>
               </div>
               {compCtx.currentWeight && (
                 <div className="bg-white/5 rounded-xl px-3 py-2">
-                  <p className="text-white/40 text-xs">Current Weight</p>
+                  <p className="text-white/70 text-xs">Current Weight</p>
                   <p className="text-white font-semibold text-sm mt-0.5">{compCtx.currentWeight}</p>
                 </div>
               )}
               {compCtx.targetWeight && (
                 <div className="bg-white/5 rounded-xl px-3 py-2">
-                  <p className="text-white/40 text-xs">Target</p>
+                  <p className="text-white/70 text-xs">Target</p>
                   <p className="text-white font-semibold text-sm mt-0.5">{compCtx.targetWeight}</p>
                 </div>
               )}
@@ -832,9 +908,9 @@ export default function PerformanceNutritionHub() {
                   return (
                     <>
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-white/40 text-xs">Protocol Timeline</p>
+                        <p className="text-white/70 text-xs">Protocol Timeline</p>
                         {nextPhase && (
-                          <p className="text-white/30 text-xs">Next: <span className="text-white/50 font-medium">{nextPhase.label}</span></p>
+                          <p className="text-white/60 text-xs">Next: <span className="text-white/80 font-medium">{nextPhase.label}</span></p>
                         )}
                       </div>
                       <div className="flex gap-1 mb-2">
@@ -844,7 +920,7 @@ export default function PerformanceNutritionHub() {
                           return (
                             <div key={ph} className="flex-1 text-center">
                               <div className={`h-2 rounded-full mb-1.5 transition-all ${isCurrent ? "bg-orange-400" : isPast ? "bg-orange-400/40" : "bg-white/10"}`} />
-                              <p className={`leading-tight ${isCurrent ? "text-orange-300 font-semibold" : "text-white/30"}`} style={{ fontSize: "9px" }}>
+                              <p className={`leading-tight ${isCurrent ? "text-orange-300 font-semibold" : "text-white/60"}`} style={{ fontSize: "9px" }}>
                                 {label}
                               </p>
                             </div>
@@ -854,7 +930,7 @@ export default function PerformanceNutritionHub() {
                       <div className="flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" />
                         <p className="text-orange-300 text-xs font-semibold">{compPhase.phaseLabel}</p>
-                        <span className="text-white/30 text-xs">— {compPhase.weeksOut} wks out</span>
+                        <span className="text-white/70 text-xs">— {compPhase.weeksOut} wks out</span>
                       </div>
                     </>
                   );
@@ -936,37 +1012,23 @@ export default function PerformanceNutritionHub() {
                 </div>
               )}
 
-              {/* Daily Macro Summary — Targets + Logged */}
+              {/* Daily Macro Targets */}
               <div className="space-y-1.5">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-orange-400/70 text-xs font-medium shrink-0 w-12">Target</span>
-                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    {resolvedTargets.calories > 0 ? Math.round(resolvedTargets.calories).toLocaleString() : "—"} cal
-                  </span>
-                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    P {resolvedTargets.protein_g > 0 ? Math.round(resolvedTargets.protein_g) : "—"}g
-                  </span>
-                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    C {resolvedTargets.carbs_g > 0 ? Math.round(resolvedTargets.carbs_g) : "—"}g
-                  </span>
-                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    F {resolvedTargets.fat_g > 0 ? Math.round(resolvedTargets.fat_g) : "—"}g
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-white/40 text-xs font-medium shrink-0 w-12">Logged</span>
-                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    {Math.round(todayMacros.kcal).toLocaleString()} cal
-                  </span>
-                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    P {Math.round(todayMacros.protein)}g
-                  </span>
-                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    C {Math.round(todayMacros.carbs)}g
-                  </span>
-                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    F {Math.round(todayMacros.fat)}g
-                  </span>
+                <p className="text-white text-[11px] font-semibold uppercase tracking-wider">Today's Targets</p>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {[
+                    { label: "Calories", value: resolvedTargets.calories > 0 ? Math.round(resolvedTargets.calories).toLocaleString() : "—", unit: "kcal" },
+                    { label: "Protein",  value: resolvedTargets.protein_g > 0 ? Math.round(resolvedTargets.protein_g) : "—",               unit: "g" },
+                    { label: "Starchy",  value: resolvedTargets.starchy_carbs_g > 0 ? Math.round(resolvedTargets.starchy_carbs_g) : resolvedTargets.carbs_g > 0 ? Math.round(resolvedTargets.carbs_g * 0.7) : "—", unit: "g" },
+                    { label: "Fibrous",  value: resolvedTargets.fibrous_carbs_g > 0 ? Math.round(resolvedTargets.fibrous_carbs_g) : resolvedTargets.carbs_g > 0 ? Math.round(resolvedTargets.carbs_g * 0.3) : "—", unit: "g" },
+                    { label: "Fat",      value: resolvedTargets.fat_g > 0 ? Math.round(resolvedTargets.fat_g) : "—",                       unit: "g" },
+                  ].map(m => (
+                    <div key={m.label} className="bg-white/10 rounded-xl px-1.5 py-2.5 text-center">
+                      <p className="text-white font-bold text-sm leading-none">{m.value}</p>
+                      <p className="text-white/70 text-[10px] mt-0.5">{m.unit}</p>
+                      <p className="text-white/70 text-[9px] mt-0.5 uppercase tracking-wide">{m.label}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -976,7 +1038,7 @@ export default function PerformanceNutritionHub() {
               >
                 <div className="text-left">
                   <p className="font-bold text-sm">Launch Performance Nutrition Builder</p>
-                  <p className="text-white/50 text-xs mt-0.5">Build meals calibrated for your prep phase</p>
+                  <p className="text-white/80 text-xs mt-0.5">Build meals calibrated for your prep phase</p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
               </button>
@@ -989,36 +1051,168 @@ export default function PerformanceNutritionHub() {
       {isActive && activeTrack === "athletic" && pCtx && (
         <div className="px-4 pt-4 max-w-xl mx-auto space-y-4">
 
-          {/* ── Today's Training — Adaptive Performance Nutrition card ── */}
+          {/* ── Weekly Coaching Schedule card ── */}
+          {(() => {
+            const sched = (user as any)?.weeklyTrainingSchedule;
+            if (!sched) return null;
+            const weekDates = getThisWeekDates();
+            return (
+              <div className="rounded-2xl bg-black/50 border border-orange-500/30 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-orange-400" />
+                    <p className="text-xs text-orange-300 font-semibold uppercase tracking-wider">Weekly Coaching Schedule</p>
+                  </div>
+                  <button
+                    onClick={() => setLocation("/performance/setup")}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/10 border border-white/10 text-white/70 text-xs font-medium"
+                  >
+                    <Settings className="w-3 h-3" />
+                    Edit Schedule
+                  </button>
+                </div>
+
+                <div className="space-y-1.5">
+                  {weekDates.map(({ day, dateStr, short, full, isPast, isToday }) => {
+                    const sessionType: string = (sched as any)[day] ?? "off";
+                    const sessionLabel = PERF_SESSION_LABELS[sessionType] ?? sessionType;
+                    const isSelected = selectedDate === dateStr;
+
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => { setSelectedDate(dateStr); setPerfSelectedDate(dateStr); }}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
+                          isSelected
+                            ? "bg-orange-600/30 border border-orange-500/50"
+                            : "bg-white/5 border border-transparent"
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          isPast   ? "bg-green-600/30 border border-green-500/40" :
+                          isToday  ? "bg-orange-500/30 border border-orange-400/60" :
+                                     "bg-white/10 border border-white/10"
+                        }`}>
+                          {isPast
+                            ? <Check className="w-3 h-3 text-green-400" />
+                            : isToday
+                            ? <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse block" />
+                            : <span className="w-1.5 h-1.5 rounded-full bg-white/30 block" />
+                          }
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-bold w-7 ${isSelected ? "text-orange-300" : isPast ? "text-white/50" : isToday ? "text-orange-300" : "text-white/70"}`}>
+                              {short}
+                            </span>
+                            <span className={`text-xs font-semibold ${isSelected ? "text-white" : isPast ? "text-white/50" : isToday ? "text-white" : "text-white/70"}`}>
+                              {sessionLabel}
+                            </span>
+                            {isToday && !isSelected && (
+                              <span className="text-[9px] text-orange-400 font-semibold uppercase tracking-wider">Today</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {isSelected && (
+                          <ChevronRight className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ── Coaching Plan card — updates when a different day is selected ── */}
           {todaySession && (
             <div className="rounded-2xl bg-black/50 border border-orange-500/40 p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
-                  <p className="text-xs text-orange-300 font-semibold uppercase tracking-wider">Today's Training</p>
+                  {isViewingToday && <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />}
+                  <p className="text-xs text-orange-300 font-semibold uppercase tracking-wider">
+                    {isViewingToday ? "Today's Training" : new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" })}
+                  </p>
                 </div>
-                <span className="text-xs text-white/30 font-medium">
-                  {new Date().toLocaleDateString("en-US", { weekday: "long" })}
+                <span className="text-xs text-white/60 font-medium">
+                  {new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                 </span>
               </div>
 
-              <p className="text-white font-bold text-2xl leading-none mb-0.5">{todaySession.sessionLabel}</p>
-              <p className="text-white/40 text-xs leading-relaxed mb-4">{todaySession.description}</p>
+              <p className="text-white font-bold text-2xl leading-none mb-1">{todaySession.sessionLabel}</p>
 
-              <div className="grid grid-cols-4 gap-2">
+              {/* Why explanation */}
+              {(() => {
+                const bullets = PERF_SESSION_WHY[todaySession.sessionType];
+                if (!bullets) return null;
+                return (
+                  <div className="mb-4 space-y-1">
+                    {bullets.map((line, i) => (
+                      <p key={i} className="text-white/70 text-xs leading-relaxed flex gap-1.5">
+                        <span className="text-orange-400 mt-0.5 flex-shrink-0">·</span>
+                        {line}
+                      </p>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {/* Coaching Plan Targets */}
+              <p className="text-white text-[11px] font-semibold uppercase tracking-wider mb-2">Coaching Plan Targets</p>
+              <div className="grid grid-cols-5 gap-1.5 mb-4">
                 {[
                   { label: "Calories", value: todaySession.calories.toLocaleString(), unit: "kcal" },
                   { label: "Protein",  value: `${todaySession.proteinG}`,             unit: "g" },
-                  { label: "Carbs",    value: `${todaySession.carbsG}`,               unit: "g" },
+                  { label: "Starchy",  value: `${todaySession.starchyCarbsG}`,        unit: "g" },
+                  { label: "Fibrous",  value: `${todaySession.fibrousCarbsG}`,        unit: "g" },
                   { label: "Fat",      value: `${todaySession.fatG}`,                 unit: "g" },
                 ].map(m => (
-                  <div key={m.label} className="bg-white/5 rounded-xl px-2 py-2.5 text-center">
-                    <p className="text-white font-bold text-base leading-none">{m.value}</p>
-                    <p className="text-white/30 text-xs mt-0.5">{m.unit}</p>
-                    <p className="text-white/20 text-[10px] mt-0.5 uppercase tracking-wide">{m.label}</p>
+                  <div key={m.label} className="bg-white/10 rounded-xl px-1.5 py-2.5 text-center">
+                    <p className="text-white font-bold text-sm leading-none">{m.value}</p>
+                    <p className="text-white/70 text-[10px] mt-0.5">{m.unit}</p>
+                    <p className="text-white/70 text-[9px] mt-0.5 uppercase tracking-wide">{m.label}</p>
                   </div>
                 ))}
               </div>
+
+              {/* Remaining Today — only shown when viewing today */}
+              {isViewingToday && todaySession.logged && (() => {
+                const rem = {
+                  calories:      Math.max(0, todaySession.calories      - todaySession.logged.calories),
+                  proteinG:      Math.max(0, todaySession.proteinG      - todaySession.logged.proteinG),
+                  starchyCarbsG: Math.max(0, todaySession.starchyCarbsG - todaySession.logged.starchyCarbsG),
+                  fibrousCarbsG: Math.max(0, todaySession.fibrousCarbsG - todaySession.logged.fibrousCarbsG),
+                  fatG:          Math.max(0, todaySession.fatG          - todaySession.logged.fatG),
+                };
+                const anyLogged = todaySession.logged.calories > 0;
+                return (
+                  <div className="border-t border-white/10 pt-3">
+                    <p className="text-white text-[11px] font-semibold uppercase tracking-wider mb-2">
+                      Remaining Today
+                    </p>
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {[
+                        { label: "Calories", value: rem.calories.toLocaleString(), unit: "kcal" },
+                        { label: "Protein",  value: `${rem.proteinG}`,             unit: "g" },
+                        { label: "Starchy",  value: `${rem.starchyCarbsG}`,        unit: "g" },
+                        { label: "Fibrous",  value: `${rem.fibrousCarbsG}`,        unit: "g" },
+                        { label: "Fat",      value: `${rem.fatG}`,                 unit: "g" },
+                      ].map(m => (
+                        <div key={m.label} className="bg-orange-600/20 rounded-xl px-1.5 py-2 text-center">
+                          <p className={`font-bold text-sm leading-none ${anyLogged ? "text-orange-300" : "text-white/60"}`}>{m.value}</p>
+                          <p className="text-white/70 text-[10px] mt-0.5">{m.unit}</p>
+                          <p className="text-white/70 text-[9px] mt-0.5 uppercase tracking-wide">{m.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {!anyLogged && (
+                      <p className="text-white/60 text-[10px] mt-2 text-center">Log meals to see remaining</p>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           )}
 
@@ -1113,7 +1307,7 @@ export default function PerformanceNutritionHub() {
                             </span>
                             <p className="text-white font-semibold text-xs">{proto.name}</p>
                           </div>
-                          <p className="text-white/50 text-xs leading-relaxed">{proto.note}</p>
+                          <p className="text-white/70 text-xs leading-relaxed">{proto.note}</p>
                         </div>
                       ))}
                     </div>
@@ -1140,12 +1334,12 @@ export default function PerformanceNutritionHub() {
                         <div key={label} className={`rounded-xl border px-3 py-2.5 ${cls}`}>
                           <div className="flex items-center justify-between gap-2">
                             <div>
-                              <p className="text-xs opacity-60 mb-0.5">{label}</p>
+                              <p className="text-xs opacity-80 mb-0.5">{label}</p>
                               <p className="font-bold text-xs">{value}</p>
                             </div>
                           </div>
                           {signals.length > 0 && (
-                            <p className="text-xs opacity-50 mt-1.5">← {signals.join(" · ")}</p>
+                            <p className="text-xs opacity-70 mt-1.5">← {signals.join(" · ")}</p>
                           )}
                         </div>
                       ))}
@@ -1154,19 +1348,19 @@ export default function PerformanceNutritionHub() {
                 })() : (
                   <div className="grid grid-cols-2 gap-2">
                     <div className={`rounded-xl border px-3 py-2.5 ${FUEL_DEMAND_COLORS[demandProfile.fuelDemand]}`}>
-                      <p className="text-xs opacity-60 mb-0.5">Fuel Demand</p>
+                      <p className="text-xs opacity-80 mb-0.5">Fuel Demand</p>
                       <p className="font-bold text-xs">{FUEL_DEMAND_LABELS[demandProfile.fuelDemand]}</p>
                     </div>
                     <div className={`rounded-xl border px-3 py-2.5 ${RECOVERY_DEMAND_COLORS[demandProfile.recoveryDemand]}`}>
-                      <p className="text-xs opacity-60 mb-0.5">Recovery Demand</p>
+                      <p className="text-xs opacity-80 mb-0.5">Recovery Demand</p>
                       <p className="font-bold text-xs">{RECOVERY_DEMAND_LABELS[demandProfile.recoveryDemand]}</p>
                     </div>
                     <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
-                      <p className="text-white/40 text-xs mb-0.5">Adaptation Focus</p>
+                      <p className="text-white/70 text-xs mb-0.5">Adaptation Focus</p>
                       <p className="text-white font-bold text-xs">{ADAPTATION_DEMAND_LABELS[demandProfile.adaptationDemand]}</p>
                     </div>
                     <div className={`rounded-xl border px-3 py-2.5 ${TRAINING_LOAD_COLORS[demandProfile.trainingLoad]}`}>
-                      <p className="text-xs opacity-60 mb-0.5">Training Load</p>
+                      <p className="text-xs opacity-80 mb-0.5">Training Load</p>
                       <p className="font-bold text-xs">{TRAINING_LOAD_LABELS[demandProfile.trainingLoad]}</p>
                     </div>
                   </div>
@@ -1189,7 +1383,7 @@ export default function PerformanceNutritionHub() {
                               <p className="text-white font-semibold text-sm">{priority}</p>
                             </div>
                             {PRIORITY_RATIONALES[priority] && (
-                              <p className="text-white/40 text-xs leading-relaxed pl-7">{PRIORITY_RATIONALES[priority]}</p>
+                              <p className="text-white/70 text-xs leading-relaxed pl-7">{PRIORITY_RATIONALES[priority]}</p>
                             )}
                           </>
                         ) : (
@@ -1213,7 +1407,7 @@ export default function PerformanceNutritionHub() {
                 return (
                   <div className="rounded-2xl bg-black/50 border border-white/10 p-4">
                     <p className="text-white font-bold text-sm mb-1">AI Instruction Categories</p>
-                    <p className="text-white/40 text-xs mb-3">What the system instructs the AI to prioritize for this profile</p>
+                    <p className="text-white/70 text-xs mb-3">What the system instructs the AI to prioritize for this profile</p>
                     <div className="space-y-1.5">
                       {cats.map((cat, i) => (
                         <div key={i} className="flex items-center gap-2">
@@ -1268,47 +1462,13 @@ export default function PerformanceNutritionHub() {
                 </div>
               )}
 
-              {/* Daily Macro Summary — Targets + Logged */}
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-orange-400/70 text-xs font-medium shrink-0 w-12">Target</span>
-                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    {resolvedTargets.calories > 0 ? Math.round(resolvedTargets.calories).toLocaleString() : "—"} cal
-                  </span>
-                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    P {resolvedTargets.protein_g > 0 ? Math.round(resolvedTargets.protein_g) : "—"}g
-                  </span>
-                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    C {resolvedTargets.carbs_g > 0 ? Math.round(resolvedTargets.carbs_g) : "—"}g
-                  </span>
-                  <span className="bg-orange-600/20 border border-orange-500/20 text-orange-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    F {resolvedTargets.fat_g > 0 ? Math.round(resolvedTargets.fat_g) : "—"}g
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-white/40 text-xs font-medium shrink-0 w-12">Logged</span>
-                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    {Math.round(todayMacros.kcal).toLocaleString()} cal
-                  </span>
-                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    P {Math.round(todayMacros.protein)}g
-                  </span>
-                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    C {Math.round(todayMacros.carbs)}g
-                  </span>
-                  <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-                    F {Math.round(todayMacros.fat)}g
-                  </span>
-                </div>
-              </div>
-
               <button
                 onClick={() => setLocation("/beach-body-meal-board")}
                 className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
               >
                 <div className="text-left">
                   <p className="font-bold text-sm">Launch Performance Nutrition Builder</p>
-                  <p className="text-white/50 text-xs mt-0.5">Build sport-calibrated meals now</p>
+                  <p className="text-white/80 text-xs mt-0.5">Build sport-calibrated meals now</p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
               </button>
@@ -1365,17 +1525,17 @@ export default function PerformanceNutritionHub() {
           {phase !== "inactive" ? (
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-white/5 rounded-xl px-3 py-2">
-                <p className="text-white/40 text-xs">Starch Allocation</p>
-                <p className="text-white font-bold text-2xl mt-0.5">{carbTargetG}<span className="text-sm font-normal text-white/50 ml-0.5">g</span></p>
+                <p className="text-white/70 text-xs">Starch Allocation</p>
+                <p className="text-white font-bold text-2xl mt-0.5">{carbTargetG}<span className="text-sm font-normal text-white/70 ml-0.5">g</span></p>
               </div>
               <div className="bg-white/5 rounded-xl px-3 py-2">
-                <p className="text-white/40 text-xs">Fibrous Carbs</p>
+                <p className="text-white/70 text-xs">Fibrous Carbs</p>
                 <p className="text-green-300 font-semibold text-sm mt-1">Unrestricted</p>
               </div>
             </div>
           ) : (
             <div className="bg-white/5 rounded-xl px-4 py-3">
-              <p className="text-white/50 text-xs leading-relaxed">
+              <p className="text-white/70 text-xs leading-relaxed">
                 Log daily weight via the Protocols tab check-in to activate stall detection and automatic phase management.
               </p>
             </div>
@@ -1400,7 +1560,7 @@ export default function PerformanceNutritionHub() {
             { label: "Floor limit",      value: "50g minimum — protocol cycles, never drops below" },
           ].map(({ label, value }) => (
             <div key={label} className="flex items-start justify-between gap-3">
-              <p className="text-white/40 text-xs flex-shrink-0 w-28">{label}</p>
+              <p className="text-white/70 text-xs flex-shrink-0 w-28">{label}</p>
               <p className="text-white/80 text-xs text-right">{value}</p>
             </div>
           ))}
@@ -1416,7 +1576,7 @@ export default function PerformanceNutritionHub() {
             { phase: "Stall (>7 days)",   response: "Refeed trigger activates → protocol adjusts" },
           ].map(({ phase: ph, response }) => (
             <div key={ph} className="flex items-start justify-between gap-3">
-              <p className="text-white/40 text-xs flex-shrink-0 w-28">{ph}</p>
+              <p className="text-white/70 text-xs flex-shrink-0 w-28">{ph}</p>
               <p className="text-white/80 text-xs text-right">{response}</p>
             </div>
           ))}
@@ -1433,7 +1593,7 @@ export default function PerformanceNutritionHub() {
         {/* Manual override controls */}
         {phase !== "inactive" && (
           <div className="rounded-2xl bg-black/50 border border-white/10 p-4">
-            <p className="text-white/40 text-xs font-semibold uppercase tracking-wide mb-3">Manual Override</p>
+            <p className="text-white/80 text-xs font-semibold uppercase tracking-wide mb-3">Manual Override</p>
             <div className="flex gap-2">
               {phase !== "refeed" ? (
                 <button
@@ -1515,7 +1675,7 @@ export default function PerformanceNutritionHub() {
               { label: "Starch Phase",     value: starchPhase === "low_carb" ? "Low-Carb" : starchPhase === "refeed" ? "Refeed" : "Inactive" },
             ].map(({ label, value }) => (
               <div key={label} className="bg-white/5 rounded-xl px-3 py-2">
-                <p className="text-white/40 text-xs">{label}</p>
+                <p className="text-white/70 text-xs">{label}</p>
                 <p className="text-white font-semibold text-sm mt-0.5">{value}</p>
               </div>
             ))}
@@ -1528,7 +1688,7 @@ export default function PerformanceNutritionHub() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-white/40 text-xs mb-1.5 block">Scale (lbs)</label>
+              <label className="text-white/80 text-xs mb-1.5 block">Scale (lbs)</label>
               <input
                 type="number"
                 value={checkInWeight}
@@ -1539,7 +1699,7 @@ export default function PerformanceNutritionHub() {
               />
             </div>
             <div>
-              <label className="text-white/40 text-xs mb-1.5 block">Starch Today (g) <span className="text-white/20">opt.</span></label>
+              <label className="text-white/80 text-xs mb-1.5 block">Starch Today (g) <span className="text-white/50">opt.</span></label>
               <input
                 type="number"
                 value={checkInStarch}
@@ -1552,7 +1712,7 @@ export default function PerformanceNutritionHub() {
           </div>
 
           <div>
-            <label className="text-white/40 text-xs mb-2 block">Energy Level</label>
+            <label className="text-white/80 text-xs mb-2 block">Energy Level</label>
             <div className="flex gap-2">
               {(["low", "moderate", "high"] as const).map(level => (
                 <button
@@ -1571,7 +1731,7 @@ export default function PerformanceNutritionHub() {
           </div>
 
           <div>
-            <label className="text-white/40 text-xs mb-2 block">Strength</label>
+            <label className="text-white/80 text-xs mb-2 block">Strength</label>
             <div className="flex gap-2">
               {(["declining", "holding", "increasing"] as const).map(level => (
                 <button
@@ -1619,7 +1779,7 @@ export default function PerformanceNutritionHub() {
 
         {/* Weight Response Reference */}
         <div className="rounded-2xl bg-black/50 border border-white/10 p-4 space-y-0">
-          <p className="text-white/40 text-xs font-semibold uppercase tracking-wide mb-3">Weight Response Reference</p>
+          <p className="text-white/80 text-xs font-semibold uppercase tracking-wide mb-3">Weight Response Reference</p>
           {[
             { signals: "Scale ↓ · Energy good · Strength good",  directive: "On track — maintain protocol" },
             { signals: "Scale flat >7 days · any signals",        directive: "Refeed trigger — starch allocation raised" },

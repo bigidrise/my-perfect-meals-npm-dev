@@ -14,3 +14,5 @@
 - [Subscription Tier Enforcement — Middleware Pattern](subscription-tier-middleware.md) — 3 middleware files gate Essential/Pro/Clinical; planLookupKey drives tier; BILLING_ENFORCED=false bypasses all; null planLookupKey+PAID_FULL = internal account, always passes.
 - [HIPAA Phase 1 — Verification](hipaa-phase1-verification.md) — 14-check suite at scripts/verify-hipaa-phase1.ts; glucose-logs router route-path quirk; audit queries must use actor+resourceType not route string for routes mounted with internal /api/ prefix.
 - [otplib v12 ESM API](otplib-v12-esm-api.md) — use TOTP class with instantiated plugins (not authenticator); generate/verify are async; base32 option key is lowercase.
+- [Performance Protocol — baseline ownership rule](perf-protocol-baseline-rule.md) — protocol owns only session modifiers; MacroCalculator is the always-live baseline.
+- [Nutrition Resolver Ownership — Component Rule](nutrition-resolver-ownership.md) — shared components NEVER call resolvers; workflow pages resolve once, pass as props; baseline → getNutritionBaseline, performance → getResolvedTargets.

@@ -41,7 +41,7 @@ import { LockedDayDialog } from "@/components/biometrics/LockedDayDialog";
 import { lockDay, isDayLocked } from "@/lib/lockedDays";
 import { setQuickView } from "@/lib/macrosQuickView";
 import { getMacroTargets } from "@/lib/dailyLimits";
-import { getResolvedTargets } from "@/lib/macroResolver";
+import { usePerformanceNutrition } from "@/hooks/useBaselineNutrition";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { useAuth } from "@/contexts/AuthContext";
@@ -221,6 +221,10 @@ export default function BeachBodyMealBoard() {
 
   const effectiveUserId = proClientId || user?.id;
 
+  // Resolve nutrition ONCE at this level. Presentation components receive it as props.
+  // Performance resolver — applies session modifier for the selected training day.
+  const nutritionTargets = usePerformanceNutrition(effectiveUserId);
+
   // Board loading
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
   const [weekStartISO, setWeekStartISO] =
@@ -330,9 +334,10 @@ export default function BeachBodyMealBoard() {
     [activeDayISO, planningMode, effectiveUserId],
   );
 
-  // Handle "Go to Today" from locked day dialog
+  // Handle "Go to Today" from locked day dialog — use device local timezone
   const handleGoToToday = useCallback(() => {
-    const today = todayISOInTZ("America/Chicago");
+    const localTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const today = todayISOInTZ(localTZ);
     setActiveDayISO(today);
     setLockedDayDialogOpen(false);
     setPendingLockedDayISO("");
@@ -353,8 +358,8 @@ export default function BeachBodyMealBoard() {
   // Build StarchContext for Create With Chef modal
   const starchContext: StarchContext | undefined = useMemo(() => {
     if (!board || !activeDayISO) return undefined;
-    const resolved = effectiveUserId ? getResolvedTargets(effectiveUserId) : null;
-    const strategy = resolved?.starchStrategy || 'one';
+    const resolved = nutritionTargets;
+    const strategy = resolved.starchStrategy || 'one';
     const dayLists = getDayLists(board, activeDayISO);
     const existingMeals: StarchContext['existingMeals'] = [];
     for (const slot of ['breakfast', 'lunch', 'dinner'] as const) {
@@ -428,17 +433,24 @@ export default function BeachBodyMealBoard() {
   } | null>(null);
 
   useEffect(() => {
-    apiRequest("/api/performance/today")
-      .then((data: any) => {
-        if (data?.configured && data?.sessionType) {
-          setTodayPerformanceSession({
-            sessionType: data.sessionType,
-            sessionLabel: data.sessionLabel ?? data.sessionType,
-            description: data.description ?? "",
-          });
-        }
-      })
-      .catch(() => {});
+    const fetchSession = () => {
+      const storedDate = (() => { try { return localStorage.getItem('mpm.performance.selectedDate'); } catch { return null; } })();
+      const dateQs = storedDate ? `?date=${storedDate}` : '';
+      apiRequest(`/api/performance/today${dateQs}`)
+        .then((data: any) => {
+          if (data?.configured && data?.sessionType) {
+            setTodayPerformanceSession({
+              sessionType: data.sessionType,
+              sessionLabel: data.sessionLabel ?? data.sessionType,
+              description: data.description ?? "",
+            });
+          }
+        })
+        .catch(() => {});
+    };
+    fetchSession();
+    window.addEventListener('mpm:targetsUpdated', fetchSession);
+    return () => window.removeEventListener('mpm:targetsUpdated', fetchSession);
   }, []);
 
   useEffect(() => {
@@ -616,10 +628,14 @@ export default function BeachBodyMealBoard() {
     return weekStartISO ? weekDatesInTZ(weekStartISO, "America/Chicago") : [];
   }, [weekStartISO]);
 
-  // CHICAGO CALENDAR FIX v1.0: Default to today if in current week, otherwise Monday
+  // Default to today in the user's LOCAL timezone, not Chicago.
+  // The week date structure remains Chicago-aligned (CHICAGO CALENDAR FIX v1.0),
+  // but which day is highlighted as "today" must match the user's device clock.
+  // Using Chicago here caused users in ET to see yesterday's meals as "today."
   useEffect(() => {
     if (weekDatesList.length > 0 && !activeDayISO) {
-      const todayISO = getTodayISOSafe("America/Chicago");
+      const localTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const todayISO = getTodayISOSafe(localTZ);
       const todayInWeek = weekDatesList.find((d) => d === todayISO);
       setActiveDayISO(todayInWeek ?? weekDatesList[0]);
     }
@@ -1019,7 +1035,7 @@ export default function BeachBodyMealBoard() {
   // Passed to CreateWithChefModal so the AI generates meals calibrated to today's training demands.
   const performanceSessionContext = useMemo((): PerformanceSessionContext | undefined => {
     if (!todayPerformanceSession) return undefined;
-    const resolved = effectiveUserId ? getResolvedTargets(effectiveUserId) : null;
+    const resolved = nutritionTargets;
     return {
       sessionType: todayPerformanceSession.sessionType,
       sessionLabel: todayPerformanceSession.sessionLabel,
@@ -1033,7 +1049,7 @@ export default function BeachBodyMealBoard() {
   // Using an inline IIFE here would create a new object reference on every render,
   // which triggers the drawer's setLiveTargets useEffect on every render → infinite loop.
   const athletePickerMacroTargets = useMemo(() => {
-    const resolved = effectiveUserId ? getResolvedTargets(effectiveUserId) : null;
+    const resolved = nutritionTargets;
     if (!resolved || resolved.source === "none") return null;
     return {
       calories: Math.round(resolved.calories ?? 0),
@@ -1079,7 +1095,7 @@ export default function BeachBodyMealBoard() {
   if (!hasPerformanceAccess) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 flex flex-col">
-        <BuilderHeader title="Performance Nutrition Builder" onOpenTour={quickTour.openTour} clientId={proClientId} />
+        <BuilderHeader title="Performance Nutrition Builder" onOpenTour={quickTour.openTour} clientId={proClientId} backTo="/performance" backLabel="Performance Hub" />
         <div className="flex flex-col items-center justify-center flex-1 px-6 text-center gap-6" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}>
           <div className="w-20 h-20 rounded-full bg-orange-600/20 border border-orange-500/30 flex items-center justify-center">
             <span className="text-4xl">🏆</span>
@@ -1124,7 +1140,7 @@ export default function BeachBodyMealBoard() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-36 overflow-x-hidden"
     >
-      <BuilderHeader title="Performance Nutrition Builder" onOpenTour={quickTour.openTour} clientId={proClientId} />
+      <BuilderHeader title="Performance Nutrition Builder" onOpenTour={quickTour.openTour} clientId={proClientId} backTo="/performance" backLabel="Performance Hub" />
       <TrialBanner />
 
       {/* Main Content */}
@@ -1132,7 +1148,7 @@ export default function BeachBodyMealBoard() {
         className="max-w-[1600px] mx-auto px-4 space-y-6"
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${proClientId ? '9rem' : '6rem'})` }}
       >
-        <NutritionBudgetBanner className="mb-2" userId={effectiveUserId} />
+        {/* NutritionBudgetBanner hidden — restore when reactivity is fixed */}
 
         {/* ── Protocol Active Banner ── */}
         {(() => {
@@ -1275,6 +1291,7 @@ export default function BeachBodyMealBoard() {
                         ...dayLists.snacks,
                       ];
                     })()}
+                    strategyOverride={nutritionTargets.starchStrategy || 'one'}
                     bodyFatSlotDelta={bodyFatAdjustment.slotDelta}
                   />
                 </div>
@@ -1282,7 +1299,7 @@ export default function BeachBodyMealBoard() {
 
             {/* ROW 5: Daily Macro Totals vs Targets */}
             {FEATURES.dayPlanning === "alpha" && activeDayISO && (() => {
-              const resolved = effectiveUserId ? getResolvedTargets(effectiveUserId) : null;
+              const resolved = nutritionTargets;
               const hasTargets = resolved && resolved.source !== "none" && (
                 resolved.calories > 0 || resolved.protein_g > 0 ||
                 resolved.carbs_g > 0 || resolved.fat_g > 0
@@ -1752,16 +1769,7 @@ export default function BeachBodyMealBoard() {
             <DailyTargetsCard
               userId={effectiveUserId}
               onQuickAddClick={() => setAdditionalMacrosOpen(true)}
-              targetsOverride={(() => {
-                const resolved = getResolvedTargets(effectiveUserId);
-                return {
-                  protein_g: resolved.protein_g || 0,
-                  carbs_g: resolved.carbs_g || 0,
-                  fat_g: resolved.fat_g || 0,
-                  starchyCarbs_g: resolved.starchyCarbs_g,
-                  fibrousCarbs_g: resolved.fibrousCarbs_g,
-                };
-              })()}
+              targetsOverride={nutritionTargets}
             />
           </div>
         </div>
@@ -1839,6 +1847,7 @@ export default function BeachBodyMealBoard() {
                 <div className="col-span-full mb-6">
                   <RemainingMacrosFooter
                     consumedOverride={consumed}
+                    targetsOverride={nutritionTargets}
                     showSaveButton={false}
                     layoutMode="inline"
                     onSaveDay={async () => {
@@ -1978,20 +1987,8 @@ export default function BeachBodyMealBoard() {
           open={additionalMacrosOpen}
           onClose={() => setAdditionalMacrosOpen(false)}
           onAdd={(meal) => quickAdd("snacks", meal)}
-          proteinDeficit={(() => {
-            const resolved = getResolvedTargets(effectiveUserId);
-            return Math.max(
-              0,
-              (resolved.protein_g || 0) - Math.round(totals.protein),
-            );
-          })()}
-          carbsDeficit={(() => {
-            const resolved = getResolvedTargets(effectiveUserId);
-            return Math.max(
-              0,
-              (resolved.carbs_g || 0) - Math.round(totals.carbs),
-            );
-          })()}
+          proteinDeficit={Math.max(0, (nutritionTargets.protein_g || 0) - Math.round(totals.protein))}
+          carbsDeficit={Math.max(0, (nutritionTargets.carbs_g || 0) - Math.round(totals.carbs))}
         />
 
         {/* Create With Chef Modal - with BeachBody guardrails + remaining budget awareness */}

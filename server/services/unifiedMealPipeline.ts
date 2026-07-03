@@ -11,7 +11,6 @@
  * Used by: AI Meal Creator, AI Premades, Fridge Rescue
  */
 
-import { generateImage } from './imageService';
 import { getMeasurementPromptBlock, MeasurementSystem } from '../../shared/units';
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope } from './protocolEnvelope';
 import { buildVegetableStrategyPrompt, NutritionStrategyContext, buildStrictModeBlock } from './promptBuilder';
@@ -70,79 +69,25 @@ import { validateThyroidSupportMeal } from './guardrails/validators/thyroidSuppo
 import { filterByStarchStructure, validateStarchStructure, buildStarchFixHint } from './guardrails/validators/vegetarianMacroValidator';
 import { scoreOncologyMealQuality } from './guardrails/validators/oncologyQualityScorer';
 import { scoreOncologySnackQuality } from './guardrails/validators/oncologySnackScorer';
-import { buildDishTypeHint, getSemanticFallback, buildStableCacheKey, generateMealImageUnified } from './mealImageGenerator';
+import { generateMealImageUnified } from './mealImageGenerator';
 import { normalizeMealName, culturalNameTransform } from './mealNameNormalizer';
-import { mealImageCache } from '../db/schema/mealImageCache';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// IMAGE PERSISTENCE HELPER
-// Wraps imageService's generateImage with DB cache (check → generate → save).
-// Prevents different images on server restart. Layer 2: removes description bleed.
+// IMAGE PERSISTENCE HELPER — DEPRECATED THIN WRAPPER
+// Redirects all callers to the canonical generateMealImageUnified pipeline,
+// which owns DB caching, normalization, fallback, and source-type routing.
+// Do NOT add logic here — extend mealImageGenerator.ts instead.
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** @deprecated Thin redirect wrapper. Use generateMealImageUnified directly. */
 async function generateImageCached(
   name: string,
   ingredients: string[],
   type: string,
-  style: string,
-  extraParams?: Record<string, any>
+  _style: string,
+  _extraParams?: Record<string, any>
 ): Promise<string | null> {
-  // NORMALIZATION — applied before cache key derivation and prompt construction
-  const name_ = normalizeMealName(name);
-  // Include type context in cache key so food/beverage entries never collide.
-  const cacheKey = buildStableCacheKey(name_, ingredients, type);
-
-  try {
-    const [dbRow] = await db
-      .select({ imageUrl: mealImageCache.imageUrl })
-      .from(mealImageCache)
-      .where(eq(mealImageCache.cacheKey, cacheKey))
-      .limit(1);
-
-    if (dbRow) {
-      console.log(`🗄️ [pipeline] DB cache hit for: ${name_}`);
-      return dbRow.imageUrl;
-    }
-  } catch (e) {
-    console.warn(`⚠️ [pipeline] DB cache read failed for "${name_}":`, e);
-  }
-
-  const dishHint = buildDishTypeHint(name_);
-
-  let imageUrl: string | null = null;
-  try {
-    const result = await Promise.race([
-      generateImage({
-        name: name_,
-        description: dishHint,
-        type,
-        style,
-        ingredients,
-        ...extraParams,
-      }),
-      new Promise<null>((_, reject) =>
-        setTimeout(() => reject(new Error("Image generation timeout")), 8000)
-      ),
-    ]);
-    imageUrl = result ?? null;
-  } catch (e: any) {
-    console.warn(`⚠️ [pipeline] generateImage failed for "${name_}": ${e.message}`);
-  }
-
-  if (!imageUrl) {
-    return getSemanticFallback(name_);
-  }
-
-  try {
-    await db
-      .insert(mealImageCache)
-      .values({ cacheKey, imageUrl, mealName: name_, promptUsed: dishHint })
-      .onConflictDoNothing();
-  } catch (e) {
-    console.warn(`⚠️ [pipeline] DB cache write failed for "${name_}":`, e);
-  }
-
-  return imageUrl;
+  return generateMealImageUnified(name, ingredients, type as any);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

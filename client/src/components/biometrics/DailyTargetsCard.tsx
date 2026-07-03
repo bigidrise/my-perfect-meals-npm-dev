@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { PillButton } from "@/components/ui/pill-button";
-import { getResolvedTargets, resolveDisplayCarbTargets } from "@/lib/macroResolver";
+import { resolveDisplayCarbTargets } from "@/lib/macroResolver";
 
 interface DailyTargetsCardProps {
   userId?: string;
@@ -29,7 +29,9 @@ export function DailyTargetsCard({
     return () => window.removeEventListener("mpm:targetsUpdated", handleUpdate);
   }, []);
 
-  const resolved = targetsOverride || getResolvedTargets(userId);
+  // Presentation component — targets must be supplied by the parent workflow page.
+  // Never resolves nutrition internally.
+  const resolved = targetsOverride ?? { protein_g: 0, carbs_g: 0, fat_g: 0 };
   const { starchyCarbs_g: starchyCarbs, fibrousCarbs_g: fibrousCarbs } = resolveDisplayCarbTargets(resolved);
 
   return (

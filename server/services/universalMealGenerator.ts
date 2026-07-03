@@ -1,6 +1,7 @@
 // File: server/services/universalMealGenerator.ts
 
 import OpenAI from "openai";
+import { generateMealImageUnified } from "./mealImageGenerator";
 import { MealType, WeeklyMealReq } from "./stableMealGenerator";
 import { randomUUID } from "crypto";
 import * as telemetry from "./aiTelemetry";
@@ -83,7 +84,11 @@ export type FinalMeal = {
   } | null;
 };
 
-// Generate DALL-E image — 30s timeout to prevent infinite hangs in production
+/**
+ * @deprecated Raw DALL-E call — use generateMealImageUnified from mealImageGenerator instead.
+ * Kept to avoid breaking any callers outside this file; call site inside
+ * generateMealFromPrompt has been redirected to the canonical pipeline.
+ */
 async function generateImageFromDalle(prompt: string): Promise<string | null> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
@@ -299,13 +304,15 @@ Fat: 12g`
     telemetry.tagFallback(sessionId, "instruction_fallback", "No instructions parsed from AI response");
   }
 
-  // Generate DALL-E image — skip if caller handles images separately (e.g. experiences pipeline)
+  // Generate image via canonical pipeline — skip if caller handles images separately
   let imageUrl: string | null = null;
   if (!userPrefs?.skipImage) {
-    const imagePrompt = `${name}, healthy ${mealType}, professional food photography, overhead view, clean plate presentation`;
-    imageUrl = await generateImageFromDalle(imagePrompt);
+    const ingredientNames = ingredients
+      .map((i: any) => (typeof i === "string" ? i : i?.name || ""))
+      .filter(Boolean);
+    imageUrl = await generateMealImageUnified(name, ingredientNames, "meal");
     if (!imageUrl) {
-      telemetry.tagFallback(sessionId, "image_generation_failed", "DALL-E returned null");
+      telemetry.tagFallback(sessionId, "image_generation_failed", "generateMealImageUnified returned null");
     }
   }
   

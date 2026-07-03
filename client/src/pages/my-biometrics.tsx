@@ -65,7 +65,7 @@ import { normalizeMacros } from "@/lib/macroNormalize";
 import { getQuickView, clearQuickView, QuickView } from "@/lib/macrosQuickView";
 import { parseBiometricsParams, BIOMETRICS_SOURCES, SECTION_IDS } from "@/lib/biometricsNavigation";
 import { getMacroTargets, MacroTargets } from "@/lib/dailyLimits";
-import { getResolvedTargets } from "@/lib/macroResolver";
+import { getNutritionBaseline } from "@/lib/macroResolver";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { MACRO_SOURCES, getMacroSourceBySlug } from "@/lib/macroSourcesConfig";
@@ -401,7 +401,7 @@ export default function MyBiometrics() {
 
   // Macro Targets state (persistent, not date-specific) - now with pro override support
   const [targets, setTargets] = useState<MacroTargets | null>(null);
-  const [targetSource, setTargetSource] = useState<"pro" | "self" | "none">(
+  const [targetSource, setTargetSource] = useState<"pro" | "self" | "performance" | "none">(
     "none",
   );
   const [proName, setProName] = useState<string>("");
@@ -411,6 +411,38 @@ export default function MyBiometrics() {
   const refreshTargetsRef = useRef<() => Promise<void>>(async () => {});
 
   const refreshTargets = async () => {
+    // Priority 0: Performance Protocol — for athletes, daily macro targets change by session type.
+    // If a performance protocol is configured, use its date-specific targets and skip the baseline fetch.
+    if (user?.id) {
+      try {
+        const storedPerfDate = typeof window !== 'undefined'
+          ? localStorage.getItem('mpm.performance.selectedDate') : null;
+        const dateQs = storedPerfDate ? `?date=${storedPerfDate}` : '';
+        const perfRes = await fetch(apiUrl(`/api/performance/today${dateQs}`), {
+          headers: { ...getAuthHeaders() },
+          credentials: 'include',
+          cache: 'no-store',
+        });
+        if (perfRes.ok) {
+          const perfData = await perfRes.json();
+          if (perfData?.configured && (perfData?.calories ?? 0) > 0) {
+            setTargets({
+              calories: perfData.calories,
+              protein_g: perfData.proteinG,
+              carbs_g: perfData.carbsG,
+              fat_g: perfData.fatG,
+              starchyCarbs_g: perfData.starchyCarbsG ?? 0,
+              fibrousCarbs_g: perfData.fibrousCarbsG ?? 0,
+            });
+            setTargetSource('performance');
+            return;
+          }
+        }
+      } catch {
+        // Not on performance protocol or network failure — fall through to baseline
+      }
+    }
+
     // Priority 1: canonical DB record — always fetch fresh, no browser cache.
     // Both Macro Calculator and Studio Save Targets write to this same record,
     // so reading it first guarantees Studio changes are immediately visible here.
@@ -433,7 +465,7 @@ export default function MyBiometrics() {
               fibrousCarbs_g: data.fibrousCarbs_g,
             });
             // Use resolver only to determine the source label (pro vs self).
-            const resolved = getResolvedTargets(user.id);
+            const resolved = getNutritionBaseline(user.id);
             setTargetSource(resolved.source === "pro" ? "pro" : "self");
             if (resolved.source === "pro" && resolved.setBy) {
               setProName(resolved.setBy);
@@ -447,7 +479,7 @@ export default function MyBiometrics() {
     }
 
     // Priority 2: local resolver (localStorage / proStore) — offline fallback.
-    const resolved = getResolvedTargets(user?.id);
+    const resolved = getNutritionBaseline(user?.id);
     if (resolved.source !== "none") {
       setTargets({
         calories: resolved.calories,
@@ -808,16 +840,46 @@ export default function MyBiometrics() {
     }
   };
 
-  const resetToday = () => {
+  const resetToday = async () => {
+    // Clear local state and input fields immediately (optimistic)
     setMacroRows((prev) => prev.filter((r) => r.day !== today));
-    // Clear any input fields too
     setP("");
     setC("");
     setF("");
     setK("");
     setSc("");
     setFc("");
-    // Show confirmation toast
+
+    // Clear localStorage cache so it doesn't restore on next load
+    try {
+      const stored = loadJSON<{ rows?: OfflineDay[] }>(LS_MACROS, {});
+      if (stored.rows) {
+        const filtered = stored.rows.filter((r: OfflineDay) => r.day !== today);
+        saveJSON(LS_MACROS, { rows: filtered });
+      }
+    } catch {
+      // ignore cache errors
+    }
+
+    // Delete from server so it doesn't come back on reload
+    if (userId) {
+      try {
+        await apiRequest(`/api/users/${userId}/macro-logs/today`, {
+          method: "DELETE",
+        });
+        // Invalidate any cached queries
+        window.dispatchEvent(new Event("macros:updated"));
+      } catch (e) {
+        console.error("Failed to reset today on server:", e);
+        toast({
+          title: "Reset failed",
+          description: "Could not clear today's macros from the server. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     toast({
       title: "Reset Complete",
       description: "Today's macros have been cleared.",

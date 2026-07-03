@@ -35,7 +35,8 @@ import { CompetitionMealPickerDrawer } from "@/components/pickers/CompetitionMea
 import { CreateWithChefButton } from "@/components/CreateWithChefButton";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { SnackCreatorModal } from "@/components/SnackCreatorModal";
-import { getResolvedTargets } from "@/lib/macroResolver";
+import { setPerfSelectedDate } from "@/lib/macroResolver";
+import { usePerformanceNutrition } from "@/hooks/useBaselineNutrition";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
@@ -47,7 +48,6 @@ import { DailyTargetsCard } from "@/components/biometrics/DailyTargetsCard";
 import { ProTipCard } from "@/components/ProTipCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { lockDay, isDayLocked } from "@/lib/lockedDays";
-import { setQuickView } from "@/lib/macrosQuickView";
 import WeeklyOverviewModal from "@/components/WeeklyOverviewModal";
 import BuilderShoppingBar from "@/components/BuilderShoppingBar";
 import { useToast } from "@/hooks/use-toast";
@@ -234,6 +234,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   } = useWeeklyBoard(clientId, weekStartISO, proClientId, BUILDER_NS.PERFORMANCE_COMPETITION);
 
   const nutritionBudget = useNutritionBudget(clientId || user?.id || "");
+  // Reactive performance-adjusted targets — updates automatically when activeDayISO changes.
+  const resolvedTargets = usePerformanceNutrition(clientId);
   // hybrid: performance is macro-sensitive, not just calorie-sensitive.
   // Drop constraint if significantly over in calories (>100) OR carbs (>20g) — both matter for athlete outcomes.
   const remainingMacrosForChef = useMemo(() => {
@@ -347,7 +349,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   // Build StarchContext for Create With Chef modal
   const starchContext: StarchContext | undefined = useMemo(() => {
     if (!board || !activeDayISO) return undefined;
-    const resolved = clientId ? getResolvedTargets(clientId) : null;
+    const resolved = resolvedTargets;
     const strategy = resolved?.starchStrategy || 'one';
     const dayLists = getDayLists(board, activeDayISO);
     const existingMeals: StarchContext['existingMeals'] = [];
@@ -358,7 +360,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       }
     }
     return { strategy, existingMeals };
-  }, [board, activeDayISO, clientId]);
+  }, [board, activeDayISO, resolvedTargets]);
 
   // Snack Creator modal state (Phase 2)
   const [snackCreatorOpen, setSnackCreatorOpen] = useState(false);
@@ -446,6 +448,13 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       setActiveDayISO(todayInWeek ?? weekDatesList[0]);
     }
   }, [weekDatesList, activeDayISO]);
+
+  // Broadcast the active day to the shared performance date signal.
+  // This keeps macroResolver, biometrics, and the Hub all in sync with
+  // whichever day is selected in this builder.
+  useEffect(() => {
+    if (activeDayISO) setPerfSelectedDate(activeDayISO);
+  }, [activeDayISO]);
 
   // 🔋 Load AI meals from localStorage on mount or day change
   useEffect(() => {
@@ -632,15 +641,17 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
 
         setBoard(updatedBoard);
-        fetchImageForMeal(transformedMeal, slot, (mealId, imageUrl) => {
-          setBoard(prev => {
-            if (!prev) return prev;
-            if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
-            const updated = updateMealImageInBoard(prev, mealId, imageUrl);
-            saveBoard(updated).catch(() => {});
-            return updated;
+        if (!transformedMeal.imageUrl) {
+          fetchImageForMeal(transformedMeal, slot, (mealId, imageUrl) => {
+            setBoard(prev => {
+              if (!prev) return prev;
+              if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
+              const updated = updateMealImageInBoard(prev, mealId, imageUrl);
+              saveBoard(updated).catch(() => {});
+              return updated;
+            });
           });
-        });
+        }
         toast({
           title: "AI Meal Added!",
           description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === slot)?.[1]}`,
@@ -698,14 +709,15 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           description: `${snack.title} added successfully`,
         });
 
-        // Trigger proper image pipeline — matches Chef/Craving Creator flow
-        fetchImageForMeal({ id: snack.id, name: snack.name }, 'snacks', (mealId, imageUrl) => {
-          setBoard(prev => {
-            if (!prev) return prev;
-            if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
-            return updateMealImageInBoard(prev, mealId, imageUrl);
+        if (!snack.imageUrl) {
+          fetchImageForMeal({ id: snack.id, name: snack.name }, 'snacks', (mealId, imageUrl) => {
+            setBoard(prev => {
+              if (!prev) return prev;
+              if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
+              return updateMealImageInBoard(prev, mealId, imageUrl);
+            });
           });
-        });
+        }
 
         setSnackPickerOpen(false);
       } catch (error) {
@@ -784,16 +796,16 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     setPickerOpen(true);
   }
 
-  // Resolved macro targets (coach override → Macro Calculator baseline)
+  // Resolved macro targets — reactive, updates when selected day changes
   const coachMacroTargets = useMemo(() => {
-    const resolved = getResolvedTargets(clientId);
+    const resolved = resolvedTargets;
     return {
       calories: resolved.calories || 0,
       protein: resolved.protein_g || 0,
       carbs: resolved.carbs_g || 0,
       fat: resolved.fat_g || 0,
     };
-  }, [clientId]);
+  }, [resolvedTargets]);
 
   // Handle Set Macros to Biometrics
   const handleSetMacrosToBiometrics = useCallback(() => {
@@ -879,7 +891,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         className="px-4"
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${mode === "procare" ? '9rem' : '6rem'})` }}
       >
-        <NutritionBudgetBanner className="mb-2" userId={clientId || user?.id} />
+        {/* NutritionBudgetBanner hidden — restore when reactivity is fixed */}
         {/* Header - Week Navigation */}
         <div className="mb-6 border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl">
           <div className="px-4 py-4 flex flex-col gap-3">
@@ -1341,16 +1353,13 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             <DailyTargetsCard
               userId={clientId}
               showQuickAddButton={false}
-              targetsOverride={(() => {
-                const resolved = getResolvedTargets(clientId);
-                return {
-                  protein_g: resolved.protein_g || 0,
-                  carbs_g: resolved.carbs_g || 0,
-                  fat_g: resolved.fat_g || 0,
-                  starchyCarbs_g: resolved.starchyCarbs_g,
-                  fibrousCarbs_g: resolved.fibrousCarbs_g,
-                };
-              })()}
+              targetsOverride={{
+                protein_g: resolvedTargets.protein_g || 0,
+                carbs_g: resolvedTargets.carbs_g || 0,
+                fat_g: resolvedTargets.fat_g || 0,
+                starchyCarbs_g: resolvedTargets.starchyCarbs_g,
+                fibrousCarbs_g: resolvedTargets.fibrousCarbs_g,
+              }}
             />
           </div>
 
@@ -1404,7 +1413,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 fibrousCarbs: slots.breakfast.fibrousCarbs + slots.lunch.fibrousCarbs + slots.dinner.fibrousCarbs + slots.snacks.fibrousCarbs,
               };
               const dayAlreadyLocked = isDayLocked(activeDayISO, clientId);
-              const resolved = getResolvedTargets(clientId);
+              const resolved = resolvedTargets;
               
               if (proClientId) return null;
               return (
@@ -1456,15 +1465,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         queryClient.invalidateQueries({ queryKey: ["/api/users", clientId, "macros", "today"] });
                         queryClient.invalidateQueries({ queryKey: ["/api/users", clientId, "macro-logs", "daily"] });
                         window.dispatchEvent(new Event("macros:updated"));
-                        setQuickView({
-                          protein: consumed.protein,
-                          carbs: consumed.carbs,
-                          fat: consumed.fat,
-                          calories: consumed.calories,
-                          starchyCarbs: consumed.starchyCarbs,
-                          fibrousCarbs: consumed.fibrousCarbs,
-                          dateISO: activeDayISO,
-                        });
                         toast({
                           title: "Day Saved to Coach Targets",
                           description: `${formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,

@@ -811,28 +811,9 @@ export default function ChefsKitchenPage() {
                         onClick={async () => {
                           addRecentMealChef(option.name);
                           setIsPlatingMeal(true);
-                          let finalMeal = { ...option };
-                          try {
-                            const controller = new AbortController();
-                            const timeout = setTimeout(() => controller.abort(), 20000);
-                            const imgRes = await fetch(apiUrl("/api/meals/generate-image"), {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              signal: controller.signal,
-                              body: JSON.stringify({
-                                mealName: option.name,
-                                ingredients: (option.ingredients || []).map((i: any) => i.name || i),
-                                mealType: "dinner",
-                              }),
-                            });
-                            clearTimeout(timeout);
-                            if (imgRes.ok) {
-                              const imgData = await imgRes.json();
-                              if (imgData.imageUrl) {
-                                finalMeal = { ...finalMeal, imageUrl: imgData.imageUrl };
-                              }
-                            }
-                          } catch {}
+                          // Image is now returned inline with meal options from the server —
+                          // no separate image request needed.
+                          const finalMeal = { ...option };
                           const srcN = finalMeal.nutrition || {};
                           const normalizedOption: GeneratedMeal = {
                             id: finalMeal.id || crypto.randomUUID(),

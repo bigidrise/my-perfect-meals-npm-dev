@@ -241,32 +241,41 @@ export default function BeverageCreator() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
-  // On mount: if a beverage was restored from localStorage but the imageUrl was
-  // stripped (because it was a base64 blob that couldn't be persisted), re-fetch
-  // it now. By the time the user comes back the background S3 upload has finished
-  // so the DB cache will return a small, persistent S3 URL.
+  // Write-back: whenever generatedBeverage is set (on mount-restore OR after a new generation)
+  // and imageUrl is missing or still a data: URL, fetch the permanent S3 URL and write it
+  // back into state. The localStorage save effect below fires again once imageUrl is an S3
+  // URL, so subsequent restores always have a valid imageUrl. The S3-URL guard at the top
+  // makes this safe to run on every generatedBeverage change without looping.
   useEffect(() => {
-    if (generatedBeverage && !generatedBeverage.imageUrl && generatedBeverage.name) {
-      setBeverageImageLoading(true);
-      fetch(apiUrl("/api/meals/generate-image"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mealId: generatedBeverage.id, mealName: generatedBeverage.name, mealType: "beverages", ingredients: generatedBeverage.ingredients || [] }),
-      })
-        .then(r => r.json())
-        .then(d => { if (d.imageUrl) setGeneratedBeverage(prev => prev ? { ...prev, imageUrl: d.imageUrl } : prev); })
-        .catch(() => {})
-        .finally(() => setBeverageImageLoading(false));
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!generatedBeverage) return;
+    const url = generatedBeverage.imageUrl;
+    if (url && !url.startsWith('data:')) return; // Already has an S3 URL — nothing to do
+    if (!generatedBeverage.name) return;
+
+    setBeverageImageLoading(true);
+    fetch(apiUrl("/api/meals/generate-image"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mealId: generatedBeverage.id,
+        mealName: generatedBeverage.name,
+        mealType: "beverages",
+        ingredients: generatedBeverage.ingredients || [],
+      }),
+    })
+      .then(r => r.json())
+      .then(d => { if (d.imageUrl) setGeneratedBeverage((prev: any) => prev ? { ...prev, imageUrl: d.imageUrl } : prev); })
+      .catch(() => {})
+      .finally(() => setBeverageImageLoading(false));
+  }, [generatedBeverage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (generatedBeverage) {
       try {
         // Never save a base64 data URL to localStorage — it's too large and will
         // silently fail quota, losing the imageUrl on the next restore.
-        // The background S3 upload will complete shortly; the mount effect below
-        // re-fetches the (now-cached) S3 URL on the next page load.
+        // The write-back effect above re-fetches the S3 URL on mount so the next
+        // save always carries a valid imageUrl.
         const toSave = generatedBeverage.imageUrl?.startsWith('data:')
           ? { ...generatedBeverage, imageUrl: undefined }
           : generatedBeverage;
@@ -445,19 +454,7 @@ export default function BeverageCreator() {
 
       stopProgressTicker();
       setGeneratedBeverage(meal);
-      // Fire image async — non-blocking
-      setBeverageImageLoading(true);
-      fetch(apiUrl("/api/meals/generate-image"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mealId: meal.id, mealName: meal.name, mealType: "beverages", ingredients: meal.ingredients }),
-      })
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.imageUrl) setGeneratedBeverage((prev: any) => prev ? { ...prev, imageUrl: d.imageUrl } : prev);
-        })
-        .catch(() => {})
-        .finally(() => setBeverageImageLoading(false));
+      setBeverageImageLoading(false); // Image is returned inline from the server
 
       toast({
         title: "✨ Drink Created!",
@@ -821,12 +818,26 @@ export default function BeverageCreator() {
                     {generatedBeverage.description}
                   </p>
 
-                  <MealImageSlot
-                    imageUrl={generatedBeverage.imageUrl}
-                    mealName={generatedBeverage.name}
-                    sourceType="beverage"
-                    isLoading={beverageImageLoading}
-                  />
+                  {generatedBeverage.imageUrl ? (
+                    <MealImageSlot
+                      imageUrl={generatedBeverage.imageUrl}
+                      mealName={generatedBeverage.name}
+                      sourceType="beverage"
+                      isLoading={beverageImageLoading}
+                    />
+                  ) : (
+                    <div className="mb-4 p-4 rounded-xl bg-black/40 border border-orange-400/30 text-center">
+                      <p className="text-white/70 text-sm mb-3">
+                        This result was saved in an older session before images were stored. Generate a fresh beverage to get your image.
+                      </p>
+                      <button
+                        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                        className="px-4 py-2 rounded-full bg-orange-600 text-white text-sm font-medium"
+                      >
+                        Scroll up to regenerate
+                      </button>
+                    </div>
+                  )}
 
                   <div className="mb-4 p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-lg">
                     <div className="flex items-center gap-2 text-sm text-white">

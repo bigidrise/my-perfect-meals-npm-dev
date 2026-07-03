@@ -46,23 +46,39 @@ export interface SessionModifier {
 }
 
 export interface PerformanceProtocolConfig {
-  baselineCalories: number;
-  baselineProteinG: number;
-  baselineCarbsG:   number;
-  baselineFatG:     number;
+  // baselineCalories/Protein/Carbs/Fat are DEPRECATED.
+  // Performance Protocol does not own baseline macros — the Macro Calculator does.
+  // These fields remain here only for backward compatibility with old DB records.
+  // resolveTodayTargets() ignores them when a fresh `baseline` is passed.
+  baselineCalories?: number;
+  baselineProteinG?: number;
+  baselineCarbsG?:   number;
+  baselineFatG?:     number;
   sessionModifiers: Record<SessionType, SessionModifier>;
   generatedAt: string;
+}
+
+/** Live baseline supplied by the Macro Calculator — always from DB columns, never from a snapshot. */
+export interface MacroBaseline {
+  calories:      number;
+  proteinG:      number;
+  carbsG:        number;
+  fatG:          number;
+  starchyCarbsG: number;
+  fibrousCarbsG: number;
 }
 
 export interface ResolvedSessionTargets {
   sessionType:   SessionType;
   sessionLabel:  string;
   trainingPhase: TrainingPhase;
-  calories:  number;
-  proteinG:  number;
-  carbsG:    number;
-  fatG:      number;
-  description: string;
+  calories:      number;
+  proteinG:      number;
+  carbsG:        number;
+  fatG:          number;
+  starchyCarbsG: number;
+  fibrousCarbsG: number;
+  description:   string;
 }
 
 export const SESSION_LABELS: Record<SessionType, string> = {
@@ -141,21 +157,33 @@ export function buildDefaultModifiers(primaryGoal: string): Record<SessionType, 
 
 /**
  * Resolve today's macro targets from a weekly training schedule + protocol config.
+ *
+ * `baseline` must be the live Macro Calculator values from the DB
+ * (dailyCalorieTarget / dailyProteinTarget / dailyCarbsTarget / dailyFatTarget).
+ * It is never read from `config` — the protocol config no longer stores a baseline snapshot.
+ *
+ * For backward compatibility with old DB records that still carry baselineCalories etc.,
+ * those fields are silently ignored when `baseline` is supplied.
+ *
  * Pure function — pass `now` for testability; defaults to current system time.
  */
 export function resolveTodayTargets(
   schedule: WeeklyTrainingSchedule,
   config: PerformanceProtocolConfig,
+  baseline: MacroBaseline,
   now: Date = new Date(),
 ): ResolvedSessionTargets {
   const dayKey   = getDayKey(now);
   const sessionType: SessionType = (schedule[dayKey] as SessionType) ?? "off";
   const mod      = config.sessionModifiers[sessionType] ?? { carbsAdjustG: 0, caloriesAdjustKcal: 0, proteinAdjustG: 0 };
 
-  const calories = Math.max(0, config.baselineCalories + mod.caloriesAdjustKcal);
-  const proteinG = Math.max(0, config.baselineProteinG + mod.proteinAdjustG);
-  const carbsG   = Math.max(0, config.baselineCarbsG   + mod.carbsAdjustG);
-  const fatG     = config.baselineFatG;
+  const calories      = Math.max(0, baseline.calories + mod.caloriesAdjustKcal);
+  const proteinG      = Math.max(0, baseline.proteinG  + mod.proteinAdjustG);
+  const carbsG        = Math.max(0, baseline.carbsG    + mod.carbsAdjustG);
+  const fatG          = baseline.fatG;
+  // Training carb adjustments apply to starchy carbs only — fibrous carbs are fixed.
+  const starchyCarbsG = Math.max(0, baseline.starchyCarbsG + mod.carbsAdjustG);
+  const fibrousCarbsG = baseline.fibrousCarbsG;
 
   return {
     sessionType,
@@ -165,6 +193,8 @@ export function resolveTodayTargets(
     proteinG,
     carbsG,
     fatG,
+    starchyCarbsG,
+    fibrousCarbsG,
     description: SESSION_DESCRIPTIONS[sessionType],
   };
 }

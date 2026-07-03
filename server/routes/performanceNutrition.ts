@@ -485,11 +485,9 @@ router.post("/schedule", async (req, res) => {
       updatedAt: now,
     };
 
+    // Performance Protocol only stores schedule modifiers — NOT a baseline snapshot.
+    // The Macro Calculator (dailyCalorieTarget etc.) remains the sole owner of baseline macros.
     const performanceProtocolConfig = {
-      baselineCalories: resolvedBaseCalories,
-      baselineProteinG: resolvedBaseProtein,
-      baselineCarbsG:   resolvedBaseCarbs,
-      baselineFatG:     resolvedBaseFat,
       sessionModifiers,
       generatedAt: now,
     };
@@ -503,7 +501,13 @@ router.post("/schedule", async (req, res) => {
       .where(eq(users.id, userId));
 
     const { resolveTodayTargets } = await import("../services/protocol/performanceProtocolResolver");
-    const todayTargets = resolveTodayTargets(weeklyTrainingSchedule as any, performanceProtocolConfig as any);
+    const liveBaseline = {
+      calories: resolvedBaseCalories,
+      proteinG:  resolvedBaseProtein,
+      carbsG:    resolvedBaseCarbs,
+      fatG:      resolvedBaseFat,
+    };
+    const todayTargets = resolveTodayTargets(weeklyTrainingSchedule as any, performanceProtocolConfig as any, liveBaseline);
 
     console.log(`[APN] Schedule saved for user ${userId} — today: ${todayTargets.sessionType} (${todayTargets.calories} kcal)`);
 
@@ -528,6 +532,12 @@ router.get("/today", async (req, res) => {
       .select({
         weeklyTrainingSchedule:    users.weeklyTrainingSchedule,
         performanceProtocolConfig: users.performanceProtocolConfig,
+        dailyCalorieTarget:        users.dailyCalorieTarget,
+        dailyProteinTarget:        users.dailyProteinTarget,
+        dailyCarbsTarget:          users.dailyCarbsTarget,
+        dailyFatTarget:            users.dailyFatTarget,
+        dailyStarchyCarbsTarget:   (users as any).dailyStarchyCarbsTarget,
+        dailyFibrousCarbsTarget:   (users as any).dailyFibrousCarbsTarget,
       } as any)
       .from(users)
       .where(eq(users.id, userId))
@@ -540,10 +550,49 @@ router.get("/today", async (req, res) => {
       return res.json({ configured: false, message: "Performance schedule not yet configured." });
     }
 
-    const { resolveTodayTargets } = await import("../services/protocol/performanceProtocolResolver");
-    const today = resolveTodayTargets(schedule, config);
+    // Optional ?date=YYYY-MM-DD param — allows the hub to view any day's coaching plan
+    const rawDateParam = typeof req.query.date === "string" ? req.query.date : null;
+    const targetDate   = rawDateParam ? new Date(rawDateParam + "T12:00:00") : new Date();
 
-    res.json({ configured: true, ...today });
+    // Fetch macro log totals for the target date (today's logs when no date param)
+    const { macroLogs } = await import("../../shared/schema");
+    const logStart = new Date(targetDate); logStart.setHours(0, 0, 0, 0);
+    const logEnd   = new Date(targetDate); logEnd.setHours(23, 59, 59, 999);
+    const [logged] = await db
+      .select({
+        calories:      sql<number>`COALESCE(SUM(${macroLogs.kcal}), 0)`,
+        proteinG:      sql<number>`COALESCE(SUM(${macroLogs.protein}), 0)`,
+        carbsG:        sql<number>`COALESCE(SUM(${macroLogs.carbs}), 0)`,
+        fatG:          sql<number>`COALESCE(SUM(${macroLogs.fat}), 0)`,
+        starchyCarbsG: sql<number>`COALESCE(SUM(${macroLogs.starchyCarbs}), 0)`,
+        fibrousCarbsG: sql<number>`COALESCE(SUM(${macroLogs.fibrousCarbs}), 0)`,
+      })
+      .from(macroLogs)
+      .where(
+        sql`${macroLogs.userId} = ${userId} AND ${macroLogs.at} >= ${logStart} AND ${macroLogs.at} <= ${logEnd}`
+      );
+
+    const { resolveTodayTargets } = await import("../services/protocol/performanceProtocolResolver");
+    // Baseline always comes from the live Macro Calculator columns — never from the config snapshot.
+    const rawStarchy = (userRow as any)?.dailyStarchyCarbsTarget ?? null;
+    const rawFibrous = (userRow as any)?.dailyFibrousCarbsTarget ?? null;
+    const baseCarbsG = (userRow as any)?.dailyCarbsTarget ?? 200;
+    const liveBaseline = {
+      calories:      (userRow as any)?.dailyCalorieTarget     ?? 2000,
+      proteinG:      (userRow as any)?.dailyProteinTarget     ?? 150,
+      carbsG:        baseCarbsG,
+      fatG:          (userRow as any)?.dailyFatTarget         ?? 65,
+      // If user hasn't set starchy/fibrous targets, estimate: 70% starchy / 30% fibrous of total carbs
+      starchyCarbsG: rawStarchy !== null ? Number(rawStarchy) : Math.round(baseCarbsG * 0.7),
+      fibrousCarbsG: rawFibrous !== null ? Number(rawFibrous) : Math.round(baseCarbsG * 0.3),
+    };
+    const today = resolveTodayTargets(schedule, config, liveBaseline, targetDate);
+
+    res.json({
+      configured: true,
+      ...today,
+      logged: logged ?? { calories: 0, proteinG: 0, carbsG: 0, fatG: 0, starchyCarbsG: 0, fibrousCarbsG: 0 },
+    });
   } catch (err: any) {
     console.error("[APN] /today error:", err);
     res.status(500).json({ error: "Internal server error" });

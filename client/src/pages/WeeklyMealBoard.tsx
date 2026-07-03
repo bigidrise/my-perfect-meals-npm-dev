@@ -109,7 +109,7 @@ import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
 import { useNavigateToFavorites } from "@/hooks/useNavigateToFavorites";
-import { getResolvedTargets } from "@/lib/macroResolver";
+import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { useCopilot } from "@/components/copilot/CopilotContext";
@@ -200,6 +200,10 @@ export default function WeeklyMealBoard() {
   const proClientId = proParams?.id;
 
   const effectiveUserId = proClientId || user?.id;
+
+  // Resolve nutrition ONCE at this level. Presentation components receive it as props.
+  // Baseline resolver — never applies Performance session modifiers.
+  const nutritionTargets = useBaselineNutrition(effectiveUserId);
 
   const quickTour = useQuickTour("weekly-meal-board");
 
@@ -428,8 +432,8 @@ export default function WeeklyMealBoard() {
     if (!board || !activeDayISO) return undefined;
 
     // Get the starch strategy from resolved targets (default to 'one' if no user/targets)
-    const resolved = effectiveUserId ? getResolvedTargets(effectiveUserId) : null;
-    const strategy = resolved?.starchStrategy || "one";
+    const resolved = nutritionTargets;
+    const strategy = resolved.starchStrategy || "one";
 
     // Get existing meals for the active day
     const dayLists = getDayLists(board, activeDayISO);
@@ -637,15 +641,17 @@ export default function WeeklyMealBoard() {
           await saveBoard(updatedBoard);
         }
 
-        fetchImageForMeal(meal, slot, (mealId, imageUrl) => {
-          setBoard(prev => {
-            if (!prev) return prev;
-            if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
-            const updated = updateMealImageInBoard(prev, mealId, imageUrl);
-            saveBoard(updated).catch(() => {});
-            return updated;
-          });
-        }, userDiet);
+        if (!meal.imageUrl) {
+          fetchImageForMeal(meal, slot, (mealId, imageUrl) => {
+            setBoard(prev => {
+              if (!prev) return prev;
+              if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
+              const updated = updateMealImageInBoard(prev, mealId, imageUrl);
+              saveBoard(updated).catch(() => {});
+              return updated;
+            });
+          }, userDiet);
+        }
 
         window.dispatchEvent(new Event("macros:updated"));
 
@@ -742,20 +748,22 @@ export default function WeeklyMealBoard() {
 
         // Trigger proper image pipeline — pass full snack with ingredients so the
         // DALL-E prompt has real food context. mealType normalized in useChefMealImage.
-        fetchImageForMeal(
-          { id: snack.id, name: snack.name, ingredients: snack.ingredients },
-          'snack',
-          (mealId, imageUrl) => {
-            setBoard(prev => {
-              if (!prev) return prev;
-              if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
-              const updated = updateMealImageInBoard(prev, mealId, imageUrl);
-              saveBoard(updated).catch(() => {});
-              return updated;
-            });
-          },
-          userDiet,
-        );
+        if (!snack.imageUrl) {
+          fetchImageForMeal(
+            { id: snack.id, name: snack.name, ingredients: snack.ingredients },
+            'snack',
+            (mealId, imageUrl) => {
+              setBoard(prev => {
+                if (!prev) return prev;
+                if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
+                const updated = updateMealImageInBoard(prev, mealId, imageUrl);
+                saveBoard(updated).catch(() => {});
+                return updated;
+              });
+            },
+            userDiet,
+          );
+        }
 
         // Dispatch walkthrough event for snacks
         const eventTarget = document.querySelector(
@@ -1327,8 +1335,7 @@ export default function WeeklyMealBoard() {
       >
         {/* Protocol Status Bar — active clinical protocols for this user */}
         <ProtocolStatusBar className="mb-1" />
-        {/* Nutrition Budget Banner - Phase 1: Read-only awareness */}
-        <NutritionBudgetBanner className="mb-2" userId={effectiveUserId} />
+        {/* NutritionBudgetBanner hidden — restore when reactivity is fixed */}
 
         <div className="mb-6 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl">
           <div className="px-4 py-4 flex flex-col gap-3">
@@ -1371,6 +1378,7 @@ export default function WeeklyMealBoard() {
                       ...dayLists.snacks,
                     ];
                   })()}
+                  strategyOverride={nutritionTargets.starchStrategy || 'one'}
                 />
               </div>
             )}
@@ -1604,7 +1612,7 @@ export default function WeeklyMealBoard() {
           <div hidden>
           <div className="col-span-full">
             {(() => {
-              const resolved = getResolvedTargets(effectiveUserId);
+              const resolved = nutritionTargets;
               const hasTargets =
                 (resolved.protein_g || 0) > 0 || (resolved.carbs_g || 0) > 0;
 
@@ -1795,6 +1803,7 @@ export default function WeeklyMealBoard() {
                 >
                   {!proClientId && <RemainingMacrosFooter
                     userId={effectiveUserId}
+                    targetsOverride={nutritionTargets}
                     consumedOverride={consumed}
                     showSaveButton={false}
                     layoutMode={isDay ? "inline" : "sticky"}
@@ -2010,20 +2019,8 @@ export default function WeeklyMealBoard() {
           open={additionalMacrosOpen}
           onClose={() => setAdditionalMacrosOpen(false)}
           onAdd={(meal) => quickAdd("snacks", meal)}
-          proteinDeficit={(() => {
-            const resolved = getResolvedTargets(effectiveUserId);
-            return Math.max(
-              0,
-              (resolved.protein_g || 0) - Math.round(totals.protein),
-            );
-          })()}
-          carbsDeficit={(() => {
-            const resolved = getResolvedTargets(effectiveUserId);
-            return Math.max(
-              0,
-              (resolved.carbs_g || 0) - Math.round(totals.carbs),
-            );
-          })()}
+          proteinDeficit={Math.max(0, (nutritionTargets.protein_g || 0) - Math.round(totals.protein))}
+          carbsDeficit={Math.max(0, (nutritionTargets.carbs_g || 0) - Math.round(totals.carbs))}
         />
       </div>
     </motion.div>

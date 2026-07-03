@@ -57,13 +57,13 @@ const TRAINING_FREQS: { value: TrainingFrequency; label: string }[] = [
 ];
 
 const CARDIO_OPTS: { value: CardioFocus; label: string; desc: string }[] = [
-  { value: "none",      label: "No Cardio",   desc: "Pure strength / skill focus" },
-  { value: "recovery",  label: "Recovery",    desc: "Zone 1 — easy movement only" },
-  { value: "zone_2",    label: "Zone 2",      desc: "Aerobic base, fat oxidation" },
-  { value: "tempo",     label: "Tempo",       desc: "Zone 3 — aerobic threshold" },
-  { value: "threshold", label: "Threshold",   desc: "Zone 4 — lactate threshold" },
-  { value: "hiit",      label: "HIIT",        desc: "Zone 5 — high glycolytic" },
-  { value: "mixed",     label: "Mixed Zones", desc: "Varied cardio across sessions" },
+  { value: "none",      label: "No Cardio",          desc: "Pure strength or skill focus — no cardiovascular work" },
+  { value: "recovery",  label: "Walking / Recovery",  desc: "Light movement only — walks, stretching, easy bike" },
+  { value: "zone_2",    label: "Easy Cardio",         desc: "Comfortable pace you can hold a conversation — builds aerobic base" },
+  { value: "tempo",     label: "Moderate Cardio",     desc: "Steady, challenging effort — breathing hard but sustainable" },
+  { value: "threshold", label: "Hard Cardio",         desc: "High-intensity sustained effort — near your limit" },
+  { value: "hiit",      label: "Sprint Intervals",    desc: "Short all-out bursts with rest periods — max effort" },
+  { value: "mixed",     label: "Mixed Cardio",        desc: "Varies by session — some easy days, some hard days" },
 ];
 
 const ATHLETIC_PHASES: { value: AthleticPhase; label: string; desc: string }[] = [
@@ -123,14 +123,12 @@ const RECOVERY_STATUSES: { value: RecoveryStatus; label: string; desc: string }[
 ];
 
 const ADAPTATION_TARGETS: { value: AdaptationTarget; label: string; desc: string }[] = [
-  { value: "endurance",     label: "Endurance",     desc: "Aerobic base and long-duration output" },
-  { value: "conditioning",  label: "Conditioning",  desc: "Work capacity across energy systems" },
-  { value: "speed",         label: "Speed",         desc: "Sprint performance and fast-twitch output" },
-  { value: "power",         label: "Power",         desc: "Explosive force and peak strength" },
-  { value: "work_capacity", label: "Work Capacity", desc: "Volume tolerance and repeat-effort ability" },
-  { value: "recovery",      label: "Recovery",      desc: "Anti-inflammatory, tissue repair, CNS reset" },
-  { value: "muscle_gain",   label: "Muscle Gain",   desc: "Hypertrophy and anabolic support" },
-  { value: "fat_loss",      label: "Fat Loss",      desc: "Calorie partitioning and lean mass preservation" },
+  { value: "endurance",     label: "Endurance",     desc: "Build your aerobic engine — longer efforts, better stamina" },
+  { value: "conditioning",  label: "Conditioning",  desc: "All-around fitness across multiple energy systems" },
+  { value: "speed",         label: "Speed",         desc: "Sprint faster — explosive, fast-twitch training focus" },
+  { value: "power",         label: "Power",         desc: "Move heavy things fast — strength meets explosiveness" },
+  { value: "work_capacity", label: "Work Capacity", desc: "Do more, recover faster — handle high training volumes" },
+  { value: "recovery",      label: "Active Recovery", desc: "Repair and recharge — anti-inflammatory, CNS reset" },
 ];
 
 const APN_SESSION_TYPES: { value: APNSessionType; label: string; short: string; desc: string }[] = [
@@ -478,18 +476,16 @@ export default function PerformanceNutritionSetupForm({ onSave }: PerformanceNut
                 </PillButton>
               ))}
             </div>
-            <div className="bg-white/5 rounded-xl px-4 py-3 border border-white/10">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-white font-semibold text-sm">Training twice per day?</p>
-                  <p className="text-white/40 text-xs mt-0.5">Enables 2-a-day recovery meal guidance</p>
-                </div>
-                <button
-                  onClick={() => setTwoADays(v => !v)}
-                  className={`w-12 h-6 rounded-full transition-colors relative ${twoADays ? "bg-orange-500" : "bg-white/20"}`}
-                >
-                  <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${twoADays ? "translate-x-6" : "translate-x-0.5"}`} />
-                </button>
+            <div className="bg-white/5 rounded-xl px-4 py-4 border border-white/10">
+              <p className="text-white font-semibold text-sm mb-1">Do you train twice per day?</p>
+              <p className="text-white/50 text-xs mb-3">Enables recovery meal guidance between sessions</p>
+              <div className="flex gap-3">
+                <PillButton active={twoADays === true} onClick={() => setTwoADays(true)}>
+                  Yes
+                </PillButton>
+                <PillButton active={twoADays === false} onClick={() => setTwoADays(false)}>
+                  No
+                </PillButton>
               </div>
             </div>
           </div>
@@ -614,17 +610,27 @@ export default function PerformanceNutritionSetupForm({ onSave }: PerformanceNut
         {/* ── Athletic: Step 8 — Adaptation Target ── */}
         {track === "athletic" && step === 8 && (
           <div>
-            <p className="text-white font-bold text-xl mb-1">What are you adapting for?</p>
-            <p className="text-white/50 text-sm mb-5">Your adaptation target drives the demand engine — every meal generated is calibrated to support this outcome.</p>
-            <div className="flex flex-wrap gap-2">
+            <p className="text-white font-bold text-xl mb-1">What's your athletic focus?</p>
+            <p className="text-white/50 text-sm mb-5">Pick what you're training <em>for</em> — this calibrates carb timing, energy system support, and meal composition.</p>
+            <div className="space-y-2">
               {ADAPTATION_TARGETS.map(a => (
-                <PillButton
+                <button
                   key={a.value}
-                  active={adaptationTarget === a.value}
                   onClick={() => setAdaptationTarget(a.value)}
+                  className={`w-full text-left px-4 py-3 rounded-xl border transition-colors ${
+                    adaptationTarget === a.value
+                      ? "bg-orange-600/20 border-orange-400/60 text-white"
+                      : "bg-white/5 border-white/10 text-white/70"
+                  }`}
                 >
-                  {a.label}
-                </PillButton>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-sm">{a.label}</p>
+                      <p className="text-xs text-white/40 mt-0.5">{a.desc}</p>
+                    </div>
+                    {adaptationTarget === a.value && <Check className="w-4 h-4 text-orange-400 flex-shrink-0" />}
+                  </div>
+                </button>
               ))}
             </div>
             {adaptationTarget && (
@@ -666,32 +672,27 @@ export default function PerformanceNutritionSetupForm({ onSave }: PerformanceNut
             )}
 
             <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-3">Week Schedule</p>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {APN_DAYS.map(day => {
                 const selected     = weeklySchedule[day.key];
                 const selectedInfo = APN_SESSION_TYPES.find(s => s.value === selected);
                 return (
-                  <div key={day.key}>
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-white/60 text-xs font-semibold w-8 shrink-0">{day.label}</span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {APN_SESSION_TYPES.map(s => (
-                          <button
-                            key={s.value}
-                            onClick={() => setWeeklySchedule(prev => ({ ...prev, [day.key]: s.value }))}
-                            className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
-                              selected === s.value
-                                ? "bg-orange-600 text-white"
-                                : "bg-white/8 text-white/50 border border-white/10"
-                            }`}
-                          >
-                            {s.short}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                  <div key={day.key} className="flex items-center gap-3">
+                    <span className="text-white/60 text-xs font-semibold w-8 shrink-0">{day.label}</span>
+                    <select
+                      value={selected}
+                      onChange={e => setWeeklySchedule(prev => ({ ...prev, [day.key]: e.target.value as APNSessionType }))}
+                      className="flex-1 bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-white text-sm font-semibold outline-none focus:border-orange-500/60 transition-colors appearance-none"
+                      style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ffffff60' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center" }}
+                    >
+                      {APN_SESSION_TYPES.map(s => (
+                        <option key={s.value} value={s.value} className="bg-zinc-900 text-white">
+                          {s.label}
+                        </option>
+                      ))}
+                    </select>
                     {selectedInfo && selected !== "off" && (
-                      <p className="text-white/30 text-xs ml-10 leading-relaxed">{selectedInfo.desc}</p>
+                      <span className="text-white/30 text-xs leading-relaxed hidden sm:block max-w-[140px] shrink-0">{selectedInfo.desc.split("—")[0].trim()}</span>
                     )}
                   </div>
                 );
