@@ -67,8 +67,7 @@ import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
-import { UniversalDialog } from "@/components/ui/universal-modal";
-import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { InformationModal } from "@/components/ui/universal-modal";
 
 import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { SnackCreatorButton } from "@/components/SnackCreatorButton";
@@ -1310,19 +1309,13 @@ export default function WeeklyMealBoard() {
       />
 
       {/* Daily Totals Info Modal - Next Steps After First Meal */}
-      <UniversalDialog rawLayout open={showDailyTotalsInfo} onOpenChange={(open) => {
+      <InformationModal open={showDailyTotalsInfo} onOpenChange={(open) => {
         if (!open) {
           setShowDailyTotalsInfo(false);
           setHasSeenDailyTotalsInfo(true);
           localStorage.setItem("weekly-meal-board-daily-totals-info-seen", "true");
         }
-      }} className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md mx-auto rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-white text-xl flex items-center gap-2">
-              <Sparkles className="h-6 w-6 text-orange-400" />
-              Next Steps - Track Your Progress!
-            </DialogTitle>
-          </DialogHeader>
+      }} className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md mx-auto rounded-2xl" title={<span className="flex items-center gap-2"><Sparkles className="h-6 w-6 text-orange-400" />Next Steps - Track Your Progress!</span>}>
           <div className="text-white/90 text-sm space-y-4">
             <p className="text-base font-semibold text-white">
               Great job creating your meals! Here's what to do next:
@@ -1377,7 +1370,7 @@ export default function WeeklyMealBoard() {
               Next: Check out the Shopping List to learn how to use it effectively!
             </p>
           </div>
-      </UniversalDialog>
+      </InformationModal>
 
 
 

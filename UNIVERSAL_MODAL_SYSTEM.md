@@ -414,19 +414,30 @@ These workflow modals previously had `overflow-y-auto` on the outermost `DialogC
 | `CulturalRecipeEditor.tsx` | ✅ Header now sticks; body + form scroll |
 | `FamilyRecipeEditor.tsx` | ✅ Header now sticks; body + form scroll |
 
-### Phase 4 — Picker Modals (Pending)
+### Phase 4 — Picker Modals (DialogContent ban enforced; PickerModal typed migration pending)
 
 | Modal | Status | Notes |
 |---|---|---|
 | `MealPremadePicker.tsx` | 🔒 LOCKED | Protected under Meal Picker Lockdown Protocol (Nov 24 2025). No UI structure changes allowed without explicit approval. |
-| `AthleteMealPickerDrawer.tsx` | 🟡 Functional | `overflow-y-auto` on DialogContent; header scrolls with body. Migrate to `PickerModal` in next pass. |
-| `CompetitionMealPickerDrawer.tsx` | 🟡 Functional | Same pattern as AthleteMealPickerDrawer. |
-| `SnackPickerDrawer.tsx` | 🟡 Functional | `max-h-[85vh]` with no scroll — content may clip. Migrate to `PickerModal`. |
-| `ReplaceMealMenu.tsx` | 🟡 Functional | `max-w-4xl` + tab-based layout. Migrate to `WorkflowModal`. |
+| `AthleteMealPickerDrawer.tsx` | 🟡 rawLayout | `DialogContent` import removed; uses `UniversalDialog rawLayout`. Migrate to `PickerModal` in next pass. |
+| `CompetitionMealPickerDrawer.tsx` | 🟡 rawLayout | Same — migrate to `PickerModal`. |
+| `SnackPickerDrawer.tsx` | 🟡 rawLayout | Same — migrate to `PickerModal`. |
+| `ReplaceMealMenu.tsx` | 🟡 rawLayout | `DialogContent` import removed; uses `UniversalDialog rawLayout`. Migrate to `WorkflowModal`. |
 
-### Phase 5 — Remaining Modals (Pending)
+### Phase 5 — Remaining Modals (DialogContent ban enforced; rawLayout cleanup ongoing)
 
-InspirationCaptureModal, BreakfastMealsHub, CookingInstructionsModal, and ~30 simpler modals. Migrate as touched. Each must pass the QA checklist before shipping.
+**Enforcement state:** Every file in `client/src` now uses a typed component from `universal-modal.tsx` — no file imports `DialogContent` directly except `universal-modal.tsx` and `command.tsx`. The ESLint `no-restricted-imports` rule makes this a hard CI failure going forward.
+
+**rawLayout cleanup:** ~15 component files still use `UniversalDialog rawLayout` (they removed the `DialogContent` import violation, but haven't completed the upgrade to fully-typed components). These are flagged by the new `no-restricted-syntax` ESLint rule (warn). Files being phased out: `ProtocolDowngradeModal`, `ThyroidRecommendationModal`, `ProtocolRecommendationModal`, `GuestUpgradePromptModal`, `TierUpgradeModal`, `WorkspaceSelectionModal`, `UpgradeLockModal`, `InspirationCaptureModal`, `ExportPhysicianReportButton`, `CreateWithChefModal`, `SnackCreatorModal`, `ProClientFolderModal`, `QuickTourModal`.
+
+**rawLayout policy:** `rawLayout` is an escape hatch for complex modals with custom sticky-header structures that cannot be expressed through typed component props. It is **not** a migration default. Currently documented exceptions (lint rule suppressed):
+
+| File | Reason |
+|---|---|
+| `BreakfastMealsHub.tsx` | Custom sticky meal-detail header with complex multi-section layout |
+| `MealHubFactory.tsx` | Same pattern as BreakfastMealsHub |
+
+Any new use of `rawLayout` outside these files is flagged by the ESLint `no-restricted-syntax` rule (warn). Overrides require explicit justification in code review.
 
 ---
 

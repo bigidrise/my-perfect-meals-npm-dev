@@ -16,8 +16,7 @@ import { PillButton } from "@/components/ui/pill-button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { UniversalDialog } from "@/components/ui/universal-modal";
-import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { InformationModal, ConfirmationModal } from "@/components/ui/universal-modal";
 import {
   Popover,
   PopoverContent,
@@ -1856,13 +1855,7 @@ export default function MyBiometrics() {
                     (tap)
                   </span>
                 </Button>
-                <UniversalDialog rawLayout open={showPersistentInfo} onOpenChange={setShowPersistentInfo} className="bg-black/90 backdrop-blur-lg border-white/20 text-white max-w-md">
-                    <DialogHeader>
-                      <DialogTitle className="text-white flex items-center gap-2">
-                        <Info className="h-5 w-5 text-orange-400" />
-                        What Does "Persistent" Mean?
-                      </DialogTitle>
-                    </DialogHeader>
+                <InformationModal open={showPersistentInfo} onOpenChange={setShowPersistentInfo} className="bg-black/90 backdrop-blur-lg border-white/20 text-white max-w-md" title={<span className="flex items-center gap-2"><Info className="h-5 w-5 text-orange-400" />What Does "Persistent" Mean?</span>}>
                     <div className="space-y-4 pt-4">
                       <p className="text-white/90 text-sm leading-relaxed">
                         <strong className="text-orange-300">
@@ -1913,7 +1906,7 @@ export default function MyBiometrics() {
                         </div>
                       )}
                     </div>
-                </UniversalDialog>
+                </InformationModal>
               </div>
 
               {/* Pro-set badge (if targets are set by professional) */}
@@ -2693,53 +2686,46 @@ export default function MyBiometrics() {
       />
 
       {/* MODAL #1 — Guide modal: shown on arrival from Add to Macros / Save Day */}
-      <UniversalDialog rawLayout open={showGuideModal} onOpenChange={setShowGuideModal} className="bg-black/90 backdrop-blur-lg border-white/20 text-white max-w-sm mx-4">
-          <DialogHeader>
-            <DialogTitle className="text-white text-lg">Go to Quick View</DialogTitle>
-          </DialogHeader>
-          <p className="text-white/80 text-sm leading-relaxed">
-            Scroll up to find the <strong className="text-orange-300">Quick View</strong> section, then tap <strong className="text-white">Add to Today</strong> to log your macros.
-          </p>
-          <div className="flex justify-end mt-2">
-            <Button
-              onClick={() => {
-                setShowGuideModal(false);
-                setHighlightQv(true);
-              }}
-              className="bg-orange-600 hover:bg-orange-700 text-white px-6"
-            >
-              OK
-            </Button>
-          </div>
-      </UniversalDialog>
+      <ConfirmationModal open={showGuideModal} onOpenChange={setShowGuideModal} className="bg-black/90 backdrop-blur-lg border-white/20 text-white max-w-sm mx-4" title="Go to Quick View" footer={
+        <Button
+          onClick={() => {
+            setShowGuideModal(false);
+            setHighlightQv(true);
+          }}
+          className="bg-orange-600 hover:bg-orange-700 text-white px-6"
+        >
+          OK
+        </Button>
+      }>
+        <p className="text-white/80 text-sm leading-relaxed">
+          Scroll up to find the <strong className="text-orange-300">Quick View</strong> section, then tap <strong className="text-white">Add to Today</strong> to log your macros.
+        </p>
+      </ConfirmationModal>
 
       {/* MODAL #2 — Next action modal: shown after Add to Today or Dismiss */}
-      <UniversalDialog rawLayout open={showNextActionModal} onOpenChange={setShowNextActionModal} className="bg-black/90 backdrop-blur-lg border-white/20 text-white max-w-sm mx-4">
-          <DialogHeader>
-            <DialogTitle className="text-white text-lg">What would you like to do next?</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col gap-3 mt-2">
-            <Button
-              onClick={() => {
-                const returnTo = sessionStorage.getItem("biometrics:returnTo");
-                sessionStorage.removeItem("biometrics:returnTo");
-                setShowNextActionModal(false);
-                if (returnTo) {
-                  setLocation(returnTo);
-                }
-              }}
-              className="bg-orange-600 hover:bg-orange-700 text-white w-full"
-            >
-              Return to Previous Page
-            </Button>
-            <Button
-              onClick={() => setShowNextActionModal(false)}
-              className="bg-black text-white w-full"
-            >
-              Stay on Biometrics
-            </Button>
-          </div>
-      </UniversalDialog>
+      <ConfirmationModal open={showNextActionModal} onOpenChange={setShowNextActionModal} className="bg-black/90 backdrop-blur-lg border-white/20 text-white max-w-sm mx-4" title="What would you like to do next?">
+        <div className="flex flex-col gap-3 mt-2">
+          <Button
+            onClick={() => {
+              const returnTo = sessionStorage.getItem("biometrics:returnTo");
+              sessionStorage.removeItem("biometrics:returnTo");
+              setShowNextActionModal(false);
+              if (returnTo) {
+                setLocation(returnTo);
+              }
+            }}
+            className="bg-orange-600 hover:bg-orange-700 text-white w-full"
+          >
+            Return to Previous Page
+          </Button>
+          <Button
+            onClick={() => setShowNextActionModal(false)}
+            className="bg-black text-white w-full"
+          >
+            Stay on Biometrics
+          </Button>
+        </div>
+      </ConfirmationModal>
 
     </motion.div>
   );
