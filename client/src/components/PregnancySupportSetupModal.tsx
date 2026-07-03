@@ -265,7 +265,7 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
             {!showDeactivateConfirm ? (
               <button
                 onClick={() => setShowDeactivateConfirm(true)}
-                className="w-full py-2.5 rounded-xl text-white/40 text-xs font-medium active:text-white/60 transition-colors"
+                className="w-full py-3 rounded-xl bg-white/10 border border-white/20 text-white text-sm font-semibold active:bg-white/20 transition-colors"
               >
                 Turn off pregnancy nutrition
               </button>
