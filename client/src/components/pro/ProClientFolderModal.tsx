@@ -791,24 +791,24 @@ export default function ProClientFolderModal({
       onOpenChange={onOpenChange}
       rawLayout
       onOpenAutoFocus={(e) => e.preventDefault()}
-      className="bg-zinc-900 border-white/10 text-white max-w-md max-h-[90vh] overflow-hidden flex flex-col [&>button.absolute]:hidden"
+      className="bg-zinc-900 border-white/10 text-white max-w-md max-h-[90vh] overflow-hidden flex flex-col [&>button.absolute]:hidden p-0"
     >
-        <DialogHeader className="shrink-0 bg-zinc-900 -mx-6 px-6 pt-2 pb-4 border-b border-white/10">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <DialogTitle className="text-xl text-white">{client.name}</DialogTitle>
-              <DialogDescription className="text-white/50">
+        <DialogHeader className="shrink-0 bg-zinc-900 px-4 pt-3 pb-4 border-b border-white/10">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <div className="min-w-0 flex-1">
+              <DialogTitle className="text-lg text-white truncate">{client.name}</DialogTitle>
+              <DialogDescription className="text-white/50 truncate text-xs">
                 {client.email || "No email on file"}
               </DialogDescription>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <PillButton onClick={folderTour.openTour}>How to Use</PillButton>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <PillButton onClick={folderTour.openTour}>Guide</PillButton>
               <PillButton onClick={() => onOpenChange(false)}>Close</PillButton>
             </div>
           </div>
         </DialogHeader>
 
-        <div className="space-y-3 overflow-y-auto flex-1 pt-2">
+        <div className="space-y-3 overflow-y-auto flex-1 pt-2 px-4 pb-4">
           <div className="flex flex-wrap gap-2">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
               <CheckCircle2 className="h-3 w-3" />
