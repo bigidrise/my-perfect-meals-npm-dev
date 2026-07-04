@@ -2695,6 +2695,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
         const normalizedPrefs = (sweetenerPreferences as string[]).map(normalizeSweetener);
         updateData.sweetenerPreferences = normalizedPrefs;
+        console.log(`[sweetener-bridge] normalizedPrefs=${JSON.stringify(normalizedPrefs)} len=${normalizedPrefs.length}`);
         // Bridge to AI-facing columns so every generator sees the user's choices
         if (normalizedPrefs.includes("avoid_sweeteners")) {
           updateData.preferredSweeteners = [];
