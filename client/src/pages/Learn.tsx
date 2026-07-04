@@ -34,6 +34,7 @@ import {
   Fish,
   Globe,
   Camera,
+  Dumbbell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
@@ -2500,6 +2501,110 @@ const SECTION_PERFORMANCE_MODES: LibraryTopic[] = [
         {
           heading: "A Note for ProCare Users",
           text: "If your coach has set your performance mode, you will see it reflected in your macro calculator results. Manual changes you make may be overridden by your coach's program settings if they are actively managing your plan.",
+        },
+      ],
+    },
+  },
+  {
+    id: "performance-nutrition-hub",
+    title: "Performance Nutrition Hub",
+    subtitle: "Sport-specific fueling with daily session-driven carb adjustments",
+    icon: Activity,
+    content: {
+      sections: [
+        {
+          heading: "This Is Not a Fixed Macro Target",
+          text: "The Performance Nutrition Hub does something no other part of the app does: it reads what you are actually doing each day and adjusts your carbohydrate targets to match. Instead of one number that never changes, your carb allocation moves with your training schedule — higher on hard days, lower on recovery and rest days.",
+        },
+        {
+          heading: "Two Protocol Engines",
+          text: "The hub runs two separate tracks. Athletic Performance is designed for ongoing training in a specific sport — MMA, boxing, CrossFit, endurance running, cycling, strength and powerlifting, Olympic lifting, tactical and military, and general athletic fitness. Competition Prep is designed for athletes with a specific event on the calendar — bodybuilding shows, powerlifting meets, fight camps, wrestling seasons, marathons, and triathlons — where the hub counts down your weeks out and adjusts your protocol phase automatically as you approach event day.",
+        },
+        {
+          heading: "How Session-Type Carb Cycling Works",
+          text: "Each day in your weekly schedule carries a session type: power, strength, endurance, sport practice, competition, active recovery, or rest. The hub reads today's session type and sets your carbohydrate target accordingly.",
+          list: [
+            "Power and competition days — highest carbohydrate support. Glycolytic output is at its peak and your muscles need full glycogen loading.",
+            "Endurance days — elevated carbs to sustain aerobic demand across longer training blocks.",
+            "Strength days — moderate carbs, with protein elevated to support mechanical muscle stress.",
+            "Sport practice days — carbs match the intensity level of the sport and its energy system demands.",
+            "Active recovery days — reduced carbs. Glycogen is partially depleted and does not need full replacement.",
+            "Rest days — lowest carbohydrate target. Your body is in repair mode, not fuel-demand mode.",
+            "Protein stays consistent every single day to maintain muscle protein synthesis regardless of session type.",
+          ],
+        },
+        {
+          heading: "The Three Tabs",
+          text: "Once your protocol is active, the hub shows three tabs. Nutrient Plan (for Athletic Performance) or Meal Builder (for Competition Prep) shows today's session type and exactly how your carb targets have been adjusted for it. Carbohydrates breaks down your starchy and fibrous carb targets for the day and explains why they are set where they are. Protocols shows your full sport profile, training phase, weekly session schedule, and all active protocol settings.",
+        },
+        {
+          heading: "Competition Prep Track — Event Countdown",
+          text: "In Competition Prep mode the hub displays your event date, how many weeks out you are, and your current prep phase — base conditioning, intensity phase, peak prep, peak week, or event day. Protocol intensity increases automatically as you get closer to the event. Weight check-in milestones can be set and tracked against your timeline.",
+        },
+        {
+          heading: "Hub Macros vs Macro Calculator",
+          text: "The macros shown in the Performance Hub are your live session-adjusted targets for today. When you open the Performance Nutrition Builder from the hub, it uses those session-adjusted numbers — not your Macro Calculator baseline. Every other tool in the app (Create a Dish, Chef's Kitchen, Fridge Rescue, etc.) continues to use your Macro Calculator baseline. Only the Performance Nutrition Builder responds to the hub's daily adjustments.",
+        },
+        {
+          heading: "How to Get Started",
+          text: "Open the Performance Nutrition Hub from your app library or dashboard. Tap the Setup button in the top right corner and choose your track — Athletic Performance or Competition Prep. Enter your sport, training phase, and weekly session schedule. Once saved, the hub is active and adjusting your carb targets every day based on what you have scheduled.",
+        },
+        {
+          heading: "Medical and Dietary Protections Always Apply",
+          text: "The Performance Hub works within your existing safety layer. If you have diabetic guardrails, anti-inflammatory protocols, allergies, or physician-assigned clinical limits, those always take priority. A rest-day carb target will never drop below your diabetic carb minimum. No performance protocol can override a physician-assigned restriction.",
+        },
+      ],
+    },
+  },
+  {
+    id: "performance-nutrition-builder",
+    title: "Performance Nutrition Builder",
+    subtitle: "Build sport-specific meals with session-driven macro adjustments",
+    icon: Dumbbell,
+    content: {
+      sections: [
+        {
+          heading: "What This Builder Is For",
+          text: "The Performance Nutrition Builder is designed for athletes and serious training individuals who want meals that match what their body is actually doing — not just a generic daily target. It works best when paired with the Performance Nutrition Hub, which feeds session-adjusted carbohydrate targets directly into the builder each day.",
+        },
+        {
+          heading: "How the Hub Connection Works",
+          text: "When a Performance Protocol is active in the hub, the builder reads your protocol before you build a single meal. It knows today's session type — power, strength, endurance, recovery, rest — and adjusts your carbohydrate availability accordingly. You do not have to do anything manually. Open the builder and your carb targets already reflect today's training.",
+        },
+        {
+          heading: "Session-Type Carb Adjustments in the Builder",
+          list: [
+            "Power and competition days — higher starch allocation. Full glycogen loading for peak output.",
+            "Endurance days — elevated carbs distributed across meals to sustain aerobic performance.",
+            "Strength days — moderate carbs, protein prioritized for mechanical muscle repair.",
+            "Recovery days — reduced starch. Glycogen does not need full replacement at lower training volume.",
+            "Rest days — lowest carb allocation. The builder reflects repair and reset priorities, not energy demands.",
+            "Protein target is consistent every day — muscle protein synthesis does not take a day off.",
+          ],
+        },
+        {
+          heading: "Using the Builder Without a Protocol",
+          text: "You can also use the Performance Nutrition Builder without an active hub protocol. In that case, the builder uses your Macro Calculator baseline as the target. You still have access to all the same meal creation tools — the session-type adjustment simply does not apply until a protocol is set up.",
+        },
+        {
+          heading: "The Builder System",
+          text: "The builder works with a flexible Meal 1, Meal 2, Meal 3 structure that you can expand based on your training schedule and daily eating window. At the top you see your daily nutrition targets. At the bottom you see your Nutrition Budget — a live view of protein, starchy carbs, and fiber remaining as you add meals. The starch indicator below the top section shows how many starchy meals you have available based on today's allocation.",
+        },
+        {
+          heading: "Starch Guard",
+          text: "Starch Guard is the builder's carbohydrate management system. It tracks high-glycemic carbs like rice, pasta, bread, and potatoes against your starch allocation for the day. When you have used your starch meals, it steps in and substitutes fibrous carb options or lets the system choose for you. On high-carb training days your starch allocation is larger. On rest days it is smaller. Starch Guard enforces the boundary either way.",
+        },
+        {
+          heading: "Creating Meals",
+          text: "Tap Create with Chef and describe what you want. You can keep the request simple or be very specific about protein targets, carb types, cuisine, and ingredients. The more specific you are about your training context and food choices, the more tailored the result. Use Keep It Simple to limit extra ingredients and keep meals focused and easy to replicate.",
+        },
+        {
+          heading: "Snack Creator and Shopping List",
+          text: "Every builder includes a Snack Creator for structured performance-aligned snacks. When you create your first meal, the Shopping List button appears so you can begin organizing ingredients. Meals can be sent to your Shopping List or logged to Biometrics. Log meals individually — once a meal is logged to Biometrics it cannot be removed.",
+        },
+        {
+          heading: "SafetyGuard Always Active",
+          text: "SafetyGuard protects you from allergens and respects all your dietary preferences automatically across every meal the builder generates. No performance or session-type adjustment can override an allergen block or a dietary identity restriction.",
         },
       ],
     },
