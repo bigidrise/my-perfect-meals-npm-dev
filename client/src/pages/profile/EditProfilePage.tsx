@@ -136,6 +136,7 @@ const GOAL_LABELS: Record<FitnessGoal, string> = {
 
 const DIET_OPTIONS = [
   { label: "No Restriction", value: "none" },
+  { label: "Low Carb", value: "low_carb" },
   { label: "Keto", value: "keto" },
   { label: "Carnivore", value: "carnivore" },
   { label: "Mediterranean", value: "mediterranean" },
@@ -149,6 +150,7 @@ const DIET_OPTIONS = [
 ];
 
 const DIETARY_IDENTITY_HINTS: Record<string, string> = {
+  low_carb: "Meals will reduce carbohydrates significantly — no white bread, sugary sauces, pasta, rice, or refined grains. Protein and healthy fats are emphasized.",
   kosher: "Meals will follow ingredient, preparation, and combination rules — including no meat with dairy and no pork or shellfish.",
   halal: "Meals will follow ingredient and preparation rules — including no pork, no alcohol in cooking, and certified meat sourcing.",
   vegan: "All meals will be fully plant-based — no meat, dairy, eggs, or animal byproducts.",
