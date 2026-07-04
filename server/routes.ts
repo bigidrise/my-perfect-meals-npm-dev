@@ -2774,13 +2774,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Drizzle's .set() silently drops columns whose TS type is narrower than the
       // runtime updateData object. Write preferred_sweeteners + avoid_sweeteners
       // via raw SQL so the AI-facing columns are always populated from the bridge.
+      // IMPORTANT: pass as a PostgreSQL array literal string (e.g. "{equal,splenda}")
+      // not a JS array — Drizzle sql`` expands arrays into individual bind params
+      // which breaks the ::text[] cast syntax.
       if (updateData.preferredSweeteners !== undefined) {
         const preferredArr = updateData.preferredSweeteners as string[];
         const avoidArr = (updateData.avoidSweeteners ?? []) as string[];
+        const toPgLiteral = (arr: string[]) =>
+          `{${arr.map(v => `"${v.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`).join(',')}}`;
+        const preferredLiteral = toPgLiteral(preferredArr);
+        const avoidLiteral = toPgLiteral(avoidArr);
         await db.execute(
-          sql`UPDATE users SET preferred_sweeteners = ${preferredArr}::text[], avoid_sweeteners = ${avoidArr}::text[] WHERE id = ${userId}`
+          sql`UPDATE users SET preferred_sweeteners = ${preferredLiteral}::text[], avoid_sweeteners = ${avoidLiteral}::text[] WHERE id = ${userId}`
         );
-        console.log(`🍯 [sweetener-bridge] wrote preferred=${JSON.stringify(preferredArr)} avoid=${JSON.stringify(avoidArr)}`);
+        console.log(`🍯 [sweetener-bridge] wrote preferred=${preferredLiteral} avoid=${avoidLiteral}`);
       }
       
       console.log(`✅ [profile] PUT success — userId: ${userId}, step: ${_step}, fields: ${Object.keys(updateData).join(", ")}, durationMs: ${Date.now() - _startMs}`);
