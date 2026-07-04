@@ -164,7 +164,7 @@ async function fetchOnboardingProfile(
     allergies: p?.allergies || [],
     avoidIngredients: [...(p?.dislikedFoods || []), ...(p?.avoidedFoods || [])],
     preferredSweeteners: p?.preferredSweeteners || [],
-    bannedSweeteners: [], // Not in current schema
+    bannedSweeteners: (p as any)?.avoidSweeteners || [],
     bodyType: (p?.bodyType as any) ?? "mesomorph",
     allowImageGen: true, // Not in current schema, default to true
     palateSpiceTolerance: (p?.palateSpiceTolerance as any) || "mild",

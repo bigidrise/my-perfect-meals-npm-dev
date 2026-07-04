@@ -2685,7 +2685,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (preferredBuilder !== undefined) updateData.preferredBuilder = preferredBuilder;
       if (flavorPreference !== undefined) updateData.flavorPreference = flavorPreference;
       if (heatPreference !== undefined) updateData.heatPreference = heatPreference;
-      if (sweetenerPreferences !== undefined) updateData.sweetenerPreferences = sweetenerPreferences;
+      if (sweetenerPreferences !== undefined) {
+        // Normalize legacy vocabulary (old onboarding stored "sugar"/"avoid"/"monk-fruit")
+        const normalizeSweetener = (v: string): string => {
+          if (v === "sugar") return "regular_sugar";
+          if (v === "avoid") return "avoid_sweeteners";
+          if (v === "monk-fruit") return "monk_fruit";
+          return v;
+        };
+        const normalizedPrefs = (sweetenerPreferences as string[]).map(normalizeSweetener);
+        updateData.sweetenerPreferences = normalizedPrefs;
+        // Bridge to AI-facing columns so every generator sees the user's choices
+        if (normalizedPrefs.includes("avoid_sweeteners")) {
+          updateData.preferredSweeteners = [];
+          updateData.avoidSweeteners = ["all sweeteners"];
+        } else if (normalizedPrefs.length > 0) {
+          updateData.preferredSweeteners = normalizedPrefs;
+          updateData.avoidSweeteners = normalizedPrefs.includes("regular_sugar")
+            ? []
+            : ["white sugar", "brown sugar", "cane sugar", "raw sugar", "granulated sugar",
+               "demerara sugar", "turbinado sugar", "coconut sugar", "powdered sugar",
+               "agave", "agave nectar", "maple syrup", "corn syrup", "molasses"];
+        } else {
+          updateData.preferredSweeteners = [];
+          updateData.avoidSweeteners = [];
+        }
+      }
       if (avoidedFoods !== undefined) updateData.avoidedFoods = avoidedFoods;
       if (palateSpiceTolerance !== undefined) updateData.palateSpiceTolerance = palateSpiceTolerance;
       if (palateSeasoningIntensity !== undefined) updateData.palateSeasoningIntensity = palateSeasoningIntensity;
@@ -2744,6 +2769,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!updatedUser) {
         return res.status(404).json({ error: "User not found" });
+      }
+
+      // Drizzle's .set() silently drops columns whose TS type is narrower than the
+      // runtime updateData object. Write preferred_sweeteners + avoid_sweeteners
+      // via raw SQL so the AI-facing columns are always populated from the bridge.
+      if (updateData.preferredSweeteners !== undefined) {
+        const preferredArr = updateData.preferredSweeteners as string[];
+        const avoidArr = (updateData.avoidSweeteners ?? []) as string[];
+        await db.execute(
+          sql`UPDATE users SET preferred_sweeteners = ${preferredArr}::text[], avoid_sweeteners = ${avoidArr}::text[] WHERE id = ${userId}`
+        );
+        console.log(`🍯 [sweetener-bridge] wrote preferred=${JSON.stringify(preferredArr)} avoid=${JSON.stringify(avoidArr)}`);
       }
       
       console.log(`✅ [profile] PUT success — userId: ${userId}, step: ${_step}, fields: ${Object.keys(updateData).join(", ")}, durationMs: ${Date.now() - _startMs}`);
