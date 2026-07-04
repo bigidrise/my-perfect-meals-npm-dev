@@ -666,14 +666,14 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
             initial={{ opacity: 0, y: 40, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 40, scale: 0.95 }}
-            className="fixed bottom-24 left-1/2 z-50 flex items-center gap-3 bg-black/90 border border-orange-500/40 rounded-full px-4 py-3 shadow-2xl"
-            style={{ transform: "translateX(-50%)", maxWidth: "calc(100vw - 32px)" }}
+            className="fixed bottom-24 left-1/2 z-50 flex items-start gap-3 bg-black/90 border border-orange-500/40 rounded-2xl px-4 py-3 shadow-2xl"
+            style={{ transform: "translateX(-50%)", width: "calc(100vw - 32px)", maxWidth: "360px" }}
           >
-            <div className="relative">
+            <div className="relative shrink-0 mt-0.5">
               <MessageSquare className="h-4 w-4 text-orange-400" />
               <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
             </div>
-            <span className="text-sm text-white font-medium whitespace-nowrap">{toast}</span>
+            <span className="text-sm text-white font-medium leading-snug">{toast}</span>
             <button onClick={() => setToast(null)} className="text-white/40 hover:text-white ml-1">
               <X className="h-3.5 w-3.5" />
             </button>
