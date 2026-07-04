@@ -47,7 +47,7 @@ export default function Planner() {
       builderId: "diabetic",
     },
     {
-      title: "Metabolic Medication Hub",
+      title: "Metabolic Medication Hub and Builder",
       description:
         "Shot, location logging and specialized AI created meal plans for metabolic medication users",
       icon: Pill,
@@ -65,13 +65,13 @@ export default function Planner() {
       builderId: "anti_inflammatory",
     },
     {
-      title: "Performance Nutrition Builder",
+      title: "Performance Nutrition Hub and Builder",
       description:
         "Sport-specific fueling for athletes, fighters, and coaches — energy systems, carb timing, and recovery",
       icon: Trophy,
       route: "/performance",
-      testId: "card-competition-beachbody",
-      builderId: "beach_body",
+      testId: "card-performance-nutrition-hub",
+      builderId: "performance_nutrition",
     },
     {
       title: "General Nutrition Builder",

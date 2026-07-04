@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { Award, CheckCircle2, Copy, Download, ExternalLink, FileText, Link2, Loader2 } from "lucide-react";
+import { Award, CheckCircle2, ChevronRight, Copy, Download, ExternalLink, FileText, Link2, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 
