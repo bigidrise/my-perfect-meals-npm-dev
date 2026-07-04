@@ -189,8 +189,8 @@ dessertCreatorRouter.post("/", async (req, res) => {
           dietaryRestrictions: users.dietaryRestrictions,
           measurementSystem: users.measurementSystem,
           preferredSweeteners: users.preferredSweeteners,
-          avoidSweeteners: (users as any).avoidSweeteners,
-          sweetenerPreferences: (users as any).sweetenerPreferences,
+          avoidSweeteners: users.avoidSweeteners,
+          sweetenerPreferences: users.sweetenerPreferences,
         }).from(users).where(eq(users.id, userId)).limit(1);
         
         if (user) {
@@ -213,8 +213,8 @@ dessertCreatorRouter.post("/", async (req, res) => {
           // for users who haven't re-saved since the bridge was deployed
           const { preferred, avoidAll } = resolveSweetenerAllowlist(
             (user.preferredSweeteners as string[]) || [],
-            ((user as any).avoidSweeteners as string[]) || [],
-            ((user as any).sweetenerPreferences as string[]) || []
+            (user.avoidSweeteners as string[]) || [],
+            (user.sweetenerPreferences as string[]) || []
           );
           const block = buildSweetenerAllowlistBlock(preferred, avoidAll);
           if (block) {
