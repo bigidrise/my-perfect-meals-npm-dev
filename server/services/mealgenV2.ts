@@ -161,8 +161,33 @@ export async function getOnboarding(userId: string): Promise<Onboarding> {
     proteinPerMeal: undefined,
     sodiumLimit: user.healthConditions?.includes('hypertension') ? 600 : undefined,
     cuisinesPreferred: [],
-    preferredSweeteners: user.preferredSweeteners || [],
-    bannedSweeteners: user.avoidSweeteners || []
+    preferredSweeteners: (() => {
+      const { resolveSweetenerAllowlist } = require("./promptBuilder");
+      const { preferred } = resolveSweetenerAllowlist(
+        user.preferredSweeteners || [],
+        (user as any).avoidSweeteners || [],
+        (user as any).sweetenerPreferences || []
+      );
+      return preferred;
+    })(),
+    bannedSweeteners: (() => {
+      const avoid = (user as any).avoidSweeteners as string[] || [];
+      if (avoid.includes("all sweeteners")) return ["all sweeteners"];
+      const prefs = (user as any).sweetenerPreferences as string[] || [];
+      const normalized = prefs.map((v: string) =>
+        v === "sugar" ? "regular_sugar" : v === "avoid" ? "avoid_sweeteners" : v
+      );
+      // If user selected specific sweeteners and NOT regular sugar, ban all sugar variants
+      if ((user.preferredSweeteners || []).length > 0 || prefs.length > 0) {
+        const resolved = (user.preferredSweeteners || []).length > 0
+          ? user.preferredSweeteners || []
+          : normalized;
+        if (!resolved.includes("regular_sugar")) {
+          return avoid.length > 0 ? avoid : ["white sugar", "brown sugar", "cane sugar", "raw sugar", "granulated sugar", "demerara sugar", "turbinado sugar", "coconut sugar", "agave", "maple syrup", "corn syrup", "molasses"];
+        }
+      }
+      return avoid;
+    })()
   };
 }
 
