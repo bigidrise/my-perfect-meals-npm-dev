@@ -149,7 +149,7 @@ export async function getOnboarding(userId: string): Promise<Onboarding> {
   return {
     diet: user.dietaryRestrictions?.[0] || undefined,
     allergies: user.allergies || [],
-    avoid: user.dislikedFoods || [],
+    avoid: [...(user.dislikedFoods || []), ...(user.avoidedFoods || [])],
     mustInclude: [],
     noMeat: user.dietaryRestrictions?.includes('vegetarian') || user.dietaryRestrictions?.includes('vegan'),
     noFish: user.allergies?.includes('fish') || user.allergies?.includes('shellfish'),
