@@ -2696,7 +2696,11 @@ function LibraryItem({ topic }: { topic: LibraryTopic }) {
                   <div className="flex items-center gap-2">
                     <PillButton
                       onClick={
-                        narration.isPlaying ? narration.pause : narration.play
+                        narration.isPlaying
+                          ? narration.pause
+                          : narration.isPaused
+                          ? narration.resume
+                          : narration.play
                       }
                       active={narration.isPlaying}
                     >
@@ -2706,7 +2710,10 @@ function LibraryItem({ topic }: { topic: LibraryTopic }) {
                         <Play className="h-3 w-3" />
                       )}
                     </PillButton>
-                    <PillButton onClick={narration.stop}>
+                    <PillButton
+                      onClick={narration.stop}
+                      active={false}
+                    >
                       <Square className="h-3 w-3" />
                     </PillButton>
                     <span className="text-[10px] text-white/50 ml-1">
