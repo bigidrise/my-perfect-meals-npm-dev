@@ -16,11 +16,20 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
   const { onSectionChange, onEnd } = options;
   
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [mode, setMode] = useState<"read" | "listen">("read");
   
   const isCancelledRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const browserTtsIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const clearBrowserTtsInterval = useCallback(() => {
+    if (browserTtsIntervalRef.current !== null) {
+      clearInterval(browserTtsIntervalRef.current);
+      browserTtsIntervalRef.current = null;
+    }
+  }, []);
 
   const buildSectionText = useCallback((section: Section): string => {
     let text = section.heading + ". ";
@@ -34,13 +43,14 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
   }, []);
 
   const stopAudio = useCallback(() => {
+    clearBrowserTtsInterval();
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.src = "";
       audioRef.current = null;
     }
     ttsService.stop();
-  }, []);
+  }, [clearBrowserTtsInterval]);
 
   const advanceToNextSection = useCallback((index: number) => {
     if (isCancelledRef.current) return;
@@ -48,6 +58,7 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
     const nextIndex = index + 1;
     if (nextIndex >= sections.length) {
       setIsPlaying(false);
+      setIsPaused(false);
       onEnd?.();
       return;
     }
@@ -59,6 +70,7 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
   const speakSection = useCallback(async (index: number) => {
     if (index >= sections.length || isCancelledRef.current) {
       setIsPlaying(false);
+      setIsPaused(false);
       onEnd?.();
       return;
     }
@@ -78,6 +90,7 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
         audio.onplay = () => {
           if (!isCancelledRef.current) {
             setIsPlaying(true);
+            setIsPaused(false);
           }
         };
         
@@ -92,26 +105,35 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
         audio.onerror = () => {
           if (!isCancelledRef.current) {
             setIsPlaying(false);
+            setIsPaused(false);
           }
         };
+
+        if (isCancelledRef.current) return;
 
         try {
           await audio.play();
         } catch (playErr) {
           console.warn("[useNarration] Audio play failed:", playErr);
           setIsPlaying(false);
+          setIsPaused(false);
         }
       } else if (result.provider === "browser") {
         setIsPlaying(true);
-        const checkSpeaking = setInterval(() => {
+        setIsPaused(false);
+        const intervalId = setInterval(() => {
           if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
-            clearInterval(checkSpeaking);
+            clearInterval(intervalId);
+            if (browserTtsIntervalRef.current === intervalId) {
+              browserTtsIntervalRef.current = null;
+            }
             if (!isCancelledRef.current) {
               advanceToNextSection(index);
               speakSection(index + 1);
             }
           }
         }, 100);
+        browserTtsIntervalRef.current = intervalId;
       } else {
         advanceToNextSection(index);
         speakSection(index + 1);
@@ -119,39 +141,54 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
     } catch (err) {
       console.warn("[useNarration] TTS error:", err);
       setIsPlaying(false);
+      setIsPaused(false);
     }
-  }, [sections, buildSectionText, onEnd, advanceToNextSection]);
+  }, [sections, buildSectionText, onEnd, advanceToNextSection, clearBrowserTtsInterval]);
 
   const play = useCallback(() => {
     if (sections.length === 0) return;
     
     isCancelledRef.current = false;
+    setIsPaused(false);
     stopAudio();
     speakSection(currentSectionIndex);
   }, [sections, currentSectionIndex, speakSection, stopAudio]);
 
   const pause = useCallback(() => {
+    clearBrowserTtsInterval();
     if (audioRef.current) {
       audioRef.current.pause();
     } else if (window.speechSynthesis) {
       window.speechSynthesis.pause();
     }
     setIsPlaying(false);
-  }, []);
+    setIsPaused(true);
+  }, [clearBrowserTtsInterval]);
 
   const resume = useCallback(() => {
     if (audioRef.current && audioRef.current.paused) {
-      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+      audioRef.current.play()
+        .then(() => {
+          setIsPlaying(true);
+          setIsPaused(false);
+        })
+        .catch(() => {});
     } else if (window.speechSynthesis?.paused) {
       window.speechSynthesis.resume();
       setIsPlaying(true);
+      setIsPaused(false);
+    } else {
+      isCancelledRef.current = false;
+      setIsPaused(false);
+      speakSection(currentSectionIndex);
     }
-  }, []);
+  }, [currentSectionIndex, speakSection]);
 
   const stop = useCallback(() => {
     isCancelledRef.current = true;
     stopAudio();
     setIsPlaying(false);
+    setIsPaused(false);
     setCurrentSectionIndex(0);
   }, [stopAudio]);
 
@@ -163,6 +200,7 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
       onSectionChange?.(nextIndex);
       if (isPlaying) {
         isCancelledRef.current = false;
+        setIsPaused(false);
         speakSection(nextIndex);
       }
     }
@@ -172,6 +210,7 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
     isCancelledRef.current = true;
     stopAudio();
     setIsPlaying(false);
+    setIsPaused(false);
     setCurrentSectionIndex(0);
     setMode("read");
   }, [stopAudio]);
@@ -194,11 +233,13 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
     isCancelledRef.current = true;
     stopAudio();
     setIsPlaying(false);
+    setIsPaused(false);
     setCurrentSectionIndex(0);
   }, [sections, stopAudio]);
 
   return {
     isPlaying,
+    isPaused,
     currentSectionIndex,
     mode,
     totalSections: sections.length,
