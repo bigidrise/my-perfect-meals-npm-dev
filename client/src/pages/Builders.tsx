@@ -70,8 +70,8 @@ export default function Builders() {
         "Sport-specific fueling for athletes, fighters, and coaches — energy systems, carb timing, and recovery",
       icon: Trophy,
       route: "/performance",
-      testId: "card-competition-beachbody",
-      builderId: "beach_body",
+      testId: "card-performance-nutrition-hub",
+      builderId: "performance_nutrition",
     },
     {
       title: "General Nutrition Builder",
