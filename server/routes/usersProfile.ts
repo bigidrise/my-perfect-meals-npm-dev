@@ -89,7 +89,32 @@ router.put("/profile", requireAuth, async (req, res) => {
     if (patch.cuisinePreference !== undefined) updateData.cuisinePreference = patch.cuisinePreference;
     if (patch.cuisineIntensity !== undefined) updateData.cuisineIntensity = patch.cuisineIntensity;
     if (patch.fontSizePreference !== undefined) updateData.fontSizePreference = patch.fontSizePreference;
-    if (patch.sweetenerPreferences !== undefined) updateData.sweetenerPreferences = patch.sweetenerPreferences;
+    if (patch.sweetenerPreferences !== undefined) {
+      // Normalize legacy vocabulary (old onboarding stored "sugar"/"avoid"/"monk-fruit")
+      const normalizeSweetener = (v: string): string => {
+        if (v === "sugar") return "regular_sugar";
+        if (v === "avoid") return "avoid_sweeteners";
+        if (v === "monk-fruit") return "monk_fruit";
+        return v;
+      };
+      const prefs = patch.sweetenerPreferences.map(normalizeSweetener);
+      updateData.sweetenerPreferences = prefs;
+
+      // Bridge to the AI-facing columns so every generator sees the user's choices
+      if (prefs.includes("avoid_sweeteners")) {
+        updateData.preferredSweeteners = [];
+        updateData.avoidSweeteners = ["all sweeteners"];
+      } else if (prefs.length > 0) {
+        updateData.preferredSweeteners = prefs;
+        // If regular sugar is not explicitly selected, ban it so AI won't default to it
+        updateData.avoidSweeteners = prefs.includes("regular_sugar")
+          ? []
+          : ["regular sugar", "white sugar"];
+      } else {
+        updateData.preferredSweeteners = [];
+        updateData.avoidSweeteners = [];
+      }
+    }
     if (patch.avoidedFoods !== undefined) updateData.avoidedFoods = patch.avoidedFoods;
     if (patch.goalType !== undefined) updateData.goalType = patch.goalType;
     if (patch.goalTarget !== undefined) updateData.goalTarget = patch.goalTarget;

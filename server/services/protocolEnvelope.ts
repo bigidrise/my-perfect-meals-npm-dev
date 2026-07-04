@@ -617,6 +617,14 @@ export interface UserProtocolEnvelope {
    * Null when not yet selected. */
   selectedMealBuilder: string | null;
 
+  /** Palate preferences — loaded from user profile, available to every generator.
+   * Routes no longer need a second DB query to access these. */
+  flavorPreference: string | null;
+  heatPreference: string | null;
+  palateSpiceTolerance: string | null;
+  palateSeasoningIntensity: string | null;
+  palateFlavorStyle: string | null;
+
   /**
    * Therapeutic Support context — peptides, hormones, medications, therapies, recoveryGoals.
    * Null when therapeutic support is not active.
@@ -765,6 +773,11 @@ export async function loadUserProtocolEnvelope(
         performanceContext: users.performanceContext,
         therapeuticSupportContext: (users as any).therapeuticSupportContext,
         pregnancySupportContext: (users as any).pregnancySupportContext,
+        flavorPreference: users.flavorPreference,
+        heatPreference: users.heatPreference,
+        palateSpiceTolerance: users.palateSpiceTolerance,
+        palateSeasoningIntensity: users.palateSeasoningIntensity,
+        palateFlavorStyle: users.palateFlavorStyle,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -1174,6 +1187,11 @@ export async function loadUserProtocolEnvelope(
       therapeuticSupport,
       therapeuticSupportContext: therapeuticSupportCtx,
       selectedMealBuilder: (user.selectedMealBuilder ?? null) as string | null,
+      flavorPreference: (user as any).flavorPreference ?? null,
+      heatPreference: (user as any).heatPreference ?? null,
+      palateSpiceTolerance: (user as any).palateSpiceTolerance ?? null,
+      palateSeasoningIntensity: (user as any).palateSeasoningIntensity ?? null,
+      palateFlavorStyle: (user as any).palateFlavorStyle ?? null,
     };
   } catch (error) {
     console.error("[ProtocolEnvelope] Failed to load envelope:", error);
@@ -1220,6 +1238,11 @@ export function buildGuestEnvelope(): UserProtocolEnvelope {
     therapeuticSupport: false,
     therapeuticSupportContext: null,
     selectedMealBuilder: null,
+    flavorPreference: null,
+    heatPreference: null,
+    palateSpiceTolerance: null,
+    palateSeasoningIntensity: null,
+    palateFlavorStyle: null,
   };
 }
 

@@ -81,13 +81,13 @@ const HEAT_OPTIONS = [
 ];
 
 const SWEETENER_OPTIONS = [
-  { label: "Regular Sugar", value: "sugar" },
+  { label: "Regular Sugar", value: "regular_sugar" },
   { label: "Honey / Natural Sugar", value: "honey" },
   { label: "Stevia", value: "stevia" },
-  { label: "Monk Fruit", value: "monk-fruit" },
+  { label: "Monk Fruit", value: "monk_fruit" },
   { label: "Equal (Aspartame)", value: "equal" },
   { label: "Splenda (Sucralose)", value: "splenda" },
-  { label: "Avoid Sweeteners", value: "avoid" }
+  { label: "Avoid Sweeteners", value: "avoid_sweeteners" }
 ];
 
 const DIET_OPTIONS = [
@@ -235,7 +235,12 @@ export default function OnboardingV3() {
     if (user.goalTimelineWeeks) setGoalTimelineWeeks(user.goalTimelineWeeks);
     if (user.flavorPreference) setFlavorPreference(user.flavorPreference);
     if (user.heatPreference) setHeatPreference(user.heatPreference);
-    if (user.sweetenerPreferences?.length) setSweetenerPreferences(user.sweetenerPreferences);
+    if (user.sweetenerPreferences?.length) {
+      // Normalize legacy values stored before vocabulary was standardized
+      const normalizeSweetener = (v: string) =>
+        v === "sugar" ? "regular_sugar" : v === "avoid" ? "avoid_sweeteners" : v === "monk-fruit" ? "monk_fruit" : v;
+      setSweetenerPreferences(user.sweetenerPreferences.map(normalizeSweetener));
+    }
     if (user.cuisinePreference) setCuisinePreference(user.cuisinePreference);
     if (user.preferredBuilder) setSelectedBuilder(user.preferredBuilder);
     if ((user as any).measurementSystem) setMeasurementSystem((user as any).measurementSystem);
