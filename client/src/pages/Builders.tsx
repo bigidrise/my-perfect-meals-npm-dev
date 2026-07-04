@@ -47,7 +47,7 @@ export default function Builders() {
       builderId: "diabetic",
     },
     {
-      title: "Metabolic Medication Hub",
+      title: "Metabolic Medication Hub and Builder",
       description:
         "Shot and location logging with specialized AI created meal plans for metabolic medication users",
       icon: Pill,
@@ -65,7 +65,7 @@ export default function Builders() {
       builderId: "anti_inflammatory",
     },
     {
-      title: "Performance Nutrition Hub",
+      title: "Performance Nutrition Hub and Builder",
       description:
         "Sport-specific fueling for athletes, fighters, and coaches — energy systems, carb timing, and recovery",
       icon: Trophy,
