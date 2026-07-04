@@ -117,134 +117,94 @@ const SECTION_START_HERE: LibraryTopic[] = [
   },
   {
     id: "meal-builder",
-    title: "How Meal Builders & Support Systems Work",
-    subtitle: "Builders, medical layers, and your plan",
+    title: "Your Builders & Why You're on Yours",
+    subtitle: "What each builder does, why it was chosen, and what it's doing for you",
     icon: Layers,
     content: {
       sections: [
         {
-          heading: "This Isn't Just a Meal Generator",
-          text: "Most nutrition apps give you generic meals and hope you figure it out. My Perfect Meals works differently. Every meal comes from a structured system built around your goals, your body, your preferences, and when needed, your medical context. You're not just getting meals — you're getting guided decisions before you eat.",
+          heading: "Why Your Builder Matters",
+          text: "A good coach does not give every client the same plan. They look at your goals, your health, your habits, and your body — and then they build a system around you. That is exactly what happens here. When you went through onboarding, the app read your answers and assigned you a builder. That builder is not just a template. It is a set of active rules that shapes every meal the app creates for you, every single time. Understanding why you are on your builder helps you trust the plan and use it the way it was designed.",
         },
         {
-          heading: "The Two-Layer System",
-          text: "Everything in the app runs on two layers. Layer 1 is your Meal Builder — your foundation that determines the type of meals you get. Layer 2 is your Support System — additional rules applied on top when needed based on health needs or physician guidance.",
+          heading: "My Weekly Meal Builder — Why This One",
+          text: "The Weekly Meal Builder is for people who want structure without restrictions. If you came in with a general goal — eating healthier, losing weight, building better habits — this is where you start. A coach would put you here because you need a sustainable, realistic system that works in real life, not a rigid protocol designed for extreme outcomes. The builder takes your macro targets, your dietary preferences, your cuisine style, and your food personality, and it builds meals around all of it. No banned foods. No impossible rules. Just guided, consistent decisions every day that add up to results over time. This builder also serves as the foundation when a coach assigns you a weekly meal plan through ProCare.",
         },
         {
-          heading: "General Nutrition",
-          text: "Your everyday system. Best for fat loss, maintenance, and building consistency. Balanced meals, real-life eating, sustainability.",
+          heading: "Diabetic Hub and Builder — Why This One",
+          text: "If you are managing diabetes, a standard meal plan is not enough. The reason a coach would put you in the Diabetic Hub is because blood sugar management is not just about eating less sugar — it is about understanding how different foods spike your glucose, how meal timing matters, and how to build a daily structure that keeps your levels stable and predictable. The Diabetic Hub does things a generic builder cannot. It enforces a per-meal carbohydrate ceiling so no single meal overwhelms your glucose response. It blocks high-glycemic ingredients — not just reduces them, blocks them entirely. It monitors glycemic index at the ingredient level, not just the meal level. And through GlucoseGuard, it reads your most recent blood glucose log and adjusts your meal generation in real time based on where your numbers actually are right now. If you are running high, the next meal leans lower. If you are in a safe range, the full starch allocation returns. This is the kind of real-time clinical precision that a registered dietitian would apply in a session — the app does it automatically every time you build a meal.",
         },
         {
-          heading: "Performance & Competition",
-          text: "Built for serious training and physique goals. Higher precision, performance fueling, muscle support.",
+          heading: "Metabolic Medication Hub and Builder — Why This One",
+          text: "Medications like semaglutide, tirzepatide, and similar GLP-1 agents change how your body handles appetite, digestion, and nutrient absorption. A coach working with someone on these medications would immediately recognize the problem: most meal plans are designed for a normal appetite, but you do not have a normal appetite right now. Eating a standard meal plan while on metabolic medication leads to inadequate protein, skipped meals, and muscle loss — which is the opposite of the goal. The Metabolic Medication Hub and Builder is designed specifically for this environment. Meals are sized to be completable, not just nutritious. Protein minimums are enforced per meal because muscle preservation is the priority when appetite is suppressed. Fat ceilings limit heavy, slow-digesting foods that cause discomfort. Meal count locks to your protocol — if you can realistically eat two meals a day right now, the builder plans for two, not four. The hub also tracks your injection schedule and location so you have a full record alongside your nutrition. This builder exists because people on metabolic medication deserve a system that understands their actual situation.",
         },
         {
-          heading: "Anti-Inflammatory",
-          text: "Your clinical-friendly foundation. Best for inflammation concerns, autoimmune support, and physician-guided nutrition. Cleaner ingredients, reduced inflammatory patterns, structured meals.",
+          heading: "Anti-Inflammatory Builder — Why This One",
+          text: "Inflammation is the body's response to stress, injury, or immune activity — and when it becomes chronic, it interferes with almost everything: joint health, gut health, hormone balance, energy, recovery, and long-term disease risk. A coach would put you in the Anti-Inflammatory Builder if your profile includes autoimmune conditions, joint issues, inflammatory markers, or a physician recommendation for cleaner dietary patterns. The builder is not a medical treatment — it is a structured nutrition foundation. It selects ingredients known to reduce inflammatory load: fatty fish, leafy greens, olive oil, turmeric, berries, cruciferous vegetables. It limits or avoids ingredients associated with increased inflammation: seed oils, ultra-processed additives, refined sugars, and high-omega-6 fats. Every meal still hits your macro targets — but the ingredients doing that job have been chosen with your inflammatory profile in mind. This builder is also the clinical foundation for users with cardiac concerns, oncology support assignments, or autoimmune protocols, because a clean anti-inflammatory base makes every clinical layer more effective.",
         },
         {
-          heading: "Diabetic",
-          text: "Built for blood sugar awareness. Carb control, glucose stability, real-time adjustments through GlucoseGuard.",
+          heading: "Performance Nutrition Hub and Builder — Why This One",
+          text: "If you are training seriously — for a sport, for competition, for a physical performance goal — a standard meal plan leaves performance on the table. The reason a coach would assign you to the Performance Nutrition Hub is because your nutrition needs are not static. They change every day based on what your body is doing. A hard training day requires a fundamentally different fuel load than a rest day. Most apps ignore this entirely. The Performance Nutrition Hub and Builder does not. It reads your sport, your weekly training schedule, and your session type for each day — power, strength, endurance, sport practice, competition, recovery, or rest — and adjusts your carbohydrate targets to match. Power and competition days get the highest carbohydrate support because glycolytic output is at its peak. Recovery and rest days reduce carbs because glycogen does not need full replacement at low training volume. Protein stays consistent every day because muscle protein synthesis does not take days off. Through the hub you can run an ongoing Athletic Performance protocol or a Competition Prep protocol tied to a specific event date, where the hub tracks your weeks out and adjusts your protocol phase automatically as you approach event day. This builder exists because athletes deserve a nutrition system that moves with their training, not a fixed number that ignores what their body is actually demanding.",
         },
         {
-          heading: "Metabolic Medication Support",
-          text: "Built for reduced appetite environments. Nutrient density, protein priority, easier-to-finish meals for metabolic medication users.",
+          heading: "General Nutrition Builder — Why This One",
+          text: "The General Nutrition Builder is a coach-guided professional-grade tool used inside ProCare, the app's professional platform. If a coach or clinician has assigned you to the General Nutrition Builder, it means your professional is building and managing your plan directly. This builder gives your coach full control over meal structure, macros, protocol assignments, and dietary direction — while the app handles the meal generation on top of those instructions. You receive coach-guided precision in your meals without needing to configure anything yourself. If you see this builder in your library and are not currently connected to a coach through ProCare, it is a tool available for professionals to use with their clients.",
         },
         {
-          heading: "Create a Dish",
-          text: "Creates one complete dish at a time. Not a meal plan — a real cooking tool. Step-by-step execution, real kitchen meals, practical prep.",
+          heading: "How the System Picked Your Builder",
+          text: "During onboarding you answered questions about your health goals, any medical conditions, your dietary identity, your lifestyle, and what you want out of the app. The system read all of those answers simultaneously and matched you to the builder most appropriate for your situation. If you have diabetes, it assigned the Diabetic Hub. If you are on metabolic medication, it assigned the Metabolic Medication Hub and Builder. If you have inflammatory concerns or autoimmune conditions, it leaned toward the Anti-Inflammatory Builder. If you came in as a general health-conscious person with no specific clinical needs, it assigned the Weekly Meal Builder as your starting point. Your builder assignment is not permanent. If your health situation changes, go to Edit Profile and update your information — the system will reflect those changes across all of your meal generation.",
         },
         {
-          heading: "Craving Creator",
-          text: "You tell the app what you want. It makes it fit your plan. Satisfying cravings, macro-aligned versions, no guilt approach.",
-        },
-        {
-          heading: "Dessert Creator",
-          text: "Desserts that actually fit your numbers. Portion-aware treats, realistic enjoyment, controlled indulgence.",
-        },
-        {
-          heading: "Fridge Rescue",
-          text: "Uses what you already have. Best for leftovers, low-effort days, and real-life situations where you just need a solution.",
-        },
-        {
-          heading: "Support Systems (When Needed)",
-          text: "Support systems are not separate builders. They are layers added on top of your meals when needed. They adjust ingredients, preparation style, food texture, and meal structure — without breaking your macros.",
+          heading: "Layer 2 — Your Support System",
+          text: "On top of your primary builder, the app applies clinical support layers when your profile calls for them. These are not separate builders — they are additional rules that stack onto your existing plan and shape ingredients, preparation style, and meal structure without changing your macros. You do not have to pick one or the other. If you have multiple conditions, all of them activate simultaneously.",
         },
         {
           heading: "Cardiac Support",
-          text: "Heart-aware meal structure. Emphasizes better fat quality, smarter sodium awareness, and supportive ingredient choices.",
+          text: "A coach would apply this when heart health is a consideration — whether from a diagnosis, a family history, elevated blood pressure, or physician recommendation. The layer emphasizes healthier fat quality, smarter sodium awareness, and heart-supportive ingredient choices across every meal your builder generates.",
         },
         {
           heading: "Liver Support",
-          text: "Reduces strain on the liver. Cleaner foods, reduced processed load, supportive nutrition patterns.",
+          text: "Applied when liver health needs attention — fatty liver, elevated liver enzymes, or physician guidance. It reduces processed food load, selects cleaner ingredient profiles, and avoids foods that place unnecessary metabolic burden on the liver.",
         },
         {
           heading: "Kidney / Renal Support",
-          text: "Adds kidney-conscious structure. Physician-guided restrictions and careful ingredient selection.",
+          text: "Applied when kidney function requires careful management. This is a physician-guided layer. It applies restrictions on potassium, phosphorus, and protein levels based on your specific clinical situation — ingredients that are healthy for most people can be problematic for kidneys under stress.",
         },
         {
           heading: "Lipid Support",
-          text: "Supports cholesterol and lipid goals. Focus on fat quality, fiber, and heart-supportive meals.",
+          text: "Applied when cholesterol or lipid panels need nutritional support. The layer focuses on fat quality — shifting toward monounsaturated and omega-3 sources — increases soluble fiber from foods like oats, legumes, and flaxseed, and reduces saturated fat load across all meals.",
         },
         {
-          heading: "Thyroid Support",
-          text: "Applies thyroid-aware ingredient guidance across all meal generators. Adjusts selenium and iodine levels, supports T4→T3 conversion efficiency, and monitors goitrogenic foods. Can activate automatically when TSH, Free T4, Free T3, or Reverse T3 lab values cross established clinical thresholds.",
-        },
-        {
-          heading: "Hashimoto's (Autoimmune Thyroid)",
-          text: "A specialized layer for Hashimoto's thyroiditis. Applies gluten-minimal preference, dairy-light structure, and emphasizes selenium, zinc, and bone broth for autoimmune thyroid support. Anti-inflammatory reinforcement is built in. Stacks on top of your primary meal builder without replacing it.",
-        },
-        {
-          heading: "Hypothyroid Support",
-          text: "Supports underactive thyroid function. Emphasizes metabolic regularity and iron-rich foods. Applies smart limits on raw goitrogenic vegetables — cruciferous vegetables are guided toward cooked preparation to reduce goitrogenic interference. If Levothyroxine (Synthroid) is listed in your medications, breakfast structure is adjusted to support optimal medication absorption.",
-        },
-        {
-          heading: "Hyperthyroid Support",
-          text: "Supports overactive thyroid management. Enforces strict iodine restriction — kelp, seaweed, and high-iodine dairy are blocked. Adds caloric and nutrient-density support to account for the elevated metabolic rate associated with hyperthyroidism.",
+          heading: "Thyroid Support — Hashimoto's, Hypothyroid, and Hyperthyroid",
+          text: "Thyroid support comes in three distinct layers because each condition has different nutritional needs. Hashimoto's is an autoimmune thyroid condition — this layer applies gluten-minimal preference, dairy-light structure, and emphasizes selenium, zinc, and bone broth for autoimmune support. Hypothyroid support emphasizes metabolic regularity and iron, and guides cruciferous vegetables toward cooked preparation to reduce goitrogenic interference — if Levothyroxine is in your medications, breakfast structure also adjusts to protect medication absorption. Hyperthyroid support enforces strict iodine restriction — kelp, seaweed, and high-iodine dairy are blocked — and adds caloric and nutrient-density support to compensate for the elevated metabolic rate. All three layers can activate automatically when your lab values — TSH, Free T4, Free T3, or Reverse T3 — cross established clinical thresholds.",
         },
         {
           heading: "Hormone Optimization",
-          text: "Designed for low testosterone, low DHEA-S, or general hormone-optimization goals. Requires healthy fats (avocado, salmon, nuts, olive oil) in every meal to support hormone synthesis. Seed oils and refined sugars are blocked. Zinc-rich proteins are prioritized. Can activate automatically when Total Testosterone, Free Testosterone, or DHEA-S lab values fall below clinical thresholds.",
+          text: "Applied when testosterone, DHEA-S, or general hormone balance is the goal. Healthy fats are required in every meal to support hormone synthesis — avocado, salmon, nuts, olive oil. Seed oils and refined sugars are blocked because they interfere with hormonal signaling. Zinc-rich proteins are prioritized. This layer can activate automatically when lab values for Total Testosterone, Free Testosterone, or DHEA-S fall below clinical thresholds.",
         },
         {
-          heading: "Menopause Support",
-          text: "Designed for menopause. Prioritizes bone density through calcium and Vitamin D. Phytoestrogens — flaxseed, edamame, and soy — are actively included to support hormonal balance. Every meal targets 25g or more of protein to protect lean muscle mass. Can activate automatically when FSH and Estradiol lab values indicate menopause.",
-        },
-        {
-          heading: "Perimenopause Support",
-          text: "Designed for the hormonal transition before menopause. Emphasizes blood sugar stability to manage energy fluctuations and mood variability. Iron-rich foods including lean beef, lentils, and spinach are prioritized. Can activate automatically when FSH and Estradiol lab values indicate the perimenopause transition.",
+          heading: "Menopause and Perimenopause Support",
+          text: "Menopause support is applied when estrogen levels have dropped and bone density, muscle mass, and hormonal balance are the priority. Every meal targets 25 grams or more of protein to protect lean mass, calcium and Vitamin D are prioritized for bone health, and phytoestrogens from flaxseed, edamame, and soy are actively included. Perimenopause support addresses the transition before menopause — emphasizing blood sugar stability to manage energy and mood fluctuations, and iron-rich foods to address the needs of this hormonal shift. Both layers can activate automatically from lab values.",
         },
         {
           heading: "My Perfect Pregnancy",
-          text: "A full trimester-aware nutrition protocol that activates across every meal generator when selected. It enforces pregnancy food safety rules — blocking raw fish, mercury-heavy fish, deli meats, and unpasteurized cheeses — in every builder simultaneously. Nutrient priorities shift by stage: folate and iron in the first trimester, calcium and protein in the second, DHA and choline in the third. Postpartum and breastfeeding stages have their own distinct protocols. Symptom selections (nausea, heartburn, swelling, fatigue) adjust ingredient choices in real time. Found in the Lifestyle section.",
+          text: "A full trimester-aware protocol that activates across every meal generator simultaneously when selected. It enforces pregnancy food safety rules in every builder at once — blocking raw fish, high-mercury fish, deli meats, and unpasteurized cheeses. Nutrient priorities shift by trimester: folate and iron in the first, calcium and protein in the second, DHA and choline in the third. Postpartum and breastfeeding have their own distinct protocols. Symptom selections — nausea, heartburn, swelling, fatigue — adjust ingredient choices in real time. Found in the Lifestyle section of your profile.",
         },
         {
           heading: "Metabolic Recovery",
-          text: "Designed for metabolic repair and restoration. Emphasizes nutrient density, gut health support, and glycemic stability. High-glycemic spikes are actively limited. Works best alongside Anti-Inflammatory or General Nutrition as the primary meal builder.",
+          text: "Applied when the goal is to repair and restore metabolic function after a period of damage, restriction, or chronic stress. It emphasizes nutrient density, gut health support, and glycemic stability. High-glycemic spikes are actively limited. Works best stacked on top of the Anti-Inflammatory or General Nutrition builder as the primary foundation.",
         },
         {
           heading: "Cancer Support Nutrition (Physician Assigned)",
-          text: "A physician-assigned support system — not treatment or medical care. Built on an anti-inflammatory foundation with protein support, easier-to-tolerate meals, appetite-aware structure, and symptom-sensitive adjustments. Examples include low-appetite support, nausea-friendly meals, soft food options, and low-prep meals during fatigue.",
+          text: "This is a physician-assigned layer — not treatment and not medical care. It is a nutrition support structure built on an anti-inflammatory foundation, with protein prioritized to protect lean mass, meals designed to be easier to tolerate, and structure that adapts to symptoms like low appetite, nausea, food aversions, fatigue, and difficulty chewing. A physician activates this layer for the client through ProCare — it does not appear in self-selection.",
         },
         {
-          heading: "Multiple Conditions — All Stack at Once",
-          text: "If you have more than one condition, you can select all of them. Cardiac and renal. Thyroid and oncology. Any combination. Every condition you activate gets its own full protocol applied to every meal generator simultaneously. The app does not pick one and ignore the rest. All active clinical rules stack together in real time across every tool in the app.",
+          heading: "All Conditions Stack — None Cancel the Others",
+          text: "If you have more than one condition, every layer activates simultaneously. Cardiac and renal together. Thyroid and oncology together. Any combination you need. The app does not force you to pick one and sacrifice the others. Every active clinical rule runs in parallel across every meal generator at the same time.",
         },
         {
-          heading: "Where to Set Your Conditions",
-          text: "Go to Edit Profile and scroll to the Clinical Support section. Tap each condition that applies to you. You can select as many as you need — they all activate immediately. If your health situation changes over time, come back and update your selections. New conditions stack on top of existing ones without removing what was already set.",
-        },
-        {
-          heading: "With a Coach or Physician (ProCare)",
-          text: "When you connect with a professional through ProCare, they can assign your meal builder, apply support systems, and adjust your plan in real time. You still own your plan. They guide it.",
-        },
-        {
-          heading: "How Builders Work Button",
-          text: "Every meal builder in the app includes a 'How builders work' button. Tap it to watch a short video tutorial that walks you through how to use the builder — from creating your first meal to building a full day. If you're ever unsure where to start, that button is your first stop.",
-        },
-        {
-          heading: "Why This Matters",
-          text: "Most apps track what you already ate. This app helps you decide what to eat before you eat it. That's where results actually happen — not in the log, but in the decision.",
+          heading: "With a Coach or Physician",
+          text: "When you connect with a professional through ProCare, they can assign your builder, apply your support layers, and adjust your entire plan in real time from their portal. You still own your plan. They guide it. If your coach has set your builder, the system follows their direction — and you can see exactly what is active in the Nutrition Personalization Summary at the top of your dashboard.",
         },
         {
           heading: "Important",
