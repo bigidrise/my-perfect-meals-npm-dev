@@ -326,6 +326,30 @@ const PROTOCOL_PROCEDURE_MAP: Record<string, ProtocolProcedureRules> = {
     ],
   },
 
+  low_carb: {
+    preparationRules: [
+      "Reduce carbohydrates significantly — avoid white bread, white rice, regular pasta, pastries, and refined grains",
+      "Do not use added sugar, sugary sauces, or sweetened condiments",
+      "Do not use corn syrup, honey glaze, or sugar-based marinades",
+      "Favor protein, healthy fats, and non-starchy vegetables as the bulk of the dish",
+      "Small amounts of whole grains (quinoa, oats, legumes) are acceptable; refined starches are not",
+    ],
+    storageRules: [],
+    equipmentRules: [],
+    forbiddenInstructions: [
+      "serve with white rice",
+      "serve with pasta",
+      "serve with bread",
+      "add sugar",
+      "add corn syrup",
+      "serve with a roll",
+      "add croutons",
+    ],
+    requiredInstructionNotes: [
+      "Keep the dish low in refined carbohydrates — replace starchy sides with non-starchy vegetables or salad",
+    ],
+    crossContaminationRules: [],
+  },
   keto: {
     preparationRules: [
       "Keep net carbs minimal — prioritize fats and proteins in every step",
@@ -1976,6 +2000,9 @@ function buildWhyThisComplies(
 
     case "pescatarian":
       return `${name} contains no land meat or poultry. Seafood and plant-based ingredients are used. Vegetable or seafood broths replace meat stocks.`;
+
+    case "low_carb":
+      return `${name} is low-carbohydrate. Refined grains, sugary sauces, white bread, and regular pasta are excluded. Protein and healthy fats anchor the dish.`;
 
     case "keto":
       return `${name} is low-carbohydrate and fits standard keto targets. It prioritizes protein and healthy fats. Avoid adding any high-carb sauces, thickeners, or accompaniments.`;
