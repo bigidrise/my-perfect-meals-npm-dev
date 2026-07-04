@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import TrashButton from "@/components/ui/TrashButton";
 import ProClientFolderModal from "@/components/pro/ProClientFolderModal";
+import { InformationModal } from "@/components/ui/universal-modal";
 import CheckInAlertPreferences from "@/components/pro/CheckInAlertPreferences";
 import CheckInOverviewPanel from "@/components/pro/CheckInOverviewPanel";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
@@ -81,6 +82,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isMobile = useIsMobile();
+  const [mobileGateOpen, setMobileGateOpen] = useState(false);
   const defaultRole: ProRole = isPhysician ? "doctor" : "trainer";
 
   const showToast = useCallback((msg: string) => {
@@ -291,7 +293,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
 
   const openFolder = async (c: ClientProfile) => {
     if (isMobile) {
-      showToast("Client folders are designed for desktop or tablet view. Please use a wider screen, desktop view, or rotate your device to landscape to open this folder.");
+      setMobileGateOpen(true);
       return;
     }
     if (!c.clientUserId && !c.userId && c.email) {
@@ -663,32 +665,30 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
       <AnimatePresence>
         {toast && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.92 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.92 }}
-            className="fixed z-50 bg-black/95 border border-orange-500/40 rounded-2xl p-4 shadow-2xl"
-            style={{
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              width: "calc(100vw - 40px)",
-              maxWidth: "340px",
-            }}
+            initial={{ opacity: 0, y: 40, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 40, scale: 0.95 }}
+            className="fixed bottom-24 z-50 flex items-center gap-3 bg-black/90 border border-orange-500/40 rounded-full px-4 py-3 shadow-2xl"
+            style={{ left: "50%", transform: "translateX(-50%)", maxWidth: "calc(100vw - 32px)" }}
           >
-            <button
-              onClick={() => setToast(null)}
-              className="absolute top-3 right-3 text-white/40 active:text-white"
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <div className="flex items-center gap-2 mb-2">
-              <MessageSquare className="h-4 w-4 text-orange-400 shrink-0" />
-              <span className="text-xs font-semibold uppercase tracking-wide text-orange-400">Notice</span>
+            <div className="relative shrink-0">
+              <MessageSquare className="h-4 w-4 text-orange-400" />
+              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
             </div>
-            <p className="text-sm text-white leading-relaxed pr-4">{toast}</p>
+            <span className="text-sm text-white font-medium whitespace-nowrap">{toast}</span>
+            <button onClick={() => setToast(null)} className="text-white/40 active:text-white ml-1 shrink-0">
+              <X className="h-3.5 w-3.5" />
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
+
+      <InformationModal
+        open={mobileGateOpen}
+        onOpenChange={setMobileGateOpen}
+        title="Desktop or Tablet Required"
+        description="Client folders are designed for desktop or tablet view. Please use a wider screen, switch to desktop view, or rotate your device to landscape to open this folder."
+      />
 
       <QuickTourModal
         isOpen={quickTour.shouldShow}
