@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ClientProfile, proStore } from "@/lib/proData";
 import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
@@ -785,27 +786,29 @@ export default function ProClientFolderModal({
 
   return (
     <>
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="bg-zinc-900 border-white/10 text-white max-w-md max-h-[90vh] overflow-hidden flex flex-col [&>button.absolute]:hidden"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
-        <DialogHeader className="shrink-0 bg-zinc-900 -mx-6 px-6 pt-2 pb-4 border-b border-white/10">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <DialogTitle className="text-xl text-white">{client.name}</DialogTitle>
-              <DialogDescription className="text-white/50">
+    <UniversalDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      rawLayout
+      onOpenAutoFocus={(e) => e.preventDefault()}
+      className="bg-zinc-900 border-white/10 text-white max-w-md max-h-[90vh] overflow-hidden flex flex-col [&>button.absolute]:hidden p-0"
+    >
+        <DialogHeader className="shrink-0 bg-zinc-900 px-4 pt-3 pb-4 border-b border-white/10">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <div className="min-w-0 flex-1">
+              <DialogTitle className="text-lg text-white truncate">{client.name}</DialogTitle>
+              <DialogDescription className="text-white/50 truncate text-xs">
                 {client.email || "No email on file"}
               </DialogDescription>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <PillButton onClick={folderTour.openTour}>How to Use</PillButton>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <PillButton onClick={folderTour.openTour}>Guide</PillButton>
               <PillButton onClick={() => onOpenChange(false)}>Close</PillButton>
             </div>
           </div>
         </DialogHeader>
 
-        <div className="space-y-3 overflow-y-auto flex-1 pt-2">
+        <div className="space-y-3 overflow-y-auto flex-1 pt-2 px-4 pb-4">
           <div className="flex flex-wrap gap-2">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
               <CheckCircle2 className="h-3 w-3" />
@@ -1252,8 +1255,7 @@ export default function ProClientFolderModal({
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+    </UniversalDialog>
     <QuickTourModal
       steps={FOLDER_TOUR_STEPS}
       isOpen={folderTour.shouldShow}

@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Coffee, ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
@@ -139,8 +140,7 @@ export default function BreakfastMealsHub() {
       </div>
 
       {/* Meal Detail Dialog */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="bg-zinc-900 text-white border-white/15 max-w-4xl max-h-[90vh] overflow-y-auto">
+      <UniversalDialog rawLayout open={open} onOpenChange={setOpen} className="bg-zinc-900 text-white border-white/15 max-w-4xl max-h-[90vh] overflow-y-auto">
           {activeMeal && activeTemplate && (
             <>
               <DialogHeader>
@@ -240,8 +240,7 @@ export default function BreakfastMealsHub() {
               </div>
             </>
           )}
-        </DialogContent>
-      </Dialog>
+      </UniversalDialog>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { apiUrl } from '@/lib/resolveApiBase';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { InformationModal } from "@/components/ui/universal-modal";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
 
 // Centralized macro data availability check
@@ -220,14 +220,12 @@ function CookingInstructionsModal({ meal, open, onClose }: { meal: any, open: bo
   };
 
   return (
-    <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="bg-zinc-900/95 text-zinc-100 border border-white/10 backdrop-blur-sm max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">
-            🍳 Cooking Instructions — {meal.name}
-          </DialogTitle>
-        </DialogHeader>
-        
+    <InformationModal
+      open={open}
+      onOpenChange={(open) => !open && onClose()}
+      title={`🍳 Cooking Instructions — ${meal.name}`}
+      className="bg-zinc-900/95 text-zinc-100 border-white/10 backdrop-blur-sm max-w-2xl"
+    >
         <div className="space-y-6">
           {/* Ingredients */}
           <div>
@@ -282,7 +280,6 @@ function CookingInstructionsModal({ meal, open, onClose }: { meal: any, open: bo
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+    </InformationModal>
   );
 }

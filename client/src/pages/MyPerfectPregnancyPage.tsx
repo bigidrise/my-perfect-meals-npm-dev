@@ -270,10 +270,10 @@ export default function MyPerfectPregnancyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-pink-950/20 to-black text-white pb-20">
+    <div className="min-h-screen bg-gradient-to-b from-black via-pink-950/20 to-black text-white pb-36">
 
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl border-b border-pink-500/20">
+      <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl border-b border-pink-500/20" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="flex items-center justify-between px-4 py-3">
           <button onClick={() => setLocation("/lifestyle")} className="p-1">
             <ArrowLeft className="w-5 h-5 text-white/70" />

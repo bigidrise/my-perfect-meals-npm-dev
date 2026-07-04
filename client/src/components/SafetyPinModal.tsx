@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { FormModal } from "@/components/ui/universal-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Shield, Eye, EyeOff, AlertTriangle } from "lucide-react";
@@ -80,22 +80,20 @@ export function SafetyPinModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="bg-zinc-900 border-white/10 text-white max-w-sm">
-        <DialogHeader>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
-              <Shield className="w-5 h-5 text-orange-400" />
-            </div>
-            <div>
-              <DialogTitle className="text-white">Allergy Safety Override</DialogTitle>
-              <DialogDescription className="text-white/60">
-                Temporarily disable allergy protection for this meal
-              </DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
-
+    <FormModal
+      open={open}
+      onOpenChange={(o) => !o && handleClose()}
+      title={
+        <span className="flex items-center gap-3">
+          <span className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0">
+            <Shield className="w-5 h-5 text-orange-400" />
+          </span>
+          Allergy Safety Override
+        </span>
+      }
+      description="Temporarily disable allergy protection for this meal"
+      className="bg-zinc-900 border-white/10 text-white max-w-sm"
+    >
         <div className="space-y-4 pt-2">
           {/* Primary Message */}
           <p className="text-white/90 text-sm leading-relaxed">
@@ -185,7 +183,6 @@ export function SafetyPinModal({
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+    </FormModal>
   );
 }

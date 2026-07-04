@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { useAuth } from "./AuthContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -51,23 +51,28 @@ interface FontSizeProviderProps {
 export function FontSizeProvider({ children }: FontSizeProviderProps) {
   const { user } = useAuth();
   const [fontSize, setFontSizeState] = useState<FontSize>(initialSize);
-  const hasAppliedServerPref = useRef(false);
 
   useEffect(() => {
     const serverPref = user?.fontSizePreference;
-    if (isValidFontSize(serverPref) && !hasAppliedServerPref.current) {
-      hasAppliedServerPref.current = true;
-      setFontSizeState(serverPref);
-      applyFontSize(serverPref);
-      localStorage.setItem(FONT_SIZE_STORAGE_KEY, serverPref);
+    if (!isValidFontSize(serverPref)) return;
+
+    // Local preference always wins — only fill in from server if localStorage is empty
+    try {
+      const stored = localStorage.getItem(FONT_SIZE_STORAGE_KEY);
+      if (stored) return;
+    } catch {
+      return;
     }
+
+    setFontSizeState(serverPref);
+    applyFontSize(serverPref);
+    localStorage.setItem(FONT_SIZE_STORAGE_KEY, serverPref);
   }, [user?.fontSizePreference]);
 
   const setFontSize = useCallback(async (size: FontSize) => {
     setFontSizeState(size);
     applyFontSize(size);
     localStorage.setItem(FONT_SIZE_STORAGE_KEY, size);
-    hasAppliedServerPref.current = true;
 
     if (user) {
       try {

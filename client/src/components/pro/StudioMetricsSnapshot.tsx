@@ -155,7 +155,7 @@ export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapsho
             No macro targets set yet
           </p>
         ) : (
-          <div className="grid grid-cols-4 gap-2 text-center">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
             <div>
               <p className="text-sm font-bold text-white">{targetCal}</p>
               <p className="text-[10px] text-white/40">Cal</p>

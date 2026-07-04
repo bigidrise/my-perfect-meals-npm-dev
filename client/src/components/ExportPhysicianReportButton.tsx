@@ -1,13 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FileText, Copy, Check, Loader2 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -157,8 +152,7 @@ export function ExportPhysicianReportButton({
         )}
       </Button>
 
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-2xl">
+      <UniversalDialog rawLayout open={showDialog} onOpenChange={setShowDialog} className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl">
               <FileText className="w-6 h-6 text-purple-600" />
@@ -247,8 +241,7 @@ export function ExportPhysicianReportButton({
               </Button>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+      </UniversalDialog>
     </>
   );
 }

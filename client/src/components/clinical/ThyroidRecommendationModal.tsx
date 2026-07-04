@@ -1,11 +1,6 @@
 import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, FlaskConical, BookOpen, Activity } from "lucide-react";
@@ -82,8 +77,7 @@ export default function ThyroidRecommendationModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o && !busy) onClose(); }}>
-      <DialogContent className="bg-[#0e1a1a] border border-teal-500/20 text-white max-w-md rounded-2xl p-0 overflow-hidden">
+    <UniversalDialog rawLayout open={open} onOpenChange={(o) => { if (!o && !busy) onClose(); }} className="bg-[#0e1a1a] border-teal-500/20 text-white max-w-md rounded-2xl p-0 overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-3">
           <div className="flex items-center gap-2 mb-1">
             <FlaskConical className="w-4 h-4 text-teal-400 shrink-0" />
@@ -167,7 +161,6 @@ export default function ThyroidRecommendationModal({
             Activate Thyroid Support
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+    </UniversalDialog>
   );
 }

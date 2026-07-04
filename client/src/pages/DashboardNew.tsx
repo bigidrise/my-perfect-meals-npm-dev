@@ -10,13 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { InformationModal } from "@/components/ui/universal-modal";
 import { Button } from "@/components/ui/button";
 import {
   Calculator,
@@ -1723,20 +1717,7 @@ export default function DashboardNew() {
         }}
       />
 
-      <Dialog
-        open={showSubscriptionModal}
-        onOpenChange={setShowSubscriptionModal}
-      >
-        <DialogContent className="sm:max-w-md bg-black/90 text-white border border-orange-500/40 backdrop-blur-lg">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-center">
-              Unlock Full Access
-            </DialogTitle>
-            <DialogDescription className="text-white/80 text-center mt-2">
-              AI-powered meal planning, personalized macros, restaurant
-              guidance, and advanced coaching tools.
-            </DialogDescription>
-          </DialogHeader>
+      <InformationModal open={showSubscriptionModal} onOpenChange={setShowSubscriptionModal} className="sm:max-w-md bg-black/90 text-white border-orange-500/40 backdrop-blur-lg" title={<span className="font-bold text-center block">Unlock Full Access</span>} description="AI-powered meal planning, personalized macros, restaurant guidance, and advanced coaching tools.">
           <div className="mt-4 space-y-2 text-sm text-white/80">
             <div>• Unlimited AI meal creation</div>
             <div>• Advanced macro targeting</div>
@@ -1765,8 +1746,7 @@ export default function DashboardNew() {
               Continue with Free Features
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
+      </InformationModal>
 
       {showWorkspaceChooser && (
         <WorkspaceChooser

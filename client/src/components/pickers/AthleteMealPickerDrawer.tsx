@@ -1,6 +1,7 @@
 import React from "react";
 import { useLocation } from "wouter";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -254,8 +255,12 @@ export function AthleteMealPickerDrawer({
 
   return (
     <>
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="bg-black/90 border border-white/20 text-white max-w-4xl max-h-[85vh] overflow-y-auto">
+    <UniversalDialog
+      open={open}
+      onOpenChange={(v) => !v && onClose()}
+      rawLayout
+      className="bg-black/90 border-white/20 text-white max-w-4xl max-h-[85vh] overflow-y-auto"
+    >
         <DialogHeader>
           <div className="flex items-center justify-between gap-2">
             <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
@@ -602,8 +607,7 @@ export function AthleteMealPickerDrawer({
             </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+    </UniversalDialog>
 
     {/* Info Modal */}
     {showInfoModal && (

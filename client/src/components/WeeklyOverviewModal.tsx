@@ -97,7 +97,7 @@ export default function WeeklyOverviewModal({
             {/* Current-board summary with matching styling */}
             <div className="border border-zinc-700/50 bg-zinc-800/30 backdrop-blur rounded-xl p-4">
               <h3 className="text-white/95 text-base font-semibold mb-3">Today's Summary (current board)</h3>
-              <div className="grid grid-cols-4 gap-3 text-sm">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                 <div>
                   <div className="text-white/60">Calories</div>
                   <div className="font-semibold text-white/95">{Math.round(totals.calories)}</div>
