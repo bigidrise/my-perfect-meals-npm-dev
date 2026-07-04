@@ -11,7 +11,7 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
-import { buildPalateSection, PalatePreferences, buildStrictModeBlock } from "../services/promptBuilder";
+import { buildPalateSection, PalatePreferences, buildStrictModeBlock, buildSweetenerAllowlistBlock } from "../services/promptBuilder";
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope, buildMealComplianceBundle } from "../services/protocolEnvelope";
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from "../services/behavioralMemoryService";
 import { getPrimaryDiet } from "../services/allergyGuardrails";
@@ -174,6 +174,7 @@ dessertCreatorRouter.post("/", async (req, res) => {
 
     // 🎨 PALATE PREFERENCES: Load flavor preferences for seasoning/flavor guidance
     let palateGuidance = "\nFLAVOR STYLE: Use light, neutral flavoring suitable for serving to guests or family.";
+    let sweetenerGuidance = "";
     let userDietaryRestrictions: string[] = [];
     let dessertMeasurementSystem: MeasurementSystem = "imperial";
     if (userId && userId !== "1") {
@@ -187,6 +188,8 @@ dessertCreatorRouter.post("/", async (req, res) => {
           medicalConditions: users.medicalConditions,
           dietaryRestrictions: users.dietaryRestrictions,
           measurementSystem: users.measurementSystem,
+          preferredSweeteners: users.preferredSweeteners,
+          avoidSweeteners: (users as any).avoidSweeteners,
         }).from(users).where(eq(users.id, userId)).limit(1);
         
         if (user) {
@@ -203,6 +206,14 @@ dessertCreatorRouter.post("/", async (req, res) => {
             };
             palateGuidance = `\nFLAVOR PREFERENCES: ${buildPalateSection(palatePrefs)}`;
             console.log(`🎨 [DESSERT] Loaded palate preferences: flavor=${user.flavorPreference}, heat=${user.heatPreference}`);
+          }
+          // Sweetener allowlist — always enforced regardless of skipPalate
+          const preferred = (user.preferredSweeteners as string[]) || [];
+          const avoidAll = ((user as any).avoidSweeteners as string[] || []).includes("all sweeteners");
+          const block = buildSweetenerAllowlistBlock(preferred, avoidAll);
+          if (block) {
+            sweetenerGuidance = `\n${block}`;
+            console.log(`🍯 [DESSERT] Sweetener allowlist: preferred=[${preferred.join(",")}] avoidAll=${avoidAll}`);
           }
         }
       } catch (err) {
@@ -293,7 +304,7 @@ CELEBRATION CAKE REQUIREMENTS:
     const prompt = `
 You are a master pastry chef + nutrition expert inside the My Perfect Meals system.
 Generate a FULL structured dessert recipe.
-${dessertProtocolBlock ? `\n${dessertProtocolBlock}\n` : ""}${dessertBehavioralMemorySection ? `\n${dessertBehavioralMemorySection}\n` : ""}${chefAdaptBlock}${softOverrideBlock}${strictMode === true ? `\n${buildStrictModeBlock(dessertIdentifier)}\n` : ""}
+${dessertProtocolBlock ? `\n${dessertProtocolBlock}\n` : ""}${sweetenerGuidance}${dessertBehavioralMemorySection ? `\n${dessertBehavioralMemorySection}\n` : ""}${chefAdaptBlock}${softOverrideBlock}${strictMode === true ? `\n${buildStrictModeBlock(dessertIdentifier)}\n` : ""}
 
 Return JSON ONLY, following this exact schema:
 
