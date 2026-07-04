@@ -168,6 +168,25 @@ function effectiveHeat(
   return requestedRank > 1 ? "mild" : requested;
 }
 
+/**
+ * Builds a strict sweetener enforcement block for AI prompts.
+ * Sweetener preferences are an ALLOWLIST — not a suggestion.
+ * When the user has selected specific sweeteners, all others are explicitly forbidden.
+ */
+export function buildSweetenerAllowlistBlock(
+  preferredSweeteners: string[],
+  avoidAllSweeteners: boolean
+): string {
+  if (avoidAllSweeteners) {
+    return `🚫 SWEETENERS — ALL FORBIDDEN: Do NOT add any sweetener to this recipe. This means NO white sugar, NO brown sugar, NO cane sugar, NO raw sugar, NO coconut sugar, NO agave, NO agave nectar, NO maple syrup, NO honey, NO stevia, NO monk fruit, NO equal/aspartame, NO splenda/sucralose, NO corn syrup, NO molasses, NO powdered sugar, NO confectioners sugar, and NO other sweetening agent. Rely only on natural sweetness from ingredients.`;
+  }
+  if (preferredSweeteners.length > 0) {
+    const approved = preferredSweeteners.join(", ");
+    return `🍯 SWEETENERS — STRICT ALLOWLIST (MANDATORY): ONLY these sweeteners are permitted in this recipe: ${approved}. ALL other sweeteners are STRICTLY FORBIDDEN — including white sugar, brown sugar, cane sugar, raw sugar, granulated sugar, demerara sugar, turbinado sugar, coconut sugar, powdered sugar, confectioners sugar, agave, agave nectar, maple syrup, corn syrup, high-fructose corn syrup, molasses, date sugar, and any other sweetening agent not explicitly listed above. Do NOT substitute with any unapproved sweetener under any circumstances.`;
+  }
+  return "";
+}
+
 export function buildPalateSection(profile: PalatePreferences): string {
   // If onboarding fields are present, they take priority over the old palate* fields
   const hasOnboardingPrefs = profile.flavorPreference || profile.heatPreference;
@@ -249,7 +268,8 @@ export function buildMealPrompt(
 
   const expandedAvoidIngredients = expandAvoidIngredients(profile.avoidIngredients);
   const avoid = Array.from(new Set([...(profile.allergies ?? []), ...expandedAvoidIngredients]));
-  const bannedSweeteners = profile.bannedSweeteners?.length ? `Banned sweeteners: ${profile.bannedSweeteners.join(", ")}.` : "";
+  const avoidAllSweeteners = profile.bannedSweeteners?.includes("all sweeteners") ?? false;
+  const sweetenerBlock = buildSweetenerAllowlistBlock(profile.preferredSweeteners ?? [], avoidAllSweeteners);
 
   const mediterraneanRules = diet.toLowerCase().includes('mediterranean') ? `
 
@@ -340,7 +360,7 @@ Protein target/day: ${profile.proteinTargetG ?? "unknown"} g
 Medical: ${medical.join(" ")}
 Allergies: ${avoid.length ? avoid.join(", ") : "none"}
 Avoid ingredients: ${expandedAvoidIngredients.length ? expandedAvoidIngredients.join(", ") : "none"}
-Sweeteners: allow ${profile.preferredSweeteners?.join(", ") || "standard options"}; ${bannedSweeteners}
+${sweetenerBlock || "Sweeteners: standard options permitted."}
 Body type: ${profile.bodyType ?? "n/a"}
 ${palateSection}
 

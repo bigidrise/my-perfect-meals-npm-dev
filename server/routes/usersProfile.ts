@@ -107,9 +107,13 @@ router.put("/profile", requireAuth, async (req, res) => {
       } else if (prefs.length > 0) {
         updateData.preferredSweeteners = prefs;
         // If regular sugar is not explicitly selected, ban it so AI won't default to it
+        // When regular sugar is NOT selected, ban all sugar variants so brown sugar,
+        // cane sugar, agave, maple syrup, etc. don't slip through as "close enough"
         updateData.avoidSweeteners = prefs.includes("regular_sugar")
           ? []
-          : ["regular sugar", "white sugar"];
+          : ["white sugar", "brown sugar", "cane sugar", "raw sugar", "granulated sugar",
+             "demerara sugar", "turbinado sugar", "coconut sugar", "powdered sugar",
+             "agave", "agave nectar", "maple syrup", "corn syrup", "molasses"];
       } else {
         updateData.preferredSweeteners = [];
         updateData.avoidSweeteners = [];
