@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -79,6 +80,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
   const prevTotalUnread = useRef(0);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const isMobile = useIsMobile();
   const defaultRole: ProRole = isPhysician ? "doctor" : "trainer";
 
   const showToast = useCallback((msg: string) => {
@@ -288,6 +290,10 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
   };
 
   const openFolder = async (c: ClientProfile) => {
+    if (isMobile) {
+      showToast("Client folders are designed for desktop or tablet view. Please use a wider screen, desktop view, or rotate your device to landscape to open this folder.");
+      return;
+    }
     if (!c.clientUserId && !c.userId && c.email) {
       try {
         const headers: Record<string, string> = { ...getAuthHeaders() };
