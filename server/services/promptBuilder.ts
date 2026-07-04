@@ -169,6 +169,40 @@ function effectiveHeat(
 }
 
 /**
+ * Resolves the effective sweetener allowlist from the user's stored columns.
+ *
+ * The AI-facing columns (preferredSweeteners / avoidSweeteners) are only
+ * populated when the user saves their profile after the bridge was deployed.
+ * For existing users those columns may be empty — fall back to sweetenerPreferences
+ * (the column that has always been written to) and derive the same result.
+ */
+export function resolveSweetenerAllowlist(
+  preferredSweeteners: string[],
+  avoidSweeteners: string[],
+  sweetenerPreferences: string[]
+): { preferred: string[]; avoidAll: boolean } {
+  // AI-facing columns already bridged — use them
+  if (preferredSweeteners.length > 0 || avoidSweeteners.includes("all sweeteners")) {
+    return {
+      preferred: preferredSweeteners,
+      avoidAll: avoidSweeteners.includes("all sweeteners"),
+    };
+  }
+  // Fallback: derive from the legacy column (always written to)
+  if (sweetenerPreferences.length > 0) {
+    const normalize = (v: string) =>
+      v === "sugar" ? "regular_sugar"
+      : v === "avoid" ? "avoid_sweeteners"
+      : v === "monk-fruit" ? "monk_fruit"
+      : v;
+    const prefs = sweetenerPreferences.map(normalize);
+    if (prefs.includes("avoid_sweeteners")) return { preferred: [], avoidAll: true };
+    return { preferred: prefs, avoidAll: false };
+  }
+  return { preferred: [], avoidAll: false };
+}
+
+/**
  * Builds a strict sweetener enforcement block for AI prompts.
  * Sweetener preferences are an ALLOWLIST — not a suggestion.
  * When the user has selected specific sweeteners, all others are explicitly forbidden.

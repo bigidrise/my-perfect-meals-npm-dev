@@ -754,6 +754,8 @@ export async function loadUserProtocolEnvelope(
         avoidedFoods: users.avoidedFoods,
         likedFoods: users.likedFoods,
         preferredSweeteners: users.preferredSweeteners,
+        avoidSweeteners: (users as any).avoidSweeteners,
+        sweetenerPreferences: (users as any).sweetenerPreferences,
         cuisinePreference: users.cuisinePreference,
         cuisineIntensity: users.cuisineIntensity,
         oncologySupportContext: users.oncologySupportContext,
@@ -847,7 +849,16 @@ export async function loadUserProtocolEnvelope(
     const dislikedFoods: string[] = (user.dislikedFoods as string[]) || [];
     const avoidedFoods: string[] = (user.avoidedFoods as string[]) || [];
     const likedFoods: string[] = (user.likedFoods as string[]) || [];
-    const preferredSweeteners: string[] = (user.preferredSweeteners as string[]) || [];
+    // Resolve sweeteners with fallback: if AI-facing columns are empty (user
+    // saved preferences before the bridge was deployed), derive from the legacy
+    // sweetenerPreferences column so no re-save is required.
+    const { resolveSweetenerAllowlist } = await import("./promptBuilder");
+    const { preferred: resolvedSweeteners } = resolveSweetenerAllowlist(
+      (user.preferredSweeteners as string[]) || [],
+      ((user as any).avoidSweeteners as string[]) || [],
+      ((user as any).sweetenerPreferences as string[]) || []
+    );
+    const preferredSweeteners: string[] = resolvedSweeteners;
 
     const { hardLimits, optimization } = classifyHealthConditions(mergedHealthConditions);
     const avoidances = [...new Set([...dislikedFoods, ...avoidedFoods])];

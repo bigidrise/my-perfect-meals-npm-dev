@@ -11,7 +11,7 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
-import { buildPalateSection, PalatePreferences, buildStrictModeBlock, buildSweetenerAllowlistBlock } from "../services/promptBuilder";
+import { buildPalateSection, PalatePreferences, buildStrictModeBlock, buildSweetenerAllowlistBlock, resolveSweetenerAllowlist } from "../services/promptBuilder";
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope, buildMealComplianceBundle } from "../services/protocolEnvelope";
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from "../services/behavioralMemoryService";
 import { getPrimaryDiet } from "../services/allergyGuardrails";
@@ -190,6 +190,7 @@ dessertCreatorRouter.post("/", async (req, res) => {
           measurementSystem: users.measurementSystem,
           preferredSweeteners: users.preferredSweeteners,
           avoidSweeteners: (users as any).avoidSweeteners,
+          sweetenerPreferences: (users as any).sweetenerPreferences,
         }).from(users).where(eq(users.id, userId)).limit(1);
         
         if (user) {
@@ -208,8 +209,13 @@ dessertCreatorRouter.post("/", async (req, res) => {
             console.log(`🎨 [DESSERT] Loaded palate preferences: flavor=${user.flavorPreference}, heat=${user.heatPreference}`);
           }
           // Sweetener allowlist — always enforced regardless of skipPalate
-          const preferred = (user.preferredSweeteners as string[]) || [];
-          const avoidAll = ((user as any).avoidSweeteners as string[] || []).includes("all sweeteners");
+          // resolveSweetenerAllowlist falls back to sweetenerPreferences column
+          // for users who haven't re-saved since the bridge was deployed
+          const { preferred, avoidAll } = resolveSweetenerAllowlist(
+            (user.preferredSweeteners as string[]) || [],
+            ((user as any).avoidSweeteners as string[]) || [],
+            ((user as any).sweetenerPreferences as string[]) || []
+          );
           const block = buildSweetenerAllowlistBlock(preferred, avoidAll);
           if (block) {
             sweetenerGuidance = `\n${block}`;
