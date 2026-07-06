@@ -128,9 +128,10 @@ router.post("/api/auth/signup", async (req, res) => {
       authToken,
       authTokenCreatedAt: new Date(),
       isTester,
+      isFounder: isTester, // tester-allowlisted signups are founder/partner accounts
+      ...(isTester ? { planLookupKey: 'mpm_ultimate_monthly' } : {}),
       trialStartedAt,
       trialEndsAt,
-      // planLookupKey intentionally omitted — set by Stripe webhook on payment
     };
 
     if (procare && procare.professionalCategory) {
