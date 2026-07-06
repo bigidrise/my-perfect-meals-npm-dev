@@ -12,6 +12,7 @@ import { usePageTitle } from "@/contexts/PageTitleContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { getResolvedTargets, setPerfSelectedDate } from "@/lib/macroResolver";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 // import PerformanceSetupModal from "@/components/PerformanceSetupModal"; // kept during validation — see PerformanceNutritionSetupPage
 import {
   computeDemandProfile,
@@ -426,6 +427,7 @@ export default function PerformanceNutritionHub() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isDesktop = useIsDesktop();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
     const param = new URLSearchParams(window.location.search).get("tab");
@@ -717,7 +719,7 @@ export default function PerformanceNutritionHub() {
   // ── Clinical paywall gate ─────────────────────────────────────────────────
   if (!hasPerformanceAccess) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white pb-20">
+      <div className={`min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white pb-20${isDesktop ? " -mt-6 -mx-6" : ""}`}>
         <div
           className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 pb-3 flex items-center gap-3"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
@@ -766,7 +768,7 @@ export default function PerformanceNutritionHub() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-32"
+      className={`min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-32${isDesktop ? " -mt-6 -mx-6" : ""}`}
     >
       {/* Header */}
       <div
