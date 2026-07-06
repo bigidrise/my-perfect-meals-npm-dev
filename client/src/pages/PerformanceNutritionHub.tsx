@@ -848,6 +848,18 @@ export default function PerformanceNutritionHub() {
       {isActive && activeTrack === "competition" && compCtx && (
         <div className="px-4 pt-4 max-w-xl mx-auto space-y-4">
 
+          {/* ── Quick Launch ── */}
+          <button
+            onClick={() => setLocation("/beach-body-meal-board")}
+            className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
+          >
+            <div className="text-left">
+              <p className="font-bold text-sm">Launch Performance Nutrition Builder</p>
+              <p className="text-white/80 text-xs mt-0.5">Build meals calibrated for your prep phase</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
+          </button>
+
           {/* Event countdown card */}
           <div className="rounded-2xl bg-black/50 border border-orange-500/30 p-4">
             <div className="flex items-center gap-2 mb-3">
@@ -1059,6 +1071,18 @@ export default function PerformanceNutritionHub() {
       {/* ── Active: Athletic Performance ── */}
       {isActive && activeTrack === "athletic" && pCtx && (
         <div className="px-4 pt-4 max-w-xl mx-auto space-y-4">
+
+          {/* ── Quick Launch ── */}
+          <button
+            onClick={() => setLocation("/beach-body-meal-board")}
+            className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
+          >
+            <div className="text-left">
+              <p className="font-bold text-sm">Launch Performance Nutrition Builder</p>
+              <p className="text-white/80 text-xs mt-0.5">Build meals calibrated for your training phase</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
+          </button>
 
           {/* ── Weekly Coaching Schedule card ── */}
           {(() => {

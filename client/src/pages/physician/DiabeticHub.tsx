@@ -307,6 +307,15 @@ export default function DiabeticHub() {
           className="max-w-6xl mx-auto px-4 space-y-8 pb-24"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          {/* ── Quick Launch ── */}
+          <button
+            onClick={() => setLocation("/diabetic-menu-builder")}
+            className="w-full px-8 py-4 rounded-xl bg-gradient-to-r from-lime-600 to-lime-600 text-white font-semibold shadow-xl relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-white/5 pointer-events-none" />
+            <span className="relative z-10">Diabetic Meal Builder</span>
+          </button>
+
           {/* ── Copilot Banner — adapts to diabetes type ── */}
           <div className="rounded-xl border-l-[3px] border-teal-500/60 bg-teal-500/5 px-4 py-3 space-y-1.5">
             <p className="text-sm text-white/80 leading-relaxed">
