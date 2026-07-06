@@ -7,6 +7,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
 
 export interface PerformanceNutritionSetupFormProps {
   onSave?: () => void;
@@ -170,6 +171,7 @@ const COMP_TOTAL = 4;
 
 export default function PerformanceNutritionSetupForm({ onSave }: PerformanceNutritionSetupFormProps) {
   const { user, refreshUser } = useAuth();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const existingContext    = user?.performanceContext;
@@ -292,6 +294,7 @@ export default function PerformanceNutritionSetupForm({ onSave }: PerformanceNut
       }
 
       await refreshUser();
+      await queryClient.invalidateQueries({ queryKey: ["carbCycleDashboard"] });
       const label = track === "competition" ? "Competition prep protocol saved." : "Athletic performance protocol saved.";
       toast({ title: "Protocol activated", description: label });
       onSave?.();
