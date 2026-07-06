@@ -8,6 +8,7 @@ import {
   Home,
   Utensils,
   Leaf,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -310,10 +311,13 @@ export default function DiabeticHub() {
           {/* ── Quick Launch ── */}
           <button
             onClick={() => setLocation("/diabetic-menu-builder")}
-            className="w-full px-8 py-4 rounded-xl bg-gradient-to-r from-lime-600 to-lime-600 text-white font-semibold shadow-xl relative overflow-hidden"
+            className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-lime-600/20 border border-lime-500/30 text-white"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-white/5 pointer-events-none" />
-            <span className="relative z-10">Diabetic Meal Builder</span>
+            <div className="text-left">
+              <p className="font-bold text-sm">Launch Diabetic Builder</p>
+              <p className="text-white/80 text-xs mt-0.5">Low-GI meals built for your glucose guardrails</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-lime-400 flex-shrink-0" />
           </button>
 
           {/* ── Copilot Banner — adapts to diabetes type ── */}
@@ -909,10 +913,13 @@ export default function DiabeticHub() {
 
             <button
               onClick={() => setLocation("/diabetic-menu-builder")}
-              className="w-full px-8 py-4 rounded-xl bg-gradient-to-r from-lime-600 to-lime-600 text-white font-semibold transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1 relative overflow-hidden"
+              className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-lime-600/20 border border-lime-500/30 text-white"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-white/5 pointer-events-none" />
-              <span className="relative z-10"> Diabetic Meal Builder </span>
+              <div className="text-left">
+                <p className="font-bold text-sm">Launch Diabetic Builder</p>
+                <p className="text-white/80 text-xs mt-0.5">Low-GI meals built for your glucose guardrails</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-lime-400 flex-shrink-0" />
             </button>
           </section>
         </div>

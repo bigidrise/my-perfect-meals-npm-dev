@@ -13,6 +13,7 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   Activity,
   Pill,
 } from "lucide-react";
@@ -190,12 +191,16 @@ export default function GLP1Hub() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         {/* ── Quick Launch ── */}
-        <Button
+        <button
           onClick={() => setLocation("/glp1-meal-builder")}
-          className="bg-lime-600 text-md font-bold text-white w-full rounded-xl"
+          className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-lime-600/20 border border-lime-500/30 text-white"
         >
-          Metabolic Medication Builder
-        </Button>
+          <div className="text-left">
+            <p className="font-bold text-sm">Launch Metabolic Builder</p>
+            <p className="text-white/80 text-xs mt-0.5">Small portions, protein-forward, medication-friendly</p>
+          </div>
+          <ChevronRight className="w-5 h-5 text-lime-400 flex-shrink-0" />
+        </button>
 
         {/* ── Copilot Banner ── */}
         <div className="rounded-xl border-l-[3px] border-purple-500/60 bg-purple-500/5 px-4 py-3 space-y-1.5">
@@ -481,13 +486,17 @@ export default function GLP1Hub() {
           <p className="text-white/90 text-md mb-3">
             Small portions • Calorie-dense • Mixed cuisines.
           </p>
-          <Button
+          <button
             onClick={() => setLocation("/glp1-meal-builder")}
-            className="bg-lime-600 text-md font-bold text-white w-full rounded-xl"
+            className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-lime-600/20 border border-lime-500/30 text-white"
             data-testid="button-go-to-glp1-meals"
           >
-            Metabolic Medication Builder
-          </Button>
+            <div className="text-left">
+              <p className="font-bold text-sm">Launch Metabolic Builder</p>
+              <p className="text-white/80 text-xs mt-0.5">Small portions, protein-forward, medication-friendly</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-lime-400 flex-shrink-0" />
+          </button>
         </section>
       </div>
 
