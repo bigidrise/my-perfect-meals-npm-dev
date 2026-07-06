@@ -14,6 +14,9 @@ import {
   ChevronUp,
   Minus,
   Plus,
+  Sparkles,
+  XCircle,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { post } from "@/lib/api";
@@ -43,6 +46,31 @@ interface ConversationMessage {
   content: string;
 }
 
+interface BrandRecommendation {
+  brand: string;
+  rank: 1 | 2 | 3;
+  grade: "A" | "B" | "C";
+  reason: string;
+}
+
+interface AvoidRecommendation {
+  brand: string;
+  reason: string;
+}
+
+interface IngredientAdvice {
+  ingredient: string;
+  category: string;
+  recommended: BrandRecommendation[];
+  avoid: AvoidRecommendation[];
+}
+
+interface ProductAdviceResult {
+  advice: IngredientAdvice[];
+  profileUsed: string[];
+  store?: string;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -64,6 +92,14 @@ const LOADING_MESSAGES = [
   "Building your shopping list…",
   "Personalizing your recommendation…",
 ];
+
+const RANK_MEDAL: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
+
+const GRADE_COLOR: Record<string, string> = {
+  A: "rgba(16,185,129,0.9)",
+  B: "rgba(251,191,36,0.9)",
+  C: "rgba(249,115,22,0.9)",
+};
 
 const MACRO_CATEGORY_ORDER = [
   "Produce", "Meat", "Plant Proteins", "Dairy & Eggs",
@@ -92,6 +128,12 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const [loadingMsg, setLoadingMsg] = useState(LOADING_MESSAGES[0]);
   const [addedToList, setAddedToList] = useState(false);
   const [listExpanded, setListExpanded] = useState(true);
+  const [cartExpanded, setCartExpanded] = useState(true);
+
+  const [productAdvice, setProductAdvice] = useState<ProductAdviceResult | null>(null);
+  const [advisorLoading, setAdvisorLoading] = useState(false);
+  const [brandsAdded, setBrandsAdded] = useState(false);
+
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const loadingInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -103,6 +145,10 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       setConversation([]);
       setAddedToList(false);
       setListExpanded(true);
+      setCartExpanded(true);
+      setProductAdvice(null);
+      setAdvisorLoading(false);
+      setBrandsAdded(false);
       if (loadingInterval.current) clearInterval(loadingInterval.current);
     }
   }, [open]);
@@ -121,12 +167,31 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     return () => { if (loadingInterval.current) clearInterval(loadingInterval.current); };
   }, [phase]);
 
+  const fetchProductAdvice = useCallback(async (shoppingList: ShoppingListItem[]) => {
+    if (!shoppingList.length) return;
+    setAdvisorLoading(true);
+    setProductAdvice(null);
+    setBrandsAdded(false);
+    try {
+      const ingredients = shoppingList.map((s) => s.item);
+      const data = await post("/api/grocery-coach/product-advisor", { ingredients });
+      if (data?.advice?.length) {
+        setProductAdvice(data as ProductAdviceResult);
+      }
+    } catch {
+    } finally {
+      setAdvisorLoading(false);
+    }
+  }, []);
+
   const sendMessage = useCallback(async (msg: string) => {
     if (!msg.trim()) return;
     const userMsg = msg.trim();
     setInput("");
     setPhase("loading");
     setAddedToList(false);
+    setProductAdvice(null);
+    setBrandsAdded(false);
 
     const newConvo: ConversationMessage[] = [
       ...conversation,
@@ -147,6 +212,11 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       setResult(data as CoachResult);
       setPhase("result");
       setListExpanded(true);
+      setCartExpanded(true);
+
+      if (data.shoppingList?.length) {
+        fetchProductAdvice(data.shoppingList);
+      }
     } catch (err: any) {
       setPhase("idle");
       toast({
@@ -156,7 +226,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       });
       setConversation(newConvo.slice(0, -1));
     }
-  }, [conversation, servingCount, toast]);
+  }, [conversation, servingCount, toast, fetchProductAdvice]);
 
   const handleAddToList = useCallback(() => {
     if (!result?.shoppingList?.length) return;
@@ -171,6 +241,27 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     toast({ title: "Added to shopping list!", description: `${items.length} items added.` });
   }, [result, addItems, toast]);
 
+  const handleAddBrandsToList = useCallback(() => {
+    if (!productAdvice?.advice?.length || !result) return;
+    const items: UniversalIngredient[] = [];
+    for (const advice of productAdvice.advice) {
+      const top = advice.recommended.find((r) => r.rank === 1);
+      if (top) {
+        items.push({
+          name: top.brand,
+          quantity: 1,
+          unit: "",
+          sourceMeals: [result.meal?.name || "Grocery Coach"],
+        });
+      }
+    }
+    if (items.length) {
+      addItems(items);
+      setBrandsAdded(true);
+      toast({ title: "Top picks added!", description: `${items.length} brand recommendation${items.length !== 1 ? "s" : ""} added to your list.` });
+    }
+  }, [productAdvice, result, addItems, toast]);
+
   const handleGenerateAnother = useCallback(() => {
     sendMessage("Give me a different option");
   }, [sendMessage]);
@@ -183,6 +274,9 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const sortedCategories = MACRO_CATEGORY_ORDER.filter((c) => groupedList[c]);
   const otherCategories = Object.keys(groupedList).filter((c) => !MACRO_CATEGORY_ORDER.includes(c));
 
+  const hasAdvice = productAdvice && productAdvice.advice.length > 0;
+  const avoidList = productAdvice?.advice.flatMap((a) => a.avoid) ?? [];
+
   if (!open) return null;
 
   return createPortal(
@@ -193,13 +287,11 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         onClick={() => onOpenChange(false)}
       />
 
-      {/* Panel — flex column: header | scroll body | sticky input footer */}
+      {/* Panel */}
       <div
         style={{
           position: "fixed",
-          left: 0,
-          right: 0,
-          bottom: 0,
+          left: 0, right: 0, bottom: 0,
           zIndex: 9999,
           maxHeight: "92dvh",
           display: "flex",
@@ -212,7 +304,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ── Header (never scrolls) ── */}
+        {/* ── Header ── */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
           <div style={{ padding: 8, borderRadius: 12, background: "rgba(234,88,12,0.2)", border: "1px solid rgba(249,115,22,0.3)" }}>
             <ChefHat style={{ width: 20, height: 20, color: "#fb923c" }} />
@@ -229,7 +321,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
           </button>
         </div>
 
-        {/* ── Scrollable body (shrinks when keyboard opens) ── */}
+        {/* ── Scrollable body ── */}
         <div style={{ flex: 1, overflowY: "auto", overscrollBehavior: "contain", minHeight: 0 }}>
           <AnimatePresence mode="wait">
 
@@ -238,7 +330,6 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
               <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 style={{ padding: 16, display: "flex", flexDirection: "column", gap: 20, paddingBottom: 16 }}
               >
-                {/* Serving count */}
                 <div>
                   <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
                     How many people?
@@ -283,7 +374,6 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                   </div>
                 </div>
 
-                {/* Quick starts */}
                 <div>
                   <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
                     Quick start
@@ -437,8 +527,143 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                   </div>
                 )}
 
+                {/* ── Product Advisor / Smart Cart ── */}
+                {(advisorLoading || hasAdvice) && (
+                  <div style={{ borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(249,115,22,0.2)", overflow: "hidden" }}>
+
+                    {/* Header row */}
+                    <button
+                      onClick={() => setCartExpanded((v) => !v)}
+                      style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Sparkles style={{ width: 16, height: 16, color: "#fb923c" }} />
+                        <span style={{ color: "white", fontWeight: 600, fontSize: 14 }}>Smart Cart</span>
+                        {advisorLoading && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
+                            <Loader2 style={{ width: 12, height: 12, animation: "spin 1s linear infinite" }} />
+                            Finding best brands…
+                          </div>
+                        )}
+                        {hasAdvice && !advisorLoading && (
+                          <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
+                            ({productAdvice!.advice.length} ingredient{productAdvice!.advice.length !== 1 ? "s" : ""})
+                          </span>
+                        )}
+                      </div>
+                      {!advisorLoading && (
+                        cartExpanded
+                          ? <ChevronUp style={{ width: 16, height: 16, color: "rgba(255,255,255,0.4)" }} />
+                          : <ChevronDown style={{ width: 16, height: 16, color: "rgba(255,255,255,0.4)" }} />
+                      )}
+                    </button>
+
+                    <AnimatePresence initial={false}>
+                      {cartExpanded && hasAdvice && !advisorLoading && (
+                        <motion.div
+                          initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }}
+                          transition={{ duration: 0.25 }}
+                          style={{ overflow: "hidden" }}
+                        >
+                          <div style={{ padding: "0 16px 16px", display: "flex", flexDirection: "column", gap: 20 }}>
+
+                            {/* Protocol badges */}
+                            {productAdvice!.profileUsed.length > 0 && (
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                                {productAdvice!.profileUsed.map((p) => (
+                                  <span
+                                    key={p}
+                                    style={{ padding: "3px 10px", borderRadius: 999, background: "rgba(234,88,12,0.15)", border: "1px solid rgba(249,115,22,0.25)", color: "#fb923c", fontSize: 11, fontWeight: 600 }}
+                                  >
+                                    {p}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Per-ingredient advice */}
+                            {productAdvice!.advice.map((advice) => (
+                              <div key={advice.ingredient}>
+                                <div style={{ color: "rgba(251,146,60,0.7)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+                                  {advice.ingredient}
+                                </div>
+
+                                {/* Recommended brands */}
+                                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                  {advice.recommended.map((brand) => (
+                                    <div
+                                      key={brand.brand}
+                                      style={{
+                                        display: "flex", alignItems: "flex-start", gap: 10,
+                                        padding: "10px 12px", borderRadius: 10,
+                                        background: brand.rank === 1 ? "rgba(16,185,129,0.08)" : "rgba(255,255,255,0.04)",
+                                        border: brand.rank === 1 ? "1px solid rgba(16,185,129,0.2)" : "1px solid rgba(255,255,255,0.07)",
+                                      }}
+                                    >
+                                      <span style={{ fontSize: 16, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>
+                                        {RANK_MEDAL[brand.rank] ?? "•"}
+                                      </span>
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                                          <span style={{ color: "white", fontWeight: 600, fontSize: 14 }}>{brand.brand}</span>
+                                          <span style={{
+                                            padding: "1px 7px", borderRadius: 999, fontSize: 11, fontWeight: 700,
+                                            background: `${GRADE_COLOR[brand.grade] ?? "rgba(249,115,22,0.9)"}22`,
+                                            color: GRADE_COLOR[brand.grade] ?? "#fb923c",
+                                            border: `1px solid ${GRADE_COLOR[brand.grade] ?? "#fb923c"}44`,
+                                          }}>
+                                            {brand.grade}
+                                          </span>
+                                        </div>
+                                        <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 12, lineHeight: 1.4 }}>
+                                          {brand.reason}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                {/* Avoid */}
+                                {advice.avoid.length > 0 && (
+                                  <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                                    {advice.avoid.map((av) => (
+                                      <div
+                                        key={av.brand}
+                                        style={{
+                                          display: "flex", alignItems: "flex-start", gap: 10,
+                                          padding: "8px 12px", borderRadius: 10,
+                                          background: "rgba(239,68,68,0.07)",
+                                          border: "1px solid rgba(239,68,68,0.18)",
+                                        }}
+                                      >
+                                        <XCircle style={{ width: 15, height: 15, color: "#ef4444", flexShrink: 0, marginTop: 1 }} />
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                          <span style={{ color: "rgba(255,255,255,0.8)", fontWeight: 600, fontSize: 13 }}>{av.brand}</span>
+                                          <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 12 }}> — {av.reason}</span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+
+                            {/* Summary avoid block */}
+                            {avoidList.length === 0 && (
+                              <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, textAlign: "center", fontStyle: "italic" }}>
+                                No common brands flagged for your protocol — the recommendations above are your best picks.
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+
                 {/* Action buttons */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {/* Add all generic items */}
                   <button
                     onClick={handleAddToList}
                     disabled={addedToList}
@@ -455,6 +680,28 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                       <><ShoppingCart style={{ width: 20, height: 20 }} /> Add All to Shopping List</>
                     )}
                   </button>
+
+                  {/* Add top brand picks */}
+                  {hasAdvice && (
+                    <button
+                      onClick={handleAddBrandsToList}
+                      disabled={brandsAdded}
+                      style={{
+                        width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                        padding: "14px 0", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: brandsAdded ? "default" : "pointer",
+                        background: brandsAdded ? "rgba(5,150,105,0.15)" : "rgba(234,88,12,0.15)",
+                        border: brandsAdded ? "1px solid rgba(52,211,153,0.3)" : "1px solid rgba(249,115,22,0.35)",
+                        color: brandsAdded ? "#34d399" : "#fb923c",
+                      }}
+                    >
+                      {brandsAdded ? (
+                        <><CheckCircle2 style={{ width: 16, height: 16 }} /> Top Picks Added!</>
+                      ) : (
+                        <><Sparkles style={{ width: 16, height: 16 }} /> Add Top Brand Picks to List</>
+                      )}
+                    </button>
+                  )}
+
                   <button
                     onClick={handleGenerateAnother}
                     style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px 0", borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
@@ -464,7 +711,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                   </button>
                 </div>
 
-                {/* Refine chips — inside scroll body, above sticky input */}
+                {/* Refine chips */}
                 {result.followUpSuggestions?.length > 0 && (
                   <div>
                     <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
@@ -489,7 +736,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
           </AnimatePresence>
         </div>
 
-        {/* ── Sticky input footer — always visible above keyboard ── */}
+        {/* ── Sticky input footer ── */}
         {phase !== "loading" && (
           <div style={{
             flexShrink: 0,
@@ -555,6 +802,10 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         )}
 
       </div>
+
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
     </>,
     document.body
   );
