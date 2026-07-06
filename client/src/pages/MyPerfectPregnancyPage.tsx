@@ -529,7 +529,7 @@ export default function MyPerfectPregnancyPage() {
               <div ref={messagesEndRef} />
 
               {/* Input */}
-              <div className="flex gap-2 items-end sticky bottom-4">
+              <div className="flex gap-2 items-end">
                 <textarea
                   value={input}
                   onChange={e => setInput(e.target.value)}
