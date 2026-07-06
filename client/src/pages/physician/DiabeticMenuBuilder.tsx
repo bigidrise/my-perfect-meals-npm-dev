@@ -1194,7 +1194,7 @@ export default function DiabeticMenuBuilder() {
 
       {/* Main Content */}
       <div
-        className="max-w-[1600px] mx-auto px-4 space-y-6"
+        className="max-w-[1600px] mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6"
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${proClientId ? '9rem' : '6rem'})` }}
       >
         {/* NutritionBudgetBanner hidden — low value vs Remaining Today footer; restore when reactivity is fixed */}
