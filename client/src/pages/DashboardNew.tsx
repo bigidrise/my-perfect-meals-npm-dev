@@ -628,7 +628,7 @@ export default function DashboardNew() {
     }
   }, [user]);
 
-  const hasPerfCtx = !!(user as any)?.performanceContext?.primaryGoal;
+  const hasPerfCtx = !!(user as any)?.performanceContext?.primaryGoal || !!(user as any)?.competitionPrepContext;
   const { data: carbCycleData } = useQuery<{
     state: {
       phase: "inactive" | "low_carb" | "refeed";
@@ -888,12 +888,27 @@ export default function DashboardNew() {
         {/* ── Performance Nutrition Card ──────────────────────────────── */}
         {(() => {
           const pCtx = (user as any)?.performanceContext;
-          if (!pCtx?.primaryGoal) return null;
+          const compCtx = (user as any)?.competitionPrepContext;
+          const activeTrack: "athletic" | "competition" | null =
+            (user as any)?.activeProtocolTrack ?? (pCtx ? "athletic" : null);
+          const isCompetition = activeTrack === "competition" && !!compCtx;
+
+          if (!isCompetition && !pCtx?.primaryGoal) return null;
+
+          const compTypeLabels: Record<string, string> = {
+            bodybuilding_show: "Bodybuilding", mens_physique: "Men's Physique",
+            classic_physique: "Classic Physique", figure: "Figure",
+            bikini: "Bikini", wellness: "Wellness",
+            powerlifting_meet: "Powerlifting Meet", olympic_weightlifting: "Olympic Weightlifting",
+            strongman: "Strongman", crossfit_competition: "CrossFit Competition",
+            hyrox: "HYROX", mma_fight: "MMA Fight", boxing_match: "Boxing Match",
+            wrestling_tournament: "Wrestling Tournament", bjj_tournament: "BJJ Tournament",
+            running_race: "Running Race", triathlon_race: "Triathlon",
+            cycling_race: "Cycling Race", other: "Competition",
+          };
           const goalLabels: Record<string, string> = {
-            fat_loss: "Fat Loss",
-            muscle_gain: "Muscle Gain",
-            maintenance: "Maintenance",
-            performance: "Peak Performance",
+            fat_loss: "Fat Loss", muscle_gain: "Muscle Gain",
+            maintenance: "Maintenance", performance: "Peak Performance",
             competition_prep: "Competition Prep",
           };
           const typeLabels: Record<string, string> = {
@@ -909,6 +924,7 @@ export default function DashboardNew() {
             in_season: "In Season", competition_prep: "Competition Prep",
             weight_cut: "Weight Cut", recovery: "Recovery",
           };
+
           return (
             <motion.div
               key="performance-card"
@@ -919,21 +935,51 @@ export default function DashboardNew() {
             >
               <div className="flex items-center gap-1.5 mb-3">
                 <span className="w-2 h-2 rounded-full bg-orange-400 flex-shrink-0" />
-                <p className="text-xs text-orange-300 font-semibold">Performance Nutrition Protocol Active</p>
+                <p className="text-xs text-orange-300 font-semibold">
+                  {isCompetition ? "Competition Prep Protocol Active" : "Performance Nutrition Protocol Active"}
+                </p>
               </div>
 
-              <p className="text-white font-bold text-xl leading-none">
-                {typeLabels[pCtx.trainingType] ?? pCtx.trainingType}
-                <span className="text-orange-300 font-medium text-sm ml-2">— {goalLabels[pCtx.primaryGoal] ?? pCtx.primaryGoal}</span>
-              </p>
-
-              <p className="text-white/50 text-xs mt-1.5">
-                Phase:{" "}
-                <span className="text-white/70">{phaseLabels[pCtx.trainingPhase] ?? pCtx.trainingPhase}</span>
-                <span className="mx-1.5 text-white/30">·</span>
-                <span className="text-white/70">{pCtx.trainingFrequency} sessions/wk</span>
-                {pCtx.twoADays && <span className="ml-1.5 text-orange-400 font-semibold">2-a-days</span>}
-              </p>
+              {isCompetition ? (
+                <>
+                  <p className="text-white font-bold text-xl leading-none">
+                    {compTypeLabels[compCtx.competitionType] ?? compCtx.customSportName ?? compCtx.competitionType}
+                    {compCtx.division && (
+                      <span className="text-orange-300 font-medium text-sm ml-2">— {compCtx.division}</span>
+                    )}
+                  </p>
+                  <p className="text-white/50 text-xs mt-1.5">
+                    {compCtx.eventDate && (
+                      <>
+                        Event:{" "}
+                        <span className="text-white/70">
+                          {new Date(compCtx.eventDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        </span>
+                      </>
+                    )}
+                    {compCtx.targetWeight && (
+                      <>
+                        <span className="mx-1.5 text-white/30">·</span>
+                        <span className="text-white/70">Target: {compCtx.targetWeight} lbs</span>
+                      </>
+                    )}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-white font-bold text-xl leading-none">
+                    {typeLabels[pCtx.trainingType] ?? pCtx.trainingType}
+                    <span className="text-orange-300 font-medium text-sm ml-2">— {goalLabels[pCtx.primaryGoal] ?? pCtx.primaryGoal}</span>
+                  </p>
+                  <p className="text-white/50 text-xs mt-1.5">
+                    Phase:{" "}
+                    <span className="text-white/70">{phaseLabels[pCtx.trainingPhase] ?? pCtx.trainingPhase}</span>
+                    <span className="mx-1.5 text-white/30">·</span>
+                    <span className="text-white/70">{pCtx.trainingFrequency} sessions/wk</span>
+                    {pCtx.twoADays && <span className="ml-1.5 text-orange-400 font-semibold">2-a-days</span>}
+                  </p>
+                </>
+              )}
 
               <button
                 onClick={() => setLocation("/performance")}

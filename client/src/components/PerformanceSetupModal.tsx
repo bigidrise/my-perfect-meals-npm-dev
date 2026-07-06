@@ -7,6 +7,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface PerformanceSetupModalProps {
   isOpen: boolean;
@@ -186,6 +187,7 @@ export default function PerformanceSetupModal({
 }: PerformanceSetupModalProps) {
   const { toast } = useToast();
   const { refreshUser } = useAuth();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -304,6 +306,7 @@ export default function PerformanceSetupModal({
       }
 
       await refreshUser();
+      await queryClient.invalidateQueries({ queryKey: ["carbCycleDashboard"] });
       const label = track === "competition" ? "Competition prep protocol saved." : "Athletic performance protocol saved.";
       toast({ title: "Protocol activated", description: label });
       onSuccess?.();
