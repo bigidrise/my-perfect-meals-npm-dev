@@ -1,6 +1,6 @@
-import { useMemo } from "react";
-import { setQuickView } from "@/lib/macrosQuickView";
-import { useLocation } from "wouter";
+import { useMemo, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, Check } from "lucide-react";
 import type { MacroSourceSlug } from "@/lib/macroSourcesConfig";
 
 export type MacroItem = {
@@ -54,25 +54,37 @@ export function MacroBridgeFooter({
   variant?: "day" | "week";
   source?: MacroSourceSlug;
 }) {
-  const [, nav] = useLocation();
+  const { toast } = useToast();
+  const [status, setStatus] = useState<"idle" | "loading" | "logged">("idle");
   const total = useMemo(() => sumItems(items), [items.length]);
   const count = items.length;
 
-  function click() {
-    setQuickView({
-      protein: total.protein,
-      carbs: total.carbs,
-      starchyCarbs: total.starchyCarbs,
-      fibrousCarbs: total.fibrousCarbs,
-      fat: total.fat,
-      calories: total.calories,
-      dateISO: dateISO ?? new Date().toISOString().slice(0, 10),
-      mealSlot: mealSlot ?? null,
-    });
-    const url = source 
-      ? `/biometrics?from=${source}&view=macros`
-      : "/biometrics?view=macros";
-    nav(url);
+  async function click() {
+    if (status !== "idle") return;
+    setStatus("loading");
+    try {
+      const { post } = await import("@/lib/api");
+      await post("/api/macros/log", {
+        loggedAt: dateISO ? `${dateISO}T12:00:00.000Z` : new Date().toISOString(),
+        mealType: mealSlot ?? "snack",
+        kcal: total.calories,
+        protein: total.protein,
+        carbs: total.carbs,
+        fat: total.fat,
+        starchyCarbs: total.starchyCarbs,
+        fibrousCarbs: total.fibrousCarbs,
+        source: source ?? "meal-plan",
+      });
+      setStatus("logged");
+      window.dispatchEvent(new CustomEvent("macros:updated"));
+      toast({
+        title: variant === "week" ? "Week logged to Macros!" : "Day logged to Macros!",
+        description: `${count} meal${count !== 1 ? "s" : ""} · ${total.protein}g protein · ${total.calories} kcal added to your totals.`,
+      });
+    } catch {
+      setStatus("idle");
+      toast({ title: "Logging failed", description: "Could not log macros. Please try again.", variant: "destructive" });
+    }
   }
 
   if (!count) return null;
@@ -88,11 +100,18 @@ export function MacroBridgeFooter({
         <button
           type="button"
           onClick={click}
-          className="w-full sm:w-auto px-3 py-2 rounded-2xl bg-black hover:bg-zinc-900 text-white text-center text-sm border border-white/30 shadow-sm active:scale-[0.98]"
+          disabled={status !== "idle"}
+          className="w-full sm:w-auto px-3 py-2 rounded-2xl bg-black hover:bg-zinc-900 text-white text-center text-sm border border-white/30 shadow-sm active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
           data-testid={`button-send-${variant}`}
           data-wt="wmb-send-to-macros"
         >
-          {variant === "week"
+          {status === "loading" && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+          {status === "logged" && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+          {status === "logged"
+            ? "Logged ✓"
+            : status === "loading"
+            ? "Logging…"
+            : variant === "week"
             ? "Send Entire Week to Macros"
             : "Send Entire Day to Macros"}
         </button>
