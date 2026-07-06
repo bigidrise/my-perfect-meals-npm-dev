@@ -1345,6 +1345,8 @@ export default function DiabeticMenuBuilder() {
           </div>
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+
         {/* Week Board Controls */}
         {/* Render day view or week view based on mode */}
         {FEATURES.dayPlanning === "alpha" &&
@@ -1699,6 +1701,8 @@ export default function DiabeticMenuBuilder() {
 
         {/* Bottom spacing to clear fixed shopping bar */}
         <div className="col-span-full h-18" />
+
+        </div>{/* end inner grid */}
       </div>
 
       {/* MealPickerDrawer handles ALL meal slots (breakfast, lunch, dinner, snacks) */}
