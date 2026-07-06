@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import {
@@ -424,6 +425,7 @@ export default function PerformanceNutritionHub() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
     const param = new URLSearchParams(window.location.search).get("tab");
@@ -544,6 +546,7 @@ export default function PerformanceNutritionHub() {
       if (!res.ok) throw new Error("Override failed");
       const data = await res.json();
       setCarbCycleData({ state: data.state, engine: data.engine });
+      queryClient.invalidateQueries({ queryKey: ["carbCycleDashboard"] });
       sessionStorage.removeItem("mpm.carbCyclePickerState");
       toast({
         title: action === "start_refeed" ? "Refeed day started" : "Low-carb phase resumed",
