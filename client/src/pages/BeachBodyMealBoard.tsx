@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
+import { setPerfSelectedDate } from "@/lib/macroResolver";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -639,6 +640,14 @@ export default function BeachBodyMealBoard() {
       setActiveDayISO(todayInWeek ?? weekDatesList[0]);
     }
   }, [weekDatesList, activeDayISO]);
+
+  // Daily Target Authority — sync the resolver to whichever day the board is viewing.
+  // Without this, getResolvedTargets() reads a stale date from localStorage and
+  // the Budget Banner, Nutrition Budget hook, and all macro displays show the wrong
+  // day-type targets when the user switches days.
+  useEffect(() => {
+    if (activeDayISO) setPerfSelectedDate(activeDayISO);
+  }, [activeDayISO]);
 
   useEffect(() => {
     if (!board || !activeDayISO) return;

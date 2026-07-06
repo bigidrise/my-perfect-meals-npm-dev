@@ -12,6 +12,7 @@ import { usePageTitle } from "@/contexts/PageTitleContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { getResolvedTargets, setPerfSelectedDate } from "@/lib/macroResolver";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 // import PerformanceSetupModal from "@/components/PerformanceSetupModal"; // kept during validation — see PerformanceNutritionSetupPage
 import {
   computeDemandProfile,
@@ -426,6 +427,7 @@ export default function PerformanceNutritionHub() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isDesktop = useIsDesktop();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
     const param = new URLSearchParams(window.location.search).get("tab");
@@ -718,18 +720,20 @@ export default function PerformanceNutritionHub() {
   if (!hasPerformanceAccess) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white pb-20">
-        <div
-          className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 pb-3 flex items-center gap-3"
-          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
-        >
-          <button
-            onClick={() => setLocation("/")}
-            className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"
+        {!isDesktop && (
+          <div
+            className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 pb-3 flex items-center gap-3"
+            style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
           >
-            <ArrowLeft className="w-4 h-4 text-white" />
-          </button>
-          <p className="text-white font-bold text-base leading-none">Performance Hub</p>
-        </div>
+            <button
+              onClick={() => setLocation("/")}
+              className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"
+            >
+              <ArrowLeft className="w-4 h-4 text-white" />
+            </button>
+            <p className="text-white font-bold text-base leading-none">Performance Hub</p>
+          </div>
+        )}
         <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 text-center gap-6">
           <div className="w-20 h-20 rounded-full bg-orange-600/20 border border-orange-500/30 flex items-center justify-center">
             <span className="text-4xl">⚡</span>
@@ -768,31 +772,33 @@ export default function PerformanceNutritionHub() {
       transition={{ duration: 0.4 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-32"
     >
-      {/* Header */}
-      <div
-        className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 pb-3 flex items-center gap-3"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
-      >
-        <button
-          onClick={() => setLocation("/")}
-          className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"
+      {/* Header — mobile only; DesktopHeader shows the title on desktop */}
+      {!isDesktop && (
+        <div
+          className="sticky top-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 pb-3 flex items-center gap-3"
+          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
         >
-          <ArrowLeft className="w-4 h-4 text-white" />
-        </button>
-        <div className="flex-1">
-          <p className="text-white font-bold text-base leading-none">Performance Hub</p>
-          <p className="text-orange-300 text-xs mt-0.5">
-            {activeTrack === "competition" ? "Competition prep protocol" : "Sport-specific nutrition protocol"}
-          </p>
+          <button
+            onClick={() => setLocation("/")}
+            className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"
+          >
+            <ArrowLeft className="w-4 h-4 text-white" />
+          </button>
+          <div className="flex-1">
+            <p className="text-white font-bold text-base leading-none">Performance Hub</p>
+            <p className="text-orange-300 text-xs mt-0.5">
+              {activeTrack === "competition" ? "Competition prep protocol" : "Sport-specific nutrition protocol"}
+            </p>
+          </div>
+          <button
+            onClick={() => setLocation("/performance/setup")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600/20 border border-orange-500/30 text-orange-300 text-xs font-semibold"
+          >
+            <Settings className="w-3.5 h-3.5" />
+            {isActive ? "Update" : "Setup"}
+          </button>
         </div>
-        <button
-          onClick={() => setLocation("/performance/setup")}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600/20 border border-orange-500/30 text-orange-300 text-xs font-semibold"
-        >
-          <Settings className="w-3.5 h-3.5" />
-          {isActive ? "Update" : "Setup"}
-        </button>
-      </div>
+      )}
 
       {/* ── No protocol — track selector empty state ── */}
       {!isActive && (
