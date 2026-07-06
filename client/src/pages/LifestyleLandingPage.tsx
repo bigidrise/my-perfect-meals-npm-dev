@@ -215,8 +215,8 @@ export default function LifestyleLandingPage() {
             </div>
           </div>
 
-          {/* ── Featured Kitchens — admin only until kitchens go live ── */}
-          {kitchensIsAdmin && <div>
+          {/* ── Featured Kitchens — hidden from Lifestyle Hub (lives in Business Suite) ── */}
+          {false && kitchensIsAdmin && <div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <ChefHat className="h-4 w-4 text-orange-400" />
