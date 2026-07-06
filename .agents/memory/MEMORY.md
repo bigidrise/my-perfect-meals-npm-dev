@@ -17,3 +17,4 @@
 - [Performance Protocol — baseline ownership rule](perf-protocol-baseline-rule.md) — protocol owns only session modifiers; MacroCalculator is the always-live baseline.
 - [Nutrition Resolver Ownership — Component Rule](nutrition-resolver-ownership.md) — shared components NEVER call resolvers; workflow pages resolve once, pass as props; baseline → getNutritionBaseline, performance → getResolvedTargets.
 - [Universal Modal System](universal-modal-system.md) — grid+gap-4 removed from dialog.tsx base; 6 typed components in universal-modal.tsx; UNIVERSAL_MODAL_SYSTEM.md is the authority; DialogContent import rule enforced.
+- [Entitlements computed from planLookupKey](entitlements-profile-fix.md) — DB entitlements column is empty for regular subscribers; profile endpoint must compute from PLAN_FEATURES, not raw DB column.

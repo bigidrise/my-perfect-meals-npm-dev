@@ -22,6 +22,7 @@ import { requirePhase1Cert } from "./middleware/requirePhase1Cert";
 import { requirePhase2Training } from "./middleware/requirePhase2Training";
 import { requireMacroProfile } from "./middleware/requireMacroProfile";
 import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems, savedMeals as savedMealsTable, creators } from "@shared/schema";
+import { getTierForLookupKey, getEntitlementsForTier } from "@shared/planFeatures";
 import { studioMemberships, studios } from "./db/schema/studio";
 import { mealImageCache } from "./db/schema/mealImageCache";
 import { companionProfileImages } from "./db/schema/companionProfiles";
@@ -2278,7 +2279,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         attestationText: user.attestationText || null,
         procareEntryPath: user.procareEntryPath || null,
         attestedAt: user.attestedAt?.toISOString() || null,
-        entitlements: user.entitlements || [],
+        entitlements: (() => {
+          // Compute entitlements from planLookupKey so every subscriber gets the
+          // correct feature gates without needing the DB column populated manually.
+          // DB column is preserved for ProCare addon entitlements (procare, care_team, etc.).
+          const tier = getTierForLookupKey(user.planLookupKey);
+          const tierEntitlements: string[] = getEntitlementsForTier(tier);
+          const dbEntitlements: string[] = (user.entitlements as string[]) || [];
+          const merged = [...new Set([...tierEntitlements, ...dbEntitlements])];
+          // Pre-launch mode: BILLING_ENFORCED not set → inject FULL_ACCESS so all
+          // client-side gates open, matching the server-side PAID_FULL behaviour.
+          if (process.env.BILLING_ENFORCED !== "true") {
+            merged.push("FULL_ACCESS");
+          }
+          return merged;
+        })(),
         planLookupKey: user.planLookupKey,
         trialStartedAt: user.trialStartedAt,
         trialEndsAt: user.trialEndsAt,
