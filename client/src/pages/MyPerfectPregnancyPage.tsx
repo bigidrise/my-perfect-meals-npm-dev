@@ -5,6 +5,7 @@ import { ArrowLeft, Send, Baby, ShieldCheck, Leaf, BookOpen, ChevronDown, Chevro
 import { apiUrl } from "@/lib/resolveApiBase";
 import { useAuth } from "@/contexts/AuthContext";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { PregnancySupportSetupModal } from "@/components/PregnancySupportSetupModal";
 import { derivePregnancyStatus } from "@/lib/pregnancyUtils";
 
@@ -272,19 +273,21 @@ export default function MyPerfectPregnancyPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-pink-950/20 to-black text-white pb-36">
 
-      {/* Header */}
-      <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl border-b border-pink-500/20" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-        <div className="flex items-center justify-between px-4 py-3">
-          <button onClick={() => setLocation("/lifestyle")} className="p-1">
-            <ArrowLeft className="w-5 h-5 text-white/70" />
-          </button>
-          <div className="flex items-center gap-2">
-            <span className="text-base">🩷</span>
-            <span className="text-white font-semibold text-sm">My Perfect Pregnancy</span>
+      {/* Header — mobile only; DesktopHeader handles title on desktop */}
+      <MobileHeaderGuard>
+        <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl border-b border-pink-500/20" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+          <div className="flex items-center justify-between px-4 py-3">
+            <button onClick={() => setLocation("/lifestyle")} className="p-1">
+              <ArrowLeft className="w-5 h-5 text-white/70" />
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="text-base">🩷</span>
+              <span className="text-white font-semibold text-sm">My Perfect Pregnancy</span>
+            </div>
+            <MedicalSourcesInfo asPillButton />
           </div>
-          <MedicalSourcesInfo asPillButton />
         </div>
-      </div>
+      </MobileHeaderGuard>
 
       <div className="px-4 pt-4 space-y-4 max-w-lg mx-auto">
 
@@ -529,7 +532,7 @@ export default function MyPerfectPregnancyPage() {
               <div ref={messagesEndRef} />
 
               {/* Input */}
-              <div className="flex gap-2 items-end sticky bottom-4">
+              <div className="flex gap-2 items-end">
                 <textarea
                   value={input}
                   onChange={e => setInput(e.target.value)}

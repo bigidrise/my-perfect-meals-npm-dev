@@ -4,6 +4,7 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
+import { getProductAdvisorEngine } from "../services/productAdvisor";
 
 const router = express.Router();
 
@@ -167,6 +168,42 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
   } catch (err: any) {
     console.error("[GroceryCoach] Error:", err?.message);
     return res.status(500).json({ error: "Your coach is unavailable right now. Please try again." });
+  }
+});
+
+// ── Product Advisor — proactive brand recommendations for a meal's shopping list ──
+router.post("/product-advisor", async (req, res) => {
+  try {
+    const userId = resolveUserId(req);
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const { ingredients, store } = req.body;
+    if (!Array.isArray(ingredients) || ingredients.length === 0) {
+      return res.status(400).json({ error: "ingredients array is required" });
+    }
+
+    if (process.env.BILLING_ENFORCED === "true") {
+      const [userRow] = await db
+        .select({ entitlements: users.entitlements })
+        .from(users)
+        .where(eq(users.id, userId));
+      const entitlements: string[] = (userRow?.entitlements as string[]) || [];
+      if (!entitlements.includes("grocery_coach") && !entitlements.includes("FULL_ACCESS")) {
+        return res.status(403).json({ error: "requires_upgrade", feature: "grocery_coach" });
+      }
+    }
+
+    const engine = getProductAdvisorEngine();
+    const result = await engine.buildCartRecommendations(
+      userId,
+      ingredients.slice(0, 20).map(String),
+      typeof store === "string" ? store : undefined,
+    );
+
+    return res.json(result);
+  } catch (err: any) {
+    console.error("[ProductAdvisor] Error:", err?.message);
+    return res.status(500).json({ error: "Product advisor unavailable. Please try again." });
   }
 });
 

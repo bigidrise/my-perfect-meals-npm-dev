@@ -40,6 +40,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/get-inspiration": "Daily Journal & Inspiration",
   "/pricing": "Plans & Pricing",
   "/lifestyle": "Lifestyle Hub",
+  "/lifestyle/my-perfect-pregnancy": "My Perfect Pregnancy",
   "/lifestyle/create-a-dish": "Create a Dish",
   "/lifestyle/beverage-creator": "Beverage Creator",
   "/lifestyle/chefs-kitchen": "Create a Dish",
