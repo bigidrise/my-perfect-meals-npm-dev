@@ -189,6 +189,14 @@ export default function GLP1Hub() {
         className="max-w-2xl mx-auto px-4 space-y-6 pb-16"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        {/* ── Quick Launch ── */}
+        <Button
+          onClick={() => setLocation("/glp1-meal-builder")}
+          className="bg-lime-600 text-md font-bold text-white w-full rounded-xl"
+        >
+          Metabolic Medication Builder
+        </Button>
+
         {/* ── Copilot Banner ── */}
         <div className="rounded-xl border-l-[3px] border-purple-500/60 bg-purple-500/5 px-4 py-3 space-y-1.5">
           <p className="text-sm text-white/80 leading-relaxed">
