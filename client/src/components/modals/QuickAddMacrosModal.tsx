@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useQueryClient } from "@tanstack/react-query";
-import { getNutritionBaseline } from "@/lib/macroResolver";
+import { getResolvedTargets } from "@/lib/macroResolver";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface QuickAddMacrosModalProps {
@@ -32,7 +32,7 @@ export default function QuickAddMacrosModal({
   const { user } = useAuth();
   const userId = userIdProp || user?.id || "";
   
-  const targets = useMemo(() => getNutritionBaseline(user?.id), [user?.id]);
+  const targets = useMemo(() => getResolvedTargets(user?.id), [user?.id]);
   const hasStarchyFibrousTargets = (targets.starchyCarbs_g ?? 0) > 0 || (targets.fibrousCarbs_g ?? 0) > 0;
 
   const [formData, setFormData] = useState({
