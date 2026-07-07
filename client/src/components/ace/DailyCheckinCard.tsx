@@ -1,14 +1,17 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { PillButton } from "@/components/ui/pill-button";
-import { useTodaysCheckin } from "@/hooks/useDailyCheckin";
+import { useTodaysCheckin, type CheckinIntervention } from "@/hooks/useDailyCheckin";
 import DailyCheckinModal from "@/components/ace/DailyCheckinModal";
 
-const ENERGY_LABELS: Record<number, string> = { 1: "Drained", 2: "Low", 3: "Okay", 4: "Good", 5: "High" };
-const STRESS_LABELS: Record<number, string> = { 1: "Calm", 2: "Low", 3: "Moderate", 4: "High", 5: "Maxed" };
-const SLEEP_LABELS:  Record<number, string> = { 1: "Poor", 2: "Low", 3: "Fair", 4: "Good", 5: "Great" };
-const MOOD_LABELS:   Record<number, string> = { 1: "Down", 2: "Low", 3: "Okay", 4: "Good", 5: "Great" };
+// ─── Metric display helpers ───────────────────────────────────────────────────
+
+const ENERGY_LABELS: Record<number, string>  = { 1: "Drained", 2: "Low", 3: "Okay", 4: "Good", 5: "High" };
+const STRESS_LABELS: Record<number, string>  = { 1: "Calm", 2: "Low", 3: "Moderate", 4: "High", 5: "Maxed" };
+const SLEEP_LABELS:  Record<number, string>  = { 1: "Poor", 2: "Low", 3: "Fair", 4: "Good", 5: "Great" };
+const MOOD_LABELS:   Record<number, string>  = { 1: "Down", 2: "Low", 3: "Okay", 4: "Good", 5: "Great" };
 const CRAVING_LABELS: Record<number, string> = { 1: "None", 2: "Low", 3: "Moderate", 4: "Strong", 5: "Intense" };
 
 function positiveColor(v: number | null): string {
@@ -27,7 +30,6 @@ function inverseColor(v: number | null): string {
 
 interface MetricPillProps {
   label: string;
-  value: number | null;
   display: string | undefined;
   colorClass: string;
 }
@@ -36,18 +38,114 @@ function MetricPill({ label, display, colorClass }: MetricPillProps) {
   return (
     <div className="flex flex-col items-center gap-0.5">
       <span className="text-[10px] text-white/40 uppercase tracking-wider">{label}</span>
-      <span className={`text-xs font-semibold ${colorClass}`}>
-        {display ?? "—"}
-      </span>
+      <span className={`text-xs font-semibold ${colorClass}`}>{display ?? "—"}</span>
     </div>
   );
 }
+
+// ─── Builder route map ────────────────────────────────────────────────────────
+
+const BUILDER_ROUTES: Record<string, string> = {
+  "create-dish":      "/lifestyle/create-a-dish",
+  "snack-creator":    "/lifestyle/create-a-dish",
+  "beverage-creator": "/lifestyle/beverage-creator",
+  "fridge-rescue":    "/fridge-rescue",
+  "meal-planner":     "/weekly-meal-board",
+  "craving-creator":  "/craving-creator",
+  "restaurant-guide": "/social-hub/restaurant-guide",
+  "breakfast":        "/lifestyle/create-a-dish",
+  "lunch":            "/lifestyle/create-a-dish",
+  "dinner":           "/lifestyle/create-a-dish",
+  "dessert-creator":  "/craving-desserts",
+};
+
+const BUILDER_NAMES: Record<string, string> = {
+  "create-dish":      "Create a Dish",
+  "snack-creator":    "Snack Creator",
+  "beverage-creator": "Beverage Creator",
+  "fridge-rescue":    "Fridge Rescue",
+  "meal-planner":     "Weekly Meal Board",
+  "craving-creator":  "Craving Creator",
+  "restaurant-guide": "Restaurant Guide",
+  "breakfast":        "Breakfast Builder",
+  "lunch":            "Lunch Builder",
+  "dinner":           "Dinner Builder",
+  "dessert-creator":  "Dessert Creator",
+};
+
+// ─── Deterministic recommendation text ───────────────────────────────────────
+
+function buildRecommendationText(iv: CheckinIntervention): string {
+  return iv.coaching_objective;
+}
+
+const BALANCED_MESSAGE =
+  "Your signals look balanced today — keep your nutrition consistent and stay hydrated. A steady day is a win.";
+
+// ─── Coach's Recommendation block ────────────────────────────────────────────
+
+function CoachRecommendation({
+  interventions,
+}: {
+  interventions: CheckinIntervention[];
+}) {
+  const [, setLocation] = useLocation();
+  const top = interventions[0] ?? null;
+
+  return (
+    <div className="mt-3 pt-3 border-t border-white/10 space-y-3">
+      <p className="text-[11px] text-orange-400 font-semibold uppercase tracking-wider">
+        Coach's Recommendation
+      </p>
+
+      <p className="text-sm text-white/80 leading-relaxed">
+        {top ? buildRecommendationText(top) : BALANCED_MESSAGE}
+      </p>
+
+      {top && top.strategies.length > 0 && (
+        <ul className="space-y-1">
+          {top.strategies.slice(0, 2).map((s, i) => (
+            <li key={i} className="flex gap-2 text-[12px] text-white/65">
+              <span className="text-orange-500 shrink-0 mt-0.5">→</span>
+              <span>{s}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {top && top.suggested_builders.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-[10px] text-white/40 uppercase tracking-wider">Today's Actions</p>
+          <div className="flex gap-2 flex-wrap">
+            {top.suggested_builders.slice(0, 3).map((key) => {
+              const route = BUILDER_ROUTES[key];
+              const name = BUILDER_NAMES[key] ?? key;
+              if (!route) return null;
+              return (
+                <PillButton
+                  key={key}
+                  onClick={() => setLocation(route)}
+                  className="bg-orange-600/20 text-orange-300 border-orange-500/30 text-xs hover:bg-orange-600/35"
+                >
+                  {name}
+                </PillButton>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main card ────────────────────────────────────────────────────────────────
 
 export function DailyCheckinCard() {
   const [modalOpen, setModalOpen] = useState(false);
   const { data, isLoading } = useTodaysCheckin();
 
   const checkin = data?.checkin as Record<string, unknown> | null | undefined;
+  const interventions: CheckinIntervention[] = data?.interventions ?? [];
   const hasCheckin = !!checkin;
 
   const get = (field: string): number | null => {
@@ -75,13 +173,14 @@ export function DailyCheckinCard() {
               </div>
             ) : hasCheckin ? (
               <div className="space-y-3">
+                {/* Header */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
                     <div className="w-7 h-7 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0">
                       <span className="text-orange-400 text-sm">✓</span>
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white">Today's Check-In</p>
+                      <p className="text-sm font-semibold text-white">Today's Coaching Context</p>
                       <p className="text-[11px] text-white/40">Checked in today</p>
                     </div>
                   </div>
@@ -93,40 +192,40 @@ export function DailyCheckinCard() {
                   </PillButton>
                 </div>
 
+                {/* Metric summary row */}
                 <div className="flex gap-4 flex-wrap pt-0.5">
                   <MetricPill
                     label="Energy"
-                    value={get("energy")}
                     display={get("energy") !== null ? ENERGY_LABELS[get("energy")!] : undefined}
                     colorClass={positiveColor(get("energy"))}
                   />
                   <MetricPill
                     label="Mood"
-                    value={get("mood")}
                     display={get("mood") !== null ? MOOD_LABELS[get("mood")!] : undefined}
                     colorClass={positiveColor(get("mood"))}
                   />
                   <MetricPill
                     label="Stress"
-                    value={get("stress")}
                     display={get("stress") !== null ? STRESS_LABELS[get("stress")!] : undefined}
                     colorClass={inverseColor(get("stress"))}
                   />
                   <MetricPill
                     label="Sleep"
-                    value={get("sleep")}
                     display={get("sleep") !== null ? SLEEP_LABELS[get("sleep")!] : undefined}
                     colorClass={positiveColor(get("sleep"))}
                   />
                   <MetricPill
                     label="Cravings"
-                    value={get("cravings")}
                     display={get("cravings") !== null ? CRAVING_LABELS[get("cravings")!] : undefined}
                     colorClass={inverseColor(get("cravings"))}
                   />
                 </div>
+
+                {/* Decision Engine recommendation */}
+                <CoachRecommendation interventions={interventions} />
               </div>
             ) : (
+              /* Unchecked state */
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-orange-500/15 flex items-center justify-center shrink-0">
