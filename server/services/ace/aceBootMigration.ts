@@ -207,6 +207,30 @@ const INITIAL_INTERVENTIONS = [
 
 export async function runAceMigration(): Promise<void> {
   await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS ace_daily_checkins (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id text NOT NULL,
+      date date NOT NULL,
+      energy smallint,
+      stress smallint,
+      sleep smallint,
+      mood smallint,
+      cravings smallint,
+      hunger smallint,
+      digestion smallint,
+      soreness smallint,
+      schedule text,
+      motivation smallint,
+      emotional_eating_risk smallint,
+      symptoms text[],
+      free_text text,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      UNIQUE(user_id, date)
+    )
+  `);
+
+  await db.execute(sql`
     CREATE TABLE IF NOT EXISTS coaching_profiles (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id text NOT NULL UNIQUE,

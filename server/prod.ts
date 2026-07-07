@@ -596,11 +596,13 @@ async function initializeApp() {
     const therapeuticSetupRouter = (await import("./routes/therapeuticSetup")).default;
     app.use("/api/therapeutic", requireAuth, therapeuticSetupRouter);
 
-    // Adaptive Coaching Engine (ACE) — Sprint 1+2
+    // Adaptive Coaching Engine (ACE) — Sprint 1+2+3
     const aceProfilesRouter = (await import("./routes/aceProfiles")).default;
     const aceInterventionsRouter = (await import("./routes/aceInterventions")).default;
+    const aceCheckinRouter = (await import("./routes/aceCheckin")).default;
     app.use("/api/ace/profile", aceProfilesRouter);
     app.use("/api/ace/interventions", aceInterventionsRouter);
+    app.use("/api/ace/checkin", aceCheckinRouter);
 
     console.log("✅ [INIT] Parity routes mounted");
 
