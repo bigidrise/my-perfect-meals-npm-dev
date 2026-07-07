@@ -18,14 +18,6 @@ interface ComplianceResponse {
   reason?: string;
 }
 
-interface MacroTargetsResponse {
-  calories: number;
-  protein_g: number;
-  carbs_g: number;
-  fat_g: number;
-  hasTargets: boolean;
-}
-
 function getScoreColor(score: number): string {
   if (score >= 90) return "text-emerald-400";
   if (score >= 70) return "text-yellow-400";
@@ -53,19 +45,6 @@ function getComplianceMessage(score: number | null, reason?: string, loggedDays?
   return "Low compliance. Results will stall without consistent tracking.";
 }
 
-function TargetMacrosStrip({ targets }: { targets: MacroTargetsResponse }) {
-  return (
-    <div className="space-y-1">
-      <div className="text-xs text-white font-medium uppercase tracking-wide">Target Macros</div>
-      <div className="flex gap-3 text-sm">
-        <span className="text-white">P <span className="text-white font-semibold">{targets.protein_g}g</span></span>
-        <span className="text-white">C <span className="text-white font-semibold">{targets.carbs_g}g</span></span>
-        <span className="text-white">Fat <span className="text-white font-semibold">{targets.fat_g}g</span></span>
-      </div>
-    </div>
-  );
-}
-
 interface ComplianceCardProps {
   userId: string | undefined;
 }
@@ -76,7 +55,6 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
 
   useEffect(() => {
     const handleTargetsUpdated = () => {
-      queryClient.invalidateQueries({ queryKey: ["macro-targets", userId] });
       queryClient.invalidateQueries({ queryKey: ["compliance", userId] });
     };
     window.addEventListener("mpm:targetsUpdated", handleTargetsUpdated);
@@ -98,22 +76,6 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
     enabled: !!userId,
     staleTime: 1000 * 60 * 5,
     retry: 1,
-  });
-
-  const { data: targets } = useQuery<MacroTargetsResponse>({
-    queryKey: ["macro-targets", userId],
-    queryFn: async () => {
-      const res = await fetch(apiUrl(`/api/users/${userId}/macro-targets`), {
-        headers: { ...getAuthHeaders() },
-        credentials: "include",
-      });
-      if (!res.ok) {
-        throw new Error(`Macro targets fetch failed: ${res.status}`);
-      }
-      return res.json();
-    },
-    enabled: !!userId,
-    staleTime: 0,
   });
 
   if (!userId || isLoading) {
@@ -216,8 +178,6 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
         <p className="text-sm text-white italic">
           {getComplianceMessage(score, undefined, data.loggedDays7)}
         </p>
-
-        {targets && targets.hasTargets && <TargetMacrosStrip targets={targets} />}
       </CardContent>
     </Card>
   );
