@@ -15,16 +15,16 @@ const MOOD_LABELS:   Record<number, string>   = { 1: "Down", 2: "Low", 3: "Okay"
 const CRAVING_LABELS: Record<number, string>  = { 1: "None", 2: "Low", 3: "Moderate", 4: "Strong", 5: "Intense" };
 
 function positiveColor(v: number | null): string {
-  if (v === null) return "text-white/30";
+  if (v === null) return "text-white/50";
   if (v >= 4) return "text-green-400";
-  if (v === 3) return "text-white/60";
+  if (v === 3) return "text-white";
   return "text-orange-400";
 }
 
 function inverseColor(v: number | null): string {
-  if (v === null) return "text-white/30";
+  if (v === null) return "text-white/50";
   if (v <= 2) return "text-green-400";
-  if (v === 3) return "text-white/60";
+  if (v === 3) return "text-white";
   return "text-orange-400";
 }
 
@@ -37,7 +37,7 @@ interface MetricPillProps {
 function MetricPill({ label, display, colorClass }: MetricPillProps) {
   return (
     <div className="flex flex-col items-center gap-0.5">
-      <span className="text-[10px] text-white/40 uppercase tracking-wider">{label}</span>
+      <span className="text-[10px] text-white uppercase tracking-wider">{label}</span>
       <span className={`text-xs font-semibold ${colorClass}`}>{display ?? "—"}</span>
     </div>
   );
@@ -159,12 +159,12 @@ function CheckedInState({
           </div>
           <div>
             <p className="text-sm font-semibold text-white">Today's Coaching Context</p>
-            <p className="text-[11px] text-white/40">Checked in today</p>
+            <p className="text-[11px] text-white">Checked in today</p>
           </div>
         </div>
         <PillButton
           onClick={onUpdate}
-          className="bg-white/10 text-white/70 border-white/20 text-xs shrink-0"
+          className="bg-white/10 text-white border-white/20 text-xs shrink-0"
         >
           Update
         </PillButton>
@@ -204,13 +204,13 @@ function CheckedInState({
         {/* Coach's Reasoning */}
         {reasoningPoints.length > 0 && (
           <div className="space-y-2">
-            <p className="text-[11px] text-white/40 uppercase tracking-wider font-semibold">
+            <p className="text-[11px] text-white uppercase tracking-wider font-semibold">
               Why I'm recommending this today
             </p>
             <ul className="space-y-1">
               {reasoningPoints.map((pt, i) => (
-                <li key={i} className="flex gap-2 text-[12px] text-white/70">
-                  <span className="text-white/30 shrink-0">•</span>
+                <li key={i} className="flex gap-2 text-[12px] text-white">
+                  <span className="text-orange-400 shrink-0">•</span>
                   <span>{pt}</span>
                 </li>
               ))}
@@ -220,9 +220,9 @@ function CheckedInState({
 
         {/* Confidence */}
         <div className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border text-xs ${confStyle.bg}`}>
-          <span className="text-white/40 uppercase tracking-wider text-[10px]">Confidence</span>
+          <span className="text-white uppercase tracking-wider text-[10px]">Confidence</span>
           <span className={`font-bold ${confStyle.color}`}>{confStyle.label}</span>
-          <span className="text-white/35 hidden sm:inline">— {CONFIDENCE_DESCRIPTIONS[confidence]}</span>
+          <span className="text-white hidden sm:inline">— {CONFIDENCE_DESCRIPTIONS[confidence]}</span>
         </div>
 
         {/* Today's Game Plan */}
@@ -232,7 +232,7 @@ function CheckedInState({
           </p>
           <ul className="space-y-1.5">
             {gamePlan.map((s, i) => (
-              <li key={i} className="flex gap-2 text-[12px] text-white/75">
+              <li key={i} className="flex gap-2 text-[12px] text-white">
                 <span className="text-orange-500 shrink-0 font-bold">✓</span>
                 <span>{s}</span>
               </li>
@@ -243,7 +243,7 @@ function CheckedInState({
         {/* Quick Actions */}
         {top && top.suggested_builders.length > 0 && (
           <div className="space-y-1.5">
-            <p className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">Quick Actions</p>
+            <p className="text-[10px] text-white uppercase tracking-wider font-semibold">Quick Actions</p>
             <div className="flex gap-2 flex-wrap">
               {top.suggested_builders.slice(0, 3).map((key) => {
                 const route = BUILDER_ROUTES[key];
@@ -309,7 +309,7 @@ export function DailyCheckinCard() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-white">How are you doing today?</p>
-                    <p className="text-[11px] text-white/45">60-second daily check-in</p>
+                    <p className="text-[11px] text-white">60-second daily check-in</p>
                   </div>
                 </div>
                 <PillButton
