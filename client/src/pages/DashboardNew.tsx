@@ -765,7 +765,6 @@ export default function DashboardNew() {
         <TipsBanner />
 
         <WhatsNewCard />
-        <NutritionPersonalizationSummaryCard />
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -819,6 +818,8 @@ export default function DashboardNew() {
             </div>
           </div>
         </motion.div>
+
+        <NutritionPersonalizationSummaryCard />
 
         {/* ── Pregnancy Protocol Card ────────────────────────────────── */}
         {(() => {
