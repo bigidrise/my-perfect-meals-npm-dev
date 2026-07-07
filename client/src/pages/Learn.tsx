@@ -942,6 +942,71 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
       ],
     },
   },
+  {
+    id: "adaptive-coaching-engine",
+    title: "Adaptive Coaching Engine (ACE)",
+    subtitle: "Deterministic daily coaching · No AI in coaching decisions",
+    icon: Brain,
+    content: {
+      sections: [
+        {
+          heading: "What ACE Is",
+          text: "The Adaptive Coaching Engine is a deterministic coaching system built into your daily dashboard. Every morning when you check in — reporting your energy, mood, stress, sleep, hunger, and hydration — ACE reads those signals and produces a coaching recommendation for the day. There is no AI involved in that decision. The recommendation comes from a fixed set of rules, tested thresholds, and a structured Intervention Library.",
+        },
+        {
+          heading: "Today's Coaching Context",
+          text: "When ACE identifies a meaningful signal — for example, low energy paired with high stress — it activates what is called a coaching intervention. You see this as a card on your dashboard that tells you what the signal means for today's nutrition, gives you a direction, and routes you directly to your assigned meal builder. If all signals are balanced, ACE tells you that too: you are on track, stay consistent.",
+        },
+        {
+          heading: "How Recommendations Are Generated",
+          list: [
+            "You complete your Daily Check-in (energy, mood, stress, sleep, hunger, hydration)",
+            "ACE reads your check-in values and compares them against scoring thresholds",
+            "If a meaningful pattern is detected, ACE selects the appropriate intervention from the Intervention Library",
+            "The intervention produces a coaching message, a direction, and a route to your meal builder",
+            "If no meaningful pattern exists, ACE shows a neutral \"on track\" confirmation",
+            "No AI, no language model, no dynamic generation — the logic is fixed and testable",
+          ],
+        },
+        {
+          heading: "What the AI Does and Does Not Do",
+          list: [
+            "AI does NOT make coaching decisions — ACE is deterministic and rule-based",
+            "AI does NOT score your check-in — thresholds are fixed values in code",
+            "AI does NOT select interventions — the Intervention Library maps signals to outcomes",
+            "AI IS used in your meal builders to generate meals that match today's direction",
+            "The coaching tells you the direction. The meal builder executes it.",
+          ],
+        },
+        {
+          heading: "How the System Learns Over Time",
+          text: "ACE improves its accuracy through your meal history and saved favorites. When you save a meal as a favorite, the system records the context: what your check-in looked like that day, what builder you used, and what worked. Over time, coaching recommendations become more specific to your actual patterns — not just your profile settings. The more you use the app and save what works, the more personalized your coaching becomes.",
+        },
+        {
+          heading: "What Drives Your Recommendations",
+          list: [
+            "Nutrition Profile — your dietary identity, goals, macro targets, and health protocols",
+            "Daily Coaching Context — today's energy, mood, stress, sleep, hunger, and hydration",
+            "Coaching Profile — your check-in history and patterns over time",
+            "Meal History — what you have built and when",
+            "Favorites — meals you have saved and the context in which you saved them",
+            "Intervention Library — a curated set of coaching responses mapped to signal patterns",
+            "Protocol Engine — the clinical and dietary rules that govern every meal you build",
+          ],
+        },
+        {
+          heading: "What ACE Will Never Do",
+          list: [
+            "Diagnose a medical condition",
+            "Recommend medications or supplements",
+            "Override your medical protocols",
+            "Make treatment decisions",
+            "Replace the guidance of your healthcare provider",
+          ],
+        },
+      ],
+    },
+  },
 ];
 
 const SECTION_NUTRITION_STRATEGY: LibraryTopic[] = [
@@ -1310,7 +1375,7 @@ const SECTION_HEALTH_SAFETY: LibraryTopic[] = [
           text: "All nutritional calculations and recommendations are based on peer-reviewed research and official guidelines.",
         },
         {
-          heading: "Primary Sources",
+          heading: "Primary Nutrition & Medical Sources",
           list: [
             "National Institutes of Health (NIH) — nih.gov",
             "U.S. Department of Agriculture (USDA) — usda.gov",
@@ -1321,8 +1386,50 @@ const SECTION_HEALTH_SAFETY: LibraryTopic[] = [
           ],
         },
         {
+          heading: "Behavioral Psychology & Coaching Science",
+          text: "The Adaptive Coaching Engine (ACE) is built on established behavioral psychology principles and evidence-based coaching frameworks. The following sources inform the intervention design, habit formation logic, and daily coaching language used throughout the system.",
+          list: [
+            "Prochaska & DiClemente — Transtheoretical Model (Stages of Change): used to design interventions that meet users at their current behavior stage rather than assuming readiness.",
+            "Bandura — Social Cognitive Theory and Self-Efficacy: coaching language is designed to build perceived capability rather than prescribe rigid outcomes.",
+            "Deci & Ryan — Self-Determination Theory: autonomy-supportive coaching language (\"build what sounds right\") rather than directive commands.",
+            "Michie et al. — Behavior Change Wheel: used to classify intervention functions applied across ACE's Intervention Library.",
+            "Gardner, Lally & Wardle — Habit Formation Research (European Journal of Social Psychology, 2012): informs the consistency-first messaging in neutral-day coaching.",
+            "Teixeira et al. — Motivation and Adherence in Nutrition Interventions (Nutrients, 2020): basis for minimizing prescriptive food lists and favoring direction-first coaching.",
+          ],
+        },
+        {
+          heading: "Sleep & Stress Sources",
+          text: "Sleep and stress inputs in the Daily Check-in are interpreted using the following evidence base.",
+          list: [
+            "Walker — Why We Sleep (2017): foundational reference for the relationship between sleep quality and metabolic function, hunger signaling, and recovery.",
+            "Spiegel, Tasali, et al. — Sleep Curtailment in Healthy Young Men (Annals of Internal Medicine, 2004): basis for the sleep-hunger coaching intervention (ghrelin/leptin disruption).",
+            "Epel et al. — Stress and Body Fat Distribution (Psychosomatic Medicine, 2000): basis for the stress-cortisol-food-choice intervention.",
+            "American Psychological Association — Stress and Eating (Stress in America Survey): supports behavioral context for stress-aware meal coaching.",
+            "National Sleep Foundation — Sleep Recommendations by Age Group: used to define sleep quality thresholds in check-in scoring.",
+          ],
+        },
+        {
+          heading: "Nutrition Behavior Change Sources",
+          list: [
+            "Herman & Polivy — Restraint Theory: informs why the system avoids rigid restriction language and uses recovery-framing for off-plan days.",
+            "Mann et al. — Medicare's Search for Effective Obesity Treatments (American Psychologist, 2007): supports the system's behavioral consistency model over caloric restriction emphasis.",
+            "Rolls — Volumetrics Eating Plan: reference for volume-first coaching interventions on high-hunger days.",
+            "Wansink — Mindless Eating (2006): contextual eating behavior used in travel, stress, and social eating interventions.",
+            "Tribole & Resch — Intuitive Eating (4th ed.): informs satisfaction-focused coaching language and craving-acknowledgment interventions.",
+          ],
+        },
+        {
+          heading: "Coaching Framework Sources",
+          list: [
+            "International Coach Federation (ICF) — Core Competencies: coaching communication principles applied to intervention language design.",
+            "Whitmore — Coaching for Performance (GROW Model): structure underlying the goal–current state–direction framework in active coaching interventions.",
+            "Rollnick & Miller — Motivational Interviewing: the \"explore, don't prescribe\" principle applied to craving-aware and emotional eating interventions.",
+            "Norcross & Wampold — Evidence-Based Therapy Relationships (Psychotherapy, 2011): rationale for autonomy-supportive rather than directive coaching tone.",
+          ],
+        },
+        {
           heading: "Medical Disclaimer",
-          text: "This app provides nutritional information, not medical advice. Always consult a healthcare professional before making significant dietary changes, especially if you have a medical condition.",
+          text: "This app provides nutritional information and behavioral coaching guidance, not medical advice. Coaching recommendations from ACE are informational in nature and do not constitute a diagnosis, treatment plan, or clinical recommendation. Always consult a healthcare professional before making significant dietary changes, especially if you have a medical condition.",
         },
       ],
     },
