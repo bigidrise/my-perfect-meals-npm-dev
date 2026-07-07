@@ -203,6 +203,248 @@ const INITIAL_INTERVENTIONS = [
     suggestedBuilders: ["meal-planner", "create-dish"],
     severity: "low",
   },
+
+  // ── Stress & Recovery (expanded) ──────────────────────────────────────────
+  {
+    key: "decision_fatigue",
+    situation: "User is overwhelmed by food choices and decision-making after a demanding day",
+    coachingObjective: "Eliminate choice paralysis with a single ready-made low-effort meal path",
+    strategies: ["Offer one pre-decided meal option rather than a menu", "Recommend meals with 5 or fewer ingredients", "Suggest batch-prepared components already available", "Use the fridge rescue flow to make the most of what is on hand"],
+    avoid: ["Presenting multiple options simultaneously", "Complex recipes", "Asking the user to plan anything new tonight"],
+    evidenceTags: ["decision_fatigue", "cognitive_load", "adherence", "simplicity"],
+    suggestedBuilders: ["fridge-rescue", "create-dish", "snack-creator"],
+    severity: "low",
+  },
+  {
+    key: "burnout",
+    situation: "User expresses exhaustion with tracking, meal prep, or the entire nutrition process",
+    coachingObjective: "Validate the burnout and reduce the compliance bar to an absolute minimum without abandoning nutrition",
+    strategies: ["Validate the feeling explicitly before any food advice", "Propose a one-week simplified rotation of 3 known-safe meals", "Temporarily suspend tracking if it is adding stress not clarity", "Anchor on one daily non-negotiable such as a protein-first breakfast"],
+    avoid: ["Adding any new rules or behaviors", "Tracking recommendations", "Anything that sounds like a new plan"],
+    evidenceTags: ["burnout", "adherence", "behavior_change", "simplicity"],
+    suggestedBuilders: ["fridge-rescue", "meal-planner"],
+    severity: "moderate",
+  },
+  {
+    key: "mental_fatigue",
+    situation: "User reports brain fog, poor concentration, or cognitive sluggishness",
+    coachingObjective: "Support neurological function with targeted nutrition that is easy to prepare",
+    strategies: ["Prioritize omega-3 rich foods such as salmon, walnuts, and flaxseed", "Ensure adequate B-vitamin intake from eggs, leafy greens, and legumes", "Recommend stable blood sugar meals with protein plus complex carbs", "Avoid ultra-processed foods high in refined sugar"],
+    avoid: ["Recommending stimulants beyond morning coffee", "Complex meal prep on a brain-fog day", "Suggesting that fatigue is a willpower issue"],
+    evidenceTags: ["brain_health", "omega3", "blood_sugar", "micronutrients"],
+    suggestedBuilders: ["create-dish", "beverage-creator", "breakfast"],
+    severity: "low",
+  },
+  {
+    key: "recovery_day",
+    situation: "User has had a physically or emotionally demanding day and needs active recovery support",
+    coachingObjective: "Accelerate physiological and psychological recovery through targeted food choices",
+    strategies: ["Increase anti-inflammatory foods such as turmeric, ginger, berries, and fatty fish", "Prioritize magnesium-rich foods such as dark leafy greens and pumpkin seeds", "Ensure adequate carbohydrate refueling to replenish glycogen", "Suggest a warm nourishing meal over a raw salad on recovery days"],
+    avoid: ["Heavy caloric restriction on recovery days", "High stimulant recommendations", "Aggressive macro targets on a recovery day"],
+    evidenceTags: ["recovery", "anti_inflammatory", "sleep", "magnesium"],
+    suggestedBuilders: ["create-dish", "beverage-creator"],
+    severity: "low",
+  },
+
+  // ── Cravings & Appetite (expanded) ────────────────────────────────────────
+  {
+    key: "sweet_cravings",
+    situation: "User reports strong sweet cravings that are difficult to ignore",
+    coachingObjective: "Satisfy the sweet signal physiologically while staying on plan",
+    strategies: ["Check for protein and fat deficiency as root cause of sweet cravings", "Suggest naturally sweet whole foods such as berries, dates, or sweet potato", "Offer a high-protein dessert alternative such as Greek yogurt with honey", "Recommend stabilizing blood sugar with a protein-first meal before the craving escalates"],
+    avoid: ["Complete elimination as the only strategy", "Shaming the craving", "High-sugar processed alternatives"],
+    evidenceTags: ["cravings", "blood_sugar", "protein", "dopamine"],
+    suggestedBuilders: ["craving-creator", "beverage-creator", "dessert-creator"],
+    severity: "low",
+  },
+  {
+    key: "salty_cravings",
+    situation: "User reports persistent salty or savory cravings",
+    coachingObjective: "Address the electrolyte and mineral drivers of salty cravings",
+    strategies: ["Check hydration status as dehydration often drives salt cravings", "Suggest electrolyte-rich foods such as olives, pickles, and cottage cheese", "Offer savory high-protein snacks that satisfy without excess sodium", "Flag adrenal stress as a potential driver if cravings are persistent"],
+    avoid: ["Processed salty snacks as substitutes", "Ignoring potential electrolyte imbalance", "Strict avoidance without replacement"],
+    evidenceTags: ["cravings", "electrolytes", "hydration", "minerals"],
+    suggestedBuilders: ["snack-creator", "fridge-rescue"],
+    severity: "low",
+  },
+  {
+    key: "low_appetite",
+    situation: "User reports little to no appetite and difficulty eating adequate calories",
+    coachingObjective: "Maintain minimum nutritional adequacy with the lowest friction possible",
+    strategies: ["Prioritize calorie-dense small-volume foods such as nut butters, avocado, and full-fat dairy", "Suggest liquid nutrition as an easier entry point when solid food feels hard", "Recommend small frequent eating windows over forced large meals", "Flag if low appetite persists more than 3 days for clinical follow-up"],
+    avoid: ["Forcing large meals", "High-volume low-calorie foods", "Adding meal prep burden when appetite is suppressed"],
+    evidenceTags: ["appetite", "caloric_adequacy", "liquid_nutrition", "micronutrients"],
+    suggestedBuilders: ["beverage-creator", "snack-creator"],
+    severity: "moderate",
+  },
+  {
+    key: "emotional_eating",
+    situation: "User has identified emotional triggers driving food choices rather than physiological hunger",
+    coachingObjective: "Create a pause-and-redirect strategy between the emotional trigger and the eating response",
+    strategies: ["Name the emotion driving the urge before any food advice", "Suggest a 10-minute bridge activity before eating such as a walk or breathing exercise", "Offer a high-protein replacement that satisfies the oral component with less caloric impact", "Distinguish between soothing yourself which is valid and numbing which needs attention"],
+    avoid: ["Dismissing the emotional component", "Strict dietary rules during emotional vulnerability", "Shame or judgment framing"],
+    evidenceTags: ["emotional_eating", "behavior_change", "coping", "adherence"],
+    suggestedBuilders: ["beverage-creator", "snack-creator"],
+    severity: "moderate",
+  },
+
+  // ── Lifestyle ─────────────────────────────────────────────────────────────
+  {
+    key: "busy_day",
+    situation: "User has a high-demand day with back-to-back commitments and minimal time for meals",
+    coachingObjective: "Build a minimum-friction nutrition anchor that survives a packed schedule",
+    strategies: ["Recommend 2 or 3 foods that require zero prep and cover protein and fat", "Anchor the day with one quality meal and allow the rest to be grab-and-go", "Suggest batch protein such as hard-boiled eggs or pre-portioned nuts as a portable anchor", "Validate that a simplified day is still a successful day"],
+    avoid: ["Suggesting meal prep on a busy day", "Complex multi-step strategies", "Any tracking requirement today"],
+    evidenceTags: ["time_management", "adherence", "simplicity", "portable_nutrition"],
+    suggestedBuilders: ["snack-creator", "fridge-rescue", "restaurant-guide"],
+    severity: "low",
+  },
+  {
+    key: "family_event",
+    situation: "User is attending a family gathering, celebration, or holiday meal",
+    coachingObjective: "Empower the user to participate fully while maintaining a nutritional anchor",
+    strategies: ["Pre-eat a high-protein snack so hunger does not drive decisions at the event", "Identify one or two protein-forward options at the event as the anchor", "Normalize celebration eating and remove guilt framing entirely", "Plan a simple recovery meal for afterward — no restriction, just a return to baseline"],
+    avoid: ["Restriction-first advice", "Skipping the event over food concerns", "Tracking requirements at social events"],
+    evidenceTags: ["social_eating", "flexibility", "adherence", "celebrations"],
+    suggestedBuilders: ["snack-creator", "restaurant-guide"],
+    severity: "low",
+  },
+  {
+    key: "vacation",
+    situation: "User is on vacation and wants to maintain reasonable nutrition without sacrificing the experience",
+    coachingObjective: "Set a minimum viable nutrition anchor that travels well and creates zero stress",
+    strategies: ["Anchor on breakfast as the one controllable meal of the day", "Recommend a simple protein-first morning habit that works in hotels", "Validate flexible eating at restaurants as part of the vacation experience", "Suggest returning to normal immediately after the vacation without a detox phase"],
+    avoid: ["Strict tracking on vacation", "Restriction goals during travel", "Guilt framing for indulgence meals"],
+    evidenceTags: ["travel", "flexibility", "adherence", "meal_timing"],
+    suggestedBuilders: ["restaurant-guide", "beverage-creator"],
+    severity: "low",
+  },
+  {
+    key: "shift_work",
+    situation: "User works non-standard hours such as night shifts, rotating schedules, or early morning starts",
+    coachingObjective: "Build a circadian-aware meal timing strategy that fits the user's actual schedule",
+    strategies: ["Anchor meals to the user's wake and sleep cycle not the clock", "Prioritize protein and fat at the first meal of their day regardless of time", "Suggest light lower-carb options during the body's biological night even if it is daytime", "Recommend consistent meal timing over consistent clock time for shift workers"],
+    avoid: ["Standard 3-meal-a-day advice that assumes a 9-to-5 schedule", "Fasting protocols that conflict with shift schedules", "Ignoring circadian disruption as a nutrition factor"],
+    evidenceTags: ["shift_work", "circadian", "meal_timing", "adherence"],
+    suggestedBuilders: ["create-dish", "snack-creator", "beverage-creator"],
+    severity: "low",
+  },
+
+  // ── Motivation ────────────────────────────────────────────────────────────
+  {
+    key: "restarting_after_setback",
+    situation: "User fell off plan and is trying to restart after a period of inconsistency",
+    coachingObjective: "Remove the psychological barrier to restarting and make the first step trivially easy",
+    strategies: ["Frame the restart as beginning not compensating", "Make the first action so small it cannot be failed such as one protein-first breakfast", "Avoid referencing the time that was lost", "Celebrate the decision to return as the most important action"],
+    avoid: ["Any reference to compensatory restriction", "Reviewing what went wrong before the restart is established", "Complex reintroduction protocols"],
+    evidenceTags: ["adherence", "resilience", "behavior_change", "motivation"],
+    suggestedBuilders: ["create-dish", "breakfast", "meal-planner"],
+    severity: "low",
+  },
+  {
+    key: "plateau_frustration",
+    situation: "User is frustrated and discouraged because results have stalled despite consistent effort",
+    coachingObjective: "Reframe the plateau emotionally and introduce one measurable variable to test",
+    strategies: ["Validate the frustration as a legitimate response to a real challenge", "Reframe the plateau as metabolic adaptation which is a sign of progress not failure", "Introduce one variable at a time such as protein accuracy or meal timing not a full overhaul", "Redirect attention from the scale to other measurable wins such as energy and sleep"],
+    avoid: ["Drastic calorie cuts", "Multiple simultaneous changes", "Dismissing the emotional impact of a plateau"],
+    evidenceTags: ["plateau", "metabolic_adaptation", "adherence", "motivation"],
+    suggestedBuilders: ["meal-planner", "create-dish"],
+    severity: "low",
+  },
+  {
+    key: "success_reinforcement",
+    situation: "User is experiencing a positive streak, hitting goals, or reporting increased motivation",
+    coachingObjective: "Anchor and reinforce the successful behaviors to build durable habits",
+    strategies: ["Name the specific behaviors driving the success not just the outcome", "Suggest building one more positive habit onto an existing winning behavior", "Use this momentum window to introduce a slightly more ambitious nutritional goal", "Celebrate the win explicitly before moving to the next goal"],
+    avoid: ["Immediately pivoting to the next challenge without celebrating the current win", "Overloading with new goals during a success window", "Generic affirmations without specificity"],
+    evidenceTags: ["motivation", "habit_formation", "adherence", "reinforcement"],
+    suggestedBuilders: ["meal-planner", "create-dish"],
+    severity: "low",
+  },
+  {
+    key: "momentum_building",
+    situation: "User is showing early signs of re-engagement after a period of inconsistency",
+    coachingObjective: "Protect and amplify the early momentum before it can be disrupted",
+    strategies: ["Keep the plan as simple as possible during early momentum to prevent overwhelm", "Anchor one daily behavior that is already succeeding and build from there", "Avoid introducing any new complexity until the current behavior is stable for 5 or more days", "Provide positive feedback specifically about consistency not perfection"],
+    avoid: ["Introducing new goals before current ones are stable", "Complexity during fragile momentum phases", "Pointing out gaps while momentum is building"],
+    evidenceTags: ["adherence", "habit_formation", "motivation", "behavior_change"],
+    suggestedBuilders: ["create-dish", "snack-creator"],
+    severity: "low",
+  },
+
+  // ── Performance ───────────────────────────────────────────────────────────
+  {
+    key: "heavy_training_day",
+    situation: "User has a high-volume or high-intensity training session today",
+    coachingObjective: "Pre-fuel and post-fuel the training session for maximum performance and recovery",
+    strategies: ["Pre-workout: 1 to 2g per kg bodyweight of carbohydrates 1 to 2 hours before", "Intra-workout: electrolyte beverage for sessions over 60 minutes", "Post-workout: 40g protein plus 50 to 80g carbohydrates within 2 hours", "Prioritize caloric adequacy over restriction on heavy training days"],
+    avoid: ["Fasted training on high-intensity days without athlete-level adaptation", "Low-carb recommendations on glycolytic training days", "Caloric restriction on heavy training days"],
+    evidenceTags: ["performance", "fueling", "protein", "carb_timing"],
+    suggestedBuilders: ["create-dish", "beverage-creator", "snack-creator"],
+    severity: "low",
+  },
+  {
+    key: "rest_day",
+    situation: "User is on a scheduled rest or active recovery day with no structured training",
+    coachingObjective: "Adjust nutrition to match reduced energy expenditure while supporting recovery",
+    strategies: ["Reduce starchy carbohydrate intake slightly on rest days while maintaining protein", "Emphasize anti-inflammatory and micronutrient-dense foods for cellular repair", "Maintain hydration as a non-negotiable even on rest days", "Use rest days for digestive recovery with easier-to-digest meals"],
+    avoid: ["Drastically cutting calories on rest days which impairs recovery", "High-glycemic foods without the training stimulus to utilize them", "Treating rest days as cheat days"],
+    evidenceTags: ["recovery", "rest_day", "anti_inflammatory", "carb_cycling"],
+    suggestedBuilders: ["create-dish", "beverage-creator"],
+    severity: "low",
+  },
+
+  // ── General Wellness ──────────────────────────────────────────────────────
+  {
+    key: "brain_fog",
+    situation: "User reports difficulty concentrating, mental sluggishness, or foggy thinking",
+    coachingObjective: "Address the most common nutritional contributors to brain fog",
+    strategies: ["Check for dehydration as the first and most common cause", "Recommend a blood sugar stabilizing meal with protein, fat, and fiber", "Suggest omega-3 rich foods which support myelin and neurotransmitter function", "Flag excessive refined carbohydrate intake as a primary brain fog trigger"],
+    avoid: ["High-glycemic meals when brain fog is present", "Skipping meals which compounds blood sugar instability", "Caffeine as a long-term solution without addressing root cause"],
+    evidenceTags: ["brain_health", "blood_sugar", "hydration", "omega3"],
+    suggestedBuilders: ["beverage-creator", "create-dish", "breakfast"],
+    severity: "low",
+  },
+  {
+    key: "busy_morning",
+    situation: "User consistently skips or rushes breakfast due to time pressure in the morning",
+    coachingObjective: "Build a 5-minute or less protein-first morning anchor that requires no cooking",
+    strategies: ["Design a grab-and-go breakfast with at least 25g protein that takes under 5 minutes", "Suggest batch-prepared options made the night before such as overnight oats or hard-boiled eggs", "Offer a high-protein liquid option as a fallback when even 5 minutes is unavailable", "Anchor the morning protein habit before addressing any other breakfast goals"],
+    avoid: ["Complex breakfast recipes requiring more than 10 minutes", "Suggesting skipping breakfast as a strategy if the user is not an IF practitioner", "Low-protein options that will accelerate mid-morning cravings"],
+    evidenceTags: ["meal_timing", "protein", "adherence", "morning_routine"],
+    suggestedBuilders: ["beverage-creator", "breakfast", "snack-creator"],
+    severity: "low",
+  },
+  {
+    key: "soreness_recovery",
+    situation: "User reports significant delayed onset muscle soreness affecting daily movement",
+    coachingObjective: "Accelerate tissue repair and reduce inflammatory response through nutrition",
+    strategies: ["Prioritize tart cherry juice or concentrate which has the strongest evidence for DOMS reduction", "Ensure 40g or more protein per post-workout meal to support repair", "Recommend anti-inflammatory foods including turmeric, ginger, and fatty fish", "Increase total caloric intake by 10 to 15 percent on heavy soreness days to support repair"],
+    avoid: ["NSAIDs which may blunt adaptation", "Caloric restriction during peak soreness", "High-fat high-sugar comfort foods that increase systemic inflammation"],
+    evidenceTags: ["recovery", "doms", "anti_inflammatory", "protein"],
+    suggestedBuilders: ["beverage-creator", "create-dish"],
+    severity: "low",
+  },
+  {
+    key: "competition_week",
+    situation: "User is preparing for an athletic event, competition, or performance test this week",
+    coachingObjective: "Execute a peak week strategy that maximizes energy, reduces inflammation, and maintains muscle",
+    strategies: ["Maintain or slightly increase carbohydrate intake in the 48 hours before the event", "Eliminate new foods that have not been tested in training", "Prioritize sleep and reduce dietary stress by eating familiar foods", "Hydrate aggressively starting 48 hours out using electrolytes not plain water"],
+    avoid: ["Trying any new supplements, protocols, or foods this week", "Aggressive caloric deficits in peak week", "High-fat or high-fiber meals the night before the event"],
+    evidenceTags: ["performance", "competition", "carb_loading", "hydration"],
+    suggestedBuilders: ["meal-planner", "beverage-creator", "create-dish"],
+    severity: "moderate",
+  },
+  {
+    key: "hydration_boost",
+    situation: "User identifies low water intake or is in a situation that increases hydration needs such as heat or illness",
+    coachingObjective: "Rebuild hydration quickly with an evidence-based electrolyte strategy",
+    strategies: ["Recommend 500ml water with a pinch of sea salt and lemon as an immediate electrolyte reset", "Hydrating whole foods such as cucumber, watermelon, and celery count toward total intake", "Anchor water intake to existing habits such as one glass per meal and one before each bathroom break", "Avoid plain water in very large amounts without electrolyte replacement during intense dehydration"],
+    avoid: ["Commercial sports drinks with high sugar as the primary hydration source", "Diuretics including excess caffeine during rehydration", "Waiting until thirst is strong before addressing hydration"],
+    evidenceTags: ["hydration", "electrolytes", "sodium", "minerals"],
+    suggestedBuilders: ["beverage-creator"],
+    severity: "low",
+  },
 ];
 
 export async function runAceMigration(): Promise<void> {
@@ -261,18 +503,18 @@ export async function runAceMigration(): Promise<void> {
     )
   `);
 
+  // Always upsert — adds new entries while preserving any existing ones.
+  // onConflictDoNothing means existing keys are never overwritten.
+  await db
+    .insert(coachingInterventions)
+    .values(INITIAL_INTERVENTIONS)
+    .onConflictDoNothing();
+
   const countResult = await db.execute(
     sql`SELECT COUNT(*)::int AS n FROM coaching_interventions`
   );
-  const existing = Number((countResult.rows[0] as any)?.n ?? 0);
-
-  if (existing === 0) {
-    await db
-      .insert(coachingInterventions)
-      .values(INITIAL_INTERVENTIONS)
-      .onConflictDoNothing();
-    console.log(
-      `✅ [ACE] Seeded ${INITIAL_INTERVENTIONS.length} initial interventions`
-    );
-  }
+  const total = Number((countResult.rows[0] as any)?.n ?? 0);
+  console.log(
+    `✅ [ACE] Intervention library ready — ${total} interventions in DB (${INITIAL_INTERVENTIONS.length} in seed)`
+  );
 }
