@@ -40,9 +40,20 @@ router.post("/", requireAuth, async (req, res) => {
   const schedule =
     rawSchedule && VALID_SCHEDULES.includes(rawSchedule) ? rawSchedule : null;
 
-  const symptoms: string[] = Array.isArray(req.body.symptoms)
+  const symptomsRaw: string[] = Array.isArray(req.body.symptoms)
     ? req.body.symptoms.filter((s: unknown) => typeof s === "string").slice(0, 20)
-    : [];
+    : typeof req.body.symptoms === "string" && req.body.symptoms.trim()
+      ? [req.body.symptoms.trim().slice(0, 200)]
+      : [];
+  // Drizzle raw sql cannot bind JS arrays to pg text[] — serialize to a pg array literal
+  const symptomsLiteral =
+    symptomsRaw.length === 0
+      ? "{}"
+      : "{" +
+        symptomsRaw
+          .map((s) => `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`)
+          .join(",") +
+        "}";
 
   const freeText =
     typeof req.body.free_text === "string"
@@ -59,7 +70,7 @@ router.post("/", requireAuth, async (req, res) => {
       ) VALUES (
         ${userId}, ${today},
         ${energy}, ${stress}, ${sleep}, ${mood}, ${cravings}, ${hunger}, ${digestion}, ${soreness},
-        ${schedule}, ${motivation}, ${emotionalEatingRisk}, ${symptoms}, ${freeText},
+        ${schedule}, ${motivation}, ${emotionalEatingRisk}, ${symptomsLiteral}::text[], ${freeText},
         now()
       )
       ON CONFLICT (user_id, date) DO UPDATE SET
