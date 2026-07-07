@@ -74,6 +74,7 @@ import mfaRoutes from './routes/auth.mfa';
 import { requireMfa } from './middleware/requireMfa';
 import { MealEngineService } from "./services/mealEngineService";
 import { generateFridgeRescueMeals } from "./services/fridgeRescueGenerator";
+import { buildAcePromptBlock } from "./services/ace/buildAcePromptBlock";
 import { getBuilderSwitchStatus, attemptBuilderSwitch } from "./services/builderSwitchService";
 import { fridgeRescueRouter } from "./routes/fridgeRescue";
 import inspirationRouter from "./routes/inspiration";
@@ -1163,10 +1164,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // ── Adaptive Coaching Context (ACE) ────────────────────────────────────────
+      // Injected AFTER all protocol/medical/behavioral blocks. Lowest priority tier.
+      // Returns null when no check-in exists today → no-op, prompt unchanged.
+      let aceFridgeBlock = "";
+      if (userId && userId !== "1") {
+        try {
+          const aceResult = await buildAcePromptBlock(userId);
+          if (aceResult) {
+            aceFridgeBlock = aceResult.block;
+            const { meta } = aceResult;
+            console.log(
+              `🧠 [ACE/FridgeRescue] enabled | signals=${meta.signalCount} | intervention=${meta.interventionKey ?? "balanced"} | chars=${meta.charCount}`
+            );
+          }
+        } catch (err) {
+          console.warn("⚠️ [ACE/FridgeRescue] Could not build coaching block — skipping:", err);
+        }
+      }
+
       // Combine enhancement with any existing builder block from nutrition context
       const combinedBuilderBlock = [
         fridgeNutritionContext.builderBlock || '',
         oncologyFridgeBlock || '',
+        aceFridgeBlock || '',
       ].filter(Boolean).join('\n\n') || undefined;
 
       // Generate multiple meals with proper macros and amounts

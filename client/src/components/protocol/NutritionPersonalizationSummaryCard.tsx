@@ -93,7 +93,7 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
 
   if (!data) return null;
 
-  const { activeInputs, nutritionDrivers, nutritionPriorities, compositeExplanation, conflictPolicy, hasAnyActiveProtocol } = data;
+  const { activeInputs, nutritionDrivers, nutritionPriorities, compositeExplanation, conflictPolicy, hasAnyActiveProtocol, carbCycleActive } = data;
 
   const highItems   = activeInputs.health.filter(h => h.priority === "high");
   const moderateItems = activeInputs.health.filter(h => h.priority === "moderate");
@@ -211,6 +211,16 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
               {activeInputs.pregnancy.detail && (
                 <p className="text-[11px] text-pink-300/70 mt-0.5">{activeInputs.pregnancy.detail}</p>
               )}
+            </div>
+          )}
+
+          {/* ── Carb Cycle Active block ── */}
+          {carbCycleActive && (
+            <div className="bg-orange-500/10 border border-orange-500/25 rounded-xl px-3 py-2.5">
+              <p className="text-[11px] font-black uppercase tracking-widest text-orange-400">
+                Carb Cycling Active
+              </p>
+              <p className="text-[11px] text-orange-300/70 mt-0.5">Starch response protocol running · see Performance Hub</p>
             </div>
           )}
 

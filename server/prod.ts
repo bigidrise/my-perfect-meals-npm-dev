@@ -325,6 +325,10 @@ async function initializeApp() {
           `);
           const grandfatheredCount = (grandfatherResult as any).rowCount ?? (grandfatherResult as any).count ?? '?';
           console.log(`✅ [INIT] Grandfather migration: ${grandfatheredCount} professional(s) grandfathered (procare_training_completed=true)`);
+          // Adaptive Coaching Engine (ACE) — Sprint 1+2
+          const { runAceMigration } = await import("./services/ace/aceBootMigration");
+          await runAceMigration();
+          console.log("✅ [INIT] ACE boot migration complete");
         })(),
         migTimeout(6000),
       ]);
@@ -591,6 +595,14 @@ async function initializeApp() {
     // Therapeutic Nutrition Intelligence — Sprint 4
     const therapeuticSetupRouter = (await import("./routes/therapeuticSetup")).default;
     app.use("/api/therapeutic", requireAuth, therapeuticSetupRouter);
+
+    // Adaptive Coaching Engine (ACE) — Sprint 1+2+3
+    const aceProfilesRouter = (await import("./routes/aceProfiles")).default;
+    const aceInterventionsRouter = (await import("./routes/aceInterventions")).default;
+    const aceCheckinRouter = (await import("./routes/aceCheckin")).default;
+    app.use("/api/ace/profile", aceProfilesRouter);
+    app.use("/api/ace/interventions", aceInterventionsRouter);
+    app.use("/api/ace/checkin", aceCheckinRouter);
 
     console.log("✅ [INIT] Parity routes mounted");
 

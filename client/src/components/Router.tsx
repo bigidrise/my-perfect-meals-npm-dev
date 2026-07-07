@@ -682,6 +682,7 @@ export default function Router() {
         <Route path="/professional-onboarding-bridge" component={ProfessionalOnboardingBridge} />
         <Route path="/procare-certified" component={CertifiedProfessionalUnlock} />
         <Route path="/procare-training" component={ProCareTraining} />
+        <Route path="/ace-profile" component={lazy(() => import("@/pages/AceProfilePage"))} />
         {/* DELETED: CommunityTestPage, CommunityPage routes */}
         <Route path="/onboarding" component={SafeOnboarding} />
         <Route path="/onboarding-v2" component={SafeOnboardingV2} />

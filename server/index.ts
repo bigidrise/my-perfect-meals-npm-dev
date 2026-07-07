@@ -111,6 +111,9 @@ import translateRouter from "./routes/translate";
 import studioGeneratorRouter from "./routes/studioGenerator";
 import checkInSchedulesRouter from "./routes/checkInSchedules";
 import adminRouter from "./routes/admin";
+import aceProfilesRouter from "./routes/aceProfiles";
+import aceInterventionsRouter from "./routes/aceInterventions";
+import aceCheckinRouter from "./routes/aceCheckin";
 
 const app = express();
 
@@ -731,6 +734,11 @@ setTimeout(async () => {
     `);
     const grandfatheredCount = (grandfatherResult as any).rowCount ?? (grandfatherResult as any).count ?? '?';
     console.log(`✅ Grandfather migration: ${grandfatheredCount} professional(s) grandfathered (procare_training_completed=true)`);
+    // Adaptive Coaching Engine (ACE) — Sprint 1+2
+    const { runAceMigration } = await import('./services/ace/aceBootMigration');
+    await runAceMigration();
+    console.log('✅ ACE boot migration complete');
+
     console.log('✅ LMS + white label boot migrations complete');
   } catch (err: any) {
     console.error('❌ LMS boot migrations failed:', err.message);
@@ -855,6 +863,11 @@ async function start() {
       return res.json(getDefaultOrgContext());
     }
   });
+
+  // Adaptive Coaching Engine (ACE) — Sprint 1+2+3 routes
+  app.use("/api/ace/profile", aceProfilesRouter);
+  app.use("/api/ace/interventions", aceInterventionsRouter);
+  app.use("/api/ace/checkin", aceCheckinRouter);
 
   // 🎯 CRITICAL: API routes FIRST to prevent Vite middleware interference
   await registerRoutes(app);

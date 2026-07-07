@@ -21,6 +21,7 @@ import {
   validateBeverageOutput,
   attemptBeverageAutoFix,
 } from "../services/guardrails/beverageMedicalRules";
+import { buildAcePromptBlock } from "../services/ace/buildAcePromptBlock";
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -337,10 +338,29 @@ beverageCreatorRouter.post("/", async (req, res) => {
       beverageContext.builder,
     );
 
+    // ── Adaptive Coaching Context (ACE) ────────────────────────────────────────
+    // Injected AFTER all protocol/medical/behavioral blocks. Lowest priority tier.
+    // Returns null when no check-in exists today → no-op, prompt unchanged.
+    let aceBlock = "";
+    if (userId && userId !== "1") {
+      try {
+        const aceResult = await buildAcePromptBlock(userId);
+        if (aceResult) {
+          aceBlock = `\n${aceResult.block}\n`;
+          const { meta } = aceResult;
+          console.log(
+            `🧠 [ACE/Beverage] enabled | signals=${meta.signalCount} | intervention=${meta.interventionKey ?? "balanced"} | chars=${meta.charCount}`
+          );
+        }
+      } catch (err) {
+        console.warn("⚠️ [ACE/Beverage] Could not build coaching block — skipping:", err);
+      }
+    }
+
     const prompt = `
 You are a professional mixologist, nutritionist, and beverage chef inside the My Perfect Meals system.
 Generate a FULL structured beverage recipe.
-${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${medicalBeverageBlock}${cuisineOverrideBlock}${beverageBehavioralMemorySection ? `\n${beverageBehavioralMemorySection}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}${softOverrideBlock}
+${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${medicalBeverageBlock}${cuisineOverrideBlock}${beverageBehavioralMemorySection ? `\n${beverageBehavioralMemorySection}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}${softOverrideBlock}${aceBlock}
 The result MUST be a drink. Never generate solid food, meals, or desserts.
 
 Return JSON ONLY, following this exact schema:

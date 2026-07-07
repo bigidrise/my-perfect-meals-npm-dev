@@ -58,9 +58,9 @@ import { useProUnreadCount } from "@/hooks/useProUnreadCount";
 import { PatternAlertBanner } from "@/components/PatternAlertBanner";
 import { TipsBanner } from "@/components/TipsBanner";
 import InspirationCaptureModal from "@/components/InspirationCaptureModal";
-import { derivePregnancyStatus } from "@/lib/pregnancyUtils";
 import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
 import { WhatsNewCard } from "@/components/WhatsNewCard";
+import { DailyCheckinCard } from "@/components/ace/DailyCheckinCard";
 
 interface FeatureCard {
   title: string;
@@ -627,28 +627,6 @@ export default function DashboardNew() {
     }
   }, [user]);
 
-  const hasPerfCtx = !!(user as any)?.performanceContext?.primaryGoal || !!(user as any)?.competitionPrepContext;
-  const { data: carbCycleData } = useQuery<{
-    state: {
-      phase: "inactive" | "low_carb" | "refeed";
-      carbTargetG: number;
-      fatTargetAdjustG: number;
-      manualOverride?: boolean;
-    };
-    engine: { stallDetected: boolean; recommendation: string };
-  }>({
-    queryKey: ["carbCycleDashboard"],
-    queryFn: async () => {
-      const res = await fetch(apiUrl("/api/performance/carb-cycle"), {
-        headers: { ...getAuthHeaders() },
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to load carb cycle");
-      return res.json();
-    },
-    enabled: hasPerfCtx,
-    staleTime: 5 * 60 * 1000,
-  });
 
   // Greeting priority: nickname > firstName > username-derived name > fallback
   const firstName =
@@ -765,7 +743,6 @@ export default function DashboardNew() {
         <TipsBanner />
 
         <WhatsNewCard />
-        <NutritionPersonalizationSummaryCard />
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -820,259 +797,9 @@ export default function DashboardNew() {
           </div>
         </motion.div>
 
-        {/* ── Pregnancy Protocol Card ────────────────────────────────── */}
-        {(() => {
-          const ps = derivePregnancyStatus(user);
-          if (!ps) return null;
-          return (
-            <motion.div
-              key="pregnancy-card"
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.09, duration: 0.3 }}
-              className="rounded-2xl bg-gradient-to-br from-pink-950/70 via-black/80 to-orange-950/30 border border-pink-500/30 p-4 mb-1"
-            >
-              <div className="flex items-center gap-1.5 mb-3">
-                <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
-                <p className="text-xs text-green-300 font-semibold">Pregnancy Nutrition Protocol Active</p>
-              </div>
+        <NutritionPersonalizationSummaryCard />
 
-              <p className="text-white font-bold text-2xl leading-none">
-                {ps.weekOfPregnancy ? `Week ${ps.weekOfPregnancy}` : ps.label}
-                {ps.weekOfPregnancy ? (
-                  <span className="text-pink-300 font-medium text-sm ml-2">{ps.emoji} {ps.label}</span>
-                ) : null}
-              </p>
-
-              {ps.dueDate && (
-                <p className="text-white/50 text-xs mt-1.5">
-                  Due Date:{" "}
-                  <span className="text-white/70">
-                    {new Date(ps.dueDate + "T12:00:00").toLocaleDateString("en-US", {
-                      year: "numeric", month: "long", day: "numeric",
-                    })}
-                  </span>
-                </p>
-              )}
-
-              {ps.nextMilestone && (
-                <p className="text-pink-300/70 text-xs mt-1 font-medium">
-                  Next: {ps.nextMilestone}
-                </p>
-              )}
-
-              {ps.symptoms.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-white/10">
-                  <p className="text-white/40 text-xs mb-1.5">Tracked Symptoms</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {ps.symptoms.map(s => (
-                      <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-pink-900/40 border border-pink-500/30 text-pink-200">
-                        {s.replace(/_/g, " ")}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <button
-                onClick={() => setLocation("/lifestyle/my-perfect-pregnancy")}
-                className="mt-4 w-full py-2.5 rounded-xl text-xs font-semibold bg-pink-700/40 border border-pink-400/30 text-white active:scale-[0.98] transition-transform"
-              >
-                Open Pregnancy Hub
-              </button>
-            </motion.div>
-          );
-        })()}
-
-        {/* ── Performance Nutrition Card ──────────────────────────────── */}
-        {(() => {
-          const pCtx = (user as any)?.performanceContext;
-          const compCtx = (user as any)?.competitionPrepContext;
-          const activeTrack: "athletic" | "competition" | null =
-            (user as any)?.activeProtocolTrack ?? (pCtx ? "athletic" : null);
-          const isCompetition = activeTrack === "competition" && !!compCtx;
-
-          if (!isCompetition && !pCtx?.primaryGoal) return null;
-
-          const compTypeLabels: Record<string, string> = {
-            bodybuilding_show: "Bodybuilding", mens_physique: "Men's Physique",
-            classic_physique: "Classic Physique", figure: "Figure",
-            bikini: "Bikini", wellness: "Wellness",
-            powerlifting_meet: "Powerlifting Meet", olympic_weightlifting: "Olympic Weightlifting",
-            strongman: "Strongman", crossfit_competition: "CrossFit Competition",
-            hyrox: "HYROX", mma_fight: "MMA Fight", boxing_match: "Boxing Match",
-            wrestling_tournament: "Wrestling Tournament", bjj_tournament: "BJJ Tournament",
-            running_race: "Running Race", triathlon_race: "Triathlon",
-            cycling_race: "Cycling Race", other: "Competition",
-          };
-          const goalLabels: Record<string, string> = {
-            fat_loss: "Fat Loss", muscle_gain: "Muscle Gain",
-            maintenance: "Maintenance", performance: "Peak Performance",
-            competition_prep: "Competition Prep",
-          };
-          const typeLabels: Record<string, string> = {
-            strength: "Strength", hypertrophy: "Hypertrophy",
-            powerlifting: "Powerlifting", olympic_lifting: "Olympic Lifting",
-            mma: "MMA", boxing: "Boxing", wrestling: "Wrestling", bjj: "BJJ",
-            crossfit: "CrossFit", endurance_running: "Running",
-            cycling: "Cycling", triathlon: "Triathlon",
-            tactical: "Tactical", general_fitness: "General Fitness",
-          };
-          const phaseLabels: Record<string, string> = {
-            off_season: "Off Season", pre_season: "Pre-Season",
-            in_season: "In Season", competition_prep: "Competition Prep",
-            weight_cut: "Weight Cut", recovery: "Recovery",
-          };
-
-          return (
-            <motion.div
-              key="performance-card"
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1, duration: 0.3 }}
-              className="rounded-2xl bg-gradient-to-br from-orange-950/70 via-black/80 to-zinc-950/60 border border-orange-500/30 p-4 mb-1"
-            >
-              <div className="flex items-center gap-1.5 mb-3">
-                <span className="w-2 h-2 rounded-full bg-orange-400 flex-shrink-0" />
-                <p className="text-xs text-orange-300 font-semibold">
-                  {isCompetition ? "Competition Prep Protocol Active" : "Performance Nutrition Protocol Active"}
-                </p>
-              </div>
-
-              {isCompetition ? (
-                <>
-                  <p className="text-white font-bold text-xl leading-none">
-                    {compTypeLabels[compCtx.competitionType] ?? compCtx.customSportName ?? compCtx.competitionType}
-                    {compCtx.division && (
-                      <span className="text-orange-300 font-medium text-sm ml-2">— {compCtx.division}</span>
-                    )}
-                  </p>
-                  <p className="text-white/50 text-xs mt-1.5">
-                    {compCtx.eventDate && (
-                      <>
-                        Event:{" "}
-                        <span className="text-white/70">
-                          {new Date(compCtx.eventDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                        </span>
-                      </>
-                    )}
-                    {compCtx.targetWeight && (
-                      <>
-                        <span className="mx-1.5 text-white/30">·</span>
-                        <span className="text-white/70">Target: {compCtx.targetWeight} lbs</span>
-                      </>
-                    )}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-white font-bold text-xl leading-none">
-                    {typeLabels[pCtx.trainingType] ?? pCtx.trainingType}
-                    <span className="text-orange-300 font-medium text-sm ml-2">— {goalLabels[pCtx.primaryGoal] ?? pCtx.primaryGoal}</span>
-                  </p>
-                  <p className="text-white/50 text-xs mt-1.5">
-                    Phase:{" "}
-                    <span className="text-white/70">{phaseLabels[pCtx.trainingPhase] ?? pCtx.trainingPhase}</span>
-                    <span className="mx-1.5 text-white/30">·</span>
-                    <span className="text-white/70">{pCtx.trainingFrequency} sessions/wk</span>
-                    {pCtx.twoADays && <span className="ml-1.5 text-orange-400 font-semibold">2-a-days</span>}
-                  </p>
-                </>
-              )}
-
-              <button
-                onClick={() => setLocation("/performance")}
-                className="mt-4 w-full py-2.5 rounded-xl text-xs font-semibold bg-orange-700/40 border border-orange-400/30 text-white active:scale-[0.98] transition-transform"
-              >
-                Open Performance Hub
-              </button>
-            </motion.div>
-          );
-        })()}
-
-        {/* ── Carb Cycle Status Card ──────────────────────────────────── */}
-        {hasPerfCtx && carbCycleData && carbCycleData.state.phase !== "inactive" && (() => {
-          const { phase, carbTargetG, manualOverride } = carbCycleData.state;
-          const isRefeed = phase === "refeed";
-          return (
-            <motion.div
-              key="carb-cycle-card"
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.12, duration: 0.3 }}
-              className="rounded-2xl bg-gradient-to-br from-black/60 via-orange-600/20 to-black/80 border border-orange-500/30 p-4 mb-1 cursor-pointer active:scale-[0.98] transition-transform"
-              onClick={() => setLocation("/performance?tab=carb_cycle")}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-orange-400 flex-shrink-0 animate-pulse" />
-                  <p className="text-xs text-orange-300 font-semibold uppercase tracking-wide">Carb Cycle Active</p>
-                </div>
-                {manualOverride && (
-                  <span className="text-[10px] text-white/40 font-medium">Manual</span>
-                )}
-              </div>
-
-              <div className="flex items-end gap-3">
-                <div>
-                  <p className="text-white font-bold text-2xl leading-none">
-                    {carbTargetG}
-                    <span className="text-white/50 text-sm font-normal ml-1">g starch today</span>
-                  </p>
-                  <p className="text-white/30 text-[10px] mt-0.5">fibrous vegetables unrestricted</p>
-                  <p className="text-white/50 text-xs mt-1">
-                    Phase:{" "}
-                    <span className={`font-semibold ${isRefeed ? "text-green-400" : "text-orange-300"}`}>
-                      {isRefeed ? "Refeed Day" : "Low Carb Day"}
-                    </span>
-                  </p>
-                </div>
-                <div className="ml-auto">
-                  <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${isRefeed ? "bg-green-500/20 text-green-300 border border-green-500/30" : "bg-orange-500/20 text-orange-300 border border-orange-500/30"}`}>
-                    {isRefeed ? "🔄 Refeed" : "⬇ Low Carb"}
-                  </span>
-                </div>
-              </div>
-
-              <p className="text-[11px] text-orange-400/70 mt-3 font-medium">Tap to log today →</p>
-            </motion.div>
-          );
-        })()}
-
-        {user?.goalType && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.11, duration: 0.4 }}
-            className="mb-4"
-          >
-            <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 px-4 py-3 flex items-center gap-3">
-              <span className="text-xl">
-                {user.goalType === "lose"
-                  ? "🔥"
-                  : user.goalType === "gain"
-                    ? "💪"
-                    : "⚖️"}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-white/60 uppercase tracking-wide font-medium">
-                  Active Goal
-                </p>
-                <p className="text-sm font-semibold text-white leading-tight">
-                  {user.goalType === "lose"
-                    ? "Lose Weight"
-                    : user.goalType === "gain"
-                      ? "Gain Muscle"
-                      : "Maintain Weight"}
-                  {user.goalTarget ? ` — ${user.goalTarget}` : ""}
-                  {user.goalTimelineWeeks
-                    ? ` in ${user.goalTimelineWeeks >= 52 ? "1 year" : user.goalTimelineWeeks >= 26 ? "6 months" : `${user.goalTimelineWeeks} weeks`}`
-                    : ""}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        )}
+        <DailyCheckinCard />
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
