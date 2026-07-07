@@ -142,6 +142,13 @@ export async function buildAcePromptBlock(userId: string): Promise<{
     .map((s) => s.label)
     .slice(0, 4);
 
+  // Scenario 5 rule: no signals + no intervention = silent day.
+  // Return null so nothing is injected into the AI prompt.
+  // The dashboard card handles the "all green" state on its own.
+  if (signalLabels.length === 0 && top === null) {
+    return null;
+  }
+
   const priorities = top ? top.strategies  : BALANCED_BLOCK.priorities;
   const avoidances = top ? top.avoid       : BALANCED_BLOCK.avoid;
 
