@@ -3,6 +3,7 @@ import {
   useContext,
   useState,
   useEffect,
+  useRef,
   ReactNode,
   useCallback,
 } from "react";
@@ -25,9 +26,31 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+function WakingUpScreen() {
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 9999,
+      background: "linear-gradient(135deg, #000 0%, #1a0a00 50%, #000 100%)",
+      display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center", gap: "20px",
+    }}>
+      <img src="/icons/chef.png?v=2026b" alt="Loading" style={{ width: "80px", height: "80px" }} />
+      <p style={{ color: "#f97316", fontSize: "16px", fontWeight: 600, margin: 0 }}>
+        Waking up your meal engine…
+      </p>
+      <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "13px", margin: 0, textAlign: "center", maxWidth: "260px" }}>
+        First load takes a few extra seconds. Hang tight!
+      </p>
+    </div>
+  );
+}
+
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSlowStart, setIsSlowStart] = useState(false);
+  const slowStartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasFinishedInitialLoad = useRef(false);
 
   const refreshUser = useCallback(async (): Promise<User | null> => {
     const token = getAuthToken();
@@ -171,6 +194,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
+  // Show "Waking up…" screen if initial auth check takes > 2 seconds.
+  // Only fires once on mount — not on subsequent refreshes.
+  useEffect(() => {
+    slowStartTimerRef.current = setTimeout(() => {
+      if (!hasFinishedInitialLoad.current) {
+        setIsSlowStart(true);
+      }
+    }, 2000);
+    return () => {
+      if (slowStartTimerRef.current) clearTimeout(slowStartTimerRef.current);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     const handleUserUpdated = () => {
       console.log("📡 [AuthContext] mpm:user-updated received — refreshing");
@@ -296,6 +332,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
       }
 
+      hasFinishedInitialLoad.current = true;
+      setIsSlowStart(false);
       setLoading(false);
     };
 
@@ -304,6 +342,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   return (
     <AuthContext.Provider value={{ user, setUser, loading, refreshUser }}>
+      {loading && isSlowStart && <WakingUpScreen />}
       {children}
     </AuthContext.Provider>
   );

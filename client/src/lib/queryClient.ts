@@ -106,6 +106,13 @@ function shouldRetry(failureCount: number, error: unknown): boolean {
   return failureCount < 2;
 }
 
+// Cold-start retry delay: give the server time to wake up before retrying.
+// First retry waits 2s, second retry waits 5s. This prevents immediate
+// error screens when the production server is waking up from idle.
+function retryDelay(failureCount: number): number {
+  return failureCount === 0 ? 2_000 : 5_000;
+}
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -114,10 +121,12 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       staleTime: 60_000,
       retry: shouldRetry,
+      retryDelay,
       throwOnError: false,
     },
     mutations: {
       retry: (failureCount, error) => shouldRetry(failureCount, error),
+      retryDelay,
       throwOnError: false,
     },
   },
