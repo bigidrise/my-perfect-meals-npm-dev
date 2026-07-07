@@ -38,11 +38,13 @@ router.get("/", requireAuth, async (req, res) => {
         dailyFatTarget:         (users as any).dailyFatTarget,
         goalType:               (users as any).goalType,
         goalTarget:             (users as any).goalTarget,
+        goalTimelineWeeks:      (users as any).goalTimelineWeeks,
         fitnessGoal:            users.fitnessGoal,
         performanceContext:     users.performanceContext,
         weeklyTrainingSchedule: (users as any).weeklyTrainingSchedule,
         selectedMealBuilder:    users.selectedMealBuilder,
         activeBoard:            users.activeBoard,
+        carbCycleState:         (users as any).carbCycleState,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -62,12 +64,14 @@ router.get("/", requireAuth, async (req, res) => {
       dailyFatTarget:         userRow?.dailyFatTarget ?? null,
       goalType:               userRow?.goalType ?? null,
       goalTarget:             userRow?.goalTarget ?? null,
+      goalTimelineWeeks:      userRow?.goalTimelineWeeks ?? null,
       fitnessGoal:            userRow?.fitnessGoal ?? null,
       performanceContext:     userRow?.performanceContext ?? null,
       weeklyTrainingSchedule: userRow?.weeklyTrainingSchedule ?? null,
       latestGlucose:          latestGlucoseLog?.value ?? null,
       selectedMealBuilder:    userRow?.selectedMealBuilder ?? null,
       activeBoard:            userRow?.activeBoard ?? null,
+      carbCycleState:         userRow?.carbCycleState ?? null,
     };
 
     const summary = buildNutritionSummary(envelope, extras);
