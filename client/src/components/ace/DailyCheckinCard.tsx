@@ -16,14 +16,14 @@ const MOOD_LABELS:   Record<number, string>  = { 1: "Down", 2: "Low", 3: "Okay",
 const CRAVING_LABELS: Record<number, string> = { 1: "None", 2: "Low", 3: "Moderate", 4: "Strong", 5: "Intense" };
 
 function positiveColor(v: number | null): string {
-  if (v === null) return "text-white/50";
+  if (v === null) return "text-white";
   if (v >= 4) return "text-green-400";
   if (v === 3) return "text-white";
   return "text-orange-400";
 }
 
 function inverseColor(v: number | null): string {
-  if (v === null) return "text-white/50";
+  if (v === null) return "text-white";
   if (v <= 2) return "text-green-400";
   if (v === 3) return "text-white";
   return "text-orange-400";
@@ -38,7 +38,7 @@ interface MetricPillProps {
 function MetricPill({ label, display, colorClass }: MetricPillProps) {
   return (
     <div className="flex flex-col items-center gap-0.5">
-      <span className="text-[10px] text-white uppercase tracking-wider">{label}</span>
+      <span className="text-xs text-white uppercase tracking-wider">{label}</span>
       <span className={`text-xs font-semibold ${colorClass}`}>{display ?? "—"}</span>
     </div>
   );
@@ -95,18 +95,18 @@ function buildReasoningPoints(checkin: Record<string, unknown>): string[] {
   const schedule = checkin["schedule"] as string | null | undefined;
   const points: string[] = [];
 
-  if ((get("stress") ?? 3) >= 4)              points.push("Stress is higher than usual");
-  if ((get("energy") ?? 3) <= 2)              points.push("Energy levels are running low");
-  if ((get("sleep") ?? 3) <= 2)               points.push("Sleep quality was below average");
-  if ((get("cravings") ?? 3) >= 4)            points.push("Cravings are stronger than normal");
-  if ((get("mood") ?? 3) <= 2)                points.push("Mood is lower than usual today");
-  if ((get("motivation") ?? 3) <= 2)          points.push("Motivation is running low");
+  if ((get("stress") ?? 3) >= 4)               points.push("Stress is higher than usual");
+  if ((get("energy") ?? 3) <= 2)               points.push("Energy levels are running low");
+  if ((get("sleep") ?? 3) <= 2)                points.push("Sleep quality was below average");
+  if ((get("cravings") ?? 3) >= 4)             points.push("Cravings are stronger than normal");
+  if ((get("mood") ?? 3) <= 2)                 points.push("Mood is lower than usual today");
+  if ((get("motivation") ?? 3) <= 2)           points.push("Motivation is running low");
   if ((get("emotional_eating_risk") ?? 1) >= 4) points.push("Emotional eating risk is elevated");
-  if ((get("digestion") ?? 3) <= 2)           points.push("Digestive comfort is reduced today");
-  if ((get("soreness") ?? 3) >= 4)            points.push("Muscle soreness is elevated");
-  if ((get("hunger") ?? 3) === 1)             points.push("Appetite is very low — meal skipping risk");
-  if (schedule === "travel")                  points.push("Today's routine is disrupted by travel");
-  if (schedule === "busy")                    points.push("Today is a busy, high-demand day");
+  if ((get("digestion") ?? 3) <= 2)            points.push("Digestive comfort is reduced today");
+  if ((get("soreness") ?? 3) >= 4)             points.push("Muscle soreness is elevated");
+  if ((get("hunger") ?? 3) === 1)              points.push("Appetite is very low — meal skipping risk");
+  if (schedule === "travel")                   points.push("Today's routine is disrupted by travel");
+  if (schedule === "busy")                     points.push("Today is a busy, high-demand day");
 
   return points.slice(0, 4);
 }
@@ -133,7 +133,6 @@ function CheckedInState({
   const reasoningPoints = buildReasoningPoints(checkin);
   const adjustment = top ? buildTodaysNutritionAdjustment(checkin, top.key) : null;
 
-  // Supplementary builder pills — skip the one already used as primary CTA
   const supplementaryBuilders = top
     ? top.suggested_builders.filter(
         (b) => !adjustment || BUILDER_ROUTES[b] !== adjustment.recommendedRoute
@@ -150,7 +149,7 @@ function CheckedInState({
           </div>
           <div>
             <p className="text-sm font-semibold text-white">Today's Coaching</p>
-            <p className="text-[11px] text-white">Checked in today</p>
+            <p className="text-xs text-white">Checked in today</p>
           </div>
         </div>
         <PillButton
@@ -192,15 +191,15 @@ function CheckedInState({
 
       <div className="border-t border-white/10 pt-4 space-y-4">
 
-        {/* Why I'm recommending this */}
+        {/* Today's signals */}
         {reasoningPoints.length > 0 && (
           <div className="space-y-2">
-            <p className="text-[11px] text-white uppercase tracking-wider font-semibold">
+            <p className="text-xs text-white uppercase tracking-wider font-semibold">
               Today's signals
             </p>
             <ul className="space-y-1">
               {reasoningPoints.map((pt, i) => (
-                <li key={i} className="flex gap-2 text-[12px] text-white">
+                <li key={i} className="flex gap-2 text-xs text-white">
                   <span className="text-orange-400 shrink-0">•</span>
                   <span>{pt}</span>
                 </li>
@@ -209,15 +208,15 @@ function CheckedInState({
           </div>
         )}
 
-        {/* Today's Nutrition Adjustment — specific actionable block */}
+        {/* Today's Nutrition Adjustment */}
         {adjustment ? (
-          <div className="rounded-lg bg-orange-500/8 border border-orange-500/20 p-3 space-y-3">
+          <div className="rounded-lg bg-orange-500/10 border border-orange-500/20 p-3 space-y-3">
             {/* Section label + meal moment */}
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <p className="text-[10px] text-orange-400 uppercase tracking-wider font-semibold">
+              <p className="text-xs text-orange-400 uppercase tracking-wider font-semibold">
                 Today's Nutrition Adjustment
               </p>
-              <span className="text-[10px] text-white/60 bg-white/8 rounded px-1.5 py-0.5">
+              <span className="text-xs text-white bg-white/10 rounded px-2 py-0.5">
                 {MEAL_MOMENT_LABELS[adjustment.recommendedMealMoment] ?? "Next meal"}
               </span>
             </div>
@@ -228,7 +227,7 @@ function CheckedInState({
             </p>
 
             {/* Message */}
-            <p className="text-[12px] text-white leading-relaxed">
+            <p className="text-xs text-white leading-relaxed">
               {adjustment.adjustmentMessage}
             </p>
 
@@ -241,28 +240,28 @@ function CheckedInState({
             </button>
 
             {/* Return to plan guidance */}
-            <p className="text-[11px] text-white/60 leading-relaxed">
-              <span className="text-white/40 uppercase text-[9px] tracking-wider font-semibold mr-1.5">Return to plan:</span>
+            <p className="text-xs text-white leading-relaxed">
+              <span className="text-orange-400 uppercase text-xs tracking-wider font-semibold mr-1.5">Return to plan:</span>
               {adjustment.returnToPlanGuidance}
             </p>
           </div>
         ) : (
-          /* Neutral day — no adjustment needed */
-          <div className="rounded-lg bg-green-500/8 border border-green-500/20 p-3">
-            <p className="text-[10px] text-green-400 uppercase tracking-wider font-semibold mb-1.5">
+          /* Neutral day */
+          <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-3">
+            <p className="text-xs text-green-400 uppercase tracking-wider font-semibold mb-1.5">
               Today's Status
             </p>
             <p className="text-sm font-semibold text-white">You're on track — stay the course</p>
-            <p className="text-[12px] text-white mt-1">
+            <p className="text-xs text-white mt-1">
               All signals look balanced today. Keep meals consistent with your plan, stay hydrated, and maintain momentum.
             </p>
           </div>
         )}
 
-        {/* Supplementary quick actions — alternate builders */}
+        {/* Supplementary quick actions */}
         {supplementaryBuilders.length > 0 && (
           <div className="space-y-1.5">
-            <p className="text-[10px] text-white uppercase tracking-wider font-semibold">Also try</p>
+            <p className="text-xs text-white uppercase tracking-wider font-semibold">Also try</p>
             <div className="flex gap-2 flex-wrap">
               {supplementaryBuilders.map((key) => {
                 const route = BUILDER_ROUTES[key];
@@ -272,7 +271,7 @@ function CheckedInState({
                   <PillButton
                     key={key}
                     onClick={() => setLocation(route)}
-                    className="bg-white/8 text-white border-white/15 text-xs"
+                    className="bg-white/10 text-white border-white/20 text-xs"
                   >
                     {name}
                   </PillButton>
@@ -328,7 +327,7 @@ export function DailyCheckinCard() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-white">How are you doing today?</p>
-                    <p className="text-[11px] text-white">60-second daily check-in</p>
+                    <p className="text-xs text-white">60-second daily check-in</p>
                   </div>
                 </div>
                 <PillButton
