@@ -3,7 +3,10 @@ import {
   uuid,
   text,
   boolean,
+  smallint,
+  date,
   timestamp,
+  unique,
 } from "drizzle-orm/pg-core";
 
 export const coachingProfiles = pgTable("coaching_profiles", {
@@ -41,8 +44,41 @@ export const coachingInterventions = pgTable("coaching_interventions", {
     .notNull(),
 });
 
+export const aceDailyCheckins = pgTable(
+  "ace_daily_checkins",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").notNull(),
+    date: date("date").notNull(),
+    energy: smallint("energy"),
+    stress: smallint("stress"),
+    sleep: smallint("sleep"),
+    mood: smallint("mood"),
+    cravings: smallint("cravings"),
+    hunger: smallint("hunger"),
+    digestion: smallint("digestion"),
+    soreness: smallint("soreness"),
+    schedule: text("schedule"),
+    motivation: smallint("motivation"),
+    emotionalEatingRisk: smallint("emotional_eating_risk"),
+    symptoms: text("symptoms").array(),
+    freeText: text("free_text"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => ({
+    uniqueUserDate: unique().on(t.userId, t.date),
+  })
+);
+
 export type CoachingProfile = typeof coachingProfiles.$inferSelect;
 export type InsertCoachingProfile = typeof coachingProfiles.$inferInsert;
 export type CoachingIntervention = typeof coachingInterventions.$inferSelect;
 export type InsertCoachingIntervention =
   typeof coachingInterventions.$inferInsert;
+export type AceDailyCheckin = typeof aceDailyCheckins.$inferSelect;
+export type InsertAceDailyCheckin = typeof aceDailyCheckins.$inferInsert;
