@@ -379,7 +379,7 @@ function formatInterventionTitle(key: string): string {
 function formatBuilderName(key: string): string {
   const map: Record<string, string> = {
     "create-dish": "Create a Dish",
-    "snack-creator": "Snack Creator",
+    "snack-creator": "Craving Creator",
     "beverage-creator": "Beverage Creator",
     "fridge-rescue": "Fridge Rescue",
     "meal-planner": "Meal Planner",

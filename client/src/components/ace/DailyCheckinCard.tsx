@@ -47,7 +47,7 @@ function MetricPill({ label, display, colorClass }: MetricPillProps) {
 
 const BUILDER_ROUTES: Record<string, string> = {
   "create-dish":      "/lifestyle/create-a-dish",
-  "snack-creator":    "/lifestyle/create-a-dish",
+  "snack-creator":    "/craving-creator",
   "beverage-creator": "/lifestyle/beverage-creator",
   "fridge-rescue":    "/fridge-rescue",
   "meal-planner":     "/weekly-meal-board",
@@ -61,7 +61,7 @@ const BUILDER_ROUTES: Record<string, string> = {
 
 const BUILDER_NAMES: Record<string, string> = {
   "create-dish":      "Create a Dish",
-  "snack-creator":    "Snack Creator",
+  "snack-creator":    "Craving Creator",
   "beverage-creator": "Beverage Creator",
   "fridge-rescue":    "Fridge Rescue",
   "meal-planner":     "Weekly Meal Board",
