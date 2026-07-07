@@ -18,14 +18,6 @@ interface ComplianceResponse {
   reason?: string;
 }
 
-interface MacroTargetsResponse {
-  calories: number;
-  protein_g: number;
-  carbs_g: number;
-  fat_g: number;
-  hasTargets: boolean;
-}
-
 function getScoreColor(score: number): string {
   if (score >= 90) return "text-emerald-400";
   if (score >= 70) return "text-yellow-400";
@@ -53,19 +45,6 @@ function getComplianceMessage(score: number | null, reason?: string, loggedDays?
   return "Low compliance. Results will stall without consistent tracking.";
 }
 
-function TargetMacrosStrip({ targets }: { targets: MacroTargetsResponse }) {
-  return (
-    <div className="space-y-1">
-      <div className="text-xs text-white/40 font-medium uppercase tracking-wide">Target Macros</div>
-      <div className="flex gap-3 text-sm">
-        <span className="text-white/70">P <span className="text-white font-semibold">{targets.protein_g}g</span></span>
-        <span className="text-white/70">C <span className="text-white font-semibold">{targets.carbs_g}g</span></span>
-        <span className="text-white/70">Fat <span className="text-white font-semibold">{targets.fat_g}g</span></span>
-      </div>
-    </div>
-  );
-}
-
 interface ComplianceCardProps {
   userId: string | undefined;
 }
@@ -76,7 +55,6 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
 
   useEffect(() => {
     const handleTargetsUpdated = () => {
-      queryClient.invalidateQueries({ queryKey: ["macro-targets", userId] });
       queryClient.invalidateQueries({ queryKey: ["compliance", userId] });
     };
     window.addEventListener("mpm:targetsUpdated", handleTargetsUpdated);
@@ -100,31 +78,15 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
     retry: 1,
   });
 
-  const { data: targets } = useQuery<MacroTargetsResponse>({
-    queryKey: ["macro-targets", userId],
-    queryFn: async () => {
-      const res = await fetch(apiUrl(`/api/users/${userId}/macro-targets`), {
-        headers: { ...getAuthHeaders() },
-        credentials: "include",
-      });
-      if (!res.ok) {
-        throw new Error(`Macro targets fetch failed: ${res.status}`);
-      }
-      return res.json();
-    },
-    enabled: !!userId,
-    staleTime: 0,
-  });
-
   if (!userId || isLoading) {
     return (
       <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
         <CardContent className="p-6">
           <div className="flex items-center gap-3">
             <div className="p-3 rounded-lg bg-gradient-to-br from-white/5 to-white/10 border border-white/10">
-              <Target className="h-6 w-6 text-white/40" />
+              <Target className="h-6 w-6 text-white" />
             </div>
-            <div className="text-white/40 text-sm">Loading compliance...</div>
+            <div className="text-white text-sm">Loading compliance...</div>
           </div>
         </CardContent>
       </Card>
@@ -140,8 +102,8 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
               <AlertCircle className="h-6 w-6 text-red-400" />
             </div>
             <div>
-              <h3 className="text-white text-lg font-semibold">Compliance</h3>
-              <p className="text-red-400/70 text-sm">Unable to load compliance data</p>
+              <h3 className="text-white text-sm font-semibold">Compliance</h3>
+              <p className="text-red-400 text-sm">Unable to load compliance data</p>
             </div>
           </div>
         </CardContent>
@@ -155,14 +117,14 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
         <CardContent className="p-6 space-y-2">
           <div className="flex items-center gap-3">
             <div className="p-3 rounded-lg bg-gradient-to-br from-white/5 to-white/10 border border-white/10">
-              <Target className="h-6 w-6 text-white/60" />
+              <Target className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h3 className="text-white text-lg font-semibold">Compliance</h3>
-              <p className="text-white/50 text-sm">Macro targets not set yet</p>
+              <h3 className="text-white text-sm font-semibold">Compliance</h3>
+              <p className="text-white text-sm">Macro targets not set yet</p>
             </div>
           </div>
-          <p className="text-sm text-white/40 italic">
+          <p className="text-sm text-white italic">
             {getComplianceMessage(null, "no_targets")}
           </p>
         </CardContent>
@@ -180,14 +142,14 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
                 <Target className="h-6 w-6 text-red-400" />
               </div>
               <div>
-                <h3 className="text-white text-lg font-semibold">Compliance</h3>
-                <p className="text-white/40 text-xs">Last {data.windowDays} days</p>
+                <h3 className="text-white text-sm font-semibold">Compliance</h3>
+                <p className="text-white text-xs">Last {data.windowDays} days</p>
                 <p className="text-red-400 text-2xl font-bold">0%</p>
               </div>
             </div>
           </div>
-          <p className="text-sm text-white/50">No meals logged yet</p>
-          <p className="text-sm text-white/40 italic">
+          <p className="text-sm text-white">No meals logged yet</p>
+          <p className="text-sm text-white italic">
             {getComplianceMessage(0, undefined, 0)}
           </p>
         </CardContent>
@@ -206,14 +168,14 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
               <Target className={`h-6 w-6 ${getScoreColor(score)}`} />
             </div>
             <div>
-              <h3 className="text-white/70 text-sm font-medium">Compliance</h3>
-              <p className="text-white/30 text-xs">Last {data.windowDays} days</p>
+              <h3 className="text-white text-sm font-semibold">Compliance</h3>
+              <p className="text-white text-xs">Last {data.windowDays} days</p>
               <p className={`text-3xl font-bold ${getScoreColor(score)}`}>{score}%</p>
             </div>
           </div>
         </div>
 
-        <p className="text-sm text-white/50 italic">
+        <p className="text-sm text-white italic">
           {getComplianceMessage(score, undefined, data.loggedDays7)}
         </p>
       </CardContent>
