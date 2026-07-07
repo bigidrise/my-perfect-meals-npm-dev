@@ -821,7 +821,7 @@ export default function DashboardNew() {
                     </div>
                     <div className="flex-1">
                       <h3 className="text-sm font-semibold text-white">Client Messages</h3>
-                      <p className={`text-xs ${proUnreadCount > 0 ? "text-orange-400 font-medium" : "text-white/60"}`}>
+                      <p className={`text-xs ${proUnreadCount > 0 ? "text-orange-400 font-medium" : "text-white"}`}>
                         {proUnreadCount > 0
                           ? `${proUnreadCount} client${proUnreadCount > 1 ? "s" : ""} messaged you — tap to respond`
                           : "No new messages from clients"}
@@ -850,7 +850,7 @@ export default function DashboardNew() {
                       </div>
                       <div className="flex-1">
                         <h3 className="text-sm font-semibold text-white">Provider Messages</h3>
-                        <p className={`text-xs ${providerHasUnread ? "text-orange-400 font-medium" : "text-white/60"}`}>
+                        <p className={`text-xs ${providerHasUnread ? "text-orange-400 font-medium" : "text-white"}`}>
                           {providerHasUnread ? "New message from your provider" : "Messages from your provider"}
                         </p>
                       </div>
