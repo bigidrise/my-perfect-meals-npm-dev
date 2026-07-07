@@ -10,7 +10,10 @@
  *   always maps to low-appetite copy regardless of what the engine scored).
  * - Returns null when no intervention is present (neutral/perfect day).
  * - Positive signals never cancel safety-relevant negative signals.
- * - Copy is hand-crafted to sound like a real human coach, not software.
+ * - Copy follows the coaching rule: direction + 1–2 examples + Chef handoff.
+ * - CTA is action-oriented ("Build My Next Meal"), not navigation-oriented.
+ * - Restaurant guide only appears for genuine environment exceptions (travel,
+ *   vacation) where the user is away from their normal kitchen.
  */
 
 export type MealMoment = "breakfast" | "lunch" | "snack" | "dinner" | "next meal" | "today";
@@ -36,15 +39,16 @@ function currentMealMoment(): MealMoment {
 }
 
 // ─── Adjustment copy map ───────────────────────────────────────────────────
-// Keyed by intervention key. Signal-based overrides are applied before lookup.
+// Coaching rule: direction → 1–2 examples → Chef handoff.
+// Never overwhelm. Never be vague. Give enough to unstick, then hand off.
 
 const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealMoment"> & { mealMoment: MealMoment | "auto" }> = {
 
   low_appetite: {
-    adjustmentTitle: "Skip the full meal for now",
+    adjustmentTitle: "Start small — don't force a full meal",
     adjustmentMessage:
-      "Your appetite is low — don't force a full plate. Start with a protein shake or something small but calorie-dense: nut butter, Greek yogurt, half an avocado. Aim for 20–30g protein in whatever volume feels manageable. Use Beverage Creator and pick an easy-to-digest option.",
-    recommendedActionLabel: "Open Beverage Creator",
+      "Your appetite is low today. Something small but protein-rich is the right move — don't push through a full plate when your body isn't asking for it. A protein shake or a Greek yogurt bowl are both easy to get down without much effort. If neither sounds right, tell Chef what you feel like and Chef will build it around today's plan.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/lifestyle/beverage-creator",
     mealMoment: "auto",
     returnToPlanGuidance:
@@ -52,10 +56,10 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   },
 
   travel: {
-    adjustmentTitle: "Don't try to cook today",
+    adjustmentTitle: "Find one reliable option — don't aim for perfect",
     adjustmentMessage:
-      "Your best move while traveling is finding one reliable, high-protein option at wherever you land. Aim for 30g+ protein and stay ahead of dehydration. Use Restaurant Guide to find the best available option that fits your plan — don't aim for perfect, aim for adequate.",
-    recommendedActionLabel: "Open Restaurant Guide",
+      "Your best move while traveling is finding one high-protein option wherever you land. Aim for 30g+ protein and stay ahead of dehydration. A grilled protein with a side or a high-protein wrap both work well in most travel situations. Use Restaurant Guide to find the best available option that fits your plan.",
+    recommendedActionLabel: "Find a Good Option Nearby",
     recommendedRoute: "/social-hub/restaurant-guide",
     mealMoment: "today",
     returnToPlanGuidance:
@@ -65,8 +69,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   high_stress: {
     adjustmentTitle: "Keep the next meal simple",
     adjustmentMessage:
-      "High stress burns willpower — don't spend it deciding what to eat. Use Fridge Rescue to build the best option from what's already available. High protein, minimal prep, minimal decisions. That's the goal right now.",
-    recommendedActionLabel: "Open Fridge Rescue",
+      "High stress burns willpower — don't spend it deciding what to eat. The goal right now is high protein, minimal prep, minimal decisions. Build the best option from what's already available and get it done. If you're drawing a blank, tell Chef what you have and Chef will figure out the rest.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/fridge-rescue",
     mealMoment: "auto",
     returnToPlanGuidance:
@@ -76,8 +80,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   decision_fatigue: {
     adjustmentTitle: "One decision, then done",
     adjustmentMessage:
-      "You've made enough decisions today. Use Fridge Rescue — it picks the best option from what you already have. The only question you need to answer is: what's in the fridge? Five ingredients or fewer. Done.",
-    recommendedActionLabel: "Open Fridge Rescue",
+      "You've made enough decisions today. The only question you need to answer right now is: what do you have available? Five ingredients or fewer. Tell Chef what's there and Chef will handle the rest.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/fridge-rescue",
     mealMoment: "auto",
     returnToPlanGuidance:
@@ -87,8 +91,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   sleep_deficit: {
     adjustmentTitle: "Poor sleep is affecting your hunger signals today",
     adjustmentMessage:
-      "After limited sleep, ghrelin rises and cravings hit harder and earlier than usual. Keep protein high and avoid high-sugar options that spike and crash. A steady, balanced meal now is worth more than a perfect one. Use Fridge Rescue to build something solid without the effort.",
-    recommendedActionLabel: "Open Fridge Rescue",
+      "After limited sleep, ghrelin rises and cravings hit harder and earlier than usual. Keep protein high and avoid high-sugar options that spike and crash. A steady, balanced meal now is worth more than a perfect one later. If you're not sure what to build, tell Chef what sounds good and Chef will keep it on-plan.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/fridge-rescue",
     mealMoment: "auto",
     returnToPlanGuidance:
@@ -98,8 +102,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   low_energy: {
     adjustmentTitle: "Hydration first, then food",
     adjustmentMessage:
-      "Low energy is often dehydration before it's a food problem. Drink 16oz of water right now, then build a balanced meal with complex carbs and protein. A shake or smoothie is a fast way to cover both hydration and protein at once.",
-    recommendedActionLabel: "Open Beverage Creator",
+      "Low energy is often dehydration before it's a food problem. Drink 16oz of water right now, then build something with complex carbs and protein together. A protein smoothie or a balanced meal both cover the bases fast. If neither sounds right, tell Chef what you're craving and Chef will build it around today's plan.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/lifestyle/beverage-creator",
     mealMoment: "auto",
     returnToPlanGuidance:
@@ -109,8 +113,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   dehydration_pattern: {
     adjustmentTitle: "Hydration comes before food right now",
     adjustmentMessage:
-      "Start with 16oz of water before anything else. Then use Beverage Creator to build a hydrating option — coconut water, electrolyte-rich ingredients, or a hydrating smoothie. Hydration anchors energy, appetite, and mood all at once.",
-    recommendedActionLabel: "Open Beverage Creator",
+      "Start with 16oz of water before anything else. Then build something hydrating and easy to drink — something that covers both hydration and protein at once. A coconut water-based smoothie or an electrolyte shake are both solid options. If neither sounds right, tell Chef what sounds good and Chef will build around today's plan.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/lifestyle/beverage-creator",
     mealMoment: "auto",
     returnToPlanGuidance:
@@ -120,8 +124,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   high_cravings: {
     adjustmentTitle: "Get ahead of the craving before it wins",
     adjustmentMessage:
-      "Cravings are strongest right before your next meal and when protein is low. Build something high-protein now to take the edge off before the craving overrides your plan. A protein-first option satisfies the physiological hunger that drives most cravings.",
-    recommendedActionLabel: "Open Craving Creator",
+      "Cravings are strongest right before your next meal and when protein is low. Build something high-protein now to take the edge off before the craving overrides your plan. A protein-first option satisfies the physiological hunger that drives most cravings. Tell Chef what you're craving and Chef will build the best version of it.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/craving-creator",
     mealMoment: "snack",
     returnToPlanGuidance:
@@ -131,8 +135,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   sweet_cravings: {
     adjustmentTitle: "Satisfy the sweet signal the smart way",
     adjustmentMessage:
-      "Sweet cravings usually mean protein or fat is running low. Before you reach for something sugary, build a high-protein option with a naturally sweet element: Greek yogurt with berries, a protein shake with fruit, or a date with nut butter. Use Craving Creator for the fastest version.",
-    recommendedActionLabel: "Open Craving Creator",
+      "Sweet cravings usually mean protein or fat is running low. Before you reach for something sugary, build something high-protein with a naturally sweet element. A protein shake with fruit or a Greek yogurt bowl both satisfy the craving without derailing the plan. If neither sounds right, tell Chef what you're craving and Chef will build it around today's plan.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/craving-creator",
     mealMoment: "snack",
     returnToPlanGuidance:
@@ -142,8 +146,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   salty_cravings: {
     adjustmentTitle: "Check electrolytes before reaching for snacks",
     adjustmentMessage:
-      "Persistent salt cravings often signal dehydration or electrolyte depletion. Start with water, then choose a high-protein savory option — cottage cheese, olives, pickles with protein — rather than processed salty snacks.",
-    recommendedActionLabel: "Open Craving Creator",
+      "Persistent salt cravings often signal dehydration or electrolyte depletion. Start with water, then build something high-protein and savory. Cottage cheese with cucumber or a savory egg dish both satisfy the craving without the processed sodium. If neither sounds right, tell Chef what you're craving and Chef will build it around today's plan.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/craving-creator",
     mealMoment: "snack",
     returnToPlanGuidance:
@@ -153,8 +157,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   meal_skipping: {
     adjustmentTitle: "Replace it — don't skip it",
     adjustmentMessage:
-      "When the schedule is packed, skipping a meal feels like the fastest move — but it costs you later. Grab something portable and high-protein right now. Even a quick snack protects your energy and keeps cravings from compounding through the rest of the day.",
-    recommendedActionLabel: "Open Craving Creator",
+      "When the schedule is packed, skipping a meal feels like the fastest move — but it costs you later. Grab something portable and high-protein right now. Even a quick protein snack protects your energy and keeps cravings from compounding through the rest of the day. Tell Chef what's available and Chef will make it fast.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/craving-creator",
     mealMoment: "auto",
     returnToPlanGuidance:
@@ -164,8 +168,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   busy_day: {
     adjustmentTitle: "Portable and high-protein — that's the target today",
     adjustmentMessage:
-      "Today's goal isn't a perfect meal — it's adequate protein without adding friction. Use Craving Creator or Fridge Rescue to build the fastest high-protein option available. Batch protein like hard-boiled eggs or pre-portioned nuts works if you need something even faster.",
-    recommendedActionLabel: "Open Fridge Rescue",
+      "Today's goal isn't a perfect meal — it's adequate protein without adding friction. Build the fastest high-protein option available from what you have. A quick egg scramble or a simple protein shake are both enough for today. If neither works, tell Chef what you have available and Chef will build something fast around today's plan.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/fridge-rescue",
     mealMoment: "auto",
     returnToPlanGuidance:
@@ -175,8 +179,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   low_motivation: {
     adjustmentTitle: "Lower the effort — not the standard",
     adjustmentMessage:
-      "When motivation is low, the worst outcome is doing nothing. Use Fridge Rescue and build whatever decent protein option is already available. Don't track today, don't plan ahead — just eat something good enough, right now.",
-    recommendedActionLabel: "Open Fridge Rescue",
+      "When motivation is low, the worst outcome is doing nothing. Build whatever decent protein option is already available — don't track today, don't plan ahead. Just eat something good enough, right now. Tell Chef what you have and Chef will figure out the rest.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/fridge-rescue",
     mealMoment: "next meal",
     returnToPlanGuidance:
@@ -186,8 +190,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   burnout: {
     adjustmentTitle: "Simplify everything today",
     adjustmentMessage:
-      "Nutrition fatigue is real. Your only job today is to eat something decent, not something perfect. Pick 3 familiar foods you know work for you and build from there. No tracking, no new rules — just one reasonable meal.",
-    recommendedActionLabel: "Open Fridge Rescue",
+      "Nutrition fatigue is real. Your only job today is to eat something decent, not something perfect. Pick 3 familiar foods you know work for you and build from there. No tracking, no new rules — just one reasonable meal. Tell Chef what sounds familiar and Chef will keep it simple.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/fridge-rescue",
     mealMoment: "next meal",
     returnToPlanGuidance:
@@ -197,8 +201,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   mental_fatigue: {
     adjustmentTitle: "Stable blood sugar is the priority right now",
     adjustmentMessage:
-      "Brain fog gets worse on blood sugar swings. Build a meal with protein and complex carbs together — no high-sugar options, no skipping. Omega-3 rich foods like salmon, walnuts, or eggs are a bonus if available.",
-    recommendedActionLabel: "Create a Dish",
+      "Brain fog gets worse on blood sugar swings. Build a meal with protein and complex carbs together — steady fuel, no spikes, no skipping. Salmon and quinoa or eggs with whole grain toast are both strong options for mental clarity. If neither sounds right, tell Chef what you're craving and Chef will build it around today's plan.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/lifestyle/create-a-dish",
     mealMoment: "auto",
     returnToPlanGuidance:
@@ -208,8 +212,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   digestive_distress: {
     adjustmentTitle: "Ease up on your digestive system today",
     adjustmentMessage:
-      "With digestive discomfort, simpler is always better. Choose easy-to-digest proteins — eggs, fish, chicken — with cooked vegetables. Avoid raw cruciferous vegetables, high-fiber legumes, and anything heavy or spicy today. Your system needs a lighter load, not fewer nutrients.",
-    recommendedActionLabel: "Create a Dish",
+      "With digestive discomfort, simpler is always better. Choose an easy-to-digest protein with cooked, gentle vegetables — nothing raw, heavy, or spicy today. Eggs with cooked zucchini or a light chicken and rice dish are both easy on the system. If neither sounds right, tell Chef what you're craving and Chef will build it around today's plan.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/lifestyle/create-a-dish",
     mealMoment: "auto",
     returnToPlanGuidance:
@@ -219,8 +223,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   muscle_soreness: {
     adjustmentTitle: "Recovery nutrition is the priority right now",
     adjustmentMessage:
-      "Elevated soreness means your muscles need protein and carbohydrates to repair. Target 30–40g protein in your next meal, paired with complex carbs to restore glycogen. Anti-inflammatory additions — tart cherry, ginger, turmeric, berries — are a bonus if available.",
-    recommendedActionLabel: "Create a Dish",
+      "Elevated soreness means your muscles need protein and carbohydrates to repair. Target 30–40g protein in your next meal, paired with complex carbs to restore glycogen. A salmon and sweet potato bowl or a chicken and rice dish are both strong recovery options. If neither sounds right, tell Chef what you're craving and Chef will build it around today's plan.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/lifestyle/create-a-dish",
     mealMoment: "auto",
     returnToPlanGuidance:
@@ -230,8 +234,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   late_night_eating: {
     adjustmentTitle: "Lock in a satisfying dinner now",
     adjustmentMessage:
-      "Late-night eating usually means daytime under-eating finally catches up at 9pm. Build a proper, satisfying dinner right now — high protein, moderate fat — so cravings don't win after the kitchen should be closed. A warm, complete meal is your best protection.",
-    recommendedActionLabel: "Create a Dish",
+      "Late-night eating usually means daytime under-eating finally catches up at 9pm. Build a proper, satisfying dinner right now — high protein, moderate fat — so cravings don't win after the kitchen should be closed. A warm, complete meal is your best protection. Tell Chef what sounds good and Chef will build it around tonight's plan.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/lifestyle/create-a-dish",
     mealMoment: "dinner",
     returnToPlanGuidance:
@@ -241,8 +245,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   emotional_eating: {
     adjustmentTitle: "Pause first — then eat well",
     adjustmentMessage:
-      "If an emotional trigger is driving the urge to eat, take 10 minutes first — a short walk, water, fresh air. Then build a high-protein meal that genuinely satisfies. You're not suppressing the emotion — you're just not letting it drive the food decision.",
-    recommendedActionLabel: "Open Beverage Creator",
+      "If an emotional trigger is driving the urge to eat, take 10 minutes first — a short walk, water, fresh air. Then build a high-protein meal that genuinely satisfies. You're not suppressing the emotion — you're just not letting it drive the food decision. Tell Chef what sounds good and Chef will build something solid.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/lifestyle/beverage-creator",
     mealMoment: "next meal",
     returnToPlanGuidance:
@@ -252,8 +256,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   overeating_episode: {
     adjustmentTitle: "One meal doesn't change your plan",
     adjustmentMessage:
-      "A single episode has no meaningful impact on your progress. Your only job right now is to eat a complete, high-protein next meal without compensating or restricting. No skipping, no punishment — just the next good meal, eaten normally.",
-    recommendedActionLabel: "Create a Dish",
+      "A single episode has no meaningful impact on your progress. Your only job right now is to eat a complete, high-protein next meal without compensating or restricting. No skipping, no punishment — just the next good meal, eaten normally. Tell Chef what sounds right and let Chef build it.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/lifestyle/create-a-dish",
     mealMoment: "next meal",
     returnToPlanGuidance:
@@ -263,8 +267,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   binge_risk: {
     adjustmentTitle: "Eat a complete, satisfying meal right now",
     adjustmentMessage:
-      "Your body needs adequate fuel — not more rules. Build a complete, balanced meal with protein, complex carbs, and fat. Three structured meals today takes pressure off the entire system and breaks the restrict-binge cycle.",
-    recommendedActionLabel: "Create a Dish",
+      "Your body needs adequate fuel — not more rules. Build a complete, balanced meal with protein, complex carbs, and fat. Three structured meals today takes pressure off the entire system and breaks the restrict-binge cycle. Tell Chef what sounds satisfying and Chef will build it around today's plan.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/lifestyle/create-a-dish",
     mealMoment: "next meal",
     returnToPlanGuidance:
@@ -274,8 +278,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   restrictive_spiral: {
     adjustmentTitle: "Add, don't remove",
     adjustmentMessage:
-      "Today's direction is abundance, not elimination. If you've been cutting foods out, add one back in a satisfying, protein-forward context. Use Create a Dish to build a complete, nourishing meal — the goal is eating more of the right things, not eating less.",
-    recommendedActionLabel: "Create a Dish",
+      "Today's direction is abundance, not elimination. If you've been cutting foods out, add one back in a satisfying, protein-forward context. Build a complete, nourishing meal — the goal is eating more of the right things, not eating less. Tell Chef what sounds good and Chef will build around today's plan.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/lifestyle/create-a-dish",
     mealMoment: "next meal",
     returnToPlanGuidance:
@@ -285,8 +289,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   goal_drift: {
     adjustmentTitle: "One anchor meal to reset the compass",
     adjustmentMessage:
-      "Eating has been drifting from your plan lately — and that's fixable with one intentional meal, not a full overhaul. Build your next meal specifically and deliberately around your goal. That's the reset.",
-    recommendedActionLabel: "Create a Dish",
+      "Eating has been drifting from your plan lately — and that's fixable with one intentional meal, not a full overhaul. Build your next meal specifically around your goal. That single deliberate choice is the reset. Tell Chef what fits your goal and Chef will build it.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/lifestyle/create-a-dish",
     mealMoment: "auto",
     returnToPlanGuidance:
@@ -296,8 +300,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   protein_deficit: {
     adjustmentTitle: "This meal needs to be protein-first",
     adjustmentMessage:
-      "Protein intake has been running low. Target 30g minimum in your next meal. Build the entire plate around the protein source, then fill in around it. Don't change anything else — just anchor protein first.",
-    recommendedActionLabel: "Create a Dish",
+      "Protein intake has been running low. Target 30g minimum in your next meal — build the entire plate around the protein source first, then fill in around it. Don't change anything else. Tell Chef what protein sounds good and Chef will anchor the meal around it.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/lifestyle/create-a-dish",
     mealMoment: "auto",
     returnToPlanGuidance:
@@ -307,8 +311,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   fiber_deficit: {
     adjustmentTitle: "Add one fiber-rich food to your next meal",
     adjustmentMessage:
-      "Fiber intake has been low. Today's goal is simple: add one high-fiber whole food to your next meal — oats, lentils, berries, sweet potato, or leafy greens. Increase gradually to avoid bloating and pair with extra water.",
-    recommendedActionLabel: "Create a Dish",
+      "Fiber intake has been low. Today's goal is simple: add one high-fiber whole food to your next meal without changing anything else. Oats or lentils are both easy to add and pair well with most proteins. If neither works, tell Chef what you're building and Chef will work fiber in around today's plan.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/lifestyle/create-a-dish",
     mealMoment: "auto",
     returnToPlanGuidance:
@@ -318,8 +322,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   plateau: {
     adjustmentTitle: "Don't change everything — change one thing",
     adjustmentMessage:
-      "A plateau is data, not failure. Before adjusting anything, audit protein adequacy today. If protein is hitting target, try a slight carb variation at one meal this week. One variable at a time — not a full overhaul.",
-    recommendedActionLabel: "Create a Dish",
+      "A plateau is data, not failure. Before adjusting anything, audit protein adequacy today. If protein is hitting target, try a slight carb variation at one meal this week. One variable at a time — not a full overhaul. Tell Chef what you're thinking and Chef will build it.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/lifestyle/create-a-dish",
     mealMoment: "auto",
     returnToPlanGuidance:
@@ -329,8 +333,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   social_eating: {
     adjustmentTitle: "Pre-eat before the event, then enjoy freely",
     adjustmentMessage:
-      "Before a social event, eat a high-protein snack so hunger doesn't drive decisions when you get there. Then enjoy the meal without guilt. Planned flexibility is part of any sustainable nutrition approach.",
-    recommendedActionLabel: "Open Craving Creator",
+      "Before a social event, eat a high-protein snack so hunger doesn't drive decisions when you get there. Then enjoy the meal without guilt. Planned flexibility is part of any sustainable nutrition approach. Tell Chef what sounds like a good pre-event option and Chef will build it.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/craving-creator",
     mealMoment: "snack",
     returnToPlanGuidance:
@@ -340,8 +344,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   recovery_day: {
     adjustmentTitle: "Nourish, don't restrict — it's a recovery day",
     adjustmentMessage:
-      "Recovery days need fuel, not fewer calories. Prioritize anti-inflammatory foods: turmeric, ginger, berries, fatty fish, dark leafy greens. Choose a warm, cooked meal over a raw salad. Your body is repairing — give it what it needs.",
-    recommendedActionLabel: "Create a Dish",
+      "Recovery days need fuel, not fewer calories. Prioritize something warm, cooked, and anti-inflammatory — your body is repairing and it needs real nourishment. A warm salmon bowl or a chicken and vegetable dish are both strong recovery options. If neither sounds right, tell Chef what you're craving and Chef will build it around today's plan.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/lifestyle/create-a-dish",
     mealMoment: "auto",
     returnToPlanGuidance:
@@ -351,8 +355,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   shift_work: {
     adjustmentTitle: "Anchor meals to your wake cycle — not the clock",
     adjustmentMessage:
-      "For shift workers, meal timing follows your body's schedule, not the standard 3-meal clock. Prioritize protein and fat at your first meal of the day regardless of what time it is. Keep your first and last meal of the day anchored consistently.",
-    recommendedActionLabel: "Create a Dish",
+      "For shift workers, meal timing follows your body's schedule, not the standard 3-meal clock. Prioritize protein and fat at your first meal of the day regardless of what time it is. Tell Chef what your first meal of the day looks like and Chef will build it around your plan.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/lifestyle/create-a-dish",
     mealMoment: "auto",
     returnToPlanGuidance:
@@ -362,8 +366,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   hormonal_shifts: {
     adjustmentTitle: "Your body needs more right now — feed it",
     adjustmentMessage:
-      "Hormonal phases increase nutritional demand. Increased hunger in the luteal phase is physiological — not a willpower failure. Prioritize iron and magnesium-rich foods, anti-inflammatory fats, and adequate calories. Don't restrict during this phase.",
-    recommendedActionLabel: "Create a Dish",
+      "Hormonal phases increase nutritional demand. Increased hunger in the luteal phase is physiological — not a willpower failure. Prioritize iron-rich foods, anti-inflammatory fats, and adequate calories. Don't restrict during this phase. Tell Chef what sounds satisfying and Chef will build around today's needs.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/lifestyle/create-a-dish",
     mealMoment: "auto",
     returnToPlanGuidance:
@@ -373,8 +377,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   vacation: {
     adjustmentTitle: "Anchor on breakfast — everything else is flexible",
     adjustmentMessage:
-      "On vacation, make breakfast your one controllable meal: high-protein, simple, hotel-compatible. After that, eat and enjoy freely. You don't need to track. Return to normal immediately when you're back — no detox, no reset.",
-    recommendedActionLabel: "Open Restaurant Guide",
+      "On vacation, make breakfast your one controllable meal: high-protein, simple, hotel-compatible. After that, eat and enjoy freely without tracking. Use Restaurant Guide to find something solid for breakfast wherever you are.",
+    recommendedActionLabel: "Find a Good Option Nearby",
     recommendedRoute: "/social-hub/restaurant-guide",
     mealMoment: "breakfast",
     returnToPlanGuidance:
@@ -384,8 +388,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
   family_event: {
     adjustmentTitle: "Pre-eat high-protein, then enjoy the event",
     adjustmentMessage:
-      "Eat a high-protein snack before the event so hunger doesn't drive decisions at the table. Then enjoy the meal without scoring it. Celebration eating is part of a sustainable plan — one meal at a family event changes nothing.",
-    recommendedActionLabel: "Open Craving Creator",
+      "Eat a high-protein snack before the event so hunger doesn't drive decisions at the table. Then enjoy the meal without scoring it. Celebration eating is part of a sustainable plan — one meal at a family event changes nothing. Tell Chef what sounds like a good pre-event option and Chef will build it.",
+    recommendedActionLabel: "Build My Next Meal",
     recommendedRoute: "/craving-creator",
     mealMoment: "snack",
     returnToPlanGuidance:
@@ -398,8 +402,8 @@ const ADJUSTMENT_MAP: Record<string, Omit<NutritionAdjustment, "recommendedMealM
 const FALLBACK_ADJUSTMENT: Omit<NutritionAdjustment, "recommendedMealMoment"> & { mealMoment: MealMoment | "auto" } = {
   adjustmentTitle: "Keep the next meal simple and protein-forward",
   adjustmentMessage:
-    "Today's signals call for a straightforward approach. Build a high-protein meal with ingredients you know work for you. Keep prep minimal and stay consistent with your normal plan.",
-  recommendedActionLabel: "Create a Dish",
+    "Today's signals call for a straightforward approach. Build a high-protein meal with ingredients you know work for you — keep prep minimal and stay consistent. Tell Chef what sounds right and Chef will build it around today's plan.",
+  recommendedActionLabel: "Build My Next Meal",
   recommendedRoute: "/lifestyle/create-a-dish",
   mealMoment: "auto",
   returnToPlanGuidance: "Return to your normal plan after this meal.",
