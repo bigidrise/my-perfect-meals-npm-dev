@@ -4,6 +4,7 @@ import { sql } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { computeTopInterventions } from "../services/ace/aceDecisionEngine";
 import type { AceDailyCheckin, CoachingProfile, CoachingIntervention } from "../db/schema/ace";
+import { aceDailyCheckins } from "../db/schema/ace";
 
 const router = Router();
 
@@ -40,20 +41,11 @@ router.post("/", requireAuth, async (req, res) => {
   const schedule =
     rawSchedule && VALID_SCHEDULES.includes(rawSchedule) ? rawSchedule : null;
 
-  const symptomsRaw: string[] = Array.isArray(req.body.symptoms)
+  const symptoms: string[] = Array.isArray(req.body.symptoms)
     ? req.body.symptoms.filter((s: unknown) => typeof s === "string").slice(0, 20)
     : typeof req.body.symptoms === "string" && req.body.symptoms.trim()
       ? [req.body.symptoms.trim().slice(0, 200)]
       : [];
-  // Drizzle raw sql cannot bind JS arrays to pg text[] — serialize to a pg array literal
-  const symptomsLiteral =
-    symptomsRaw.length === 0
-      ? "{}"
-      : "{" +
-        symptomsRaw
-          .map((s) => `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`)
-          .join(",") +
-        "}";
 
   const freeText =
     typeof req.body.free_text === "string"
@@ -61,34 +53,45 @@ router.post("/", requireAuth, async (req, res) => {
       : null;
 
   try {
-    await db.execute(sql`
-      INSERT INTO ace_daily_checkins (
-        user_id, date,
-        energy, stress, sleep, mood, cravings, hunger, digestion, soreness,
-        schedule, motivation, emotional_eating_risk, symptoms, free_text,
-        updated_at
-      ) VALUES (
-        ${userId}, ${today},
-        ${energy}, ${stress}, ${sleep}, ${mood}, ${cravings}, ${hunger}, ${digestion}, ${soreness},
-        ${schedule}, ${motivation}, ${emotionalEatingRisk}, ${symptomsLiteral}::text[], ${freeText},
-        now()
-      )
-      ON CONFLICT (user_id, date) DO UPDATE SET
-        energy = EXCLUDED.energy,
-        stress = EXCLUDED.stress,
-        sleep = EXCLUDED.sleep,
-        mood = EXCLUDED.mood,
-        cravings = EXCLUDED.cravings,
-        hunger = EXCLUDED.hunger,
-        digestion = EXCLUDED.digestion,
-        soreness = EXCLUDED.soreness,
-        schedule = EXCLUDED.schedule,
-        motivation = EXCLUDED.motivation,
-        emotional_eating_risk = EXCLUDED.emotional_eating_risk,
-        symptoms = EXCLUDED.symptoms,
-        free_text = EXCLUDED.free_text,
-        updated_at = now()
-    `);
+    // Use drizzle ORM insert (not raw sql) so text[] arrays are handled correctly
+    await db.insert(aceDailyCheckins)
+      .values({
+        userId,
+        date: today,
+        energy,
+        stress,
+        sleep,
+        mood,
+        cravings,
+        hunger,
+        digestion,
+        soreness,
+        schedule,
+        motivation,
+        emotionalEatingRisk,
+        symptoms,
+        freeText,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [aceDailyCheckins.userId, aceDailyCheckins.date],
+        set: {
+          energy,
+          stress,
+          sleep,
+          mood,
+          cravings,
+          hunger,
+          digestion,
+          soreness,
+          schedule,
+          motivation,
+          emotionalEatingRisk,
+          symptoms,
+          freeText,
+          updatedAt: new Date(),
+        },
+      });
 
     const checkinRow = await db.execute(
       sql`SELECT * FROM ace_daily_checkins WHERE user_id = ${userId} AND date = ${today} LIMIT 1`
