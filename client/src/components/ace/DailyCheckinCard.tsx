@@ -6,6 +6,7 @@ import { PillButton } from "@/components/ui/pill-button";
 import { useTodaysCheckin, type CheckinIntervention } from "@/hooks/useDailyCheckin";
 import DailyCheckinModal from "@/components/ace/DailyCheckinModal";
 import { buildTodaysNutritionAdjustment } from "@/lib/ace/buildTodaysNutritionAdjustment";
+import { getAssignedBuilderFromStorage } from "@/lib/assignedBuilder";
 
 // ─── Metric display helpers ───────────────────────────────────────────────────
 
@@ -133,9 +134,16 @@ function CheckedInState({
   const reasoningPoints = buildReasoningPoints(checkin);
   const adjustment = top ? buildTodaysNutritionAdjustment(checkin, top.key) : null;
 
+  // Route the CTA to the user's actual assigned builder — unless this is a
+  // deliberate environment exception (travel/vacation → Restaurant Guide).
+  const RESTAURANT_GUIDE_ROUTE = "/social-hub/restaurant-guide";
+  const isEnvironmentException = adjustment?.recommendedRoute === RESTAURANT_GUIDE_ROUTE;
+  const assignedBuilder = getAssignedBuilderFromStorage();
+  const ctaRoute = isEnvironmentException ? RESTAURANT_GUIDE_ROUTE : assignedBuilder.path;
+
   const supplementaryBuilders = top
     ? top.suggested_builders.filter(
-        (b) => !adjustment || BUILDER_ROUTES[b] !== adjustment.recommendedRoute
+        (b) => BUILDER_ROUTES[b] !== ctaRoute
       ).slice(0, 2)
     : [];
 
@@ -231,9 +239,9 @@ function CheckedInState({
               {adjustment.adjustmentMessage}
             </p>
 
-            {/* Primary action button */}
+            {/* Primary action button — routes to user's actual assigned builder */}
             <button
-              onClick={() => setLocation(adjustment.recommendedRoute)}
+              onClick={() => setLocation(ctaRoute)}
               className="w-full bg-orange-600 text-white text-xs font-semibold rounded-lg px-4 py-2.5 text-center"
             >
               {adjustment.recommendedActionLabel} →
