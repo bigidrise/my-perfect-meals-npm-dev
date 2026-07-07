@@ -45,35 +45,6 @@ function MetricPill({ label, display, colorClass }: MetricPillProps) {
   );
 }
 
-// ─── Builder route map ────────────────────────────────────────────────────────
-
-const BUILDER_ROUTES: Record<string, string> = {
-  "create-dish":      "/lifestyle/create-a-dish",
-  "snack-creator":    "/craving-creator",
-  "beverage-creator": "/lifestyle/beverage-creator",
-  "fridge-rescue":    "/fridge-rescue",
-  "meal-planner":     "/weekly-meal-board",
-  "craving-creator":  "/craving-creator",
-  "restaurant-guide": "/social-hub/restaurant-guide",
-  "breakfast":        "/lifestyle/create-a-dish",
-  "lunch":            "/lifestyle/create-a-dish",
-  "dinner":           "/lifestyle/create-a-dish",
-  "dessert-creator":  "/craving-desserts",
-};
-
-const BUILDER_NAMES: Record<string, string> = {
-  "create-dish":      "Create a Dish",
-  "snack-creator":    "Craving Creator",
-  "beverage-creator": "Beverage Creator",
-  "fridge-rescue":    "Fridge Rescue",
-  "meal-planner":     "Weekly Meal Board",
-  "craving-creator":  "Craving Creator",
-  "restaurant-guide": "Restaurant Guide",
-  "breakfast":        "Breakfast Builder",
-  "lunch":            "Lunch Builder",
-  "dinner":           "Dinner Builder",
-  "dessert-creator":  "Dessert Creator",
-};
 
 // ─── Meal moment label ────────────────────────────────────────────────────────
 
@@ -140,12 +111,6 @@ function CheckedInState({
   const isEnvironmentException = adjustment?.recommendedRoute === RESTAURANT_GUIDE_ROUTE;
   const assignedBuilder = getAssignedBuilderFromStorage();
   const ctaRoute = isEnvironmentException ? RESTAURANT_GUIDE_ROUTE : assignedBuilder.path;
-
-  const supplementaryBuilders = top
-    ? top.suggested_builders.filter(
-        (b) => BUILDER_ROUTES[b] !== ctaRoute
-      ).slice(0, 2)
-    : [];
 
   return (
     <div className="space-y-4">
@@ -274,28 +239,6 @@ function CheckedInState({
           </div>
         )}
 
-        {/* Supplementary quick actions */}
-        {supplementaryBuilders.length > 0 && (
-          <div className="space-y-1.5">
-            <p className="text-xs text-white uppercase tracking-wider font-semibold">Also try</p>
-            <div className="flex gap-2 flex-wrap">
-              {supplementaryBuilders.map((key) => {
-                const route = BUILDER_ROUTES[key];
-                const name = BUILDER_NAMES[key] ?? key;
-                if (!route) return null;
-                return (
-                  <PillButton
-                    key={key}
-                    onClick={() => setLocation(route)}
-                    className="bg-white/10 text-white border-white/20 text-xs"
-                  >
-                    {name}
-                  </PillButton>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
