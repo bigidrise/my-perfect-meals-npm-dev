@@ -6,6 +6,7 @@ import { PillButton } from "@/components/ui/pill-button";
 import { useTodaysCheckin, type CheckinIntervention } from "@/hooks/useDailyCheckin";
 import DailyCheckinModal from "@/components/ace/DailyCheckinModal";
 import { buildTodaysNutritionAdjustment } from "@/lib/ace/buildTodaysNutritionAdjustment";
+import { getAssignedBuilderFromStorage } from "@/lib/assignedBuilder";
 
 // ─── Metric display helpers ───────────────────────────────────────────────────
 
@@ -44,35 +45,6 @@ function MetricPill({ label, display, colorClass }: MetricPillProps) {
   );
 }
 
-// ─── Builder route map ────────────────────────────────────────────────────────
-
-const BUILDER_ROUTES: Record<string, string> = {
-  "create-dish":      "/lifestyle/create-a-dish",
-  "snack-creator":    "/craving-creator",
-  "beverage-creator": "/lifestyle/beverage-creator",
-  "fridge-rescue":    "/fridge-rescue",
-  "meal-planner":     "/weekly-meal-board",
-  "craving-creator":  "/craving-creator",
-  "restaurant-guide": "/social-hub/restaurant-guide",
-  "breakfast":        "/lifestyle/create-a-dish",
-  "lunch":            "/lifestyle/create-a-dish",
-  "dinner":           "/lifestyle/create-a-dish",
-  "dessert-creator":  "/craving-desserts",
-};
-
-const BUILDER_NAMES: Record<string, string> = {
-  "create-dish":      "Create a Dish",
-  "snack-creator":    "Craving Creator",
-  "beverage-creator": "Beverage Creator",
-  "fridge-rescue":    "Fridge Rescue",
-  "meal-planner":     "Weekly Meal Board",
-  "craving-creator":  "Craving Creator",
-  "restaurant-guide": "Restaurant Guide",
-  "breakfast":        "Breakfast Builder",
-  "lunch":            "Lunch Builder",
-  "dinner":           "Dinner Builder",
-  "dessert-creator":  "Dessert Creator",
-};
 
 // ─── Meal moment label ────────────────────────────────────────────────────────
 
@@ -133,11 +105,12 @@ function CheckedInState({
   const reasoningPoints = buildReasoningPoints(checkin);
   const adjustment = top ? buildTodaysNutritionAdjustment(checkin, top.key) : null;
 
-  const supplementaryBuilders = top
-    ? top.suggested_builders.filter(
-        (b) => !adjustment || BUILDER_ROUTES[b] !== adjustment.recommendedRoute
-      ).slice(0, 2)
-    : [];
+  // Route the CTA to the user's actual assigned builder — unless this is a
+  // deliberate environment exception (travel/vacation → Restaurant Guide).
+  const RESTAURANT_GUIDE_ROUTE = "/social-hub/restaurant-guide";
+  const isEnvironmentException = adjustment?.recommendedRoute === RESTAURANT_GUIDE_ROUTE;
+  const assignedBuilder = getAssignedBuilderFromStorage();
+  const ctaRoute = isEnvironmentException ? RESTAURANT_GUIDE_ROUTE : assignedBuilder.path;
 
   return (
     <div className="space-y-4">
@@ -231,13 +204,18 @@ function CheckedInState({
               {adjustment.adjustmentMessage}
             </p>
 
-            {/* Primary action button */}
+            {/* Primary action button — routes to user's actual assigned builder */}
             <button
-              onClick={() => setLocation(adjustment.recommendedRoute)}
+              onClick={() => setLocation(ctaRoute)}
               className="w-full bg-orange-600 text-white text-xs font-semibold rounded-lg px-4 py-2.5 text-center"
             >
               {adjustment.recommendedActionLabel} →
             </button>
+
+            {/* Teach the coach nudge */}
+            <p className="text-xs text-white italic leading-relaxed">
+              If this recommendation helps today, save it to Favorites. The more we learn what works, the better your coaching gets.
+            </p>
 
             {/* Return to plan guidance */}
             <p className="text-xs text-white leading-relaxed">
@@ -247,39 +225,20 @@ function CheckedInState({
           </div>
         ) : (
           /* Neutral day */
-          <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-3">
-            <p className="text-xs text-green-400 uppercase tracking-wider font-semibold mb-1.5">
+          <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-3 space-y-2">
+            <p className="text-xs text-green-400 uppercase tracking-wider font-semibold">
               Today's Status
             </p>
             <p className="text-sm font-semibold text-white">You're on track — stay the course</p>
-            <p className="text-xs text-white mt-1">
+            <p className="text-xs text-white">
               All signals look balanced today. Keep meals consistent with your plan, stay hydrated, and maintain momentum.
+            </p>
+            <p className="text-xs text-white italic leading-relaxed pt-1 border-t border-white/10">
+              We're still learning what works best for you. Right now your recommendations are based on your nutrition profile and today's check-in. As you use My Perfect Meals and save favorites, your coaching will become more personalized based on what actually works for you.
             </p>
           </div>
         )}
 
-        {/* Supplementary quick actions */}
-        {supplementaryBuilders.length > 0 && (
-          <div className="space-y-1.5">
-            <p className="text-xs text-white uppercase tracking-wider font-semibold">Also try</p>
-            <div className="flex gap-2 flex-wrap">
-              {supplementaryBuilders.map((key) => {
-                const route = BUILDER_ROUTES[key];
-                const name = BUILDER_NAMES[key] ?? key;
-                if (!route) return null;
-                return (
-                  <PillButton
-                    key={key}
-                    onClick={() => setLocation(route)}
-                    className="bg-white/10 text-white border-white/20 text-xs"
-                  >
-                    {name}
-                  </PillButton>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
