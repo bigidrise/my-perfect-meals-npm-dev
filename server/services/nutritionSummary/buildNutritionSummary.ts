@@ -50,6 +50,7 @@ export interface NutritionPersonalizationSummary {
   compositeExplanation: string;
   conflictPolicy: string;
   hasAnyActiveProtocol: boolean;
+  carbCycleActive: boolean;
   meta: { generatedAt: string };
 }
 
@@ -60,12 +61,14 @@ export interface UserExtrasForSummary {
   dailyFatTarget?: number | null;
   goalType?: string | null;
   goalTarget?: string | null;
+  goalTimelineWeeks?: number | null;
   fitnessGoal?: string | null;
   performanceContext?: any | null;
   weeklyTrainingSchedule?: any | null;
   latestGlucose?: number | null;
   selectedMealBuilder?: string | null;
   activeBoard?: string | null;
+  carbCycleState?: any | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -523,6 +526,15 @@ export function buildNutritionSummary(
   let goalLabel: string | null = null;
   if (extras.goalType) {
     goalLabel = GOAL_LABELS[extras.goalType] ?? null;
+    if (goalLabel) {
+      const parts: string[] = [];
+      if (extras.goalTarget) parts.push(extras.goalTarget);
+      if (extras.goalTimelineWeeks) {
+        const w = extras.goalTimelineWeeks;
+        parts.push(`in ${w >= 52 ? "1 year" : w >= 26 ? "6 months" : `${w} weeks`}`);
+      }
+      if (parts.length > 0) goalLabel = `${goalLabel} · ${parts.join(" · ")}`;
+    }
     const goalPriorities = GOAL_PRIORITIES[extras.goalType] ?? [];
     for (const p of goalPriorities) {
       if (!allPriorities.includes(p)) allPriorities.push(p);
@@ -554,6 +566,13 @@ export function buildNutritionSummary(
     !!pregnancySummary ||
     !!therapeuticSummary ||
     (dietItems.length > 0 && dietItems.some(d => ![""].includes(d)));
+
+  // ── 9b. Carb Cycle Active ─────────────────────────────────────────────────
+  const carbCycleActive = !!(
+    extras.carbCycleState &&
+    (extras.carbCycleState as any).phase &&
+    (extras.carbCycleState as any).phase !== "inactive"
+  );
 
   // ── 10. Composite explanation ─────────────────────────────────────────────
   const compositeExplanation = buildCompositeExplanation({
@@ -639,6 +658,7 @@ export function buildNutritionSummary(
     compositeExplanation,
     conflictPolicy: CONFLICT_POLICY,
     hasAnyActiveProtocol,
+    carbCycleActive,
     meta: { generatedAt },
   };
 }

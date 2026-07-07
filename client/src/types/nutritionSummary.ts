@@ -31,5 +31,6 @@ export interface NutritionPersonalizationSummary {
   compositeExplanation: string;
   conflictPolicy: string;
   hasAnyActiveProtocol: boolean;
+  carbCycleActive: boolean;
   meta: { generatedAt: string };
 }
