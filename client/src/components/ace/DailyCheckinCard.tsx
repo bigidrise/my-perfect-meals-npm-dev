@@ -239,6 +239,11 @@ function CheckedInState({
               {adjustment.recommendedActionLabel} →
             </button>
 
+            {/* Teach the coach nudge */}
+            <p className="text-xs text-white italic leading-relaxed">
+              If this recommendation helps today, save it to Favorites. The more we learn what works, the better your coaching gets.
+            </p>
+
             {/* Return to plan guidance */}
             <p className="text-xs text-white leading-relaxed">
               <span className="text-orange-400 uppercase text-xs tracking-wider font-semibold mr-1.5">Return to plan:</span>
@@ -247,13 +252,16 @@ function CheckedInState({
           </div>
         ) : (
           /* Neutral day */
-          <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-3">
-            <p className="text-xs text-green-400 uppercase tracking-wider font-semibold mb-1.5">
+          <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-3 space-y-2">
+            <p className="text-xs text-green-400 uppercase tracking-wider font-semibold">
               Today's Status
             </p>
             <p className="text-sm font-semibold text-white">You're on track — stay the course</p>
-            <p className="text-xs text-white mt-1">
+            <p className="text-xs text-white">
               All signals look balanced today. Keep meals consistent with your plan, stay hydrated, and maintain momentum.
+            </p>
+            <p className="text-xs text-white italic leading-relaxed pt-1 border-t border-white/10">
+              We're still learning what works best for you. Right now your recommendations are based on your nutrition profile and today's check-in. As you use My Perfect Meals and save favorites, your coaching will become more personalized based on what actually works for you.
             </p>
           </div>
         )}
