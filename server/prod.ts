@@ -674,6 +674,17 @@ async function initializeApp() {
         console.warn("⚠️ [BG] Background service warning:", bgErr);
       }
     }, 5000);
+
+    // Warmup service — pings /api/health every 4 min to prevent cold starts
+    setTimeout(async () => {
+      try {
+        const { warmupService } = await import("./services/warmupService");
+        warmupService.start();
+        console.log("✅ [BG] Warmup service started");
+      } catch (bgErr) {
+        console.warn("⚠️ [BG] Warmup service failed to start:", bgErr);
+      }
+    }, 7000);
   } catch (error) {
     console.error("❌ [INIT] Initialization failed:", error);
     initError = error instanceof Error ? error : new Error(String(error));
