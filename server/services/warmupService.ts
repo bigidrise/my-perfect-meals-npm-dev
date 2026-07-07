@@ -1,4 +1,5 @@
 
+import http from "http";
 import { log } from "../vite";
 
 class WarmupService {
@@ -7,12 +8,12 @@ class WarmupService {
 
   start() {
     if (this.warmupInterval) return;
-    
+
     // Ping ourselves every 4 minutes to prevent cold starts
     this.warmupInterval = setInterval(() => {
       this.performWarmup();
     }, 4 * 60 * 1000); // 4 minutes
-    
+
     log("warmup", "🔥 Warmup service started - preventing cold starts");
   }
 
@@ -26,15 +27,14 @@ class WarmupService {
 
   private async performWarmup() {
     if (this.isWarming) return;
-    
+
     this.isWarming = true;
     try {
-      // Quick internal health check
       const start = Date.now();
-      await this.internalHealthCheck();
+      await this.pingHealthEndpoint();
       const duration = Date.now() - start;
-      
-      if (duration < 100) {
+
+      if (duration < 200) {
         log("warmup", `✅ Warmup successful (${duration}ms)`);
       } else {
         log("warmup", `⚠️ Warmup slow (${duration}ms)`);
@@ -46,13 +46,21 @@ class WarmupService {
     }
   }
 
-  private async internalHealthCheck(): Promise<void> {
-    return new Promise((resolve) => {
-      // Simple async operation to keep event loop active
-      setImmediate(() => {
-        // Touch some core systems lightly
-        const now = new Date().toISOString();
-        resolve();
+  private pingHealthEndpoint(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const port = parseInt(process.env.PORT || "5000", 10);
+      const req = http.get(
+        { hostname: "127.0.0.1", port, path: "/api/health", timeout: 5000 },
+        (res) => {
+          // Drain the response so the socket closes cleanly
+          res.resume();
+          res.on("end", resolve);
+        }
+      );
+      req.on("error", reject);
+      req.on("timeout", () => {
+        req.destroy();
+        reject(new Error("warmup ping timed out"));
       });
     });
   }
