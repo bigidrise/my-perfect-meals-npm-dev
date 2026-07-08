@@ -759,7 +759,7 @@ export default function DashboardNew() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4">
               <div className="w-fit bg-black/60 backdrop-blur-sm rounded-xl px-3 py-2.5 mb-3">
-                <h2 className="text-lg font-bold text-white mb-1">
+                <h2 className="text-base font-bold text-white mb-1">
                   Welcome back, {firstName}!
                 </h2>
                 <p className="text-white text-sm mb-2">
@@ -1232,7 +1232,7 @@ export default function DashboardNew() {
                       <Activity className="h-6 w-6 text-blue-400" />
                     </div>
                     <div className="flex-1">
-                      <CardTitle className="text-white text-lg">
+                      <CardTitle className="text-white text-base">
                         Sources & Medical Information
                       </CardTitle>
                       <CardDescription className="text-white/70 text-xs mt-1">
@@ -1263,7 +1263,7 @@ export default function DashboardNew() {
                   <ShoppingCart className="h-6 w-6 text-orange-500" />
                 </div>
                 <div className="flex-1">
-                  <CardTitle className="text-white text-lg">
+                  <CardTitle className="text-white text-base">
                     {" "}
                     Smart Grocery List
                   </CardTitle>
@@ -1329,7 +1329,7 @@ export default function DashboardNew() {
                   <Camera className="h-6 w-6 text-orange-500" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-semibold text-white">Recipe Scan</h3>
+                  <h3 className="text-base font-semibold text-white">Recipe Scan</h3>
                   <p className="text-xs text-white/60">Screenshot, photo, voice, or text — personalized for you.</p>
                 </div>
               </div>
@@ -1416,7 +1416,7 @@ export default function DashboardNew() {
                         <Icon className="h-6 w-6 text-orange-500" />
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-white">
+                        <h3 className="text-base font-semibold text-white">
                           {feature.title}
                         </h3>
                         <p className="text-xs text-white/70">
