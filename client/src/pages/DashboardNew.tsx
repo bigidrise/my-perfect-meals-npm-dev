@@ -750,7 +750,7 @@ export default function DashboardNew() {
           transition={{ delay: 0.1, duration: 0.5 }}
           className="mb-4"
         >
-          <div className="relative h-48 rounded-xl overflow-hidden">
+          <div className="relative h-56 rounded-xl overflow-hidden">
             <img
               src="/images/home-hero.png"
               alt="My Perfect Meals Dashboard"
@@ -769,29 +769,6 @@ export default function DashboardNew() {
                   <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
                   Behavior AI · Emotion-aware coaching
                 </span>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="flex flex-col items-center p-2 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
-                  <Flame className="h-4 w-4 text-blue-500 mb-1" />
-                  <div className="text-sm font-semibold text-white/80">
-                    Protein
-                  </div>
-                  <div className="text-sm font-bold text-white"></div>
-                </div>
-                <div className="flex flex-col items-center p-2 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
-                  <TrendingUp className="h-4 w-4 text-orange-500 mb-1" />
-                  <div className="text-sm font-semibold text-white/80">
-                    Carbs
-                  </div>
-                  <div className="text-sm font-bold text-white"></div>
-                </div>
-                <div className="flex flex-col items-center p-2 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
-                  <Activity className="h-4 w-4 text-purple-500 mb-1" />
-                  <div className="text-sm font-semibold text-white/80">
-                    Fats
-                  </div>
-                  <div className="text-sm font-bold text-white"></div>
-                </div>
               </div>
             </div>
           </div>
