@@ -750,7 +750,7 @@ export default function DashboardNew() {
           transition={{ delay: 0.1, duration: 0.5 }}
           className="mb-4"
         >
-          <div className="relative h-56 rounded-xl overflow-hidden">
+          <div className="relative h-48 rounded-xl overflow-hidden">
             <img
               src="/images/home-hero.png"
               alt="My Perfect Meals Dashboard"
@@ -759,10 +759,10 @@ export default function DashboardNew() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4">
               <div className="w-fit bg-black/60 backdrop-blur-sm rounded-xl px-3 py-2.5 mb-3">
-                <h2 className="text-2xl font-bold text-white mb-1">
+                <h2 className="text-base font-bold text-white mb-1">
                   Welcome back, {firstName}!
                 </h2>
-                <p className="text-white/85 text-sm mb-2">
+                <p className="text-white text-sm mb-2">
                   Your coach is learning what works for you.
                 </p>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/30 border border-orange-400/60 text-orange-200 text-xs font-medium">
