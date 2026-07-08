@@ -759,7 +759,7 @@ export default function DashboardNew() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4">
               <div className="w-fit bg-black/60 backdrop-blur-sm rounded-xl px-3 py-2.5 mb-3">
-                <h2 className="text-base font-bold text-white mb-1">
+                <h2 className="text-lg font-bold text-white mb-1">
                   Welcome back, {firstName}!
                 </h2>
                 <p className="text-white text-sm mb-2">
