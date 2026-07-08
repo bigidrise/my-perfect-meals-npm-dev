@@ -759,39 +759,16 @@ export default function DashboardNew() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4">
               <div className="w-fit bg-black/60 backdrop-blur-sm rounded-xl px-3 py-2.5 mb-3">
-                <h2 className="text-2xl font-bold text-white mb-1">
+                <h2 className="text-base font-bold text-white mb-1">
                   Welcome back, {firstName}!
                 </h2>
-                <p className="text-white/85 text-sm mb-2">
+                <p className="text-white text-sm mb-2">
                   Your coach is learning what works for you.
                 </p>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/30 border border-orange-400/60 text-orange-200 text-xs font-medium">
                   <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
                   Behavior AI · Emotion-aware coaching
                 </span>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="flex flex-col items-center p-2 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
-                  <Flame className="h-4 w-4 text-blue-500 mb-1" />
-                  <div className="text-sm font-semibold text-white/80">
-                    Protein
-                  </div>
-                  <div className="text-sm font-bold text-white"></div>
-                </div>
-                <div className="flex flex-col items-center p-2 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
-                  <TrendingUp className="h-4 w-4 text-orange-500 mb-1" />
-                  <div className="text-sm font-semibold text-white/80">
-                    Carbs
-                  </div>
-                  <div className="text-sm font-bold text-white"></div>
-                </div>
-                <div className="flex flex-col items-center p-2 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
-                  <Activity className="h-4 w-4 text-purple-500 mb-1" />
-                  <div className="text-sm font-semibold text-white/80">
-                    Fats
-                  </div>
-                  <div className="text-sm font-bold text-white"></div>
-                </div>
               </div>
             </div>
           </div>
@@ -1255,10 +1232,10 @@ export default function DashboardNew() {
                       <Activity className="h-6 w-6 text-blue-400" />
                     </div>
                     <div className="flex-1">
-                      <CardTitle className="text-white text-lg">
+                      <CardTitle className="text-white text-base">
                         Sources & Medical Information
                       </CardTitle>
-                      <CardDescription className="text-white/70 text-sm mt-1">
+                      <CardDescription className="text-white/70 text-xs mt-1">
                         NIH · USDA · WHO · ADA · AHA · NCI · ACOG · ATA · AND · FDA · NKF · AAP
                       </CardDescription>
                     </div>
@@ -1286,11 +1263,11 @@ export default function DashboardNew() {
                   <ShoppingCart className="h-6 w-6 text-orange-500" />
                 </div>
                 <div className="flex-1">
-                  <CardTitle className="text-white text-lg">
+                  <CardTitle className="text-white text-base">
                     {" "}
                     Smart Grocery List
                   </CardTitle>
-                  <CardDescription className="text-white/70 text-sm mt-1">
+                  <CardDescription className="text-white/70 text-xs mt-1">
                     Smart grocery list manager
                   </CardDescription>
                 </div>
@@ -1352,8 +1329,8 @@ export default function DashboardNew() {
                   <Camera className="h-6 w-6 text-orange-500" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-semibold text-white">Recipe Scan</h3>
-                  <p className="text-sm text-white/60">Screenshot, photo, voice, or text — personalized for you.</p>
+                  <h3 className="text-base font-semibold text-white">Recipe Scan</h3>
+                  <p className="text-xs text-white/60">Screenshot, photo, voice, or text — personalized for you.</p>
                 </div>
               </div>
             </CardContent>
@@ -1439,10 +1416,10 @@ export default function DashboardNew() {
                         <Icon className="h-6 w-6 text-orange-500" />
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-white">
+                        <h3 className="text-base font-semibold text-white">
                           {feature.title}
                         </h3>
-                        <p className="text-sm text-white/70">
+                        <p className="text-xs text-white/70">
                           {feature.description}
                         </p>
                       </div>
