@@ -246,9 +246,18 @@ function CheckedInState({
 
 // ─── Main card ────────────────────────────────────────────────────────────────
 
+// Feature flag: set VITE_ACE_CHECKIN_ENABLED=false in an environment's
+// secrets to hide the Coach Check-In card there without touching code.
+// Unset/anything else = visible (safe default for dev).
+const CHECKIN_ENABLED = import.meta.env.VITE_ACE_CHECKIN_ENABLED !== "false";
+
 export function DailyCheckinCard() {
   const [modalOpen, setModalOpen] = useState(false);
   const { data, isLoading } = useTodaysCheckin();
+
+  if (!CHECKIN_ENABLED) {
+    return null;
+  }
 
   const checkin = data?.checkin as Record<string, unknown> | null | undefined;
   const interventions: CheckinIntervention[] = data?.interventions ?? [];
