@@ -537,6 +537,9 @@ export default function Router() {
     "/family-info",
     "/personal-guidance-info",
     "/performance/setup",
+    "/coach-corner/welcome",
+    "/coach-corner/intake",
+    "/coach-corner/complete",
   ];
 
   const shouldShowBottomNav = !hideBottomNavRoutes.includes(location);
