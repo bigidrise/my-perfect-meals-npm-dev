@@ -21,3 +21,4 @@
 - [Universal Modal System](universal-modal-system.md) — grid+gap-4 removed from dialog.tsx base; 6 typed components in universal-modal.tsx; UNIVERSAL_MODAL_SYSTEM.md is the authority; DialogContent import rule enforced.
 - [Entitlements computed from planLookupKey](entitlements-profile-fix.md) — DB entitlements column is empty for regular subscribers; profile endpoint must compute from PLAN_FEATURES, not raw DB column.
 - [ACE — Drizzle ORM rule for array columns](ace-drizzle-array-rule.md) — drizzle sql template expands JS arrays into multi-params; always use db.insert().values() for tables with text[] or JSONB columns.
+- [Router lazy routes need a Suspense boundary](router-lazy-suspense.md) — clicking into an uncached lazy(() => import(...)) route with no Suspense wrapper throws and trips the error boundary ("Something went wrong").
