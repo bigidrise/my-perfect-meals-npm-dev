@@ -17,6 +17,7 @@ export const coachingProfiles = pgTable("coaching_profiles", {
   motivations: text("motivations").array(),
   lifestyleFlags: text("lifestyle_flags").array(),
   biggestChallenges: text("biggest_challenges").array(),
+  coachProfileCompletedAt: timestamp("coach_profile_completed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

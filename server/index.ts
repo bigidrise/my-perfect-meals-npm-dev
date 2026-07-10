@@ -114,6 +114,7 @@ import adminRouter from "./routes/admin";
 import aceProfilesRouter from "./routes/aceProfiles";
 import aceInterventionsRouter from "./routes/aceInterventions";
 import aceCheckinRouter from "./routes/aceCheckin";
+import coachCornerRouter from "./routes/coachCorner";
 
 const app = express();
 
@@ -868,6 +869,7 @@ async function start() {
   app.use("/api/ace/profile", aceProfilesRouter);
   app.use("/api/ace/interventions", aceInterventionsRouter);
   app.use("/api/ace/checkin", aceCheckinRouter);
+  app.use("/api/coach-corner", coachCornerRouter);
 
   // 🎯 CRITICAL: API routes FIRST to prevent Vite middleware interference
   await registerRoutes(app);
