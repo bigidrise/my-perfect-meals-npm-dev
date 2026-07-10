@@ -25,6 +25,55 @@ export interface CoachCornerQuestion {
   options: CoachCornerOption[];
 }
 
+// ---- Coach Decision Engine (shared, situation-agnostic) ----
+//
+// The Coach Decision Engine (server/services/ace/coachDecisionEngine.ts)
+// orchestrates every situation through the same pipeline:
+//   Situation Adapter gathers evidence -> determineIntent -> buildRecommendation
+//   -> merged CoachMessage -> optional MPM destination.
+// The engine itself must never branch on situation identity. Each situation
+// (progress-slowed, tired, etc.) owns a SituationAdapter that supplies its
+// own evidence/follow-up shapes and its own intent + recommendation logic.
+
+// The four Core Coaching Actions. Every situation's recommendation exists to
+// accomplish exactly one of these.
+export type CoachingIntent = "reassure" | "redirect" | "educate" | "refer";
+
+export interface CoachMessage {
+  acknowledgment: string;
+  recommendation: string;
+  // Placeholders for the future Science/Philosophy Libraries — hardcoded per
+  // situation for V1, not yet backed by real lookup/selection logic. Kept as
+  // separate fields internally; always rendered merged (no labeled UI
+  // sections) so the user experiences one seamless coach.
+  science: string;
+  philosophy: string;
+  whatToWatchFor: string;
+  action: string;
+}
+
+export interface CoachRouteTo {
+  label: string;
+  path: string;
+}
+
+export interface CoachResponse {
+  intent: CoachingIntent;
+  recommendation: string;
+  message: CoachMessage;
+  routeTo?: CoachRouteTo;
+}
+
+export interface SituationAdapter<TContext, TFollowUp, TProfile> {
+  determineIntent: (context: TContext, followUp: TFollowUp) => CoachingIntent;
+  buildRecommendation: (
+    intent: CoachingIntent,
+    context: TContext,
+    followUp: TFollowUp,
+    profile: TProfile
+  ) => CoachResponse;
+}
+
 // ---- "My progress has slowed" vertical coaching loop ----
 
 export type ProgressSlowedIntent = "reassure" | "educate" | "redirect";
@@ -59,19 +108,26 @@ export interface ProgressSlowedFollowUp {
 // them back into one "explanation" field (the pipeline separation is
 // intentional), and do not render them as separate labeled UI sections (the
 // user should experience one seamless coach, not internal layers).
-export interface ProgressSlowedResponse {
-  intent: ProgressSlowedIntent;
-  recommendation: string;
-  message: {
-    acknowledgment: string;
-    recommendation: string;
-    science: string;
-    philosophy: string;
-    whatToWatchFor: string;
-    action: string;
-  };
-  routeTo?: {
-    label: string;
-    path: string;
-  };
+//
+// ProgressSlowedResponse is the CoachResponse shape for this situation
+// specifically (kept as its own type alias for readability at call sites).
+export type ProgressSlowedResponse = CoachResponse;
+
+// ---- "I'm tired" vertical coaching loop ----
+
+export type PerceivedTiredDuration = "today" | "few_days" | "week_plus";
+export type TiredTiming = "all_day" | "afternoon_slump" | "after_meals";
+export type SleepQuality = "normal" | "poor" | "not_sure";
+
+export interface TiredContext {
+  daysSincePlanChange: number | null;
+  recentlyReducedCarbsOrSugar: boolean;
 }
+
+export interface TiredFollowUp {
+  duration: PerceivedTiredDuration;
+  timing: TiredTiming;
+  sleepQuality: SleepQuality;
+}
+
+export type TiredResponse = CoachResponse;

@@ -1,18 +1,20 @@
-// Coach's Corner — "My progress has slowed" Decision Engine (V1 vertical slice)
+// Coach's Corner — "My progress has slowed" Situation Adapter
 //
-// This is the ONLY situation with full decision logic in V1. It selects a
-// Coaching Intent (Reassure / Educate / Redirect) BEFORE selecting a
-// recommendation, per the Intent-before-Recommendation rule. Do not add a
-// direct "plateau -> Macro Calculator" shortcut here.
+// Owns evidence gathering shape, follow-up questions, and the intent +
+// recommendation logic for this situation only. Runs through the shared
+// Coach Decision Engine (coachDecisionEngine.ts) — do not duplicate the
+// pipeline here, only supply this situation's reasoning.
 
 import type {
+  CoachResponse,
+  CoachingIntent,
   ProgressSlowedContext,
   ProgressSlowedFollowUp,
-  ProgressSlowedIntent,
-  ProgressSlowedResponse,
   SelfReportedWeightChange,
+  SituationAdapter,
 } from "../../../shared/coachCornerTypes";
 import type { CoachingProfile } from "../../db/schema/ace";
+import { resolveCoachingResponse } from "./coachDecisionEngine";
 
 const MIN_WEEKS_BEFORE_JUDGING_PROGRESS = 3;
 const SIGNIFICANT_WEIGHT_CHANGE_PERCENT = 7;
@@ -23,10 +25,10 @@ const SELF_REPORT_PERCENT_ESTIMATE: Record<SelfReportedWeightChange, number> = {
   significant: 15,
 };
 
-function selectIntent(
+function determineIntent(
   context: ProgressSlowedContext,
   followUp: ProgressSlowedFollowUp
-): ProgressSlowedIntent {
+): CoachingIntent {
   const notEnoughTimeOnPlan =
     context.weeksOnPlan !== null &&
     context.weeksOnPlan < MIN_WEEKS_BEFORE_JUDGING_PROGRESS;
@@ -51,10 +53,12 @@ function selectIntent(
   return "educate";
 }
 
-function buildResponse(
-  intent: ProgressSlowedIntent,
+function buildRecommendation(
+  intent: CoachingIntent,
+  _context: ProgressSlowedContext,
+  _followUp: ProgressSlowedFollowUp,
   profile: CoachingProfile | null
-): ProgressSlowedResponse {
+): CoachResponse {
   const prefersUnderstanding = profile?.recoveryPreference === "understanding_why";
   const prefersSimplicity = profile?.recoveryPreference === "simple_plan";
 
@@ -123,11 +127,19 @@ function buildResponse(
   };
 }
 
+const progressSlowedAdapter: SituationAdapter<
+  ProgressSlowedContext,
+  ProgressSlowedFollowUp,
+  CoachingProfile | null
+> = {
+  determineIntent,
+  buildRecommendation,
+};
+
 export function resolveProgressSlowed(
   context: ProgressSlowedContext,
   followUp: ProgressSlowedFollowUp,
   profile: CoachingProfile | null
-): ProgressSlowedResponse {
-  const intent = selectIntent(context, followUp);
-  return buildResponse(intent, profile);
+): CoachResponse {
+  return resolveCoachingResponse(progressSlowedAdapter, context, followUp, profile);
 }

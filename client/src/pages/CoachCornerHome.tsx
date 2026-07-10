@@ -10,7 +10,7 @@ interface Situation {
 
 const SITUATIONS: Situation[] = [
   { id: "progress_slowed", label: "My progress has slowed", path: "/coach-corner/progress-slowed" },
-  { id: "tired", label: "I'm feeling tired", comingNext: true },
+  { id: "tired", label: "I'm feeling tired", path: "/coach-corner/tired" },
   { id: "stressed", label: "I'm stressed", comingNext: true },
   { id: "craving", label: "I'm craving something", comingNext: true },
   { id: "eating_out", label: "I'm eating out tonight", comingNext: true },
