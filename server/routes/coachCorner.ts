@@ -10,10 +10,15 @@ import {
   type CoachCornerFieldTarget,
 } from "../services/ace/coachCornerQuestions";
 import { resolveProgressSlowed } from "../services/ace/progressSlowedEngine";
+import { resolveTired } from "../services/ace/tiredEngine";
 import type {
   PerceivedDuration,
+  PerceivedTiredDuration,
   ProgressSlowedContext,
   SelfReportedWeightChange,
+  SleepQuality,
+  TiredContext,
+  TiredTiming,
 } from "../../shared/coachCornerTypes";
 
 const router = Router();
@@ -218,6 +223,90 @@ router.post("/situations/progress-slowed/resolve", requireAuth, async (req, res)
   } catch (err: any) {
     console.error("[CoachCorner] POST /situations/progress-slowed/resolve error:", err.message);
     res.status(500).json({ error: "Failed to resolve progress-slowed situation" });
+  }
+});
+
+// ---- "I'm tired" vertical coaching loop ----
+
+async function loadTiredContext(userId: string): Promise<TiredContext> {
+  const [profile] = await db
+    .select({ updatedAt: coachingProfiles.updatedAt })
+    .from(coachingProfiles)
+    .where(eq(coachingProfiles.userId, userId))
+    .limit(1);
+
+  // V1 placeholder evidence: we don't yet track meal-plan macro-change
+  // history, so we conservatively treat a recent Coach's Corner profile
+  // update as a proxy signal. This is intentionally simple — real plan
+  // change detection is a future enhancement, not a V1 blocker.
+  const daysSincePlanChange = profile?.updatedAt
+    ? Math.floor((Date.now() - new Date(profile.updatedAt).getTime()) / (24 * 60 * 60 * 1000))
+    : null;
+
+  return {
+    daysSincePlanChange,
+    recentlyReducedCarbsOrSugar: false,
+  };
+}
+
+router.get("/situations/tired/context", requireAuth, async (req, res) => {
+  const authReq = req as AuthenticatedRequest;
+  try {
+    const context = await loadTiredContext(authReq.authUser.id);
+    res.json({ context });
+  } catch (err: any) {
+    console.error("[CoachCorner] GET /situations/tired/context error:", err.message);
+    res.status(500).json({ error: "Failed to load context" });
+  }
+});
+
+const VALID_TIRED_DURATIONS: PerceivedTiredDuration[] = ["today", "few_days", "week_plus"];
+const VALID_TIRED_TIMINGS: TiredTiming[] = ["all_day", "afternoon_slump", "after_meals"];
+const VALID_SLEEP_QUALITY: SleepQuality[] = ["normal", "poor", "not_sure"];
+
+router.post("/situations/tired/resolve", requireAuth, async (req, res) => {
+  const authReq = req as AuthenticatedRequest;
+  const userId = authReq.authUser.id;
+
+  const duration = req.body?.duration;
+  const timing = req.body?.timing;
+  const sleepQuality = req.body?.sleepQuality;
+
+  if (!VALID_TIRED_DURATIONS.includes(duration)) {
+    return res.status(400).json({ error: "Invalid or missing duration" });
+  }
+  if (!VALID_TIRED_TIMINGS.includes(timing)) {
+    return res.status(400).json({ error: "Invalid or missing timing" });
+  }
+  if (!VALID_SLEEP_QUALITY.includes(sleepQuality)) {
+    return res.status(400).json({ error: "Invalid or missing sleepQuality" });
+  }
+
+  try {
+    const [profile] = await db
+      .select()
+      .from(coachingProfiles)
+      .where(eq(coachingProfiles.userId, userId))
+      .limit(1);
+
+    const context = await loadTiredContext(userId);
+
+    const response = resolveTired(context, { duration, timing, sleepQuality }, profile ?? null);
+
+    await db
+      .update(coachingProfiles)
+      .set({
+        tiredLastIntent: response.intent,
+        tiredLastRecommendation: response.recommendation,
+        tiredLastAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(coachingProfiles.userId, userId));
+
+    res.json({ context, response });
+  } catch (err: any) {
+    console.error("[CoachCorner] POST /situations/tired/resolve error:", err.message);
+    res.status(500).json({ error: "Failed to resolve tired situation" });
   }
 });
 

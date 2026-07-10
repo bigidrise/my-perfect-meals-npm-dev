@@ -30,6 +30,11 @@ export const coachingProfiles = pgTable("coaching_profiles", {
   progressSlowedLastIntent: text("progress_slowed_last_intent"),
   progressSlowedLastRecommendation: text("progress_slowed_last_recommendation"),
   progressSlowedLastAt: timestamp("progress_slowed_last_at", { withTimezone: true }),
+  // Coach's Corner — last "I'm tired" coaching loop result, same continuity
+  // pattern as the progress-slowed fields above.
+  tiredLastIntent: text("tired_last_intent"),
+  tiredLastRecommendation: text("tired_last_recommendation"),
+  tiredLastAt: timestamp("tired_last_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
