@@ -1,4 +1,4 @@
-import React, { lazy, useCallback, useEffect, useRef, useState } from "react";
+import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { BUILDER_MAP, type BuilderKey } from "@/lib/builderMap";
 import GeneralNutritionBuilder from "@/pages/pro/GeneralNutritionBuilder";
@@ -644,6 +644,13 @@ export default function Router() {
   return (
     <>
       <ScrollRestorer />
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center bg-black text-white/60 text-sm">
+            Loading...
+          </div>
+        }
+      >
       <Switch>
         {/* Root route — AppRouter handles redirect to /welcome, /onboarding, or /dashboard */}
         <Route path="/">{() => null}</Route>
@@ -911,6 +918,7 @@ export default function Router() {
         {/* 404 fallback */}
         <Route component={NotFound} />
       </Switch>
+      </Suspense>
       {!isDesktopView && shouldShowBottomNav && !showClinicianNav && <BottomNav />}
       {!isDesktopView && showClinicianNav && <StudioBottomNav />}
     </>
