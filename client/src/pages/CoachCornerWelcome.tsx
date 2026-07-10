@@ -92,7 +92,7 @@ export default function CoachCornerWelcome() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black/60 via-orange-600 to-black/80 text-white flex flex-col">
-      <div className="flex-1 overflow-y-auto px-4 pb-40">
+      <div className="flex-1 overflow-y-auto px-4 pb-10">
         <div className="pt-10 pb-2" />
 
         <div className="flex flex-col items-center mb-4 -mt-2">
@@ -137,19 +137,16 @@ export default function CoachCornerWelcome() {
         <div className="rounded-xl border border-white/10 bg-black/30 backdrop-blur-sm p-5 mb-6 whitespace-pre-line text-sm text-white/80 leading-relaxed">
           {CHEF_SCRIPT}
         </div>
-      </div>
 
-      <div
-        className="fixed bottom-0 left-0 right-0 z-50 flex justify-center p-4 bg-gradient-to-t from-black via-black/95 to-transparent"
-        style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
-      >
-        <PillButton
-          active
-          onClick={() => setLocation("/coach-corner/intake")}
-          className="!min-h-[40px] !text-xs !py-2 !px-6 !rounded-full"
-        >
-          Start My Coach Intake
-        </PillButton>
+        <div className="flex justify-center pb-6">
+          <PillButton
+            active
+            onClick={() => setLocation("/coach-corner/intake")}
+            className="!min-h-[40px] !text-xs !py-2 !px-6 !rounded-full"
+          >
+            Start My Coach Intake
+          </PillButton>
+        </div>
       </div>
     </div>
   );

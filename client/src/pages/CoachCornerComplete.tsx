@@ -6,7 +6,7 @@ export default function CoachCornerComplete() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black/60 via-orange-600 to-black/80 text-white flex flex-col">
-      <div className="flex-1 overflow-y-auto px-4 pb-40">
+      <div className="flex-1 overflow-y-auto px-4 pb-10">
         <div className="pt-14 pb-2" />
 
         <div className="flex flex-col items-center mb-6 text-center">
@@ -35,19 +35,16 @@ export default function CoachCornerComplete() {
             from Coach's Corner.
           </p>
         </div>
-      </div>
 
-      <div
-        className="fixed bottom-0 left-0 right-0 z-50 flex justify-center p-4 bg-gradient-to-t from-black via-black/95 to-transparent"
-        style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
-      >
-        <PillButton
-          active
-          onClick={() => setLocation("/dashboard")}
-          className="!min-h-[40px] !text-xs !py-2 !px-6 !rounded-full"
-        >
-          Back to Dashboard
-        </PillButton>
+        <div className="flex justify-center pb-6">
+          <PillButton
+            active
+            onClick={() => setLocation("/dashboard")}
+            className="!min-h-[40px] !text-xs !py-2 !px-6 !rounded-full"
+          >
+            Back to Dashboard
+          </PillButton>
+        </div>
       </div>
     </div>
   );
