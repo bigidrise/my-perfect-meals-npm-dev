@@ -37,11 +37,14 @@ export default function CoachCornerComplete() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
+      <div
+        className="fixed bottom-0 left-0 right-0 z-50 flex justify-center p-4 bg-gradient-to-t from-black via-black/95 to-transparent"
+        style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+      >
         <PillButton
           active
           onClick={() => setLocation("/dashboard")}
-          className="w-full !min-h-[52px] !text-sm !py-3 !rounded-2xl"
+          className="!min-h-[40px] !text-xs !py-2 !px-6 !rounded-full"
         >
           Back to Dashboard
         </PillButton>
