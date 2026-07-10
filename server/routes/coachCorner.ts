@@ -59,7 +59,7 @@ router.post("/intake", requireAuth, async (req, res) => {
     return res.status(400).json({ error: "Missing answers" });
   }
 
-  const typed: Partial<Record<CoachCornerFieldTarget, string>> = {};
+  const typed: Partial<Record<CoachCornerFieldTarget, string | string[] | number>> = {};
 
   for (const question of COACH_CORNER_QUESTIONS) {
     if (!VALID_QUESTION_IDS.has(question.id)) continue;
@@ -67,18 +67,46 @@ router.post("/intake", requireAuth, async (req, res) => {
     if (raw === undefined || raw === null) continue;
 
     const validValues = new Set(question.options.map((o) => o.value));
-    const value = typeof raw === "string" && validValues.has(raw) ? raw : null;
-    if (!value) continue;
 
-    typed[question.target] = value;
+    if (question.multiSelect) {
+      const rawArray = Array.isArray(raw) ? raw : [];
+      const values = rawArray.filter(
+        (v): v is string => typeof v === "string" && validValues.has(v)
+      );
+      if (values.length === 0) continue;
+      const max = question.maxSelect ?? values.length;
+      typed[question.target] = values.slice(0, max);
+      continue;
+    }
+
+    if (typeof raw !== "string" || !validValues.has(raw)) continue;
+
+    if (question.target === "activeDaysPerWeek") {
+      typed[question.target] = parseInt(raw, 10);
+    } else {
+      typed[question.target] = raw;
+    }
   }
 
   try {
     const values = {
       userId,
-      setbackResponse: typed.setbackResponse ?? null,
-      stressResponse: typed.stressResponse ?? null,
-      recoveryPreference: typed.recoveryPreference ?? null,
+      offTrackCauses: (typed.offTrackCauses as string[]) ?? null,
+      setbackResponse: (typed.setbackResponse as string) ?? null,
+      progressMindset: (typed.progressMindset as string) ?? null,
+      trustStyle: (typed.trustStyle as string) ?? null,
+      overwhelmResponse: (typed.overwhelmResponse as string) ?? null,
+      decisionStyle: (typed.decisionStyle as string) ?? null,
+      eatingDriver: (typed.eatingDriver as string) ?? null,
+      cravingResponse: (typed.cravingResponse as string) ?? null,
+      hardestPart: (typed.hardestPart as string) ?? null,
+      activityLevel: (typed.activityLevel as string) ?? null,
+      activeDaysPerWeek: (typed.activeDaysPerWeek as number) ?? null,
+      planStartStage: (typed.planStartStage as string) ?? null,
+      recoveryPreference: (typed.recoveryPreference as string) ?? null,
+      motivationDriver: (typed.motivationDriver as string) ?? null,
+      goalType: (typed.goalType as string) ?? null,
+      stressResponse: null,
       coachProfileCompletedAt: new Date(),
       updatedAt: new Date(),
     };

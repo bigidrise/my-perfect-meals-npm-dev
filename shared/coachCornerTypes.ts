@@ -5,11 +5,29 @@
 // questions at shared array columns (lifestyleFlags/biggestChallenges) —
 // those belong to the separate legacy ACE profile setup feature
 // (server/routes/aceProfiles.ts) and must not be reused here.
+//
+// V1 test standard for every question (per architect review): "Can I point
+// to a recommendation in the Recommendation Library that this answer
+// changes?" If no, the question doesn't belong. These 15 are the first pass
+// — expected to be pruned/replaced once the Core Coaching Action Library and
+// Recommendation Library are locked, not the final set.
 
 export type CoachCornerFieldTarget =
+  | "offTrackCauses"
   | "setbackResponse"
-  | "stressResponse"
-  | "recoveryPreference";
+  | "progressMindset"
+  | "trustStyle"
+  | "overwhelmResponse"
+  | "decisionStyle"
+  | "eatingDriver"
+  | "cravingResponse"
+  | "hardestPart"
+  | "activityLevel"
+  | "activeDaysPerWeek"
+  | "planStartStage"
+  | "recoveryPreference"
+  | "motivationDriver"
+  | "goalType";
 
 export interface CoachCornerOption {
   value: string;
