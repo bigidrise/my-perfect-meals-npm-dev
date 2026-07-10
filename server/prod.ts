@@ -600,9 +600,11 @@ async function initializeApp() {
     const aceProfilesRouter = (await import("./routes/aceProfiles")).default;
     const aceInterventionsRouter = (await import("./routes/aceInterventions")).default;
     const aceCheckinRouter = (await import("./routes/aceCheckin")).default;
+    const coachCornerRouter = (await import("./routes/coachCorner")).default;
     app.use("/api/ace/profile", aceProfilesRouter);
     app.use("/api/ace/interventions", aceInterventionsRouter);
     app.use("/api/ace/checkin", aceCheckinRouter);
+    app.use("/api/coach-corner", coachCornerRouter);
 
     console.log("✅ [INIT] Parity routes mounted");
 

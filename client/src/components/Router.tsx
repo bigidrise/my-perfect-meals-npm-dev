@@ -683,6 +683,9 @@ export default function Router() {
         <Route path="/procare-certified" component={CertifiedProfessionalUnlock} />
         <Route path="/procare-training" component={ProCareTraining} />
         <Route path="/ace-profile" component={lazy(() => import("@/pages/AceProfilePage"))} />
+        <Route path="/coach-corner/welcome" component={lazy(() => import("@/pages/CoachCornerWelcome"))} />
+        <Route path="/coach-corner/intake" component={lazy(() => import("@/pages/CoachCornerIntake"))} />
+        <Route path="/coach-corner/complete" component={lazy(() => import("@/pages/CoachCornerComplete"))} />
         {/* DELETED: CommunityTestPage, CommunityPage routes */}
         <Route path="/onboarding" component={SafeOnboarding} />
         <Route path="/onboarding-v2" component={SafeOnboardingV2} />
