@@ -1,12 +1,20 @@
 import { Router } from "express";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, gte } from "drizzle-orm";
 import { db } from "../db";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { coachingProfiles } from "../db/schema/ace";
+import { users } from "../../shared/schema";
+import { biometricSample } from "../../shared/biometricsSchema";
 import {
   COACH_CORNER_QUESTIONS,
   type CoachCornerFieldTarget,
 } from "../services/ace/coachCornerQuestions";
+import { resolveProgressSlowed } from "../services/ace/progressSlowedEngine";
+import type {
+  PerceivedDuration,
+  ProgressSlowedContext,
+  SelfReportedWeightChange,
+} from "../../shared/coachCornerTypes";
 
 const router = Router();
 
@@ -46,14 +54,7 @@ router.post("/intake", requireAuth, async (req, res) => {
     return res.status(400).json({ error: "Missing answers" });
   }
 
-  const single: Record<string, string> = {};
-  const arrays: Record<CoachCornerFieldTarget, string[]> = {
-    coachingStyle: [],
-    accountabilityPref: [],
-    motivations: [],
-    lifestyleFlags: [],
-    biggestChallenges: [],
-  };
+  const typed: Partial<Record<CoachCornerFieldTarget, string>> = {};
 
   for (const question of COACH_CORNER_QUESTIONS) {
     if (!VALID_QUESTION_IDS.has(question.id)) continue;
@@ -61,38 +62,18 @@ router.post("/intake", requireAuth, async (req, res) => {
     if (raw === undefined || raw === null) continue;
 
     const validValues = new Set(question.options.map((o) => o.value));
-    const selected: string[] = Array.isArray(raw)
-      ? raw.filter((v) => typeof v === "string" && validValues.has(v))
-      : typeof raw === "string" && validValues.has(raw)
-        ? [raw]
-        : [];
+    const value = typeof raw === "string" && validValues.has(raw) ? raw : null;
+    if (!value) continue;
 
-    if (selected.length === 0) continue;
-
-    if (question.multiSelect) {
-      arrays[question.target].push(...selected.slice(0, question.maxSelect ?? selected.length));
-    } else {
-      single[question.target] = selected[0];
-    }
+    typed[question.target] = value;
   }
 
   try {
     const values = {
       userId,
-      coachingStyle: single.coachingStyle ?? null,
-      accountabilityPref: single.accountabilityPref ?? null,
-      motivations: [
-        ...(single.motivations ? [single.motivations] : []),
-        ...arrays.motivations,
-      ],
-      lifestyleFlags: [
-        ...(single.lifestyleFlags ? [single.lifestyleFlags] : []),
-        ...arrays.lifestyleFlags,
-      ],
-      biggestChallenges: [
-        ...(single.biggestChallenges ? [single.biggestChallenges] : []),
-        ...arrays.biggestChallenges,
-      ],
+      setbackResponse: typed.setbackResponse ?? null,
+      stressResponse: typed.stressResponse ?? null,
+      recoveryPreference: typed.recoveryPreference ?? null,
       coachProfileCompletedAt: new Date(),
       updatedAt: new Date(),
     };
@@ -115,6 +96,128 @@ router.post("/intake", requireAuth, async (req, res) => {
   } catch (err: any) {
     console.error("[CoachCorner] POST /intake error:", err.message);
     res.status(500).json({ error: "Failed to save Coach's Corner profile" });
+  }
+});
+
+// ---- "My progress has slowed" vertical coaching loop ----
+
+async function loadProgressSlowedContext(
+  userId: string
+): Promise<ProgressSlowedContext> {
+  const [user] = await db
+    .select({
+      onboardingCompletedAt: users.onboardingCompletedAt,
+      weight: users.weight,
+    })
+    .from(users)
+    .where(eq(users.id, userId as any))
+    .limit(1);
+
+  const planStartAt = user?.onboardingCompletedAt ?? null;
+  const weeksOnPlan = planStartAt
+    ? Math.floor((Date.now() - new Date(planStartAt).getTime()) / (7 * 24 * 60 * 60 * 1000))
+    : null;
+
+  let weightChangeLb: number | null = null;
+  let weightChangePercent: number | null = null;
+  let hasWeightData = false;
+
+  try {
+    const fromDate = planStartAt ? new Date(planStartAt) : new Date(0);
+    const samples = await db
+      .select({ value: biometricSample.value, startTime: biometricSample.startTime })
+      .from(biometricSample)
+      .where(
+        and(
+          eq(biometricSample.userId, userId as any),
+          eq(biometricSample.type, "weight"),
+          gte(biometricSample.startTime, fromDate)
+        )
+      )
+      .orderBy(biometricSample.startTime);
+
+    if (samples.length >= 2) {
+      const first = samples[0];
+      const last = samples[samples.length - 1];
+      const firstVal = Number(first.value);
+      const lastVal = Number(last.value);
+      if (Number.isFinite(firstVal) && Number.isFinite(lastVal) && firstVal > 0) {
+        weightChangeLb = firstVal - lastVal;
+        weightChangePercent = (weightChangeLb / firstVal) * 100;
+        hasWeightData = true;
+      }
+    }
+  } catch (err: any) {
+    console.error("[CoachCorner] context weight lookup error:", err.message);
+  }
+
+  return { weeksOnPlan, hasWeightData, weightChangeLb, weightChangePercent };
+}
+
+router.get("/situations/progress-slowed/context", requireAuth, async (req, res) => {
+  const authReq = req as AuthenticatedRequest;
+  try {
+    const context = await loadProgressSlowedContext(authReq.authUser.id);
+    res.json({ context });
+  } catch (err: any) {
+    console.error("[CoachCorner] GET /situations/progress-slowed/context error:", err.message);
+    res.status(500).json({ error: "Failed to load context" });
+  }
+});
+
+const VALID_DURATIONS: PerceivedDuration[] = ["short", "medium", "long"];
+const VALID_WEIGHT_CHANGE_REPORTS: SelfReportedWeightChange[] = [
+  "none_little",
+  "moderate",
+  "significant",
+];
+
+router.post("/situations/progress-slowed/resolve", requireAuth, async (req, res) => {
+  const authReq = req as AuthenticatedRequest;
+  const userId = authReq.authUser.id;
+
+  const perceivedDuration = req.body?.perceivedDuration;
+  const selfReportedWeightChange = req.body?.selfReportedWeightChange;
+
+  if (!VALID_DURATIONS.includes(perceivedDuration)) {
+    return res.status(400).json({ error: "Invalid or missing perceivedDuration" });
+  }
+  if (
+    selfReportedWeightChange !== undefined &&
+    !VALID_WEIGHT_CHANGE_REPORTS.includes(selfReportedWeightChange)
+  ) {
+    return res.status(400).json({ error: "Invalid selfReportedWeightChange" });
+  }
+
+  try {
+    const [profile] = await db
+      .select()
+      .from(coachingProfiles)
+      .where(eq(coachingProfiles.userId, userId))
+      .limit(1);
+
+    const context = await loadProgressSlowedContext(userId);
+
+    const response = resolveProgressSlowed(
+      context,
+      { perceivedDuration, selfReportedWeightChange },
+      profile ?? null
+    );
+
+    await db
+      .update(coachingProfiles)
+      .set({
+        progressSlowedLastIntent: response.intent,
+        progressSlowedLastRecommendation: response.recommendation,
+        progressSlowedLastAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(coachingProfiles.userId, userId));
+
+    res.json({ context, response });
+  } catch (err: any) {
+    console.error("[CoachCorner] POST /situations/progress-slowed/resolve error:", err.message);
+    res.status(500).json({ error: "Failed to resolve progress-slowed situation" });
   }
 });
 
