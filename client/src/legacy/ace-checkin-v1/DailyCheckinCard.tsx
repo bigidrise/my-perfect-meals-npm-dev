@@ -1,10 +1,25 @@
+/**
+ * ⚠️ DEPRECATED — ACE Daily Check-In v1
+ *
+ * Status: Retired, unmounted from the dashboard, kept only as archived
+ * reference.
+ * Replaced by: Coach's Corner (client/src/components/ace/CoachCornerCard.tsx)
+ *
+ * Do NOT import or render this component. Do not port its questions, UI, or
+ * decision logic into new work — Coach's Corner uses a different philosophy
+ * (understand the person first, then the situation) and architecture
+ * (intent classification via the Coaching Decision Rule, not a flat
+ * Likert->lookup table). Only the underlying signal concepts (stress,
+ * cravings, low energy, emotional eating, schedule pressure) may be reused
+ * — never this code.
+ */
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { PillButton } from "@/components/ui/pill-button";
-import { useTodaysCheckin, type CheckinIntervention } from "@/hooks/useDailyCheckin";
-import DailyCheckinModal from "@/components/ace/DailyCheckinModal";
+import { useTodaysCheckin, type CheckinIntervention } from "@/legacy/ace-checkin-v1/useDailyCheckin";
+import DailyCheckinModal from "@/legacy/ace-checkin-v1/DailyCheckinModal";
 import { buildTodaysNutritionAdjustment } from "@/lib/ace/buildTodaysNutritionAdjustment";
 import { getAssignedBuilderFromStorage } from "@/lib/assignedBuilder";
 

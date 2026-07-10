@@ -1,3 +1,17 @@
+/**
+ * ⚠️ DEPRECATED — ACE Daily Check-In v1
+ *
+ * Status: Retired, unmounted, kept only as archived reference.
+ * Replaced by: Coach's Corner (server/routes/coachCorner.ts)
+ *
+ * Do NOT import or mount this router — it is not wired into server/index.ts
+ * or server/prod.ts. Do not port its questions or decision logic into new
+ * work — Coach's Corner uses a different philosophy (understand the person
+ * first, then the situation) and architecture (intent classification via the
+ * Coaching Decision Rule, not a flat Likert->lookup table). Only the
+ * underlying signal concepts (stress, cravings, low energy, emotional
+ * eating, schedule pressure) may be reused — never this code.
+ */
 import { Router } from "express";
 import { db } from "../db";
 import { sql } from "drizzle-orm";

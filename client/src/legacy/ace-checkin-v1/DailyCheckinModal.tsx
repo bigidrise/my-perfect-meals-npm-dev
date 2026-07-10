@@ -1,3 +1,12 @@
+/**
+ * ⚠️ DEPRECATED — ACE Daily Check-In v1
+ *
+ * Status: Retired, unmounted, kept only as archived reference.
+ * Replaced by: Coach's Corner (client/src/pages/CoachCorner*.tsx)
+ *
+ * Do NOT import or render this component. See DailyCheckinCard.tsx in this
+ * same folder for full deprecation rationale.
+ */
 import { useState } from "react";
 import {
   Dialog,
@@ -6,7 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PillButton } from "@/components/ui/pill-button";
-import { useSubmitCheckin, type DailyCheckinPayload, type CheckinIntervention } from "@/hooks/useDailyCheckin";
+import { useSubmitCheckin, type DailyCheckinPayload, type CheckinIntervention } from "@/legacy/ace-checkin-v1/useDailyCheckin";
 import { useToast } from "@/hooks/use-toast";
 
 interface Props {

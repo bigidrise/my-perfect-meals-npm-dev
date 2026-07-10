@@ -113,7 +113,6 @@ import checkInSchedulesRouter from "./routes/checkInSchedules";
 import adminRouter from "./routes/admin";
 import aceProfilesRouter from "./routes/aceProfiles";
 import aceInterventionsRouter from "./routes/aceInterventions";
-import aceCheckinRouter from "./routes/aceCheckin";
 import coachCornerRouter from "./routes/coachCorner";
 
 const app = express();
@@ -866,9 +865,9 @@ async function start() {
   });
 
   // Adaptive Coaching Engine (ACE) — Sprint 1+2+3 routes
+  // Daily Check-In (aceCheckin) retired — replaced by Coach's Corner. Route moved to server/legacy/aceCheckin.ts.
   app.use("/api/ace/profile", aceProfilesRouter);
   app.use("/api/ace/interventions", aceInterventionsRouter);
-  app.use("/api/ace/checkin", aceCheckinRouter);
   app.use("/api/coach-corner", coachCornerRouter);
 
   // 🎯 CRITICAL: API routes FIRST to prevent Vite middleware interference
