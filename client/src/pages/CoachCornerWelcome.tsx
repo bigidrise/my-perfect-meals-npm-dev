@@ -4,15 +4,57 @@ import { Play, Pause } from "lucide-react";
 import { voiceManager } from "@/voice/VoiceManager";
 import { PillButton } from "@/components/ui/pill-button";
 
-const CHEF_SCRIPT = `Welcome to Coach's Corner.
+const CHEF_SCRIPT = `Hi, I'm Chef. Welcome to Coach's Corner.
 
-This isn't a check-in form. It's the start of an ongoing relationship with me — your AI coach.
+No matter how much we read, how many videos we watch, or how much we think we know about nutrition, there are still moments when we're just not sure what to do.
 
-Life interrupts the plan. You'll get stressed, travel, have a rough week, or just want dessert. My job isn't to judge that. It's to understand it, and help you make the next best decision based on you.
+Maybe you're tired.
 
-I'm going to ask you a few quick questions so I can learn how you think, what motivates you, and what tends to knock you off track. There are no wrong answers — just be honest.
+Maybe you've hit a plateau.
 
-When you're ready, let's get started.`;
+Maybe you're craving something sweet.
+
+Maybe you're eating out tonight.
+
+Maybe life has simply gotten busy.
+
+Those are the moments Coach's Corner was built for.
+
+My job isn't to replace your meal plan. My job is to help you make better decisions when real life gets in the way.
+
+To do that, I need to understand you.
+
+The next few questions aren't about building another nutrition plan. My Perfect Meals already does that.
+
+These questions help me understand how you make decisions, what motivates you, how you respond to setbacks, and how I can coach you in a way that's most helpful for you.
+
+There are no right or wrong answers.
+
+Just answer honestly.
+
+The better I understand you, the more personal my coaching becomes.
+
+After we finish, Coach's Corner will be here whenever you need it.
+
+Whether you're feeling tired...
+
+Wondering why your progress has slowed...
+
+Trying to make a better restaurant choice...
+
+Need help with cravings...
+
+Have questions about supplements or nutrition...
+
+Or simply aren't sure what to do next...
+
+You don't have to figure it out alone.
+
+I'll help you make the next best decision based on you.
+
+Whenever you're ready...
+
+Let's get started.`;
 
 export default function CoachCornerWelcome() {
   const [, setLocation] = useLocation();
@@ -60,10 +102,10 @@ export default function CoachCornerWelcome() {
             className="w-[24rem] h-auto -mb-3"
           />
           <h1 className="text-2xl font-bold italic mt-0 text-center">
-            Coach's Corner
+            Hi, I'm Chef.
           </h1>
           <p className="text-white/70 text-sm leading-relaxed text-center mt-1 max-w-xs">
-            Your AI coaching relationship starts here.
+            Welcome to Coach's Corner.
           </p>
         </div>
 
