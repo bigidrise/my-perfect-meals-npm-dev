@@ -44,13 +44,21 @@ export interface ProgressSlowedFollowUp {
   selfReportedWeightChange?: SelfReportedWeightChange;
 }
 
+// Coach's Corner Knowledge Stack, applied to one resolved coaching response:
+//   Layer 1 Intent          -> what Coach is trying to accomplish (ProgressSlowedIntent)
+//   Layer 2 Recommendation  -> what this person should do (message.recommendation)
+//   Layer 3 Science         -> why this works (message.science)
+//   Layer 4 Philosophy      -> how to think about it (message.philosophy)
+// followed by an optional MPM destination (routeTo). Do not blend these layers
+// back into a single "explanation" field.
 export interface ProgressSlowedResponse {
   intent: ProgressSlowedIntent;
   recommendation: string;
   message: {
     acknowledgment: string;
     recommendation: string;
-    explanation: string;
+    science: string;
+    philosophy: string;
     whatToWatchFor: string;
     action: string;
   };
