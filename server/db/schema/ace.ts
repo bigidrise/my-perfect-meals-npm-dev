@@ -25,6 +25,23 @@ export const coachingProfiles = pgTable("coaching_profiles", {
   setbackResponse: text("setback_response"),
   stressResponse: text("stress_response"),
   recoveryPreference: text("recovery_preference"),
+  // Coach's Corner Onboarding V1 — additional behavioral variables (see
+  // shared/coachCornerTypes.ts CoachCornerFieldTarget for the full list).
+  // This is a first-pass question set, expected to be pruned once the Core
+  // Coaching Action Library / Recommendation Library are locked.
+  offTrackCauses: text("off_track_causes").array(),
+  progressMindset: text("progress_mindset"),
+  trustStyle: text("trust_style"),
+  overwhelmResponse: text("overwhelm_response"),
+  decisionStyle: text("decision_style"),
+  eatingDriver: text("eating_driver"),
+  cravingResponse: text("craving_response"),
+  hardestPart: text("hardest_part"),
+  activityLevel: text("activity_level"),
+  activeDaysPerWeek: smallint("active_days_per_week"),
+  planStartStage: text("plan_start_stage"),
+  motivationDriver: text("motivation_driver"),
+  goalType: text("goal_type"),
   // Coach's Corner — last "My progress has slowed" coaching loop result,
   // kept for continuity/audit of what Chef last told the user.
   progressSlowedLastIntent: text("progress_slowed_last_intent"),
