@@ -18,6 +18,18 @@ export const coachingProfiles = pgTable("coaching_profiles", {
   lifestyleFlags: text("lifestyle_flags").array(),
   biggestChallenges: text("biggest_challenges").array(),
   coachProfileCompletedAt: timestamp("coach_profile_completed_at", { withTimezone: true }),
+  // Coach's Corner — Living Behavioral Profile (typed behavioral variables).
+  // These are read by the Coach's Corner Decision Engine. Do NOT reuse the
+  // legacy lifestyleFlags/biggestChallenges arrays above for new behavioral
+  // variables — each variable gets its own typed column.
+  setbackResponse: text("setback_response"),
+  stressResponse: text("stress_response"),
+  recoveryPreference: text("recovery_preference"),
+  // Coach's Corner — last "My progress has slowed" coaching loop result,
+  // kept for continuity/audit of what Chef last told the user.
+  progressSlowedLastIntent: text("progress_slowed_last_intent"),
+  progressSlowedLastRecommendation: text("progress_slowed_last_recommendation"),
+  progressSlowedLastAt: timestamp("progress_slowed_last_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

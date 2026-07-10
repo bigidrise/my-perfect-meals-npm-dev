@@ -540,6 +540,8 @@ export default function Router() {
     "/coach-corner/welcome",
     "/coach-corner/intake",
     "/coach-corner/complete",
+    "/coach-corner/home",
+    "/coach-corner/progress-slowed",
   ];
 
   const shouldShowBottomNav = !hideBottomNavRoutes.includes(location);
@@ -696,6 +698,8 @@ export default function Router() {
         <Route path="/coach-corner/welcome" component={lazy(() => import("@/pages/CoachCornerWelcome"))} />
         <Route path="/coach-corner/intake" component={lazy(() => import("@/pages/CoachCornerIntake"))} />
         <Route path="/coach-corner/complete" component={lazy(() => import("@/pages/CoachCornerComplete"))} />
+        <Route path="/coach-corner/home" component={lazy(() => import("@/pages/CoachCornerHome"))} />
+        <Route path="/coach-corner/progress-slowed" component={lazy(() => import("@/pages/CoachCornerProgressSlowed"))} />
         {/* DELETED: CommunityTestPage, CommunityPage routes */}
         <Route path="/onboarding" component={SafeOnboarding} />
         <Route path="/onboarding-v2" component={SafeOnboardingV2} />

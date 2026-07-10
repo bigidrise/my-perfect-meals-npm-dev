@@ -36,7 +36,7 @@ export default function CoachCornerCard() {
         active
         onClick={() =>
           setLocation(
-            completed ? "/coach-corner/complete" : "/coach-corner/welcome"
+            completed ? "/coach-corner/home" : "/coach-corner/welcome"
           )
         }
         className="w-full !text-[11px] !py-2.5 !rounded-xl"
