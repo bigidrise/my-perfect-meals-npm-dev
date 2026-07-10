@@ -67,9 +67,11 @@ function buildResponse(
           "I hear you — it's frustrating when the scale doesn't seem to be moving the way you want.",
         recommendation:
           "For now, stay the course. Keep following your current plan exactly as it's written.",
-        explanation: prefersUnderstanding
+        science: prefersUnderstanding
           ? "Weight loss almost never moves in a straight line. Water retention, sleep, hormones, and even how recently you ate can all shift the scale by several pounds without anything being wrong with your plan. A short slowdown this early usually isn't a signal to change anything — it's just how the process actually looks."
           : "This kind of short slowdown is normal, and changing your plan now would likely do more harm than good.",
+        philosophy:
+          "The best plan is the one you can still follow when the scale isn't cooperating — consistency through a flat week is what makes the next drop possible.",
         whatToWatchFor:
           "Keep an eye on your weight trend over the next 1-2 weeks rather than day to day. If it's still flat after that, come back and we'll look again.",
         action:
@@ -87,8 +89,10 @@ function buildResponse(
           "Thanks for sticking with it this long — real progress like yours is exactly why we need to check in.",
         recommendation:
           "It looks like your body has changed enough that your current macros may no longer match where you are now. Let's recalculate them together.",
-        explanation:
+        science:
           "As you lose weight, your body needs less energy to maintain itself, so the numbers that worked when you started can quietly become too high over time. That's not a failure on your part — it's just math catching up with your progress.",
+        philosophy:
+          "Never build a permanent goal on a temporary solution — your macros should keep pace with your body, not stay frozen at the number you started with.",
         whatToWatchFor:
           "After we update your numbers, give it another couple of weeks and watch whether the trend starts moving again.",
         action: prefersSimplicity
@@ -107,8 +111,10 @@ function buildResponse(
         "It makes sense that this is on your mind — a stretch without visible progress can feel discouraging.",
       recommendation:
         "Before we change anything, it helps to understand what's actually happening with a plateau like this.",
-      explanation:
+      science:
         "The scale is one signal, not the whole picture. Plateaus are a normal, expected part of any long-term change — your body adjusts, water weight fluctuates, and non-scale progress (energy, strength, how clothes fit) often keeps moving even when the number on the scale doesn't.",
+      philosophy:
+        "The scale measures one outcome — not your health. Learning to read the fuller picture is what keeps people consistent long after the scale stalls.",
       whatToWatchFor:
         "Track your weight as a weekly trend instead of a daily number, and pay attention to non-scale signals like energy and how your clothes fit over the next couple of weeks.",
       action:
