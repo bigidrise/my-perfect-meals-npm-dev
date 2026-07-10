@@ -83,28 +83,20 @@ export default function CoachCornerProgressSlowed() {
             />
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-black/30 backdrop-blur-sm p-5 mb-4 text-sm text-white/85 leading-relaxed space-y-4">
+          {/*
+            One coach, one message. `science` and `philosophy` are kept as
+            separate fields internally (response-pipeline placeholders for
+            future Science/Philosophy Libraries) but are rendered together
+            here as plain paragraphs — the user should never see them as
+            labeled sections.
+          */}
+          <div className="rounded-xl border border-white/10 bg-black/30 backdrop-blur-sm p-5 mb-4 text-sm text-white/85 leading-relaxed space-y-3">
             <p>{result.message.acknowledgment}</p>
             <p className="font-semibold text-orange-300">{result.message.recommendation}</p>
             <p>{result.message.science}</p>
-            <div className="pt-2 border-t border-white/10">
-              <p className="text-xs uppercase tracking-wide text-white/50 mb-1">
-                Worth remembering
-              </p>
-              <p className="italic">{result.message.philosophy}</p>
-            </div>
-            <div className="pt-2 border-t border-white/10">
-              <p className="text-xs uppercase tracking-wide text-white/50 mb-1">
-                What to watch for
-              </p>
-              <p>{result.message.whatToWatchFor}</p>
-            </div>
-            <div className="pt-2 border-t border-white/10">
-              <p className="text-xs uppercase tracking-wide text-white/50 mb-1">
-                Next step
-              </p>
-              <p>{result.message.action}</p>
-            </div>
+            <p>{result.message.philosophy}</p>
+            <p>{result.message.whatToWatchFor}</p>
+            <p>{result.message.action}</p>
           </div>
 
           <div className="flex flex-col gap-3 items-center pb-6">

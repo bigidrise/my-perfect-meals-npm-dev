@@ -44,13 +44,21 @@ export interface ProgressSlowedFollowUp {
   selfReportedWeightChange?: SelfReportedWeightChange;
 }
 
-// Coach's Corner Knowledge Stack, applied to one resolved coaching response:
+// Coach's Corner response pipeline, applied to one resolved coaching response:
 //   Layer 1 Intent          -> what Coach is trying to accomplish (ProgressSlowedIntent)
 //   Layer 2 Recommendation  -> what this person should do (message.recommendation)
-//   Layer 3 Science         -> why this works (message.science)
-//   Layer 4 Philosophy      -> how to think about it (message.philosophy)
-// followed by an optional MPM destination (routeTo). Do not blend these layers
-// back into a single "explanation" field.
+//   Layer 3 Science placeholder    -> why this works (message.science)
+//   Layer 4 Philosophy placeholder -> how to think about it (message.philosophy)
+// followed by an optional MPM destination (routeTo).
+//
+// `science` and `philosophy` are hardcoded placeholder content for V1 — they
+// validate that the response pipeline has a place for this content. They are
+// NOT yet backed by real Science/Philosophy Libraries (no lookup, no
+// selection logic); that comes later, after the Action Library,
+// Recommendation Library, and Behavioral Variables are locked. Do not merge
+// them back into one "explanation" field (the pipeline separation is
+// intentional), and do not render them as separate labeled UI sections (the
+// user should experience one seamless coach, not internal layers).
 export interface ProgressSlowedResponse {
   intent: ProgressSlowedIntent;
   recommendation: string;
