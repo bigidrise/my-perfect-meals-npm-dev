@@ -3,7 +3,7 @@ import { ArrowLeft, ChevronRight, Handshake, Pill, Dumbbell, GraduationCap, Hear
 import { motion } from "framer-motion";
 import { BC_HEADER } from "@/components/BusinessCenterShell";
 
-const STRATEGIC_FORM = "https://forms.gle/7wAMmDA1vz1wCzzKA";
+const STRATEGIC_FORM = "https://forms.gle/Udi3yWGp5SHuktdi8";
 
 const INDUSTRIES = [
   {
