@@ -112,7 +112,10 @@ const INDUSTRIES = [
 ];
 
 export default function IndustryPartnerships() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+  const isPublic = location.startsWith("/partners");
+  const backPath = isPublic ? "/partners" : "/business-center";
+  const backLabel = isPublic ? "Partner Programs" : "Business Suite";
 
   return (
     <motion.div
@@ -124,11 +127,11 @@ export default function IndustryPartnerships() {
       <div className={BC_HEADER}>
         <div className="flex items-center gap-3 px-4 py-3">
           <button
-            onClick={() => setLocation("/business-center")}
+            onClick={() => setLocation(backPath)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
           >
             <ArrowLeft className="h-4 w-4" />
-            Business Suite
+            {backLabel}
           </button>
         </div>
       </div>

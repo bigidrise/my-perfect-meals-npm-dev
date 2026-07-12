@@ -460,7 +460,9 @@ function saveProgress(data: SavedProgress) {
 
 
 export default function WhiteLabelSolutions() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+  const isPublic = location.startsWith("/partners");
+  const exitPath = isPublic ? "/partners" : "/business-center";
 
   const saved = loadProgress();
   const [currentStage, setCurrentStage] = useState(saved?.currentStage ?? 0);
@@ -529,7 +531,7 @@ export default function WhiteLabelSolutions() {
               </button>
             )}
             <button
-              onClick={() => setLocation("/business-center")}
+              onClick={() => setLocation(exitPath)}
               className="text-white/30 text-xs"
             >
               ✕

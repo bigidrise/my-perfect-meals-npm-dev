@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { ArrowLeft, Star, Users, CheckCircle2, TrendingUp, Clock, ChevronRight, Percent, GraduationCap } from "lucide-react";
+import { ArrowLeft, Star, Users, CheckCircle2, TrendingUp, Clock, ChevronRight, Percent, GraduationCap, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
 import { BC_HEADER } from "@/components/BusinessCenterShell";
 
@@ -33,7 +33,10 @@ const EXPECTATIONS = [
 
 
 export default function FoundingPartnerProgram() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+  const isPublic = location.startsWith("/partners");
+  const backPath = isPublic ? "/partners" : "/business-center";
+  const backLabel = isPublic ? "Partner Programs" : "Back";
 
   return (
     <motion.div
@@ -49,13 +52,13 @@ export default function FoundingPartnerProgram() {
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
           <button
-            onClick={() => setLocation("/business-center")}
+            onClick={() => setLocation(backPath)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            {backLabel}
           </button>
-          <h1 className="text-lg font-bold text-white">Founding Business Partner Program</h1>
+          <h1 className="text-lg font-bold text-white">Founding Partner Program</h1>
         </div>
       </div>
 
@@ -642,16 +645,18 @@ export default function FoundingPartnerProgram() {
             </p>
           </div>
 
-          <button
-            onClick={() => setLocation("/business-center/academy")}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/8 border border-white/15 text-white text-sm font-medium active:scale-[0.98] transition-all duration-150"
-          >
-            <div className="flex items-center gap-2">
-              <GraduationCap className="h-4 w-4 text-orange-400" />
-              <span>View My Perfect Meals Academy</span>
-            </div>
-            <ChevronRight className="h-4 w-4 text-white/40" />
-          </button>
+          {!isPublic && (
+            <button
+              onClick={() => setLocation("/business-center/academy")}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/8 border border-white/15 text-white text-sm font-medium active:scale-[0.98] transition-all duration-150"
+            >
+              <div className="flex items-center gap-2">
+                <GraduationCap className="h-4 w-4 text-orange-400" />
+                <span>View My Perfect Meals Academy</span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-white/40" />
+            </button>
+          )}
         </motion.div>
 
         {/* Section 6 — CTA */}

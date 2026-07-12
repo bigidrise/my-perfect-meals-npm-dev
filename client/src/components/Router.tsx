@@ -374,6 +374,8 @@ import PartnerProgramsHub from "@/pages/PartnerProgramsHub";
 import FoundingPartnerProgram from "@/pages/FoundingPartnerProgram";
 import IndustryPartnerships from "@/pages/IndustryPartnerships";
 import WhiteLabelSolutions from "@/pages/WhiteLabelSolutions";
+import PublicPartnersHub from "@/pages/PublicPartnersHub";
+import PublicHealthcarePartnerships from "@/pages/PublicHealthcarePartnerships";
 import AffiliateOpportunities from "@/pages/AffiliateOpportunities";
 import AffiliatePathPage from "@/pages/AffiliatePathPage";
 import AffiliateProgramOverview from "@/pages/AffiliateProgramOverview";
@@ -579,6 +581,7 @@ export default function Router() {
     "/trainer-welcome", "/physician-welcome",
     "/procare-info", "/family-info", "/personal-guidance-info",
     "/privacy", "/privacy-policy", "/terms", "/delete-account",
+    "/partners",
     "/profile", "/settings",
     "/home",
   ];
@@ -915,6 +918,12 @@ export default function Router() {
         <Route path="/business-center/industry" component={IndustryPartnerships} />
         <Route path="/business-center/white-label" component={WhiteLabelSolutions} />
         <Route path="/business-center/partnerships" component={BusinessCenterSection} />
+        {/* Public partner pages — no login required */}
+        <Route path="/partners" component={PublicPartnersHub} />
+        <Route path="/partners/founding" component={FoundingPartnerProgram} />
+        <Route path="/partners/industry" component={IndustryPartnerships} />
+        <Route path="/partners/healthcare" component={PublicHealthcarePartnerships} />
+        <Route path="/partners/white-label" component={WhiteLabelSolutions} />
         {/* Supplement Hub Routes */}
         {/* REMOVED: /supplement-hub-landing route (landing page not used - Copilot routes to /supplement-hub directly) */}
         <Route path="/supplement-hub" component={SupplementHub} />
