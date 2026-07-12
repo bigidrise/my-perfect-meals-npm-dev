@@ -114,8 +114,8 @@ const INDUSTRIES = [
 export default function IndustryPartnerships() {
   const [location, setLocation] = useLocation();
   const isPublic = location.startsWith("/partners");
-  const backPath = isPublic ? "/partners" : "/business-center";
-  const backLabel = isPublic ? "Partner Programs" : "Business Suite";
+  const backPath = isPublic ? "/partners" : "/business-center/partners";
+  const backLabel = "Partner Programs";
 
   return (
     <motion.div

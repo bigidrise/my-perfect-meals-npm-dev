@@ -35,8 +35,8 @@ const EXPECTATIONS = [
 export default function FoundingPartnerProgram() {
   const [location, setLocation] = useLocation();
   const isPublic = location.startsWith("/partners");
-  const backPath = isPublic ? "/partners" : "/business-center";
-  const backLabel = isPublic ? "Partner Programs" : "Back";
+  const backPath = isPublic ? "/partners" : "/business-center/partners";
+  const backLabel = "Partner Programs";
 
   return (
     <motion.div
