@@ -48,7 +48,7 @@ const programs = [
   },
   {
     id: "white-label",
-    title: "White Label Solutions",
+    title: "White Label Partnerships",
     description:
       "License the My Perfect Meals platform to deliver a fully branded nutrition product under your own identity.",
     icon: Building2,

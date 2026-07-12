@@ -403,7 +403,7 @@ function saveProgress(data: SavedProgress) {
 export default function WhiteLabelSolutions() {
   const [location, setLocation] = useLocation();
   const isPublic = location.startsWith("/partners");
-  const exitPath = isPublic ? "/partners" : "/business-center";
+  const exitPath = isPublic ? "/partners" : "/business-center/partners";
 
   const saved = loadProgress();
   const [currentStage, setCurrentStage] = useState(saved?.currentStage ?? 0);
