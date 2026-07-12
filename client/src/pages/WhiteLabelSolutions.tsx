@@ -757,7 +757,7 @@ export default function WhiteLabelSolutions() {
               </div>
 
               <a
-                href="https://forms.gle/i6NsVnb3hirSgGTz5"
+                href="https://forms.gle/rko9vRTihcgVSAeJA"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block w-full py-4 rounded-xl font-semibold text-sm text-center bg-orange-600 text-white"
