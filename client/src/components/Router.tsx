@@ -1,4 +1,4 @@
-import React, { lazy, useCallback, useEffect, useRef, useState } from "react";
+import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { BUILDER_MAP, type BuilderKey } from "@/lib/builderMap";
 import GeneralNutritionBuilder from "@/pages/pro/GeneralNutritionBuilder";
@@ -374,6 +374,8 @@ import PartnerProgramsHub from "@/pages/PartnerProgramsHub";
 import FoundingPartnerProgram from "@/pages/FoundingPartnerProgram";
 import IndustryPartnerships from "@/pages/IndustryPartnerships";
 import WhiteLabelSolutions from "@/pages/WhiteLabelSolutions";
+import PublicPartnersHub from "@/pages/PublicPartnersHub";
+import PublicHealthcarePartnerships from "@/pages/PublicHealthcarePartnerships";
 import AffiliateOpportunities from "@/pages/AffiliateOpportunities";
 import AffiliatePathPage from "@/pages/AffiliatePathPage";
 import AffiliateProgramOverview from "@/pages/AffiliateProgramOverview";
@@ -537,6 +539,12 @@ export default function Router() {
     "/family-info",
     "/personal-guidance-info",
     "/performance/setup",
+    "/coach-corner/welcome",
+    "/coach-corner/intake",
+    "/coach-corner/complete",
+    "/coach-corner/home",
+    "/coach-corner/progress-slowed",
+    "/coach-corner/tired",
   ];
 
   const shouldShowBottomNav = !hideBottomNavRoutes.includes(location);
@@ -573,6 +581,7 @@ export default function Router() {
     "/trainer-welcome", "/physician-welcome",
     "/procare-info", "/family-info", "/personal-guidance-info",
     "/privacy", "/privacy-policy", "/terms", "/delete-account",
+    "/partners",
     "/profile", "/settings",
     "/home",
   ];
@@ -644,6 +653,13 @@ export default function Router() {
   return (
     <>
       <ScrollRestorer />
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center bg-black text-white/60 text-sm">
+            Loading...
+          </div>
+        }
+      >
       <Switch>
         {/* Root route — AppRouter handles redirect to /welcome, /onboarding, or /dashboard */}
         <Route path="/">{() => null}</Route>
@@ -683,6 +699,12 @@ export default function Router() {
         <Route path="/procare-certified" component={CertifiedProfessionalUnlock} />
         <Route path="/procare-training" component={ProCareTraining} />
         <Route path="/ace-profile" component={lazy(() => import("@/pages/AceProfilePage"))} />
+        <Route path="/coach-corner/welcome" component={lazy(() => import("@/pages/CoachCornerWelcome"))} />
+        <Route path="/coach-corner/intake" component={lazy(() => import("@/pages/CoachCornerIntake"))} />
+        <Route path="/coach-corner/complete" component={lazy(() => import("@/pages/CoachCornerComplete"))} />
+        <Route path="/coach-corner/home" component={lazy(() => import("@/pages/CoachCornerHome"))} />
+        <Route path="/coach-corner/progress-slowed" component={lazy(() => import("@/pages/CoachCornerProgressSlowed"))} />
+        <Route path="/coach-corner/tired" component={lazy(() => import("@/pages/CoachCornerTired"))} />
         {/* DELETED: CommunityTestPage, CommunityPage routes */}
         <Route path="/onboarding" component={SafeOnboarding} />
         <Route path="/onboarding-v2" component={SafeOnboardingV2} />
@@ -896,6 +918,12 @@ export default function Router() {
         <Route path="/business-center/industry" component={IndustryPartnerships} />
         <Route path="/business-center/white-label" component={WhiteLabelSolutions} />
         <Route path="/business-center/partnerships" component={BusinessCenterSection} />
+        {/* Public partner pages — no login required */}
+        <Route path="/partners" component={PublicPartnersHub} />
+        <Route path="/partners/founding" component={FoundingPartnerProgram} />
+        <Route path="/partners/industry" component={IndustryPartnerships} />
+        <Route path="/partners/healthcare" component={PublicHealthcarePartnerships} />
+        <Route path="/partners/white-label" component={WhiteLabelSolutions} />
         {/* Supplement Hub Routes */}
         {/* REMOVED: /supplement-hub-landing route (landing page not used - Copilot routes to /supplement-hub directly) */}
         <Route path="/supplement-hub" component={SupplementHub} />
@@ -908,6 +936,7 @@ export default function Router() {
         {/* 404 fallback */}
         <Route component={NotFound} />
       </Switch>
+      </Suspense>
       {!isDesktopView && shouldShowBottomNav && !showClinicianNav && <BottomNav />}
       {!isDesktopView && showClinicianNav && <StudioBottomNav />}
     </>

@@ -1,4 +1,6 @@
 - [Clinical Labs Phase 5 — Architecture](clinical-labs-phase5.md) — 7 new lab columns + hormone/thyroid subtype resolver pattern; drizzle-kit not installed, use migration script.
+- [drizzle-kit push instability](drizzle-kit-push-instability.md) — `db:push` can fail schema-pull with a zod error unrelated to your change; fall back to a small `IF NOT EXISTS` migration script instead of debugging the whole schema diff.
+- [Coach's Corner v1 intake](coach-corner-v1-intake.md) — behavioral intake reuses existing 5 flat coaching_profiles columns until Behavioral Variables spec is locked; do not add new columns for it prematurely.
 - [Express async middleware + sub-routers](express-async-subrouter-bug.md) — Express v4 won't await async middleware in app.use(path, asyncFn, router); fix by putting requireAuth inside the router itself.
 - [apiRequest returns parsed JSON](apiRequest-returns-parsed-json.md) — apiRequest() already calls res.json() internally; never call .json() on the result or it always throws and silently returns empty data.
 - [Affiliate Certification — PDF Certificate System](affiliate-cert-pdf.md) — pdfkit installed; certificate_name on user_certifications; signature drop-in at server/assets/cert-signature.png.
@@ -19,3 +21,7 @@
 - [Universal Modal System](universal-modal-system.md) — grid+gap-4 removed from dialog.tsx base; 6 typed components in universal-modal.tsx; UNIVERSAL_MODAL_SYSTEM.md is the authority; DialogContent import rule enforced.
 - [Entitlements computed from planLookupKey](entitlements-profile-fix.md) — DB entitlements column is empty for regular subscribers; profile endpoint must compute from PLAN_FEATURES, not raw DB column.
 - [ACE — Drizzle ORM rule for array columns](ace-drizzle-array-rule.md) — drizzle sql template expands JS arrays into multi-params; always use db.insert().values() for tables with text[] or JSONB columns.
+- [Coach's Corner — Canonical Architecture & V1 slice](coach-corner-v1-intake.md) — behavioral vars get own typed columns, never reuse legacy coaching_profiles array cols; V1 status + deferred scope.
+- [Router lazy routes need a Suspense boundary](router-lazy-suspense.md) — clicking into an uncached lazy(() => import(...)) route with no Suspense wrapper throws and trips the error boundary ("Something went wrong").
+- [Coach's Corner response pipeline layering](coach-corner-response-pipeline.md) — internal Intent/Science/Philosophy fields must stay separate in code but always render merged as one seamless coach message, never labeled UI sections.
+- [Coach Decision Engine architecture](coach-decision-engine.md) — shared situation-agnostic engine + per-situation adapters; new situations = new adapter files, never engine branching.

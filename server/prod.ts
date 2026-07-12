@@ -597,12 +597,13 @@ async function initializeApp() {
     app.use("/api/therapeutic", requireAuth, therapeuticSetupRouter);
 
     // Adaptive Coaching Engine (ACE) — Sprint 1+2+3
+    // Daily Check-In (aceCheckin) retired — replaced by Coach's Corner. Route moved to server/legacy/aceCheckin.ts.
     const aceProfilesRouter = (await import("./routes/aceProfiles")).default;
     const aceInterventionsRouter = (await import("./routes/aceInterventions")).default;
-    const aceCheckinRouter = (await import("./routes/aceCheckin")).default;
+    const coachCornerRouter = (await import("./routes/coachCorner")).default;
     app.use("/api/ace/profile", aceProfilesRouter);
     app.use("/api/ace/interventions", aceInterventionsRouter);
-    app.use("/api/ace/checkin", aceCheckinRouter);
+    app.use("/api/coach-corner", coachCornerRouter);
 
     console.log("✅ [INIT] Parity routes mounted");
 

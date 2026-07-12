@@ -60,7 +60,7 @@ import { TipsBanner } from "@/components/TipsBanner";
 import InspirationCaptureModal from "@/components/InspirationCaptureModal";
 import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
 import { WhatsNewCard } from "@/components/WhatsNewCard";
-import { DailyCheckinCard } from "@/components/ace/DailyCheckinCard";
+import CoachCornerCard from "@/components/ace/CoachCornerCard";
 
 interface FeatureCard {
   title: string;
@@ -776,7 +776,7 @@ export default function DashboardNew() {
 
         <NutritionPersonalizationSummaryCard />
 
-        <DailyCheckinCard />
+        <CoachCornerCard />
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}

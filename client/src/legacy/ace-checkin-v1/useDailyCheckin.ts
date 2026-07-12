@@ -1,3 +1,12 @@
+/**
+ * ⚠️ DEPRECATED — ACE Daily Check-In v1
+ *
+ * Status: Retired, unmounted, kept only as archived reference.
+ * Replaced by: Coach's Corner (client/src/pages/CoachCorner*.tsx)
+ *
+ * Do NOT import or use these hooks. See DailyCheckinCard.tsx in this same
+ * folder for full deprecation rationale.
+ */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 

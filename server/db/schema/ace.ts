@@ -17,6 +17,41 @@ export const coachingProfiles = pgTable("coaching_profiles", {
   motivations: text("motivations").array(),
   lifestyleFlags: text("lifestyle_flags").array(),
   biggestChallenges: text("biggest_challenges").array(),
+  coachProfileCompletedAt: timestamp("coach_profile_completed_at", { withTimezone: true }),
+  // Coach's Corner — Living Behavioral Profile (typed behavioral variables).
+  // These are read by the Coach's Corner Decision Engine. Do NOT reuse the
+  // legacy lifestyleFlags/biggestChallenges arrays above for new behavioral
+  // variables — each variable gets its own typed column.
+  setbackResponse: text("setback_response"),
+  stressResponse: text("stress_response"),
+  recoveryPreference: text("recovery_preference"),
+  // Coach's Corner Onboarding V1 — additional behavioral variables (see
+  // shared/coachCornerTypes.ts CoachCornerFieldTarget for the full list).
+  // This is a first-pass question set, expected to be pruned once the Core
+  // Coaching Action Library / Recommendation Library are locked.
+  offTrackCauses: text("off_track_causes").array(),
+  progressMindset: text("progress_mindset"),
+  trustStyle: text("trust_style"),
+  overwhelmResponse: text("overwhelm_response"),
+  decisionStyle: text("decision_style"),
+  eatingDriver: text("eating_driver"),
+  cravingResponse: text("craving_response"),
+  hardestPart: text("hardest_part"),
+  activityLevel: text("activity_level"),
+  activeDaysPerWeek: smallint("active_days_per_week"),
+  planStartStage: text("plan_start_stage"),
+  motivationDriver: text("motivation_driver"),
+  goalType: text("goal_type"),
+  // Coach's Corner — last "My progress has slowed" coaching loop result,
+  // kept for continuity/audit of what Chef last told the user.
+  progressSlowedLastIntent: text("progress_slowed_last_intent"),
+  progressSlowedLastRecommendation: text("progress_slowed_last_recommendation"),
+  progressSlowedLastAt: timestamp("progress_slowed_last_at", { withTimezone: true }),
+  // Coach's Corner — last "I'm tired" coaching loop result, same continuity
+  // pattern as the progress-slowed fields above.
+  tiredLastIntent: text("tired_last_intent"),
+  tiredLastRecommendation: text("tired_last_recommendation"),
+  tiredLastAt: timestamp("tired_last_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
