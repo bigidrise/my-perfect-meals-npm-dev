@@ -41,7 +41,7 @@ const programs = [
     description:
       "For physicians, dietitians, hospitals, and clinical organizations serving patients through nutrition.",
     icon: Stethoscope,
-    route: "/business-center/partnerships",
+    route: "/business-center/healthcare",
     accent: "bg-white/8",
     iconColor: "text-orange-400",
     border: "border-white/10",

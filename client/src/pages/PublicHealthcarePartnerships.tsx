@@ -31,7 +31,10 @@ const WHAT_HAPPENS = [
 ];
 
 export default function PublicHealthcarePartnerships() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+  const isPublicRoute = location.startsWith("/partners");
+  const backDest = isPublicRoute ? "/partners" : "/business-center/partners";
+  const backLabel = isPublicRoute ? "Partner Programs" : "Partner Programs";
 
   return (
     <motion.div
@@ -47,11 +50,11 @@ export default function PublicHealthcarePartnerships() {
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
           <button
-            onClick={() => setLocation("/partners")}
+            onClick={() => setLocation(backDest)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
           >
             <ArrowLeft className="h-4 w-4" />
-            Partner Programs
+            {backLabel}
           </button>
           <h1 className="text-base font-bold text-white truncate">Healthcare & Clinical</h1>
         </div>
@@ -211,7 +214,7 @@ export default function PublicHealthcarePartnerships() {
         >
           <p className="text-gray-500 text-xs mb-2">Looking for a different partnership type?</p>
           <button
-            onClick={() => setLocation("/partners")}
+            onClick={() => setLocation(backDest)}
             className="text-orange-400 text-xs font-medium underline underline-offset-2"
           >
             ← View all partner programs
