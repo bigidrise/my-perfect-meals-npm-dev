@@ -21,11 +21,11 @@ export default function CreatorStudioLanding() {
       <div className="px-6 pt-12 max-w-lg mx-auto">
 
         <button
-          onClick={() => setLocation("/lifestyle")}
-          className="flex items-center gap-2 text-white/50 hover:text-white/80 transition-colors text-sm mb-8"
+          onClick={() => setLocation("/business-center")}
+          className="flex items-center gap-1.5 text-orange-400 text-sm font-medium mb-8"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back
+          Business Suite
         </button>
 
         <div className="text-center mb-10">

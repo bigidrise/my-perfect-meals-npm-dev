@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
-import { ArrowRight, Play, Pause, GraduationCap, User, Rocket, CheckCircle2 } from "lucide-react";
+import { ArrowRight, ArrowLeft, Play, Pause, GraduationCap, User, Rocket, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { voiceManager } from "@/voice/VoiceManager";
 import { PillButton } from "@/components/ui/pill-button";
@@ -120,6 +120,15 @@ export default function ProCareWelcome() {
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white flex flex-col">
       <div className="flex-1 overflow-y-auto px-4 pb-36">
         <div className="pt-10 pb-2" />
+
+        {/* In-content back button — visible on both mobile and desktop */}
+        <button
+          onClick={() => setLocation("/business-center")}
+          className="flex items-center gap-1.5 text-orange-400 text-sm font-medium mb-4"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Business Suite
+        </button>
 
         {/* Hero */}
         <div className="flex flex-col items-center mb-6 text-center">
