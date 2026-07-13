@@ -558,7 +558,7 @@ export default function WhiteLabelSolutions() {
 
         {/* Application stage */}
         {(stage as any).isApplication && (
-          <div className="mt-2 space-y-4 pb-8">
+          <div className="mt-2 space-y-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 2rem)" }}>
             <div className="space-y-3">
               <p className="text-gray-500 text-xs uppercase tracking-wider font-semibold">
                 Confirm all {(stage as any).checkboxes.length} statements before applying
@@ -616,7 +616,10 @@ export default function WhiteLabelSolutions() {
 
       {/* Acknowledgment + Continue — non-application stages */}
       {!(stage as any).isApplication && (
-        <div className="px-4 pb-10 pt-2 flex-shrink-0 border-t border-white/10 max-w-2xl mx-auto w-full">
+        <div
+          className="px-4 pt-2 flex-shrink-0 border-t border-white/10 max-w-2xl mx-auto w-full"
+          style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 2.5rem)" }}
+        >
           <button
             onClick={() => toggleAck(currentStage)}
             className={`w-full text-left flex items-start gap-3 rounded-xl border p-3 mt-4 mb-3 transition-colors ${
