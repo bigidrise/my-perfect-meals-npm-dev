@@ -212,6 +212,15 @@ export default function PublicHealthcarePartnerships() {
         className="px-4 max-w-2xl mx-auto space-y-5"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
       >
+        {/* In-content back button — always visible on desktop where fixed header is trapped */}
+        <button
+          onClick={() => setLocation(backDest)}
+          className="flex items-center gap-1.5 text-orange-400 text-sm font-medium"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Partner Programs
+        </button>
+
         {/* Hero */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}

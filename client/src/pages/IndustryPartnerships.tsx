@@ -138,6 +138,15 @@ export default function IndustryPartnerships() {
 
       <div className="pt-16 pb-24 px-4 max-w-lg mx-auto space-y-5">
 
+        {/* In-content back button — always visible on desktop where fixed header is trapped */}
+        <button
+          onClick={() => setLocation(backPath)}
+          className="flex items-center gap-1.5 text-orange-400 text-sm font-medium"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Partner Programs
+        </button>
+
         {/* Hero */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
