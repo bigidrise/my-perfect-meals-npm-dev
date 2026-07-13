@@ -13,6 +13,7 @@ import { getActiveNutritionContext } from "../services/nutritionContext/getActiv
 import { scoreRestaurantsForDiet, buildDietQuery } from "../services/restaurantScorer";
 import { zipToCoordinates } from "../services/zipToCoordsService";
 import { processMealImageForSave } from "../services/imageLifecycle";
+import type { AuthenticatedRequest } from "../middleware/requireAuth";
 
 const router = Router();
 
@@ -20,7 +21,8 @@ const router = Router();
 // Uses shared Restaurant Resolver for location logic
 router.post("/guide", async (req, res) => {
   try {
-    const { restaurantName, craving, cuisine, zipCode, userId, dietaryRestrictions } = req.body;
+    const userId = (req as AuthenticatedRequest).authUser.id;
+    const { restaurantName, craving, cuisine, zipCode, dietaryRestrictions } = req.body;
     
     if (!restaurantName || !craving) {
       return res.status(400).json({ 
@@ -39,16 +41,14 @@ router.post("/guide", async (req, res) => {
     const generationStart = Date.now();
 
     let user = undefined;
-    if (userId) {
-      try {
-        const [foundUser] = await db.select().from(users).where(eq(users.id, userId));
-        if (foundUser) {
-          user = foundUser;
-          console.log(`👤 [Guide] User profile loaded for meal generation`);
-        }
-      } catch (userError) {
-        console.warn(`⚠️ Could not fetch user ${userId}:`, userError);
+    try {
+      const [foundUser] = await db.select().from(users).where(eq(users.id, userId));
+      if (foundUser) {
+        user = foundUser;
+        console.log(`👤 [Guide] User profile loaded for meal generation`);
       }
+    } catch (userError) {
+      console.warn(`⚠️ Could not fetch user profile:`, userError);
     }
 
     // Step 1: Use shared resolver to find the restaurant
@@ -127,7 +127,7 @@ router.post("/guide", async (req, res) => {
     });
 
     // Fire-and-forget: persist session to DB with permanent image URLs
-    if (userId && recommendations.length > 0) {
+    if (recommendations.length > 0) {
       (async () => {
         try {
           const mealsWithImages = await Promise.all(
@@ -164,13 +164,10 @@ router.post("/guide", async (req, res) => {
   }
 });
 
-// Fetch the most recent restaurant guide session for a user
+// Fetch the most recent restaurant guide session for the authenticated user
 router.get("/latest-session", async (req, res) => {
   try {
-    const { userId } = req.query;
-    if (!userId || typeof userId !== "string") {
-      return res.json({ session: null });
-    }
+    const userId = (req as AuthenticatedRequest).authUser.id;
     const [session] = await db
       .select()
       .from(restaurantGuideSessions)
@@ -187,7 +184,8 @@ router.get("/latest-session", async (req, res) => {
 // Restaurant meal generation endpoint - uses AI with fallback
 router.post("/analyze-menu", async (req, res) => {
   try {
-    const { restaurantName, cuisine, userId } = req.body;
+    const userId = (req as AuthenticatedRequest).authUser.id;
+    const { restaurantName, cuisine } = req.body;
     
     if (!restaurantName || !cuisine) {
       return res.status(400).json({ 
@@ -199,17 +197,14 @@ router.post("/analyze-menu", async (req, res) => {
     
     // Fetch user data for health-based personalization
     let user = undefined;
-    if (userId) {
-      try {
-        const [foundUser] = await db.select().from(users).where(eq(users.id, userId));
-        if (foundUser) {
-          user = foundUser;
-          console.log(`👤 User medical profile loaded`);
-        }
-      } catch (userError) {
-        console.warn(`⚠️ Could not fetch user ${userId}:`, userError);
-        // Continue without user data - generator will work without it
+    try {
+      const [foundUser] = await db.select().from(users).where(eq(users.id, userId));
+      if (foundUser) {
+        user = foundUser;
+        console.log(`👤 User medical profile loaded`);
       }
+    } catch (userError) {
+      console.warn(`⚠️ Could not fetch user profile:`, userError);
     }
     
     // ── Unified nutrition context (protocol + active builder) ─────────────────
@@ -320,10 +315,11 @@ router.get("/test-key", async (_req, res) => {
 
 // Diet-aware restaurant finder: scores nearby restaurants for a user's dietary identity
 // POST /api/restaurants/find-nearby
-// Body: { zipCode, diet, userId? }
+// Body: { zipCode, diet }
 router.post("/find-nearby", async (req, res) => {
   try {
-    const { zipCode, diet, userId } = req.body;
+    const userId = (req as AuthenticatedRequest).authUser.id;
+    const { zipCode, diet } = req.body;
 
     if (!zipCode || !/^\d{5}$/.test(zipCode)) {
       return res.status(400).json({ error: "Valid 5-digit ZIP code is required" });
@@ -339,14 +335,12 @@ router.post("/find-nearby", async (req, res) => {
       return res.status(400).json({ error: `Could not resolve ZIP code ${zipCode}` });
     }
 
-    // Load cuisine preference from user profile when userId is provided
+    // Load cuisine preference from authenticated user profile
     let cuisinePreference: string | null = null;
-    if (userId) {
-      try {
-        const [foundUser] = await db.select({ cuisinePreference: users.cuisinePreference }).from(users).where(eq(users.id, userId)).limit(1);
-        if (foundUser?.cuisinePreference) cuisinePreference = foundUser.cuisinePreference;
-      } catch {}
-    }
+    try {
+      const [foundUser] = await db.select({ cuisinePreference: users.cuisinePreference }).from(users).where(eq(users.id, userId)).limit(1);
+      if (foundUser?.cuisinePreference) cuisinePreference = foundUser.cuisinePreference;
+    } catch {}
 
     const radiusMeters = Math.round(8 * 1609.34);
     const dietStr = (diet || "general").toString();
