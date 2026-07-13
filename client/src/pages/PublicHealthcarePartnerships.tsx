@@ -7,7 +7,7 @@ import {
 import { motion } from "framer-motion";
 import { BC_HEADER } from "@/components/BusinessCenterShell";
 
-const CONSULTATION_FORM = "https://forms.gle/XDz7Yvv4GQdPbfaUA";
+const CONSULTATION_FORM = "https://forms.gle/pKoWYSdTTFGsKnWd9";
 
 const WHO_FOR = [
   "Physicians and medical practices",
