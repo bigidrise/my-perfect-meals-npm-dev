@@ -124,7 +124,7 @@ export default function IndustryPartnerships() {
       className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black"
     >
       {/* Header */}
-      <div className={BC_HEADER}>
+      <div className={BC_HEADER} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="flex items-center gap-3 px-4 py-3">
           <button
             onClick={() => setLocation(backPath)}
@@ -136,7 +136,10 @@ export default function IndustryPartnerships() {
         </div>
       </div>
 
-      <div className="pt-16 pb-24 px-4 max-w-lg mx-auto space-y-5">
+      <div
+        className="pb-24 px-4 max-w-lg mx-auto space-y-5"
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 4rem)" }}
+      >
 
         {/* In-content back button — always visible on desktop where fixed header is trapped */}
         <button
