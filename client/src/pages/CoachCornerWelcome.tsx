@@ -94,7 +94,7 @@ export default function CoachCornerWelcome() {
     <div className="min-h-screen bg-gradient-to-b from-black/60 via-orange-600 to-black/80 text-white flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
       <div className="flex items-center px-4 pt-4 pb-2">
         <button
-          onClick={() => history.back()}
+          onClick={() => setLocation("/dashboard")}
           className="w-9 h-9 rounded-full bg-black/40 border border-white/10 flex items-center justify-center"
         >
           <ChevronLeft className="w-5 h-5 text-white/80" />
