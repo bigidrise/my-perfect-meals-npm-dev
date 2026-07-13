@@ -1,23 +1,37 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, MapPin, Send, Plane, Palmtree, Ship, Star, ChevronRight } from "lucide-react";
+import { ArrowLeft, MapPin, Send, Plane, Palmtree, Ship, Star, ChevronRight, ChevronDown, X, Search, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
-import { PillButton } from "@/components/ui/pill-button";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 
-const QUICK_VENUES = [
-  { label: "Disney World", emoji: "🏰" },
-  { label: "Disneyland", emoji: "🎡" },
-  { label: "Universal Studios", emoji: "🎬" },
-  { label: "LAX Airport", emoji: "✈️" },
-  { label: "DFW Airport", emoji: "✈️" },
-  { label: "Royal Caribbean Cruise", emoji: "🚢" },
-  { label: "Six Flags", emoji: "🎢" },
-  { label: "A resort", emoji: "🏖️" },
-];
+interface CatalogZone {
+  id: string;
+  name: string;
+  type: string;
+}
+
+interface CatalogVenue {
+  id: string;
+  name: string;
+  type: string;
+  aliases: string[];
+  zones: CatalogZone[];
+}
+
+interface DiscoveryResult {
+  source: "catalog" | "google" | "none";
+  found: boolean;
+  venueId?: string;
+  placeId?: string;
+  name: string;
+  type: string;
+  address?: string;
+  zones: CatalogZone[];
+  confidence: "high" | "medium" | "low";
+}
 
 interface BestChoice {
   name: string;
@@ -33,6 +47,7 @@ interface AvoidItem {
 interface GetawayResult {
   venue: string;
   venueType: string;
+  zone?: string | null;
   bestChoices: BestChoice[];
   whyTheyFit: string[];
   avoid: AvoidItem[];
@@ -45,6 +60,48 @@ interface PersistedState {
   message: string;
 }
 
+const QUICK_VENUES = [
+  { label: "Disney World", emoji: "🏰", hint: "Magic Kingdom" },
+  { label: "Disneyland", emoji: "🎡", hint: "Anaheim, CA" },
+  { label: "Universal Studios", emoji: "🎬", hint: "Orlando" },
+  { label: "LAX Airport", emoji: "✈️", hint: "Los Angeles" },
+  { label: "DFW Airport", emoji: "✈️", hint: "Dallas/Fort Worth" },
+  { label: "Royal Caribbean Cruise", emoji: "🚢", hint: "Cruise ship" },
+  { label: "Six Flags Over Texas", emoji: "🎢", hint: "Arlington, TX" },
+  { label: "A resort", emoji: "🏖️", hint: "Beach or mountain" },
+];
+
+const VENUE_ALIAS_MAP: Record<string, string> = {
+  "Disney World": "disney-magic-kingdom",
+  "Disneyland": "disneyland-ca",
+  "Universal Studios": "universal-studios-orlando",
+  "LAX Airport": "lax-airport",
+  "DFW Airport": "dfw-airport",
+  "Royal Caribbean Cruise": "royal-caribbean-cruise",
+  "Six Flags Over Texas": "six-flags-over-texas",
+};
+
+const ZONE_TYPE_LABELS: Record<string, string> = {
+  terminal: "terminal",
+  concourse: "concourse",
+  airside: "airside",
+  satellite: "satellite",
+  land: "area",
+  lot: "lot",
+  deck: "dining area",
+  entertainment_district: "area",
+};
+
+const VENUE_TYPE_ZONE_LABEL: Record<string, string> = {
+  airport: "terminal",
+  theme_park: "area",
+  stadium: "section",
+  cruise_ship: "deck",
+  resort: "area",
+  mall: "area",
+  other: "area",
+};
+
 function getStorageKey(userId?: number | string) {
   return `mpm.getaway.lastResult.v2${userId ? `.${userId}` : ""}`;
 }
@@ -53,6 +110,7 @@ export default function MyPerfectGetaway() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const isDesktop = useIsDesktop();
+
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GetawayResult | null>(null);
@@ -61,7 +119,29 @@ export default function MyPerfectGetaway() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // ── Restore persisted result on mount ──────────────────────────────────
+  // Catalog venues for quick-start pill zone lookup
+  const [venues, setVenues] = useState<CatalogVenue[]>([]);
+
+  // Catalog zone picker state (quick-start pills)
+  const [pendingVenue, setPendingVenue] = useState<CatalogVenue | null>(null);
+  const [pendingVenueLabel, setPendingVenueLabel] = useState<string>("");
+  const [selectedZone, setSelectedZone] = useState<CatalogZone | null>(null);
+  const [showZonePicker, setShowZonePicker] = useState(false);
+
+  // Venue search state (search-any-venue flow)
+  const [showVenueSearch, setShowVenueSearch] = useState(false);
+  const [venueSearchText, setVenueSearchText] = useState("");
+  const [venueSearchLoading, setVenueSearchLoading] = useState(false);
+  const [discoveryResult, setDiscoveryResult] = useState<DiscoveryResult | null>(null);
+  const venueSearchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch(apiUrl("/api/getaway/venues"), { headers: getAuthHeaders() })
+      .then(r => r.json())
+      .then(data => { if (data.venues) setVenues(data.venues); })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     try {
       const key = getStorageKey(user?.id);
@@ -73,9 +153,7 @@ export default function MyPerfectGetaway() {
           setMessage(saved.message || "");
         }
       }
-    } catch {
-      // ignore parse errors
-    }
+    } catch {}
   }, [user?.id]);
 
   useEffect(() => {
@@ -91,8 +169,25 @@ export default function MyPerfectGetaway() {
     }
   }, [result]);
 
-  // ── Core submit — accepts the message string directly ──────────────────
-  const submitMessage = useCallback(async (msg: string) => {
+  useEffect(() => {
+    if (showVenueSearch && venueSearchRef.current) {
+      setTimeout(() => venueSearchRef.current?.focus(), 100);
+    }
+  }, [showVenueSearch]);
+
+  const submitMessage = useCallback(async (
+    msg: string,
+    venueId?: string,
+    zoneId?: string,
+    discoveredVenuePayload?: {
+      name: string;
+      type: string;
+      address?: string;
+      placeId?: string;
+      zoneName?: string;
+      zoneType?: string;
+    }
+  ) => {
     const trimmed = msg.trim();
     if (!trimmed || loading) return;
 
@@ -100,6 +195,9 @@ export default function MyPerfectGetaway() {
     setError(null);
     setResult(null);
     setProgress(0);
+    setShowZonePicker(false);
+    setShowVenueSearch(false);
+    setDiscoveryResult(null);
 
     const progressInterval = setInterval(() => {
       setProgress(p => {
@@ -109,31 +207,33 @@ export default function MyPerfectGetaway() {
     }, 400);
 
     try {
+      const body: Record<string, any> = { message: trimmed };
+      if (venueId) body.venueId = venueId;
+      if (zoneId) body.zoneId = zoneId;
+      if (discoveredVenuePayload) body.discoveredVenue = discoveredVenuePayload;
+
       const res = await fetch(apiUrl("/api/getaway/coach"), {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ userId: user?.id, message: trimmed }),
+        body: JSON.stringify(body),
       });
 
       clearInterval(progressInterval);
       setProgress(100);
 
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || "Something went wrong");
+        const body2 = await res.json().catch(() => ({}));
+        throw new Error(body2.error || "Something went wrong");
       }
 
       const data: GetawayResult = await res.json();
       setTimeout(() => {
         setResult(data);
         setLoading(false);
-        // Persist so navigating away and back restores the result
         try {
           const key = getStorageKey(user?.id);
           sessionStorage.setItem(key, JSON.stringify({ result: data, message: trimmed }));
-        } catch {
-          // storage full or unavailable — not critical
-        }
+        } catch {}
       }, 300);
     } catch (err: any) {
       clearInterval(progressInterval);
@@ -142,14 +242,97 @@ export default function MyPerfectGetaway() {
     }
   }, [loading, user?.id]);
 
-  // ── Quick venue tap → auto-submit immediately ──────────────────────────
-  const handleQuickVenue = (venue: string) => {
-    const msg = `I'm at ${venue}. What should I eat?`;
+  const handleQuickVenue = (label: string) => {
+    const venueId = VENUE_ALIAS_MAP[label];
+    const catalogVenue = venueId ? venues.find(v => v.id === venueId) : null;
+
+    if (catalogVenue && catalogVenue.zones.length > 0) {
+      setPendingVenue(catalogVenue);
+      setPendingVenueLabel(label);
+      setSelectedZone(null);
+      setShowZonePicker(true);
+      setShowVenueSearch(false);
+      return;
+    }
+
+    const msg = `I'm at ${label}. What should I eat?`;
     setMessage(msg);
-    submitMessage(msg);
+    submitMessage(msg, venueId || undefined);
   };
 
-  // ── Manual send button / Enter key ────────────────────────────────────
+  const handleZoneSelect = (zone: CatalogZone | null) => {
+    if (!pendingVenue) return;
+    setSelectedZone(zone);
+    const venueName = pendingVenueLabel;
+    const zonePart = zone ? `, ${zone.name}` : "";
+    const msg = `I'm at ${venueName}${zonePart}. What should I eat?`;
+    setMessage(msg);
+    submitMessage(msg, pendingVenue.id, zone?.id);
+  };
+
+  const handleDiscoveredZoneSelect = (zone: CatalogZone | null) => {
+    if (!discoveryResult) return;
+    const zonePart = zone ? `, ${zone.name}` : "";
+    const msg = `I'm at ${discoveryResult.name}${zonePart}. What should I eat?`;
+    setMessage(msg);
+
+    if (discoveryResult.source === "catalog" && discoveryResult.venueId) {
+      submitMessage(msg, discoveryResult.venueId, zone?.id);
+    } else {
+      submitMessage(msg, undefined, undefined, {
+        name: discoveryResult.name,
+        type: discoveryResult.type,
+        address: discoveryResult.address,
+        placeId: discoveryResult.placeId,
+        zoneName: zone?.name,
+        zoneType: zone?.type,
+      });
+    }
+  };
+
+  const handleVenueSearch = async () => {
+    const q = venueSearchText.trim();
+    if (!q || venueSearchLoading) return;
+
+    setVenueSearchLoading(true);
+    setDiscoveryResult(null);
+
+    try {
+      const res = await fetch(
+        apiUrl(`/api/getaway/venues/discover?q=${encodeURIComponent(q)}`),
+        { headers: getAuthHeaders() }
+      );
+      const data: DiscoveryResult = await res.json();
+      setDiscoveryResult(data);
+
+      if (data.found && data.zones.length === 0) {
+        const msg = `I'm at ${data.name}. What should I eat?`;
+        setMessage(msg);
+        if (data.source === "catalog" && data.venueId) {
+          submitMessage(msg, data.venueId);
+        } else {
+          submitMessage(msg, undefined, undefined, {
+            name: data.name,
+            type: data.type,
+            address: data.address,
+            placeId: data.placeId,
+          });
+        }
+      }
+    } catch {
+      setDiscoveryResult({ source: "none", found: false, name: q, type: "other", zones: [], confidence: "low" });
+    } finally {
+      setVenueSearchLoading(false);
+    }
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleVenueSearch();
+    }
+  };
+
   const handleSubmit = () => submitMessage(message);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -164,13 +347,31 @@ export default function MyPerfectGetaway() {
     setMessage("");
     setError(null);
     setProgress(0);
+    setPendingVenue(null);
+    setSelectedZone(null);
+    setShowZonePicker(false);
+    setShowVenueSearch(false);
+    setVenueSearchText("");
+    setDiscoveryResult(null);
     try {
       sessionStorage.removeItem(getStorageKey(user?.id));
-    } catch {
-      // ignore
-    }
+    } catch {}
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  const zoneTypeLabel = pendingVenue
+    ? ZONE_TYPE_LABELS[pendingVenue.zones[0]?.type] ?? "area"
+    : "area";
+
+  const discoveryZoneLabel = discoveryResult
+    ? VENUE_TYPE_ZONE_LABEL[discoveryResult.type] ?? "area"
+    : "area";
+
+  const venueSourceBadge = discoveryResult?.source === "google"
+    ? "Identified via Google Maps"
+    : discoveryResult?.source === "catalog"
+    ? "In our curated catalog"
+    : null;
 
   return (
     <motion.div
@@ -179,7 +380,6 @@ export default function MyPerfectGetaway() {
       transition={{ duration: 0.5 }}
       className="min-h-screen bg-gradient-to-br from-black via-orange-950/40 to-black pb-36"
     >
-      {/* Header */}
       {!isDesktop && (
         <div
           className="fixed top-0 left-0 right-0 z-40 bg-black/50 backdrop-blur-lg border-b border-orange-500/20"
@@ -244,7 +444,7 @@ export default function MyPerfectGetaway() {
           </div>
         </div>
 
-        {!result && (
+        {!result && !showZonePicker && !showVenueSearch && !discoveryResult && (
           <>
             {/* Input */}
             <div className="mb-4">
@@ -275,22 +475,39 @@ export default function MyPerfectGetaway() {
               </p>
             </div>
 
-            {/* Quick venue pills — tap to auto-submit */}
-            <div className="mb-6">
+            {/* Quick venue pills */}
+            <div className="mb-4">
               <p className="text-xs text-white/50 mb-2 ml-1">QUICK START — TAP TO GO</p>
               <div className="flex flex-wrap gap-2">
-                {QUICK_VENUES.map(v => (
-                  <button
-                    key={v.label}
-                    onClick={() => handleQuickVenue(v.label)}
-                    disabled={loading}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/8 border border-white/15 rounded-full text-xs text-white/80 transition-all active:scale-95 active:bg-orange-600/20 active:border-orange-500/30 active:text-orange-300 disabled:opacity-40"
-                  >
-                    <span>{v.emoji}</span>
-                    <span>{v.label}</span>
-                  </button>
-                ))}
+                {QUICK_VENUES.map(v => {
+                  const venueId = VENUE_ALIAS_MAP[v.label];
+                  const hasZones = venueId ? (venues.find(vn => vn.id === venueId)?.zones.length ?? 0) > 0 : false;
+                  return (
+                    <button
+                      key={v.label}
+                      onClick={() => handleQuickVenue(v.label)}
+                      disabled={loading}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/8 border border-white/15 rounded-full text-xs text-white/80 transition-all active:scale-95 active:bg-orange-600/20 active:border-orange-500/30 active:text-orange-300 disabled:opacity-40"
+                    >
+                      <span>{v.emoji}</span>
+                      <span>{v.label}</span>
+                      {hasZones && <ChevronDown className="h-3 w-3 text-white/40 flex-shrink-0" />}
+                    </button>
+                  );
+                })}
               </div>
+            </div>
+
+            {/* Search any venue */}
+            <div className="mb-6">
+              <button
+                onClick={() => setShowVenueSearch(true)}
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/6 border border-white/12 text-white/60 text-xs font-medium transition-all active:bg-orange-600/15 active:border-orange-500/25 active:text-orange-300 disabled:opacity-40"
+              >
+                <Search className="h-3.5 w-3.5" />
+                Search any airport, park, resort, or stadium
+              </button>
             </div>
 
             {/* How it works */}
@@ -313,6 +530,184 @@ export default function MyPerfectGetaway() {
             </div>
           </>
         )}
+
+        {/* Venue Search Panel */}
+        <AnimatePresence>
+          {showVenueSearch && !result && !loading && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.25 }}
+              className="rounded-2xl bg-black/50 border border-orange-500/25 overflow-hidden"
+            >
+              <div className="px-4 py-3.5 border-b border-orange-500/15 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-orange-300 font-semibold uppercase tracking-wide mb-0.5">
+                    Venue Search
+                  </p>
+                  <p className="text-white text-sm font-bold">Where are you headed?</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowVenueSearch(false);
+                    setVenueSearchText("");
+                    setDiscoveryResult(null);
+                  }}
+                  className="p-1.5 rounded-lg bg-white/8 text-white/60"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="px-4 py-4">
+                <div className="relative mb-3">
+                  <input
+                    ref={venueSearchRef}
+                    type="text"
+                    value={venueSearchText}
+                    onChange={e => {
+                      setVenueSearchText(e.target.value);
+                      setDiscoveryResult(null);
+                    }}
+                    onKeyDown={handleSearchKeyDown}
+                    placeholder="Kennedy Airport, Six Flags, Gaylord Texan…"
+                    className="w-full bg-black/40 border border-orange-500/30 rounded-xl pl-4 pr-12 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-orange-400/60 focus:ring-1 focus:ring-orange-400/30"
+                    disabled={venueSearchLoading}
+                  />
+                  <button
+                    onClick={handleVenueSearch}
+                    disabled={!venueSearchText.trim() || venueSearchLoading}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-orange-600 text-white disabled:opacity-40"
+                  >
+                    {venueSearchLoading
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <Search className="h-4 w-4" />
+                    }
+                  </button>
+                </div>
+                <p className="text-xs text-white/40">
+                  Type any venue — we'll identify it and help you navigate your options.
+                </p>
+              </div>
+
+              {/* Discovery result — zone picker */}
+              {discoveryResult && discoveryResult.found && discoveryResult.zones.length > 0 && (
+                <div className="border-t border-orange-500/15 px-4 py-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <MapPin className="h-3.5 w-3.5 text-orange-400 flex-shrink-0" />
+                    <div>
+                      <p className="text-white text-sm font-bold leading-tight">{discoveryResult.name}</p>
+                      {discoveryResult.address && (
+                        <p className="text-white/40 text-xs leading-tight mt-0.5">{discoveryResult.address}</p>
+                      )}
+                    </div>
+                  </div>
+                  {venueSourceBadge && (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/8 border border-white/10 mb-3">
+                      <span className="text-white/50 text-[10px]">{venueSourceBadge}</span>
+                    </div>
+                  )}
+                  <p className="text-xs text-orange-200 font-semibold mb-2.5">
+                    Which {discoveryZoneLabel} are you in?
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {discoveryResult.zones.map(zone => (
+                      <button
+                        key={zone.id}
+                        onClick={() => handleDiscoveredZoneSelect(zone)}
+                        className="px-3 py-1.5 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-100 font-medium transition-all active:scale-95 active:bg-orange-600/50"
+                      >
+                        {zone.name}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => handleDiscoveredZoneSelect(null)}
+                    className="mt-3 w-full py-2.5 rounded-xl bg-white/6 border border-white/10 text-white/55 text-xs"
+                  >
+                    Not sure — skip and show all options
+                  </button>
+                </div>
+              )}
+
+              {/* Discovery result — not found */}
+              {discoveryResult && !discoveryResult.found && (
+                <div className="border-t border-orange-500/15 px-4 py-4">
+                  <p className="text-white/60 text-xs mb-3">
+                    We couldn't find that venue. Your coach can still help — just describe where you are.
+                  </p>
+                  <button
+                    onClick={() => {
+                      const msg = `I'm at ${venueSearchText.trim()}. What should I eat?`;
+                      setMessage(msg);
+                      setShowVenueSearch(false);
+                      setDiscoveryResult(null);
+                      submitMessage(msg);
+                    }}
+                    className="w-full py-2.5 rounded-xl bg-orange-600 text-white text-xs font-semibold active:scale-95 transition-transform"
+                  >
+                    Ask the coach anyway
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Catalog Zone Picker (quick-start pills) */}
+        <AnimatePresence>
+          {showZonePicker && pendingVenue && !loading && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.25 }}
+              className="rounded-2xl bg-black/50 border border-orange-500/25 overflow-hidden"
+            >
+              <div className="px-4 py-3.5 border-b border-orange-500/15 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-orange-300 font-semibold uppercase tracking-wide mb-0.5">
+                    {pendingVenueLabel}
+                  </p>
+                  <p className="text-white text-sm font-bold">
+                    Which {zoneTypeLabel} are you in?
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowZonePicker(false);
+                    setPendingVenue(null);
+                  }}
+                  className="p-1.5 rounded-lg bg-white/8 text-white/60"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="px-4 py-4">
+                <div className="flex flex-wrap gap-2">
+                  {pendingVenue.zones.map(zone => (
+                    <button
+                      key={zone.id}
+                      onClick={() => handleZoneSelect(zone)}
+                      className="px-3 py-1.5 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-100 font-medium transition-all active:scale-95 active:bg-orange-600/50"
+                    >
+                      {zone.name}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => handleZoneSelect(null)}
+                  className="mt-3 w-full py-2.5 rounded-xl bg-white/6 border border-white/10 text-white/55 text-xs"
+                >
+                  Not sure — skip and show all options
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Loading */}
         <AnimatePresence>
@@ -362,12 +757,17 @@ export default function MyPerfectGetaway() {
               transition={{ duration: 0.5 }}
               className="space-y-4"
             >
-              {/* Venue badge */}
-              <div className="flex items-center gap-2">
+              {/* Venue + zone badge row */}
+              <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-500/15 border border-orange-500/30 rounded-full">
                   <MapPin className="h-3 w-3 text-orange-400" />
                   <span className="text-orange-200 text-xs font-semibold">{result.venue}</span>
                 </div>
+                {result.zone && (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/8 border border-white/15 rounded-full">
+                    <span className="text-white/70 text-xs">{result.zone}</span>
+                  </div>
+                )}
               </div>
 
               {/* Best Choices */}
