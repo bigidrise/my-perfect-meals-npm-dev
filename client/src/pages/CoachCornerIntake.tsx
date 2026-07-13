@@ -74,7 +74,7 @@ export default function CoachCornerIntake() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black/60 via-orange-600 to-black/80 text-white flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-black/60 via-orange-600 to-black/80 text-white flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
       <div className="flex items-center justify-between px-4 pt-6 pb-2">
         <button
           onClick={() =>
