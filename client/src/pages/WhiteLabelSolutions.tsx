@@ -456,7 +456,10 @@ export default function WhiteLabelSolutions() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex flex-col">
       {/* Progress header */}
-      <div className="px-4 pt-6 pb-3 flex-shrink-0 max-w-2xl mx-auto w-full">
+      <div
+        className="px-4 pb-3 flex-shrink-0 max-w-2xl mx-auto w-full"
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 1.5rem)" }}
+      >
         <div className="flex items-center justify-between mb-3">
           <span className="text-orange-400 text-xs font-semibold uppercase tracking-wider">
             Stage {stage.number} of {TOTAL_STAGES}
