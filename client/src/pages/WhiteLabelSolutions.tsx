@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { ArrowLeft } from "lucide-react";
 
 const TOTAL_STAGES = 14;
 const LS_KEY = "mpm.wl.progress";
@@ -471,9 +472,10 @@ export default function WhiteLabelSolutions() {
             )}
             <button
               onClick={() => setLocation(exitPath)}
-              className="text-white/30 text-xs"
+              className="flex items-center gap-1 text-orange-400 text-xs font-medium"
             >
-              ✕
+              <ArrowLeft className="h-3 w-3" />
+              Partner Programs
             </button>
           </div>
         </div>
