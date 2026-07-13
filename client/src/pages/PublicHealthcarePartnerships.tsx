@@ -2,7 +2,7 @@ import { useLocation } from "wouter";
 import {
   ArrowLeft, Stethoscope, CheckCircle2, HeartPulse, ExternalLink,
   Users, ClipboardList, Activity, Shield, Leaf, Brain, Zap,
-  Building2, ChevronRight, FlaskConical,
+  Building2, ChevronRight, FlaskConical, Lock,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { BC_HEADER } from "@/components/BusinessCenterShell";
@@ -423,6 +423,59 @@ export default function PublicHealthcarePartnerships() {
                 <span className="text-gray-300 text-sm leading-relaxed">{item}</span>
               </div>
             ))}
+          </div>
+        </motion.div>
+
+        {/* Privacy, Security & Clinical Responsibility */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.23 }}
+          className="bg-white/5 border border-white/10 rounded-2xl p-5"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Lock className="h-4 w-4 text-orange-400 flex-shrink-0" />
+            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Privacy, Security & Clinical Responsibility</h3>
+          </div>
+          <p className="text-gray-300 text-sm leading-relaxed mb-4">
+            My Perfect Meals is designed with healthcare partnerships in mind. Depending on the partnership structure, implementation may include:
+          </p>
+          <div className="space-y-2 mb-5">
+            {[
+              "HIPAA-aware workflows",
+              "Role-based access controls",
+              "Audit logging",
+              "Protected health information safeguards",
+              "Secure user authentication",
+              "Business Associate Agreement (BAA) discussions where appropriate",
+              "Secure implementation planning",
+              "Organization-specific privacy and compliance reviews",
+            ].map((item, i) => (
+              <div key={i} className="flex items-start gap-2.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0 mt-1.5" />
+                <span className="text-gray-300 text-sm leading-relaxed">{item}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-gray-400 text-xs leading-relaxed mb-4">
+            Every healthcare organization has unique operational and compliance requirements. During the discovery process, we work with each partner to understand those requirements and determine the most appropriate implementation approach.
+          </p>
+          {/* Honest compliance posture callout */}
+          <div className="bg-orange-500/10 border border-orange-500/25 rounded-xl p-4">
+            <p className="text-orange-300 text-xs font-semibold uppercase tracking-wider mb-2">Our Current Compliance Posture</p>
+            <div className="space-y-2">
+              {[
+                "We are building the platform with healthcare privacy and security in mind.",
+                "We evaluate HIPAA and compliance requirements during each implementation.",
+                "We can discuss BAAs and healthcare deployment needs during the partnership process.",
+                "We continue to strengthen the platform's security and administrative controls as healthcare partnerships expand.",
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-orange-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-gray-300 text-xs leading-relaxed">{item}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </motion.div>
 
