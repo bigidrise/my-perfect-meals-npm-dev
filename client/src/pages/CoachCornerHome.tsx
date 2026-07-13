@@ -21,7 +21,7 @@ export default function CoachCornerHome() {
   const [, setLocation] = useLocation();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black/60 via-orange-600 to-black/80 text-white flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-black/60 via-orange-600 to-black/80 text-white flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
       <div className="flex-1 overflow-y-auto px-4 pb-10">
         <div className="pt-14 pb-2" />
 
