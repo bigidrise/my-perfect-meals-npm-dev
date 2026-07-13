@@ -460,24 +460,24 @@ export default function WhiteLabelSolutions() {
         className="px-4 pb-3 flex-shrink-0 max-w-2xl mx-auto w-full"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 1.5rem)" }}
       >
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-orange-400 text-xs font-semibold uppercase tracking-wider">
+        <div className="flex items-center justify-between mb-3 gap-2 flex-nowrap">
+          <span className="text-orange-400 text-xs font-semibold uppercase tracking-wider whitespace-nowrap flex-shrink-0">
             Stage {stage.number} of {TOTAL_STAGES}
           </span>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-shrink-0">
             {currentStage > 0 && (
               <button
                 onClick={goBack}
-                className="text-white/50 text-xs underline underline-offset-2"
+                className="text-white/50 text-xs underline underline-offset-2 whitespace-nowrap"
               >
                 ← Back
               </button>
             )}
             <button
               onClick={() => setLocation(exitPath)}
-              className="flex items-center gap-1 text-orange-400 text-xs font-medium"
+              className="flex items-center gap-1 text-orange-400 text-xs font-medium whitespace-nowrap"
             >
-              <ArrowLeft className="h-3 w-3" />
+              <ArrowLeft className="h-3 w-3 flex-shrink-0" />
               Partner Programs
             </button>
           </div>
@@ -558,7 +558,7 @@ export default function WhiteLabelSolutions() {
 
         {/* Application stage */}
         {(stage as any).isApplication && (
-          <div className="mt-2 space-y-4 pb-8">
+          <div className="mt-2 space-y-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 2rem)" }}>
             <div className="space-y-3">
               <p className="text-gray-500 text-xs uppercase tracking-wider font-semibold">
                 Confirm all {(stage as any).checkboxes.length} statements before applying
@@ -616,7 +616,10 @@ export default function WhiteLabelSolutions() {
 
       {/* Acknowledgment + Continue — non-application stages */}
       {!(stage as any).isApplication && (
-        <div className="px-4 pb-10 pt-2 flex-shrink-0 border-t border-white/10 max-w-2xl mx-auto w-full">
+        <div
+          className="px-4 pt-2 flex-shrink-0 border-t border-white/10 max-w-2xl mx-auto w-full"
+          style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 5rem)" }}
+        >
           <button
             onClick={() => toggleAck(currentStage)}
             className={`w-full text-left flex items-start gap-3 rounded-xl border p-3 mt-4 mb-3 transition-colors ${
