@@ -10,6 +10,7 @@ import {
   buildVenueContextBlock,
   getVenuesPublicPayload,
 } from "../services/locationContext/engine";
+import { discoverVenue } from "../services/locationContext/venueDiscovery";
 
 const router = Router();
 
@@ -17,9 +18,23 @@ router.get("/venues", (_req, res) => {
   res.json({ venues: getVenuesPublicPayload() });
 });
 
+router.get("/venues/discover", async (req, res) => {
+  const q = (req.query.q as string || "").trim();
+  if (!q) {
+    return res.status(400).json({ error: "q is required" });
+  }
+  try {
+    const result = await discoverVenue(q);
+    res.json(result);
+  } catch (err: any) {
+    console.error("[Getaway] Venue discover error:", err);
+    res.status(500).json({ error: "Failed to discover venue" });
+  }
+});
+
 router.post("/coach", async (req, res) => {
   try {
-    const { message, venueId, zoneId } = req.body;
+    const { message, venueId, zoneId, discoveredVenue } = req.body;
     const userId = (req as AuthenticatedRequest).authUser.id;
 
     if (!message?.trim()) {
@@ -73,6 +88,7 @@ router.post("/coach", async (req, res) => {
 
     let locationBlock = "";
     let locationZoneLabel = "";
+
     if (venueId) {
       const ctx = assembleLocationContext(venueId, zoneId);
       if (ctx) {
@@ -82,6 +98,27 @@ router.post("/coach", async (req, res) => {
           locationZoneLabel = `${zoneTypeLabel}: ${ctx.zone.name}`;
         }
       }
+    } else if (discoveredVenue?.name) {
+      const lines: string[] = [];
+      lines.push(`LOCATION CONTEXT (confidence: medium — identified via Google Places):`);
+      lines.push(`Venue: ${discoveredVenue.name}`);
+      if (discoveredVenue.type) {
+        lines.push(`Type: ${String(discoveredVenue.type).replace("_", " ")}`);
+      }
+      if (discoveredVenue.address) {
+        lines.push(`Address: ${discoveredVenue.address}`);
+      }
+      if (discoveredVenue.zoneName) {
+        const zoneTypeLabel = discoveredVenue.zoneType
+          ? String(discoveredVenue.zoneType).charAt(0).toUpperCase() + String(discoveredVenue.zoneType).slice(1)
+          : "Zone";
+        lines.push(`${zoneTypeLabel}: ${discoveredVenue.zoneName}`);
+        lines.push(`Search precision: Zone-level — restrict recommendations to food options in ${discoveredVenue.zoneName} specifically.`);
+        locationZoneLabel = `${zoneTypeLabel}: ${discoveredVenue.zoneName}`;
+      } else {
+        lines.push(`Zone: Not specified — give general venue recommendations.`);
+      }
+      locationBlock = lines.join("\n");
     }
 
     const systemPrompt = `You are a personal nutrition coach in the My Perfect Meals app called the Getaway Coach. Your specialty: helping users find the BEST food options wherever life takes them — Disney, Universal, airports, cruise ships, resorts, arenas, state fairs, and more.
@@ -103,6 +140,8 @@ PROTOCOL RULE: If the user has an anti-inflammatory, diabetic, cardiac, GLP-1, o
 FAMILY AWARENESS RULE: Many users visiting theme parks, resorts, cruise ships, airports, and vacation destinations are traveling with spouses, children, or extended family. When appropriate, briefly note whether a recommended location or item is family-friendly — for example: "Good option for families", "Children often enjoy the available menu choices", "Easy choice if adults and children are eating together", or "Family-friendly location with multiple food options". Do not create separate child meal plans. Do not override the user's medical conditions, dietary preferences, or protocols. Family awareness is additive guidance only — it should feel natural, not forced. Omit it if the venue or context clearly does not apply (e.g. a solo business traveler at an airport lounge).
 
 LOCATION CONTEXT RULE: When a specific terminal, land, deck, section, or zone is provided, restrict recommendations to food outlets specifically located in that zone. Do not recommend outlets in other zones unless the user has not specified a zone. When zone is provided, the "where" field in bestChoices must include the zone name.
+
+DISCOVERED VENUE RULE: If the LOCATION CONTEXT says "identified via Google Places", the venue is real but may not be in your training data for specific food outlets. In this case: use your general knowledge of that venue type and location, clearly note which specific restaurants/stands you are recommending, and if you are uncertain about a specific outlet's presence at this location, say so briefly. Always give your best guidance rather than refusing to help.
 
 VENUE KNOWLEDGE: You know real menus at:
 - Disney World / Disneyland: Flame Tree Barbecue, Satu'li Canteen, Be Our Guest, Pecos Bill, Columbia Harbour House, Skipper Canteen, Sunshine Seasons, Whispering Canyon Cafe, and more
