@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { ArrowLeft } from "lucide-react";
 
-const TOTAL_STAGES = 15;
+const TOTAL_STAGES = 14;
 const LS_KEY = "mpm.wl.progress";
 
 interface SavedProgress {
@@ -354,65 +355,6 @@ const STAGES = [
   },
   {
     number: 14,
-    title: "Investment & Pricing Expectations",
-    subtitle: "Select the category that best describes your organization.",
-    isPathSelector: true,
-    paths: [
-      {
-        id: "independent-coach",
-        label: "Independent Coach / Small Practice",
-        description: "Solo providers, small teams, and individual practitioners.",
-        active: true,
-        detail: {
-          whoFor: [
-            "Nutrition Coaches",
-            "Health Coaches",
-            "Fitness Coaches",
-            "Functional Medicine Practitioners",
-            "Small Wellness Clinics",
-            "Solo Providers",
-            "Small 1099 Teams",
-          ],
-          included: [
-            "White Label Branding",
-            "Provider Dashboard",
-            "Care Team Access",
-            "ProCare Access",
-            "Client Management Tools",
-            "Business Success Certification",
-            "Platform Certification",
-            "Marketing Resources",
-            "Affiliate Infrastructure",
-            "Ongoing Platform Updates",
-          ],
-          setupLabel: "Starting at $2,500",
-          monthlyLabel: "Starting at $297 / month",
-          pricingNote: "Additional customization, integrations, compliance requirements, support levels, and deployment complexity may increase investment requirements.",
-        },
-      },
-      {
-        id: "growing-organization",
-        label: "Growing Organization",
-        description: "Multi-coach practices, fitness brands, and wellness organizations.",
-        active: false,
-      },
-      {
-        id: "regional-national",
-        label: "Regional or National Organization",
-        description: "Multi-location organizations with large member populations.",
-        active: false,
-      },
-      {
-        id: "enterprise",
-        label: "Enterprise Healthcare",
-        description: "Health systems, insurers, and employer wellness programs.",
-        active: false,
-      },
-    ],
-    ack: "I understand these investment expectations. I am prepared to discuss my specific requirements during a consultation.",
-  },
-  {
-    number: 15,
     title: "White Label Partnership Application",
     subtitle: "Before we connect, confirm you've read and understood this program.",
     isApplication: true,
@@ -462,7 +404,7 @@ function saveProgress(data: SavedProgress) {
 export default function WhiteLabelSolutions() {
   const [location, setLocation] = useLocation();
   const isPublic = location.startsWith("/partners");
-  const exitPath = isPublic ? "/partners" : "/business-center";
+  const exitPath = isPublic ? "/partners" : "/business-center/partners";
 
   const saved = loadProgress();
   const [currentStage, setCurrentStage] = useState(saved?.currentStage ?? 0);
@@ -472,8 +414,6 @@ export default function WhiteLabelSolutions() {
   const [appChecks, setAppChecks] = useState<boolean[]>(
     new Array(10).fill(false)
   );
-  const [selectedTier, setSelectedTier] = useState<string | null>(null);
-
   const stage = STAGES[currentStage];
   const isLast = currentStage === STAGES.length - 1;
   const ackDone = acknowledged[currentStage];
@@ -532,9 +472,10 @@ export default function WhiteLabelSolutions() {
             )}
             <button
               onClick={() => setLocation(exitPath)}
-              className="text-white/30 text-xs"
+              className="flex items-center gap-1 text-orange-400 text-xs font-medium"
             >
-              ✕
+              <ArrowLeft className="h-3 w-3" />
+              Partner Programs
             </button>
           </div>
         </div>
@@ -553,110 +494,8 @@ export default function WhiteLabelSolutions() {
           <p className="text-gray-400 text-sm">{stage.subtitle}</p>
         </div>
 
-        {/* Path selector stage (Stage 14) */}
-        {(stage as any).isPathSelector && (
-          <div className="mt-2">
-            {selectedTier === null ? (
-              <div className="space-y-3">
-                {(stage as any).paths.map((path: any) => (
-                  path.active ? (
-                    <button
-                      key={path.id}
-                      onClick={() => setSelectedTier(path.id)}
-                      className="w-full text-left bg-white/5 border border-white/15 rounded-xl p-4"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="text-white font-semibold text-sm">{path.label}</div>
-                          <div className="text-gray-400 text-xs mt-0.5">{path.description}</div>
-                        </div>
-                        <div className="flex-shrink-0 ml-3 w-7 h-7 rounded-full bg-orange-600 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                          </svg>
-                        </div>
-                      </div>
-                    </button>
-                  ) : (
-                    <div
-                      key={path.id}
-                      className="bg-white/5 border border-white/5 rounded-xl p-4 opacity-40"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="text-gray-400 font-semibold text-sm">{path.label}</div>
-                          <div className="text-gray-500 text-xs mt-0.5">{path.description}</div>
-                        </div>
-                        <span className="text-xs text-gray-500 border border-white/10 rounded-full px-2.5 py-1 flex-shrink-0 ml-3">Coming Soon</span>
-                      </div>
-                    </div>
-                  )
-                ))}
-              </div>
-            ) : (
-              (() => {
-                const activePath = (stage as any).paths.find((p: any) => p.id === selectedTier);
-                const detail = activePath?.detail;
-                if (!detail) return null;
-                return (
-                  <div className="space-y-4">
-                    <button
-                      onClick={() => setSelectedTier(null)}
-                      className="text-white/50 text-xs underline underline-offset-2"
-                    >
-                      ← Back to categories
-                    </button>
-
-                    <div className="bg-orange-500/20 border border-orange-500/30 rounded-xl px-4 py-3">
-                      <div className="text-orange-400 font-bold text-sm">{activePath.label}</div>
-                    </div>
-
-                    <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                      <div className="text-orange-400 font-semibold text-xs uppercase tracking-wider mb-3">Who This Is For</div>
-                      <div className="flex flex-wrap gap-2">
-                        {detail.whoFor.map((role: string, i: number) => (
-                          <span key={i} className="text-xs bg-white/10 border border-white/10 text-gray-300 rounded-full px-3 py-1">{role}</span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                      <div className="text-orange-400 font-semibold text-xs uppercase tracking-wider mb-3">What's Included</div>
-                      <div className="space-y-1.5">
-                        {detail.included.map((item: string, i: number) => (
-                          <div key={i} className="flex items-center gap-2">
-                            <svg className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span className="text-gray-300 text-sm">{item}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                      <div className="text-orange-400 font-semibold text-xs uppercase tracking-wider mb-3">Investment Expectations</div>
-                      <div className="grid grid-cols-2 gap-4 mb-3">
-                        <div>
-                          <div className="text-gray-400 text-xs mb-1">Setup & Launch</div>
-                          <div className="text-white font-bold text-base">{detail.setupLabel}</div>
-                        </div>
-                        <div>
-                          <div className="text-gray-400 text-xs mb-1">Monthly Licensing</div>
-                          <div className="text-white font-bold text-base">{detail.monthlyLabel}</div>
-                        </div>
-                      </div>
-                      <p className="text-gray-400 text-xs leading-relaxed border-t border-white/10 pt-3">{detail.pricingNote}</p>
-                    </div>
-                  </div>
-                );
-              })()
-            )}
-          </div>
-        )}
-
         {/* Regular stage blocks */}
-        {!(stage as any).isApplication && !(stage as any).isPathSelector && (
+        {!(stage as any).isApplication && (
           <div className="space-y-4 mt-2">
             {(stage.content as any[]).map((block: any, i: number) => {
               if (block.tiers) {
@@ -757,7 +596,7 @@ export default function WhiteLabelSolutions() {
               </div>
 
               <a
-                href="https://forms.gle/i6NsVnb3hirSgGTz5"
+                href="https://forms.gle/rko9vRTihcgVSAeJA"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block w-full py-4 rounded-xl font-semibold text-sm text-center bg-orange-600 text-white"
@@ -773,7 +612,7 @@ export default function WhiteLabelSolutions() {
       </div>
 
       {/* Acknowledgment + Continue — non-application stages */}
-      {!(stage as any).isApplication && (!(stage as any).isPathSelector || selectedTier !== null) && (
+      {!(stage as any).isApplication && (
         <div className="px-4 pb-10 pt-2 flex-shrink-0 border-t border-white/10 max-w-2xl mx-auto w-full">
           <button
             onClick={() => toggleAck(currentStage)}

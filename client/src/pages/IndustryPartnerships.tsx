@@ -3,7 +3,7 @@ import { ArrowLeft, ChevronRight, Handshake, Pill, Dumbbell, GraduationCap, Hear
 import { motion } from "framer-motion";
 import { BC_HEADER } from "@/components/BusinessCenterShell";
 
-const STRATEGIC_FORM = "https://forms.gle/7wAMmDA1vz1wCzzKA";
+const STRATEGIC_FORM = "https://forms.gle/Udi3yWGp5SHuktdi8";
 
 const INDUSTRIES = [
   {
@@ -114,8 +114,8 @@ const INDUSTRIES = [
 export default function IndustryPartnerships() {
   const [location, setLocation] = useLocation();
   const isPublic = location.startsWith("/partners");
-  const backPath = isPublic ? "/partners" : "/business-center";
-  const backLabel = isPublic ? "Partner Programs" : "Business Suite";
+  const backPath = isPublic ? "/partners" : "/business-center/partners";
+  const backLabel = "Partner Programs";
 
   return (
     <motion.div
@@ -137,6 +137,15 @@ export default function IndustryPartnerships() {
       </div>
 
       <div className="pt-16 pb-24 px-4 max-w-lg mx-auto space-y-5">
+
+        {/* In-content back button — always visible on desktop where fixed header is trapped */}
+        <button
+          onClick={() => setLocation(backPath)}
+          className="flex items-center gap-1.5 text-orange-400 text-sm font-medium"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Partner Programs
+        </button>
 
         {/* Hero */}
         <motion.div

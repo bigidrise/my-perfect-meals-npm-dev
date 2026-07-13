@@ -41,14 +41,14 @@ const programs = [
     description:
       "For physicians, dietitians, hospitals, and clinical organizations serving patients through nutrition.",
     icon: Stethoscope,
-    route: "/business-center/partnerships",
+    route: "/business-center/healthcare",
     accent: "bg-white/8",
     iconColor: "text-orange-400",
     border: "border-white/10",
   },
   {
     id: "white-label",
-    title: "White Label Solutions",
+    title: "White Label Partnerships",
     description:
       "License the My Perfect Meals platform to deliver a fully branded nutrition product under your own identity.",
     icon: Building2,
@@ -112,6 +112,15 @@ export default function PartnerProgramsHub() {
         className="px-4 max-w-2xl mx-auto space-y-3"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
       >
+        {/* In-content back button — always visible on desktop where fixed header is trapped */}
+        <button
+          onClick={() => setLocation("/business-center")}
+          className="flex items-center gap-1.5 text-orange-400 text-sm font-medium"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Business Suite
+        </button>
+
         <div className="py-3 text-center">
           <p className="text-white/55 text-sm leading-relaxed">
             Choose the partnership type that best fits your organization or goals.

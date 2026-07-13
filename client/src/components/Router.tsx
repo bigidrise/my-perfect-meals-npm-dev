@@ -916,6 +916,7 @@ export default function Router() {
         <Route path="/business-center/founding-partner" component={FoundingPartnerProgram} />
         <Route path="/business-center/academy" component={AcademyLandingPage} />
         <Route path="/business-center/industry" component={IndustryPartnerships} />
+        <Route path="/business-center/healthcare" component={PublicHealthcarePartnerships} />
         <Route path="/business-center/white-label" component={WhiteLabelSolutions} />
         <Route path="/business-center/partnerships" component={BusinessCenterSection} />
         {/* Public partner pages — no login required */}
