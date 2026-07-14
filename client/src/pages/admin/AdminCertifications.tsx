@@ -56,6 +56,7 @@ interface WaitlistRow {
   username?: string;
   status: string;
   notifiedAt?: string | null;
+  emailSentAt?: string | null;
   createdAt?: string;
 }
 
@@ -283,6 +284,7 @@ export default function AdminCertifications() {
       setNotifying(false);
     }
   };
+
 
   const tabCls = (t: Tab) => `px-4 py-2 rounded-xl text-xs font-semibold transition-all ${tab === t ? "bg-orange-600 text-white" : "bg-white/5 text-white/50 active:scale-[0.96]"}`;
 
@@ -731,6 +733,12 @@ export default function AdminCertifications() {
                         >
                           Force Re-notify All (including already-notified)
                         </button>
+                        <div className="p-3 rounded-2xl bg-black/20 border border-white/5 space-y-1">
+                          <p className="text-[10px] text-white/40 font-semibold uppercase tracking-wider">Recovery info</p>
+                          <p className="text-[10px] text-white/30 leading-relaxed">
+                            "Notify Waitlist" skips anyone already confirmed sent. If the server restarted mid-send, any in-flight rows are automatically reset on boot and will be retried on the next run — no manual action needed. Use "Force Re-notify All" only if you intentionally want to re-send to everyone, including confirmed recipients.
+                          </p>
+                        </div>
                       </div>
                     )}
 
@@ -739,7 +747,7 @@ export default function AdminCertifications() {
                       <div className="flex items-center justify-between">
                         <p className="text-xs text-white/40">{waitlist.length} user{waitlist.length !== 1 ? "s" : ""} on waitlist</p>
                         <div className="flex gap-2 text-[10px]">
-                          <span className="px-2 py-1 rounded-full bg-green-500/15 text-green-400 font-semibold">Notified</span>
+                          <span className="px-2 py-1 rounded-full bg-green-500/15 text-green-400 font-semibold">Email Sent</span>
                           <span className="px-2 py-1 rounded-full bg-white/10 text-white/40 font-semibold">Pending</span>
                         </div>
                       </div>
@@ -764,14 +772,21 @@ export default function AdminCertifications() {
                                   )}
                                 </div>
                                 <div className="flex-shrink-0 text-right">
-                                  {row.notifiedAt ? (
+                                  {row.emailSentAt ? (
                                     <div className="space-y-0.5">
                                       <span className="inline-block px-2.5 py-1 rounded-full bg-green-500/15 border border-green-500/20 text-green-400 text-[10px] font-bold uppercase tracking-wide">
-                                        Notified
+                                        Email Sent
                                       </span>
                                       <p className="text-[10px] text-white/25">
-                                        {new Date(row.notifiedAt).toLocaleDateString()}
+                                        {new Date(row.emailSentAt).toLocaleDateString()}
                                       </p>
+                                    </div>
+                                  ) : row.notifiedAt ? (
+                                    <div className="space-y-0.5">
+                                      <span className="inline-block px-2.5 py-1 rounded-full bg-yellow-500/15 border border-yellow-500/20 text-yellow-400 text-[10px] font-bold uppercase tracking-wide">
+                                        In Progress
+                                      </span>
+                                      <p className="text-[10px] text-white/25">claimed</p>
                                     </div>
                                   ) : (
                                     <span className="inline-block px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/35 text-[10px] font-semibold uppercase tracking-wide">

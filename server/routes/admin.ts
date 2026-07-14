@@ -3,7 +3,7 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { mealImageCache } from "../db/schema/mealImageCache";
 import { userCertifications } from "../db/schema/certifications";
-import { eq, ilike, or, desc, notLike, and, isNull, sql, min, max } from "drizzle-orm";
+import { eq, ilike, or, desc, notLike, and, isNull, isNotNull, sql, min, max } from "drizzle-orm";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
 import { sendMarketingCoachingEnrollmentEmail } from "../services/emailService";
 
@@ -408,7 +408,9 @@ router.get("/certifications/marketing-coaching/waitlist-stats", async (req, res)
 });
 
 // GET /admin/certifications/marketing-coaching/waitlist
-// Returns all waitlisted users for marketing_coaching, including notifiedAt status.
+// Returns all waitlisted users for marketing_coaching, including notifiedAt and emailSentAt status.
+// notifiedAt = when the row was claimed for sending; emailSentAt = when the email was confirmed sent.
+// A row with notifiedAt set but emailSentAt NULL indicates an in-progress or orphaned send attempt.
 router.get("/certifications/marketing-coaching/waitlist", async (req, res) => {
   try {
     const rows = await db
@@ -419,6 +421,7 @@ router.get("/certifications/marketing-coaching/waitlist", async (req, res) => {
         username: users.username,
         status: userCertifications.status,
         notifiedAt: userCertifications.notifiedAt,
+        emailSentAt: userCertifications.emailSentAt,
         createdAt: userCertifications.createdAt,
       })
       .from(userCertifications)
@@ -445,7 +448,11 @@ router.get("/certifications/marketing-coaching/waitlist", async (req, res) => {
 //   - In-memory in-flight lock: a second concurrent call gets an immediate 409 while one is running.
 //   - Atomically claims rows via UPDATE … WHERE notified_at IS NULL RETURNING before sending
 //     any email. Two simultaneous admin calls can never claim the same row, so no duplicates.
+//   - notified_at = claim timestamp (set before send); email_sent_at = confirmed-send timestamp (set after).
 //   - If an individual send fails, notified_at is reset to NULL so the user can be retried.
+//   - On server restart, boot startup resets notified_at for any rows where notified_at IS NOT NULL
+//     AND email_sent_at IS NULL — these are rows that were claimed mid-send but whose confirmation
+//     was never written, meaning the server crashed before the email was confirmed sent.
 //   - ?force=true re-claims ALL waitlisted rows (including already-notified) for genuine resends.
 //
 // Runs sequentially with a short delay between sends to respect Resend rate limits.
@@ -558,6 +565,19 @@ router.post("/certifications/marketing-coaching/notify-waitlist", async (req, re
 
       if (ok) {
         sent++;
+        // Stamp email_sent_at to confirm the email was actually delivered to the provider.
+        // This separates "row claimed" (notified_at) from "email confirmed sent" (email_sent_at).
+        // On a server restart mid-send, rows with notified_at set but email_sent_at NULL are
+        // orphaned and will be reset to notified_at=NULL by the boot startup recovery step.
+        await db
+          .update(userCertifications)
+          .set({ emailSentAt: new Date() })
+          .where(
+            and(
+              eq(userCertifications.userId, userId),
+              eq(userCertifications.certificationType, "marketing_coaching")
+            )
+          );
       } else {
         failed++;
         failures.push(row.email);

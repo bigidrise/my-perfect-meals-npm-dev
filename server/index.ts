@@ -740,6 +740,26 @@ setTimeout(async () => {
     await runAceMigration();
     console.log('✅ ACE boot migration complete');
 
+    // Waitlist notify — email_sent_at column + orphan recovery
+    // email_sent_at tracks confirmed sends separately from notified_at (claim lock).
+    // On restart, rows with notified_at SET but email_sent_at NULL were claimed mid-send
+    // and never confirmed — reset them so the next notify run picks them up cleanly.
+    await db.execute(sql`
+      ALTER TABLE user_certifications ADD COLUMN IF NOT EXISTS email_sent_at timestamptz
+    `);
+    const orphanResult = await db.execute(sql`
+      UPDATE user_certifications
+      SET notified_at = NULL
+      WHERE certification_type = 'marketing_coaching'
+        AND status = 'waitlisted'
+        AND notified_at IS NOT NULL
+        AND email_sent_at IS NULL
+    `);
+    const orphanCount = (orphanResult as any).rowCount ?? (orphanResult as any).count ?? 0;
+    if (Number(orphanCount) > 0) {
+      console.log(`♻️  Waitlist orphan recovery: reset notified_at for ${orphanCount} row(s) that were claimed but never confirmed sent (server restart mid-send). They will be retried on next notify run.`);
+    }
+
     console.log('✅ LMS + white label boot migrations complete');
   } catch (err: any) {
     console.error('❌ LMS boot migrations failed:', err.message);
