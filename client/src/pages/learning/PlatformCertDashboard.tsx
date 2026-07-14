@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { useLocation, useParams } from "wouter";
 import { ArrowLeft, CheckCircle2, Circle, Clock, Lock, Award, PlayCircle, FileText, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -115,6 +115,24 @@ export default function PlatformCertDashboard() {
     }
     prevLocationRef.current = location;
   }, [location, certType, load]);
+
+  const targetLessonNum = useMemo(() => {
+    const n = parseInt(new URLSearchParams(window.location.search).get("lesson") ?? "", 10);
+    return Number.isFinite(n) && n >= 1 ? n : null;
+  }, []);
+
+  const moduleEls = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  useEffect(() => {
+    if (loading || targetLessonNum == null || modules.length === 0) return;
+    const videoModules = modules.filter((m) => m.moduleType === "video");
+    const target = videoModules[targetLessonNum - 1];
+    if (!target) return;
+    const el = moduleEls.current.get(target.slug);
+    if (el) {
+      setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
+    }
+  }, [loading, targetLessonNum, modules]);
 
   useEffect(() => {
     apiRequest("/api/certifications/certificate-name").then((d: { certificateName?: string }) => {
@@ -267,7 +285,7 @@ export default function PlatformCertDashboard() {
               const showSeparator = isCurrent && completedCount > 0 && i > 0;
 
               return (
-                <div key={mod.slug}>
+                <div key={mod.slug} ref={(el) => { if (el) moduleEls.current.set(mod.slug, el); else moduleEls.current.delete(mod.slug); }}>
                   {showSeparator && (
                     <div className="flex items-center gap-3 py-2">
                       <div className="flex-1 h-px bg-white/10" />

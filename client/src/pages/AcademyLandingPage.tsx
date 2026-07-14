@@ -245,9 +245,10 @@ export default function AcademyLandingPage() {
             {PLATFORM_MASTERY_LESSONS.map((lesson, i) => {
               const Icon = lesson.icon;
               return (
-                <motion.div
+                <motion.button
                   key={lesson.number}
-                  className="px-5 py-3.5 flex items-start gap-3"
+                  className="w-full text-left px-5 py-3.5 flex items-start gap-3 active:bg-white/5 transition-colors"
+                  onClick={() => setLocation(`/certifications/platform?lesson=${i + 1}`)}
                   initial={{ opacity: 0, x: -6 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.14 + i * 0.05 }}
@@ -262,7 +263,8 @@ export default function AcademyLandingPage() {
                     </div>
                     <p className="text-xs text-white/45 mt-0.5 leading-relaxed">{lesson.description}</p>
                   </div>
-                </motion.div>
+                  <ChevronRight className="h-4 w-4 text-white/20 flex-shrink-0 mt-1" />
+                </motion.button>
               );
             })}
           </div>
