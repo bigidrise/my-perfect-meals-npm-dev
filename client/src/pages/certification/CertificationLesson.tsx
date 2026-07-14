@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { ArrowLeft, BookOpen, CheckCircle2, Clock } from "lucide-react";
 import { motion } from "framer-motion";
-import { getModuleById } from "@/data/affiliateCertification";
+import { getModuleById, getCoachingModuleById } from "@/data/affiliateCertification";
 import { apiRequest } from "@/lib/queryClient";
 import { BC_HEADER } from "@/components/BusinessCenterShell";
 
@@ -12,7 +12,7 @@ export default function CertificationLesson() {
   const pathId = params.pathId ?? "social";
   const moduleId = params.moduleId ?? "";
   const certType = `affiliate_${pathId}`;
-  const module = getModuleById(moduleId);
+  const module = pathId === "coaching" ? getCoachingModuleById(moduleId) : getModuleById(moduleId);
   const viewedRef = useRef(false);
 
   const [moduleStatus, setModuleStatus] = useState<string | null>(null);

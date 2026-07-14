@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useLocation, useParams } from "wouter";
 import { ArrowLeft, CheckCircle2, XCircle, RotateCcw, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getModuleById, getNextModuleId, PASSING_SCORE } from "@/data/affiliateCertification";
+import { getModuleById, getCoachingModuleById, getNextModuleId, getNextCoachingModuleId, PASSING_SCORE } from "@/data/affiliateCertification";
 import { apiRequest } from "@/lib/queryClient";
 import { BC_HEADER } from "@/components/BusinessCenterShell";
 
@@ -15,7 +15,7 @@ export default function CertificationQuiz() {
   const pathId = params.pathId ?? "social";
   const moduleId = params.moduleId ?? "";
   const certType = `affiliate_${pathId}`;
-  const module = getModuleById(moduleId);
+  const module = pathId === "coaching" ? getCoachingModuleById(moduleId) : getModuleById(moduleId);
 
   const [phase, setPhase] = useState<Phase>("loading");
   const [answers, setAnswers] = useState<AnswerMap>({});
@@ -102,7 +102,7 @@ export default function CertificationQuiz() {
   };
 
   const handleContinue = () => {
-    const nextId = getNextModuleId(moduleId);
+    const nextId = pathId === "coaching" ? getNextCoachingModuleId(moduleId) : getNextModuleId(moduleId);
     if (nextId) {
       setLocation(`/business-center/affiliate/${pathId}/certification/${nextId}`);
     } else {
