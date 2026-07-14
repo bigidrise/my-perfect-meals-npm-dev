@@ -138,7 +138,7 @@ export default function AdminCertifications() {
       apiRequest("/api/admin/certifications/marketing-coaching/waitlist-stats"),
       apiRequest("/api/admin/certifications/marketing-coaching/waitlist"),
       apiRequest("/api/admin/config/email-status"),
-      apiRequest("/api/admin/certifications/marketing-coaching/recovery-events"),
+      apiRequest("/api/admin/certifications/marketing-coaching/recovery-events").catch(() => ({ events: [] })),
     ])
       .then(([stats, list, emailStatus, recovery]: any) => {
         setWaitlistStats(stats);

@@ -459,6 +459,10 @@ router.get("/certifications/marketing-coaching/recovery-events", async (req, res
       .limit(50);
     return res.json({ ok: true, events });
   } catch (err: any) {
+    // 42P01 = "relation does not exist" — table not yet created by boot migration
+    if (err?.code === "42P01") {
+      return res.json({ ok: true, events: [] });
+    }
     console.error("[admin/recovery-events] error:", err);
     return res.status(500).json({ error: err.message });
   }
