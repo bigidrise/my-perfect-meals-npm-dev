@@ -94,6 +94,7 @@ export default function AdminCertifications() {
   const [waitlist, setWaitlist] = useState<WaitlistRow[]>([]);
   const [waitlistStats, setWaitlistStats] = useState<{
     total: number;
+    alreadyNotified: number;
     oldestEntry: string | null;
     newestEntry: string | null;
     previewEmails: string[];
@@ -272,6 +273,37 @@ export default function AdminCertifications() {
     } catch { flash("Delete failed"); }
   };
 
+  const handleNotifyWaitlist = async (force = false) => {
+    if (notifyingWaitlist) return;
+    const confirmed = confirm(force
+      ? "Re-notify ALL waitlisted users (including already-notified)? This will send duplicate emails to anyone already notified."
+      : "Send enrollment-open emails to all un-notified waitlisted users?");
+    if (!confirmed) return;
+    setNotifyingWaitlist(true);
+    setNotifyResult(null);
+    try {
+      const url = `/api/admin/certifications/marketing-coaching/notify-waitlist${force ? "?force=true" : ""}`;
+      const res = await apiRequest(url, { method: "POST" }) as { ok: boolean; sent: number; skipped: number; failed: number };
+      setNotifyResult({ sent: res.sent, skipped: res.skipped, failed: res.failed });
+      flash(`Done — ${res.sent} sent, ${res.skipped} skipped, ${res.failed} failed`);
+      const [stats, listData] = await Promise.all([
+        apiRequest(`/api/admin/certifications/marketing-coaching/waitlist-stats`) as Promise<{ total: number; alreadyNotified: number; previewEmails: string[] }>,
+        apiRequest(`/api/admin/certifications/marketing-coaching/waitlist`) as Promise<{ waitlist: WaitlistRow[] }>,
+      ]);
+      setWaitlistStats(stats);
+      setWaitlist(listData.waitlist ?? []);
+    } catch (err: any) {
+      const msg = err?.message || "Notify failed";
+      if (msg.includes("already in progress")) {
+        flash("A notify job is already running — please wait.");
+      } else {
+        flash(msg);
+      }
+    } finally {
+      setNotifyingWaitlist(false);
+    }
+  };
+
   const tabCls = (t: Tab) => `px-4 py-2 rounded-xl text-xs font-semibold transition-all ${tab === t ? "bg-orange-600 text-white" : "bg-white/5 text-white/50 active:scale-[0.96]"}`;
 
   return (
@@ -309,7 +341,7 @@ export default function AdminCertifications() {
           )}
         </AnimatePresence>
 
-        {/* Cert type selector (not for updates or waitlist tab) */}
+        {/* Cert type selector (not for updates or waitlist tabs) */}
         {tab !== "updates" && tab !== "waitlist" && (
           <div className="flex gap-2">
             {CERT_TYPES.map((ct) => (
@@ -589,6 +621,7 @@ export default function AdminCertifications() {
                 )}
               </div>
             )}
+
             {/* ── WAITLIST TAB ── */}
             {tab === "waitlist" && (
               <div className="space-y-4">
@@ -693,13 +726,13 @@ export default function AdminCertifications() {
                       </div>
                     )}
 
-                    {/* Detailed User List (HEAD side) */}
+                    {/* Detailed user list */}
                     <div className="space-y-3 pt-4 border-t border-white/10">
                       <div className="flex items-center justify-between">
                         <p className="text-xs text-white/40">{waitlist.length} user{waitlist.length !== 1 ? "s" : ""} on waitlist</p>
                         <div className="flex gap-2 text-[10px]">
                           <span className="px-2 py-1 rounded-full bg-green-500/15 text-green-400 font-semibold">Notified</span>
-                          <span className="px-2 py-1 rounded-full bg-white/8 text-white/40 font-semibold">Pending</span>
+                          <span className="px-2 py-1 rounded-full bg-white/10 text-white/40 font-semibold">Pending</span>
                         </div>
                       </div>
                       {waitlist.length === 0 ? (

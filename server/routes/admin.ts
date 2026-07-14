@@ -436,13 +436,21 @@ router.get("/certifications/marketing-coaching/waitlist", async (req, res) => {
 // Sends enrollment-open emails to every user with status='waitlisted' on marketing_coaching.
 //
 // Idempotency / concurrency safety:
+//   - In-memory in-flight lock: a second concurrent call gets an immediate 409 while one is running.
 //   - Atomically claims rows via UPDATE … WHERE notified_at IS NULL RETURNING before sending
 //     any email. Two simultaneous admin calls can never claim the same row, so no duplicates.
 //   - If an individual send fails, notified_at is reset to NULL so the user can be retried.
 //   - ?force=true re-claims ALL waitlisted rows (including already-notified) for genuine resends.
 //
 // Runs sequentially with a short delay between sends to respect Resend rate limits.
+let notifyWaitlistInFlight = false;
+
 router.post("/certifications/marketing-coaching/notify-waitlist", async (req, res) => {
+  if (notifyWaitlistInFlight) {
+    return res.status(409).json({ error: "A notify job is already in progress. Please wait for it to finish before sending again." });
+  }
+  notifyWaitlistInFlight = true;
+
   const actor = (req as AuthenticatedRequest).authUser;
   const APP_URL = process.env.APP_URL || "https://app.myperfectmeals.com";
   const force = req.query.force === "true";
@@ -566,6 +574,8 @@ router.post("/certifications/marketing-coaching/notify-waitlist", async (req, re
   } catch (err: any) {
     console.error("[admin/notify-waitlist] error:", err);
     return res.status(500).json({ error: err.message });
+  } finally {
+    notifyWaitlistInFlight = false;
   }
 });
 
