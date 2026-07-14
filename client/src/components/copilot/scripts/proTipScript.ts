@@ -5,8 +5,8 @@ export interface ProTipSection {
 
 export const PRO_TIP_SECTIONS: ProTipSection[] = [
   {
-    heading: "Use My Favorites to build faster",
-    text: "When you find a meal you enjoy, tap the red star on the meal card to save it. Then look for the red My Favorites button on any meal slot inside your builder. Tap it and your saved meals appear in one list showing the photo and name of each creation, so you can pull any of them back into your plan instantly without rebuilding it from scratch. Over time your favorites become a personal rotation of foods you already know work for you.",
+    heading: "Four ways to fill any meal slot",
+    text: "Every meal slot in your builder gives you four options. The gold Cook with Chef button has a chef hat — tap it to tell the AI exactly what you want and it builds the meal for you. The gold Snack Creator button works the same way but is designed just for snacks. The red Favorites button has a white star — tap it and every meal you have ever saved appears in one list with a photo and name, so you can drop any of them straight into the slot without rebuilding from scratch. And the purple Describe It button has a plus sign — use it when you already ate something and just want to log it. Describe what you had, even if it was a restaurant meal with no exact macros, and the app will add it to your builder as a record of what you actually ate.",
   },
   {
     heading: "Be specific and your results get sharper",
