@@ -601,6 +601,14 @@ function MarketingCoachingModal({
   const isDone = status === "completed";
   const isInProgress = status === "in_progress";
 
+  const [waitlistCount, setWaitlistCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    apiRequest("/api/certifications/marketing_coaching/waitlist-count")
+      .then((data: any) => setWaitlistCount(typeof data?.count === "number" ? data.count : null))
+      .catch(() => {});
+  }, []);
+
   return (
     <>
       <motion.div
@@ -742,6 +750,11 @@ function MarketingCoachingModal({
                   )}
                   Notify me when available
                 </button>
+              )}
+              {waitlistCount !== null && waitlistCount > 0 && (
+                <p className="text-center text-orange-400/70 text-xs font-medium">
+                  {waitlistCount} {waitlistCount === 1 ? "professional" : "professionals"} waiting
+                </p>
               )}
               <p className="text-center text-white/25 text-xs">
                 No spam. One notification when enrollment opens.
