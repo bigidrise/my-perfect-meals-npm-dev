@@ -525,7 +525,7 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
     description:
       "Get macro-friendly menu recommendations at popular chains.",
     howTo: [
-      "Browse restaurant chains from the Social Hub.",
+      "Browse restaurant chains from Meals Away From Home.",
       "View recommended menu items with estimated macros.",
       "Learn modification strategies like 'no sauce' or 'grilled instead of fried'.",
       "Use the guide before dining out to plan your order.",

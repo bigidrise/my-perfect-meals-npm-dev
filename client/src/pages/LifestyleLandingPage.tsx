@@ -126,7 +126,7 @@ export default function LifestyleLandingPage() {
       badge: "behavioral",
     },
     {
-      title: "Socializing Hub",
+      title: "Meals Away From Home",
       description: "Make smart choices when eating out with AI guidance",
       icon: Utensils,
       route: "/social-hub",

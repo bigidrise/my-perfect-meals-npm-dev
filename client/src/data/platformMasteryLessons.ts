@@ -573,8 +573,8 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         body: "My Perfect Meals includes a set of specialty creators for specific types of food and drink. They all work the same way — describe what you want, generate, get a result built around your profile. Here's how to think about which one to reach for:\n\n**When you're craving something**\n- **Craving Creator** — you're not hungry for a meal, you're hungry for something specific; the platform builds a version of it that fits your targets\n- **Dessert Creator** — dessert, built around your dietary identity and macros\n\n**When you need something quick**\n- **Snack Creator** — between-meal nutrition designed to fit your remaining macros for the day\n- **Beverage Creator** — smoothies, protein shakes, coffee drinks, mocktails, cocktails, and sports drinks generated around your profile\n\n**When you're looking for something specific**\n- **Sushi Creator** — specialty generation for sushi and Japanese-inspired meals, with dietary and allergy compliance built in\n- **Spirit & Wine Pairing Hub** — pairs food with wine or spirits, and includes a drink reduction tool",
       },
       {
-        heading: "Socializing Hub",
-        body: "One meal away from home shouldn't make you feel like you've failed.\n\nWhether you're eating at a restaurant, grabbing fast food, or looking for healthy options nearby, the **Socializing Hub** helps you make the best decision available instead of giving up on your plan.\n\nInside, you'll find three tools:\n\n**Restaurant Guide** — Enter where you're going or browse by cuisine, and get meal recommendations from that restaurant's menu that fit your profile.\n\n**Fast Food Guide** — The same guidance for fast food and quick-service chains. Useful when there aren't better options.\n\n**Find Meals Near Me** — Uses your location to surface nearby dining options with meals that match your profile.\n\nThe Socializing Hub isn't about being perfect when you eat out. It's about staying connected to your plan in the situations where most people abandon it.",
+        heading: "Meals Away From Home",
+        body: "One meal away from home shouldn't make you feel like you've failed.\n\nWhether you're eating at a restaurant, grabbing fast food, or looking for healthy options nearby, **Meals Away From Home** helps you make the best decision available instead of giving up on your plan.\n\nInside, you'll find three tools:\n\n**Restaurant Guide** — Enter where you're going or browse by cuisine, and get meal recommendations from that restaurant's menu that fit your profile.\n\n**Fast Food Guide** — The same guidance for fast food and quick-service chains. Useful when there aren't better options.\n\n**Find Meals Near Me** — Uses your location to surface nearby dining options with meals that match your profile.\n\nMeals Away From Home isn't about being perfect when you eat out. It's about staying connected to your plan in the situations where most people abandon it.",
       },
       {
         heading: "Lifestyle Collections",
@@ -586,7 +586,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         "Open the **Lifestyle** page.",
         "Tap **Create a Dish**. Describe any meal you'd actually want to eat and generate it. When the Meal Card appears, read the entire card from top to bottom — the description, the badges, the ingredients, and the **Why This Works For You** section.",
         "Return to Lifestyle and tap **Fridge Rescue**. Enter three ingredients you have available. Generate a meal from them.",
-        "Return to Lifestyle and tap the **Socializing Hub**. Open the **Restaurant Guide** and browse it — enter a cuisine or restaurant type to see how it responds.",
+        "Return to Lifestyle and tap the **Meals Away From Home**. Open the **Restaurant Guide** and browse it — enter a cuisine or restaurant type to see how it responds.",
       ],
     },
     remember:
@@ -661,7 +661,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         options: [
           "Create a Dish — describe what the restaurant typically serves.",
           "Fridge Rescue — enter the restaurant name to see what it generates.",
-          "The Restaurant Guide in the Socializing Hub — get profile-aligned recommendations from that restaurant's menu.",
+          "The Restaurant Guide in the Meals Away From Home — get profile-aligned recommendations from that restaurant's menu.",
           "Find Meals Near Me — to locate the restaurant by proximity.",
         ],
         correctIndex: 2,
@@ -669,7 +669,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
       {
         id: "l4-q7",
         question:
-          "A coach explains the Socializing Hub to a client who worries that eating out always ruins her plan. What is the most accurate description of what the Socializing Hub does?",
+          "A coach explains the Meals Away From Home to a client who worries that eating out always ruins her plan. What is the most accurate description of what the Meals Away From Home does?",
         options: [
           "It helps clients avoid restaurants entirely when they're on a strict plan.",
           "It helps clients make the best decision available when eating out — so they stay connected to their plan instead of abandoning it.",

@@ -74,7 +74,7 @@ export const HUBS: Record<string, FeatureDefinition> = {
     isHub: true,
     hubSize: "small",
     keywords: ["restaurant", "socializing", "eating out", "restaurants", "out to eat", "social hub", "socializing hub", "going out", "night out", "find food", "food near me", "restaurant guide"],
-    spokenPrompt: "Welcome to the Socializing Hub! Eating out with friends? Make smart choices without missing the fun.",
+    spokenPrompt: "Welcome to Meals Away From Home! Eating out? Make smart choices without missing the fun.",
     selectionPrompt: "What do you need? Say 'Restaurant Guide' to get AI-powered healthy options from any restaurant, or 'Find Meals' to search local restaurants by craving and location.",
     voiceTimeoutMessage: "I didn't catch that. Try typing 'Restaurant Guide' or 'Find Meals' instead.",
     subOptions: [

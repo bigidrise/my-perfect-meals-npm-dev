@@ -2012,7 +2012,7 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
         {
           heading: "Where to Find It",
           list: [
-            "Lifestyle → Socializing Hub → Restaurant Guide",
+            "Lifestyle → Meals Away From Home → Restaurant Guide",
             "Included with Pro and Clinical subscriptions",
           ],
         },
