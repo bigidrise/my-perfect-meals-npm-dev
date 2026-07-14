@@ -3,7 +3,7 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { mealImageCache } from "../db/schema/mealImageCache";
 import { userCertifications } from "../db/schema/certifications";
-import { eq, ilike, or, desc, notLike, and, isNull, sql } from "drizzle-orm";
+import { eq, ilike, or, desc, notLike, and, isNull, sql, min, max } from "drizzle-orm";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
 import { sendMarketingCoachingEnrollmentEmail } from "../services/emailService";
 
@@ -354,6 +354,52 @@ router.post("/run-grandfather-migration", async (req, res) => {
 });
 
 // ─── MARKETING & COACHING WAITLIST NOTIFICATION ───────────────────────────────
+
+// GET /admin/certifications/marketing-coaching/waitlist-stats
+// Returns the total waitlisted count, a preview of up to 20 email addresses,
+// and the oldest/newest entry timestamps — read-only, no emails sent.
+router.get("/certifications/marketing-coaching/waitlist-stats", async (req, res) => {
+  try {
+    const PREVIEW_LIMIT = 20;
+
+    const [stats] = await db
+      .select({
+        total: sql<number>`count(*)::int`,
+        oldestEntry: min(userCertifications.createdAt),
+        newestEntry: max(userCertifications.createdAt),
+      })
+      .from(userCertifications)
+      .where(
+        and(
+          eq(userCertifications.certificationType, "marketing_coaching"),
+          eq(userCertifications.status, "waitlisted")
+        )
+      );
+
+    const preview = await db
+      .select({ email: users.email })
+      .from(userCertifications)
+      .innerJoin(users, eq(users.id, userCertifications.userId))
+      .where(
+        and(
+          eq(userCertifications.certificationType, "marketing_coaching"),
+          eq(userCertifications.status, "waitlisted")
+        )
+      )
+      .orderBy(userCertifications.createdAt)
+      .limit(PREVIEW_LIMIT);
+
+    return res.json({
+      total: stats?.total ?? 0,
+      oldestEntry: stats?.oldestEntry ?? null,
+      newestEntry: stats?.newestEntry ?? null,
+      previewEmails: preview.map((r) => r.email).filter(Boolean),
+    });
+  } catch (err: any) {
+    console.error("[admin/waitlist-stats] error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 // POST /admin/certifications/marketing-coaching/notify-waitlist
 // Sends enrollment-open emails to every user with status='waitlisted' on marketing_coaching.
