@@ -6,7 +6,7 @@ export interface ProTipSection {
 export const PRO_TIP_SECTIONS: ProTipSection[] = [
   {
     heading: "Four ways to fill any meal slot",
-    text: "Every meal slot in your builder gives you four options. The gold Cook with Chef button has a chef hat. Tap it to tell the AI exactly what you want and it builds the meal for you. The gold Snack Creator button works the same way but is designed just for snacks. The red Favorites button has a white star. Tap it and every meal you have ever saved appears in one list with a photo and name, so you can drop any of them straight into the slot without rebuilding from scratch. And the purple Describe It button has a plus sign. Use it when you already ate something and just want to log it. Describe what you had, even if it was a restaurant meal with no exact macros, and the app will add it to your builder as a record of what you actually ate.",
+    text: "Every meal slot in your builder gives you four options. The gold Cook with Chef button has a chef hat. Tap it to tell the A.I. exactly what you want and it builds the meal for you. The gold Snack Creator button works the same way but is designed just for snacks. The red Favorites button has a white star. Tap it and every meal you have ever saved appears in one list with a photo and name, so you can drop any of them straight into the slot without rebuilding from scratch. And the purple Describe It button has a plus sign. Use it when you already ate something and just want to log it. Describe what you had, even if it was a restaurant meal with no exact macros, and the app will add it to your builder as a record of what you actually ate.",
   },
   {
     heading: "Be specific and your results get sharper",
