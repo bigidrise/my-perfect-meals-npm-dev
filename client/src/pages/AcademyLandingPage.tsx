@@ -621,7 +621,7 @@ function MarketingCoachingModal({
 }: {
   status: MarketingStatus;
   joining: boolean;
-  onJoin: () => void;
+  onJoin: () => Promise<void>;
   onClose: () => void;
 }) {
   const isWaitlisted = status === "waitlisted";
@@ -635,6 +635,11 @@ function MarketingCoachingModal({
       .then((data: any) => setWaitlistCount(typeof data?.count === "number" ? data.count : null))
       .catch(() => {});
   }, []);
+
+  async function handleJoin() {
+    await onJoin();
+    setWaitlistCount((c) => (c !== null ? c + 1 : 1));
+  }
 
   return (
     <>
@@ -766,7 +771,7 @@ function MarketingCoachingModal({
                 </div>
               ) : (
                 <button
-                  onClick={onJoin}
+                  onClick={handleJoin}
                   disabled={joining}
                   className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.98] transition-transform disabled:opacity-60"
                 >
