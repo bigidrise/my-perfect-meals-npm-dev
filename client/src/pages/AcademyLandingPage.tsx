@@ -161,15 +161,21 @@ export default function AcademyLandingPage() {
           const moduleProgress: Array<{ moduleId: string; status: string }> =
             (progressRes.value as any)?.moduleProgress ?? [];
 
-          // Take only video-type modules (lesson content), sorted by sortOrder
-          const videoModules = allModules
-            .filter((m) => m.moduleType === "video")
-            .sort((a, b) => a.sortOrder - b.sortOrder);
+          // Take lesson-content modules sorted by sortOrder.
+          // Prefer video-type modules; if fewer than the expected lesson count
+          // exist (e.g. modules are stored as "quiz" or mixed types), fall back
+          // to every non-final-assessment module so progress is always shown.
+          const sortedAll = allModules.sort((a, b) => a.sortOrder - b.sortOrder);
+          const videoModules = sortedAll.filter((m) => m.moduleType === "video");
+          const lessonModules =
+            videoModules.length >= PLATFORM_MASTERY_LESSONS.length
+              ? videoModules
+              : sortedAll.filter((m) => m.moduleType !== "final_assessment");
 
           const progressMap = new Map(moduleProgress.map((p) => [p.moduleId, p.status as LessonStatus]));
 
           const statuses: LessonStatus[] = PLATFORM_MASTERY_LESSONS.map((_, i) => {
-            const mod = videoModules[i];
+            const mod = lessonModules[i];
             if (!mod) return "not_started";
             return progressMap.get(mod.slug) ?? "not_started";
           });
