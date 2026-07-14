@@ -11,6 +11,7 @@ import { eq, and, gt, gte, isNull, or, ne } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { randomUUID } from "crypto";
 import { sendEmail } from "../services/email";
+import { emailServiceAvailable } from "../middleware/requireEmailService";
 
 const router = Router();
 
@@ -285,12 +286,16 @@ router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
     });
 
     if (clientUser?.email) {
-      const clientName = clientUser.nickname || clientUser.firstName || "there";
-      await sendEmail({
-        to: clientUser.email,
-        subject: "Your check-in has been cancelled",
-        html: `<p>Hi ${clientName},</p><p>Your upcoming check-in appointment has been cancelled by your coach.</p><p>If you have questions, reach out to your coach directly through the app.</p>`,
-      });
+      if (!emailServiceAvailable()) {
+        console.warn(`[CheckIn] Email service not configured — cancellation email skipped for ${clientUser.email}`);
+      } else {
+        const clientName = clientUser.nickname || clientUser.firstName || "there";
+        await sendEmail({
+          to: clientUser.email,
+          subject: "Your check-in has been cancelled",
+          html: `<p>Hi ${clientName},</p><p>Your upcoming check-in appointment has been cancelled by your coach.</p><p>If you have questions, reach out to your coach directly through the app.</p>`,
+        });
+      }
     }
   } catch (err) {
     console.warn("[CheckIn] Non-fatal: could not send cancellation message/email", err);

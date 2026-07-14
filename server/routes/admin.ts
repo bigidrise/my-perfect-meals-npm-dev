@@ -6,6 +6,7 @@ import { userCertifications, waitlistRecoveryEvents } from "../db/schema/certifi
 import { eq, ilike, or, desc, notLike, and, isNull, isNotNull, sql, min, max } from "drizzle-orm";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
 import { sendMarketingCoachingEnrollmentEmail } from "../services/emailService";
+import { requireEmailService } from "../middleware/requireEmailService";
 
 const S3_BUCKET = process.env.S3_BUCKET_NAME || "my-perfect-meals-images";
 const S3_URL_PREFIX = `https://${S3_BUCKET}.s3.`;
@@ -493,7 +494,7 @@ router.get("/certifications/marketing-coaching/recovery-events", async (req, res
 // Chosen arbitrarily; must be unique across all advisory locks in this codebase.
 const NOTIFY_WAITLIST_LOCK_KEY = 7_438_291_650;
 
-router.post("/certifications/marketing-coaching/notify-waitlist", async (req, res) => {
+router.post("/certifications/marketing-coaching/notify-waitlist", requireEmailService, async (req, res) => {
   // ── Layer 1: acquire cross-instance advisory lock ──────────────────────────
   const lockResult = await db.execute<{ acquired: boolean }>(
     sql`SELECT pg_try_advisory_lock(${NOTIFY_WAITLIST_LOCK_KEY}) AS acquired`
@@ -509,17 +510,6 @@ router.post("/certifications/marketing-coaching/notify-waitlist", async (req, re
   const claimTime = new Date();
 
   try {
-    // ── 0. Pre-flight: require email service before touching any DB rows ──────
-    // NOTE: this check is inside the try block so the finally always releases
-    // the advisory lock, even on this early-abort path.
-    if (!process.env.RESEND_API_KEY) {
-      console.warn("[admin/notify-waitlist] Aborted — RESEND_API_KEY is not configured.");
-      return res.status(503).json({
-        ok: false,
-        message: "Email service is not configured (RESEND_API_KEY missing). No rows were modified.",
-      });
-    }
-
     // ── 1. Count total waitlisted (for skipped metric) ──────────────────────
     const [{ total }] = await db
       .select({ total: sql<number>`count(*)::int` })
