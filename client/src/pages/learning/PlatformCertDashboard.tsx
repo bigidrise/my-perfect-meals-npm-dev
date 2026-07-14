@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { useLocation, useParams } from "wouter";
 import { ArrowLeft, CheckCircle2, Circle, Clock, Lock, Award, PlayCircle, FileText, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
+import { parseLessonParam } from "@/lib/parseLessonParam";
+import { resolveScrollTarget, LESSON_MODULE_TYPES } from "@/lib/resolveScrollTarget";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -116,6 +118,26 @@ export default function PlatformCertDashboard() {
     prevLocationRef.current = location;
   }, [location, certType, load]);
 
+  const targetLessonNum = useMemo(() => {
+    // Use the shared LESSON_MODULE_TYPES constant so this count stays in sync
+    // with resolveScrollTarget — adding a new lesson type in one place is enough.
+    const lessonModules = modules.filter((m) =>
+      (LESSON_MODULE_TYPES as readonly string[]).includes(m.moduleType),
+    );
+    const total = lessonModules.length > 0 ? lessonModules.length : undefined;
+    return parseLessonParam(window.location.search, total);
+  }, [modules]);
+
+  const moduleEls = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  useEffect(() => {
+    if (loading) return;
+    const el = resolveScrollTarget(modules, targetLessonNum, moduleEls.current);
+    if (el) {
+      setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
+    }
+  }, [loading, targetLessonNum, modules]);
+
   useEffect(() => {
     apiRequest("/api/certifications/certificate-name").then((d: { certificateName?: string }) => {
       if (d.certificateName) {
@@ -191,8 +213,8 @@ export default function PlatformCertDashboard() {
     >
       <div className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
-          <button onClick={() => setLocation("/learning")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform">
-            <ArrowLeft className="h-4 w-4" /> Back
+          <button onClick={() => setLocation("/business-center/academy")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform">
+            <ArrowLeft className="h-4 w-4" /> Academy
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-base font-bold text-white truncate">{meta.title}</h1>
@@ -267,7 +289,7 @@ export default function PlatformCertDashboard() {
               const showSeparator = isCurrent && completedCount > 0 && i > 0;
 
               return (
-                <div key={mod.slug}>
+                <div key={mod.slug} ref={(el) => { if (el) moduleEls.current.set(mod.slug, el); else moduleEls.current.delete(mod.slug); }}>
                   {showSeparator && (
                     <div className="flex items-center gap-3 py-2">
                       <div className="flex-1 h-px bg-white/10" />

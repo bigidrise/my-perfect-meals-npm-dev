@@ -13,6 +13,7 @@ import {
 import { certModules, certQuestions, certQuestionOptions } from "../db/schema/lms";
 import { users } from "../../shared/schema";
 import { sendCertificationCompleteEmail } from "../services/emailService";
+import { emailServiceAvailable } from "../middleware/requireEmailService";
 import { generateCertificatePDF } from "../services/certificateService";
 import { evaluateAffiliateActivation } from "../services/affiliateActivation";
 
@@ -374,6 +375,55 @@ router.get("/:certType/certificate", requireAuth, async (req, res) => {
   }
 });
 
+// ─── MARKETING & COACHING WAITLIST ───────────────────────────────────────────
+
+// GET /api/certifications/marketing_coaching/waitlist-count — total waitlist size (social proof)
+router.get("/marketing_coaching/waitlist-count", requireAuth, async (_req, res) => {
+  try {
+    const [row] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(userCertifications)
+      .where(
+        and(
+          eq(userCertifications.certificationType, "marketing_coaching"),
+          eq(userCertifications.status, "waitlisted")
+        )
+      );
+    return res.json({ count: row?.count ?? 0 });
+  } catch (err) {
+    console.error("[Cert] marketing_coaching waitlist-count error:", err);
+    return res.status(500).json({ error: "Failed to fetch waitlist count" });
+  }
+});
+
+// POST /api/certifications/marketing_coaching/waitlist — join the waitlist
+router.post("/marketing_coaching/waitlist", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser.id;
+
+    await db
+      .insert(userCertifications)
+      .values({
+        userId,
+        certificationType: "marketing_coaching",
+        status: "waitlisted",
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [userCertifications.userId, userCertifications.certificationType],
+        set: {
+          status: sql`CASE WHEN ${userCertifications.status} = 'completed' THEN 'completed' WHEN ${userCertifications.status} = 'in_progress' THEN 'in_progress' ELSE 'waitlisted' END`,
+          updatedAt: new Date(),
+        },
+      });
+
+    return res.json({ ok: true, status: "waitlisted" });
+  } catch (err) {
+    console.error("[Cert] marketing_coaching waitlist error:", err);
+    return res.status(500).json({ error: "Failed to join waitlist" });
+  }
+});
+
 // ─── QUIZ ATTEMPT ROUTES ──────────────────────────────────────────────────────
 
 // GET /api/certifications/:certType/modules/:moduleId/quiz-attempt
@@ -614,23 +664,27 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
 
     const finalCertNumber = existing?.certificateNumber ?? newCertNumber;
 
-    try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
+    if (!emailServiceAvailable()) {
+      console.warn(`[Cert] Email service not configured — completion email skipped for userId=${userId} certType=${certType}`);
+    } else {
+      try {
+        const [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
 
-      if (user?.email) {
-        await sendCertificationCompleteEmail({
-          to: user.email,
-          userName: certificateName ?? (user as any).name ?? user.email,
-          certType,
-          certificateNumber: finalCertNumber,
-        });
+        if (user?.email) {
+          await sendCertificationCompleteEmail({
+            to: user.email,
+            userName: certificateName ?? (user as any).name ?? user.email,
+            certType,
+            certificateNumber: finalCertNumber,
+          });
+        }
+      } catch (emailErr) {
+        console.error("[Cert] completion email failed:", emailErr);
       }
-    } catch (emailErr) {
-      console.error("[Cert] completion email failed:", emailErr);
     }
 
     // Evaluate affiliate activation — non-blocking, never throws

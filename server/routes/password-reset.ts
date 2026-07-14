@@ -6,6 +6,7 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq, and, gt } from "drizzle-orm";
 import { sendPasswordResetEmail } from "../services/emailService";
+import { requireEmailService } from "../middleware/requireEmailService";
 
 const router = Router();
 
@@ -22,7 +23,7 @@ const resetPasswordSchema = z.object({
  * POST /api/auth/forgot-password
  * Initiates password reset flow by sending email with reset link
  */
-router.post("/api/auth/forgot-password", async (req, res) => {
+router.post("/api/auth/forgot-password", requireEmailService, async (req, res) => {
   try {
     const { email } = forgotPasswordSchema.parse(req.body);
     const normalizedEmail = email.toLowerCase().trim();
@@ -51,16 +52,12 @@ router.post("/api/auth/forgot-password", async (req, res) => {
       const baseUrl = process.env.FRONTEND_URL || `${protocol}://${host}`;
       const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
 
-      try {
-        await sendPasswordResetEmail({
-          to: email,
-          resetLink,
-          userName: user.firstName || user.username || email.split("@")[0],
-        });
-        console.log(`✅ Password reset email sent`);
-      } catch (emailError) {
-        console.error(`❌ Failed to send password reset email:`, emailError);
-      }
+      await sendPasswordResetEmail({
+        to: email,
+        resetLink,
+        userName: user.firstName || user.username || email.split("@")[0],
+      });
+      console.log(`✅ Password reset email sent`);
     }
 
     res.json({

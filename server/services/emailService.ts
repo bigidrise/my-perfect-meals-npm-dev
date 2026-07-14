@@ -608,6 +608,83 @@ export async function sendAffiliateReferralInvite({
   }
 }
 
+// ─── MARKETING & COACHING ENROLLMENT NOTIFICATION ────────────────────────────
+
+export async function sendMarketingCoachingEnrollmentEmail({
+  to,
+  userName,
+  appUrl,
+}: {
+  to: string;
+  userName: string;
+  appUrl: string;
+}): Promise<boolean> {
+  if (!resend) {
+    console.log('[MarketingCoaching] Resend not available — skipping enrollment notification');
+    return false;
+  }
+
+  const enrollUrl = `${appUrl}/business-center/certifications/marketing_coaching`;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: EMAIL_FROM,
+      to: [to],
+      subject: 'Enrollment is now open — Marketing & Coaching Certification',
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #000000 0%, #ea580c 50%, #000000 100%); padding: 36px 30px 30px; border-radius: 12px 12px 0 0; text-align: center;">
+            <img src="${appUrl}/icons/icon-192x192.png" alt="My Perfect Meals" style="width: 64px; height: 64px; border-radius: 16px; margin-bottom: 16px; display: block; margin-left: auto; margin-right: auto;" />
+            <h1 style="color: white; margin: 0 0 8px; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">Enrollment Is Open</h1>
+            <p style="color: rgba(255,255,255,0.85); margin: 0; font-size: 15px;">Marketing &amp; Coaching Certification — My Perfect Meals</p>
+          </div>
+
+          <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
+            <h2 style="color: #111827; font-size: 20px; margin: 0 0 16px;">Hi ${userName},</h2>
+
+            <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
+              Great news — the <strong>Marketing &amp; Coaching Certification</strong> program you waitlisted for is now officially open for enrollment.
+            </p>
+
+            <p style="color: #374151; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
+              This certification gives you the tools and training to grow your client base, market your coaching services effectively, and build a thriving practice on My Perfect Meals.
+            </p>
+
+            <div style="text-align: center; margin: 28px 0;">
+              <a href="${enrollUrl}" style="display: inline-block; background: #ea580c; color: white; padding: 14px 36px; text-decoration: none; border-radius: 999px; font-weight: 700; font-size: 16px; letter-spacing: 0.2px;">
+                Start Enrollment Now →
+              </a>
+            </div>
+
+            <div style="background: #fff7ed; border-left: 4px solid #ea580c; padding: 16px; margin: 24px 0; border-radius: 4px;">
+              <p style="color: #9a3412; font-size: 14px; margin: 0; line-height: 1.6;">
+                <strong>You're on the list:</strong> You were among the first to express interest in this program. Spots are limited — enroll now to secure your place.
+              </p>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+
+            <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
+              My Perfect Meals — Personalized Nutrition &amp; Meal Planning<br>
+              You're receiving this because you joined the Marketing &amp; Coaching waitlist.
+            </p>
+          </div>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error('[MarketingCoaching] Resend error:', error);
+      return false;
+    }
+    console.log('[MarketingCoaching] Enrollment notification sent:', data?.id);
+    return true;
+  } catch (err) {
+    console.error('[MarketingCoaching] Enrollment notification failed:', err);
+    return false;
+  }
+}
+
 export async function sendWhiteLabelAdminNotification({
   name,
   email,

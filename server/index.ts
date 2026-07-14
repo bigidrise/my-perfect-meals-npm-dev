@@ -618,6 +618,7 @@ setTimeout(async () => {
     await db.execute(sql`ALTER TABLE certification_module_progress ADD COLUMN IF NOT EXISTS video_watched_pct integer DEFAULT 0`);
     await db.execute(sql`ALTER TABLE user_certifications ADD COLUMN IF NOT EXISTS is_current_version boolean DEFAULT true`);
     await db.execute(sql`ALTER TABLE user_certifications ADD COLUMN IF NOT EXISTS updates_pending integer DEFAULT 0`);
+    await db.execute(sql`ALTER TABLE user_certifications ADD COLUMN IF NOT EXISTS is_certification_track boolean DEFAULT false`);
     await db.execute(sql`ALTER TABLE companion_profiles ADD COLUMN IF NOT EXISTS pet_type text DEFAULT 'dog'`);
     // My Perfect Pregnancy — boot migrations
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pregnancy_stage text`);
@@ -738,6 +739,47 @@ setTimeout(async () => {
     const { runAceMigration } = await import('./services/ace/aceBootMigration');
     await runAceMigration();
     console.log('✅ ACE boot migration complete');
+
+    // Waitlist notify — email_sent_at column + orphan recovery
+    // email_sent_at tracks confirmed sends separately from notified_at (claim lock).
+    // On restart, rows with notified_at SET but email_sent_at NULL were claimed mid-send
+    // and never confirmed — reset them so the next notify run picks them up cleanly.
+    await db.execute(sql`
+      ALTER TABLE user_certifications ADD COLUMN IF NOT EXISTS email_sent_at timestamptz
+    `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS waitlist_recovery_events (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        recovered_at timestamptz NOT NULL DEFAULT now(),
+        row_count int NOT NULL,
+        user_ids jsonb NOT NULL DEFAULT '[]'
+      )
+    `);
+    // Reset orphaned rows and capture their user IDs atomically via CTE.
+    // If any rows were reset, write a structured audit entry so admins can
+    // see exactly which users were affected and when.
+    const orphanResult = await db.execute(sql`
+      WITH reset AS (
+        UPDATE user_certifications
+        SET notified_at = NULL
+        WHERE certification_type = 'marketing_coaching'
+          AND status = 'waitlisted'
+          AND notified_at IS NOT NULL
+          AND email_sent_at IS NULL
+        RETURNING user_id
+      ),
+      audit AS (
+        INSERT INTO waitlist_recovery_events (row_count, user_ids)
+        SELECT count(*)::int, jsonb_agg(user_id)
+        FROM reset
+        HAVING count(*) > 0
+      )
+      SELECT count(*)::int AS recovered FROM reset
+    `);
+    const orphanCount = Number((orphanResult.rows?.[0] as any)?.recovered ?? 0);
+    if (orphanCount > 0) {
+      console.log(`♻️  Waitlist orphan recovery: reset notified_at for ${orphanCount} row(s) that were claimed but never confirmed sent (server restart mid-send). Audit row written to waitlist_recovery_events. They will be retried on next notify run.`);
+    }
 
     console.log('✅ LMS + white label boot migrations complete');
   } catch (err: any) {

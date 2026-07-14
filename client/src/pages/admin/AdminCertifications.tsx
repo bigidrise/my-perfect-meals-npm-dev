@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Plus, Trash2, Edit3, Save, X, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Edit3, Save, X, ChevronDown, ChevronUp, RefreshCw, Mail, Send, ArrowUpDown, RotateCcw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 
-type Tab = "modules" | "questions" | "progress" | "updates";
+type Tab = "modules" | "questions" | "progress" | "updates" | "waitlist";
 
 interface CertModule {
   id: string;
@@ -49,6 +49,30 @@ interface ProgressRow {
   certificateNumber?: string;
 }
 
+interface WaitlistRow {
+  userId: string;
+  email: string;
+  firstName?: string;
+  username?: string;
+  status: string;
+  notifiedAt?: string | null;
+  emailSentAt?: string | null;
+  createdAt?: string;
+}
+
+interface RecoveryEventUser {
+  userId: string;
+  email: string | null;
+  firstName: string | null;
+}
+
+interface RecoveryEvent {
+  id: string;
+  recoveredAt: string;
+  rowCount: number;
+  users: RecoveryEventUser[];
+}
+
 const CERT_TYPES = ["platform", "business_success"];
 
 export default function AdminCertifications() {
@@ -80,10 +104,57 @@ export default function AdminCertifications() {
   // Progress state
   const [progress, setProgress] = useState<ProgressRow[]>([]);
 
+  // Waitlist state
+  const [waitlist, setWaitlist] = useState<WaitlistRow[]>([]);
+  const [waitlistStats, setWaitlistStats] = useState<{
+    total: number;
+    notified: number;
+    pending: number;
+    oldestEntry: string | null;
+    newestEntry: string | null;
+    previewEmails: string[];
+  } | null>(null);
+  const [waitlistLoading, setWaitlistLoading] = useState(false);
+  const [notifying, setNotifying] = useState(false);
+  const [waitlistFilter, setWaitlistFilter] = useState<"all" | "notified" | "pending">("all");
+  const [waitlistSort, setWaitlistSort] = useState<"notified-desc" | "notified-asc" | "joined-desc">("joined-desc");
+  const [notifyResult, setNotifyResult] = useState<{
+    sent: number;
+    skipped: number;
+    failed: number;
+    failures: string[];
+  } | null>(null);
+  const [notifyError, setNotifyError] = useState<string | null>(null);
+  const [emailConfigured, setEmailConfigured] = useState<boolean | null>(null);
+  const [recoveryEvents, setRecoveryEvents] = useState<RecoveryEvent[]>([]);
+  const [expandedRecovery, setExpandedRecovery] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const flash = (msg: string) => { setMessage(msg); setTimeout(() => setMessage(null), 3000); };
+
+  // Load waitlist stats when switching to waitlist tab
+  useEffect(() => {
+    if (!user || tab !== "waitlist") return;
+    setWaitlistLoading(true);
+    setNotifyResult(null);
+    setNotifyError(null);
+    Promise.all([
+      apiRequest("/api/admin/certifications/marketing-coaching/waitlist-stats"),
+      apiRequest("/api/admin/certifications/marketing-coaching/waitlist"),
+      apiRequest("/api/admin/config/email-status"),
+      apiRequest("/api/admin/certifications/marketing-coaching/recovery-events").catch(() => ({ events: [] })),
+    ])
+      .then(([stats, list, emailStatus, recovery]: any) => {
+        setWaitlistStats(stats);
+        setWaitlist(list.waitlist ?? []);
+        setEmailConfigured(emailStatus?.configured ?? false);
+        setRecoveryEvents(recovery.events ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setWaitlistLoading(false));
+  }, [user, tab]);
 
   // Load data when tab/certType changes
   useEffect(() => {
@@ -109,6 +180,9 @@ export default function AdminCertifications() {
         .then((d: { updates: UpdateModule[] }) => setUpdates(d.updates ?? []))
         .catch(() => {})
         .finally(() => setLoading(false));
+    } else {
+      // waitlist tab uses its own dedicated loading state
+      setLoading(false);
     }
   }, [user, tab, selectedCertType]);
 
@@ -201,6 +275,39 @@ export default function AdminCertifications() {
     } catch { flash("Delete failed"); }
   };
 
+  const handleNotifyWaitlist = async (force = false) => {
+    if (notifying) return;
+    const confirmed = confirm(force
+      ? "Re-notify ALL waitlisted users (including already-notified)? This will send duplicate emails to anyone already notified."
+      : "Send enrollment-open emails to all un-notified waitlisted users?");
+    if (!confirmed) return;
+    setNotifying(true);
+    setNotifyResult(null);
+    setNotifyError(null);
+    try {
+      const url = `/api/admin/certifications/marketing-coaching/notify-waitlist${force ? "?force=true" : ""}`;
+      const res = await apiRequest(url, { method: "POST" }) as { ok: boolean; sent: number; skipped: number; failed: number; failures: string[] };
+      setNotifyResult({ sent: res.sent, skipped: res.skipped, failed: res.failed, failures: res.failures ?? [] });
+      flash(`Done — ${res.sent} sent, ${res.skipped} skipped, ${res.failed} failed`);
+      const [stats, listData] = await Promise.all([
+        apiRequest(`/api/admin/certifications/marketing-coaching/waitlist-stats`) as Promise<{ total: number; notified: number; pending: number; previewEmails: string[] }>,
+        apiRequest(`/api/admin/certifications/marketing-coaching/waitlist`) as Promise<{ waitlist: WaitlistRow[] }>,
+      ]);
+      setWaitlistStats(stats);
+      setWaitlist(listData.waitlist ?? []);
+    } catch (err: any) {
+      const msg = err?.message || "Notify failed";
+      if (msg.includes("already in progress")) {
+        flash("A notify job is already running — please wait.");
+      } else {
+        setNotifyError(msg);
+      }
+    } finally {
+      setNotifying(false);
+    }
+  };
+
+
   const tabCls = (t: Tab) => `px-4 py-2 rounded-xl text-xs font-semibold transition-all ${tab === t ? "bg-orange-600 text-white" : "bg-white/5 text-white/50 active:scale-[0.96]"}`;
 
   return (
@@ -224,6 +331,7 @@ export default function AdminCertifications() {
           <button className={tabCls("questions")} onClick={() => setTab("questions")}>Questions</button>
           <button className={tabCls("progress")} onClick={() => setTab("progress")}>Progress</button>
           <button className={tabCls("updates")} onClick={() => setTab("updates")}>Updates</button>
+          <button className={tabCls("waitlist")} onClick={() => setTab("waitlist")}>Waitlist</button>
         </div>
       </div>
 
@@ -237,8 +345,8 @@ export default function AdminCertifications() {
           )}
         </AnimatePresence>
 
-        {/* Cert type selector (not for updates tab) */}
-        {tab !== "updates" && (
+        {/* Cert type selector (not for updates or waitlist tabs) */}
+        {tab !== "updates" && tab !== "waitlist" && (
           <div className="flex gap-2">
             {CERT_TYPES.map((ct) => (
               <button key={ct} onClick={() => setSelectedCertType(ct)} className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${selectedCertType === ct ? "bg-white/20 text-white" : "bg-white/5 text-white/40 active:scale-[0.96]"}`}>
@@ -513,6 +621,376 @@ export default function AdminCertifications() {
                         </button>
                       </div>
                     ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── WAITLIST TAB ── */}
+            {tab === "waitlist" && (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-white">Marketing &amp; Coaching Waitlist</p>
+                  <p className="text-xs text-white/40 mt-0.5">Preview the audience, then send enrollment notifications.</p>
+                </div>
+
+                {waitlistLoading ? (
+                  <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin" /></div>
+                ) : waitlistStats ? (
+                  <>
+                    {/* Stats cards */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="p-4 rounded-2xl bg-black/30 border border-white/10 text-center">
+                        <p className="text-2xl font-bold text-orange-400">{waitlistStats.total}</p>
+                        <p className="text-[10px] text-white/40 mt-1 uppercase tracking-wider">Total</p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-black/30 border border-white/10 text-center">
+                        <p className="text-2xl font-bold text-green-400">{waitlistStats.notified}</p>
+                        <p className="text-[10px] text-white/40 mt-1 uppercase tracking-wider">Notified</p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-black/30 border border-white/10 text-center">
+                        <p className="text-2xl font-bold text-yellow-400">{waitlistStats.pending}</p>
+                        <p className="text-[10px] text-white/40 mt-1 uppercase tracking-wider">Pending</p>
+                      </div>
+                    </div>
+
+                    {/* Date range */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 rounded-2xl bg-black/20 border border-white/5 text-center">
+                        <p className="text-xs font-semibold text-white/70 leading-snug">
+                          {waitlistStats.oldestEntry ? new Date(waitlistStats.oldestEntry).toLocaleDateString() : "—"}
+                        </p>
+                        <p className="text-[10px] text-white/40 mt-1 uppercase tracking-wider">Oldest</p>
+                      </div>
+                      <div className="p-3 rounded-2xl bg-black/20 border border-white/5 text-center">
+                        <p className="text-xs font-semibold text-white/70 leading-snug">
+                          {waitlistStats.newestEntry ? new Date(waitlistStats.newestEntry).toLocaleDateString() : "—"}
+                        </p>
+                        <p className="text-[10px] text-white/40 mt-1 uppercase tracking-wider">Newest</p>
+                      </div>
+                    </div>
+
+                    {/* Email preview */}
+                    {waitlistStats.previewEmails.length > 0 && (
+                      <div className="p-4 rounded-2xl bg-black/30 border border-white/10 space-y-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Mail className="h-3.5 w-3.5 text-white/30" />
+                          <p className="text-xs text-white/50 font-medium">Email Preview (up to 20)</p>
+                        </div>
+                        <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
+                          {waitlistStats.previewEmails.map((email) => (
+                            <p key={email} className="text-xs font-mono text-white/60 truncate">{email}</p>
+                          ))}
+                        </div>
+                        {waitlistStats.total > waitlistStats.previewEmails.length && (
+                          <p className="text-[10px] text-white/30 pt-1">+{waitlistStats.total - waitlistStats.previewEmails.length} more not shown</p>
+                        )}
+                      </div>
+                    )}
+
+                    {waitlistStats.total === 0 && (
+                      <div className="p-6 rounded-2xl bg-black/20 border border-white/5 text-center">
+                        <p className="text-sm text-white/30">No one on the waitlist right now.</p>
+                      </div>
+                    )}
+
+                    {/* Send result / error */}
+                    <AnimatePresence>
+                      {notifyError && (
+                        <motion.div
+                          className="p-4 rounded-2xl bg-black/40 border border-red-500/40 space-y-1"
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                        >
+                          <p className="text-sm font-semibold text-red-400">Send aborted — no rows modified</p>
+                          <p className="text-xs text-red-300/80">{notifyError}</p>
+                        </motion.div>
+                      )}
+                      {notifyResult && (
+                        <motion.div
+                          className="p-4 rounded-2xl bg-black/40 border border-orange-500/30 space-y-2"
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                        >
+                          <p className="text-sm font-semibold text-orange-300">Notification sent</p>
+                          <div className="flex gap-4 text-xs">
+                            <span className="text-green-400 font-semibold">{notifyResult.sent} sent</span>
+                            <span className="text-white/40">{notifyResult.skipped} skipped (already notified)</span>
+                            {notifyResult.failed > 0 && <span className="text-red-400">{notifyResult.failed} failed</span>}
+                          </div>
+                          {notifyResult.failures.length > 0 && (
+                            <div className="space-y-0.5 pt-1">
+                              <p className="text-[10px] text-red-400/60 uppercase tracking-wider font-semibold">Failed addresses</p>
+                              {notifyResult.failures.map((e) => (
+                                <p key={e} className="text-xs font-mono text-red-400/70">{e}</p>
+                              ))}
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Action buttons */}
+                    {waitlistStats.total > 0 && (
+                      <div className="space-y-2">
+                        {emailConfigured === false && (
+                          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20">
+                            <Mail className="h-4 w-4 text-red-400 flex-shrink-0" />
+                            <p className="text-xs text-red-400 font-medium">Email not configured — set RESEND_API_KEY to enable notifications</p>
+                          </div>
+                        )}
+                        {waitlistStats.pending === 0 && emailConfigured !== false && (
+                          <p className="text-xs text-yellow-400/80 text-center py-1">
+                            All waitlisted users have already been notified. Nothing to send.
+                          </p>
+                        )}
+                        <button
+                          onClick={() => handleNotifyWaitlist(false)}
+                          disabled={notifying || waitlistStats.pending === 0 || emailConfigured === false}
+                          className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.97] transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <Send className="h-4 w-4" />
+                          {emailConfigured === false
+                            ? "Email not configured"
+                            : notifying
+                            ? "Sending…"
+                            : waitlistStats.pending === 0
+                            ? "Notify Waitlist (0 pending)"
+                            : `Notify Waitlist (${waitlistStats.pending} pending)`}
+                        </button>
+                        <button
+                          onClick={() => handleNotifyWaitlist(true)}
+                          disabled={notifying || emailConfigured === false}
+                          className="w-full p-3 rounded-2xl bg-white/5 border border-white/10 text-white/40 text-xs font-medium active:scale-[0.97] transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          {emailConfigured === false ? "Email not configured" : "Force Re-notify All (including already-notified)"}
+                        </button>
+                        <div className="p-3 rounded-2xl bg-black/20 border border-white/5 space-y-1">
+                          <p className="text-[10px] text-white/40 font-semibold uppercase tracking-wider">Recovery info</p>
+                          <p className="text-[10px] text-white/30 leading-relaxed">
+                            "Notify Waitlist" skips anyone already confirmed sent. If the server restarted mid-send, any in-flight rows are automatically reset on boot and will be retried on the next run — no manual action needed. Use "Force Re-notify All" only if you intentionally want to re-send to everyone, including confirmed recipients.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Detailed user list */}
+                    <div className="space-y-3 pt-4 border-t border-white/10">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-white/40">
+                            {(() => {
+                              const filtered = waitlistFilter === "all" ? waitlist : waitlistFilter === "notified" ? waitlist.filter(r => r.notifiedAt) : waitlist.filter(r => !r.notifiedAt);
+                              return `${filtered.length} user${filtered.length !== 1 ? "s" : ""}${waitlistFilter !== "all" ? ` (${waitlistFilter})` : " on waitlist"}`;
+                            })()}
+                          </p>
+                          <div className="flex gap-1 text-[10px]">
+                            {(["all", "notified", "pending"] as const).map((f) => (
+                              <button
+                                key={f}
+                                onClick={() => setWaitlistFilter(f)}
+                                className={`px-2.5 py-1 rounded-full font-semibold capitalize transition-colors ${
+                                  waitlistFilter === f
+                                    ? f === "notified"
+                                      ? "bg-green-500/25 text-green-400 border border-green-500/40"
+                                      : f === "pending"
+                                      ? "bg-orange-500/25 text-orange-400 border border-orange-500/40"
+                                      : "bg-white/20 text-white border border-white/30"
+                                    : "bg-white/5 text-white/35 border border-white/10"
+                                }`}
+                              >
+                                {f}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-end gap-1 text-[10px]">
+                          <ArrowUpDown className="h-3 w-3 text-white/30" />
+                          {([
+                            { value: "notified-desc", label: "Notified ↓" },
+                            { value: "notified-asc",  label: "Notified ↑" },
+                            { value: "joined-desc",   label: "Joined ↓"   },
+                          ] as const).map((opt) => (
+                            <button
+                              key={opt.value}
+                              onClick={() => setWaitlistSort(opt.value)}
+                              className={`px-2.5 py-1 rounded-full font-semibold transition-colors ${
+                                waitlistSort === opt.value
+                                  ? "bg-white/20 text-white border border-white/30"
+                                  : "bg-white/5 text-white/35 border border-white/10"
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {waitlist.length === 0 ? (
+                        <div className="p-6 rounded-2xl bg-black/20 border border-white/5 text-center">
+                          <p className="text-sm text-white/30">No one on the waitlist yet.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {(() => {
+                            const filtered = waitlistFilter === "all" ? waitlist : waitlistFilter === "notified" ? waitlist.filter(r => r.notifiedAt) : waitlist.filter(r => !r.notifiedAt);
+                            const sorted = [...filtered].sort((a, b) => {
+                              if (waitlistSort === "notified-desc") {
+                                const ta = a.notifiedAt ? new Date(a.notifiedAt).getTime() : 0;
+                                const tb = b.notifiedAt ? new Date(b.notifiedAt).getTime() : 0;
+                                return tb - ta;
+                              }
+                              if (waitlistSort === "notified-asc") {
+                                const ta = a.notifiedAt ? new Date(a.notifiedAt).getTime() : Infinity;
+                                const tb = b.notifiedAt ? new Date(b.notifiedAt).getTime() : Infinity;
+                                return ta - tb;
+                              }
+                              // joined-desc (default): newest join first
+                              const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                              const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                              return tb - ta;
+                            });
+                            if (sorted.length === 0) {
+                              return (
+                                <div className="p-6 rounded-2xl bg-black/20 border border-white/5 text-center">
+                                  <p className="text-sm text-white/30">No {waitlistFilter} users on the waitlist.</p>
+                                </div>
+                              );
+                            }
+                            return sorted.map((row) => (
+                            <div key={row.userId} className="p-4 rounded-2xl bg-black/30 border border-white/10">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-white truncate">
+                                    {row.firstName || row.username || "Unknown"}
+                                  </p>
+                                  <p className="text-xs text-white/40 truncate mt-0.5">{row.email}</p>
+                                  {row.createdAt && (
+                                    <p className="text-xs text-white/20 mt-1">
+                                      Joined {new Date(row.createdAt).toLocaleDateString()}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="flex-shrink-0 text-right">
+                                  {row.emailSentAt ? (
+                                    <div className="space-y-1">
+                                      <span className="inline-block px-2.5 py-1 rounded-full bg-green-500/15 border border-green-500/20 text-green-400 text-[10px] font-bold uppercase tracking-wide">
+                                        Email Sent
+                                      </span>
+                                      <p className="text-[10px] text-white/60">
+                                        {new Date(row.emailSentAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                      </p>
+                                    </div>
+                                  ) : row.notifiedAt ? (
+                                    <div className="space-y-0.5">
+                                      <span className="inline-block px-2.5 py-1 rounded-full bg-yellow-500/15 border border-yellow-500/20 text-yellow-400 text-[10px] font-bold uppercase tracking-wide">
+                                        In Progress
+                                      </span>
+                                      <p className="text-[10px] text-white/25">claimed</p>
+                                    </div>
+                                  ) : (
+                                    <span className="inline-block px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/35 text-[10px] font-semibold uppercase tracking-wide">
+                                      Pending
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ));
+                          })()}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Recovery History */}
+                    <div className="space-y-3 pt-4 border-t border-white/10">
+                      <div className="flex items-center gap-2">
+                        <RotateCcw className="h-3.5 w-3.5 text-white/30" />
+                        <p className="text-xs font-semibold text-white/40 uppercase tracking-wider">Boot Recovery History</p>
+                      </div>
+                      {recoveryEvents.length === 0 ? (
+                        <div className="p-4 rounded-2xl bg-black/20 border border-white/5 text-center">
+                          <p className="text-xs text-white/25">No restart recoveries recorded yet.</p>
+                          <p className="text-[10px] text-white/15 mt-1">Events appear here when the server restarts mid-send and auto-resets orphaned rows.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {recoveryEvents.map((evt) => (
+                            <div key={evt.id} className="rounded-2xl bg-black/30 border border-white/10 overflow-hidden">
+                              <button
+                                onClick={() => setExpandedRecovery(expandedRecovery === evt.id ? null : evt.id)}
+                                className="w-full flex items-center justify-between gap-3 p-4 text-left active:bg-white/5"
+                              >
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <span className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full bg-orange-500/15 border border-orange-500/20">
+                                    <RotateCcw className="h-3 w-3 text-orange-400" />
+                                  </span>
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-semibold text-white">
+                                      {evt.rowCount} user{evt.rowCount !== 1 ? "s" : ""} auto-recovered
+                                    </p>
+                                    <p className="text-[10px] text-white/35 mt-0.5">
+                                      {new Date(evt.recoveredAt).toLocaleString()}
+                                    </p>
+                                  </div>
+                                </div>
+                                <span className="flex-shrink-0 text-white/30">
+                                  {expandedRecovery === evt.id ? (
+                                    <ChevronUp className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <ChevronDown className="h-3.5 w-3.5" />
+                                  )}
+                                </span>
+                              </button>
+                              {expandedRecovery === evt.id && (
+                                <div className="px-4 pb-4 space-y-2 border-t border-white/5 pt-3">
+                                  <p className="text-[10px] text-white/35 uppercase tracking-wider font-semibold">Affected Users</p>
+                                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                                    {evt.users.map((u) => (
+                                      <div key={u.userId} className="flex flex-col gap-0.5 py-1 border-b border-white/5 last:border-0">
+                                        <p className="text-xs text-white/70 font-medium">
+                                          {u.firstName ? u.firstName : <span className="text-white/30 italic">Unknown</span>}
+                                          {u.email && (
+                                            <span className="text-white/40 font-normal"> — {u.email}</span>
+                                          )}
+                                        </p>
+                                        <p className="text-[10px] font-mono text-white/25">{u.userId}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <p className="text-[10px] text-white/25 pt-1 leading-relaxed">
+                                    These rows were claimed mid-send (notified_at set, email_sent_at null) and were automatically reset on boot. They will be retried on the next notify run.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-6 rounded-2xl bg-black/20 border border-white/5 text-center">
+                    <p className="text-sm text-white/30">Failed to load waitlist data.</p>
+                    <button
+                      onClick={() => {
+                        setWaitlistLoading(true);
+                        Promise.all([
+                          apiRequest("/api/admin/certifications/marketing-coaching/waitlist-stats"),
+                          apiRequest("/api/admin/certifications/marketing-coaching/waitlist")
+                        ])
+                          .then(([stats, list]: any) => {
+                            setWaitlistStats(stats);
+                            setWaitlist(list.waitlist ?? []);
+                          })
+                          .catch(() => {})
+                          .finally(() => setWaitlistLoading(false));
+                      }}
+                      className="mt-3 px-4 py-2 rounded-xl bg-white/10 text-white/50 text-xs font-medium active:scale-[0.96]"
+                    >
+                      Retry
+                    </button>
                   </div>
                 )}
               </div>

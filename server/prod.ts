@@ -207,6 +207,9 @@ async function initializeApp() {
             sql`ALTER TABLE user_certifications ADD COLUMN IF NOT EXISTS updates_pending integer DEFAULT 0`,
           );
           await database.execute(
+            sql`ALTER TABLE user_certifications ADD COLUMN IF NOT EXISTS is_certification_track boolean DEFAULT false`,
+          );
+          await database.execute(
             sql`ALTER TABLE companion_profiles ADD COLUMN IF NOT EXISTS pet_type text DEFAULT 'dog'`,
           );
           // My Perfect Pregnancy — boot migrations
@@ -329,6 +332,47 @@ async function initializeApp() {
           const { runAceMigration } = await import("./services/ace/aceBootMigration");
           await runAceMigration();
           console.log("✅ [INIT] ACE boot migration complete");
+
+          // Waitlist notify — email_sent_at column + orphan recovery
+          // email_sent_at tracks confirmed sends separately from notified_at (claim lock).
+          // On restart, rows with notified_at SET but email_sent_at NULL were claimed mid-send
+          // and never confirmed — reset them so the next notify run picks them up cleanly.
+          await database.execute(sql`
+            ALTER TABLE user_certifications ADD COLUMN IF NOT EXISTS email_sent_at timestamptz
+          `);
+          await database.execute(sql`
+            CREATE TABLE IF NOT EXISTS waitlist_recovery_events (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              recovered_at timestamptz NOT NULL DEFAULT now(),
+              row_count int NOT NULL,
+              user_ids jsonb NOT NULL DEFAULT '[]'
+            )
+          `);
+          // Reset orphaned rows and capture their user IDs atomically via CTE.
+          // If any rows were reset, write a structured audit entry so admins can
+          // see exactly which users were affected and when.
+          const orphanResult = await database.execute(sql`
+            WITH reset AS (
+              UPDATE user_certifications
+              SET notified_at = NULL
+              WHERE certification_type = 'marketing_coaching'
+                AND status = 'waitlisted'
+                AND notified_at IS NOT NULL
+                AND email_sent_at IS NULL
+              RETURNING user_id
+            ),
+            audit AS (
+              INSERT INTO waitlist_recovery_events (row_count, user_ids)
+              SELECT count(*)::int, jsonb_agg(user_id)
+              FROM reset
+              HAVING count(*) > 0
+            )
+            SELECT count(*)::int AS recovered FROM reset
+          `);
+          const orphanCount = Number((orphanResult.rows?.[0] as any)?.recovered ?? 0);
+          if (orphanCount > 0) {
+            console.log(`♻️  [INIT] Waitlist orphan recovery: reset notified_at for ${orphanCount} row(s) claimed but never confirmed sent (server restart mid-send). Audit row written to waitlist_recovery_events. They will be retried on next notify run.`);
+          }
         })(),
         migTimeout(6000),
       ]);
@@ -543,6 +587,10 @@ async function initializeApp() {
     console.log("✅ [INIT] Additional routes mounted");
 
     // ── Routes present in index.ts (dev) but not previously in prod.ts ──────
+    // academy — Platform Mastery lesson progress, enrollment, quizzes, certificates
+    const academyRouter = (await import("./routes/academyRoutes")).default;
+    app.use("/api/academy", academyRouter);
+
     // coaching — notify-coach, activate-client, send-invite, client queue
     const coachingRouter = (await import("./routes/coaching")).default;
     app.use("/api/coaching", coachingRouter);

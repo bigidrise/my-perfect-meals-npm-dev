@@ -15,6 +15,10 @@ import {
   certificationModuleProgress,
 } from "../db/schema/certifications";
 
+// Advisory lock key for the cert seed job.
+// Must be unique across the codebase — see advisory lock registry in server/routes/admin.ts.
+const SEED_CERT_LOCK_KEY = 7_438_291_653;
+
 const router = express.Router();
 
 async function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -245,6 +249,14 @@ router.delete("/options/:id", async (req, res) => {
 // ─── SEED PLATFORM CERT ───────────────────────────────────────────────────────
 
 router.post("/seed/:certType", async (req, res) => {
+  // Acquire cross-instance advisory lock to prevent concurrent seed runs
+  const lockResult = await db.execute<{ acquired: boolean }>(
+    sql`SELECT pg_try_advisory_lock(${SEED_CERT_LOCK_KEY}) AS acquired`
+  );
+  if (!lockResult.rows[0]?.acquired) {
+    return res.status(409).json({ error: "A cert seed job is already in progress. Please wait for it to finish." });
+  }
+
   try {
     const { certType } = req.params;
     const force = req.query.force === "true";
@@ -442,6 +454,10 @@ router.post("/seed/:certType", async (req, res) => {
   } catch (err) {
     console.error("[AdminCert] seed error:", err);
     return res.status(500).json({ error: "Failed to seed certification" });
+  } finally {
+    await db.execute(sql`SELECT pg_advisory_unlock(${SEED_CERT_LOCK_KEY})`).catch((e) =>
+      console.error("[AdminCert] seed advisory unlock failed:", e)
+    );
   }
 });
 

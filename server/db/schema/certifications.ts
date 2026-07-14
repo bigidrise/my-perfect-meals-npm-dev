@@ -29,6 +29,9 @@ export const userCertifications = pgTable("user_certifications", {
   certificateName: text("certificate_name"),
   isCurrentVersion: boolean("is_current_version").default(true),
   updatesPending: integer("updates_pending").default(0),
+  notifiedAt: timestamp("notified_at", { withTimezone: true }),
+  emailSentAt: timestamp("email_sent_at", { withTimezone: true }),
+  isCertificationTrack: boolean("is_certification_track").default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({
@@ -48,6 +51,13 @@ export const certificationQuizAttempts = pgTable("certification_quiz_attempts", 
 }, (t) => ({
   uniqUserCertModuleAttempt: unique("uniq_user_cert_module_attempt").on(t.userId, t.certificationType, t.moduleId),
 }));
+
+export const waitlistRecoveryEvents = pgTable("waitlist_recovery_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  recoveredAt: timestamp("recovered_at", { withTimezone: true }).defaultNow().notNull(),
+  rowCount: integer("row_count").notNull(),
+  userIds: jsonb("user_ids").$type<string[]>().notNull().default([]),
+});
 
 export const businessLeads = pgTable("business_leads", {
   id: uuid("id").defaultRandom().primaryKey(),
