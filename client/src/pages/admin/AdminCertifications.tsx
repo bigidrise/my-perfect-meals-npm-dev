@@ -818,12 +818,12 @@ export default function AdminCertifications() {
                                 </div>
                                 <div className="flex-shrink-0 text-right">
                                   {row.emailSentAt ? (
-                                    <div className="space-y-0.5">
+                                    <div className="space-y-1">
                                       <span className="inline-block px-2.5 py-1 rounded-full bg-green-500/15 border border-green-500/20 text-green-400 text-[10px] font-bold uppercase tracking-wide">
                                         Email Sent
                                       </span>
-                                      <p className="text-[10px] text-white/25">
-                                        {new Date(row.emailSentAt).toLocaleDateString()}
+                                      <p className="text-[10px] text-white/60">
+                                        {new Date(row.emailSentAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                                       </p>
                                     </div>
                                   ) : row.notifiedAt ? (
