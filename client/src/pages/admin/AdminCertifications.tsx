@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Plus, Trash2, Edit3, Save, X, ChevronDown, ChevronUp, RefreshCw, Mail, Send, ArrowUpDown } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Edit3, Save, X, ChevronDown, ChevronUp, RefreshCw, Mail, Send, ArrowUpDown, RotateCcw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
@@ -60,6 +60,13 @@ interface WaitlistRow {
   createdAt?: string;
 }
 
+interface RecoveryEvent {
+  id: string;
+  recoveredAt: string;
+  rowCount: number;
+  userIds: string[];
+}
+
 const CERT_TYPES = ["platform", "business_success"];
 
 export default function AdminCertifications() {
@@ -113,6 +120,8 @@ export default function AdminCertifications() {
   } | null>(null);
   const [notifyError, setNotifyError] = useState<string | null>(null);
   const [emailConfigured, setEmailConfigured] = useState<boolean | null>(null);
+  const [recoveryEvents, setRecoveryEvents] = useState<RecoveryEvent[]>([]);
+  const [expandedRecovery, setExpandedRecovery] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -129,11 +138,13 @@ export default function AdminCertifications() {
       apiRequest("/api/admin/certifications/marketing-coaching/waitlist-stats"),
       apiRequest("/api/admin/certifications/marketing-coaching/waitlist"),
       apiRequest("/api/admin/config/email-status"),
+      apiRequest("/api/admin/certifications/marketing-coaching/recovery-events"),
     ])
-      .then(([stats, list, emailStatus]: any) => {
+      .then(([stats, list, emailStatus, recovery]: any) => {
         setWaitlistStats(stats);
         setWaitlist(list.waitlist ?? []);
         setEmailConfigured(emailStatus?.configured ?? false);
+        setRecoveryEvents(recovery.events ?? []);
       })
       .catch(() => {})
       .finally(() => setWaitlistLoading(false));
@@ -882,6 +893,65 @@ export default function AdminCertifications() {
                             </div>
                           ));
                           })()}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Recovery History */}
+                    <div className="space-y-3 pt-4 border-t border-white/10">
+                      <div className="flex items-center gap-2">
+                        <RotateCcw className="h-3.5 w-3.5 text-white/30" />
+                        <p className="text-xs font-semibold text-white/40 uppercase tracking-wider">Boot Recovery History</p>
+                      </div>
+                      {recoveryEvents.length === 0 ? (
+                        <div className="p-4 rounded-2xl bg-black/20 border border-white/5 text-center">
+                          <p className="text-xs text-white/25">No restart recoveries recorded yet.</p>
+                          <p className="text-[10px] text-white/15 mt-1">Events appear here when the server restarts mid-send and auto-resets orphaned rows.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {recoveryEvents.map((evt) => (
+                            <div key={evt.id} className="rounded-2xl bg-black/30 border border-white/10 overflow-hidden">
+                              <button
+                                onClick={() => setExpandedRecovery(expandedRecovery === evt.id ? null : evt.id)}
+                                className="w-full flex items-center justify-between gap-3 p-4 text-left active:bg-white/5"
+                              >
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <span className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full bg-orange-500/15 border border-orange-500/20">
+                                    <RotateCcw className="h-3 w-3 text-orange-400" />
+                                  </span>
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-semibold text-white">
+                                      {evt.rowCount} user{evt.rowCount !== 1 ? "s" : ""} auto-recovered
+                                    </p>
+                                    <p className="text-[10px] text-white/35 mt-0.5">
+                                      {new Date(evt.recoveredAt).toLocaleString()}
+                                    </p>
+                                  </div>
+                                </div>
+                                <span className="flex-shrink-0 text-white/30">
+                                  {expandedRecovery === evt.id ? (
+                                    <ChevronUp className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <ChevronDown className="h-3.5 w-3.5" />
+                                  )}
+                                </span>
+                              </button>
+                              {expandedRecovery === evt.id && (
+                                <div className="px-4 pb-4 space-y-2 border-t border-white/5 pt-3">
+                                  <p className="text-[10px] text-white/35 uppercase tracking-wider font-semibold">Affected User IDs</p>
+                                  <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
+                                    {evt.userIds.map((uid) => (
+                                      <p key={uid} className="text-xs font-mono text-white/50">{uid}</p>
+                                    ))}
+                                  </div>
+                                  <p className="text-[10px] text-white/25 pt-1 leading-relaxed">
+                                    These rows were claimed mid-send (notified_at set, email_sent_at null) and were automatically reset on boot. They will be retried on the next notify run.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { mealImageCache } from "../db/schema/mealImageCache";
-import { userCertifications } from "../db/schema/certifications";
+import { userCertifications, waitlistRecoveryEvents } from "../db/schema/certifications";
 import { eq, ilike, or, desc, notLike, and, isNull, isNotNull, sql, min, max } from "drizzle-orm";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
 import { sendMarketingCoachingEnrollmentEmail } from "../services/emailService";
@@ -437,6 +437,28 @@ router.get("/certifications/marketing-coaching/waitlist", async (req, res) => {
     return res.json({ ok: true, waitlist: rows });
   } catch (err: any) {
     console.error("[admin/waitlist] error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /admin/certifications/marketing-coaching/recovery-events
+// Returns all boot-recovery audit entries (newest first).
+// Each entry records the timestamp, count of orphaned rows reset, and affected user IDs.
+router.get("/certifications/marketing-coaching/recovery-events", async (req, res) => {
+  try {
+    const events = await db
+      .select({
+        id: waitlistRecoveryEvents.id,
+        recoveredAt: waitlistRecoveryEvents.recoveredAt,
+        rowCount: waitlistRecoveryEvents.rowCount,
+        userIds: waitlistRecoveryEvents.userIds,
+      })
+      .from(waitlistRecoveryEvents)
+      .orderBy(desc(waitlistRecoveryEvents.recoveredAt))
+      .limit(50);
+    return res.json({ ok: true, events });
+  } catch (err: any) {
+    console.error("[admin/recovery-events] error:", err);
     return res.status(500).json({ error: err.message });
   }
 });

@@ -52,6 +52,13 @@ export const certificationQuizAttempts = pgTable("certification_quiz_attempts", 
   uniqUserCertModuleAttempt: unique("uniq_user_cert_module_attempt").on(t.userId, t.certificationType, t.moduleId),
 }));
 
+export const waitlistRecoveryEvents = pgTable("waitlist_recovery_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  recoveredAt: timestamp("recovered_at", { withTimezone: true }).defaultNow().notNull(),
+  rowCount: integer("row_count").notNull(),
+  userIds: jsonb("user_ids").$type<string[]>().notNull().default([]),
+});
+
 export const businessLeads = pgTable("business_leads", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id"),
