@@ -148,7 +148,6 @@ export default function AcademyLandingPage() {
   );
   const [lessonLoading, setLessonLoading] = useState(true);
 
-  // Fetch per-lesson progress for all authenticated users
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -164,10 +163,6 @@ export default function AcademyLandingPage() {
           const moduleProgress: Array<{ moduleId: string; status: string }> =
             (progressRes.value as any)?.moduleProgress ?? [];
 
-          // Take lesson-content modules sorted by sortOrder.
-          // Prefer video-type modules; if fewer than the expected lesson count
-          // exist (e.g. modules are stored as "quiz" or mixed types), fall back
-          // to every non-final-assessment module so progress is always shown.
           const sortedAll = allModules.sort((a, b) => a.sortOrder - b.sortOrder);
           const videoModules = sortedAll.filter((m) => m.moduleType === "video");
           const lessonModules =
@@ -199,7 +194,7 @@ export default function AcademyLandingPage() {
   }, [user?.id]);
 
   useEffect(() => {
-    if (!isProfessional) {
+    if (!user) {
       setProgress((p) => ({ ...p, loading: false }));
       return;
     }
@@ -210,6 +205,7 @@ export default function AcademyLandingPage() {
           apiRequest("/api/certifications/procare_training/progress"),
           apiRequest("/api/certifications/marketing_coaching/progress"),
         ]);
+
         const phase1Done =
           p1Res.status === "fulfilled" &&
           (p1Res.value as any)?.certification?.status === "completed";
@@ -218,7 +214,7 @@ export default function AcademyLandingPage() {
             ? ((p1Res.value as any)?.certification?.score ?? null)
             : null;
         const phase2Done =
-          p2Res.status === "fulfilled" &&
+          p2Res?.status === "fulfilled" &&
           (p2Res.value as any)?.certification?.status === "completed";
         const mcStatus: MarketingStatus =
           mcRes.status === "fulfilled"
@@ -236,7 +232,7 @@ export default function AcademyLandingPage() {
         setProgress((p) => ({ ...p, loading: false }));
       }
     })();
-  }, [isProfessional, user?.onboardingCompletedAt]);
+  }, [user?.id, user?.onboardingCompletedAt]);
 
   const hasAnyLessonProgress = lessonStatuses.some(
     (s) => s === "in_progress" || s === "completed"
@@ -358,62 +354,79 @@ export default function AcademyLandingPage() {
           </div>
 
           <div className="divide-y divide-white/5">
-            {PLATFORM_MASTERY_LESSONS.map((lesson, i) => {
-              const Icon = lesson.icon;
-              const status = lessonStatuses[i];
-              const slug = lessonSlugs[i];
-              const isInProgress = !lessonLoading && status === "in_progress";
-              const isCompleted = !lessonLoading && status === "completed";
+            {(() => {
+              const firstIncomplete = !lessonLoading
+                ? lessonStatuses.findIndex((s) => s !== "completed")
+                : -1;
+              return PLATFORM_MASTERY_LESSONS.map((lesson, i) => {
+                const Icon = lesson.icon;
+                const status = lessonStatuses[i];
+                const slug = lessonSlugs[i];
+                const isInProgress = !lessonLoading && status === "in_progress";
+                const isCompleted = !lessonLoading && status === "completed";
+                const isNextUp = !isCompleted && !isInProgress && i === firstIncomplete;
 
-              function handleLessonTap() {
-                if (isInProgress && slug) {
-                  setLocation(`/certifications/platform/video/${slug}`);
-                } else {
-                  setLocation(`/certifications/platform?lesson=${i + 1}`);
+                function handleLessonTap() {
+                  if (isInProgress && slug) {
+                    setLocation(`/certifications/platform/video/${slug}`);
+                  } else {
+                    setLocation(`/certifications/platform?lesson=${i + 1}`);
+                  }
                 }
-              }
 
-              return (
-                <motion.button
-                  key={lesson.number}
-                  className={`w-full text-left px-5 py-3.5 flex items-start gap-3 transition-colors ${
-                    isInProgress
-                      ? "bg-orange-500/8 active:bg-orange-500/12"
-                      : "active:bg-white/5"
-                  }`}
-                  onClick={handleLessonTap}
-                  initial={{ opacity: 0, x: -6 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.14 + i * 0.05 }}
-                >
-                  <div className={`p-1.5 rounded-lg flex-shrink-0 mt-0.5 ${
-                    isCompleted ? "bg-emerald-500/15" : isInProgress ? "bg-orange-500/20" : "bg-orange-500/15"
-                  }`}>
-                    <Icon className={`h-3.5 w-3.5 ${isCompleted ? "text-emerald-400" : "text-orange-400"}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-white/25">{lesson.number}</span>
-                      <span className="text-sm font-semibold text-white leading-snug">{lesson.title}</span>
+                return (
+                  <motion.button
+                    key={lesson.number}
+                    className={`w-full text-left px-5 py-3.5 flex items-start gap-3 transition-colors ${
+                      isInProgress || isNextUp
+                        ? "bg-orange-500/8 active:bg-orange-500/12"
+                        : "active:bg-white/5"
+                    }`}
+                    onClick={handleLessonTap}
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.14 + i * 0.05 }}
+                  >
+                    <div className={`p-1.5 rounded-lg flex-shrink-0 mt-0.5 ${
+                      isCompleted ? "bg-emerald-500/15" : isInProgress || isNextUp ? "bg-orange-500/20" : "bg-orange-500/15"
+                    }`}>
+                      <Icon className={`h-3.5 w-3.5 ${isCompleted ? "text-emerald-400" : "text-orange-400"}`} />
                     </div>
-                    <p className="text-xs text-white/45 mt-0.5 leading-relaxed">{lesson.description}</p>
-                    {isInProgress && (
-                      <span className="inline-flex items-center gap-1 mt-1.5 text-[11px] font-semibold text-orange-300">
-                        <PlayCircle className="h-3 w-3" />
-                        Resume lesson
-                      </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-mono ${isCompleted ? "text-emerald-500/50" : "text-white/25"}`}>
+                          {lesson.number}
+                        </span>
+                        <span className={`text-sm font-semibold leading-snug ${isCompleted ? "text-white/50" : "text-white"}`}>
+                          {lesson.title}
+                        </span>
+                        {isNextUp && (
+                          <span className="text-[10px] font-semibold text-orange-400 bg-orange-500/15 px-1.5 py-0.5 rounded-full leading-none">
+                            Next up
+                          </span>
+                        )}
+                      </div>
+                      <p className={`text-xs mt-0.5 leading-relaxed ${isCompleted ? "text-white/30" : "text-white/45"}`}>
+                        {lesson.description}
+                      </p>
+                      {isInProgress && (
+                        <span className="inline-flex items-center gap-1 mt-1.5 text-[11px] font-semibold text-orange-300">
+                          <PlayCircle className="h-3 w-3" />
+                          Resume lesson
+                        </span>
+                      )}
+                    </div>
+                    {isCompleted && (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
                     )}
-                  </div>
-                  {isCompleted && (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                  )}
-                  {isInProgress && (
-                    <PlayCircle className="h-4 w-4 text-orange-400 flex-shrink-0 mt-0.5" />
-                  )}
-                  <ChevronRight className={`h-4 w-4 flex-shrink-0 mt-1 ${isInProgress ? "text-orange-400/50" : "text-white/20"}`} />
-                </motion.button>
-              );
-            })}
+                    {isInProgress && (
+                      <PlayCircle className="h-4 w-4 text-orange-400 flex-shrink-0 mt-0.5" />
+                    )}
+                    <ChevronRight className={`h-4 w-4 flex-shrink-0 mt-1 ${isInProgress || isNextUp ? "text-orange-400/50" : "text-white/20"}`} />
+                  </motion.button>
+                );
+              });
+            })()}
           </div>
 
           <div className="px-5 py-4 bg-orange-500/8 border-t border-orange-500/20">
