@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 
-type Tab = "modules" | "questions" | "progress" | "updates";
+type Tab = "modules" | "questions" | "progress" | "updates" | "waitlist";
 
 interface CertModule {
   id: string;
@@ -49,6 +49,16 @@ interface ProgressRow {
   certificateNumber?: string;
 }
 
+interface WaitlistRow {
+  userId: string;
+  email: string;
+  firstName?: string;
+  username?: string;
+  status: string;
+  notifiedAt?: string | null;
+  createdAt?: string;
+}
+
 const CERT_TYPES = ["platform", "business_success"];
 
 export default function AdminCertifications() {
@@ -80,6 +90,9 @@ export default function AdminCertifications() {
   // Progress state
   const [progress, setProgress] = useState<ProgressRow[]>([]);
 
+  // Waitlist state
+  const [waitlist, setWaitlist] = useState<WaitlistRow[]>([]);
+
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -107,6 +120,11 @@ export default function AdminCertifications() {
     } else if (tab === "updates") {
       apiRequest(`/api/admin/certifications/updates`)
         .then((d: { updates: UpdateModule[] }) => setUpdates(d.updates ?? []))
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    } else if (tab === "waitlist") {
+      apiRequest(`/api/admin/certifications/marketing-coaching/waitlist`)
+        .then((d: { waitlist: WaitlistRow[] }) => setWaitlist(d.waitlist ?? []))
         .catch(() => {})
         .finally(() => setLoading(false));
     }
@@ -224,6 +242,7 @@ export default function AdminCertifications() {
           <button className={tabCls("questions")} onClick={() => setTab("questions")}>Questions</button>
           <button className={tabCls("progress")} onClick={() => setTab("progress")}>Progress</button>
           <button className={tabCls("updates")} onClick={() => setTab("updates")}>Updates</button>
+          <button className={tabCls("waitlist")} onClick={() => setTab("waitlist")}>Waitlist</button>
         </div>
       </div>
 
@@ -237,8 +256,8 @@ export default function AdminCertifications() {
           )}
         </AnimatePresence>
 
-        {/* Cert type selector (not for updates tab) */}
-        {tab !== "updates" && (
+        {/* Cert type selector (not for updates or waitlist tab) */}
+        {tab !== "updates" && tab !== "waitlist" && (
           <div className="flex gap-2">
             {CERT_TYPES.map((ct) => (
               <button key={ct} onClick={() => setSelectedCertType(ct)} className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${selectedCertType === ct ? "bg-white/20 text-white" : "bg-white/5 text-white/40 active:scale-[0.96]"}`}>
@@ -511,6 +530,59 @@ export default function AdminCertifications() {
                         <button onClick={() => handleDeleteUpdate(u.id)} className="p-1.5 text-red-400/40 active:scale-95 flex-shrink-0">
                           <Trash2 className="h-4 w-4" />
                         </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {/* ── WAITLIST TAB ── */}
+            {tab === "waitlist" && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-white/40">{waitlist.length} user{waitlist.length !== 1 ? "s" : ""} on waitlist</p>
+                  <div className="flex gap-2 text-[10px]">
+                    <span className="px-2 py-1 rounded-full bg-green-500/15 text-green-400 font-semibold">Notified</span>
+                    <span className="px-2 py-1 rounded-full bg-white/8 text-white/40 font-semibold">Pending</span>
+                  </div>
+                </div>
+                {waitlist.length === 0 ? (
+                  <div className="p-6 rounded-2xl bg-black/20 border border-white/5 text-center">
+                    <p className="text-sm text-white/30">No one on the waitlist yet.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {waitlist.map((row) => (
+                      <div key={row.userId} className="p-4 rounded-2xl bg-black/30 border border-white/10">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-white truncate">
+                              {row.firstName || row.username || "Unknown"}
+                            </p>
+                            <p className="text-xs text-white/40 truncate mt-0.5">{row.email}</p>
+                            {row.createdAt && (
+                              <p className="text-xs text-white/20 mt-1">
+                                Joined {new Date(row.createdAt).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex-shrink-0 text-right">
+                            {row.notifiedAt ? (
+                              <div className="space-y-0.5">
+                                <span className="inline-block px-2.5 py-1 rounded-full bg-green-500/15 border border-green-500/20 text-green-400 text-[10px] font-bold uppercase tracking-wide">
+                                  Notified
+                                </span>
+                                <p className="text-[10px] text-white/25">
+                                  {new Date(row.notifiedAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                            ) : (
+                              <span className="inline-block px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/35 text-[10px] font-semibold uppercase tracking-wide">
+                                Pending
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>

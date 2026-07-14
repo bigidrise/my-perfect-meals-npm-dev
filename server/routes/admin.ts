@@ -401,6 +401,37 @@ router.get("/certifications/marketing-coaching/waitlist-stats", async (req, res)
   }
 });
 
+// GET /admin/certifications/marketing-coaching/waitlist
+// Returns all waitlisted users for marketing_coaching, including notifiedAt status.
+router.get("/certifications/marketing-coaching/waitlist", async (req, res) => {
+  try {
+    const rows = await db
+      .select({
+        userId: userCertifications.userId,
+        email: users.email,
+        firstName: users.firstName,
+        username: users.username,
+        status: userCertifications.status,
+        notifiedAt: userCertifications.notifiedAt,
+        createdAt: userCertifications.createdAt,
+      })
+      .from(userCertifications)
+      .innerJoin(users, eq(userCertifications.userId, users.id))
+      .where(
+        and(
+          eq(userCertifications.certificationType, "marketing_coaching"),
+          eq(userCertifications.status, "waitlisted")
+        )
+      )
+      .orderBy(desc(userCertifications.createdAt));
+
+    return res.json({ ok: true, waitlist: rows });
+  } catch (err: any) {
+    console.error("[admin/waitlist] error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /admin/certifications/marketing-coaching/notify-waitlist
 // Sends enrollment-open emails to every user with status='waitlisted' on marketing_coaching.
 //
