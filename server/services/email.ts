@@ -15,7 +15,10 @@ type SendEmailInput = {
 };
 
 export async function sendEmail({ to, subject, html }: SendEmailInput): Promise<void> {
-  if (!resend) return;
+  if (!resend) {
+    console.warn(`[Email] RESEND_API_KEY not configured — skipped sending email to ${to} | subject: "${subject}"`);
+    return;
+  }
   try {
     await resend.emails.send({
       from: "My Perfect Meals <no-reply@myperfectmeals.com>",
