@@ -2,8 +2,10 @@ import { Router } from "express";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { mealImageCache } from "../db/schema/mealImageCache";
+import { userCertifications } from "../db/schema/certifications";
 import { eq, ilike, or, desc, notLike, and, sql } from "drizzle-orm";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
+import { sendMarketingCoachingEnrollmentEmail } from "../services/emailService";
 
 const S3_BUCKET = process.env.S3_BUCKET_NAME || "my-perfect-meals-images";
 const S3_URL_PREFIX = `https://${S3_BUCKET}.s3.`;
@@ -347,6 +349,74 @@ router.post("/run-grandfather-migration", async (req, res) => {
     });
   } catch (err: any) {
     console.error("[admin/run-grandfather-migration] error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── MARKETING & COACHING WAITLIST NOTIFICATION ───────────────────────────────
+
+// POST /admin/certifications/marketing-coaching/notify-waitlist
+// Sends enrollment-open emails to every user with status='waitlisted' on marketing_coaching.
+// Runs sequentially with a short delay between sends to avoid Resend rate limits.
+router.post("/certifications/marketing-coaching/notify-waitlist", async (req, res) => {
+  const actor = (req as AuthenticatedRequest).authUser;
+  const APP_URL = process.env.APP_URL || "https://app.myperfectmeals.com";
+
+  try {
+    const waitlisted = await db
+      .select({
+        userId: userCertifications.userId,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        username: users.username,
+      })
+      .from(userCertifications)
+      .innerJoin(users, eq(users.id, userCertifications.userId))
+      .where(
+        and(
+          eq(userCertifications.certificationType, "marketing_coaching"),
+          eq(userCertifications.status, "waitlisted")
+        )
+      );
+
+    console.log(`[admin/notify-waitlist] ${waitlisted.length} waitlisted user(s) found — triggered by ${actor.email}`);
+
+    let sent = 0;
+    let failed = 0;
+    const failures: string[] = [];
+
+    for (const row of waitlisted) {
+      if (!row.email) {
+        failed++;
+        continue;
+      }
+      const userName = row.firstName || row.username || "there";
+      const ok = await sendMarketingCoachingEnrollmentEmail({
+        to: row.email,
+        userName,
+        appUrl: APP_URL,
+      });
+      if (ok) {
+        sent++;
+      } else {
+        failed++;
+        failures.push(row.email);
+      }
+      // Small delay to stay within Resend's rate limits
+      await new Promise((r) => setTimeout(r, 150));
+    }
+
+    console.log(`[admin/notify-waitlist] Done. sent=${sent} failed=${failed}`);
+    return res.json({
+      ok: true,
+      total: waitlisted.length,
+      sent,
+      failed,
+      failures,
+    });
+  } catch (err: any) {
+    console.error("[admin/notify-waitlist] error:", err);
     return res.status(500).json({ error: err.message });
   }
 });
