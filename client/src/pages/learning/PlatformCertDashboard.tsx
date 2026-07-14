@@ -3,6 +3,7 @@ import { useLocation, useParams } from "wouter";
 import { ArrowLeft, CheckCircle2, Circle, Clock, Lock, Award, PlayCircle, FileText, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
+import { parseLessonParam } from "@/lib/parseLessonParam";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -117,13 +118,10 @@ export default function PlatformCertDashboard() {
   }, [location, certType, load]);
 
   const targetLessonNum = useMemo(() => {
-    try {
-      const n = parseInt(new URLSearchParams(window.location.search).get("lesson") ?? "", 10);
-      return Number.isFinite(n) && n >= 1 ? n : null;
-    } catch {
-      return null;
-    }
-  }, []);
+    const videoModules = modules.filter((m) => m.moduleType === "video");
+    const total = videoModules.length > 0 ? videoModules.length : undefined;
+    return parseLessonParam(window.location.search, total);
+  }, [modules]);
 
   const moduleEls = useRef<Map<string, HTMLDivElement>>(new Map());
 
