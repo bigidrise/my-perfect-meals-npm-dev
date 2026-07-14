@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db, pool } from "../db";
 import { users } from "@shared/schema";
 import { mealImageCache } from "../db/schema/mealImageCache";
-import { userCertifications, waitlistRecoveryEvents } from "../db/schema/certifications";
+import { userCertifications, waitlistRecoveryEvents, waitlistNotifyRunLogs } from "../db/schema/certifications";
 import { eq, ilike, or, desc, notLike, and, isNull, isNotNull, sql, min, max } from "drizzle-orm";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
 import { sendMarketingCoachingEnrollmentEmail } from "../services/emailService";
@@ -520,6 +520,55 @@ router.get("/certifications/marketing-coaching/recovery-events", async (req, res
   }
 });
 
+// GET /admin/certifications/marketing-coaching/notify-run-logs
+// Returns recent notify run audit entries (newest first), enriched with triggering admin name.
+router.get("/certifications/marketing-coaching/notify-run-logs", async (req, res) => {
+  try {
+    const logs = await db
+      .select({
+        id: waitlistNotifyRunLogs.id,
+        triggeredAt: waitlistNotifyRunLogs.triggeredAt,
+        triggeredByUserId: waitlistNotifyRunLogs.triggeredByUserId,
+        triggeredByEmail: waitlistNotifyRunLogs.triggeredByEmail,
+        status: waitlistNotifyRunLogs.status,
+        sent: waitlistNotifyRunLogs.sent,
+        skipped: waitlistNotifyRunLogs.skipped,
+        failed: waitlistNotifyRunLogs.failed,
+        force: waitlistNotifyRunLogs.force,
+        failures: waitlistNotifyRunLogs.failures,
+      })
+      .from(waitlistNotifyRunLogs)
+      .orderBy(desc(waitlistNotifyRunLogs.triggeredAt))
+      .limit(50);
+
+    // Enrich with admin first name
+    const adminIds = [...new Set(logs.map((l) => l.triggeredByUserId))];
+    const adminMap = new Map<string, string | null>();
+    if (adminIds.length > 0) {
+      const rows = await db
+        .select({ id: users.id, firstName: users.firstName })
+        .from(users)
+        .where(sql`${users.id} = ANY(${adminIds})`);
+      for (const row of rows) {
+        adminMap.set(String(row.id), row.firstName ?? null);
+      }
+    }
+
+    const enriched = logs.map((l) => ({
+      ...l,
+      triggeredByFirstName: adminMap.get(l.triggeredByUserId) ?? null,
+    }));
+
+    return res.json({ ok: true, logs: enriched });
+  } catch (err: any) {
+    if (err?.code === "42P01") {
+      return res.json({ ok: true, logs: [] });
+    }
+    console.error("[admin/notify-run-logs] error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /admin/certifications/marketing-coaching/notify-waitlist
 // Sends enrollment-open emails to every user with status='waitlisted' on marketing_coaching.
 //
@@ -598,6 +647,32 @@ router.post("/certifications/marketing-coaching/notify-waitlist", requireEmailSe
   const force = req.query.force === "true";
   const claimTime = new Date();
 
+  // ── Run log: write attribution row immediately so mid-send restarts
+  //    still have a traceable record of who triggered this run.
+  //    The row starts with status='started' and is updated to 'completed'
+  //    on normal exit, or left as 'interrupted' if the process dies mid-send.
+  let runLogId: string | null = null;
+  let runCompleted = false;
+  try {
+    const [insertedLog] = await db
+      .insert(waitlistNotifyRunLogs)
+      .values({
+        triggeredByUserId: actor.id,
+        triggeredByEmail: actor.email,
+        status: "started",
+        sent: 0,
+        skipped: 0,
+        failed: 0,
+        force,
+        failures: [],
+      })
+      .returning({ id: waitlistNotifyRunLogs.id });
+    runLogId = insertedLog?.id ?? null;
+  } catch (logErr) {
+    console.error("[admin/notify-waitlist] failed to write run log start row:", logErr);
+    // Non-fatal: proceed even if audit log can't be written
+  }
+
   try {
     // ── 1. Count total waitlisted (for skipped metric) ──────────────────────
     const [{ total }] = await db
@@ -637,6 +712,13 @@ router.post("/certifications/marketing-coaching/notify-waitlist", requireEmailSe
     );
 
     if (claimed.length === 0) {
+      if (runLogId) {
+        await db
+          .update(waitlistNotifyRunLogs)
+          .set({ status: "completed", skipped })
+          .where(eq(waitlistNotifyRunLogs.id, runLogId));
+      }
+      runCompleted = true;
       return res.json({ ok: true, total: total ?? 0, sent: 0, skipped, failed: 0, failures: [] });
     }
 
@@ -718,6 +800,16 @@ router.post("/certifications/marketing-coaching/notify-waitlist", requireEmailSe
     }
 
     console.log(`[admin/notify-waitlist] Done. sent=${sent} skipped=${skipped} failed=${failed}`);
+
+    // Update run log with final outcome
+    if (runLogId) {
+      await db
+        .update(waitlistNotifyRunLogs)
+        .set({ status: "completed", sent, skipped, failed, failures })
+        .where(eq(waitlistNotifyRunLogs.id, runLogId));
+    }
+
+    runCompleted = true;
     return res.json({
       ok: true,
       total: total ?? 0,
@@ -730,6 +822,15 @@ router.post("/certifications/marketing-coaching/notify-waitlist", requireEmailSe
     console.error("[admin/notify-waitlist] error:", err);
     return res.status(500).json({ error: err.message });
   } finally {
+    // If the run never completed normally (crash / unexpected throw), mark the
+    // log row as 'interrupted' so admins can distinguish it from a clean run.
+    if (!runCompleted && runLogId) {
+      await db
+        .update(waitlistNotifyRunLogs)
+        .set({ status: "interrupted" })
+        .where(eq(waitlistNotifyRunLogs.id, runLogId))
+        .catch((e) => console.error("[admin/notify-waitlist] failed to mark run as interrupted:", e));
+    }
     // Explicitly unlock first (belt-and-suspenders), then return the dedicated
     // connection to the pool. PostgreSQL automatically releases all session-level
     // advisory locks when a connection is closed/returned, so client.release()
