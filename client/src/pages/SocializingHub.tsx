@@ -19,7 +19,7 @@ export default function SocializingHub() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    document.title = "Socializing Hub | My Perfect Meals";
+    document.title = "Meals Away From Home | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
     
     // Phase C.7: Emit "opened" event for hub walkthrough
@@ -87,7 +87,7 @@ export default function SocializingHub() {
           <Utensils className="h-6 w-6 text-orange-500" />
 
           {/* Title */}
-          <h1 className="text-lg font-bold text-white">Socializing Hub</h1>
+          <h1 className="text-lg font-bold text-white">Meals Away From Home</h1>
         </div>
       </div>
       </MobileHeaderGuard>
