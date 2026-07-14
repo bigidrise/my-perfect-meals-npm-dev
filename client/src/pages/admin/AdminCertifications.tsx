@@ -60,11 +60,17 @@ interface WaitlistRow {
   createdAt?: string;
 }
 
+interface RecoveryEventUser {
+  userId: string;
+  email: string | null;
+  firstName: string | null;
+}
+
 interface RecoveryEvent {
   id: string;
   recoveredAt: string;
   rowCount: number;
-  userIds: string[];
+  users: RecoveryEventUser[];
 }
 
 const CERT_TYPES = ["platform", "business_success"];
@@ -939,10 +945,18 @@ export default function AdminCertifications() {
                               </button>
                               {expandedRecovery === evt.id && (
                                 <div className="px-4 pb-4 space-y-2 border-t border-white/5 pt-3">
-                                  <p className="text-[10px] text-white/35 uppercase tracking-wider font-semibold">Affected User IDs</p>
-                                  <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
-                                    {evt.userIds.map((uid) => (
-                                      <p key={uid} className="text-xs font-mono text-white/50">{uid}</p>
+                                  <p className="text-[10px] text-white/35 uppercase tracking-wider font-semibold">Affected Users</p>
+                                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                                    {evt.users.map((u) => (
+                                      <div key={u.userId} className="flex flex-col gap-0.5 py-1 border-b border-white/5 last:border-0">
+                                        <p className="text-xs text-white/70 font-medium">
+                                          {u.firstName ? u.firstName : <span className="text-white/30 italic">Unknown</span>}
+                                          {u.email && (
+                                            <span className="text-white/40 font-normal"> — {u.email}</span>
+                                          )}
+                                        </p>
+                                        <p className="text-[10px] font-mono text-white/25">{u.userId}</p>
+                                      </div>
                                     ))}
                                   </div>
                                   <p className="text-[10px] text-white/25 pt-1 leading-relaxed">

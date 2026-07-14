@@ -444,7 +444,7 @@ router.get("/certifications/marketing-coaching/waitlist", async (req, res) => {
 
 // GET /admin/certifications/marketing-coaching/recovery-events
 // Returns all boot-recovery audit entries (newest first).
-// Each entry records the timestamp, count of orphaned rows reset, and affected user IDs.
+// Each entry records the timestamp, count of orphaned rows reset, and affected users (id, email, firstName).
 router.get("/certifications/marketing-coaching/recovery-events", async (req, res) => {
   try {
     const events = await db
@@ -457,7 +457,34 @@ router.get("/certifications/marketing-coaching/recovery-events", async (req, res
       .from(waitlistRecoveryEvents)
       .orderBy(desc(waitlistRecoveryEvents.recoveredAt))
       .limit(50);
-    return res.json({ ok: true, events });
+
+    // Collect all unique user IDs across all events
+    const allUserIds = [...new Set(events.flatMap((e) => (e.userIds as string[]) ?? []))];
+
+    // Look up name + email for each affected user
+    const userMap = new Map<string, { email: string; firstName: string | null }>();
+    if (allUserIds.length > 0) {
+      const rows = await db
+        .select({ id: users.id, email: users.email, firstName: users.firstName })
+        .from(users)
+        .where(sql`${users.id}::text = ANY(ARRAY[${sql.join(allUserIds.map((id) => sql`${id}`), sql`, `)}])`);
+      for (const row of rows) {
+        userMap.set(String(row.id), { email: row.email, firstName: row.firstName ?? null });
+      }
+    }
+
+    const enriched = events.map((evt) => ({
+      id: evt.id,
+      recoveredAt: evt.recoveredAt,
+      rowCount: evt.rowCount,
+      users: ((evt.userIds as string[]) ?? []).map((uid) => ({
+        userId: uid,
+        email: userMap.get(uid)?.email ?? null,
+        firstName: userMap.get(uid)?.firstName ?? null,
+      })),
+    }));
+
+    return res.json({ ok: true, events: enriched });
   } catch (err: any) {
     // 42P01 = "relation does not exist" — table not yet created by boot migration
     if (err?.code === "42P01") {
