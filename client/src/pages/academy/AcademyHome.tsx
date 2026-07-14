@@ -26,9 +26,9 @@ const PLATFORM_MASTERY_LESSONS = [
 ];
 
 const BECOME_CERTIFIED = [
-  { icon: "🥉", label: "My Perfect Meals Basics", desc: "6 lessons · Platform exercises · Quiz" },
-  { icon: "📈", label: "Marketing & Coaching", desc: "Coming soon" },
-  { icon: "🩺", label: "ProCare Certification", desc: "3 training videos · Final assessment" },
+  { icon: "🥉", label: "My Perfect Meals Basics", desc: "6 lessons · Platform exercises · Quiz", route: "/academy/platform-mastery" },
+  { icon: "📈", label: "Marketing & Coaching", desc: "5 lessons · Coaching philosophy · Quiz", route: "/business-center/affiliate/coaching/certification" },
+  { icon: "🩺", label: "ProCare Certification", desc: "3 training videos · Final assessment", route: null },
 ];
 
 const SPECIALIZE = [
@@ -296,22 +296,12 @@ export default function AcademyHome() {
           <div className="px-5 py-4 space-y-3">
             {BECOME_CERTIFIED.map((item, i) => {
               const isFirst = i === 0;
-              const isLast = i === BECOME_CERTIFIED.length - 1;
-              const isComingSoon = item.desc.includes("Coming soon");
               const locked = !isFirst && !isCertified;
+              const noRoute = item.route === null;
+              const isClickable = !locked && !noRoute;
 
-              return (
-                <motion.div
-                  key={i}
-                  className={`flex items-start gap-3 p-3.5 rounded-xl border ${
-                    isFirst
-                      ? "bg-orange-500/10 border-orange-500/25"
-                      : "bg-white/[0.03] border-white/8"
-                  } ${locked || isComingSoon ? "opacity-50" : ""}`}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: locked || isComingSoon ? 0.5 : 1, y: 0 }}
-                  transition={{ delay: 0.22 + i * 0.05 }}
-                >
+              const inner = (
+                <>
                   <span className="text-lg leading-none mt-0.5 flex-shrink-0">
                     {item.icon}
                   </span>
@@ -321,13 +311,42 @@ export default function AcademyHome() {
                     </p>
                     <p className="text-xs text-white/45 mt-0.5">{item.desc}</p>
                   </div>
-                  {locked || isComingSoon ? (
+                  {locked || noRoute ? (
                     <Lock className="h-4 w-4 text-white/20 flex-shrink-0 mt-0.5" />
                   ) : isCertified && isFirst ? (
                     <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                  ) : isFirst ? (
+                  ) : (
                     <ChevronRight className="h-4 w-4 text-orange-400/60 flex-shrink-0 mt-0.5" />
-                  ) : null}
+                  )}
+                </>
+              );
+
+              const sharedClass = `flex items-start gap-3 p-3.5 rounded-xl border ${
+                isFirst
+                  ? "bg-orange-500/10 border-orange-500/25"
+                  : "bg-white/[0.03] border-white/8"
+              } ${locked || noRoute ? "opacity-50" : ""}`;
+
+              return isClickable ? (
+                <motion.button
+                  key={i}
+                  className={`w-full text-left ${sharedClass} active:scale-[0.98] transition-transform`}
+                  onClick={() => setLocation(item.route!)}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.22 + i * 0.05 }}
+                >
+                  {inner}
+                </motion.button>
+              ) : (
+                <motion.div
+                  key={i}
+                  className={sharedClass}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: locked || noRoute ? 0.5 : 1, y: 0 }}
+                  transition={{ delay: 0.22 + i * 0.05 }}
+                >
+                  {inner}
                 </motion.div>
               );
             })}
