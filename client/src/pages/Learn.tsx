@@ -1851,12 +1851,12 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
         },
         {
           heading: "Preview Before Saving",
-          text: "The result comes back as a preview — meal card, macros, ingredients, protocol tags — and nothing is saved until you decide you want it. Tap Save to My Inspirations to keep it, or tap Regenerate to go back to the settings screen, adjust one thing, and generate again.",
+          text: "The result comes back as a preview — meal card, macros, ingredients, protocol tags — and nothing is saved until you decide you want it. Tap Save to Favorites to keep it, or tap Regenerate to go back to the settings screen, adjust one thing, and generate again.",
         },
         {
           heading: "Where It Shows Up",
           list: [
-            "Saved to Favorites under My Inspirations after you confirm",
+            "Saved to Favorites under Recipe Scan after you confirm",
             "Full meal card with title, description, ingredients, instructions, macros, and generated image",
             "Can be added to your Weekly Plan or Shopping List directly from Favorites",
           ],
