@@ -4,10 +4,10 @@
 // When quiz questions are updated, this file MUST be updated in sync.
 
 export const QUIZ_ANSWER_KEYS: Record<string, number[]> = {
-  "lesson-01": [1, 2, 1, 3, 1, 2, 1, 2, 2, 2],
-  "lesson-02": [1, 2, 1, 1, 1, 1, 1, 2, 1, 1],
-  "lesson-03": [1, 1, 2, 2, 1, 2, 1, 2, 2, 1],
-  "lesson-04": [1, 1, 1, 2, 1, 2, 1, 1, 2, 2],
-  "lesson-05": [2, 1, 1, 2, 1, 2, 2, 1, 1, 1],
-  "lesson-06": [1, 1, 2, 1, 1, 2, 2, 1, 3, 2],
+  "lesson-01": [1, 1, 2, 1, 2, 2, 2, 1, 1, 2],
+  "lesson-02": [2, 1, 1, 1, 2, 1, 1, 2, 1, 2],
+  "lesson-03": [1, 2, 2, 2, 1, 1, 2, 1, 1, 1],
+  "lesson-04": [1, 1, 2, 1, 2, 2, 1, 2, 2, 1],
+  "lesson-05": [1, 2, 1, 1, 1, 2, 2, 2, 1, 1],
+  "lesson-06": [1, 0, 1, 2, 2, 2, 1, 2, 3, 1],
 };
