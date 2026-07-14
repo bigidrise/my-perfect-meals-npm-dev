@@ -4,6 +4,7 @@ import { ArrowLeft, CheckCircle2, Circle, Clock, Lock, Award, PlayCircle, FileTe
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { parseLessonParam } from "@/lib/parseLessonParam";
+import { resolveScrollTarget } from "@/lib/resolveScrollTarget";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -126,11 +127,8 @@ export default function PlatformCertDashboard() {
   const moduleEls = useRef<Map<string, HTMLDivElement>>(new Map());
 
   useEffect(() => {
-    if (loading || targetLessonNum == null || modules.length === 0) return;
-    const videoModules = modules.filter((m) => m.moduleType === "video");
-    const target = videoModules[targetLessonNum - 1];
-    if (!target) return;
-    const el = moduleEls.current.get(target.slug);
+    if (loading) return;
+    const el = resolveScrollTarget(modules, targetLessonNum, moduleEls.current);
     if (el) {
       setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
     }
