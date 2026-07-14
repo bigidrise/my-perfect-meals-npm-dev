@@ -444,41 +444,60 @@ router.get("/certifications/marketing-coaching/waitlist", async (req, res) => {
 // POST /admin/certifications/marketing-coaching/notify-waitlist
 // Sends enrollment-open emails to every user with status='waitlisted' on marketing_coaching.
 //
-// Idempotency / concurrency safety:
-//   - In-memory in-flight lock: a second concurrent call gets an immediate 409 while one is running.
-//   - Atomically claims rows via UPDATE … WHERE notified_at IS NULL RETURNING before sending
-//     any email. Two simultaneous admin calls can never claim the same row, so no duplicates.
+// Idempotency / concurrency safety — two-layer strategy:
+//
+//   Layer 1 — PostgreSQL advisory lock (cross-instance in-flight guard):
+//     pg_try_advisory_lock(NOTIFY_WAITLIST_LOCK_KEY) is acquired at the start of every run.
+//     Because this is a DB-level session lock it works across multiple server instances and
+//     survives restarts (the lock is automatically released when the DB connection closes).
+//     A second call — on any instance — receives a 409 immediately if a run is in progress.
+//     The lock is released in the finally block via pg_advisory_unlock.
+//
+//   Layer 2 — Atomic row claim (duplicate-send guard, the authoritative safety net):
+//     UPDATE … WHERE notified_at IS NULL RETURNING atomically stamps rows before any email
+//     is sent. Even if two instances somehow both passed Layer 1 simultaneously, they would
+//     claim disjoint sets of rows and no user would receive a duplicate email.
+//
+//   Additional guarantees:
 //   - notified_at = claim timestamp (set before send); email_sent_at = confirmed-send timestamp (set after).
 //   - If an individual send fails, notified_at is reset to NULL so the user can be retried.
 //   - On server restart, boot startup resets notified_at for any rows where notified_at IS NOT NULL
-//     AND email_sent_at IS NULL — these are rows that were claimed mid-send but whose confirmation
-//     was never written, meaning the server crashed before the email was confirmed sent.
+//     AND email_sent_at IS NULL — rows claimed mid-send whose confirmation was never written.
 //   - ?force=true re-claims ALL waitlisted rows (including already-notified) for genuine resends.
 //
 // Runs sequentially with a short delay between sends to respect Resend rate limits.
-let notifyWaitlistInFlight = false;
+
+// Stable bigint used as the pg_try_advisory_lock key for this job.
+// Chosen arbitrarily; must be unique across all advisory locks in this codebase.
+const NOTIFY_WAITLIST_LOCK_KEY = 7_438_291_650;
 
 router.post("/certifications/marketing-coaching/notify-waitlist", async (req, res) => {
-  if (notifyWaitlistInFlight) {
+  // ── Layer 1: acquire cross-instance advisory lock ──────────────────────────
+  const lockResult = await db.execute<{ acquired: boolean }>(
+    sql`SELECT pg_try_advisory_lock(${NOTIFY_WAITLIST_LOCK_KEY}) AS acquired`
+  );
+  const lockRow = lockResult.rows[0];
+  if (!lockRow?.acquired) {
     return res.status(409).json({ error: "A notify job is already in progress. Please wait for it to finish before sending again." });
   }
-  notifyWaitlistInFlight = true;
 
   const actor = (req as AuthenticatedRequest).authUser;
   const APP_URL = process.env.APP_URL || "https://app.myperfectmeals.com";
   const force = req.query.force === "true";
   const claimTime = new Date();
 
-  // ── 0. Pre-flight: require email service before touching any DB rows ───────
-  if (!process.env.RESEND_API_KEY) {
-    console.warn("[admin/notify-waitlist] Aborted — RESEND_API_KEY is not configured.");
-    return res.status(503).json({
-      ok: false,
-      message: "Email service is not configured (RESEND_API_KEY missing). No rows were modified.",
-    });
-  }
-
   try {
+    // ── 0. Pre-flight: require email service before touching any DB rows ──────
+    // NOTE: this check is inside the try block so the finally always releases
+    // the advisory lock, even on this early-abort path.
+    if (!process.env.RESEND_API_KEY) {
+      console.warn("[admin/notify-waitlist] Aborted — RESEND_API_KEY is not configured.");
+      return res.status(503).json({
+        ok: false,
+        message: "Email service is not configured (RESEND_API_KEY missing). No rows were modified.",
+      });
+    }
+
     // ── 1. Count total waitlisted (for skipped metric) ──────────────────────
     const [{ total }] = await db
       .select({ total: sql<number>`count(*)::int` })
@@ -610,7 +629,10 @@ router.post("/certifications/marketing-coaching/notify-waitlist", async (req, re
     console.error("[admin/notify-waitlist] error:", err);
     return res.status(500).json({ error: err.message });
   } finally {
-    notifyWaitlistInFlight = false;
+    // Release the cross-instance advisory lock so the next run can proceed.
+    await db.execute(sql`SELECT pg_advisory_unlock(${NOTIFY_WAITLIST_LOCK_KEY})`).catch((e) =>
+      console.error("[admin/notify-waitlist] advisory unlock failed:", e)
+    );
   }
 });
 
