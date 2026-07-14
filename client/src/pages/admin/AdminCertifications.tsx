@@ -130,30 +130,6 @@ export default function AdminCertifications() {
       .finally(() => setWaitlistLoading(false));
   }, [user, tab]);
 
-  const handleNotifyWaitlist = async (force = false) => {
-    if (!confirm(force ? "Re-notify ALL waitlisted users (including already-notified)?" : "Send enrollment emails to all unnotified waitlisted users?")) return;
-    setNotifying(true);
-    setNotifyResult(null);
-    try {
-      const res = await apiRequest(
-        `/api/admin/certifications/marketing-coaching/notify-waitlist${force ? "?force=true" : ""}`,
-        { method: "POST" }
-      ) as { sent: number; skipped: number; failed: number; failures: string[] };
-      setNotifyResult(res);
-      // Refresh stats and list after send
-      const [stats, list] = await Promise.all([
-        apiRequest("/api/admin/certifications/marketing-coaching/waitlist-stats"),
-        apiRequest("/api/admin/certifications/marketing-coaching/waitlist")
-      ]) as any;
-      setWaitlistStats(stats);
-      setWaitlist(list.waitlist ?? []);
-    } catch {
-      flash("Notification failed — check server logs");
-    } finally {
-      setNotifying(false);
-    }
-  };
-
   // Load data when tab/certType changes
   useEffect(() => {
     if (!user) return;
@@ -274,12 +250,12 @@ export default function AdminCertifications() {
   };
 
   const handleNotifyWaitlist = async (force = false) => {
-    if (notifyingWaitlist) return;
+    if (notifying) return;
     const confirmed = confirm(force
       ? "Re-notify ALL waitlisted users (including already-notified)? This will send duplicate emails to anyone already notified."
       : "Send enrollment-open emails to all un-notified waitlisted users?");
     if (!confirmed) return;
-    setNotifyingWaitlist(true);
+    setNotifying(true);
     setNotifyResult(null);
     try {
       const url = `/api/admin/certifications/marketing-coaching/notify-waitlist${force ? "?force=true" : ""}`;
@@ -300,7 +276,7 @@ export default function AdminCertifications() {
         flash(msg);
       }
     } finally {
-      setNotifyingWaitlist(false);
+      setNotifying(false);
     }
   };
 
