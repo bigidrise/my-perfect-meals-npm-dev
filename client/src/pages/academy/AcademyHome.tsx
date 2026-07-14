@@ -404,7 +404,7 @@ export default function AcademyHome() {
             </div>
             <p className="text-center text-white/25 text-xs mt-4 leading-relaxed">
               Specialty certifications unlock as each program is released.
-              Platform Mastery must be complete first.
+              My Perfect Meals Basics must be complete first.
             </p>
           </div>
         </motion.div>
