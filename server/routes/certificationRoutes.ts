@@ -374,6 +374,36 @@ router.get("/:certType/certificate", requireAuth, async (req, res) => {
   }
 });
 
+// ─── MARKETING & COACHING WAITLIST ───────────────────────────────────────────
+
+// POST /api/certifications/marketing_coaching/waitlist — join the waitlist
+router.post("/marketing_coaching/waitlist", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser.id;
+
+    await db
+      .insert(userCertifications)
+      .values({
+        userId,
+        certificationType: "marketing_coaching",
+        status: "waitlisted",
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [userCertifications.userId, userCertifications.certificationType],
+        set: {
+          status: sql`CASE WHEN ${userCertifications.status} = 'completed' THEN 'completed' WHEN ${userCertifications.status} = 'in_progress' THEN 'in_progress' ELSE 'waitlisted' END`,
+          updatedAt: new Date(),
+        },
+      });
+
+    return res.json({ ok: true, status: "waitlisted" });
+  } catch (err) {
+    console.error("[Cert] marketing_coaching waitlist error:", err);
+    return res.status(500).json({ error: "Failed to join waitlist" });
+  }
+});
+
 // ─── QUIZ ATTEMPT ROUTES ──────────────────────────────────────────────────────
 
 // GET /api/certifications/:certType/modules/:moduleId/quiz-attempt

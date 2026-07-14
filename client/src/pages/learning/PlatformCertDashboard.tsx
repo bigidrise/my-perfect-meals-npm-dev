@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { useLocation, useParams } from "wouter";
 import { ArrowLeft, CheckCircle2, Circle, Clock, Lock, Award, PlayCircle, FileText, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -116,6 +116,28 @@ export default function PlatformCertDashboard() {
     prevLocationRef.current = location;
   }, [location, certType, load]);
 
+  const targetLessonNum = useMemo(() => {
+    try {
+      const n = parseInt(new URLSearchParams(window.location.search).get("lesson") ?? "", 10);
+      return Number.isFinite(n) && n >= 1 ? n : null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const moduleEls = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  useEffect(() => {
+    if (loading || targetLessonNum == null || modules.length === 0) return;
+    const videoModules = modules.filter((m) => m.moduleType === "video");
+    const target = videoModules[targetLessonNum - 1];
+    if (!target) return;
+    const el = moduleEls.current.get(target.slug);
+    if (el) {
+      setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
+    }
+  }, [loading, targetLessonNum, modules]);
+
   useEffect(() => {
     apiRequest("/api/certifications/certificate-name").then((d: { certificateName?: string }) => {
       if (d.certificateName) {
@@ -191,8 +213,8 @@ export default function PlatformCertDashboard() {
     >
       <div className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
-          <button onClick={() => setLocation("/learning")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform">
-            <ArrowLeft className="h-4 w-4" /> Back
+          <button onClick={() => setLocation("/business-center/academy")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform">
+            <ArrowLeft className="h-4 w-4" /> Academy
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-base font-bold text-white truncate">{meta.title}</h1>
@@ -267,7 +289,7 @@ export default function PlatformCertDashboard() {
               const showSeparator = isCurrent && completedCount > 0 && i > 0;
 
               return (
-                <div key={mod.slug}>
+                <div key={mod.slug} ref={(el) => { if (el) moduleEls.current.set(mod.slug, el); else moduleEls.current.delete(mod.slug); }}>
                   {showSeparator && (
                     <div className="flex items-center gap-3 py-2">
                       <div className="flex-1 h-px bg-white/10" />
