@@ -614,4 +614,9 @@ router.post("/certifications/marketing-coaching/notify-waitlist", async (req, re
   }
 });
 
+router.get("/config/email-status", (req, res) => {
+  const configured = !!process.env.RESEND_API_KEY;
+  return res.json({ configured });
+});
+
 export default router;

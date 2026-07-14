@@ -110,6 +110,7 @@ export default function AdminCertifications() {
     failures: string[];
   } | null>(null);
   const [notifyError, setNotifyError] = useState<string | null>(null);
+  const [emailConfigured, setEmailConfigured] = useState<boolean | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -124,11 +125,13 @@ export default function AdminCertifications() {
     setNotifyError(null);
     Promise.all([
       apiRequest("/api/admin/certifications/marketing-coaching/waitlist-stats"),
-      apiRequest("/api/admin/certifications/marketing-coaching/waitlist")
+      apiRequest("/api/admin/certifications/marketing-coaching/waitlist"),
+      apiRequest("/api/admin/config/email-status"),
     ])
-      .then(([stats, list]: any) => {
+      .then(([stats, list, emailStatus]: any) => {
         setWaitlistStats(stats);
         setWaitlist(list.waitlist ?? []);
+        setEmailConfigured(emailStatus?.configured ?? false);
       })
       .catch(() => {})
       .finally(() => setWaitlistLoading(false));
@@ -713,25 +716,37 @@ export default function AdminCertifications() {
                     {/* Action buttons */}
                     {waitlistStats.total > 0 && (
                       <div className="space-y-2">
-                        {waitlistStats.pending === 0 && (
+                        {emailConfigured === false && (
+                          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20">
+                            <Mail className="h-4 w-4 text-red-400 flex-shrink-0" />
+                            <p className="text-xs text-red-400 font-medium">Email not configured — set RESEND_API_KEY to enable notifications</p>
+                          </div>
+                        )}
+                        {waitlistStats.pending === 0 && emailConfigured !== false && (
                           <p className="text-xs text-yellow-400/80 text-center py-1">
                             All waitlisted users have already been notified. Nothing to send.
                           </p>
                         )}
                         <button
                           onClick={() => handleNotifyWaitlist(false)}
-                          disabled={notifying || waitlistStats.pending === 0}
-                          className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.97] transition-transform disabled:opacity-40"
+                          disabled={notifying || waitlistStats.pending === 0 || emailConfigured === false}
+                          className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.97] transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           <Send className="h-4 w-4" />
-                          {notifying ? "Sending…" : waitlistStats.pending === 0 ? "Notify Waitlist (0 pending)" : `Notify Waitlist (${waitlistStats.pending} pending)`}
+                          {emailConfigured === false
+                            ? "Email not configured"
+                            : notifying
+                            ? "Sending…"
+                            : waitlistStats.pending === 0
+                            ? "Notify Waitlist (0 pending)"
+                            : `Notify Waitlist (${waitlistStats.pending} pending)`}
                         </button>
                         <button
                           onClick={() => handleNotifyWaitlist(true)}
-                          disabled={notifying}
-                          className="w-full p-3 rounded-2xl bg-white/5 border border-white/10 text-white/40 text-xs font-medium active:scale-[0.97] transition-transform disabled:opacity-40"
+                          disabled={notifying || emailConfigured === false}
+                          className="w-full p-3 rounded-2xl bg-white/5 border border-white/10 text-white/40 text-xs font-medium active:scale-[0.97] transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                          Force Re-notify All (including already-notified)
+                          {emailConfigured === false ? "Email not configured" : "Force Re-notify All (including already-notified)"}
                         </button>
                         <div className="p-3 rounded-2xl bg-black/20 border border-white/5 space-y-1">
                           <p className="text-[10px] text-white/40 font-semibold uppercase tracking-wider">Recovery info</p>
