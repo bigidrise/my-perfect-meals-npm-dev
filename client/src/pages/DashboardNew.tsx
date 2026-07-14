@@ -1273,26 +1273,29 @@ export default function DashboardNew() {
         >
           <MedicalSourcesInfo
             trigger={
-              <Card
-                className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(59,130,246,0.35)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-blue-400/50 rounded-xl group"
-                data-testid="card-medical-safety"
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-700/20 border border-blue-500/30">
-                      <Activity className="h-6 w-6 text-blue-400" />
+              <div className="relative">
+                <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(59,130,246,0.5), rgba(59,130,246,0.25), rgba(0,0,0,0))" }} />
+                <Card
+                  className="relative cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(59,130,246,0.45)] active:scale-95 bg-gradient-to-r from-black via-blue-950/30 to-black backdrop-blur-lg border border-blue-500/30 hover:border-blue-400/60 rounded-xl group"
+                  data-testid="card-medical-safety"
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-700/20 border border-blue-500/30">
+                        <Activity className="h-6 w-6 text-blue-400" />
+                      </div>
+                      <div className="flex-1">
+                        <CardTitle className="text-white text-base">
+                          Sources & Medical Information
+                        </CardTitle>
+                        <CardDescription className="text-white/70 text-xs mt-1">
+                          NIH · USDA · WHO · ADA · AHA · NCI · ACOG · ATA · AND · FDA · NKF · AAP
+                        </CardDescription>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <CardTitle className="text-white text-base">
-                        Sources & Medical Information
-                      </CardTitle>
-                      <CardDescription className="text-white/70 text-xs mt-1">
-                        NIH · USDA · WHO · ADA · AHA · NCI · ACOG · ATA · AND · FDA · NKF · AAP
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-              </Card>
+                  </CardHeader>
+                </Card>
+              </div>
             }
           />
         </motion.div>
@@ -1303,28 +1306,31 @@ export default function DashboardNew() {
           transition={{ delay: 0.3, duration: 0.5 }}
           className="mb-4"
         >
-          <Card
-            className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50 rounded-xl group"
-            onClick={() => setLocation("/shopping-list-v2")}
-            data-testid="card-shopping-list"
-          >
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-700/20 border border-orange-500/30 group-hover:from-orange-500/30 group-hover:to-orange-700/30 transition-all">
-                  <ShoppingCart className="h-6 w-6 text-orange-500" />
+          <div className="relative">
+            <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(16,185,129,0.5), rgba(16,185,129,0.25), rgba(0,0,0,0))" }} />
+            <Card
+              className="relative cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(16,185,129,0.45)] active:scale-95 bg-gradient-to-r from-black via-emerald-950/30 to-black backdrop-blur-lg border border-emerald-500/30 hover:border-emerald-500/60 rounded-xl group"
+              onClick={() => setLocation("/shopping-list-v2")}
+              data-testid="card-shopping-list"
+            >
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-lg bg-gradient-to-br from-emerald-500/20 to-emerald-700/20 border border-emerald-500/30 group-hover:from-emerald-500/30 group-hover:to-emerald-700/30 transition-all">
+                    <ShoppingCart className="h-6 w-6 text-emerald-400" />
+                  </div>
+                  <div className="flex-1">
+                    <CardTitle className="text-white text-base">
+                      {" "}
+                      Smart Grocery List
+                    </CardTitle>
+                    <CardDescription className="text-white/70 text-xs mt-1">
+                      Smart grocery list manager
+                    </CardDescription>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <CardTitle className="text-white text-base">
-                    {" "}
-                    Smart Grocery List
-                  </CardTitle>
-                  <CardDescription className="text-white/70 text-xs mt-1">
-                    Smart grocery list manager
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
+              </CardHeader>
+            </Card>
+          </div>
         </motion.div>
 
         <motion.div
@@ -1333,27 +1339,30 @@ export default function DashboardNew() {
             transition={{ delay: 0.35, duration: 0.5 }}
             className="mb-4"
           >
-            <Card
-              className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50 rounded-xl group"
-              onClick={handlePhotoLog}
-              data-testid="card-photo-log"
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-700/20 border border-orange-500/30 group-hover:from-orange-500/30 group-hover:to-orange-700/30 transition-all">
-                    <Camera className="h-6 w-6 text-orange-500" />
+            <div className="relative">
+              <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(245,158,11,0.5), rgba(245,158,11,0.25), rgba(0,0,0,0))" }} />
+              <Card
+                className="relative cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(245,158,11,0.45)] active:scale-95 bg-gradient-to-r from-black via-amber-950/30 to-black backdrop-blur-lg border border-amber-500/30 hover:border-amber-500/60 rounded-xl group"
+                onClick={handlePhotoLog}
+                data-testid="card-photo-log"
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-lg bg-gradient-to-br from-amber-500/20 to-amber-700/20 border border-amber-500/30 group-hover:from-amber-500/30 group-hover:to-amber-700/30 transition-all">
+                      <Camera className="h-6 w-6 text-amber-400" />
+                    </div>
+                    <div className="flex-1">
+                      <CardTitle className="text-white text-lg">
+                        MacroScan
+                      </CardTitle>
+                      <CardDescription className="text-white/70 text-sm mt-1">
+                        Scan nutrition. Log macros instantly
+                      </CardDescription>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <CardTitle className="text-white text-lg">
-                      MacroScan
-                    </CardTitle>
-                    <CardDescription className="text-white/70 text-sm mt-1">
-                      Scan nutrition. Log macros instantly
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-            </Card>
+                </CardHeader>
+              </Card>
+            </div>
           </motion.div>
 
         {/* Recipe Scan */}
@@ -1363,29 +1372,32 @@ export default function DashboardNew() {
           transition={{ delay: 0.15, duration: 0.5 }}
           className="mb-4"
         >
-          <Card
-            onClick={() => {
-              if (!hasActivePaidSubscription(user)) {
-                requestUpgrade({ requiredTier: "essential", featureName: "Recipe Scan" });
-                return;
-              }
-              setShowInspirationModal(true);
-            }}
-            className="cursor-pointer transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-orange-500/30 hover:border-orange-500/60 rounded-xl group"
-            data-testid="card-recipe-scan"
-          >
-            <CardContent className="p-5">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-700/20 border border-orange-500/30 group-hover:from-orange-500/30 group-hover:to-orange-700/30 transition-all">
-                  <Camera className="h-6 w-6 text-orange-500" />
+          <div className="relative">
+            <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(244,63,94,0.5), rgba(244,63,94,0.25), rgba(0,0,0,0))" }} />
+            <Card
+              onClick={() => {
+                if (!hasActivePaidSubscription(user)) {
+                  requestUpgrade({ requiredTier: "essential", featureName: "Recipe Scan" });
+                  return;
+                }
+                setShowInspirationModal(true);
+              }}
+              className="relative cursor-pointer transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_0_30px_rgba(244,63,94,0.45)] active:scale-95 bg-gradient-to-r from-black via-rose-950/30 to-black backdrop-blur-lg border border-rose-500/30 hover:border-rose-500/60 rounded-xl group"
+              data-testid="card-recipe-scan"
+            >
+              <CardContent className="p-5">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-lg bg-gradient-to-br from-rose-500/20 to-rose-700/20 border border-rose-500/30 group-hover:from-rose-500/30 group-hover:to-rose-700/30 transition-all">
+                    <Camera className="h-6 w-6 text-rose-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base font-semibold text-white">Recipe Scan</h3>
+                    <p className="text-xs text-white/60">Screenshot, photo, voice, or text — personalized for you.</p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-base font-semibold text-white">Recipe Scan</h3>
-                  <p className="text-xs text-white/60">Screenshot, photo, voice, or text — personalized for you.</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </motion.div>
 
         {/* Last Recipe Scan card */}
