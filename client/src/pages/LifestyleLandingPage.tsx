@@ -445,40 +445,70 @@ export default function LifestyleLandingPage() {
           <div className="flex flex-col gap-3">
             {lifestyleFeatures.map((feature) => {
               const Icon = feature.icon;
-              const isCreateDish = feature.route === "/lifestyle/create-a-dish";
-              const isCravingCreator = feature.route === "/craving-creator-landing";
               const locked = isCardLocked(feature);
+
+              const glowConfigs: Record<string, { glowBg: string; cardBg: string; border: string; hoverShadow: string }> = {
+                "/lifestyle/create-a-dish": {
+                  glowBg: "radial-gradient(120% 120% at 50% 0%, rgba(251,146,60,0.75), rgba(239,68,68,0.35), rgba(0,0,0,0))",
+                  cardBg: "bg-gradient-to-r from-black via-orange-950/40 to-black backdrop-blur-lg",
+                  border: "border border-orange-400/30 hover:border-orange-500/50",
+                  hoverShadow: "hover:shadow-[0_0_30px_rgba(251,146,60,0.4)]",
+                },
+                "/craving-creator-landing": {
+                  glowBg: "radial-gradient(120% 120% at 50% 0%, rgba(168,85,247,0.6), rgba(236,72,153,0.35), rgba(0,0,0,0))",
+                  cardBg: "bg-gradient-to-r from-black via-purple-950/30 to-black backdrop-blur-lg",
+                  border: "border border-pink-400/30 hover:border-pink-500/50",
+                  hoverShadow: "hover:shadow-[0_0_30px_rgba(168,85,247,0.4)]",
+                },
+                "/lifestyle/beverage-hub": {
+                  glowBg: "radial-gradient(120% 120% at 50% 0%, rgba(59,130,246,0.6), rgba(6,182,212,0.3), rgba(0,0,0,0))",
+                  cardBg: "bg-gradient-to-r from-black via-blue-950/30 to-black backdrop-blur-lg",
+                  border: "border border-blue-400/30 hover:border-blue-500/50",
+                  hoverShadow: "hover:shadow-[0_0_30px_rgba(59,130,246,0.4)]",
+                },
+                "/lifestyle/pairings-hub": {
+                  glowBg: "radial-gradient(120% 120% at 50% 0%, rgba(251,146,60,0.6), rgba(217,119,6,0.3), rgba(0,0,0,0))",
+                  cardBg: "bg-gradient-to-r from-black via-amber-950/30 to-black backdrop-blur-lg",
+                  border: "border border-amber-400/30 hover:border-amber-500/50",
+                  hoverShadow: "hover:shadow-[0_0_30px_rgba(251,146,60,0.4)]",
+                },
+                "/fridge-rescue": {
+                  glowBg: "radial-gradient(120% 120% at 50% 0%, rgba(16,185,129,0.6), rgba(20,184,166,0.3), rgba(0,0,0,0))",
+                  cardBg: "bg-gradient-to-r from-black via-emerald-950/30 to-black backdrop-blur-lg",
+                  border: "border border-emerald-400/30 hover:border-emerald-500/50",
+                  hoverShadow: "hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]",
+                },
+                "/social-hub": {
+                  glowBg: "radial-gradient(120% 120% at 50% 0%, rgba(236,72,153,0.5), rgba(168,85,247,0.25), rgba(0,0,0,0))",
+                  cardBg: "bg-gradient-to-r from-black via-pink-950/30 to-black backdrop-blur-lg",
+                  border: "border border-pink-400/30 hover:border-pink-500/50",
+                  hoverShadow: "hover:shadow-[0_0_30px_rgba(236,72,153,0.35)]",
+                },
+                "/companion": {
+                  glowBg: "radial-gradient(120% 120% at 50% 0%, rgba(234,88,12,0.65), rgba(180,83,9,0.3), rgba(0,0,0,0))",
+                  cardBg: "bg-gradient-to-r from-black via-orange-950/30 to-black backdrop-blur-lg",
+                  border: "border border-orange-500/30 hover:border-orange-400/50",
+                  hoverShadow: "hover:shadow-[0_0_30px_rgba(234,88,12,0.4)]",
+                },
+              };
+
+              const glow = glowConfigs[feature.route] ?? {
+                glowBg: "radial-gradient(120% 120% at 50% 0%, rgba(251,146,60,0.5), rgba(0,0,0,0))",
+                cardBg: "bg-gradient-to-r from-black via-orange-950/30 to-black backdrop-blur-lg",
+                border: "border border-orange-400/30 hover:border-orange-500/50",
+                hoverShadow: "hover:shadow-[0_0_30px_rgba(251,146,60,0.3)]",
+              };
 
               return (
                 <div key={feature.testId} className="relative">
-                  {/* Glow effects */}
-                  {isCreateDish && (
-                    <div
-                      className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-80"
-                      style={{
-                        background:
-                          "radial-gradient(120% 120% at 50% 0%, rgba(251,146,60,0.75), rgba(239,68,68,0.35), rgba(0,0,0,0))",
-                      }}
-                    />
-                  )}
-                  {isCravingCreator && (
-                    <div
-                      className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70"
-                      style={{
-                        background:
-                          "radial-gradient(120% 120% at 50% 0%, rgba(168,85,247,0.6), rgba(236,72,153,0.35), rgba(0,0,0,0))",
-                      }}
-                    />
-                  )}
+                  {/* Glow — every card gets one */}
+                  <div
+                    className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70"
+                    style={{ background: glow.glowBg }}
+                  />
 
                   <Card
-                    className={`relative rounded-xl shadow-md overflow-hidden transition cursor-pointer active:scale-95 hover:scale-[1.02] ${
-                      isCreateDish
-                        ? "bg-gradient-to-r from-black via-orange-950/40 to-black backdrop-blur-lg border border-orange-400/30 hover:shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:border-orange-500/50"
-                        : isCravingCreator
-                          ? "bg-black/30 backdrop-blur-lg border border-pink-400/30"
-                          : "bg-black/30 backdrop-blur-lg border border-white/10"
-                    }`}
+                    className={`relative rounded-xl shadow-md overflow-hidden transition cursor-pointer active:scale-95 hover:scale-[1.02] ${glow.cardBg} ${glow.border} ${glow.hoverShadow}`}
                     onClick={() => handleCardClick(feature)}
                     data-testid={feature.testId}
                   >
