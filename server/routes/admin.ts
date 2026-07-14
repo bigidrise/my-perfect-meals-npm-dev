@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db } from "../db";
+import { db, pool } from "../db";
 import { users } from "@shared/schema";
 import { mealImageCache } from "../db/schema/mealImageCache";
 import { userCertifications, waitlistRecoveryEvents } from "../db/schema/certifications";
@@ -499,12 +499,31 @@ router.get("/certifications/marketing-coaching/recovery-events", async (req, res
 const NOTIFY_WAITLIST_LOCK_KEY = 7_438_291_650;
 
 router.post("/certifications/marketing-coaching/notify-waitlist", requireEmailService, async (req, res) => {
-  // ── Layer 1: acquire cross-instance advisory lock ──────────────────────────
-  const lockResult = await db.execute<{ acquired: boolean }>(
-    sql`SELECT pg_try_advisory_lock(${NOTIFY_WAITLIST_LOCK_KEY}) AS acquired`
-  );
-  const lockRow = lockResult.rows[0];
-  if (!lockRow?.acquired) {
+  // ── Layer 1: acquire cross-instance advisory lock on a dedicated connection ─
+  // Session-level advisory locks are tied to the PostgreSQL connection that
+  // acquired them. Using a dedicated PoolClient (instead of the shared drizzle
+  // pool) guarantees:
+  //   • acquire and release always happen on the same connection, so the lock
+  //     is never held by a recycled pool connection after the job ends.
+  //   • client.release() in finally returns the connection to the pool, at
+  //     which point PostgreSQL automatically drops all session-level advisory
+  //     locks on that connection — even if the explicit pg_advisory_unlock was
+  //     skipped due to an error or mid-job connection drop.
+  const lockClient = await pool.connect();
+  let lockAcquired = false;
+  try {
+    const lockResult = await lockClient.query<{ acquired: boolean }>(
+      "SELECT pg_try_advisory_lock($1) AS acquired",
+      [NOTIFY_WAITLIST_LOCK_KEY]
+    );
+    lockAcquired = lockResult.rows[0]?.acquired ?? false;
+  } catch (e) {
+    lockClient.release();
+    throw e;
+  }
+
+  if (!lockAcquired) {
+    lockClient.release();
     return res.status(409).json({ error: "A notify job is already in progress. Please wait for it to finish before sending again." });
   }
 
@@ -645,10 +664,15 @@ router.post("/certifications/marketing-coaching/notify-waitlist", requireEmailSe
     console.error("[admin/notify-waitlist] error:", err);
     return res.status(500).json({ error: err.message });
   } finally {
-    // Release the cross-instance advisory lock so the next run can proceed.
-    await db.execute(sql`SELECT pg_advisory_unlock(${NOTIFY_WAITLIST_LOCK_KEY})`).catch((e) =>
-      console.error("[admin/notify-waitlist] advisory unlock failed:", e)
-    );
+    // Explicitly unlock first (belt-and-suspenders), then return the dedicated
+    // connection to the pool. PostgreSQL automatically releases all session-level
+    // advisory locks when a connection is closed/returned, so client.release()
+    // alone is sufficient even if the explicit unlock fails (e.g. the connection
+    // dropped mid-job).
+    await lockClient
+      .query("SELECT pg_advisory_unlock($1)", [NOTIFY_WAITLIST_LOCK_KEY])
+      .catch((e) => console.error("[admin/notify-waitlist] advisory unlock failed:", e));
+    lockClient.release();
   }
 });
 
