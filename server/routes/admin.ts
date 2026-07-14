@@ -365,6 +365,7 @@ router.get("/certifications/marketing-coaching/waitlist-stats", async (req, res)
     const [stats] = await db
       .select({
         total: sql<number>`count(*)::int`,
+        notified: sql<number>`count(*) filter (where ${userCertifications.notifiedAt} is not null)::int`,
         oldestEntry: min(userCertifications.createdAt),
         newestEntry: max(userCertifications.createdAt),
       })
@@ -389,8 +390,13 @@ router.get("/certifications/marketing-coaching/waitlist-stats", async (req, res)
       .orderBy(userCertifications.createdAt)
       .limit(PREVIEW_LIMIT);
 
+    const total = stats?.total ?? 0;
+    const notified = stats?.notified ?? 0;
+
     return res.json({
-      total: stats?.total ?? 0,
+      total,
+      notified,
+      pending: total - notified,
       oldestEntry: stats?.oldestEntry ?? null,
       newestEntry: stats?.newestEntry ?? null,
       previewEmails: preview.map((r) => r.email).filter(Boolean),

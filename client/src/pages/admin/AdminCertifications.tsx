@@ -94,7 +94,8 @@ export default function AdminCertifications() {
   const [waitlist, setWaitlist] = useState<WaitlistRow[]>([]);
   const [waitlistStats, setWaitlistStats] = useState<{
     total: number;
-    alreadyNotified: number;
+    notified: number;
+    pending: number;
     oldestEntry: string | null;
     newestEntry: string | null;
     previewEmails: string[];
@@ -263,7 +264,7 @@ export default function AdminCertifications() {
       setNotifyResult({ sent: res.sent, skipped: res.skipped, failed: res.failed });
       flash(`Done — ${res.sent} sent, ${res.skipped} skipped, ${res.failed} failed`);
       const [stats, listData] = await Promise.all([
-        apiRequest(`/api/admin/certifications/marketing-coaching/waitlist-stats`) as Promise<{ total: number; alreadyNotified: number; previewEmails: string[] }>,
+        apiRequest(`/api/admin/certifications/marketing-coaching/waitlist-stats`) as Promise<{ total: number; notified: number; pending: number; previewEmails: string[] }>,
         apiRequest(`/api/admin/certifications/marketing-coaching/waitlist`) as Promise<{ waitlist: WaitlistRow[] }>,
       ]);
       setWaitlistStats(stats);
@@ -614,15 +615,27 @@ export default function AdminCertifications() {
                     <div className="grid grid-cols-3 gap-3">
                       <div className="p-4 rounded-2xl bg-black/30 border border-white/10 text-center">
                         <p className="text-2xl font-bold text-orange-400">{waitlistStats.total}</p>
-                        <p className="text-[10px] text-white/40 mt-1 uppercase tracking-wider">Waitlisted</p>
+                        <p className="text-[10px] text-white/40 mt-1 uppercase tracking-wider">Total</p>
                       </div>
                       <div className="p-4 rounded-2xl bg-black/30 border border-white/10 text-center">
+                        <p className="text-2xl font-bold text-green-400">{waitlistStats.notified}</p>
+                        <p className="text-[10px] text-white/40 mt-1 uppercase tracking-wider">Notified</p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-black/30 border border-white/10 text-center">
+                        <p className="text-2xl font-bold text-yellow-400">{waitlistStats.pending}</p>
+                        <p className="text-[10px] text-white/40 mt-1 uppercase tracking-wider">Pending</p>
+                      </div>
+                    </div>
+
+                    {/* Date range */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 rounded-2xl bg-black/20 border border-white/5 text-center">
                         <p className="text-xs font-semibold text-white/70 leading-snug">
                           {waitlistStats.oldestEntry ? new Date(waitlistStats.oldestEntry).toLocaleDateString() : "—"}
                         </p>
                         <p className="text-[10px] text-white/40 mt-1 uppercase tracking-wider">Oldest</p>
                       </div>
-                      <div className="p-4 rounded-2xl bg-black/30 border border-white/10 text-center">
+                      <div className="p-3 rounded-2xl bg-black/20 border border-white/5 text-center">
                         <p className="text-xs font-semibold text-white/70 leading-snug">
                           {waitlistStats.newestEntry ? new Date(waitlistStats.newestEntry).toLocaleDateString() : "—"}
                         </p>
@@ -684,13 +697,18 @@ export default function AdminCertifications() {
                     {/* Action buttons */}
                     {waitlistStats.total > 0 && (
                       <div className="space-y-2">
+                        {waitlistStats.pending === 0 && (
+                          <p className="text-xs text-yellow-400/80 text-center py-1">
+                            All waitlisted users have already been notified. Nothing to send.
+                          </p>
+                        )}
                         <button
                           onClick={() => handleNotifyWaitlist(false)}
-                          disabled={notifying}
+                          disabled={notifying || waitlistStats.pending === 0}
                           className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.97] transition-transform disabled:opacity-40"
                         >
                           <Send className="h-4 w-4" />
-                          {notifying ? "Sending…" : "Notify Waitlist"}
+                          {notifying ? "Sending…" : waitlistStats.pending === 0 ? "Notify Waitlist (0 pending)" : `Notify Waitlist (${waitlistStats.pending} pending)`}
                         </button>
                         <button
                           onClick={() => handleNotifyWaitlist(true)}
