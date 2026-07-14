@@ -12,17 +12,12 @@ const config: Config = {
   verbose: true,
   clearMocks: true,
   testTimeout: 10000,
-  globals: {
-    "ts-jest": {
+  transform: {
+    "^.+\\.tsx?$": ["ts-jest", {
       useESM: true,
       tsconfig: {
         types: ["jest", "node"]
       }
-    }
-  },
-  transform: {
-    "^.+\\.tsx?$": ["ts-jest", {
-      useESM: true
     }]
   },
   extensionsToTreatAsEsm: [".ts"]
