@@ -7,6 +7,7 @@ import { users } from "../../shared/schema";
 import { checkBusinessAffiliateEligibility } from "../services/affiliateEligibility";
 import { getRewardfulMagicLink, getRewardfulAffiliate, getRewardfulAffiliateStatus, getRewardfulAffiliateByEmail } from "../services/rewardfulApi";
 import { sendAffiliateReferralInvite } from "../services/emailService";
+import { requireEmailService, emailServiceAvailable } from "../middleware/requireEmailService";
 
 const router = Router();
 
@@ -397,7 +398,7 @@ router.post("/activate-retry", requireAuth, async (req, res) => {
 });
 
 // ─── POST /api/affiliate/send-invite ─────────────────────────────────────────
-router.post("/send-invite", requireAuth, async (req, res) => {
+router.post("/send-invite", requireAuth, requireEmailService, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const { name, email } = req.body as { name?: string; email?: string };
@@ -523,24 +524,28 @@ export async function handleRewardfulWebhook(req: any, res: any) {
               .limit(1);
 
             if (affiliateUser?.email) {
-              const name = [affiliateUser.firstName, affiliateUser.lastName].filter(Boolean).join(" ") || "Affiliate";
-              // Prefer the URL from the webhook payload (just saved to DB) over the stale account snapshot
-              const emailReferralUrl = webhookUrl ?? account.rewardfulReferralUrl ?? "";
-              const emailReferralToken = webhookToken ?? account.rewardfulReferralToken ?? "";
-              sendAffiliateWelcomeEmail({
-                to: affiliateUser.email,
-                name,
-                referralUrl: emailReferralUrl,
-                referralToken: emailReferralToken,
-                track: account.affiliateTrack ?? "social_affiliate",
-              }).then((sent) => {
-                if (sent) {
-                  db.update(userAffiliateAccounts)
-                    .set({ welcomeEmailSentAt: new Date(), updatedAt: new Date() })
-                    .where(eq(userAffiliateAccounts.userId, account.userId))
-                    .catch(() => {});
-                }
-              }).catch((e) => console.error("[Rewardful Webhook] Welcome email failed:", e));
+              if (!emailServiceAvailable()) {
+                console.warn(`[Rewardful Webhook] Email service not configured — welcome email skipped for userId=${account.userId}`);
+              } else {
+                const name = [affiliateUser.firstName, affiliateUser.lastName].filter(Boolean).join(" ") || "Affiliate";
+                // Prefer the URL from the webhook payload (just saved to DB) over the stale account snapshot
+                const emailReferralUrl = webhookUrl ?? account.rewardfulReferralUrl ?? "";
+                const emailReferralToken = webhookToken ?? account.rewardfulReferralToken ?? "";
+                sendAffiliateWelcomeEmail({
+                  to: affiliateUser.email,
+                  name,
+                  referralUrl: emailReferralUrl,
+                  referralToken: emailReferralToken,
+                  track: account.affiliateTrack ?? "social_affiliate",
+                }).then((sent) => {
+                  if (sent) {
+                    db.update(userAffiliateAccounts)
+                      .set({ welcomeEmailSentAt: new Date(), updatedAt: new Date() })
+                      .where(eq(userAffiliateAccounts.userId, account.userId))
+                      .catch(() => {});
+                  }
+                }).catch((e) => console.error("[Rewardful Webhook] Welcome email failed:", e));
+              }
             }
           }
         }

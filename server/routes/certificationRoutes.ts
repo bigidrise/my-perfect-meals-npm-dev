@@ -13,6 +13,7 @@ import {
 import { certModules, certQuestions, certQuestionOptions } from "../db/schema/lms";
 import { users } from "../../shared/schema";
 import { sendCertificationCompleteEmail } from "../services/emailService";
+import { emailServiceAvailable } from "../middleware/requireEmailService";
 import { generateCertificatePDF } from "../services/certificateService";
 import { evaluateAffiliateActivation } from "../services/affiliateActivation";
 
@@ -663,23 +664,27 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
 
     const finalCertNumber = existing?.certificateNumber ?? newCertNumber;
 
-    try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
+    if (!emailServiceAvailable()) {
+      console.warn(`[Cert] Email service not configured — completion email skipped for userId=${userId} certType=${certType}`);
+    } else {
+      try {
+        const [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
 
-      if (user?.email) {
-        await sendCertificationCompleteEmail({
-          to: user.email,
-          userName: certificateName ?? (user as any).name ?? user.email,
-          certType,
-          certificateNumber: finalCertNumber,
-        });
+        if (user?.email) {
+          await sendCertificationCompleteEmail({
+            to: user.email,
+            userName: certificateName ?? (user as any).name ?? user.email,
+            certType,
+            certificateNumber: finalCertNumber,
+          });
+        }
+      } catch (emailErr) {
+        console.error("[Cert] completion email failed:", emailErr);
       }
-    } catch (emailErr) {
-      console.error("[Cert] completion email failed:", emailErr);
     }
 
     // Evaluate affiliate activation — non-blocking, never throws

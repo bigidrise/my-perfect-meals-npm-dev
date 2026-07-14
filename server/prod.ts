@@ -340,17 +340,38 @@ async function initializeApp() {
           await database.execute(sql`
             ALTER TABLE user_certifications ADD COLUMN IF NOT EXISTS email_sent_at timestamptz
           `);
-          const orphanResult = await database.execute(sql`
-            UPDATE user_certifications
-            SET notified_at = NULL
-            WHERE certification_type = 'marketing_coaching'
-              AND status = 'waitlisted'
-              AND notified_at IS NOT NULL
-              AND email_sent_at IS NULL
+          await database.execute(sql`
+            CREATE TABLE IF NOT EXISTS waitlist_recovery_events (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              recovered_at timestamptz NOT NULL DEFAULT now(),
+              row_count int NOT NULL,
+              user_ids jsonb NOT NULL DEFAULT '[]'
+            )
           `);
-          const orphanCount = (orphanResult as any).rowCount ?? (orphanResult as any).count ?? 0;
-          if (Number(orphanCount) > 0) {
-            console.log(`♻️  [INIT] Waitlist orphan recovery: reset notified_at for ${orphanCount} row(s) claimed but never confirmed sent (server restart mid-send). They will be retried on next notify run.`);
+          // Reset orphaned rows and capture their user IDs atomically via CTE.
+          // If any rows were reset, write a structured audit entry so admins can
+          // see exactly which users were affected and when.
+          const orphanResult = await database.execute(sql`
+            WITH reset AS (
+              UPDATE user_certifications
+              SET notified_at = NULL
+              WHERE certification_type = 'marketing_coaching'
+                AND status = 'waitlisted'
+                AND notified_at IS NOT NULL
+                AND email_sent_at IS NULL
+              RETURNING user_id
+            ),
+            audit AS (
+              INSERT INTO waitlist_recovery_events (row_count, user_ids)
+              SELECT count(*)::int, jsonb_agg(user_id)
+              FROM reset
+              HAVING count(*) > 0
+            )
+            SELECT count(*)::int AS recovered FROM reset
+          `);
+          const orphanCount = Number((orphanResult.rows?.[0] as any)?.recovered ?? 0);
+          if (orphanCount > 0) {
+            console.log(`♻️  [INIT] Waitlist orphan recovery: reset notified_at for ${orphanCount} row(s) claimed but never confirmed sent (server restart mid-send). Audit row written to waitlist_recovery_events. They will be retried on next notify run.`);
           }
         })(),
         migTimeout(6000),

@@ -7,6 +7,7 @@ import { nanoid } from "nanoid";
 import { sendCareTeamInvite } from "../services/emailService";
 import { activateProCareClient, deactivateProCareClient, ActivationError } from "../services/procareActivation";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
+import { requireEmailService } from "../middleware/requireEmailService";
 import { checkLegalAcceptance } from "../services/legalCheck";
 
 const router = Router();
@@ -27,7 +28,7 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/invite", requireAuth, async (req, res) => {
+router.post("/invite", requireAuth, requireEmailService, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
 

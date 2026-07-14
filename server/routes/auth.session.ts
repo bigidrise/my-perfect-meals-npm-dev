@@ -9,6 +9,7 @@ import { autoAcceptPendingInvites, lookupExistingMembership } from "../services/
 import { selfHealProCareState } from "../services/procareActivation";
 import { checkLegalAcceptance } from "../services/legalCheck";
 import { logAudit, getClientIp } from "../lib/auditLog";
+import { emailServiceAvailable } from "../middleware/requireEmailService";
 
 const router = Router();
 
@@ -543,17 +544,21 @@ router.post("/api/auth/forgot-password", async (req, res) => {
       const resetLink = `${appUrl}/reset-password?token=${resetToken}`;
       console.log(`📧 [FORGOT-PASSWORD] Reset link generated`);
 
-      try {
-        const { sendPasswordResetEmail } = await import("../services/emailService");
-        console.log(`📧 [FORGOT-PASSWORD] Calling sendPasswordResetEmail...`);
-        await sendPasswordResetEmail({
-          to: normalizedEmail,
-          resetLink,
-          userName: user.username || user.email.split("@")[0],
-        });
-        console.log(`✅ [FORGOT-PASSWORD] Email sent successfully`);
-      } catch (emailError: any) {
-        console.error(`❌ [FORGOT-PASSWORD] Email sending failed:`, emailError.message);
+      if (!emailServiceAvailable()) {
+        console.warn(`⚠️ [FORGOT-PASSWORD] RESEND_API_KEY not configured — password reset email skipped for ${normalizedEmail}`);
+      } else {
+        try {
+          const { sendPasswordResetEmail } = await import("../services/emailService");
+          console.log(`📧 [FORGOT-PASSWORD] Calling sendPasswordResetEmail...`);
+          await sendPasswordResetEmail({
+            to: normalizedEmail,
+            resetLink,
+            userName: user.username || user.email.split("@")[0],
+          });
+          console.log(`✅ [FORGOT-PASSWORD] Email sent successfully`);
+        } catch (emailError: any) {
+          console.error(`❌ [FORGOT-PASSWORD] Email sending failed:`, emailError.message);
+        }
       }
     } else {
       console.log(`⚠️ [FORGOT-PASSWORD] Email not found in database`);

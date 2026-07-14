@@ -5,6 +5,7 @@ import { clientNotes, studioMemberships, coachingInvites } from "../db/schema/st
 import { users } from "../../shared/schema";
 import { requireAuth } from "../middleware/requireAuth";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
+import { requireEmailService } from "../middleware/requireEmailService";
 import { eq, and, sql, isNull, gt } from "drizzle-orm";
 import { resolveCoach, isValidCoachSlug, coaches } from "../config/coaches";
 import { sendCoachActivationEmail, sendCoachingInviteEmail } from "../services/emailService";
@@ -170,7 +171,7 @@ router.post("/notify-coach", requireAuth, async (req: Request, res: Response) =>
   }
 });
 
-router.post("/activate-client/:clientId", requireAuth, async (req: Request, res: Response) => {
+router.post("/activate-client/:clientId", requireAuth, requireEmailService, async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   if (!authUser?.id) {
     return res.status(401).json({ ok: false, error: "Unauthenticated" });
@@ -343,7 +344,7 @@ router.get("/queue/new-clients", requireAuth, async (req: Request, res: Response
   }
 });
 
-router.post("/send-invite", requireAuth, async (req: Request, res: Response) => {
+router.post("/send-invite", requireAuth, requireEmailService, async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   if (!authUser?.id) return res.status(401).json({ ok: false, error: "Unauthenticated" });
 

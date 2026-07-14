@@ -1,11 +1,12 @@
 import { Router } from "express";
-import { db } from "../db";
+import { db, pool } from "../db";
 import { users } from "@shared/schema";
 import { mealImageCache } from "../db/schema/mealImageCache";
-import { userCertifications } from "../db/schema/certifications";
+import { userCertifications, waitlistRecoveryEvents } from "../db/schema/certifications";
 import { eq, ilike, or, desc, notLike, and, isNull, isNotNull, sql, min, max } from "drizzle-orm";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
 import { sendMarketingCoachingEnrollmentEmail } from "../services/emailService";
+import { requireEmailService } from "../middleware/requireEmailService";
 
 const S3_BUCKET = process.env.S3_BUCKET_NAME || "my-perfect-meals-images";
 const S3_URL_PREFIX = `https://${S3_BUCKET}.s3.`;
@@ -441,42 +442,95 @@ router.get("/certifications/marketing-coaching/waitlist", async (req, res) => {
   }
 });
 
+// GET /admin/certifications/marketing-coaching/recovery-events
+// Returns all boot-recovery audit entries (newest first).
+// Each entry records the timestamp, count of orphaned rows reset, and affected user IDs.
+router.get("/certifications/marketing-coaching/recovery-events", async (req, res) => {
+  try {
+    const events = await db
+      .select({
+        id: waitlistRecoveryEvents.id,
+        recoveredAt: waitlistRecoveryEvents.recoveredAt,
+        rowCount: waitlistRecoveryEvents.rowCount,
+        userIds: waitlistRecoveryEvents.userIds,
+      })
+      .from(waitlistRecoveryEvents)
+      .orderBy(desc(waitlistRecoveryEvents.recoveredAt))
+      .limit(50);
+    return res.json({ ok: true, events });
+  } catch (err: any) {
+    // 42P01 = "relation does not exist" — table not yet created by boot migration
+    if (err?.code === "42P01") {
+      return res.json({ ok: true, events: [] });
+    }
+    console.error("[admin/recovery-events] error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /admin/certifications/marketing-coaching/notify-waitlist
 // Sends enrollment-open emails to every user with status='waitlisted' on marketing_coaching.
 //
-// Idempotency / concurrency safety:
-//   - In-memory in-flight lock: a second concurrent call gets an immediate 409 while one is running.
-//   - Atomically claims rows via UPDATE … WHERE notified_at IS NULL RETURNING before sending
-//     any email. Two simultaneous admin calls can never claim the same row, so no duplicates.
+// Idempotency / concurrency safety — two-layer strategy:
+//
+//   Layer 1 — PostgreSQL advisory lock (cross-instance in-flight guard):
+//     pg_try_advisory_lock(NOTIFY_WAITLIST_LOCK_KEY) is acquired at the start of every run.
+//     Because this is a DB-level session lock it works across multiple server instances and
+//     survives restarts (the lock is automatically released when the DB connection closes).
+//     A second call — on any instance — receives a 409 immediately if a run is in progress.
+//     The lock is released in the finally block via pg_advisory_unlock.
+//
+//   Layer 2 — Atomic row claim (duplicate-send guard, the authoritative safety net):
+//     UPDATE … WHERE notified_at IS NULL RETURNING atomically stamps rows before any email
+//     is sent. Even if two instances somehow both passed Layer 1 simultaneously, they would
+//     claim disjoint sets of rows and no user would receive a duplicate email.
+//
+//   Additional guarantees:
 //   - notified_at = claim timestamp (set before send); email_sent_at = confirmed-send timestamp (set after).
 //   - If an individual send fails, notified_at is reset to NULL so the user can be retried.
 //   - On server restart, boot startup resets notified_at for any rows where notified_at IS NOT NULL
-//     AND email_sent_at IS NULL — these are rows that were claimed mid-send but whose confirmation
-//     was never written, meaning the server crashed before the email was confirmed sent.
+//     AND email_sent_at IS NULL — rows claimed mid-send whose confirmation was never written.
 //   - ?force=true re-claims ALL waitlisted rows (including already-notified) for genuine resends.
 //
 // Runs sequentially with a short delay between sends to respect Resend rate limits.
-let notifyWaitlistInFlight = false;
 
-router.post("/certifications/marketing-coaching/notify-waitlist", async (req, res) => {
-  if (notifyWaitlistInFlight) {
+// Stable bigint used as the pg_try_advisory_lock key for this job.
+// Chosen arbitrarily; must be unique across all advisory locks in this codebase.
+const NOTIFY_WAITLIST_LOCK_KEY = 7_438_291_650;
+
+router.post("/certifications/marketing-coaching/notify-waitlist", requireEmailService, async (req, res) => {
+  // ── Layer 1: acquire cross-instance advisory lock on a dedicated connection ─
+  // Session-level advisory locks are tied to the PostgreSQL connection that
+  // acquired them. Using a dedicated PoolClient (instead of the shared drizzle
+  // pool) guarantees:
+  //   • acquire and release always happen on the same connection, so the lock
+  //     is never held by a recycled pool connection after the job ends.
+  //   • client.release() in finally returns the connection to the pool, at
+  //     which point PostgreSQL automatically drops all session-level advisory
+  //     locks on that connection — even if the explicit pg_advisory_unlock was
+  //     skipped due to an error or mid-job connection drop.
+  const lockClient = await pool.connect();
+  let lockAcquired = false;
+  try {
+    const lockResult = await lockClient.query<{ acquired: boolean }>(
+      "SELECT pg_try_advisory_lock($1) AS acquired",
+      [NOTIFY_WAITLIST_LOCK_KEY]
+    );
+    lockAcquired = lockResult.rows[0]?.acquired ?? false;
+  } catch (e) {
+    lockClient.release();
+    throw e;
+  }
+
+  if (!lockAcquired) {
+    lockClient.release();
     return res.status(409).json({ error: "A notify job is already in progress. Please wait for it to finish before sending again." });
   }
-  notifyWaitlistInFlight = true;
 
   const actor = (req as AuthenticatedRequest).authUser;
   const APP_URL = process.env.APP_URL || "https://app.myperfectmeals.com";
   const force = req.query.force === "true";
   const claimTime = new Date();
-
-  // ── 0. Pre-flight: require email service before touching any DB rows ───────
-  if (!process.env.RESEND_API_KEY) {
-    console.warn("[admin/notify-waitlist] Aborted — RESEND_API_KEY is not configured.");
-    return res.status(503).json({
-      ok: false,
-      message: "Email service is not configured (RESEND_API_KEY missing). No rows were modified.",
-    });
-  }
 
   try {
     // ── 1. Count total waitlisted (for skipped metric) ──────────────────────
@@ -610,7 +664,15 @@ router.post("/certifications/marketing-coaching/notify-waitlist", async (req, re
     console.error("[admin/notify-waitlist] error:", err);
     return res.status(500).json({ error: err.message });
   } finally {
-    notifyWaitlistInFlight = false;
+    // Explicitly unlock first (belt-and-suspenders), then return the dedicated
+    // connection to the pool. PostgreSQL automatically releases all session-level
+    // advisory locks when a connection is closed/returned, so client.release()
+    // alone is sufficient even if the explicit unlock fails (e.g. the connection
+    // dropped mid-job).
+    await lockClient
+      .query("SELECT pg_advisory_unlock($1)", [NOTIFY_WAITLIST_LOCK_KEY])
+      .catch((e) => console.error("[admin/notify-waitlist] advisory unlock failed:", e));
+    lockClient.release();
   }
 });
 
