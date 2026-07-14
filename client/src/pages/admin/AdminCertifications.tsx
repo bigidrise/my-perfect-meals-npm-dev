@@ -73,6 +73,20 @@ interface RecoveryEvent {
   users: RecoveryEventUser[];
 }
 
+interface NotifyRunLog {
+  id: string;
+  triggeredAt: string;
+  triggeredByUserId: string;
+  triggeredByEmail: string;
+  triggeredByFirstName: string | null;
+  status: string; // started | completed | interrupted
+  sent: number;
+  skipped: number;
+  failed: number;
+  force: boolean;
+  failures: string[];
+}
+
 const CERT_TYPES = ["platform", "business_success"];
 
 export default function AdminCertifications() {
@@ -128,6 +142,8 @@ export default function AdminCertifications() {
   const [emailConfigured, setEmailConfigured] = useState<boolean | null>(null);
   const [recoveryEvents, setRecoveryEvents] = useState<RecoveryEvent[]>([]);
   const [expandedRecovery, setExpandedRecovery] = useState<string | null>(null);
+  const [notifyRunLogs, setNotifyRunLogs] = useState<NotifyRunLog[]>([]);
+  const [expandedRunLog, setExpandedRunLog] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -145,12 +161,14 @@ export default function AdminCertifications() {
       apiRequest("/api/admin/certifications/marketing-coaching/waitlist"),
       apiRequest("/api/admin/config/email-status"),
       apiRequest("/api/admin/certifications/marketing-coaching/recovery-events").catch(() => ({ events: [] })),
+      apiRequest("/api/admin/certifications/marketing-coaching/notify-run-logs").catch(() => ({ logs: [] })),
     ])
-      .then(([stats, list, emailStatus, recovery]: any) => {
+      .then(([stats, list, emailStatus, recovery, runLogs]: any) => {
         setWaitlistStats(stats);
         setWaitlist(list.waitlist ?? []);
         setEmailConfigured(emailStatus?.configured ?? false);
         setRecoveryEvents(recovery.events ?? []);
+        setNotifyRunLogs(runLogs.logs ?? []);
       })
       .catch(() => {})
       .finally(() => setWaitlistLoading(false));
@@ -289,12 +307,14 @@ export default function AdminCertifications() {
       const res = await apiRequest(url, { method: "POST" }) as { ok: boolean; sent: number; skipped: number; failed: number; failures: string[] };
       setNotifyResult({ sent: res.sent, skipped: res.skipped, failed: res.failed, failures: res.failures ?? [] });
       flash(`Done — ${res.sent} sent, ${res.skipped} skipped, ${res.failed} failed`);
-      const [stats, listData] = await Promise.all([
+      const [stats, listData, runLogsData] = await Promise.all([
         apiRequest(`/api/admin/certifications/marketing-coaching/waitlist-stats`) as Promise<{ total: number; notified: number; pending: number; previewEmails: string[] }>,
         apiRequest(`/api/admin/certifications/marketing-coaching/waitlist`) as Promise<{ waitlist: WaitlistRow[] }>,
+        apiRequest(`/api/admin/certifications/marketing-coaching/notify-run-logs`).catch(() => ({ logs: [] })) as Promise<{ logs: NotifyRunLog[] }>,
       ]);
       setWaitlistStats(stats);
       setWaitlist(listData.waitlist ?? []);
+      setNotifyRunLogs(runLogsData.logs ?? []);
     } catch (err: any) {
       const msg = err?.message || "Notify failed";
       if (msg.includes("already in progress")) {
@@ -899,6 +919,94 @@ export default function AdminCertifications() {
                             </div>
                           ));
                           })()}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Notify Run History */}
+                    <div className="space-y-3 pt-4 border-t border-white/10">
+                      <div className="flex items-center gap-2">
+                        <Send className="h-3.5 w-3.5 text-white/30" />
+                        <p className="text-xs font-semibold text-white/40 uppercase tracking-wider">Notify Run History</p>
+                      </div>
+                      {notifyRunLogs.length === 0 ? (
+                        <div className="p-4 rounded-2xl bg-black/20 border border-white/5 text-center">
+                          <p className="text-xs text-white/25">No notify runs recorded yet.</p>
+                          <p className="text-[10px] text-white/15 mt-1">Each time an admin sends waitlist notifications, a record appears here.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {notifyRunLogs.map((log) => {
+                            const adminName = log.triggeredByFirstName || log.triggeredByEmail;
+                            return (
+                              <div key={log.id} className="rounded-2xl bg-black/30 border border-white/10 overflow-hidden">
+                                <button
+                                  onClick={() => setExpandedRunLog(expandedRunLog === log.id ? null : log.id)}
+                                  className="w-full flex items-center justify-between gap-3 p-4 text-left active:bg-white/5"
+                                >
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <span className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full bg-orange-500/15 border border-orange-500/20">
+                                      <Send className="h-3 w-3 text-orange-400" />
+                                    </span>
+                                    <div className="min-w-0">
+                                      <p className="text-xs font-semibold text-white truncate">
+                                        {log.status === "interrupted" ? (
+                                          <span className="text-red-400">Interrupted mid-send</span>
+                                        ) : log.status === "started" ? (
+                                          <span className="text-yellow-400">In progress…</span>
+                                        ) : (
+                                          <>{log.sent} sent · {log.skipped} skipped{log.failed > 0 ? ` · ${log.failed} failed` : ""}</>
+                                        )}
+                                        {log.force && <span className="ml-1.5 text-[10px] text-yellow-400/70 font-normal">(force)</span>}
+                                      </p>
+                                      <p className="text-[10px] text-white/35 mt-0.5">
+                                        Triggered by <span className="text-white/55 font-medium">{adminName}</span> · {new Date(log.triggeredAt).toLocaleString()}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <span className="flex-shrink-0 text-white/30">
+                                    {expandedRunLog === log.id ? (
+                                      <ChevronUp className="h-3.5 w-3.5" />
+                                    ) : (
+                                      <ChevronDown className="h-3.5 w-3.5" />
+                                    )}
+                                  </span>
+                                </button>
+                                {expandedRunLog === log.id && (
+                                  <div className="px-4 pb-4 space-y-3 border-t border-white/5 pt-3">
+                                    <div className="grid grid-cols-3 gap-2">
+                                      <div className="rounded-xl bg-black/20 p-2.5 text-center">
+                                        <p className="text-base font-bold text-green-400">{log.sent}</p>
+                                        <p className="text-[10px] text-white/35 mt-0.5">Sent</p>
+                                      </div>
+                                      <div className="rounded-xl bg-black/20 p-2.5 text-center">
+                                        <p className="text-base font-bold text-white/50">{log.skipped}</p>
+                                        <p className="text-[10px] text-white/35 mt-0.5">Skipped</p>
+                                      </div>
+                                      <div className="rounded-xl bg-black/20 p-2.5 text-center">
+                                        <p className={`text-base font-bold ${log.failed > 0 ? "text-red-400" : "text-white/30"}`}>{log.failed}</p>
+                                        <p className="text-[10px] text-white/35 mt-0.5">Failed</p>
+                                      </div>
+                                    </div>
+                                    <div className="space-y-0.5">
+                                      <p className="text-[10px] text-white/35 uppercase tracking-wider font-semibold">Admin</p>
+                                      <p className="text-xs text-white/70">{log.triggeredByFirstName ? `${log.triggeredByFirstName} (${log.triggeredByEmail})` : log.triggeredByEmail}</p>
+                                    </div>
+                                    {log.failures.length > 0 && (
+                                      <div className="space-y-1">
+                                        <p className="text-[10px] text-red-400/70 uppercase tracking-wider font-semibold">Failed Addresses</p>
+                                        <div className="space-y-0.5 max-h-32 overflow-y-auto pr-1">
+                                          {log.failures.map((email) => (
+                                            <p key={email} className="text-[10px] font-mono text-red-400/60">{email}</p>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>

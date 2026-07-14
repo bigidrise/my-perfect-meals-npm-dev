@@ -755,6 +755,23 @@ setTimeout(async () => {
         user_ids jsonb NOT NULL DEFAULT '[]'
       )
     `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS waitlist_notify_run_logs (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        triggered_at timestamptz NOT NULL DEFAULT now(),
+        triggered_by_user_id text NOT NULL,
+        triggered_by_email text NOT NULL,
+        status text NOT NULL DEFAULT 'started',
+        sent int NOT NULL DEFAULT 0,
+        skipped int NOT NULL DEFAULT 0,
+        failed int NOT NULL DEFAULT 0,
+        force boolean NOT NULL DEFAULT false,
+        failures jsonb NOT NULL DEFAULT '[]'
+      )
+    `);
+    await db.execute(sql`
+      ALTER TABLE waitlist_notify_run_logs ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'started'
+    `);
     // Reset orphaned rows and capture their user IDs atomically via CTE.
     // If any rows were reset, write a structured audit entry so admins can
     // see exactly which users were affected and when.
