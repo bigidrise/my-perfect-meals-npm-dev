@@ -143,6 +143,9 @@ export default function AcademyLandingPage() {
   const [lessonStatuses, setLessonStatuses] = useState<LessonStatus[]>(
     Array(PLATFORM_MASTERY_LESSONS.length).fill("not_started")
   );
+  const [lessonSlugs, setLessonSlugs] = useState<(string | null)[]>(
+    Array(PLATFORM_MASTERY_LESSONS.length).fill(null)
+  );
   const [lessonLoading, setLessonLoading] = useState(true);
 
   // Fetch per-lesson progress for all authenticated users
@@ -180,7 +183,12 @@ export default function AcademyLandingPage() {
             return progressMap.get(mod.slug) ?? "not_started";
           });
 
+          const slugs: (string | null)[] = PLATFORM_MASTERY_LESSONS.map((_, i) => {
+            return videoModules[i]?.slug ?? null;
+          });
+
           setLessonStatuses(statuses);
+          setLessonSlugs(slugs);
         }
       } catch {
         // silently ignore — lessons will show as not_started
@@ -353,37 +361,56 @@ export default function AcademyLandingPage() {
             {PLATFORM_MASTERY_LESSONS.map((lesson, i) => {
               const Icon = lesson.icon;
               const status = lessonStatuses[i];
+              const slug = lessonSlugs[i];
+              const isInProgress = !lessonLoading && status === "in_progress";
+              const isCompleted = !lessonLoading && status === "completed";
+
+              function handleLessonTap() {
+                if (isInProgress && slug) {
+                  setLocation(`/certifications/platform/video/${slug}`);
+                } else {
+                  setLocation(`/certifications/platform?lesson=${i + 1}`);
+                }
+              }
+
               return (
                 <motion.button
                   key={lesson.number}
-                  className="w-full text-left px-5 py-3.5 flex items-start gap-3 active:bg-white/5 transition-colors"
-                  onClick={() => setLocation(`/certifications/platform?lesson=${i + 1}`)}
+                  className={`w-full text-left px-5 py-3.5 flex items-start gap-3 transition-colors ${
+                    isInProgress
+                      ? "bg-orange-500/8 active:bg-orange-500/12"
+                      : "active:bg-white/5"
+                  }`}
+                  onClick={handleLessonTap}
                   initial={{ opacity: 0, x: -6 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.14 + i * 0.05 }}
                 >
-                  <div className={`p-1.5 rounded-lg flex-shrink-0 mt-0.5 ${status === "completed" ? "bg-emerald-500/15" : "bg-orange-500/15"}`}>
-                    <Icon className={`h-3.5 w-3.5 ${status === "completed" ? "text-emerald-400" : "text-orange-400"}`} />
+                  <div className={`p-1.5 rounded-lg flex-shrink-0 mt-0.5 ${
+                    isCompleted ? "bg-emerald-500/15" : isInProgress ? "bg-orange-500/20" : "bg-orange-500/15"
+                  }`}>
+                    <Icon className={`h-3.5 w-3.5 ${isCompleted ? "text-emerald-400" : "text-orange-400"}`} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-mono text-white/25">{lesson.number}</span>
                       <span className="text-sm font-semibold text-white leading-snug">{lesson.title}</span>
-                      {status === "in_progress" && !lessonLoading && (
-                        <span className="text-[10px] font-semibold text-orange-400 bg-orange-500/15 px-1.5 py-0.5 rounded-full flex-shrink-0">
-                          In Progress
-                        </span>
-                      )}
                     </div>
                     <p className="text-xs text-white/45 mt-0.5 leading-relaxed">{lesson.description}</p>
+                    {isInProgress && (
+                      <span className="inline-flex items-center gap-1 mt-1.5 text-[11px] font-semibold text-orange-300">
+                        <PlayCircle className="h-3 w-3" />
+                        Resume lesson
+                      </span>
+                    )}
                   </div>
-                  {!lessonLoading && status === "completed" && (
+                  {isCompleted && (
                     <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
                   )}
-                  {!lessonLoading && status === "in_progress" && (
+                  {isInProgress && (
                     <PlayCircle className="h-4 w-4 text-orange-400 flex-shrink-0 mt-0.5" />
                   )}
-                  <ChevronRight className="h-4 w-4 text-white/20 flex-shrink-0 mt-1" />
+                  <ChevronRight className={`h-4 w-4 flex-shrink-0 mt-1 ${isInProgress ? "text-orange-400/50" : "text-white/20"}`} />
                 </motion.button>
               );
             })}
