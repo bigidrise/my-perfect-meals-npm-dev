@@ -259,7 +259,7 @@ export default function MorePage() {
 
           {/* Tips & Strategies — always visible */}
           <div className="relative">
-            <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(ellipse at center, #f97316 0%, transparent 70%)" }} />
+            <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(249,115,22,0.5), rgba(249,115,22,0.25), rgba(0,0,0,0))" }} />
           <Card
             className="relative cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-orange-950/30 to-black backdrop-blur-lg border border-orange-500/30 hover:border-orange-500/60 hover:shadow-[0_0_30px_rgba(249,115,22,0.45)] transition-all duration-300 rounded-xl shadow-md overflow-hidden"
             onClick={() => setLocation("/tips")}
@@ -285,7 +285,7 @@ export default function MorePage() {
           {/* Household Profiles — Family plan only */}
           {isHouseholdPlan(user?.planLookupKey) && (
             <div className="relative">
-              <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(ellipse at center, #f59e0b 0%, transparent 70%)" }} />
+              <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(245,158,11,0.5), rgba(245,158,11,0.25), rgba(0,0,0,0))" }} />
               <Card
                 className="relative cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-amber-950/30 to-black backdrop-blur-lg border border-amber-500/30 hover:border-amber-500/60 hover:shadow-[0_0_30px_rgba(245,158,11,0.45)] transition-all duration-300 rounded-xl shadow-md overflow-hidden"
                 onClick={() => setLocation("/household-profiles")}
@@ -309,7 +309,7 @@ export default function MorePage() {
           {/* Switch to Workspace — only for professionals */}
           {(userRole === "trainer" || userRole === "physician") && (
             <div className="relative">
-              <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(ellipse at center, #06b6d4 0%, transparent 70%)" }} />
+              <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(6,182,212,0.5), rgba(6,182,212,0.25), rgba(0,0,0,0))" }} />
               <Card
                 className="relative cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-cyan-950/30 to-black backdrop-blur-lg border border-cyan-500/30 hover:border-cyan-500/60 hover:shadow-[0_0_30px_rgba(6,182,212,0.45)] transition-all duration-300 rounded-xl shadow-md overflow-hidden"
                 onClick={() => {
@@ -359,7 +359,7 @@ export default function MorePage() {
           {/* Become a Provider — only for users who are NOT already providers */}
           {!userRole && (
             <div className="relative">
-              <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(ellipse at center, #3b82f6 0%, transparent 70%)" }} />
+              <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(59,130,246,0.5), rgba(59,130,246,0.25), rgba(0,0,0,0))" }} />
               <Card
                 className="relative cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-blue-950/30 to-black backdrop-blur-lg border border-blue-500/30 hover:border-blue-500/60 hover:shadow-[0_0_30px_rgba(59,130,246,0.45)] transition-all duration-300 rounded-xl shadow-md overflow-hidden"
                 onClick={() => setShowProviderModal(true)}
@@ -385,7 +385,7 @@ export default function MorePage() {
             const favLocked = !hasActivePaidSubscription(user);
             return (
               <div className="relative">
-                <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(ellipse at center, #f43f5e 0%, transparent 70%)" }} />
+                <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(244,63,94,0.5), rgba(244,63,94,0.25), rgba(0,0,0,0))" }} />
                 <Card
                   className="relative cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-rose-950/30 to-black backdrop-blur-lg border border-rose-500/30 hover:border-rose-500/60 hover:shadow-[0_0_30px_rgba(244,63,94,0.45)] transition-all duration-300 rounded-xl shadow-md overflow-hidden"
                   onClick={() => {
@@ -413,7 +413,7 @@ export default function MorePage() {
 
           {/* Business Center */}
           <div className="relative">
-            <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(ellipse at center, #f59e0b 0%, transparent 70%)" }} />
+            <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(245,158,11,0.5), rgba(245,158,11,0.25), rgba(0,0,0,0))" }} />
             <Card
               className="relative cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-amber-950/30 to-black backdrop-blur-lg border border-amber-500/30 hover:border-amber-500/60 hover:shadow-[0_0_30px_rgba(245,158,11,0.45)] transition-all duration-300 rounded-xl shadow-md overflow-hidden"
               onClick={() => setLocation("/business-center")}
@@ -576,11 +576,14 @@ export default function MorePage() {
             )}
 
             {/* 3. Account Security — Two-Factor Authentication */}
-            <GlassCard className="border border-white/10">
-              <GlassCardContent className="p-5">
-                <MfaSetupSection />
-              </GlassCardContent>
-            </GlassCard>
+            <div className="relative">
+              <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(139,92,246,0.5), rgba(139,92,246,0.25), rgba(0,0,0,0))" }} />
+              <GlassCard className="relative border border-violet-500/30">
+                <GlassCardContent className="p-5">
+                  <MfaSetupSection />
+                </GlassCardContent>
+              </GlassCard>
+            </div>
 
             {/* 4. Other features (Supplement Hub, etc.) */}
             {proCareFeatures.filter(f => f.roleKey === null).map((feature) => {

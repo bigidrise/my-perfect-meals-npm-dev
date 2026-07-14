@@ -696,7 +696,7 @@ export default function DashboardNew() {
 
   const dashboardGlowConfigs: Record<string, { glowBg: string; border: string; hoverBorder: string; hoverShadow: string; cardBg: string; iconBg: string; iconColor: string }> = {
     "/macro-counter": {
-      glowBg: "radial-gradient(ellipse at center, #f97316 0%, transparent 70%)",
+      glowBg: "radial-gradient(120% 120% at 50% 0%, rgba(249,115,22,0.5), rgba(249,115,22,0.25), rgba(0,0,0,0))",
       border: "border-orange-500/30",
       hoverBorder: "hover:border-orange-500/60",
       hoverShadow: "hover:shadow-[0_0_30px_rgba(249,115,22,0.45)]",
@@ -705,7 +705,7 @@ export default function DashboardNew() {
       iconColor: "text-orange-500",
     },
     "/my-biometrics": {
-      glowBg: "radial-gradient(ellipse at center, #06b6d4 0%, transparent 70%)",
+      glowBg: "radial-gradient(120% 120% at 50% 0%, rgba(6,182,212,0.5), rgba(6,182,212,0.25), rgba(0,0,0,0))",
       border: "border-cyan-500/30",
       hoverBorder: "hover:border-cyan-500/60",
       hoverShadow: "hover:shadow-[0_0_30px_rgba(6,182,212,0.45)]",
@@ -714,7 +714,7 @@ export default function DashboardNew() {
       iconColor: "text-cyan-400",
     },
     "/saved-meals": {
-      glowBg: "radial-gradient(ellipse at center, #f43f5e 0%, transparent 70%)",
+      glowBg: "radial-gradient(120% 120% at 50% 0%, rgba(244,63,94,0.5), rgba(244,63,94,0.25), rgba(0,0,0,0))",
       border: "border-rose-500/30",
       hoverBorder: "hover:border-rose-500/60",
       hoverShadow: "hover:shadow-[0_0_30px_rgba(244,63,94,0.45)]",
@@ -723,7 +723,7 @@ export default function DashboardNew() {
       iconColor: "text-rose-400",
     },
     "/get-inspiration": {
-      glowBg: "radial-gradient(ellipse at center, #f59e0b 0%, transparent 70%)",
+      glowBg: "radial-gradient(120% 120% at 50% 0%, rgba(245,158,11,0.5), rgba(245,158,11,0.25), rgba(0,0,0,0))",
       border: "border-amber-500/30",
       hoverBorder: "hover:border-amber-500/60",
       hoverShadow: "hover:shadow-[0_0_30px_rgba(245,158,11,0.45)]",
@@ -826,8 +826,10 @@ export default function DashboardNew() {
           {isCoach ? (
             <>
               {/* Card 1: Client Messages inbox */}
+              <div className="relative">
+                <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(20,184,166,0.5), rgba(20,184,166,0.25), rgba(0,0,0,0))" }} />
               <Card
-                className={`cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md relative ${proUnreadCount > 0 ? "border-2 border-orange-400 shadow-[0_0_0_3px_rgba(249,115,22,0.25),0_0_28px_rgba(249,115,22,0.8)]" : "border border-teal-500/30"}`}
+                className={`relative cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md ${proUnreadCount > 0 ? "border-2 border-orange-400 shadow-[0_0_0_3px_rgba(249,115,22,0.25),0_0_28px_rgba(249,115,22,0.8)]" : "border border-teal-500/30"}`}
                 onClick={() => setShowWorkspaceChooser(true)}
               >
                 <CardContent className="p-4">
@@ -852,11 +854,14 @@ export default function DashboardNew() {
                   </div>
                 </CardContent>
               </Card>
+              </div>
 
               {/* Card 2: Provider Messages inbox — only for coaches who are also under a provider */}
               {hasProviderConnection && (
+                <div className="relative">
+                  <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(59,130,246,0.5), rgba(59,130,246,0.25), rgba(0,0,0,0))" }} />
                 <Card
-                  className={`cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md relative ${providerHasUnread ? "border-2 border-orange-400 shadow-[0_0_0_3px_rgba(249,115,22,0.25),0_0_28px_rgba(249,115,22,0.8)]" : "border border-blue-500/30"}`}
+                  className={`relative cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md ${providerHasUnread ? "border-2 border-orange-400 shadow-[0_0_0_3px_rgba(249,115,22,0.25),0_0_28px_rgba(249,115,22,0.8)]" : "border border-blue-500/30"}`}
                   onClick={() => setProviderOpen(!providerOpen)}
                 >
                   <CardContent className="p-4">
@@ -881,11 +886,14 @@ export default function DashboardNew() {
                     </div>
                   </CardContent>
                 </Card>
+                </div>
               )}
             </>
           ) : isProCareClient ? (
+            <div className="relative">
+              <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(168,85,247,0.5), rgba(168,85,247,0.25), rgba(0,0,0,0))" }} />
             <Card
-              className={`cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md relative ${tabletHasUnread ? "border-2 border-orange-400 shadow-[0_0_0_3px_rgba(249,115,22,0.25),0_0_28px_rgba(249,115,22,0.8)]" : "border border-purple-500/30"}`}
+              className={`relative cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md ${tabletHasUnread ? "border-2 border-orange-400 shadow-[0_0_0_3px_rgba(249,115,22,0.25),0_0_28px_rgba(249,115,22,0.8)]" : "border border-purple-500/30"}`}
               onClick={() => setTabletOpen(!tabletOpen)}
             >
               <CardContent className="p-4">
@@ -912,9 +920,12 @@ export default function DashboardNew() {
                 </div>
               </CardContent>
             </Card>
+            </div>
           ) : (
+            <div className="relative">
+              <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(249,115,22,0.3), rgba(249,115,22,0.1), rgba(0,0,0,0))" }} />
             <Card
-              className="cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-white/10 transition-all duration-300 rounded-xl shadow-md relative opacity-70"
+              className="relative cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg border border-white/10 transition-all duration-300 rounded-xl shadow-md opacity-70"
               onClick={() => setLocation("/coaches")}
             >
               <CardContent className="p-4">
@@ -936,6 +947,7 @@ export default function DashboardNew() {
                 </div>
               </CardContent>
             </Card>
+            </div>
           )}
 
           {tabletOpen && (
