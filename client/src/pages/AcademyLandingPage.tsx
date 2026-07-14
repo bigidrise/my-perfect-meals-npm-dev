@@ -24,6 +24,7 @@ import {
   MessageSquare,
   BarChart2,
   Repeat,
+  PlayCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
@@ -111,6 +112,8 @@ const MARKETING_COACHING_MODULES = [
 
 type MarketingStatus = "unknown" | "waitlisted" | "in_progress" | "completed";
 
+type LessonStatus = "not_started" | "in_progress" | "completed" | "quiz_failed";
+
 interface CertProgress {
   personalDone: boolean;
   phase1Done: boolean;
@@ -136,6 +139,50 @@ export default function AcademyLandingPage() {
 
   const [showMarketingModal, setShowMarketingModal] = useState(false);
   const [joiningWaitlist, setJoiningWaitlist] = useState(false);
+
+  const [lessonStatuses, setLessonStatuses] = useState<LessonStatus[]>(
+    Array(PLATFORM_MASTERY_LESSONS.length).fill("not_started")
+  );
+  const [lessonLoading, setLessonLoading] = useState(true);
+
+  // Fetch per-lesson progress for all authenticated users
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const [modulesRes, progressRes] = await Promise.allSettled([
+          apiRequest("/api/certifications/platform/modules"),
+          apiRequest("/api/certifications/platform/progress"),
+        ]);
+
+        if (modulesRes.status === "fulfilled" && progressRes.status === "fulfilled") {
+          const allModules: Array<{ slug: string; moduleType: string; sortOrder: number }> =
+            (modulesRes.value as any)?.modules ?? [];
+          const moduleProgress: Array<{ moduleId: string; status: string }> =
+            (progressRes.value as any)?.moduleProgress ?? [];
+
+          // Take only video-type modules (lesson content), sorted by sortOrder
+          const videoModules = allModules
+            .filter((m) => m.moduleType === "video")
+            .sort((a, b) => a.sortOrder - b.sortOrder);
+
+          const progressMap = new Map(moduleProgress.map((p) => [p.moduleId, p.status as LessonStatus]));
+
+          const statuses: LessonStatus[] = PLATFORM_MASTERY_LESSONS.map((_, i) => {
+            const mod = videoModules[i];
+            if (!mod) return "not_started";
+            return progressMap.get(mod.slug) ?? "not_started";
+          });
+
+          setLessonStatuses(statuses);
+        }
+      } catch {
+        // silently ignore — lessons will show as not_started
+      } finally {
+        setLessonLoading(false);
+      }
+    })();
+  }, [user?.id]);
 
   useEffect(() => {
     if (!isProfessional) {
@@ -176,6 +223,10 @@ export default function AcademyLandingPage() {
       }
     })();
   }, [isProfessional, user?.onboardingCompletedAt]);
+
+  const hasAnyLessonProgress = lessonStatuses.some(
+    (s) => s === "in_progress" || s === "completed"
+  );
 
   const allRequired = progress.personalDone && progress.phase1Done && progress.phase2Done && progress.marketingStatus === "completed";
   const badge = allRequired ? certBadge(progress.phase1Score) : null;
@@ -295,6 +346,7 @@ export default function AcademyLandingPage() {
           <div className="divide-y divide-white/5">
             {PLATFORM_MASTERY_LESSONS.map((lesson, i) => {
               const Icon = lesson.icon;
+              const status = lessonStatuses[i];
               return (
                 <motion.button
                   key={lesson.number}
@@ -304,16 +356,27 @@ export default function AcademyLandingPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.14 + i * 0.05 }}
                 >
-                  <div className="p-1.5 rounded-lg bg-orange-500/15 flex-shrink-0 mt-0.5">
-                    <Icon className="h-3.5 w-3.5 text-orange-400" />
+                  <div className={`p-1.5 rounded-lg flex-shrink-0 mt-0.5 ${status === "completed" ? "bg-emerald-500/15" : "bg-orange-500/15"}`}>
+                    <Icon className={`h-3.5 w-3.5 ${status === "completed" ? "text-emerald-400" : "text-orange-400"}`} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-mono text-white/25">{lesson.number}</span>
                       <span className="text-sm font-semibold text-white leading-snug">{lesson.title}</span>
+                      {status === "in_progress" && !lessonLoading && (
+                        <span className="text-[10px] font-semibold text-orange-400 bg-orange-500/15 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                          In Progress
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-white/45 mt-0.5 leading-relaxed">{lesson.description}</p>
                   </div>
+                  {!lessonLoading && status === "completed" && (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  )}
+                  {!lessonLoading && status === "in_progress" && (
+                    <PlayCircle className="h-4 w-4 text-orange-400 flex-shrink-0 mt-0.5" />
+                  )}
                   <ChevronRight className="h-4 w-4 text-white/20 flex-shrink-0 mt-1" />
                 </motion.button>
               );
@@ -326,7 +389,7 @@ export default function AcademyLandingPage() {
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
             >
               <BookOpen className="h-4 w-4" />
-              Start Learning
+              {hasAnyLessonProgress ? "Continue Learning" : "Start Learning"}
               <ChevronRight className="h-4 w-4 opacity-70" />
             </button>
             <p className="text-center text-white/30 text-xs mt-2">
