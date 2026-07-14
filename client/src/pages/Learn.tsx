@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import {
@@ -35,6 +35,9 @@ import {
   Globe,
   Camera,
   Dumbbell,
+  Undo2,
+  RotateCcw,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
@@ -2720,11 +2723,13 @@ const LIBRARY_SECTIONS: LibrarySection[] = [
 function LibraryItem({ topic }: { topic: LibraryTopic }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [mode, setMode] = useState<"read" | "listen">("read");
+  const [showTranscript, setShowTranscript] = useState(false);
   const narration = useNarration(topic.content.sections);
 
   const handleToggle = () => {
     if (isExpanded) {
       narration.reset();
+      setShowTranscript(false);
     }
     setIsExpanded(!isExpanded);
   };
@@ -2732,10 +2737,16 @@ function LibraryItem({ topic }: { topic: LibraryTopic }) {
   const handleModeChange = (newMode: "read" | "listen") => {
     if (newMode === "read") {
       narration.reset();
+      setShowTranscript(false);
     }
     setMode(newMode);
     narration.toggleMode(newMode);
   };
+
+  const handleStartOver = useCallback(() => {
+    narration.reset();
+    setTimeout(() => narration.play(), 50);
+  }, [narration]);
 
   const Icon = topic.icon;
 
@@ -2800,7 +2811,10 @@ function LibraryItem({ topic }: { topic: LibraryTopic }) {
                 </div>
 
                 {mode === "listen" && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] text-white/40 font-mono tabular-nums">
+                      {narration.currentSectionIndex + 1}/{narration.totalSections}
+                    </span>
                     <PillButton
                       onClick={
                         narration.isPlaying
@@ -2817,19 +2831,58 @@ function LibraryItem({ topic }: { topic: LibraryTopic }) {
                         <Play className="h-3 w-3" />
                       )}
                     </PillButton>
+                    <PillButton onClick={narration.skipBack10} className="flex items-center gap-1">
+                      <Undo2 className="h-3 w-3" />
+                      <span className="text-[10px]">10s</span>
+                    </PillButton>
+                    <PillButton onClick={narration.nextSection} className="flex items-center gap-1">
+                      <ChevronRight className="h-3 w-3" />
+                      <span className="text-[10px]">Next</span>
+                    </PillButton>
+                    <PillButton onClick={handleStartOver} className="flex items-center gap-1">
+                      <RotateCcw className="h-3 w-3" />
+                    </PillButton>
                     <PillButton
-                      onClick={narration.stop}
+                      onClick={() => setShowTranscript((v) => !v)}
+                      active={showTranscript}
+                      className="flex items-center gap-1"
+                    >
+                      <FileText className="h-3 w-3" />
+                    </PillButton>
+                    <PillButton
+                      onClick={() => { narration.stop(); setShowTranscript(false); }}
                       active={false}
+                      className="opacity-60"
                     >
                       <Square className="h-3 w-3" />
                     </PillButton>
-                    <span className="text-[10px] text-white/50 ml-1">
-                      {narration.currentSectionIndex + 1}/
-                      {narration.totalSections}
-                    </span>
                   </div>
                 )}
               </div>
+
+              {mode === "listen" && showTranscript && (() => {
+                const s = topic.content.sections[narration.currentSectionIndex];
+                return s ? (
+                  <div className="mb-3 p-3 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
+                    <p className="text-xs font-semibold text-orange-400 uppercase tracking-wider">
+                      {s.heading}
+                    </p>
+                    {s.text && (
+                      <p className="text-xs text-white/70 leading-relaxed">{s.text}</p>
+                    )}
+                    {s.list && (
+                      <ul className="space-y-1 mt-1">
+                        {s.list.map((item, i) => (
+                          <li key={i} className="text-xs text-white/70 flex items-start gap-2">
+                            <span className="text-white/30 mt-0.5">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ) : null;
+              })()}
 
               <div className="space-y-4">
                 {topic.content.sections.map((section, index) => (
