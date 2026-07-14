@@ -262,6 +262,14 @@ router.post("/repair-image-cache", async (req, res) => {
     return res.status(403).json({ error: "Admin only" });
   }
 
+  // Acquire cross-instance advisory lock to prevent concurrent repair runs
+  const lockResult = await db.execute<{ acquired: boolean }>(
+    sql`SELECT pg_try_advisory_lock(${REPAIR_IMAGE_CACHE_LOCK_KEY}) AS acquired`
+  );
+  if (!lockResult.rows[0]?.acquired) {
+    return res.status(409).json({ error: "A cache repair job is already in progress. Please wait for it to finish." });
+  }
+
   try {
     const staleRows = await db
       .select({ cacheKey: mealImageCache.cacheKey, mealName: mealImageCache.mealName, imageUrl: mealImageCache.imageUrl })
@@ -287,6 +295,10 @@ router.post("/repair-image-cache", async (req, res) => {
   } catch (err: any) {
     console.error("[admin/repair-image-cache] error:", err);
     return res.status(500).json({ error: err.message });
+  } finally {
+    await db.execute(sql`SELECT pg_advisory_unlock(${REPAIR_IMAGE_CACHE_LOCK_KEY})`).catch((e) =>
+      console.error("[admin/repair-image-cache] advisory unlock failed:", e)
+    );
   }
 });
 
@@ -327,6 +339,15 @@ router.get("/grandfather-migration-status", async (req, res) => {
 
 router.post("/run-grandfather-migration", async (req, res) => {
   const actor = (req as AuthenticatedRequest).authUser;
+
+  // Acquire cross-instance advisory lock to prevent concurrent migration runs
+  const lockResult = await db.execute<{ acquired: boolean }>(
+    sql`SELECT pg_try_advisory_lock(${GRANDFATHER_MIGRATION_LOCK_KEY}) AS acquired`
+  );
+  if (!lockResult.rows[0]?.acquired) {
+    return res.status(409).json({ error: "A grandfather migration is already in progress. Please wait for it to finish." });
+  }
+
   try {
     const result = await db.execute(sql`
       UPDATE users
@@ -351,6 +372,10 @@ router.post("/run-grandfather-migration", async (req, res) => {
   } catch (err: any) {
     console.error("[admin/run-grandfather-migration] error:", err);
     return res.status(500).json({ error: err.message });
+  } finally {
+    await db.execute(sql`SELECT pg_advisory_unlock(${GRANDFATHER_MIGRATION_LOCK_KEY})`).catch((e) =>
+      console.error("[admin/run-grandfather-migration] advisory unlock failed:", e)
+    );
   }
 });
 
@@ -444,7 +469,7 @@ router.get("/certifications/marketing-coaching/waitlist", async (req, res) => {
 
 // GET /admin/certifications/marketing-coaching/recovery-events
 // Returns all boot-recovery audit entries (newest first).
-// Each entry records the timestamp, count of orphaned rows reset, and affected user IDs.
+// Each entry records the timestamp, count of orphaned rows reset, and affected users (id, email, firstName).
 router.get("/certifications/marketing-coaching/recovery-events", async (req, res) => {
   try {
     const events = await db
@@ -457,7 +482,34 @@ router.get("/certifications/marketing-coaching/recovery-events", async (req, res
       .from(waitlistRecoveryEvents)
       .orderBy(desc(waitlistRecoveryEvents.recoveredAt))
       .limit(50);
-    return res.json({ ok: true, events });
+
+    // Collect all unique user IDs across all events
+    const allUserIds = [...new Set(events.flatMap((e) => (e.userIds as string[]) ?? []))];
+
+    // Look up name + email for each affected user
+    const userMap = new Map<string, { email: string; firstName: string | null }>();
+    if (allUserIds.length > 0) {
+      const rows = await db
+        .select({ id: users.id, email: users.email, firstName: users.firstName })
+        .from(users)
+        .where(sql`${users.id}::text = ANY(ARRAY[${sql.join(allUserIds.map((id) => sql`${id}`), sql`, `)}])`);
+      for (const row of rows) {
+        userMap.set(String(row.id), { email: row.email, firstName: row.firstName ?? null });
+      }
+    }
+
+    const enriched = events.map((evt) => ({
+      id: evt.id,
+      recoveredAt: evt.recoveredAt,
+      rowCount: evt.rowCount,
+      users: ((evt.userIds as string[]) ?? []).map((uid) => ({
+        userId: uid,
+        email: userMap.get(uid)?.email ?? null,
+        firstName: userMap.get(uid)?.firstName ?? null,
+      })),
+    }));
+
+    return res.json({ ok: true, events: enriched });
   } catch (err: any) {
     // 42P01 = "relation does not exist" — table not yet created by boot migration
     if (err?.code === "42P01") {
@@ -494,9 +546,23 @@ router.get("/certifications/marketing-coaching/recovery-events", async (req, res
 //
 // Runs sequentially with a short delay between sends to respect Resend rate limits.
 
-// Stable bigint used as the pg_try_advisory_lock key for this job.
-// Chosen arbitrarily; must be unique across all advisory locks in this codebase.
-const NOTIFY_WAITLIST_LOCK_KEY = 7_438_291_650;
+// ─── ADVISORY LOCK KEY REGISTRY ───────────────────────────────────────────────
+// Each long-running admin job that does bulk mutations acquires a PostgreSQL
+// session-level advisory lock via pg_try_advisory_lock(key) before doing any
+// work. This prevents duplicate runs across multiple server instances.
+//
+// Keys are stable bigints chosen arbitrarily. They MUST be unique across the
+// entire codebase. Document every new key here before use.
+//
+//  7_438_291_650  — notify-waitlist          (POST /certifications/marketing-coaching/notify-waitlist)
+//  7_438_291_651  — repair-image-cache       (POST /repair-image-cache)
+//  7_438_291_652  — grandfather-migration    (POST /run-grandfather-migration)
+//  7_438_291_653  — seed-cert               (POST /admin/cert/seed/:certType  — adminCertRoutes.ts)
+// ──────────────────────────────────────────────────────────────────────────────
+
+const NOTIFY_WAITLIST_LOCK_KEY       = 7_438_291_650;
+const REPAIR_IMAGE_CACHE_LOCK_KEY    = 7_438_291_651;
+const GRANDFATHER_MIGRATION_LOCK_KEY = 7_438_291_652;
 
 router.post("/certifications/marketing-coaching/notify-waitlist", requireEmailService, async (req, res) => {
   // ── Layer 1: acquire cross-instance advisory lock on a dedicated connection ─

@@ -26,7 +26,7 @@ const PLATFORM_MASTERY_LESSONS = [
 ];
 
 const BECOME_CERTIFIED = [
-  { icon: "🥉", label: "Platform Mastery", desc: "6 lessons · Platform exercises · Quiz" },
+  { icon: "🥉", label: "My Perfect Meals Basics", desc: "6 lessons · Platform exercises · Quiz" },
   { icon: "📈", label: "Marketing & Coaching", desc: "Coming soon" },
   { icon: "🩺", label: "ProCare Certification", desc: "3 training videos · Final assessment" },
 ];
@@ -156,7 +156,7 @@ export default function AcademyHome() {
                   Learn
                 </p>
                 <h3 className="text-base font-bold text-white">
-                  Platform Mastery
+                  My Perfect Meals Basics
                 </h3>
                 <p className="text-xs text-white/50 mt-1">
                   Open to everyone · No certification required
