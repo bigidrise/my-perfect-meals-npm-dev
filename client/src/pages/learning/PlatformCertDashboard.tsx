@@ -4,7 +4,7 @@ import { ArrowLeft, CheckCircle2, Circle, Clock, Lock, Award, PlayCircle, FileTe
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { parseLessonParam } from "@/lib/parseLessonParam";
-import { resolveScrollTarget } from "@/lib/resolveScrollTarget";
+import { resolveScrollTarget, LESSON_MODULE_TYPES } from "@/lib/resolveScrollTarget";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -119,8 +119,12 @@ export default function PlatformCertDashboard() {
   }, [location, certType, load]);
 
   const targetLessonNum = useMemo(() => {
-    const videoModules = modules.filter((m) => m.moduleType === "video");
-    const total = videoModules.length > 0 ? videoModules.length : undefined;
+    // Use the shared LESSON_MODULE_TYPES constant so this count stays in sync
+    // with resolveScrollTarget — adding a new lesson type in one place is enough.
+    const lessonModules = modules.filter((m) =>
+      (LESSON_MODULE_TYPES as readonly string[]).includes(m.moduleType),
+    );
+    const total = lessonModules.length > 0 ? lessonModules.length : undefined;
     return parseLessonParam(window.location.search, total);
   }, [modules]);
 
