@@ -207,6 +207,9 @@ async function initializeApp() {
             sql`ALTER TABLE user_certifications ADD COLUMN IF NOT EXISTS updates_pending integer DEFAULT 0`,
           );
           await database.execute(
+            sql`ALTER TABLE user_certifications ADD COLUMN IF NOT EXISTS is_certification_track boolean DEFAULT false`,
+          );
+          await database.execute(
             sql`ALTER TABLE companion_profiles ADD COLUMN IF NOT EXISTS pet_type text DEFAULT 'dog'`,
           );
           // My Perfect Pregnancy — boot migrations
@@ -543,6 +546,10 @@ async function initializeApp() {
     console.log("✅ [INIT] Additional routes mounted");
 
     // ── Routes present in index.ts (dev) but not previously in prod.ts ──────
+    // academy — Platform Mastery lesson progress, enrollment, quizzes, certificates
+    const academyRouter = (await import("./routes/academyRoutes")).default;
+    app.use("/api/academy", academyRouter);
+
     // coaching — notify-coach, activate-client, send-invite, client queue
     const coachingRouter = (await import("./routes/coaching")).default;
     app.use("/api/coaching", coachingRouter);

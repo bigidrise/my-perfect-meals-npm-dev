@@ -618,6 +618,7 @@ setTimeout(async () => {
     await db.execute(sql`ALTER TABLE certification_module_progress ADD COLUMN IF NOT EXISTS video_watched_pct integer DEFAULT 0`);
     await db.execute(sql`ALTER TABLE user_certifications ADD COLUMN IF NOT EXISTS is_current_version boolean DEFAULT true`);
     await db.execute(sql`ALTER TABLE user_certifications ADD COLUMN IF NOT EXISTS updates_pending integer DEFAULT 0`);
+    await db.execute(sql`ALTER TABLE user_certifications ADD COLUMN IF NOT EXISTS is_certification_track boolean DEFAULT false`);
     await db.execute(sql`ALTER TABLE companion_profiles ADD COLUMN IF NOT EXISTS pet_type text DEFAULT 'dog'`);
     // My Perfect Pregnancy — boot migrations
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pregnancy_stage text`);
