@@ -539,6 +539,56 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
   },
 
   // ============================
+  // ⭐ PRO TIPS
+  // ============================
+  "pro-tips": {
+    id: "pro-tips",
+    title: "Pro Tips",
+    description:
+      "Short audio coaching lessons built into the Meal Builder that teach techniques, shortcuts, and best practices for getting better results from My Perfect Meals.",
+    howTo: [
+      "Open your active Builder and scroll to the Pro Tip card at the bottom of the screen.",
+      "Tap Listen to start the narration for the current section.",
+      "Tap Pause to pause at any point. Tap Resume to continue from where you stopped.",
+      "Tap 10s Back if you missed something — it rewinds the audio ten seconds without losing your place in the section.",
+      "Tap Start Over to replay the current Pro Tip section from the beginning.",
+      "Tap Transcript to read the full text of the current section while the audio plays — or instead of listening. Tap again to hide it.",
+      "Tap Stop when you're done. Your narration speed setting from My Hub applies automatically.",
+    ],
+    tips: [
+      "Pro Tips don't have to be listened to in order. Each section stands on its own.",
+      "Use the transcript in noisy environments or if you prefer reading to listening.",
+      "Your narration speed preference set in My Hub applies to Pro Tips automatically — you don't need to adjust it here.",
+      "Use 10s Back if you miss a sentence — it's faster than starting the entire section over.",
+      "The section counter in the top-right of the card shows where you are in the total set.",
+    ],
+    relatedCommands: [],
+  },
+
+  // ============================
+  // ♿ ACCESSIBILITY & EXPERIENCE
+  // ============================
+  "accessibility-experience": {
+    id: "accessibility-experience",
+    title: "Accessibility & Experience",
+    description:
+      "Global display and narration preferences that apply across the entire app. Set once in My Hub and every part of My Perfect Meals respects them automatically.",
+    howTo: [
+      "Tap the Hub button in the top-right corner of your Dashboard to open My Hub.",
+      "Scroll to find Text Size. Tap A, A+, or A++ to change the font size throughout the app.",
+      "Tap Narration Speed to choose how fast narrated content plays back: 0.75×, 1×, 1.25×, or 1.5×.",
+      "Your selections take effect immediately and are saved to your account.",
+    ],
+    tips: [
+      "Narration Speed applies everywhere audio narration is used — Pro Tips, Copilot guidance, Restaurant Guide, Fast Food Guide, Find Meals Near Me, and any future narrated experience.",
+      "Text Size applies across every screen in the app.",
+      "Both settings sync to your account so they follow you when you reinstall or switch devices.",
+      "1× is the default narration speed. 1.25× is a comfortable faster pace for most users. 0.75× is useful if you want more time to absorb each sentence.",
+    ],
+    relatedCommands: [],
+  },
+
+  // ============================
   // 🔥 FIND MEALS NEAR ME
   // ============================
   "find-meals": {
