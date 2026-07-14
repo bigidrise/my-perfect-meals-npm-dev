@@ -103,6 +103,7 @@ export default function AdminCertifications() {
   } | null>(null);
   const [waitlistLoading, setWaitlistLoading] = useState(false);
   const [notifying, setNotifying] = useState(false);
+  const [waitlistFilter, setWaitlistFilter] = useState<"all" | "notified" | "pending">("all");
   const [notifyResult, setNotifyResult] = useState<{
     sent: number;
     skipped: number;
@@ -760,10 +761,30 @@ export default function AdminCertifications() {
                     {/* Detailed user list */}
                     <div className="space-y-3 pt-4 border-t border-white/10">
                       <div className="flex items-center justify-between">
-                        <p className="text-xs text-white/40">{waitlist.length} user{waitlist.length !== 1 ? "s" : ""} on waitlist</p>
-                        <div className="flex gap-2 text-[10px]">
-                          <span className="px-2 py-1 rounded-full bg-green-500/15 text-green-400 font-semibold">Email Sent</span>
-                          <span className="px-2 py-1 rounded-full bg-white/10 text-white/40 font-semibold">Pending</span>
+                        <p className="text-xs text-white/40">
+                          {(() => {
+                            const filtered = waitlistFilter === "all" ? waitlist : waitlistFilter === "notified" ? waitlist.filter(r => r.notifiedAt) : waitlist.filter(r => !r.notifiedAt);
+                            return `${filtered.length} user${filtered.length !== 1 ? "s" : ""}${waitlistFilter !== "all" ? ` (${waitlistFilter})` : " on waitlist"}`;
+                          })()}
+                        </p>
+                        <div className="flex gap-1 text-[10px]">
+                          {(["all", "notified", "pending"] as const).map((f) => (
+                            <button
+                              key={f}
+                              onClick={() => setWaitlistFilter(f)}
+                              className={`px-2.5 py-1 rounded-full font-semibold capitalize transition-colors ${
+                                waitlistFilter === f
+                                  ? f === "notified"
+                                    ? "bg-green-500/25 text-green-400 border border-green-500/40"
+                                    : f === "pending"
+                                    ? "bg-orange-500/25 text-orange-400 border border-orange-500/40"
+                                    : "bg-white/20 text-white border border-white/30"
+                                  : "bg-white/5 text-white/35 border border-white/10"
+                              }`}
+                            >
+                              {f}
+                            </button>
+                          ))}
                         </div>
                       </div>
                       {waitlist.length === 0 ? (
@@ -772,7 +793,16 @@ export default function AdminCertifications() {
                         </div>
                       ) : (
                         <div className="space-y-2">
-                          {waitlist.map((row) => (
+                          {(() => {
+                            const filtered = waitlistFilter === "all" ? waitlist : waitlistFilter === "notified" ? waitlist.filter(r => r.notifiedAt) : waitlist.filter(r => !r.notifiedAt);
+                            if (filtered.length === 0) {
+                              return (
+                                <div className="p-6 rounded-2xl bg-black/20 border border-white/5 text-center">
+                                  <p className="text-sm text-white/30">No {waitlistFilter} users on the waitlist.</p>
+                                </div>
+                              );
+                            }
+                            return filtered.map((row) => (
                             <div key={row.userId} className="p-4 rounded-2xl bg-black/30 border border-white/10">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1 min-w-0">
@@ -811,7 +841,8 @@ export default function AdminCertifications() {
                                 </div>
                               </div>
                             </div>
-                          ))}
+                          ));
+                          })()}
                         </div>
                       )}
                     </div>
