@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { ttsService } from "@/lib/tts";
+import { useNarrationSpeed } from "@/contexts/NarrationSpeedContext";
 
 interface Section {
   heading: string;
@@ -14,7 +15,8 @@ interface UseNarrationOptions {
 
 export function useNarration(sections: Section[], options: UseNarrationOptions = {}) {
   const { onSectionChange, onEnd } = options;
-  
+  const { narrationSpeed } = useNarrationSpeed();
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
@@ -72,6 +74,7 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
   // Attach and play an already-fetched audio URL (used by cache replay and skipBack10)
   const playAudioUrl = useCallback((url: string, sectionIndex: number) => {
     const audio = new Audio(url);
+    audio.playbackRate = parseFloat(narrationSpeed);
     audioRef.current = audio;
 
     audio.onplay = () => {
@@ -103,7 +106,7 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
     }
   // speakSection is defined below — forward-ref pattern via ref
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [advanceToNextSection]);
+  }, [advanceToNextSection, narrationSpeed]);
 
   const speakSectionRef = useRef<(index: number) => void>(() => {});
 

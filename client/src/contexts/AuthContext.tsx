@@ -110,6 +110,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           allergies: userData.allergies || [],
           dietaryRestrictions: userData.dietaryRestrictions || [],
           fontSizePreference: userData.fontSizePreference || "standard",
+          narrationSpeedPreference: userData.narrationSpeedPreference || "1.0",
           medicalConditions: userData.medicalConditions || [],
           preferredBuilder: userData.preferredBuilder || null,
           flavorPreference: userData.flavorPreference || null,

@@ -28,6 +28,7 @@ const UpdateProfileSchema = z.object({
   cuisinePreference: z.string().max(120).optional().nullable(),
   cuisineIntensity: z.enum(["light", "balanced", "authentic"]).optional().nullable(),
   fontSizePreference: z.enum(["standard", "large", "xl"]).optional(),
+  narrationSpeedPreference: z.enum(["0.75", "1.0", "1.25", "1.5"]).optional(),
   sweetenerPreferences: z.array(z.string()).optional(),
   avoidedFoods: z.array(z.string()).optional(),
   fromOnboarding: z.boolean().optional(),
@@ -89,6 +90,7 @@ router.put("/profile", requireAuth, async (req, res) => {
     if (patch.cuisinePreference !== undefined) updateData.cuisinePreference = patch.cuisinePreference;
     if (patch.cuisineIntensity !== undefined) updateData.cuisineIntensity = patch.cuisineIntensity;
     if (patch.fontSizePreference !== undefined) updateData.fontSizePreference = patch.fontSizePreference;
+    if (patch.narrationSpeedPreference !== undefined) updateData.narrationSpeedPreference = patch.narrationSpeedPreference;
     if (patch.sweetenerPreferences !== undefined) {
       // Normalize legacy vocabulary (old onboarding stored "sugar"/"avoid"/"monk-fruit")
       const normalizeSweetener = (v: string): string => {
