@@ -462,6 +462,15 @@ router.post("/certifications/marketing-coaching/notify-waitlist", async (req, re
   const force = req.query.force === "true";
   const claimTime = new Date();
 
+  // ── 0. Pre-flight: require email service before touching any DB rows ───────
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("[admin/notify-waitlist] Aborted — RESEND_API_KEY is not configured.");
+    return res.status(503).json({
+      ok: false,
+      message: "Email service is not configured (RESEND_API_KEY missing). No rows were modified.",
+    });
+  }
+
   try {
     // ── 1. Count total waitlisted (for skipped metric) ──────────────────────
     const [{ total }] = await db

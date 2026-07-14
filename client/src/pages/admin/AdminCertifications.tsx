@@ -108,6 +108,7 @@ export default function AdminCertifications() {
     failed: number;
     failures: string[];
   } | null>(null);
+  const [notifyError, setNotifyError] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -119,6 +120,7 @@ export default function AdminCertifications() {
     if (!user || tab !== "waitlist") return;
     setWaitlistLoading(true);
     setNotifyResult(null);
+    setNotifyError(null);
     Promise.all([
       apiRequest("/api/admin/certifications/marketing-coaching/waitlist-stats"),
       apiRequest("/api/admin/certifications/marketing-coaching/waitlist")
@@ -258,10 +260,11 @@ export default function AdminCertifications() {
     if (!confirmed) return;
     setNotifying(true);
     setNotifyResult(null);
+    setNotifyError(null);
     try {
       const url = `/api/admin/certifications/marketing-coaching/notify-waitlist${force ? "?force=true" : ""}`;
-      const res = await apiRequest(url, { method: "POST" }) as { ok: boolean; sent: number; skipped: number; failed: number };
-      setNotifyResult({ sent: res.sent, skipped: res.skipped, failed: res.failed });
+      const res = await apiRequest(url, { method: "POST" }) as { ok: boolean; sent: number; skipped: number; failed: number; failures: string[] };
+      setNotifyResult({ sent: res.sent, skipped: res.skipped, failed: res.failed, failures: res.failures ?? [] });
       flash(`Done — ${res.sent} sent, ${res.skipped} skipped, ${res.failed} failed`);
       const [stats, listData] = await Promise.all([
         apiRequest(`/api/admin/certifications/marketing-coaching/waitlist-stats`) as Promise<{ total: number; notified: number; pending: number; previewEmails: string[] }>,
@@ -274,7 +277,7 @@ export default function AdminCertifications() {
       if (msg.includes("already in progress")) {
         flash("A notify job is already running — please wait.");
       } else {
-        flash(msg);
+        setNotifyError(msg);
       }
     } finally {
       setNotifying(false);
@@ -667,8 +670,19 @@ export default function AdminCertifications() {
                       </div>
                     )}
 
-                    {/* Send result */}
+                    {/* Send result / error */}
                     <AnimatePresence>
+                      {notifyError && (
+                        <motion.div
+                          className="p-4 rounded-2xl bg-black/40 border border-red-500/40 space-y-1"
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                        >
+                          <p className="text-sm font-semibold text-red-400">Send aborted — no rows modified</p>
+                          <p className="text-xs text-red-300/80">{notifyError}</p>
+                        </motion.div>
+                      )}
                       {notifyResult && (
                         <motion.div
                           className="p-4 rounded-2xl bg-black/40 border border-orange-500/30 space-y-2"
