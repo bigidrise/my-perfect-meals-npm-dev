@@ -44,6 +44,7 @@ import {
 import { logout, getAuthToken } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFontSize } from "@/contexts/FontSizeContext";
+import { useNarrationSpeed, type NarrationSpeed } from "@/contexts/NarrationSpeedContext";
 import { useToast } from "@/hooks/use-toast";
 import IOSMealReminders from "@/components/ios/IOSMealReminders";
 import { useUpdateState } from "@/contexts/UpdateContext";
@@ -62,6 +63,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
   const [, setLocation] = useLocation();
   const { user, setUser, refreshUser } = useAuth();
   const { fontSize, setFontSize } = useFontSize();
+  const { narrationSpeed, setNarrationSpeed } = useNarrationSpeed();
   const { supportEmail, appName } = useOrgBranding();
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
@@ -493,10 +495,30 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
                 className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
                   fontSize === size
                     ? "bg-orange-500 text-white"
-                    : "bg-white/10 text-white/70 hover:bg-white/20"
+                    : "bg-white/10 text-white/70"
                 }`}
               >
                 {size === "standard" ? "A" : size === "large" ? "A+" : "A++"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Narration Speed Selector */}
+        <div className="mt-3 p-4 bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl">
+          <p className="text-sm text-white/70 mb-3">Narration Speed</p>
+          <div className="flex gap-2">
+            {(["0.75", "1.0", "1.25", "1.5"] as const).map((speed) => (
+              <button
+                key={speed}
+                onClick={() => setNarrationSpeed(speed as NarrationSpeed)}
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                  narrationSpeed === speed
+                    ? "bg-orange-500 text-white"
+                    : "bg-white/10 text-white/70"
+                }`}
+              >
+                {speed === "1.0" ? "1×" : `${speed}×`}
               </button>
             ))}
           </div>
