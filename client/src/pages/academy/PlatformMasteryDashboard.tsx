@@ -167,7 +167,7 @@ export default function PlatformMasteryDashboard() {
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-base font-bold text-white truncate">
-              Platform Mastery
+              My Perfect Meals Basics
             </h1>
             <p className="text-xs text-white/45">
               {isCertTrack ? "Certification Mode" : "Learning Mode"}
@@ -197,7 +197,7 @@ export default function PlatformMasteryDashboard() {
             <Award className="h-6 w-6 text-emerald-400 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-white">
-                Platform Mastery Certified
+                My Perfect Meals Basics — Certified
               </p>
               <p className="text-xs text-white/50 font-mono">
                 {status?.certificateNumber}
@@ -249,7 +249,7 @@ export default function PlatformMasteryDashboard() {
             >
               <div className="flex flex-col items-start gap-0.5">
                 <span className="text-xs text-orange-200 font-medium uppercase tracking-wide">
-                  Platform Mastery
+                  My Perfect Meals Basics
                 </span>
                 <span className="text-base font-bold text-white">
                   Start Learning
@@ -430,7 +430,7 @@ export default function PlatformMasteryDashboard() {
               All Lessons Complete!
             </p>
             <p className="text-xs text-white/50 leading-relaxed">
-              You've finished Platform Mastery in Learning Mode. To earn a certificate, re-enroll in Certification Mode.
+              You've finished My Perfect Meals Basics in Learning Mode. To earn a certificate, re-enroll in Certification Mode.
             </p>
           </motion.div>
         )}
