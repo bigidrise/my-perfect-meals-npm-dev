@@ -112,6 +112,58 @@ export default function Builders() {
     return builderId === userActiveBoard;
   };
 
+  const builderGlowConfigs: Record<string, { glowBg: string; border: string; hoverBorder: string; hoverShadow: string; cardBg: string }> = {
+    weekly: {
+      glowBg: "radial-gradient(ellipse at center, #f97316 0%, transparent 70%)",
+      border: "border-orange-500/30",
+      hoverBorder: "hover:border-orange-500/60",
+      hoverShadow: "hover:shadow-[0_0_30px_rgba(249,115,22,0.45)]",
+      cardBg: "from-black via-orange-950/30 to-black",
+    },
+    diabetic: {
+      glowBg: "radial-gradient(ellipse at center, #f43f5e 0%, transparent 70%)",
+      border: "border-rose-500/30",
+      hoverBorder: "hover:border-rose-500/60",
+      hoverShadow: "hover:shadow-[0_0_30px_rgba(244,63,94,0.45)]",
+      cardBg: "from-black via-rose-950/30 to-black",
+    },
+    glp1: {
+      glowBg: "radial-gradient(ellipse at center, #06b6d4 0%, transparent 70%)",
+      border: "border-cyan-500/30",
+      hoverBorder: "hover:border-cyan-500/60",
+      hoverShadow: "hover:shadow-[0_0_30px_rgba(6,182,212,0.45)]",
+      cardBg: "from-black via-cyan-950/30 to-black",
+    },
+    anti_inflammatory: {
+      glowBg: "radial-gradient(ellipse at center, #10b981 0%, transparent 70%)",
+      border: "border-emerald-500/30",
+      hoverBorder: "hover:border-emerald-500/60",
+      hoverShadow: "hover:shadow-[0_0_30px_rgba(16,185,129,0.45)]",
+      cardBg: "from-black via-emerald-950/30 to-black",
+    },
+    performance_nutrition: {
+      glowBg: "radial-gradient(ellipse at center, #f59e0b 0%, transparent 70%)",
+      border: "border-amber-500/30",
+      hoverBorder: "hover:border-amber-500/60",
+      hoverShadow: "hover:shadow-[0_0_30px_rgba(245,158,11,0.45)]",
+      cardBg: "from-black via-amber-950/30 to-black",
+    },
+    general_nutrition: {
+      glowBg: "radial-gradient(ellipse at center, #3b82f6 0%, transparent 70%)",
+      border: "border-blue-500/30",
+      hoverBorder: "hover:border-blue-500/60",
+      hoverShadow: "hover:shadow-[0_0_30px_rgba(59,130,246,0.45)]",
+      cardBg: "from-black via-blue-950/30 to-black",
+    },
+    performance_competition: {
+      glowBg: "radial-gradient(ellipse at center, #6366f1 0%, transparent 70%)",
+      border: "border-indigo-500/30",
+      hoverBorder: "hover:border-indigo-500/60",
+      hoverShadow: "hover:shadow-[0_0_30px_rgba(99,102,241,0.45)]",
+      cardBg: "from-black via-indigo-950/30 to-black",
+    },
+  };
+
   const handleCardClick = async (feature: BuilderFeature) => {
     if (needsOnboarding) {
       setLocation("/onboarding/extended?repair=1");
