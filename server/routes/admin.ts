@@ -3,7 +3,7 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { mealImageCache } from "../db/schema/mealImageCache";
 import { userCertifications } from "../db/schema/certifications";
-import { eq, ilike, or, desc, notLike, and, sql } from "drizzle-orm";
+import { eq, ilike, or, desc, notLike, and, isNull, sql } from "drizzle-orm";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
 import { sendMarketingCoachingEnrollmentEmail } from "../services/emailService";
 
@@ -357,22 +357,25 @@ router.post("/run-grandfather-migration", async (req, res) => {
 
 // POST /admin/certifications/marketing-coaching/notify-waitlist
 // Sends enrollment-open emails to every user with status='waitlisted' on marketing_coaching.
-// Runs sequentially with a short delay between sends to avoid Resend rate limits.
+//
+// Idempotency / concurrency safety:
+//   - Atomically claims rows via UPDATE … WHERE notified_at IS NULL RETURNING before sending
+//     any email. Two simultaneous admin calls can never claim the same row, so no duplicates.
+//   - If an individual send fails, notified_at is reset to NULL so the user can be retried.
+//   - ?force=true re-claims ALL waitlisted rows (including already-notified) for genuine resends.
+//
+// Runs sequentially with a short delay between sends to respect Resend rate limits.
 router.post("/certifications/marketing-coaching/notify-waitlist", async (req, res) => {
   const actor = (req as AuthenticatedRequest).authUser;
   const APP_URL = process.env.APP_URL || "https://app.myperfectmeals.com";
+  const force = req.query.force === "true";
+  const claimTime = new Date();
 
   try {
-    const waitlisted = await db
-      .select({
-        userId: userCertifications.userId,
-        email: users.email,
-        firstName: users.firstName,
-        lastName: users.lastName,
-        username: users.username,
-      })
+    // ── 1. Count total waitlisted (for skipped metric) ──────────────────────
+    const [{ total }] = await db
+      .select({ total: sql<number>`count(*)::int` })
       .from(userCertifications)
-      .innerJoin(users, eq(users.id, userCertifications.userId))
       .where(
         and(
           eq(userCertifications.certificationType, "marketing_coaching"),
@@ -380,38 +383,106 @@ router.post("/certifications/marketing-coaching/notify-waitlist", async (req, re
         )
       );
 
-    console.log(`[admin/notify-waitlist] ${waitlisted.length} waitlisted user(s) found — triggered by ${actor.email}`);
+    // ── 2. Atomically claim rows ─────────────────────────────────────────────
+    // UPDATE returns only rows that were actually claimed by THIS call.
+    // Concurrent calls will get 0 rows back for rows already stamped.
+    const claimWhere = force
+      ? and(
+          eq(userCertifications.certificationType, "marketing_coaching"),
+          eq(userCertifications.status, "waitlisted")
+        )
+      : and(
+          eq(userCertifications.certificationType, "marketing_coaching"),
+          eq(userCertifications.status, "waitlisted"),
+          isNull(userCertifications.notifiedAt)
+        );
 
+    const claimed = await db
+      .update(userCertifications)
+      .set({ notifiedAt: claimTime })
+      .where(claimWhere)
+      .returning({ userId: userCertifications.userId });
+
+    const skipped = (total ?? 0) - claimed.length;
+
+    console.log(
+      `[admin/notify-waitlist] ${total} waitlisted — ${claimed.length} claimed, ${skipped} skipped (already notified) — force=${force} — triggered by ${actor.email}`
+    );
+
+    if (claimed.length === 0) {
+      return res.json({ ok: true, total: total ?? 0, sent: 0, skipped, failed: 0, failures: [] });
+    }
+
+    // ── 3. Fetch user details for claimed rows ───────────────────────────────
+    const claimedIds = claimed.map((r) => r.userId);
+    const userRows = await db
+      .select({
+        userId: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        username: users.username,
+      })
+      .from(users)
+      .where(sql`${users.id} = ANY(${claimedIds})`);
+
+    const userMap = new Map(userRows.map((u) => [u.userId, u]));
+
+    // ── 4. Send emails; reset notified_at on failure so user can be retried ──
     let sent = 0;
     let failed = 0;
     const failures: string[] = [];
 
-    for (const row of waitlisted) {
-      if (!row.email) {
+    for (const { userId } of claimed) {
+      const row = userMap.get(userId);
+      if (!row?.email) {
         failed++;
+        // Reset so a future run can retry
+        await db
+          .update(userCertifications)
+          .set({ notifiedAt: null })
+          .where(
+            and(
+              eq(userCertifications.userId, userId),
+              eq(userCertifications.certificationType, "marketing_coaching")
+            )
+          );
         continue;
       }
+
       const userName = row.firstName || row.username || "there";
       const ok = await sendMarketingCoachingEnrollmentEmail({
         to: row.email,
         userName,
         appUrl: APP_URL,
       });
+
       if (ok) {
         sent++;
       } else {
         failed++;
         failures.push(row.email);
+        // Reset so a future run can retry
+        await db
+          .update(userCertifications)
+          .set({ notifiedAt: null })
+          .where(
+            and(
+              eq(userCertifications.userId, userId),
+              eq(userCertifications.certificationType, "marketing_coaching")
+            )
+          );
       }
+
       // Small delay to stay within Resend's rate limits
       await new Promise((r) => setTimeout(r, 150));
     }
 
-    console.log(`[admin/notify-waitlist] Done. sent=${sent} failed=${failed}`);
+    console.log(`[admin/notify-waitlist] Done. sent=${sent} skipped=${skipped} failed=${failed}`);
     return res.json({
       ok: true,
-      total: waitlisted.length,
+      total: total ?? 0,
       sent,
+      skipped,
       failed,
       failures,
     });

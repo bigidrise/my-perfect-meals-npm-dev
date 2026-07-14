@@ -29,6 +29,7 @@ export const userCertifications = pgTable("user_certifications", {
   certificateName: text("certificate_name"),
   isCurrentVersion: boolean("is_current_version").default(true),
   updatesPending: integer("updates_pending").default(0),
+  notifiedAt: timestamp("notified_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({
