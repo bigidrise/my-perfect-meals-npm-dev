@@ -694,6 +694,45 @@ export default function DashboardNew() {
 
   const isPaid = hasActivePaidSubscription(user);
 
+  const dashboardGlowConfigs: Record<string, { glowBg: string; border: string; hoverBorder: string; hoverShadow: string; cardBg: string; iconBg: string; iconColor: string }> = {
+    "/macro-counter": {
+      glowBg: "radial-gradient(ellipse at center, #f97316 0%, transparent 70%)",
+      border: "border-orange-500/30",
+      hoverBorder: "hover:border-orange-500/60",
+      hoverShadow: "hover:shadow-[0_0_30px_rgba(249,115,22,0.45)]",
+      cardBg: "from-black via-orange-950/30 to-black",
+      iconBg: "from-orange-500/20 to-orange-700/20 border border-orange-500/30",
+      iconColor: "text-orange-500",
+    },
+    "/my-biometrics": {
+      glowBg: "radial-gradient(ellipse at center, #06b6d4 0%, transparent 70%)",
+      border: "border-cyan-500/30",
+      hoverBorder: "hover:border-cyan-500/60",
+      hoverShadow: "hover:shadow-[0_0_30px_rgba(6,182,212,0.45)]",
+      cardBg: "from-black via-cyan-950/30 to-black",
+      iconBg: "from-cyan-500/20 to-cyan-700/20 border border-cyan-500/30",
+      iconColor: "text-cyan-400",
+    },
+    "/saved-meals": {
+      glowBg: "radial-gradient(ellipse at center, #f43f5e 0%, transparent 70%)",
+      border: "border-rose-500/30",
+      hoverBorder: "hover:border-rose-500/60",
+      hoverShadow: "hover:shadow-[0_0_30px_rgba(244,63,94,0.45)]",
+      cardBg: "from-black via-rose-950/30 to-black",
+      iconBg: "from-rose-500/20 to-rose-700/20 border border-rose-500/30",
+      iconColor: "text-rose-400",
+    },
+    "/get-inspiration": {
+      glowBg: "radial-gradient(ellipse at center, #f59e0b 0%, transparent 70%)",
+      border: "border-amber-500/30",
+      hoverBorder: "hover:border-amber-500/60",
+      hoverShadow: "hover:shadow-[0_0_30px_rgba(245,158,11,0.45)]",
+      cardBg: "from-black via-amber-950/30 to-black",
+      iconBg: "from-amber-500/20 to-amber-700/20 border border-amber-500/30",
+      iconColor: "text-amber-400",
+    },
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -1397,23 +1436,28 @@ export default function DashboardNew() {
             const Icon = feature.icon;
             const isMacroCalculator = feature.testId === "macro-calculator";
             const shouldFlash = isGuidedMode && isMacroCalculator;
+            const glow = dashboardGlowConfigs[feature.route] ?? dashboardGlowConfigs["/macro-counter"];
             return (
               <motion.div
                 key={feature.testId}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 + index * 0.1, duration: 0.5 }}
-                className="md:col-span-1"
+                className="md:col-span-1 relative"
               >
+                <div
+                  className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70"
+                  style={{ background: glow.glowBg }}
+                />
                 <Card
                   onClick={() => handleCardClick(feature.route)}
-                  className={`cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50 rounded-xl group ${shouldFlash ? "flash-border" : ""}`}
+                  className={`relative cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-gradient-to-r ${glow.cardBg} backdrop-blur-lg border ${glow.border} ${glow.hoverBorder} ${glow.hoverShadow} rounded-xl group ${shouldFlash ? "flash-border" : ""}`}
                   data-testid={feature.testId}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-center gap-4">
-                      <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-700/20 border border-orange-500/30 group-hover:from-orange-500/30 group-hover:to-orange-700/30 transition-all">
-                        <Icon className="h-6 w-6 text-orange-500" />
+                      <div className={`p-3 rounded-lg bg-gradient-to-br ${glow.iconBg} transition-all`}>
+                        <Icon className={`h-6 w-6 ${glow.iconColor}`} />
                       </div>
                       <div>
                         <h3 className="text-base font-semibold text-white">

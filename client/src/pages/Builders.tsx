@@ -260,11 +260,16 @@ export default function Builders() {
             {builderFeatures.map((feature) => {
               const Icon = feature.icon;
               const unlocked = isBuilderUnlocked(feature.builderId);
+              const glow = builderGlowConfigs[feature.builderId] ?? builderGlowConfigs.weekly;
 
               return unlocked ? (
+                <div key={feature.testId} className="relative">
+                  <div
+                    className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70"
+                    style={{ background: glow.glowBg }}
+                  />
                 <Card
-                  key={feature.testId}
-                  className="transition-all duration-200 rounded-xl shadow-md cursor-pointer hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:border-orange-500/50"
+                  className={`relative transition-all duration-200 rounded-xl shadow-md cursor-pointer hover:scale-[1.02] active:scale-95 bg-gradient-to-r ${glow.cardBg} backdrop-blur-lg border ${glow.border} ${glow.hoverBorder} ${glow.hoverShadow}`}
                   onClick={() => handleCardClick(feature)}
                   data-testid={feature.testId}
                 >
@@ -303,6 +308,7 @@ export default function Builders() {
                     </div>
                   </CardContent>
                 </Card>
+                </div>
               ) : (
                 <div
                   key={feature.testId}
