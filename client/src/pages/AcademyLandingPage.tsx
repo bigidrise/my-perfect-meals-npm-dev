@@ -143,9 +143,11 @@ export default function AcademyLandingPage() {
   const [lessonStatuses, setLessonStatuses] = useState<LessonStatus[]>(
     Array(PLATFORM_MASTERY_LESSONS.length).fill("not_started")
   );
+  const [lessonSlugs, setLessonSlugs] = useState<(string | null)[]>(
+    Array(PLATFORM_MASTERY_LESSONS.length).fill(null)
+  );
   const [lessonLoading, setLessonLoading] = useState(true);
 
-  // Fetch per-lesson progress for all authenticated users
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -161,20 +163,27 @@ export default function AcademyLandingPage() {
           const moduleProgress: Array<{ moduleId: string; status: string }> =
             (progressRes.value as any)?.moduleProgress ?? [];
 
-          // Take only video-type modules (lesson content), sorted by sortOrder
-          const videoModules = allModules
-            .filter((m) => m.moduleType === "video")
-            .sort((a, b) => a.sortOrder - b.sortOrder);
+          const sortedAll = allModules.sort((a, b) => a.sortOrder - b.sortOrder);
+          const videoModules = sortedAll.filter((m) => m.moduleType === "video");
+          const lessonModules =
+            videoModules.length >= PLATFORM_MASTERY_LESSONS.length
+              ? videoModules
+              : sortedAll.filter((m) => m.moduleType !== "final_assessment");
 
           const progressMap = new Map(moduleProgress.map((p) => [p.moduleId, p.status as LessonStatus]));
 
           const statuses: LessonStatus[] = PLATFORM_MASTERY_LESSONS.map((_, i) => {
-            const mod = videoModules[i];
+            const mod = lessonModules[i];
             if (!mod) return "not_started";
             return progressMap.get(mod.slug) ?? "not_started";
           });
 
+          const slugs: (string | null)[] = PLATFORM_MASTERY_LESSONS.map((_, i) => {
+            return videoModules[i]?.slug ?? null;
+          });
+
           setLessonStatuses(statuses);
+          setLessonSlugs(slugs);
         }
       } catch {
         // silently ignore — lessons will show as not_started
@@ -185,7 +194,7 @@ export default function AcademyLandingPage() {
   }, [user?.id]);
 
   useEffect(() => {
-    if (!isProfessional) {
+    if (!user) {
       setProgress((p) => ({ ...p, loading: false }));
       return;
     }
@@ -196,6 +205,7 @@ export default function AcademyLandingPage() {
           apiRequest("/api/certifications/procare_training/progress"),
           apiRequest("/api/certifications/marketing_coaching/progress"),
         ]);
+
         const phase1Done =
           p1Res.status === "fulfilled" &&
           (p1Res.value as any)?.certification?.status === "completed";
@@ -204,7 +214,7 @@ export default function AcademyLandingPage() {
             ? ((p1Res.value as any)?.certification?.score ?? null)
             : null;
         const phase2Done =
-          p2Res.status === "fulfilled" &&
+          p2Res?.status === "fulfilled" &&
           (p2Res.value as any)?.certification?.status === "completed";
         const mcStatus: MarketingStatus =
           mcRes.status === "fulfilled"
@@ -222,7 +232,7 @@ export default function AcademyLandingPage() {
         setProgress((p) => ({ ...p, loading: false }));
       }
     })();
-  }, [isProfessional, user?.onboardingCompletedAt]);
+  }, [user?.id, user?.onboardingCompletedAt]);
 
   const hasAnyLessonProgress = lessonStatuses.some(
     (s) => s === "in_progress" || s === "completed"
@@ -344,43 +354,79 @@ export default function AcademyLandingPage() {
           </div>
 
           <div className="divide-y divide-white/5">
-            {PLATFORM_MASTERY_LESSONS.map((lesson, i) => {
-              const Icon = lesson.icon;
-              const status = lessonStatuses[i];
-              return (
-                <motion.button
-                  key={lesson.number}
-                  className="w-full text-left px-5 py-3.5 flex items-start gap-3 active:bg-white/5 transition-colors"
-                  onClick={() => setLocation(`/certifications/platform?lesson=${i + 1}`)}
-                  initial={{ opacity: 0, x: -6 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.14 + i * 0.05 }}
-                >
-                  <div className={`p-1.5 rounded-lg flex-shrink-0 mt-0.5 ${status === "completed" ? "bg-emerald-500/15" : "bg-orange-500/15"}`}>
-                    <Icon className={`h-3.5 w-3.5 ${status === "completed" ? "text-emerald-400" : "text-orange-400"}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-white/25">{lesson.number}</span>
-                      <span className="text-sm font-semibold text-white leading-snug">{lesson.title}</span>
-                      {status === "in_progress" && !lessonLoading && (
-                        <span className="text-[10px] font-semibold text-orange-400 bg-orange-500/15 px-1.5 py-0.5 rounded-full flex-shrink-0">
-                          In Progress
+            {(() => {
+              const firstIncomplete = !lessonLoading
+                ? lessonStatuses.findIndex((s) => s !== "completed")
+                : -1;
+              return PLATFORM_MASTERY_LESSONS.map((lesson, i) => {
+                const Icon = lesson.icon;
+                const status = lessonStatuses[i];
+                const slug = lessonSlugs[i];
+                const isInProgress = !lessonLoading && status === "in_progress";
+                const isCompleted = !lessonLoading && status === "completed";
+                const isNextUp = !isCompleted && !isInProgress && i === firstIncomplete;
+
+                function handleLessonTap() {
+                  if (isInProgress && slug) {
+                    setLocation(`/certifications/platform/video/${slug}`);
+                  } else {
+                    setLocation(`/certifications/platform?lesson=${i + 1}`);
+                  }
+                }
+
+                return (
+                  <motion.button
+                    key={lesson.number}
+                    className={`w-full text-left px-5 py-3.5 flex items-start gap-3 transition-colors ${
+                      isInProgress || isNextUp
+                        ? "bg-orange-500/8 active:bg-orange-500/12"
+                        : "active:bg-white/5"
+                    }`}
+                    onClick={handleLessonTap}
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.14 + i * 0.05 }}
+                  >
+                    <div className={`p-1.5 rounded-lg flex-shrink-0 mt-0.5 ${
+                      isCompleted ? "bg-emerald-500/15" : isInProgress || isNextUp ? "bg-orange-500/20" : "bg-orange-500/15"
+                    }`}>
+                      <Icon className={`h-3.5 w-3.5 ${isCompleted ? "text-emerald-400" : "text-orange-400"}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-mono ${isCompleted ? "text-emerald-500/50" : "text-white/25"}`}>
+                          {lesson.number}
+                        </span>
+                        <span className={`text-sm font-semibold leading-snug ${isCompleted ? "text-white/50" : "text-white"}`}>
+                          {lesson.title}
+                        </span>
+                        {isNextUp && (
+                          <span className="text-[10px] font-semibold text-orange-400 bg-orange-500/15 px-1.5 py-0.5 rounded-full leading-none">
+                            Next up
+                          </span>
+                        )}
+                      </div>
+                      <p className={`text-xs mt-0.5 leading-relaxed ${isCompleted ? "text-white/30" : "text-white/45"}`}>
+                        {lesson.description}
+                      </p>
+                      {isInProgress && (
+                        <span className="inline-flex items-center gap-1 mt-1.5 text-[11px] font-semibold text-orange-300">
+                          <PlayCircle className="h-3 w-3" />
+                          Resume lesson
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-white/45 mt-0.5 leading-relaxed">{lesson.description}</p>
-                  </div>
-                  {!lessonLoading && status === "completed" && (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                  )}
-                  {!lessonLoading && status === "in_progress" && (
-                    <PlayCircle className="h-4 w-4 text-orange-400 flex-shrink-0 mt-0.5" />
-                  )}
-                  <ChevronRight className="h-4 w-4 text-white/20 flex-shrink-0 mt-1" />
-                </motion.button>
-              );
-            })}
+                    {isCompleted && (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    )}
+                    {isInProgress && (
+                      <PlayCircle className="h-4 w-4 text-orange-400 flex-shrink-0 mt-0.5" />
+                    )}
+                    <ChevronRight className={`h-4 w-4 flex-shrink-0 mt-1 ${isInProgress || isNextUp ? "text-orange-400/50" : "text-white/20"}`} />
+                  </motion.button>
+                );
+              });
+            })()}
           </div>
 
           <div className="px-5 py-4 bg-orange-500/8 border-t border-orange-500/20">
@@ -588,12 +634,25 @@ function MarketingCoachingModal({
 }: {
   status: MarketingStatus;
   joining: boolean;
-  onJoin: () => void;
+  onJoin: () => Promise<void>;
   onClose: () => void;
 }) {
   const isWaitlisted = status === "waitlisted";
   const isDone = status === "completed";
   const isInProgress = status === "in_progress";
+
+  const [waitlistCount, setWaitlistCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    apiRequest("/api/certifications/marketing_coaching/waitlist-count")
+      .then((data: any) => setWaitlistCount(typeof data?.count === "number" ? data.count : null))
+      .catch(() => {});
+  }, []);
+
+  async function handleJoin() {
+    await onJoin();
+    setWaitlistCount((c) => (c !== null ? c + 1 : 1));
+  }
 
   return (
     <>
@@ -725,7 +784,7 @@ function MarketingCoachingModal({
                 </div>
               ) : (
                 <button
-                  onClick={onJoin}
+                  onClick={handleJoin}
                   disabled={joining}
                   className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.98] transition-transform disabled:opacity-60"
                 >
@@ -736,6 +795,11 @@ function MarketingCoachingModal({
                   )}
                   Notify me when available
                 </button>
+              )}
+              {waitlistCount !== null && waitlistCount > 0 && (
+                <p className="text-center text-orange-400/70 text-xs font-medium">
+                  {waitlistCount} {waitlistCount === 1 ? "professional" : "professionals"} waiting
+                </p>
               )}
               <p className="text-center text-white/25 text-xs">
                 No spam. One notification when enrollment opens.

@@ -89,6 +89,7 @@ import vitalsBpRouter from './routes/vitals-bp';
 import proteinTargetsRouter from './routes/proteinTargets';
 import certificationRouter from './routes/certificationRoutes';
 import adminCertRouter from './routes/adminCertRoutes';
+import academyRouter from './routes/academyRoutes';
 import lmsRouter from './routes/lmsRoutes';
 import affiliateRouter, { handleRewardfulWebhook } from './routes/affiliateRoutes';
 import whiteLabelRouter from './routes/whiteLabelRoutes';
@@ -447,6 +448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api', proteinTargetsRouter);
   app.use('/api/certifications', certificationRouter);
   app.use('/api/admin/certifications', adminCertRouter);
+  app.use('/api/academy', academyRouter);
   app.use('/api/lms', lmsRouter);
   app.use('/api/affiliate', affiliateRouter);
   app.post('/api/webhooks/rewardful', handleRewardfulWebhook);

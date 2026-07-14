@@ -376,6 +376,25 @@ router.get("/:certType/certificate", requireAuth, async (req, res) => {
 
 // ─── MARKETING & COACHING WAITLIST ───────────────────────────────────────────
 
+// GET /api/certifications/marketing_coaching/waitlist-count — total waitlist size (social proof)
+router.get("/marketing_coaching/waitlist-count", requireAuth, async (_req, res) => {
+  try {
+    const [row] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(userCertifications)
+      .where(
+        and(
+          eq(userCertifications.certificationType, "marketing_coaching"),
+          eq(userCertifications.status, "waitlisted")
+        )
+      );
+    return res.json({ count: row?.count ?? 0 });
+  } catch (err) {
+    console.error("[Cert] marketing_coaching waitlist-count error:", err);
+    return res.status(500).json({ error: "Failed to fetch waitlist count" });
+  }
+});
+
 // POST /api/certifications/marketing_coaching/waitlist — join the waitlist
 router.post("/marketing_coaching/waitlist", requireAuth, async (req, res) => {
   try {

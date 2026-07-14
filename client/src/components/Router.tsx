@@ -385,6 +385,9 @@ import CertificationLesson from "@/pages/certification/CertificationLesson";
 import CertificationQuiz from "@/pages/certification/CertificationQuiz";
 import CertificationComplete from "@/pages/certification/CertificationComplete";
 import CertificationCertificateView from "@/pages/certification/CertificationCertificateView";
+import AcademyHome from "@/pages/academy/AcademyHome";
+import PlatformMasteryDashboard from "@/pages/academy/PlatformMasteryDashboard";
+import LessonReader from "@/pages/academy/LessonReader";
 import LearningHub from "@/pages/learning/LearningHub";
 import PlatformCertDashboard from "@/pages/learning/PlatformCertDashboard";
 import PlatformCertVideo from "@/pages/learning/PlatformCertVideo";
@@ -915,6 +918,9 @@ export default function Router() {
         <Route path="/business-center/partners" component={PartnerProgramsHub} />
         <Route path="/business-center/founding-partner" component={FoundingPartnerProgram} />
         <Route path="/business-center/academy" component={AcademyLandingPage} />
+        <Route path="/academy" component={AcademyHome} />
+        <Route path="/academy/platform-mastery/lesson/:lessonId" component={LessonReader} />
+        <Route path="/academy/platform-mastery" component={PlatformMasteryDashboard} />
         <Route path="/business-center/industry" component={IndustryPartnerships} />
         <Route path="/business-center/healthcare" component={PublicHealthcarePartnerships} />
         <Route path="/business-center/white-label" component={WhiteLabelSolutions} />
