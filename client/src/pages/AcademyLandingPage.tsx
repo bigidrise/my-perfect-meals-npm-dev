@@ -16,8 +16,16 @@ import {
   Lock,
   Loader2,
   Star,
+  Bell,
+  X,
+  Megaphone,
+  Target,
+  TrendingUp,
+  MessageSquare,
+  BarChart2,
+  Repeat,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
@@ -68,41 +76,47 @@ const PLATFORM_MASTERY_LESSONS = [
   },
 ];
 
-const CERTIFICATION_PATHS = [
+const MARKETING_COACHING_MODULES = [
   {
-    icon: "🥉",
-    label: "Platform Mastery",
-    sublabel: "6 lessons · 80% to advance",
-    available: true,
+    icon: Megaphone,
+    title: "Building Your Brand",
+    description: "How to position yourself as a nutrition professional and create a consistent presence clients trust.",
   },
   {
-    icon: "📈",
-    label: "Marketing & Coaching",
-    sublabel: "Coming soon",
-    available: false,
+    icon: Target,
+    title: "Finding Your Clients",
+    description: "Lead generation strategies for coaches and healthcare professionals — organic, referral, and digital.",
   },
   {
-    icon: "🩺",
-    label: "ProCare Certification",
-    sublabel: "3 training videos",
-    available: true,
+    icon: MessageSquare,
+    title: "Sales & Discovery Calls",
+    description: "Turning interested prospects into enrolled clients with confidence and without pressure.",
+  },
+  {
+    icon: TrendingUp,
+    title: "Pricing & Packaging",
+    description: "Structuring your services so clients understand the value — and you get paid what you're worth.",
+  },
+  {
+    icon: BarChart2,
+    title: "Results That Market Themselves",
+    description: "Using client outcomes, before/afters, and testimonials ethically and effectively.",
+  },
+  {
+    icon: Repeat,
+    title: "Client Retention",
+    description: "Long-term relationship strategies that keep clients engaged, accountable, and referring others.",
   },
 ];
 
-const SPECIALIZE_TOPICS = [
-  { icon: "🩺", label: "Diabetes Nutrition" },
-  { icon: "💉", label: "GLP-1 Support" },
-  { icon: "👩‍⚕️", label: "Women's Health" },
-  { icon: "🏋️", label: "Performance Nutrition" },
-  { icon: "🎗️", label: "Oncology Support" },
-  { icon: "👶", label: "Pediatrics" },
-];
+type MarketingStatus = "unknown" | "waitlisted" | "in_progress" | "completed";
 
 interface CertProgress {
   personalDone: boolean;
   phase1Done: boolean;
   phase1Score: number | null;
   phase2Done: boolean;
+  marketingStatus: MarketingStatus;
   loading: boolean;
 }
 
@@ -116,8 +130,12 @@ export default function AcademyLandingPage() {
     phase1Done: false,
     phase1Score: null,
     phase2Done: false,
+    marketingStatus: "unknown",
     loading: true,
   });
+
+  const [showMarketingModal, setShowMarketingModal] = useState(false);
+  const [joiningWaitlist, setJoiningWaitlist] = useState(false);
 
   useEffect(() => {
     if (!isProfessional) {
@@ -126,9 +144,10 @@ export default function AcademyLandingPage() {
     }
     (async () => {
       try {
-        const [p1Res, p2Res] = await Promise.allSettled([
+        const [p1Res, p2Res, mcRes] = await Promise.allSettled([
           apiRequest("/api/certifications/platform/progress"),
           apiRequest("/api/certifications/procare_training/progress"),
+          apiRequest("/api/certifications/marketing_coaching/progress"),
         ]);
         const phase1Done =
           p1Res.status === "fulfilled" &&
@@ -140,11 +159,16 @@ export default function AcademyLandingPage() {
         const phase2Done =
           p2Res.status === "fulfilled" &&
           (p2Res.value as any)?.certification?.status === "completed";
+        const mcStatus: MarketingStatus =
+          mcRes.status === "fulfilled"
+            ? (((mcRes.value as any)?.certification?.status ?? "unknown") as MarketingStatus)
+            : "unknown";
         setProgress({
           personalDone: !!user?.onboardingCompletedAt,
           phase1Done,
           phase1Score,
           phase2Done,
+          marketingStatus: mcStatus,
           loading: false,
         });
       } catch {
@@ -153,8 +177,35 @@ export default function AcademyLandingPage() {
     })();
   }, [isProfessional, user?.onboardingCompletedAt]);
 
-  const allRequired = progress.personalDone && progress.phase1Done && progress.phase2Done;
+  const allRequired = progress.personalDone && progress.phase1Done && progress.phase2Done && progress.marketingStatus === "completed";
   const badge = allRequired ? certBadge(progress.phase1Score) : null;
+
+  const marketingDone = progress.marketingStatus === "completed";
+  const marketingInProgress = progress.marketingStatus === "in_progress";
+  const marketingWaitlisted = progress.marketingStatus === "waitlisted";
+
+  function marketingSublabel() {
+    if (marketingDone) return "Completed";
+    if (marketingInProgress) return "In progress";
+    if (marketingWaitlisted) return "On the waitlist";
+    return "Coming soon · Tap to learn more";
+  }
+
+  async function handleJoinWaitlist() {
+    if (joiningWaitlist || marketingWaitlisted || marketingDone || marketingInProgress) return;
+    setJoiningWaitlist(true);
+    try {
+      await apiRequest("/api/certifications/marketing_coaching/waitlist", {
+        method: "POST",
+      });
+      setProgress((p) => ({ ...p, marketingStatus: "waitlisted" }));
+    } catch {
+      // non-fatal — optimistically update anyway
+      setProgress((p) => ({ ...p, marketingStatus: "waitlisted" }));
+    } finally {
+      setJoiningWaitlist(false);
+    }
+  }
 
   return (
     <motion.div
@@ -330,9 +381,12 @@ export default function AcademyLandingPage() {
                 <CertPathRow
                   icon="📈"
                   label="Marketing & Coaching"
-                  sublabel="Coming soon"
-                  done={false}
+                  sublabel={marketingSublabel()}
+                  done={marketingDone}
                   available={false}
+                  waitlisted={marketingWaitlisted}
+                  inProgress={marketingInProgress}
+                  onComingSoon={() => setShowMarketingModal(true)}
                 />
                 <CertPathRow
                   icon="🩺"
@@ -403,7 +457,14 @@ export default function AcademyLandingPage() {
 
           <div className="px-5 py-4">
             <div className="grid grid-cols-2 gap-2">
-              {SPECIALIZE_TOPICS.map((topic, i) => (
+              {[
+                { icon: "🩺", label: "Diabetes Nutrition" },
+                { icon: "💉", label: "GLP-1 Support" },
+                { icon: "👩‍⚕️", label: "Women's Health" },
+                { icon: "🏋️", label: "Performance Nutrition" },
+                { icon: "🎗️", label: "Oncology Support" },
+                { icon: "👶", label: "Pediatrics" },
+              ].map((topic, i) => (
                 <motion.div
                   key={i}
                   className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/8 opacity-50"
@@ -440,7 +501,187 @@ export default function AcademyLandingPage() {
           </div>
         </motion.div>
       </div>
+
+      {/* Marketing & Coaching modal */}
+      <AnimatePresence>
+        {showMarketingModal && (
+          <MarketingCoachingModal
+            status={progress.marketingStatus}
+            joining={joiningWaitlist}
+            onJoin={handleJoinWaitlist}
+            onClose={() => setShowMarketingModal(false)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
+  );
+}
+
+function MarketingCoachingModal({
+  status,
+  joining,
+  onJoin,
+  onClose,
+}: {
+  status: MarketingStatus;
+  joining: boolean;
+  onJoin: () => void;
+  onClose: () => void;
+}) {
+  const isWaitlisted = status === "waitlisted";
+  const isDone = status === "completed";
+  const isInProgress = status === "in_progress";
+
+  return (
+    <>
+      <motion.div
+        className="fixed inset-0 z-40 bg-black/60"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      />
+      <motion.div
+        className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl bg-[#111] border-t border-white/10 overflow-hidden max-h-[90vh] flex flex-col"
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", damping: 28, stiffness: 280 }}
+      >
+        {/* Handle */}
+        <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+          <div className="w-9 h-1 rounded-full bg-white/15" />
+        </div>
+
+        {/* Header */}
+        <div className="px-5 pt-3 pb-4 flex items-start justify-between gap-3 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-orange-500/15 border border-orange-500/25 flex items-center justify-center text-xl flex-shrink-0">
+              📈
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-white">Marketing & Coaching</h2>
+              <p className="text-xs text-orange-400 font-medium">Certification · Coming Soon</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg bg-white/8 text-white/50 active:bg-white/15 flex-shrink-0"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="overflow-y-auto flex-1 px-5 pb-6 space-y-5">
+          <p className="text-sm text-white/60 leading-relaxed">
+            This certification teaches you how to grow your practice, attract aligned clients, and
+            turn your clinical expertise into a sustainable coaching business — all while using
+            My Perfect Meals as the engine.
+          </p>
+
+          {/* Curriculum preview */}
+          <div>
+            <p className="text-xs font-semibold text-orange-400 uppercase tracking-widest mb-3">
+              What's Inside (6 Modules)
+            </p>
+            <div className="space-y-2">
+              {MARKETING_COACHING_MODULES.map((mod, i) => {
+                const Icon = mod.icon;
+                return (
+                  <div
+                    key={i}
+                    className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/8"
+                  >
+                    <div className="p-1.5 rounded-lg bg-orange-500/15 flex-shrink-0 mt-0.5">
+                      <Icon className="h-3.5 w-3.5 text-orange-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-white leading-snug">{mod.title}</p>
+                      <p className="text-xs text-white/40 mt-0.5 leading-relaxed">{mod.description}</p>
+                    </div>
+                    <Lock className="h-3.5 w-3.5 text-white/15 flex-shrink-0 mt-1" />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Timeline */}
+          <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/8 space-y-3">
+            <p className="text-xs font-semibold text-white/50 uppercase tracking-widest">Timeline</p>
+            <div className="space-y-2.5">
+              {[
+                { label: "Curriculum finalized", status: "done" },
+                { label: "Video production", status: "active" },
+                { label: "Quiz & assessment authoring", status: "upcoming" },
+                { label: "Beta cohort access", status: "upcoming" },
+                { label: "Open enrollment", status: "upcoming" },
+              ].map((step, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div
+                    className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                      step.status === "done"
+                        ? "bg-emerald-400"
+                        : step.status === "active"
+                        ? "bg-orange-400 shadow-[0_0_6px_rgba(251,146,60,0.6)]"
+                        : "bg-white/15"
+                    }`}
+                  />
+                  <p
+                    className={`text-xs leading-snug ${
+                      step.status === "done"
+                        ? "text-emerald-300/80"
+                        : step.status === "active"
+                        ? "text-orange-300 font-medium"
+                        : "text-white/30"
+                    }`}
+                  >
+                    {step.label}
+                    {step.status === "active" && (
+                      <span className="ml-1.5 text-orange-400/60 font-normal">· In progress</span>
+                    )}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* CTA */}
+          {!isDone && !isInProgress && (
+            <div className="space-y-2">
+              {isWaitlisted ? (
+                <div className="flex items-center gap-3 p-4 rounded-2xl bg-emerald-900/20 border border-emerald-500/25">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-300">You're on the waitlist</p>
+                    <p className="text-xs text-emerald-400/60 mt-0.5">
+                      We'll notify you the moment enrollment opens.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={onJoin}
+                  disabled={joining}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.98] transition-transform disabled:opacity-60"
+                >
+                  {joining ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Bell className="h-4 w-4" />
+                  )}
+                  Notify me when available
+                </button>
+              )}
+              <p className="text-center text-white/25 text-xs">
+                No spam. One notification when enrollment opens.
+              </p>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </>
   );
 }
 
@@ -451,7 +692,10 @@ function CertPathRow({
   done,
   score,
   available,
+  waitlisted,
+  inProgress,
   onGo,
+  onComingSoon,
 }: {
   icon: string;
   label: string;
@@ -459,31 +703,45 @@ function CertPathRow({
   done: boolean;
   score?: number | null;
   available: boolean;
+  waitlisted?: boolean;
+  inProgress?: boolean;
   onGo?: () => void;
+  onComingSoon?: () => void;
 }) {
   const badge = done && score != null ? certBadge(score) : null;
+  const isTappable = (available && !done && !!onGo) || (!available && !!onComingSoon);
+
+  function handleClick() {
+    if (done) return;
+    if (available && onGo) { onGo(); return; }
+    if (!available && onComingSoon) { onComingSoon(); return; }
+  }
 
   return (
     <button
-      onClick={available && !done && onGo ? onGo : undefined}
-      disabled={!available}
-      className={`w-full flex items-center gap-3 text-left transition-opacity ${available && !done && onGo ? "active:opacity-70" : ""} ${!available ? "opacity-40 cursor-default" : ""}`}
+      onClick={isTappable ? handleClick : undefined}
+      disabled={!isTappable}
+      className={`w-full flex items-center gap-3 text-left transition-opacity ${isTappable ? "active:opacity-70" : ""} ${!available && !onComingSoon ? "opacity-40 cursor-default" : ""}`}
     >
       <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.06] border border-white/10 text-base">
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-semibold ${done ? "text-white" : available ? "text-white/80" : "text-white/40"}`}>
+        <p className={`text-sm font-semibold ${done ? "text-white" : available ? "text-white/80" : waitlisted ? "text-white/70" : "text-white/45"}`}>
           {label}
         </p>
-        <p className="text-xs text-white/40 leading-snug">{sublabel}</p>
+        <p className={`text-xs leading-snug ${waitlisted ? "text-orange-400/70" : "text-white/40"}`}>{sublabel}</p>
       </div>
       {done ? (
         <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+      ) : inProgress ? (
+        <Circle className="w-5 h-5 text-orange-400/60 shrink-0" />
+      ) : waitlisted ? (
+        <Bell className="w-4 h-4 text-orange-400/60 shrink-0" />
       ) : available ? (
         <Circle className="w-5 h-5 text-white/20 shrink-0" />
       ) : (
-        <Lock className="w-4 h-4 text-white/15 shrink-0" />
+        <ChevronRight className="w-4 h-4 text-white/20 shrink-0" />
       )}
       {badge && (
         <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold flex-shrink-0 ${badge.color}`}>
