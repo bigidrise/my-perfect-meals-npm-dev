@@ -6,7 +6,7 @@ export interface ProTipSection {
 export const PRO_TIP_SECTIONS: ProTipSection[] = [
   {
     heading: "Use My Favorites to build faster",
-    text: "When you find a meal you enjoy, tap the red star on the meal card to save it. Then look for the gold My Favorites button on any meal slot inside your builder. Tap it, filter by type — breakfast-style, mains, snacks, or drinks — and pull that meal back into your plan instantly without rebuilding it from scratch. Over time your favorites become a personal rotation of foods you already know work for you.",
+    text: "When you find a meal you enjoy, tap the red star on the meal card to save it. Then look for the red My Favorites button on any meal slot inside your builder. Tap it and your saved meals appear in one list showing the photo and name of each creation, so you can pull any of them back into your plan instantly without rebuilding it from scratch. Over time your favorites become a personal rotation of foods you already know work for you.",
   },
   {
     heading: "Be specific and your results get sharper",

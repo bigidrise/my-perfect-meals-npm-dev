@@ -397,7 +397,7 @@ export default function InspirationCaptureModal({
       setSavedId(data.id);
       toast({
         title: "Saved!",
-        description: "Added to your My Inspirations in Favorites.",
+        description: "Added to your Recipe Scan saves in Favorites.",
       });
     } catch (err: any) {
       toast({
@@ -869,7 +869,7 @@ export default function InspirationCaptureModal({
                     ) : (
                       <>
                         <Heart className="h-4 w-4" />
-                        Save to My Inspirations
+                        Save to Favorites
                       </>
                     )}
                   </button>
@@ -888,7 +888,7 @@ export default function InspirationCaptureModal({
                 <div className="space-y-2">
                   <div className="flex items-center gap-1.5 text-xs text-green-400/70 justify-center">
                     <Heart className="h-3.5 w-3.5 fill-green-400 text-green-400" />
-                    <span>Saved to My Inspirations</span>
+                    <span>Saved to Favorites</span>
                   </div>
                   <div className="flex gap-2">
                     <button
