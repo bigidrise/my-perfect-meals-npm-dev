@@ -2,10 +2,11 @@ import React, { useState, useCallback } from "react";
 import { PRO_TIP_SECTIONS } from "@/components/copilot/scripts/proTipScript";
 import { useNarration } from "@/hooks/useNarration";
 import { PillButton } from "@/components/ui/pill-button";
-import { Play, Pause, RotateCcw } from "lucide-react";
+import { Play, Pause, RotateCcw, FileText, Undo2 } from "lucide-react";
 
 export const ProTipCard: React.FC = () => {
   const [hasStarted, setHasStarted] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(false);
 
   const {
     isPlaying,
@@ -16,6 +17,7 @@ export const ProTipCard: React.FC = () => {
     resume,
     stop,
     reset,
+    skipBack10,
   } = useNarration(PRO_TIP_SECTIONS, {
     onEnd: () => setHasStarted(false),
   });
@@ -30,6 +32,7 @@ export const ProTipCard: React.FC = () => {
   const handleStop = () => {
     stop();
     setHasStarted(false);
+    setShowTranscript(false);
   };
 
   const handleStartOver = useCallback(() => {
@@ -37,6 +40,8 @@ export const ProTipCard: React.FC = () => {
     setHasStarted(true);
     setTimeout(() => play(), 50);
   }, [reset, play]);
+
+  const currentSection = PRO_TIP_SECTIONS[currentSectionIndex];
 
   return (
     <div className="col-span-full">
@@ -80,12 +85,12 @@ export const ProTipCard: React.FC = () => {
 
               <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.85)" }}>
                 {isActive
-                  ? PRO_TIP_SECTIONS[currentSectionIndex]?.heading
+                  ? currentSection?.heading
                   : "Learn how to use the Meal Builder for maximum accuracy."}
               </p>
 
               {isActive && (
-                <div className="flex items-center gap-2 mt-3">
+                <div className="flex flex-wrap items-center gap-2 mt-3">
                   {isPlaying ? (
                     <PillButton onClick={pause} active className="flex items-center gap-1.5">
                       <Pause className="h-3.5 w-3.5" />
@@ -97,9 +102,21 @@ export const ProTipCard: React.FC = () => {
                       Resume
                     </PillButton>
                   )}
+                  <PillButton onClick={skipBack10} className="flex items-center gap-1.5">
+                    <Undo2 className="h-3.5 w-3.5" />
+                    10s Back
+                  </PillButton>
                   <PillButton onClick={handleStartOver} className="flex items-center gap-1.5">
                     <RotateCcw className="h-3.5 w-3.5" />
                     Start Over
+                  </PillButton>
+                  <PillButton
+                    onClick={() => setShowTranscript((v) => !v)}
+                    active={showTranscript}
+                    className="flex items-center gap-1.5"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    {showTranscript ? "Hide Transcript" : "Transcript"}
                   </PillButton>
                 </div>
               )}
@@ -129,6 +146,27 @@ export const ProTipCard: React.FC = () => {
               )}
             </div>
           </div>
+
+          {/* Transcript panel — audio keeps playing when toggled */}
+          {isActive && showTranscript && currentSection && (
+            <div
+              className="mt-4 pt-4 border-t"
+              style={{ borderColor: "rgba(251,191,36,0.15)" }}
+            >
+              <p
+                className="text-xs font-semibold uppercase tracking-widest mb-2"
+                style={{ color: "rgba(251,191,36,0.6)" }}
+              >
+                Transcript
+              </p>
+              <p
+                className="text-sm leading-relaxed"
+                style={{ color: "rgba(255,255,255,0.75)" }}
+              >
+                {currentSection.text}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

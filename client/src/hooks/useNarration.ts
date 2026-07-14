@@ -23,6 +23,8 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
   const isCancelledRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const browserTtsIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Cache ElevenLabs blob URLs so Back 10s can reuse already-fetched audio
+  const sectionAudioCache = useRef<Map<number, string>>(new Map());
 
   const clearBrowserTtsInterval = useCallback(() => {
     if (browserTtsIntervalRef.current !== null) {
@@ -67,6 +69,44 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
     onSectionChange?.(nextIndex);
   }, [sections.length, onSectionChange, onEnd]);
 
+  // Attach and play an already-fetched audio URL (used by cache replay and skipBack10)
+  const playAudioUrl = useCallback((url: string, sectionIndex: number) => {
+    const audio = new Audio(url);
+    audioRef.current = audio;
+
+    audio.onplay = () => {
+      if (!isCancelledRef.current) {
+        setIsPlaying(true);
+        setIsPaused(false);
+      }
+    };
+
+    audio.onended = () => {
+      if (!isCancelledRef.current) {
+        advanceToNextSection(sectionIndex);
+        speakSection(sectionIndex + 1);
+      }
+    };
+
+    audio.onerror = () => {
+      if (!isCancelledRef.current) {
+        setIsPlaying(false);
+        setIsPaused(false);
+      }
+    };
+
+    if (!isCancelledRef.current) {
+      audio.play().catch(() => {
+        setIsPlaying(false);
+        setIsPaused(false);
+      });
+    }
+  // speakSection is defined below — forward-ref pattern via ref
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [advanceToNextSection]);
+
+  const speakSectionRef = useRef<(index: number) => void>(() => {});
+
   const speakSection = useCallback(async (index: number) => {
     if (index >= sections.length || isCancelledRef.current) {
       setIsPlaying(false);
@@ -78,46 +118,22 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
     const section = sections[index];
     const text = buildSectionText(section);
     
+    // Use cached audio if available for this section
+    const cached = sectionAudioCache.current.get(index);
+    if (cached) {
+      playAudioUrl(cached, index);
+      return;
+    }
+
     try {
       const result = await ttsService.speak(text);
 
       if (isCancelledRef.current) return;
 
       if (result.provider === "elevenlabs" && result.audioUrl) {
-        const audio = new Audio(result.audioUrl);
-        audioRef.current = audio;
-        
-        audio.onplay = () => {
-          if (!isCancelledRef.current) {
-            setIsPlaying(true);
-            setIsPaused(false);
-          }
-        };
-        
-        audio.onended = () => {
-          URL.revokeObjectURL(result.audioUrl!);
-          if (!isCancelledRef.current) {
-            advanceToNextSection(index);
-            speakSection(index + 1);
-          }
-        };
-
-        audio.onerror = () => {
-          if (!isCancelledRef.current) {
-            setIsPlaying(false);
-            setIsPaused(false);
-          }
-        };
-
-        if (isCancelledRef.current) return;
-
-        try {
-          await audio.play();
-        } catch (playErr) {
-          console.warn("[useNarration] Audio play failed:", playErr);
-          setIsPlaying(false);
-          setIsPaused(false);
-        }
+        // Cache the URL before playing — don't revoke, keep for rewind
+        sectionAudioCache.current.set(index, result.audioUrl);
+        playAudioUrl(result.audioUrl, index);
       } else if (result.provider === "browser") {
         setIsPlaying(true);
         setIsPaused(false);
@@ -143,7 +159,12 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
       setIsPlaying(false);
       setIsPaused(false);
     }
-  }, [sections, buildSectionText, onEnd, advanceToNextSection, clearBrowserTtsInterval]);
+  }, [sections, buildSectionText, onEnd, advanceToNextSection, clearBrowserTtsInterval, playAudioUrl]);
+
+  // Keep ref in sync so playAudioUrl can call speakSection
+  useEffect(() => {
+    speakSectionRef.current = speakSection;
+  }, [speakSection]);
 
   const play = useCallback(() => {
     if (sections.length === 0) return;
@@ -192,6 +213,49 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
     setCurrentSectionIndex(0);
   }, [stopAudio]);
 
+  // ── BACK 10 SECONDS ──────────────────────────────────────────────────────────
+  // Within the current section: seek back 10s on the audio element.
+  // If at or near the start of the section: restart the previous section,
+  // using the cached blob URL when available to avoid a new ElevenLabs fetch.
+  const skipBack10 = useCallback(() => {
+    // ElevenLabs path — audio element exists
+    if (audioRef.current) {
+      const newTime = audioRef.current.currentTime - 10;
+      if (newTime >= 0) {
+        // Simple seek within same section
+        audioRef.current.currentTime = newTime;
+        return;
+      }
+      // Past the beginning of this section
+      if (currentSectionIndex === 0) {
+        // Already at the first section — just restart from 0
+        audioRef.current.currentTime = 0;
+        return;
+      }
+      // Jump to previous section
+      const prevIndex = currentSectionIndex - 1;
+      stopAudio();
+      isCancelledRef.current = false;
+      setCurrentSectionIndex(prevIndex);
+      onSectionChange?.(prevIndex);
+      setIsPlaying(true);
+      setIsPaused(false);
+      // Use cached URL if we have it, otherwise speakSection will fetch
+      speakSection(prevIndex);
+      return;
+    }
+
+    // Browser TTS path — no seekable audio element, restart current section
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    clearBrowserTtsInterval();
+    isCancelledRef.current = false;
+    setIsPlaying(true);
+    setIsPaused(false);
+    speakSection(currentSectionIndex);
+  }, [currentSectionIndex, stopAudio, speakSection, onSectionChange, clearBrowserTtsInterval]);
+
   const nextSection = useCallback(() => {
     if (currentSectionIndex < sections.length - 1) {
       stopAudio();
@@ -222,10 +286,15 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
     setMode(newMode);
   }, [mode, stop]);
 
+  // Cleanup on unmount — revoke all cached blob URLs to free memory
   useEffect(() => {
     return () => {
       isCancelledRef.current = true;
       stopAudio();
+      sectionAudioCache.current.forEach((url) => {
+        try { URL.revokeObjectURL(url); } catch {}
+      });
+      sectionAudioCache.current.clear();
     };
   }, [stopAudio]);
 
@@ -235,6 +304,11 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
     setIsPlaying(false);
     setIsPaused(false);
     setCurrentSectionIndex(0);
+    // Clear cache when sections change (new Pro Tip set)
+    sectionAudioCache.current.forEach((url) => {
+      try { URL.revokeObjectURL(url); } catch {}
+    });
+    sectionAudioCache.current.clear();
   }, [sections, stopAudio]);
 
   return {
@@ -251,5 +325,6 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
     reset,
     toggleMode,
     setMode,
+    skipBack10,
   };
 }
