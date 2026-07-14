@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Plus, Trash2, Edit3, Save, X, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Edit3, Save, X, ChevronDown, ChevronUp, RefreshCw, Mail, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
@@ -92,11 +92,66 @@ export default function AdminCertifications() {
 
   // Waitlist state
   const [waitlist, setWaitlist] = useState<WaitlistRow[]>([]);
+  const [waitlistStats, setWaitlistStats] = useState<{
+    total: number;
+    oldestEntry: string | null;
+    newestEntry: string | null;
+    previewEmails: string[];
+  } | null>(null);
+  const [waitlistLoading, setWaitlistLoading] = useState(false);
+  const [notifying, setNotifying] = useState(false);
+  const [notifyResult, setNotifyResult] = useState<{
+    sent: number;
+    skipped: number;
+    failed: number;
+    failures: string[];
+  } | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const flash = (msg: string) => { setMessage(msg); setTimeout(() => setMessage(null), 3000); };
+
+  // Load waitlist stats when switching to waitlist tab
+  useEffect(() => {
+    if (!user || tab !== "waitlist") return;
+    setWaitlistLoading(true);
+    setNotifyResult(null);
+    Promise.all([
+      apiRequest("/api/admin/certifications/marketing-coaching/waitlist-stats"),
+      apiRequest("/api/admin/certifications/marketing-coaching/waitlist")
+    ])
+      .then(([stats, list]: any) => {
+        setWaitlistStats(stats);
+        setWaitlist(list.waitlist ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setWaitlistLoading(false));
+  }, [user, tab]);
+
+  const handleNotifyWaitlist = async (force = false) => {
+    if (!confirm(force ? "Re-notify ALL waitlisted users (including already-notified)?" : "Send enrollment emails to all unnotified waitlisted users?")) return;
+    setNotifying(true);
+    setNotifyResult(null);
+    try {
+      const res = await apiRequest(
+        `/api/admin/certifications/marketing-coaching/notify-waitlist${force ? "?force=true" : ""}`,
+        { method: "POST" }
+      ) as { sent: number; skipped: number; failed: number; failures: string[] };
+      setNotifyResult(res);
+      // Refresh stats and list after send
+      const [stats, list] = await Promise.all([
+        apiRequest("/api/admin/certifications/marketing-coaching/waitlist-stats"),
+        apiRequest("/api/admin/certifications/marketing-coaching/waitlist")
+      ]) as any;
+      setWaitlistStats(stats);
+      setWaitlist(list.waitlist ?? []);
+    } catch {
+      flash("Notification failed — check server logs");
+    } finally {
+      setNotifying(false);
+    }
+  };
 
   // Load data when tab/certType changes
   useEffect(() => {
@@ -122,11 +177,9 @@ export default function AdminCertifications() {
         .then((d: { updates: UpdateModule[] }) => setUpdates(d.updates ?? []))
         .catch(() => {})
         .finally(() => setLoading(false));
-    } else if (tab === "waitlist") {
-      apiRequest(`/api/admin/certifications/marketing-coaching/waitlist`)
-        .then((d: { waitlist: WaitlistRow[] }) => setWaitlist(d.waitlist ?? []))
-        .catch(() => {})
-        .finally(() => setLoading(false));
+    } else {
+      // waitlist tab uses its own dedicated loading state
+      setLoading(false);
     }
   }, [user, tab, selectedCertType]);
 
@@ -538,53 +591,181 @@ export default function AdminCertifications() {
             )}
             {/* ── WAITLIST TAB ── */}
             {tab === "waitlist" && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-white/40">{waitlist.length} user{waitlist.length !== 1 ? "s" : ""} on waitlist</p>
-                  <div className="flex gap-2 text-[10px]">
-                    <span className="px-2 py-1 rounded-full bg-green-500/15 text-green-400 font-semibold">Notified</span>
-                    <span className="px-2 py-1 rounded-full bg-white/8 text-white/40 font-semibold">Pending</span>
-                  </div>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-white">Marketing &amp; Coaching Waitlist</p>
+                  <p className="text-xs text-white/40 mt-0.5">Preview the audience, then send enrollment notifications.</p>
                 </div>
-                {waitlist.length === 0 ? (
-                  <div className="p-6 rounded-2xl bg-black/20 border border-white/5 text-center">
-                    <p className="text-sm text-white/30">No one on the waitlist yet.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {waitlist.map((row) => (
-                      <div key={row.userId} className="p-4 rounded-2xl bg-black/30 border border-white/10">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-white truncate">
-                              {row.firstName || row.username || "Unknown"}
-                            </p>
-                            <p className="text-xs text-white/40 truncate mt-0.5">{row.email}</p>
-                            {row.createdAt && (
-                              <p className="text-xs text-white/20 mt-1">
-                                Joined {new Date(row.createdAt).toLocaleDateString()}
-                              </p>
-                            )}
+
+                {waitlistLoading ? (
+                  <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin" /></div>
+                ) : waitlistStats ? (
+                  <>
+                    {/* Stats cards */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="p-4 rounded-2xl bg-black/30 border border-white/10 text-center">
+                        <p className="text-2xl font-bold text-orange-400">{waitlistStats.total}</p>
+                        <p className="text-[10px] text-white/40 mt-1 uppercase tracking-wider">Waitlisted</p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-black/30 border border-white/10 text-center">
+                        <p className="text-xs font-semibold text-white/70 leading-snug">
+                          {waitlistStats.oldestEntry ? new Date(waitlistStats.oldestEntry).toLocaleDateString() : "—"}
+                        </p>
+                        <p className="text-[10px] text-white/40 mt-1 uppercase tracking-wider">Oldest</p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-black/30 border border-white/10 text-center">
+                        <p className="text-xs font-semibold text-white/70 leading-snug">
+                          {waitlistStats.newestEntry ? new Date(waitlistStats.newestEntry).toLocaleDateString() : "—"}
+                        </p>
+                        <p className="text-[10px] text-white/40 mt-1 uppercase tracking-wider">Newest</p>
+                      </div>
+                    </div>
+
+                    {/* Email preview */}
+                    {waitlistStats.previewEmails.length > 0 && (
+                      <div className="p-4 rounded-2xl bg-black/30 border border-white/10 space-y-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Mail className="h-3.5 w-3.5 text-white/30" />
+                          <p className="text-xs text-white/50 font-medium">Email Preview (up to 20)</p>
+                        </div>
+                        <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
+                          {waitlistStats.previewEmails.map((email) => (
+                            <p key={email} className="text-xs font-mono text-white/60 truncate">{email}</p>
+                          ))}
+                        </div>
+                        {waitlistStats.total > waitlistStats.previewEmails.length && (
+                          <p className="text-[10px] text-white/30 pt-1">+{waitlistStats.total - waitlistStats.previewEmails.length} more not shown</p>
+                        )}
+                      </div>
+                    )}
+
+                    {waitlistStats.total === 0 && (
+                      <div className="p-6 rounded-2xl bg-black/20 border border-white/5 text-center">
+                        <p className="text-sm text-white/30">No one on the waitlist right now.</p>
+                      </div>
+                    )}
+
+                    {/* Send result */}
+                    <AnimatePresence>
+                      {notifyResult && (
+                        <motion.div
+                          className="p-4 rounded-2xl bg-black/40 border border-orange-500/30 space-y-2"
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                        >
+                          <p className="text-sm font-semibold text-orange-300">Notification sent</p>
+                          <div className="flex gap-4 text-xs">
+                            <span className="text-green-400 font-semibold">{notifyResult.sent} sent</span>
+                            <span className="text-white/40">{notifyResult.skipped} skipped (already notified)</span>
+                            {notifyResult.failed > 0 && <span className="text-red-400">{notifyResult.failed} failed</span>}
                           </div>
-                          <div className="flex-shrink-0 text-right">
-                            {row.notifiedAt ? (
-                              <div className="space-y-0.5">
-                                <span className="inline-block px-2.5 py-1 rounded-full bg-green-500/15 border border-green-500/20 text-green-400 text-[10px] font-bold uppercase tracking-wide">
-                                  Notified
-                                </span>
-                                <p className="text-[10px] text-white/25">
-                                  {new Date(row.notifiedAt).toLocaleDateString()}
-                                </p>
-                              </div>
-                            ) : (
-                              <span className="inline-block px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/35 text-[10px] font-semibold uppercase tracking-wide">
-                                Pending
-                              </span>
-                            )}
-                          </div>
+                          {notifyResult.failures.length > 0 && (
+                            <div className="space-y-0.5 pt-1">
+                              <p className="text-[10px] text-red-400/60 uppercase tracking-wider font-semibold">Failed addresses</p>
+                              {notifyResult.failures.map((e) => (
+                                <p key={e} className="text-xs font-mono text-red-400/70">{e}</p>
+                              ))}
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Action buttons */}
+                    {waitlistStats.total > 0 && (
+                      <div className="space-y-2">
+                        <button
+                          onClick={() => handleNotifyWaitlist(false)}
+                          disabled={notifying}
+                          className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.97] transition-transform disabled:opacity-40"
+                        >
+                          <Send className="h-4 w-4" />
+                          {notifying ? "Sending…" : "Notify Waitlist"}
+                        </button>
+                        <button
+                          onClick={() => handleNotifyWaitlist(true)}
+                          disabled={notifying}
+                          className="w-full p-3 rounded-2xl bg-white/5 border border-white/10 text-white/40 text-xs font-medium active:scale-[0.97] transition-transform disabled:opacity-40"
+                        >
+                          Force Re-notify All (including already-notified)
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Detailed User List (HEAD side) */}
+                    <div className="space-y-3 pt-4 border-t border-white/10">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-white/40">{waitlist.length} user{waitlist.length !== 1 ? "s" : ""} on waitlist</p>
+                        <div className="flex gap-2 text-[10px]">
+                          <span className="px-2 py-1 rounded-full bg-green-500/15 text-green-400 font-semibold">Notified</span>
+                          <span className="px-2 py-1 rounded-full bg-white/8 text-white/40 font-semibold">Pending</span>
                         </div>
                       </div>
-                    ))}
+                      {waitlist.length === 0 ? (
+                        <div className="p-6 rounded-2xl bg-black/20 border border-white/5 text-center">
+                          <p className="text-sm text-white/30">No one on the waitlist yet.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {waitlist.map((row) => (
+                            <div key={row.userId} className="p-4 rounded-2xl bg-black/30 border border-white/10">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-white truncate">
+                                    {row.firstName || row.username || "Unknown"}
+                                  </p>
+                                  <p className="text-xs text-white/40 truncate mt-0.5">{row.email}</p>
+                                  {row.createdAt && (
+                                    <p className="text-xs text-white/20 mt-1">
+                                      Joined {new Date(row.createdAt).toLocaleDateString()}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="flex-shrink-0 text-right">
+                                  {row.notifiedAt ? (
+                                    <div className="space-y-0.5">
+                                      <span className="inline-block px-2.5 py-1 rounded-full bg-green-500/15 border border-green-500/20 text-green-400 text-[10px] font-bold uppercase tracking-wide">
+                                        Notified
+                                      </span>
+                                      <p className="text-[10px] text-white/25">
+                                        {new Date(row.notifiedAt).toLocaleDateString()}
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <span className="inline-block px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/35 text-[10px] font-semibold uppercase tracking-wide">
+                                      Pending
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-6 rounded-2xl bg-black/20 border border-white/5 text-center">
+                    <p className="text-sm text-white/30">Failed to load waitlist data.</p>
+                    <button
+                      onClick={() => {
+                        setWaitlistLoading(true);
+                        Promise.all([
+                          apiRequest("/api/admin/certifications/marketing-coaching/waitlist-stats"),
+                          apiRequest("/api/admin/certifications/marketing-coaching/waitlist")
+                        ])
+                          .then(([stats, list]: any) => {
+                            setWaitlistStats(stats);
+                            setWaitlist(list.waitlist ?? []);
+                          })
+                          .catch(() => {})
+                          .finally(() => setWaitlistLoading(false));
+                      }}
+                      className="mt-3 px-4 py-2 rounded-xl bg-white/10 text-white/50 text-xs font-medium active:scale-[0.96]"
+                    >
+                      Retry
+                    </button>
                   </div>
                 )}
               </div>
