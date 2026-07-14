@@ -150,7 +150,7 @@ export default function ForgotPassword() {
               {forgotPasswordMutation.isError && (
                 <div className="text-sm text-red-300 text-center" data-testid="text-error">
                   {(forgotPasswordMutation.error as Error)?.message?.startsWith("503")
-                    ? "Email delivery is currently unavailable — please contact support."
+                    ? "Email sending is temporarily unavailable, please try again later."
                     : "An error occurred. Please try again later."}
                 </div>
               )}

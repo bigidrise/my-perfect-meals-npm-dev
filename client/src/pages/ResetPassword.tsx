@@ -24,6 +24,7 @@ export default function ResetPassword() {
   const [, setLocation] = useLocation();
   const [token, setToken] = useState<string | null>(null);
   const [resetSuccess, setResetSuccess] = useState(false);
+  const [linkExpired, setLinkExpired] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -64,6 +65,11 @@ export default function ResetPassword() {
         setLocation("/auth");
       }, 3000);
     },
+    onError: (error: Error) => {
+      if (error.message.toLowerCase().includes("invalid or expired reset token")) {
+        setLinkExpired(true);
+      }
+    },
   });
 
   const onSubmit = (data: ResetPasswordForm) => {
@@ -97,6 +103,47 @@ export default function ResetPassword() {
             >
               Request New Link
             </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (linkExpired) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 text-white bg-gradient-to-br from-neutral-700 via-black to-black">
+        <div className="relative isolate w-full max-w-sm rounded-2xl p-8
+                        bg-black/25 backdrop-blur-xl border border-white/10 shadow-xl text-center">
+          <span className="absolute inset-0 -z-0 pointer-events-none rounded-2xl
+                           bg-gradient-to-br from-white/10 via-transparent to-transparent" />
+
+          <div className="relative z-10 flex flex-col items-center">
+            <div className="mb-4 p-3 rounded-full bg-orange-500/20">
+              <AlertCircle className="h-12 w-12 text-orange-400" data-testid="icon-expired" />
+            </div>
+
+            <h1 className="text-2xl font-bold mb-2">Link Expired</h1>
+
+            <p className="text-sm text-white/85 mb-6">
+              This password reset link has expired or has already been used. Reset links are valid for 30 minutes.
+            </p>
+
+            <button
+              onClick={() => setLocation("/forgot-password")}
+              className="w-full py-2 px-4 rounded-lg bg-orange-600 text-white font-medium
+                         shadow-md transition"
+              data-testid="button-request-new-link-expired"
+            >
+              Request a New Link
+            </button>
+
+            <button
+              onClick={() => setLocation("/auth")}
+              className="mt-4 text-sm text-white/70 underline"
+              data-testid="link-back-to-login-expired"
+            >
+              Back to Login
+            </button>
           </div>
         </div>
       </div>

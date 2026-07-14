@@ -5,8 +5,8 @@ export interface ProTipSection {
 
 export const PRO_TIP_SECTIONS: ProTipSection[] = [
   {
-    heading: "Use My Favorites to build faster",
-    text: "When you find a meal you enjoy, tap the red star on the meal card to save it. Then look for the gold My Favorites button on any meal slot inside your builder. Tap it, filter by type — breakfast-style, mains, snacks, or drinks — and pull that meal back into your plan instantly without rebuilding it from scratch. Over time your favorites become a personal rotation of foods you already know work for you.",
+    heading: "Four ways to fill any meal slot",
+    text: "Every meal slot in your builder gives you four options. The gold Cook with Chef button has a chef hat. Tap it to tell the A.I. exactly what you want and it builds the meal for you. The gold Snack Creator button works the same way but is designed just for snacks. The red Favorites button has a white star. Tap it and every meal you have ever saved appears in one list with a photo and name, so you can drop any of them straight into the slot without rebuilding from scratch. And the purple Describe It button has a plus sign. Use it when you already ate something and just want to log it. Describe what you had, even if it was a restaurant meal with no exact macros, and the app will add it to your builder as a record of what you actually ate.",
   },
   {
     heading: "Be specific and your results get sharper",
@@ -18,15 +18,15 @@ export const PRO_TIP_SECTIONS: ProTipSection[] = [
   },
   {
     heading: "Use Keep It Simple for cleaner meals",
-    text: "The builder will naturally try to enhance meals with additional flavors and ingredients. If you prefer simpler meals, use the Keep It Simple option to keep things clean and minimal. Use this builder like a coach would guide you — be intentional, be detailed, and let the system do the work.",
+    text: "The builder will naturally try to enhance meals with additional flavors and ingredients. If you prefer simpler meals, use the Keep It Simple option to keep things clean and minimal. Use this builder like a coach would guide you. Be intentional, be detailed, and let the system do the work.",
   },
   {
     heading: "The app learns you over time",
-    text: "Here is something most people do not realize — the more you use the app and save meals, the smarter it gets about you specifically. The system tracks your patterns behind the scenes: the proteins you keep choosing, the cuisines you gravitate toward, the cooking styles that show up in your history, and whether you tend to prefer quick prep or more involved recipes. That profile is called your Taste Memory, and it gets quietly applied every time a new meal is generated for you. You do not have to do anything to set it up. The longer you use the app, the more it starts to feel like it already knows what you want before you ask.",
+    text: "Over time, My Perfect Meals begins to recognize your preferences. It notices the proteins, cuisines, cooking styles, and meal types you choose most often. That growing understanding is called Taste Memory, and it helps future meal recommendations feel more personalized without requiring you to repeat yourself. You do not have to do anything to set it up. The longer you use the app, the more it starts to feel like it already knows what you want before you ask.",
   },
   {
     heading: "Add macros to biometrics only after you eat",
-    text: "This is important for keeping your data accurate. When you finish eating a meal, open that meal card and tap Add to Macros. That logs only what you actually ate. Do not use a whole-day save before you have eaten — if you plan five meals but only eat three, all five get recorded as consumed and there is no way to remove them from your history. Your biometric totals are meant to reflect reality, not your plan. Log each meal individually the moment you finish it and your tracking will always be honest.",
+    text: "This is important for keeping your data accurate. When you finish eating a meal, open that meal card and tap Add to Macros. That logs only what you actually ate. Do not use a whole-day save before you have eaten. If you plan five meals but only eat three, all five get recorded as consumed and your nutrition history may no longer accurately reflect what you actually ate. Your biometric totals are meant to reflect reality, not your plan. Log each meal individually the moment you finish it and your tracking will always be honest.",
   },
 ];
 
