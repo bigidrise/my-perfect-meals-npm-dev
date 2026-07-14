@@ -1,17 +1,20 @@
 import webpush from 'web-push';
 import { storage } from '../storage';
 
-// VAPID keys for push notifications
-const vapidKeys = {
-  publicKey: 'BOX8GMIv1Y8E14t5Vc9elEjswXS-N-xvRVjqUsV2dGQwyXH0yyXvVUD94nyocUyG-V8f2Gdj4tfVzYaxKNHybqg',
-  privateKey: process.env.VAPID_PRIVATE_KEY || ''
-};
+const VAPID_PUBLIC_KEY = 'BOX8GMIv1Y8E14t5Vc9elEjswXS-N-xvRVjqUsV2dGQwyXH0yyXvVUD94nyocUyG-V8f2Gdj4tfVzYaxKNHybqg';
+const vapidConfigured = !!process.env.VAPID_PRIVATE_KEY;
 
-webpush.setVapidDetails(
-  'mailto:support@perfectmeals.com',
-  vapidKeys.publicKey,
-  vapidKeys.privateKey
-);
+if (vapidConfigured) {
+  webpush.setVapidDetails(
+    'mailto:support@perfectmeals.com',
+    VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY!
+  );
+} else {
+  console.warn(
+    '[Push] VAPID_PRIVATE_KEY not configured — push notifications disabled.'
+  );
+}
 
 export interface PushSubscription {
   endpoint: string;
@@ -47,6 +50,13 @@ export class PushNotificationService {
   }
 
   static async sendNotification(userId: string, payload: NotificationPayload) {
+    if (!vapidConfigured) {
+      console.warn(
+        `[Push] VAPID_PRIVATE_KEY not configured — skipped sending push to user ${userId} | title: "${payload.title}"`
+      );
+      return { success: false, error: 'Push notifications not configured' };
+    }
+
     try {
       const subscription = await storage.getPushSubscription(userId);
       if (!subscription) {
@@ -105,6 +115,6 @@ export class PushNotificationService {
   }
 
   static getVapidPublicKey() {
-    return vapidKeys.publicKey;
+    return VAPID_PUBLIC_KEY;
   }
 }

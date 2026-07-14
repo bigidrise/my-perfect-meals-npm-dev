@@ -52,12 +52,21 @@ router.post("/api/auth/forgot-password", requireEmailService, async (req, res) =
       const baseUrl = process.env.FRONTEND_URL || `${protocol}://${host}`;
       const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
 
-      await sendPasswordResetEmail({
-        to: email,
-        resetLink,
-        userName: user.firstName || user.username || email.split("@")[0],
-      });
-      console.log(`✅ Password reset email sent`);
+      try {
+        await sendPasswordResetEmail({
+          to: email,
+          resetLink,
+          userName: user.firstName || user.username || email.split("@")[0],
+        });
+        console.log(`✅ Password reset email sent`);
+      } catch (emailError) {
+        console.error("❌ Password reset email delivery failed — clearing dangling token:", emailError);
+        await db
+          .update(users)
+          .set({ resetTokenHash: null, resetTokenExpires: null })
+          .where(and(eq(users.id, user.id), eq(users.resetTokenHash, tokenHash)));
+        throw emailError;
+      }
     }
 
     res.json({

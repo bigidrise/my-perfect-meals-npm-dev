@@ -59,6 +59,19 @@ export const waitlistRecoveryEvents = pgTable("waitlist_recovery_events", {
   userIds: jsonb("user_ids").$type<string[]>().notNull().default([]),
 });
 
+export const waitlistNotifyRunLogs = pgTable("waitlist_notify_run_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  triggeredAt: timestamp("triggered_at", { withTimezone: true }).defaultNow().notNull(),
+  triggeredByUserId: text("triggered_by_user_id").notNull(),
+  triggeredByEmail: text("triggered_by_email").notNull(),
+  status: text("status").notNull().default("started"), // started | completed | interrupted
+  sent: integer("sent").notNull().default(0),
+  skipped: integer("skipped").notNull().default(0),
+  failed: integer("failed").notNull().default(0),
+  force: boolean("force").notNull().default(false),
+  failures: jsonb("failures").$type<string[]>().notNull().default([]),
+});
+
 export const businessLeads = pgTable("business_leads", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id"),

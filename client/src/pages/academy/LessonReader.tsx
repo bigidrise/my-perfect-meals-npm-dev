@@ -589,7 +589,7 @@ export default function LessonReader() {
           </div>
           <div>
             <p className="text-xs font-semibold text-orange-400 uppercase tracking-widest mb-1">
-              Lesson {lesson.lessonNumber} · Platform Mastery
+              Lesson {lesson.lessonNumber} · My Perfect Meals Basics
             </p>
             <h2 className="text-lg font-bold text-white leading-tight">
               {lesson.title}

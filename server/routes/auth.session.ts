@@ -85,6 +85,17 @@ function isTesterEmail(email: string): boolean {
   return allowlist.includes(email.toLowerCase().trim());
 }
 
+function isAdminEmail(email: string): boolean {
+  // Allowlist-based: emails listed here get isAdmin=true at signup.
+  // Set MPM_ADMIN_EMAILS as a comma-separated list in env.
+  // Example: "amber@dramie.com,partner@example.com"
+  const allowlist = (process.env.MPM_ADMIN_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return allowlist.includes(email.toLowerCase().trim());
+}
+
 /**
  * POST /api/auth/signup
  * Creates a new user account in the database
@@ -114,8 +125,9 @@ router.post("/api/auth/signup", async (req, res) => {
     // Generate auth token
     const authToken = generateAuthToken();
     
-    // Check if email is in tester allowlist
+    // Check if email is in tester/admin allowlists
     const isTester = isTesterEmail(email);
+    const isAdmin = isAdminEmail(email);
 
     // New signups get a 7-day premium trial (no planLookupKey — must pay after trial)
     const trialStartedAt = new Date();
@@ -129,6 +141,7 @@ router.post("/api/auth/signup", async (req, res) => {
       authToken,
       authTokenCreatedAt: new Date(),
       isTester,
+      isAdmin,
       isFounder: isTester, // tester-allowlisted signups are founder/partner accounts
       ...(isTester ? { planLookupKey: 'mpm_ultimate_monthly' } : {}),
       trialStartedAt,

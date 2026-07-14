@@ -143,48 +143,18 @@ export default function AcademyLandingPage() {
   const [lessonStatuses, setLessonStatuses] = useState<LessonStatus[]>(
     Array(PLATFORM_MASTERY_LESSONS.length).fill("not_started")
   );
-  const [lessonSlugs, setLessonSlugs] = useState<(string | null)[]>(
-    Array(PLATFORM_MASTERY_LESSONS.length).fill(null)
-  );
   const [lessonLoading, setLessonLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
       try {
-        const [modulesRes, progressRes] = await Promise.allSettled([
-          apiRequest("/api/certifications/platform/modules"),
-          apiRequest("/api/certifications/platform/progress"),
-        ]);
-
-        if (modulesRes.status === "fulfilled" && progressRes.status === "fulfilled") {
-          const allModules: Array<{ slug: string; moduleType: string; sortOrder: number }> =
-            (modulesRes.value as any)?.modules ?? [];
-          const moduleProgress: Array<{ moduleId: string; status: string }> =
-            (progressRes.value as any)?.moduleProgress ?? [];
-
-          const sortedAll = allModules.sort((a, b) => a.sortOrder - b.sortOrder);
-          const videoModules = sortedAll.filter((m) => m.moduleType === "video");
-          const lessonModules =
-            videoModules.length >= PLATFORM_MASTERY_LESSONS.length
-              ? videoModules
-              : sortedAll.filter((m) => m.moduleType !== "final_assessment");
-
-          const progressMap = new Map(moduleProgress.map((p) => [p.moduleId, p.status as LessonStatus]));
-
-          const statuses: LessonStatus[] = PLATFORM_MASTERY_LESSONS.map((_, i) => {
-            const mod = lessonModules[i];
-            if (!mod) return "not_started";
-            return progressMap.get(mod.slug) ?? "not_started";
-          });
-
-          const slugs: (string | null)[] = PLATFORM_MASTERY_LESSONS.map((_, i) => {
-            return videoModules[i]?.slug ?? null;
-          });
-
-          setLessonStatuses(statuses);
-          setLessonSlugs(slugs);
-        }
+        const d = await apiRequest("/api/academy/platform-mastery/status");
+        const prog = (d as any).progress ?? {};
+        const statuses: LessonStatus[] = PLATFORM_MASTERY_LESSONS.map((_, i) => {
+          return (prog[`lesson-0${i + 1}`]?.status as LessonStatus) ?? "not_started";
+        });
+        setLessonStatuses(statuses);
       } catch {
         // silently ignore — lessons will show as not_started
       } finally {
@@ -342,7 +312,7 @@ export default function AcademyLandingPage() {
             </p>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-base font-bold text-white">Platform Mastery</h3>
+                <h3 className="text-base font-bold text-white">My Perfect Meals Basics</h3>
                 <p className="text-xs text-white/50 mt-1">
                   Open to everyone · No certification required
                 </p>
@@ -361,17 +331,12 @@ export default function AcademyLandingPage() {
               return PLATFORM_MASTERY_LESSONS.map((lesson, i) => {
                 const Icon = lesson.icon;
                 const status = lessonStatuses[i];
-                const slug = lessonSlugs[i];
                 const isInProgress = !lessonLoading && status === "in_progress";
                 const isCompleted = !lessonLoading && status === "completed";
                 const isNextUp = !isCompleted && !isInProgress && i === firstIncomplete;
 
                 function handleLessonTap() {
-                  if (isInProgress && slug) {
-                    setLocation(`/certifications/platform/video/${slug}`);
-                  } else {
-                    setLocation(`/certifications/platform?lesson=${i + 1}`);
-                  }
+                  setLocation(`/academy/platform-mastery/lesson/lesson-0${i + 1}`);
                 }
 
                 return (
@@ -431,7 +396,11 @@ export default function AcademyLandingPage() {
 
           <div className="px-5 py-4 bg-orange-500/8 border-t border-orange-500/20">
             <button
-              onClick={() => setLocation("/certifications/platform")}
+              onClick={() => {
+                const idx = lessonStatuses.findIndex((s) => s !== "completed");
+                const num = idx === -1 ? 1 : idx + 1;
+                setLocation(`/academy/platform-mastery/lesson/lesson-0${num}`);
+              }}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
             >
               <BookOpen className="h-4 w-4" />
@@ -480,12 +449,12 @@ export default function AcademyLandingPage() {
               <>
                 <CertPathRow
                   icon="🥉"
-                  label="Platform Mastery"
+                  label="My Perfect Meals Basics"
                   sublabel="6 lessons · 80% quiz score required"
                   done={progress.phase1Done}
                   score={progress.phase1Score}
                   available
-                  onGo={() => setLocation("/certifications/platform")}
+                  onGo={() => setLocation("/academy/platform-mastery")}
                 />
                 <CertPathRow
                   icon="📈"
