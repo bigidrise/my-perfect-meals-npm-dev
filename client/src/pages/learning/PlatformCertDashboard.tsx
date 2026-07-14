@@ -117,8 +117,12 @@ export default function PlatformCertDashboard() {
   }, [location, certType, load]);
 
   const targetLessonNum = useMemo(() => {
-    const n = parseInt(new URLSearchParams(window.location.search).get("lesson") ?? "", 10);
-    return Number.isFinite(n) && n >= 1 ? n : null;
+    try {
+      const n = parseInt(new URLSearchParams(window.location.search).get("lesson") ?? "", 10);
+      return Number.isFinite(n) && n >= 1 ? n : null;
+    } catch {
+      return null;
+    }
   }, []);
 
   const moduleEls = useRef<Map<string, HTMLDivElement>>(new Map());
