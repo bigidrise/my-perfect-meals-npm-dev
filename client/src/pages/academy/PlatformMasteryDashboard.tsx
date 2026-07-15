@@ -154,7 +154,7 @@ export default function PlatformMasteryDashboard() {
       animate={{ opacity: 1 }}
     >
       <div
-        className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
+        className="sticky top-0 z-10 bg-black/55 backdrop-blur-md border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
@@ -183,10 +183,7 @@ export default function PlatformMasteryDashboard() {
         </div>
       </div>
 
-      <div
-        className="px-4 max-w-2xl mx-auto space-y-4"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
-      >
+      <div className="px-4 max-w-2xl mx-auto space-y-4 pt-5">
         {/* Certified banner */}
         {isCertified && (
           <motion.div
