@@ -492,6 +492,7 @@ export default function InspirationCaptureModal({
 
               <input
                 ref={fileInputRef}
+                id="recipe-scan-camera-input"
                 type="file"
                 accept="image/*"
                 capture="environment"
@@ -500,6 +501,7 @@ export default function InspirationCaptureModal({
               />
               <input
                 ref={uploadInputRef}
+                id="recipe-scan-upload-input"
                 type="file"
                 accept="image/*"
                 className="hidden"
@@ -512,9 +514,9 @@ export default function InspirationCaptureModal({
                     Pick a screenshot, saved food photo, or image from your
                     camera roll or gallery.
                   </p>
-                  <button
-                    onClick={() => uploadInputRef.current?.click()}
-                    className="w-full py-5 rounded-xl border-2 border-dashed border-orange-500/40 bg-orange-500/5 hover:bg-orange-500/10 hover:border-orange-500/60 transition-all flex flex-col items-center gap-2 active:scale-95"
+                  <label
+                    htmlFor="recipe-scan-upload-input"
+                    className="w-full py-5 rounded-xl border-2 border-dashed border-orange-500/40 bg-orange-500/5 active:bg-orange-500/10 active:border-orange-500/60 transition-all flex flex-col items-center gap-2 active:scale-95 cursor-pointer"
                   >
                     <ImagePlus className="h-8 w-8 text-orange-400" />
                     <span className="text-sm font-medium text-orange-300">
@@ -523,7 +525,7 @@ export default function InspirationCaptureModal({
                     <span className="text-xs text-white/40">
                       Screenshots, saved photos, any food image
                     </span>
-                  </button>
+                  </label>
                 </div>
               )}
 
@@ -533,9 +535,9 @@ export default function InspirationCaptureModal({
                     Point your camera at any recipe, menu, screen, or food
                     photo.
                   </p>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full py-5 rounded-xl border-2 border-dashed border-orange-500/40 bg-orange-500/5 hover:bg-orange-500/10 hover:border-orange-500/60 transition-all flex flex-col items-center gap-2 active:scale-95"
+                  <label
+                    htmlFor="recipe-scan-camera-input"
+                    className="w-full py-5 rounded-xl border-2 border-dashed border-orange-500/40 bg-orange-500/5 active:bg-orange-500/10 active:border-orange-500/60 transition-all flex flex-col items-center gap-2 active:scale-95 cursor-pointer"
                   >
                     <Camera className="h-8 w-8 text-orange-400" />
                     <span className="text-sm font-medium text-orange-300">
@@ -544,7 +546,7 @@ export default function InspirationCaptureModal({
                     <span className="text-xs text-white/40">
                       Take a live photo of any food idea
                     </span>
-                  </button>
+                  </label>
                 </div>
               )}
 
