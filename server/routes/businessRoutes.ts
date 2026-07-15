@@ -516,4 +516,66 @@ router.patch("/name", requireAuth, async (req, res) => {
   }
 });
 
+// ── POST /api/business/dev-seed — DEV ONLY: instantly create a test business for the current user
+router.post("/dev-seed", requireAuth, async (req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    return res.status(404).json({ error: "Not found." });
+  }
+  const userId = (req as any).userId as string;
+  try {
+    // Check if already an owner
+    const [existing] = await db.select().from(businesses).where(eq(businesses.ownerUserId, userId)).limit(1);
+    if (existing) {
+      return res.json({ success: true, message: "Already a business owner.", businessId: existing.id });
+    }
+
+    const businessId = randomBytes(12).toString("hex");
+    const seatCount = Number((req.body as any).seats) || 4;
+
+    await db.execute(sql`
+      INSERT INTO businesses (id, owner_user_id, name, stripe_customer_id, stripe_subscription_id, seat_limit, status, plan, created_at, updated_at)
+      VALUES (
+        ${businessId}, ${userId}, ${"My Business Team"}, ${"dev_test_customer"}, ${"dev_test_sub"},
+        ${seatCount}, ${"active"}, ${"clinical_business_monthly"}, NOW(), NOW()
+      )
+    `);
+
+    await db.execute(sql`
+      INSERT INTO business_members (id, business_id, user_id, role, status, joined_at)
+      VALUES (${randomBytes(12).toString("hex")}, ${businessId}, ${userId}, ${"owner"}, ${"active"}, NOW())
+    `);
+
+    // Bump the user's subscription tier
+    await updateUserSubscription(userId, "clinical_business_monthly");
+
+    console.log(`[dev-seed] Created test business ${businessId} for user ${userId}`);
+    return res.json({ success: true, businessId, seats: seatCount });
+  } catch (err) {
+    console.error("[business/dev-seed] error:", err);
+    return res.status(500).json({ error: "Seed failed.", detail: String(err) });
+  }
+});
+
+// ── DELETE /api/business/dev-seed — DEV ONLY: wipe test business for the current user
+router.delete("/dev-seed", requireAuth, async (req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    return res.status(404).json({ error: "Not found." });
+  }
+  const userId = (req as any).userId as string;
+  try {
+    const [biz] = await db.select().from(businesses).where(eq(businesses.ownerUserId, userId)).limit(1);
+    if (!biz) return res.json({ success: true, message: "Nothing to delete." });
+
+    await db.execute(sql`DELETE FROM business_invitations WHERE business_id = ${biz.id}`);
+    await db.execute(sql`DELETE FROM business_members WHERE business_id = ${biz.id}`);
+    await db.execute(sql`DELETE FROM businesses WHERE id = ${biz.id}`);
+
+    console.log(`[dev-seed] Wiped test business ${biz.id} for user ${userId}`);
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("[business/dev-seed DELETE] error:", err);
+    return res.status(500).json({ error: "Wipe failed.", detail: String(err) });
+  }
+});
+
 export default router;
