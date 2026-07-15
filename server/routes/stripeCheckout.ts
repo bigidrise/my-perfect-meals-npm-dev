@@ -179,7 +179,11 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
   }
 
   const appUrl =
+    process.env.PUBLIC_APP_URL ||
     process.env.APP_URL ||
+    (process.env.REPLIT_DEV_DOMAIN
+      ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+      : null) ||
     (process.env.RAILWAY_STATIC_URL
       ? `https://${process.env.RAILWAY_STATIC_URL}`
       : null) ||
