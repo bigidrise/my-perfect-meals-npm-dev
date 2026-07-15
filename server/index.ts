@@ -858,6 +858,7 @@ setTimeout(async () => {
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS personal_plan_lookup_key varchar(100)`);
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS personal_entitlements text[] NOT NULL DEFAULT ARRAY[]::text[]`);
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS personal_subscription_status text`);
+    await db.execute(sql`ALTER TABLE business_members ADD COLUMN IF NOT EXISTS removed_at timestamptz`);
     console.log('✅ Business tables boot migration complete');
   } catch (err: any) {
     console.error('❌ Business tables boot migration failed:', err.message);

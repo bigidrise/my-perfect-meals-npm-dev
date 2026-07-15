@@ -20,6 +20,7 @@ import { clearResolvedTargetsCache } from "@/lib/macroResolver";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ClientLegalModal from "@/components/pro/ClientLegalModal";
+import { SponsorEndedBanner } from "@/components/SponsorEndedBanner";
 
 interface ProCareFeature {
   title: string;
@@ -278,6 +279,7 @@ export default function MorePage() {
         style={{ paddingTop: isDesktop ? "0" : "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <div className="max-w-2xl mx-auto space-y-4">
+          <SponsorEndedBanner />
           {/* Hero Image Section */}
           <div className="relative h-48 rounded-xl overflow-hidden">
             <img 

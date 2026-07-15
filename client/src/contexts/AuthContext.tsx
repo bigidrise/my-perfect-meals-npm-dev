@@ -155,6 +155,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           activeProtocolTrack: userData.activeProtocolTrack ?? null,
           weeklyTrainingSchedule: userData.weeklyTrainingSchedule ?? null,
           performanceProtocolConfig: userData.performanceProtocolConfig ?? null,
+          sponsoredByBusinessId: userData.sponsoredByBusinessId ?? null,
+          sponsoredByBusinessName: userData.sponsoredByBusinessName ?? null,
+          recentlyRemovedFromBusiness: userData.recentlyRemovedFromBusiness ?? null,
         };
         if (userData.weeklyTrainingSchedule && userData.performanceProtocolConfig) {
           const uid = String(updatedUser.id);
